@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp } from '../Basic/Icon/Icon';
 import Link from '../Link/Link';
 
@@ -11,7 +11,9 @@ export interface ComponentProps {
     children?: ReactElement | Array<ReactElement>;
 }
 
-const NavBarItem = (props: ComponentProps) => {
+const NavBarItem: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <li className={`nav-item dropdown ${props.isActive ? 'active' : ''}`}>
             <Link

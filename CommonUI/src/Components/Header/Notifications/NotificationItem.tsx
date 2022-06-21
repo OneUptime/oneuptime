@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import CircularIconImage from '../../Basic/Icon/CircularIconImage';
 import Icon, { IconProp } from '../../Basic/Icon/Icon';
 import OneUptimeDate from 'Common/Types/Date';
@@ -10,7 +10,9 @@ export interface ComponentProps {
     createdAt: Date;
 }
 
-const NotificationItem = (props: ComponentProps): ReactElement => {
+const NotificationItem: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <a className="text-reset notification-item" href="/">
             <div className="d-flex">

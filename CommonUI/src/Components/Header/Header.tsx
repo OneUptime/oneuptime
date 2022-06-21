@@ -1,11 +1,13 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     leftComponents?: Array<ReactElement> | ReactElement;
     rightComponents?: Array<ReactElement> | ReactElement;
 }
 
-const Header = (props: ComponentProps) => {
+const Header: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <React.Fragment>
             <header id="page-topbar">

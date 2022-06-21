@@ -1,10 +1,10 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
 import Notifications from 'CommonUI/src/Components/Header/Notifications/Notifications';
 import NotificationItem from 'CommonUI/src/Components/Header/Notifications/NotificationItem';
 import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
 
-const Help = (): ReactElement => {
+const Help: FunctionComponent = (): ReactElement => {
     return (
         <HeaderIconDropdownButton icon={IconProp.Notification} badge={4}>
             <Notifications>

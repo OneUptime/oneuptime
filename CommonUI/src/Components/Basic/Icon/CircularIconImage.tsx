@@ -1,5 +1,5 @@
 import Color from 'Common/Types/Color';
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp, SizeProp } from './Icon';
 
 export interface ComponentProps {
@@ -8,7 +8,9 @@ export interface ComponentProps {
     iconColor?: Color;
 }
 
-const CircularIconImage = (props: ComponentProps): ReactElement => {
+const CircularIconImage: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <div
             className="me-3 rounded-circle avatar-sm"

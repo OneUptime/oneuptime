@@ -1,10 +1,10 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
 }
 
-const UserProfile = (props: ComponentProps): ReactElement => {
+const UserProfile: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
     return (
         <div
             tabIndex={-1}

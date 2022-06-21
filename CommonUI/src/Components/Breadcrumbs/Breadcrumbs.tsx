@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import { Row, Col, BreadcrumbItem } from 'reactstrap';
 
-interface BreadcrumbProps {
+interface ComponentProps {
     breadcrumbItem: string;
     title: string;
 }
 
-const Breadcrumb = ({ breadcrumbItem, title }: BreadcrumbProps) => {
+const Breadcrumb: FunctionComponent<ComponentProps> = ({
+    breadcrumbItem,
+    title,
+}: ComponentProps): ReactElement => {
     return (
         <Row>
             <Col xs="12">

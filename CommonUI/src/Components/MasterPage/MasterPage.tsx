@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     header?: ReactElement;
@@ -7,7 +7,9 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
 }
 
-const Page = (props: ComponentProps) => {
+const Page: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <React.Fragment>
             <div id="layout-wrapper">

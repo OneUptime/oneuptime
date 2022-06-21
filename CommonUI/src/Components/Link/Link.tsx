@@ -1,7 +1,6 @@
-import React from 'react';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Navigation from '../../Utils/Navigation';
 
 export interface ComponentProps {
@@ -10,7 +9,9 @@ export interface ComponentProps {
     to: Route | URL | null;
 }
 
-const Link = (props: ComponentProps) => {
+const Link: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     let children: ReactElement | Array<ReactElement>;
 
     if (typeof props.children === 'string') {

@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import UserProfile from 'CommonUI/src/Components/Header/UserProfile/UserProfile';
 import UserProfileMenu from 'CommonUI/src/Components/Header/UserProfile/UserProfileMenu';
 import UserProfileMenuItem from 'CommonUI/src/Components/Header/UserProfile/UserProfileMenuItem';
@@ -9,7 +9,7 @@ import URL from 'Common/Types/API/URL';
 import Route from 'Common/Types/API/Route';
 import { Red } from 'CommonUI/src/Utils/BrandColors';
 
-const DashboardUserProfile = (): ReactElement => {
+const DashboardUserProfile: FunctionComponent = (): ReactElement => {
     return (
         <UserProfile
             userFullName={new Name('Nawaz Dhandala')}

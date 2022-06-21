@@ -1,5 +1,5 @@
 import URL from 'Common/Types/API/URL';
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp, SizeProp } from '../../Basic/Icon/Icon';
 import Link from '../../Link/Link';
 
@@ -9,7 +9,9 @@ export interface ComponentProps {
     title: string;
 }
 
-const IconDropdown = (props: ComponentProps): ReactElement => {
+const IconDropdown: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <div className="col">
             <Link className="dropdown-icon-item" to={props.url}>

@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp, SizeProp } from '../Basic/Icon/Icon';
 import useComponentOutsideClick from '../../Types/UseComponentOutsideClick';
 
@@ -8,7 +8,9 @@ export interface ComponentProps {
     children?: ReactElement | Array<ReactElement>;
 }
 
-const HeaderIconDropdownButton = (props: ComponentProps) => {
+const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+) => {
     const { ref, isComponentVisible, setIsComponentVisible } =
         useComponentOutsideClick(false);
 

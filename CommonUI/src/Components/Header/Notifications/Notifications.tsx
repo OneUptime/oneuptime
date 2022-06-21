@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp } from '../../Basic/Icon/Icon';
 import Link from '../../Link/Link';
 
@@ -7,7 +7,9 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
 }
 
-const Notifications = (props: ComponentProps): ReactElement => {
+const Notifications: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <div
             tabIndex={-1}

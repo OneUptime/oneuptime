@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import SearchBox from 'CommonUI/src/Components/Header/SearchBox';
 import Notifications from './Notifications';
 import Help from './Help';
@@ -8,7 +8,7 @@ import ObjectID from 'Common/Types/ObjectID';
 
 import Header from 'CommonUI/src/Components/Header/Header';
 
-const DashboardHeader = (): ReactElement => {
+const DashboardHeader: FunctionComponent = (): ReactElement => {
     return (
         <Header
             leftComponents={

@@ -1,10 +1,12 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
 }
 
-const NavBarItem = (props: ComponentProps) => {
+const NavBarItem: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     let children: Array<ReactElement>;
     if (!Array.isArray(props.children) && props.children) {
         children = [props.children];
@@ -23,7 +25,7 @@ const NavBarItem = (props: ComponentProps) => {
                 <div className="row">
                     {children &&
                         children.length > 0 &&
-                        children.map((child, i) => {
+                        children.map((child: ReactElement, i: number) => {
                             return (
                                 <div
                                     key={i}

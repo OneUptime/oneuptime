@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
-const Page = () => {
+const Page: FunctionComponent = (): ReactElement => {
     return (
         <div className="page-content">
             <div className="container-fluid">

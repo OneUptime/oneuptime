@@ -1,11 +1,13 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     rightContent?: ReactElement | Array<ReactElement>;
 }
 
-const Navbar = (props: ComponentProps) => {
+const Navbar: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <React.Fragment>
             <div className="topnav active">

@@ -1,6 +1,6 @@
 import URL from 'Common/Types/API/URL';
 import Name from 'Common/Types/Name';
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp } from '../../Basic/Icon/Icon';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 
@@ -10,7 +10,9 @@ export interface ComponentProps {
     userProfilePicture: URL;
 }
 
-const UserProfile = (props: ComponentProps): ReactElement => {
+const UserProfile: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     const { ref, isComponentVisible, setIsComponentVisible } =
         useComponentOutsideClick(false);
 

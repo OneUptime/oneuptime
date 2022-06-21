@@ -1,11 +1,13 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     title?: string;
 }
 
-const NavBarMenuColumn = (props: ComponentProps) => {
+const NavBarMenuColumn: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <div>
             {props.title && <div className="menu-title">{props.title}</div>}

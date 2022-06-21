@@ -1,4 +1,4 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
 import IconDropdwonItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
 import IconDropdwonMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
@@ -6,7 +6,7 @@ import IconDropdwonRow from 'CommonUI/src/Components/Header/IconDropdown/IconDro
 import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
 import URL from 'Common/Types/API/URL';
 
-const DashboardHeader = (): ReactElement => {
+const DashboardHeader: FunctionComponent = (): ReactElement => {
     return (
         <HeaderIconDropdownButton icon={IconProp.Help}>
             <IconDropdwonMenu>

@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp } from '../Basic/Icon/Icon';
 import Link from '../Link/Link';
 
@@ -10,7 +10,9 @@ export interface ComponentProps {
     icon?: IconProp;
 }
 
-const NavBarMenuItem = (props: ComponentProps): ReactElement => {
+const NavBarMenuItem: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     let children: Array<ReactElement> = [];
 
     if (props.children && !Array.isArray(props.children)) {

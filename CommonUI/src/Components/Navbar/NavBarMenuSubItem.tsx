@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Link from '../Link/Link';
 
 export interface ComponentProps {
@@ -7,7 +7,9 @@ export interface ComponentProps {
     route: Route;
 }
 
-const NavBarMenuItem = (props: ComponentProps): ReactElement => {
+const NavBarMenuItem: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <Link className="dropdown-item" to={props.route}>
             {props.title}

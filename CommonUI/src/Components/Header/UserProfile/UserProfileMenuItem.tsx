@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Color from 'Common/Types/Color';
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp } from '../../Basic/Icon/Icon';
 import Link from '../../Link/Link';
 
@@ -12,7 +12,9 @@ export interface ComponentProps {
     iconColor?: Color;
 }
 
-const UserProfile = (props: ComponentProps): ReactElement => {
+const UserProfile: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <Link to={props.route} className="dropdown-item">
             {props.badge ? (

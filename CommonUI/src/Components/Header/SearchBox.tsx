@@ -1,11 +1,13 @@
-import React, { ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp, SizeProp } from '../Basic/Icon/Icon';
 import { VeryLightGrey } from '../../Utils/BrandColors';
 export interface ComponentProps {
     onChange: (search: string) => void;
 }
 
-const SearchBox = (props: ComponentProps): ReactElement => {
+const SearchBox: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <form className="app-search d-none d-lg-block">
             <div className="position-relative">
