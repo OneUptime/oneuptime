@@ -19,7 +19,7 @@ itsdangerous==1.1.0
 Jinja2==2.10
 MarkupSafe==1.1.1
 mccabe==0.6.1
-numpy==1.16.2
+numpy==1.22.0
 packaging==20.9
 pandas==0.24.1
 pathlib2==2.3.5
