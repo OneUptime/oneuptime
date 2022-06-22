@@ -3,7 +3,7 @@ import UserProfile from 'CommonUI/src/Components/Header/UserProfile/UserProfile'
 import UserProfileMenu from 'CommonUI/src/Components/Header/UserProfile/UserProfileMenu';
 import UserProfileMenuItem from 'CommonUI/src/Components/Header/UserProfile/UserProfileMenuItem';
 import UserProfileDropdownDivider from 'CommonUI/src/Components/Header/UserProfile/UserProfileDropdownDivider';
-import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Name from 'Common/Types/Name';
 import URL from 'Common/Types/API/URL';
 import Route from 'Common/Types/API/Route';

@@ -1,10 +1,10 @@
 import React, { ReactElement } from 'react';
 import { ErrorMessage, Field, Form, Formik, FormikErrors } from 'formik';
-import Button from '../Basic/Button/Button';
+import Button from '../Button/Button';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import DataField from './Types/Field';
-import ButtonTypes from '../Basic/Button/ButtonTypes';
+import ButtonTypes from '../Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';

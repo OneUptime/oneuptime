@@ -31,6 +31,8 @@ import {
     FiFolder,
     FiShare2,
     FiMessageSquare,
+    FiInfo,
+    FiCheck
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -76,6 +78,8 @@ export enum IconProp {
     Folder,
     Integrations,
     SMS,
+    Info,
+    Success
 }
 
 export interface ComponentProps {
@@ -222,6 +226,18 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.SMS && (
                 <FiMessageSquare
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+             {icon === IconProp.Info && (
+                <FiInfo
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Success && (
+                <FiCheck
                     size={size}
                     color={color ? color.toString() : ''}
                 />

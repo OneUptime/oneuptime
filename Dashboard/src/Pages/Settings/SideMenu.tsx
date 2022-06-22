@@ -1,9 +1,11 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Route from 'Common/Types/API/Route';
-import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
+import RouteMap from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
     return (
@@ -12,7 +14,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 <SideMenuItem
                     link={{
                         title: 'Project',
-                        to: new Route('/:projectSlug/home'),
+                        to: RouteMap[PageMap.SETTINGS] as Route,
                     }}
                     icon={IconProp.Folder}
                 />
@@ -97,7 +99,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 <SideMenuItem
                     link={{
                         title: 'Danger Zone',
-                        to: new Route('/:projectSlug/home'),
+                        to: RouteMap[PageMap.SETTINGS_DANGERZONE] as Route,
                     }}
                     icon={IconProp.Error}
                     className="danger-on-hover"

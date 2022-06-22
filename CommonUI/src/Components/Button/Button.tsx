@@ -1,13 +1,19 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import { MouseOnClick, KeyboardEventProp } from '../../../Types/HtmlEvents';
+import { KeyboardEventProp } from '../../Types/HtmlEvents';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
 import CSS from 'csstype';
 import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 
+export enum ButtonStyleType {
+    PRIMARY, 
+    NORMAL, 
+    DANGER
+}
+
 export interface ComponentProps {
     title: string;
-    onClick?: MouseOnClick;
+    onClick: () => void;
     disabled?: boolean;
     id?: string;
     shortcutKey?: ShortcutKey;
@@ -17,6 +23,7 @@ export interface ComponentProps {
     icon?: IconProp;
     showIconOnRight?: boolean;
     iconSize?: SizeProp;
+    buttonStyle?: ButtonStyleType;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -31,6 +38,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     icon,
     iconSize,
     showIconOnRight = false,
+    buttonStyle = ButtonStyleType.NORMAL,
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -70,14 +78,28 @@ const Button: FunctionComponent<ComponentProps> = ({
         }
     };
 
+    let buttonStyleCssClass: string = "";
+
+    if (buttonStyle === ButtonStyleType.DANGER) {
+        buttonStyleCssClass = "btn-danger"
+    }
+
+    if (buttonStyle === ButtonStyleType.PRIMARY) {
+        buttonStyleCssClass = "btn-primary"
+    }
+
     return (
         <button
             style={style}
             id={id}
-            onClick={onClick}
+            onClick={() => {
+                if (onClick) {
+                    onClick();
+                }
+            }}
             type={type}
             disabled={disabled}
-            className="button"
+            className={`btn ${buttonStyleCssClass} waves-effect btn-label waves-light`}
         >
             {!isLoading && (
                 <div>

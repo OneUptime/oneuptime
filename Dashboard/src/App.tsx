@@ -10,13 +10,17 @@ import MasterPage from './Components/MasterPage/MasterPage';
 // Pages
 import Init from './Pages/Init/Init';
 import Home from './Pages/Home/Home';
-import Settings from './Pages/Settings/Settings';
+
 import StatusPages from './Pages/StatusPages/StatusPages';
 import Incidents from './Pages/Incidents/Incidents';
 import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
+
+// Settings Pages
+import Settings from './Pages/Settings/Settings';
+import SettingsDangerZone from './Pages/Settings/DangerZone';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -46,14 +50,7 @@ const App: FunctionComponent = () => {
                         <Init pageRoute={RouteMap[PageMap.MONITORS] as Route} />
                     }
                 />
-                <PageRoute
-                    path={RouteMap[PageMap.SETTINGS]?.toString()}
-                    element={
-                        <Settings
-                            pageRoute={RouteMap[PageMap.SETTINGS] as Route}
-                        />
-                    }
-                />
+
                 <PageRoute
                     path={RouteMap[PageMap.STATUS_PAGE]?.toString()}
                     element={
@@ -76,6 +73,33 @@ const App: FunctionComponent = () => {
                         <Logs pageRoute={RouteMap[PageMap.LOGS] as Route} />
                     }
                 />
+
+
+
+
+
+
+                { /* Settings Routes */}
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS]?.toString()}
+                    element={
+                        <Settings
+                            pageRoute={RouteMap[PageMap.SETTINGS] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_DANGERZONE]?.toString()}
+                    element={
+                        <SettingsDangerZone
+                            pageRoute={RouteMap[PageMap.SETTINGS_DANGERZONE] as Route}
+                        />
+                    }
+                />
+
+
             </Routes>
         </MasterPage>
     );

@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import CircularIconImage from '../../Basic/Icon/CircularIconImage';
-import Icon, { IconProp } from '../../Basic/Icon/Icon';
+import CircularIconImage from '../../Icon/CircularIconImage';
+import Icon, { IconProp } from '../../Icon/Icon';
 import OneUptimeDate from 'Common/Types/Date';
 
 export interface ComponentProps {
