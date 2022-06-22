@@ -10,11 +10,12 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.LOGS]: new Route('/:projectSlug/logs/'),
     [PageMap.SETTINGS]: new Route('/:projectSlug/settings/'),
     [PageMap.MONITORS]: new Route('/:projectSlug/monitors/'),
-    [PageMap.AUTOMATION_SCRIPTS]: new Route('/:projectSlug/automation-scripts/'),
+    [PageMap.AUTOMATION_SCRIPTS]: new Route(
+        '/:projectSlug/automation-scripts/'
+    ),
     [PageMap.ON_CALL]: new Route('/:projectSlug/on-call/'),
     [PageMap.REPORTS]: new Route('/:projectSlug/reports/'),
     [PageMap.ERROR_TRACKER]: new Route('/:projectSlug/error-tracker/'),
-    
 };
 
 export default RouteMap;

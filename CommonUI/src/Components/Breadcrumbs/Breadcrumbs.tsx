@@ -1,35 +1,34 @@
+import Link from 'Common/Types/Link';
 import React, { FunctionComponent, ReactElement } from 'react';
-import { Link } from 'react-router-dom';
-import { Row, Col, BreadcrumbItem } from 'reactstrap';
+import UILink from '../Link/Link';
 
 interface ComponentProps {
-    breadcrumbItem: string;
-    title: string;
+    links: Array<Link>;
 }
 
-const Breadcrumb: FunctionComponent<ComponentProps> = ({
-    breadcrumbItem,
-    title,
+const Breadcrumbs: FunctionComponent<ComponentProps> = ({
+    links,
 }: ComponentProps): ReactElement => {
     return (
-        <Row>
-            <Col xs="12">
-                <div className="page-title-box d-sm-flex align-items-center justify-content-between">
-                    <h4 className="mb-0 font-size-18">{breadcrumbItem}</h4>
-                    <div className="page-title-right">
-                        <ol className="breadcrumb m-0">
-                            <BreadcrumbItem>
-                                <Link to="#">{title}</Link>
-                            </BreadcrumbItem>
-                            <BreadcrumbItem active>
-                                <Link to="#">{breadcrumbItem}</Link>
-                            </BreadcrumbItem>
-                        </ol>
-                    </div>
-                </div>
-            </Col>
-        </Row>
+        <div className="page-title-right">
+            <ol className="breadcrumb m-0">
+                {links &&
+                    links.length > 0 &&
+                    links.map((link: Link, i: number) => {
+                        return (
+                            <li
+                                key={i}
+                                className={`breadcrumb-item ${
+                                    i === links.length - 1 ? 'active' : ''
+                                }`}
+                            >
+                                <UILink to={link.to}>{link.title}</UILink>
+                            </li>
+                        );
+                    })}
+            </ol>
+        </div>
     );
 };
 
-export default Breadcrumb;
+export default Breadcrumbs;

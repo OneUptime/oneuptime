@@ -9,22 +9,21 @@ import URL from 'Common/Types/API/URL';
 const Help: FunctionComponent = (): ReactElement => {
     return (
         <HeaderIconDropdownButton icon={IconProp.Help}>
-        <IconDropdwonMenu>
-            <IconDropdwonRow>
-                <IconDropdwonItem
-                    title="Support Email"
-                    icon={IconProp.Email}
-                    url={URL.fromString('https://google.com')}
-                />
-                <IconDropdwonItem
-                    title="Chat on Slack"
-                    icon={IconProp.Slack}
-                    url={URL.fromString('https://google.com')}
-                />
-            </IconDropdwonRow>
-        </IconDropdwonMenu>
-    </HeaderIconDropdownButton>
-       
+            <IconDropdwonMenu>
+                <IconDropdwonRow>
+                    <IconDropdwonItem
+                        title="Support Email"
+                        icon={IconProp.Email}
+                        url={URL.fromString('https://google.com')}
+                    />
+                    <IconDropdwonItem
+                        title="Chat on Slack"
+                        icon={IconProp.Slack}
+                        url={URL.fromString('https://google.com')}
+                    />
+                </IconDropdwonRow>
+            </IconDropdwonMenu>
+        </HeaderIconDropdownButton>
     );
 };
 

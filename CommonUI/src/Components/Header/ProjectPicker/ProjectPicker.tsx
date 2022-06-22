@@ -1,13 +1,6 @@
-//import ObjectID from 'Common/Types/ObjectID';
 import React, { FunctionComponent, ReactElement } from 'react';
 
-export interface ComponentProps {
-    //onChange: (projectId: ObjectID) => void;
-}
-
-const ProjectPicker: FunctionComponent<ComponentProps> = (
-    _props: ComponentProps
-): ReactElement => {
+const ProjectPicker: FunctionComponent = (): ReactElement => {
     return (
         <div className="navbar-brand-box">
             <a className="logo logo-dark" href="/dashboard">

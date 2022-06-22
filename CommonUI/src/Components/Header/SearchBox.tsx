@@ -9,15 +9,18 @@ const SearchBox: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <form className="app-search d-none d-lg-block" style={{
-            width: "400px"
-        }}>
+        <form
+            className="app-search d-none d-lg-block"
+            style={{
+                width: '400px',
+            }}
+        >
             <div className="position-relative">
                 <input
                     type="text"
                     className="form-control"
                     placeholder="Search..."
-                    onChange={(e) => {
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         props.onChange(e.target.value);
                     }}
                 />

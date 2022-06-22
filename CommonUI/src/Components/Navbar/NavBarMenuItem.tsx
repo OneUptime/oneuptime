@@ -21,17 +21,23 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
         children = props.children ? props.children : [];
     }
 
-    const getDropdownItem = (): ReactElement => {
-        return (<Link className="dropdown-item" to={props.route}>
-            {props.icon ? <><Icon icon={props.icon} size={SizeProp.Large} /> &nbsp;</> : <></>}
-            <span>{props.title}</span>
-        </Link>)
-    }
+    const getDropdownItem: Function = (): ReactElement => {
+        return (
+            <Link className="dropdown-item" to={props.route}>
+                {props.icon ? (
+                    <>
+                        <Icon icon={props.icon} size={SizeProp.Large} /> &nbsp;
+                    </>
+                ) : (
+                    <></>
+                )}
+                <span>{props.title}</span>
+            </Link>
+        );
+    };
 
     if (children.length === 0) {
-        return (
-            getDropdownItem()
-        );
+        return getDropdownItem();
     }
 
     return (

@@ -9,7 +9,7 @@ enum PageMap {
     ON_CALL = 'ON_CALL',
     AUTOMATION_SCRIPTS = 'AUTOMATION_SCRIPTS',
     REPORTS = 'REPORTS',
-    ERROR_TRACKER = 'ERROR_TRACKER'
+    ERROR_TRACKER = 'ERROR_TRACKER',
 }
 
 export default PageMap;

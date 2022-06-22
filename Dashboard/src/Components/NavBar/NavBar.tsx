@@ -23,14 +23,25 @@ const DashboardNavbar: FunctionComponent = () => {
                 title="Home"
                 icon={IconProp.Home}
                 route={RouteMap[PageMap.HOME] as Route}
-                isActive={true}
             ></NavBarItem>
 
-            <NavBarItem title="Monitors" route={RouteMap[PageMap.MONITORS] as Route} icon={IconProp.Activity}></NavBarItem>
+            <NavBarItem
+                title="Monitors"
+                route={RouteMap[PageMap.MONITORS] as Route}
+                icon={IconProp.Activity}
+            ></NavBarItem>
 
-            <NavBarItem title="Incidents" route={RouteMap[PageMap.INCIDENTS] as Route} icon={IconProp.Alert}></NavBarItem>
+            <NavBarItem
+                title="Incidents"
+                route={RouteMap[PageMap.INCIDENTS] as Route}
+                icon={IconProp.Alert}
+            ></NavBarItem>
 
-            <NavBarItem title="On-Call Duty" route={RouteMap[PageMap.ON_CALL] as Route} icon={IconProp.Call}></NavBarItem>
+            <NavBarItem
+                title="On-Call Duty"
+                route={RouteMap[PageMap.ON_CALL] as Route}
+                icon={IconProp.Call}
+            ></NavBarItem>
 
             <NavBarItem
                 title="Status Pages"
@@ -55,7 +66,9 @@ const DashboardNavbar: FunctionComponent = () => {
                     <NavBarMenuColumn title="Advanced">
                         <NavBarMenuItem
                             title="Automation Scripts"
-                            route={RouteMap[PageMap.AUTOMATION_SCRIPTS] as Route}
+                            route={
+                                RouteMap[PageMap.AUTOMATION_SCRIPTS] as Route
+                            }
                             icon={IconProp.Code}
                         />
                         <NavBarMenuItem

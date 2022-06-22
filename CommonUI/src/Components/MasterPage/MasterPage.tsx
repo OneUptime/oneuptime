@@ -7,7 +7,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
 }
 
-const Page: FunctionComponent<ComponentProps> = (
+const MasterPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
@@ -22,4 +22,4 @@ const Page: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default Page;
+export default MasterPage;

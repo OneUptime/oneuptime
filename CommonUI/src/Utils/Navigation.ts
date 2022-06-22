@@ -14,8 +14,36 @@ abstract class Navigation {
         this.location = location;
     }
 
-    public static getLocation(): Route {
+    public static getCurrentRoute(): Route {
         return new Route(this.location.pathname);
+    }
+
+    public static getCurrentURL(): URL {
+        return URL.fromString(window.location.href);
+    }
+
+    public static isOnThisPage(route: Route | URL): boolean {
+        if (route instanceof Route) {
+            const current: Route = this.getCurrentRoute();
+
+            if (current.toString() === route.toString()) {
+                return true;
+            }
+
+            return false;
+        }
+
+        if (route instanceof URL) {
+            const current: URL = this.getCurrentURL();
+
+            if (current.toString() === route.toString()) {
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
     }
 
     public static navigate(to: Route | URL): void {

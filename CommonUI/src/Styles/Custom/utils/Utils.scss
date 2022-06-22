@@ -6,6 +6,24 @@
     }
 }
 
+.primary-on-hover {
+    cursor: pointer;
+
+    &:hover {
+       color: $primary
+    }
+}
+
+.danger-on-hover {
+    cursor: pointer;
+
+    &:hover {
+       color: $danger !important
+    }
+}
+
+
+
 .pointer {
     cursor: pointer !important;
 }

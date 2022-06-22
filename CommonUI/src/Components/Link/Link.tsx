@@ -1,3 +1,5 @@
+/* eslint-disable jsx-a11y/anchor-is-valid */
+
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import React, { FunctionComponent, ReactElement } from 'react';

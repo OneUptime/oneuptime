@@ -24,7 +24,13 @@ import {
     FiTerminal,
     FiAlertTriangle,
     FiCode,
-    FiPieChart
+    FiPieChart,
+    FiUsers,
+    FiLock,
+    FiKey,
+    FiFolder,
+    FiShare2,
+    FiMessageSquare,
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -63,7 +69,13 @@ export enum IconProp {
     Terminal,
     Error,
     Code,
-    Report
+    Report,
+    Team,
+    Lock,
+    Key,
+    Folder,
+    Integrations,
+    SMS,
 }
 
 export interface ComponentProps {
@@ -177,13 +189,42 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <FiTerminal size={size} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Error && (
-                <FiAlertTriangle size={size} color={color ? color.toString() : ''} />
+                <FiAlertTriangle
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
             )}
             {icon === IconProp.Code && (
                 <FiCode size={size} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Report && (
                 <FiPieChart size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Team && (
+                <FiUsers size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.Lock && (
+                <FiLock size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.Key && (
+                <FiKey size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.Folder && (
+                <FiFolder size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.Integrations && (
+                <FiShare2 size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.SMS && (
+                <FiMessageSquare
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
             )}
         </span>
     );

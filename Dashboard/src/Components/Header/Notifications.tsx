@@ -1,5 +1,3 @@
-
-
 import React, { FunctionComponent, ReactElement } from 'react';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
 import Notifications from 'CommonUI/src/Components/Header/Notifications/Notifications';

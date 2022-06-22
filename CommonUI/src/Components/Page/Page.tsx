@@ -1,29 +1,39 @@
+import Link from 'Common/Types/Link';
 import React, { FunctionComponent, ReactElement } from 'react';
+import Breadcrumbs from '../Breadcrumbs/Breadcrumbs';
 
-const Page: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+    title: string;
+    breadcrumbLinks: Array<Link>;
+    children: Array<ReactElement> | ReactElement;
+    sideMenu?: ReactElement;
+}
+
+const Page: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <div className="page-content">
             <div className="container-fluid">
                 <div className="row">
                     <div className="col-12">
                         <div className="page-title-box d-sm-flex align-items-center justify-content-between">
-                            <h4 className="mb-0 font-size-18">Dashboard</h4>
-                            <div className="page-title-right">
-                                <ol className="breadcrumb m-0">
-                                    <li className="breadcrumb-item">
-                                        <a href="/dashboard">Dashboard</a>
-                                    </li>
-                                    <li
-                                        className="active breadcrumb-item"
-                                        aria-current="page"
-                                    >
-                                        <a href="/dashboard">Dashboard</a>
-                                    </li>
-                                </ol>
-                            </div>
+                            <h4 className="mb-0 font-size-18">{props.title}</h4>
+                            <Breadcrumbs links={props.breadcrumbLinks} />
                         </div>
                     </div>
                 </div>
+                {props.sideMenu && (
+                    <div className="row">
+                        <div className="col-12">
+                            {props.sideMenu}
+                            <div className="email-rightbar mb-3">
+                                {props.children}
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {!props.sideMenu && props.children}
             </div>
         </div>
     );
