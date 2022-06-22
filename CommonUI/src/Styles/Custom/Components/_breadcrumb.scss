@@ -1,0 +1,27 @@
+
+// 
+// breadcrumb.scss
+//
+
+
+// Breadcrumb item arrow
+.breadcrumb-item {
+    > a {
+        color: $gray-700;
+    }
+    +.breadcrumb-item {
+        &::before {
+            font-family: "Material Design Icons";
+        }
+    }
+}
+  
+body[data-layout-mode="dark"] {
+    .breadcrumb-item>a {
+        color: $gray-dark-500;
+    }
+
+    .breadcrumb-item.active{
+        color: $gray-dark-400;
+    }
+}

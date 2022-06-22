@@ -6,13 +6,9 @@ import {
     useNavigate,
     useLocation,
 } from 'react-router-dom';
-import TopBar from './Components/TopBar/TopBar';
-import NavBar from './Components/NavBar/NavBar';
-import './App.scss';
-
+import MasterPage from './Components/MasterPage/MasterPage';
 // Pages
 import Init from './Pages/Init/Init';
-import Monitors from './Pages/Monitors/Monitors';
 import Home from './Pages/Home/Home';
 import Settings from './Pages/Settings/Settings';
 import StatusPages from './Pages/StatusPages/StatusPages';
@@ -22,14 +18,15 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
+// Import CSS
+import 'CommonUI/src/Styles/theme.scss';
+
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
 
     return (
-        <div className="App">
-            <TopBar />
-            <NavBar />
+        <MasterPage>
             <Routes>
                 <PageRoute
                     path={RouteMap[PageMap.INIT]?.toString()}
@@ -46,9 +43,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={RouteMap[PageMap.MONITORS]?.toString()}
                     element={
-                        <Monitors
-                            pageRoute={RouteMap[PageMap.MONITORS] as Route}
-                        />
+                        <Init pageRoute={RouteMap[PageMap.MONITORS] as Route} />
                     }
                 />
                 <PageRoute
@@ -82,7 +77,7 @@ const App: FunctionComponent = () => {
                     }
                 />
             </Routes>
-        </div>
+        </MasterPage>
     );
 };
 

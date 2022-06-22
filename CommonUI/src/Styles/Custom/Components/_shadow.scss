@@ -1,0 +1,13 @@
+//
+// shadow.scss
+//
+@mixin componets-shadow($color) {
+  box-shadow: 0 2px 8px 0 rgba($color, 0.3);
+}
+
+// Shadows
+@each $color, $value in $theme-colors {
+  .shadow-#{$color} {
+      @include componets-shadow($value);
+  }
+}

@@ -1,0 +1,28 @@
+
+//
+// colorpicker.scss
+//
+
+.pcr-app{
+  background: $card-bg;
+}
+
+.pcr-app[data-theme=classic]{
+  .pcr-selection {
+    .pcr-color-preview{
+      margin-right: .75em;
+      margin-left: 0;
+    }
+
+    .pcr-color-chooser, .pcr-color-opacity{
+      margin-left: .75em;
+      margin-right: 0;
+    }
+  }
+}
+
+body[data-layout-mode="dark"] {
+  .pcr-app{
+    background-color: $gray-dark-300;
+  }
+}

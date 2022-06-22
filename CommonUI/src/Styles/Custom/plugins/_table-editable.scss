@@ -1,0 +1,32 @@
+
+//
+// Table editable
+//
+
+.table-edits{
+  input, select{
+    height: $input-height-sm;
+    padding: $input-padding-y-sm $input-padding-x-sm;
+    border: 1px solid $input-border-color;
+    background-color: $input-bg;
+    color: $input-color;
+    border-radius: $input-border-radius;
+    &:focus{
+      outline: none;
+      border-color: $input-focus-border-color;
+    }
+  }
+}
+
+body[data-layout-mode="dark"] {
+  .table-edits{
+    input,  select{
+      color: $gray-dark-500;
+      background-color: lighten($gray-dark-200,2%);
+      border: 1px solid $gray-dark-300;
+      &:focus{
+        border-color: $gray-dark-300;
+      }
+    }
+  }
+}

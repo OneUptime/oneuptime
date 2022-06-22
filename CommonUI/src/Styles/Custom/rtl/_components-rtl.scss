@@ -1,0 +1,142 @@
+//
+// components-rtl.scss
+//
+
+// UI Elements
+
+.ui-elements-demo-bar{
+  margin-left: 0;
+  margin-right: 20px;
+}
+
+.alert-dismissible {
+  padding-left: $alert-dismissible-padding-r;
+  padding-right: $alert-padding-x;
+}
+
+.alert-border-left{
+  border-left: 2px;
+  border-right: 3px solid;
+}
+
+
+
+// alert-label-icon
+
+.alert-label-icon {
+  padding-left: $alert-dismissible-padding-r;
+  padding-right: 60px;
+
+  .label-icon{
+    left: auto;
+    right: 0;
+    &:after{
+      left: -12px;
+      right: auto !important;
+    }
+  }
+}
+
+// Alert example loop
+
+@each $color, $value in $theme-colors {
+  // alert border left
+  .alert-border-left {
+    &.alert-#{$color} {
+      border-right-color: $value;
+    }
+  }
+
+  // label arrow
+  .label-arrow {
+    &.alert-#{$color} {
+      .label-icon {
+        &:after {
+          border-left-color: transparent !important;
+          border-right-color: $value !important;
+        }
+      }
+    }
+  }
+}
+
+// search-box
+
+.search-box{
+  .form-control{
+    padding-right: 40px;
+    padding-left: 20px;
+  }
+
+  .search-icon{
+    left: auto;
+    right: 13px;
+  }
+}
+// dropdown
+
+.dropdown-megamenu{
+  &.show{
+    left: 20px!important;
+  }
+}
+
+
+// icons
+
+.icon-demo-content{
+  i{
+    margin-left: 10px;
+    margin-right: 0;
+  }
+}
+
+
+// Breadcrumb
+
+.breadcrumb-item + .breadcrumb-item::before {
+  float: right;
+  padding-left: 0.5rem;
+  padding-right: 0;
+}
+
+
+// activity-feed
+
+.activity-feed{
+  .feed-item {
+    padding-left: 0;
+    padding-right: 16px;
+    border-left: 0;
+    border-right: 2px solid $light;
+    &:after {
+      left: auto;
+      right: -6px;
+    }
+  }
+}
+
+
+// Invoice
+
+@media print {
+  .content-page,
+  .content,
+  body {
+      margin-right: 0;
+  }
+}
+
+// Demos button 
+.demos-show-btn {
+  left: 0;
+  right: auto;
+  border-radius: 0 6px 6px 0;
+}
+
+// widget
+
+.widget-box-1-icon{
+  right: auto;
+  left: -15px;
+}

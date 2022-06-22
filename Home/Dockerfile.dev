@@ -11,7 +11,6 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
-RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
@@ -35,9 +34,6 @@ RUN npm run compile
 
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-
-
-
 WORKDIR /usr/src/app
 
 # Copy package.json files
@@ -47,6 +43,8 @@ COPY ./Home/package-lock.json /usr/src/app/package-lock.json
 
 # Install app dependencies
 RUN npm install
+
+RUN npm install nodemon -g
 
 # Expose ports.
 #   - 1444: OneUptime Home

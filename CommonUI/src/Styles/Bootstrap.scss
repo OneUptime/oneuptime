@@ -1,0 +1,30 @@
+/*
+Template Name: Minia - Admin & Dashboard Template
+Author: Themesbrand
+Version: 1.0.0
+Website: https://themesbrand.com/
+Contact: themesbrand@gmail.com
+File: Custom Bootstrap Css File
+*/
+
+
+//Core files
+@import "../../node_modules/bootstrap/scss/functions";
+@import "../../node_modules/bootstrap/scss/variables";
+@import "Variables";
+@import "../../node_modules/bootstrap/scss/bootstrap";
+
+@import "Custom/Components/_reboot";
+@import "Custom/Components/alerts";
+@import "Custom/Components/backgrounds";
+@import "Custom/Components/badge";
+@import "Custom/Components/buttons";
+@import "Custom/Components/breadcrumb";
+@import "Custom/Components/carousel";
+@import "Custom/Components/card";
+@import "Custom/Components/dropdown";
+@import "Custom/Components/nav";
+@import "Custom/Components/table";
+@import "Custom/Components/pagination";
+@import "Custom/Components/progress";
+@import "Custom/Components/shadow";

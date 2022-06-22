@@ -1,17 +1,37 @@
+import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    faCircleQuestion,
-    faUser,
-    faCog,
-    faBell,
-    faFile,
-    faChevronDown,
-    faChevronRight,
-    IconDefinition,
-    faHome,
-} from '@fortawesome/free-solid-svg-icons';
-import Dictionary from 'Common/Types/Dictionary';
+    FiHome,
+    FiGrid,
+    FiActivity,
+    FiAlertOctagon,
+    FiPhoneCall,
+    FiSettings,
+    FiBell,
+    FiCheckCircle,
+    FiSearch,
+    FiHelpCircle,
+    FiPower,
+    FiCreditCard,
+    FiUser,
+    FiChevronDown,
+    FiChevronRight,
+    FiChevronLeft,
+    FiChevronUp,
+    FiMail,
+    FiSlack,
+    FiClock,
+    FiTerminal,
+    FiAlertTriangle,
+    FiCode,
+    FiPieChart,
+    FiUsers,
+    FiLock,
+    FiKey,
+    FiFolder,
+    FiShare2,
+    FiMessageSquare,
+} from 'react-icons/fi';
 
 export enum SizeProp {
     ExtraSmall = '8px',
@@ -19,41 +39,57 @@ export enum SizeProp {
     Small = '12px',
     Regular = '15px',
     Large = '18px',
+    Larger = '21px',
     ExtraLarge = '25px',
 }
 
 export enum IconProp {
-    File = 'File',
-    User = 'User',
-    Settings = 'Settings',
-    Notification = 'Notifications',
-    Help = 'Help',
-    ChevronDown = 'ChevronDown',
-    ChevronRight = 'ChevronRight',
-    Home = 'Home',
+    File,
+    User,
+    Settings,
+    Notification,
+    Help,
+    ChevronDown,
+    ChevronRight,
+    ChevronUp,
+    ChevronLeft,
+    Home,
+    Grid,
+    More,
+    Activity,
+    Alert,
+    Call,
+    CheckCircle,
+    Search,
+    Logout,
+    Billing,
+    Email,
+    Slack,
+    Time,
+    Terminal,
+    Error,
+    Code,
+    Report,
+    Team,
+    Lock,
+    Key,
+    Folder,
+    Integrations,
+    SMS,
 }
-
-const IconDictionary: Dictionary<IconDefinition> = {
-    [IconProp.Help]: faCircleQuestion,
-    [IconProp.User]: faUser,
-    [IconProp.Notification]: faBell,
-    [IconProp.Settings]: faCog,
-    [IconProp.File]: faFile,
-    [IconProp.ChevronDown]: faChevronDown,
-    [IconProp.ChevronRight]: faChevronRight,
-    [IconProp.Home]: faHome,
-};
 
 export interface ComponentProps {
     icon: IconProp;
     size?: SizeProp;
     className?: string;
+    color?: Color | null;
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
     icon,
     className,
+    color,
 }: ComponentProps): ReactElement => {
     return (
         <span
@@ -62,12 +98,134 @@ const Icon: FunctionComponent<ComponentProps> = ({
             }}
             className={className ? className : ''}
         >
-            <FontAwesomeIcon
-                icon={IconDictionary[icon] as IconDefinition}
-                style={{
-                    fontSize: size,
-                }}
-            />
+            {icon === IconProp.Home && (
+                <FiHome size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.More && (
+                <FiGrid size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Activity && (
+                <FiActivity size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Alert && (
+                <FiAlertOctagon
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Call && (
+                <FiPhoneCall
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Settings && (
+                <FiSettings size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Notification && (
+                <FiBell size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.CheckCircle && (
+                <FiCheckCircle
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Search && (
+                <FiSearch size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Help && (
+                <FiHelpCircle
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Logout && (
+                <FiPower size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Billing && (
+                <FiCreditCard
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.User && (
+                <FiUser size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.ChevronDown && (
+                <FiChevronDown
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.ChevronLeft && (
+                <FiChevronLeft
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.ChevronRight && (
+                <FiChevronRight
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.ChevronUp && (
+                <FiChevronUp
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Email && (
+                <FiMail size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Slack && (
+                <FiSlack size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Time && (
+                <FiClock size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Terminal && (
+                <FiTerminal size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Error && (
+                <FiAlertTriangle
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Code && (
+                <FiCode size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Report && (
+                <FiPieChart size={size} color={color ? color.toString() : ''} />
+            )}
+            {icon === IconProp.Team && (
+                <FiUsers size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.Lock && (
+                <FiLock size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.Key && (
+                <FiKey size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.Folder && (
+                <FiFolder size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.Integrations && (
+                <FiShare2 size={size} color={color ? color.toString() : ''} />
+            )}
+
+            {icon === IconProp.SMS && (
+                <FiMessageSquare
+                    size={size}
+                    color={color ? color.toString() : ''}
+                />
+            )}
         </span>
     );
 };

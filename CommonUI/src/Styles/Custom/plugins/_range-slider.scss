@@ -1,0 +1,192 @@
+
+//
+// Range slider
+//
+
+.noUi-connect{
+  background: $info;
+}
+
+.noUi-handle{
+  background: $card-bg;
+}
+
+.noUi-horizontal{
+  height: 8px;
+  .noUi-handle{
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    right: -10px;
+    top: -7px;
+
+    &::before, &::after{
+      display: none;
+    }
+    &:focus{
+      outline: 0;
+    }
+  }
+}
+
+.noUi-pips-horizontal{
+  height: 50px;
+}
+
+.noUi-vertical{
+  width: 8px;
+  .noUi-handle{
+    height: 20px;
+    width: 20px;
+    right: -7px;
+    top: -12px;
+    border-radius: 50%;
+    &::before, &::after{
+      display: none;
+    }
+    &:focus{
+      outline: 0;
+    }
+  }
+}
+
+.noUi-value{
+  font-size: 12px;
+}
+
+.noUi-marker-horizontal{
+  &.noUi-marker-large{
+    height: 6px;
+  }
+
+  &.noUi-marker{
+    display: none;
+  }
+}
+
+.noUi-target{
+  background-color: $light;
+  border-color: $light;
+}
+
+.noUi-touch-area{
+  &:focus{
+    outline: 0;
+  }
+}
+
+// Colorpicker
+
+#red, #green, #blue {
+	margin: 10px;
+	display: inline-block;
+	height: 200px;
+}
+
+#colorpicker {
+	height: 240px;
+	width: 310px;
+	margin: 0 auto;
+	padding: 10px;
+	border: 1px solid $border-color;
+}
+
+#result {
+	margin: 60px 26px;
+	height: 100px;
+	width: 100px;
+	display: inline-block;
+	vertical-align: top;
+	border: 1px solid $border-color;
+    box-shadow: 0 0 3px;
+    border-radius: 7px;
+}
+
+#red {
+    .noUi-connect {
+        background: $danger;
+    }
+}
+
+#green {
+    .noUi-connect {
+        background: $success;
+    }
+}
+
+#blue {
+    .noUi-connect {
+        background: $primary;
+    }
+}
+
+// Adding keyboard support
+
+.form-control{
+    &.keyboard{
+        max-width: 340px !important;
+    }
+}
+
+// Using HTML5 input elements
+
+#input-select,
+#input-number {
+	padding: 7px;
+	margin: 15px 5px 5px;
+	width: 70px;
+}
+
+// Non linear slider
+
+.example-val{
+    font-size: 12px;
+    color: $text-muted;
+    display: block;
+    margin: 15px 0;
+    &:before{
+        content: "Value: ";
+        font-size: 12px;
+        font-weight: 600;
+    }
+}
+
+// showing tooltips
+
+.noUi-tooltip {
+    display: none;
+}
+.noUi-active .noUi-tooltip {
+    display: block;
+}
+
+// Colored Connect Elements
+
+.c-1-color { background: $danger; }
+.c-2-color { background: $warning; }
+.c-3-color { background: $success; }
+.c-4-color { background: $primary; }
+.c-5-color { background: $purple; }
+
+//  slider togle
+
+#slider-toggle {
+    height: 50px;
+    &.off{
+        .noUi-handle{
+            border-color: $danger;
+        }
+    }
+}
+
+body[data-layout-mode="dark"] {
+  .noUi-target{
+    background-color: $gray-dark-300;
+    border-color: $gray-dark-300;
+    box-shadow: inset 0 1px 1px $gray-dark-300, 0 3px 6px -5px $gray-dark-300;
+  }
+
+  .example-val{
+    color: $gray-dark-400;
+  }
+}

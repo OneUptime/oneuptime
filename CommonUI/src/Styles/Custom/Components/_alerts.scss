@@ -1,0 +1,123 @@
+//
+// alerts.scss
+//
+
+// alert outline
+
+.alert-outline {
+  background-color: $card-bg;
+}
+
+// alert-label-icon
+
+.alert-label-icon {
+  position: relative;
+  padding-left: 60px;
+  border: 0;
+
+  .label-icon {
+    position: absolute;
+    width: 45px;
+    height: 100%;
+    left: 0;
+    top: 0;
+    background-color: rgba($white, 0.1);
+    border-right: 1px solid rgba($white, 0.1);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // label arrow
+  &.label-arrow {
+    overflow: hidden;
+    .label-icon {
+      color: $white;
+      &:after {
+        content: "";
+        position: absolute;
+        border: 6px solid transparent;
+        right: -12px;
+      }
+    }
+  }
+}
+
+// Alert border left example
+
+.alert-border-left {
+  border-left: 3px solid;
+}
+
+// alert top border example
+
+.alert-top-border {
+  background-color: $card-bg;
+  border-color: $border-color;
+  border-top: 2px solid;
+  color: $body-color;
+}
+
+// Alert example loop
+
+@each $color, $value in $theme-colors {
+
+  // alert outline
+  .alert-outline {
+    &.alert-#{$color} {
+      color: $value;
+    }
+  }
+
+  // alert border left
+  .alert-border-left {
+    &.alert-#{$color} {
+      border-left-color: $value;
+    }
+  }
+
+  // alert top border
+  .alert-top-border {
+    &.alert-#{$color} {
+      border-top-color: $value !important;
+    }
+  }
+
+  // label arrow
+  .label-arrow {
+    &.alert-#{$color} {
+      .label-icon {
+        background-color: $value;
+        &:after {
+          border-left-color: $value !important;
+        }
+      }
+    }
+  }
+}
+
+body[data-layout-mode="dark"] {
+  // Alert
+  .alert{
+      .btn-close{
+          background: transparent escape-svg($btn-close-bg) center / $btn-close-width auto no-repeat;
+      }
+  }
+
+  .alert-outline{
+      background-color: $gray-dark-200;
+      .btn-close{
+          background: transparent escape-svg($btn-close-bg-dark) center / $btn-close-width auto no-repeat;
+      }
+  }
+
+  .alert-top-border{
+      background-color: $gray-dark-200;
+      border-color: $gray-dark-300;
+      color: $gray-dark-400;
+      .btn-close{
+          background: transparent escape-svg($btn-close-bg-dark) center / $btn-close-width auto no-repeat;
+      }
+  }
+}

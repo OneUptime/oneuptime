@@ -1,74 +1,86 @@
-import NavBar from 'CommonUI/src/Components/Dashboard/Navbar/NavBar';
-import NavItem from 'CommonUI/src/Components/Dashboard/Navbar/NavItem';
-import NavDropDown from 'CommonUI/src/Components/Dashboard/NavBar/NavDropDown/NavDropDown';
-import NavDropDownItem from 'CommonUI/src/Components/Dashboard/NavBar/NavDropDown/NavDropDownItem';
 import React, { FunctionComponent } from 'react';
+import NavBar from 'CommonUI/src/Components/Navbar/NavBar';
+import NavBarMenu from 'CommonUI/src/Components/Navbar/NavBarMenu';
+import NavBarItem from 'CommonUI/src/Components/Navbar/NavBarItem';
+import NavBarMenuItem from 'CommonUI/src/Components/Navbar/NavBarMenuItem';
+import NavBarMenuColumn from 'CommonUI/src/Components/Navbar/NavBarMenuColumn';
 import Route from 'Common/Types/API/Route';
+import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 
-const NavBarComponent: FunctionComponent = () => {
+const DashboardNavbar: FunctionComponent = () => {
     return (
         <NavBar
-            rightContent={[
-                <NavItem
-                    route={RouteMap[PageMap.SETTINGS] as Route}
-                    title="Settings"
-                    key={1}
-                />,
-            ]}
+            rightContent={
+                <NavBarItem
+                    title="Project Settings"
+                    icon={IconProp.Settings}
+                ></NavBarItem>
+            }
         >
-            <NavItem route={RouteMap[PageMap.HOME] as Route} title="Home" />
+            <NavBarItem
+                title="Home"
+                icon={IconProp.Home}
+                route={RouteMap[PageMap.HOME] as Route}
+            ></NavBarItem>
 
-            <NavItem
-                route={RouteMap[PageMap.MONITORS] as Route}
+            <NavBarItem
                 title="Monitors"
-            />
+                route={RouteMap[PageMap.MONITORS] as Route}
+                icon={IconProp.Activity}
+            ></NavBarItem>
 
-            <NavItem
-                route={RouteMap[PageMap.INCIDENTS] as Route}
+            <NavBarItem
                 title="Incidents"
-            />
+                route={RouteMap[PageMap.INCIDENTS] as Route}
+                icon={IconProp.Alert}
+            ></NavBarItem>
 
-            <NavItem
-                route={RouteMap[PageMap.STATUS_PAGE] as Route}
+            <NavBarItem
+                title="On-Call Duty"
+                route={RouteMap[PageMap.ON_CALL] as Route}
+                icon={IconProp.Call}
+            ></NavBarItem>
+
+            <NavBarItem
                 title="Status Pages"
-            />
+                icon={IconProp.CheckCircle}
+                route={RouteMap[PageMap.STATUS_PAGE] as Route}
+            ></NavBarItem>
 
-            <NavItem route={RouteMap[PageMap.LOGS] as Route} title="Logs" />
-
-            <NavDropDown title="More">
-                <NavDropDownItem
-                    route={new Route('/projectId/home')}
-                    title="On-Call Duty"
-                />
-                <NavDropDownItem
-                    route={new Route('/projectId/home')}
-                    title="Scheduled Maintainance"
-                />
-                <NavDropDownItem
-                    route={new Route('/projectId/home')}
-                    title="Error Tracking"
-                />
-                <NavDropDownItem
-                    route={new Route('/projectId/home')}
-                    title="Performance Tracker"
-                />
-                <NavDropDownItem
-                    route={new Route('/projectId/home')}
-                    title="Security"
-                />
-                <NavDropDownItem
-                    route={new Route('/projectId/home')}
-                    title="Automation Script"
-                />
-                <NavDropDownItem
-                    route={new Route('/projectId/home')}
-                    title="Reports"
-                />
-            </NavDropDown>
+            <NavBarItem title="More" icon={IconProp.More}>
+                <NavBarMenu>
+                    <NavBarMenuColumn title="More">
+                        <NavBarMenuItem
+                            title="Logs Management"
+                            route={RouteMap[PageMap.LOGS] as Route}
+                            icon={IconProp.Terminal}
+                        />
+                        <NavBarMenuItem
+                            title="Error Tracker"
+                            route={RouteMap[PageMap.ERROR_TRACKER] as Route}
+                            icon={IconProp.Error}
+                        />
+                    </NavBarMenuColumn>
+                    <NavBarMenuColumn title="Advanced">
+                        <NavBarMenuItem
+                            title="Automation Scripts"
+                            route={
+                                RouteMap[PageMap.AUTOMATION_SCRIPTS] as Route
+                            }
+                            icon={IconProp.Code}
+                        />
+                        <NavBarMenuItem
+                            title="Reports"
+                            route={RouteMap[PageMap.REPORTS] as Route}
+                            icon={IconProp.Report}
+                        />
+                    </NavBarMenuColumn>
+                </NavBarMenu>
+            </NavBarItem>
         </NavBar>
     );
 };
 
-export default NavBarComponent;
+export default DashboardNavbar;

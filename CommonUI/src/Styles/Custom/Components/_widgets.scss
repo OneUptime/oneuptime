@@ -1,0 +1,77 @@
+// 
+// Widgets.scss
+// 
+
+.widget-box-1-icon {
+    position: absolute;
+    right: -15px;
+    top: -25px;
+    font-size: 5rem;
+    opacity: 0.1;
+}
+
+.widget-carousel{
+    .carousel-indicators{
+        margin: 0px auto;
+        position: relative;
+    }
+}
+
+// activity widget
+
+.activity-border {
+    &:before {
+        content: "";
+        position: absolute;
+        height: 80px;
+        border-left: 2px dashed  $gray-400;
+        top: 40px;
+        left: 2px;
+    }
+}
+
+.activity-wid {
+    margin-left: 16px;
+
+    .activity-list {
+        position: relative;
+        padding: 0 0 20px 45px;
+
+        .activity-icon {
+            position: absolute;
+            left: -20px;
+            top: -3px;
+            z-index: 2;
+            background: $card-bg;
+            img {
+                border: 5px solid $card-bg;
+            }
+            span {
+                border: 5px solid $card-bg;
+            }
+        }
+        &:last-child {
+            padding-bottom: 0px;
+        }
+    }
+}
+
+
+body[data-layout-mode="dark"] {
+    .activity-wid {
+        .activity-list {
+            .activity-icon {
+                background: $gray-dark-200;
+                img, span {
+                    border-color: $gray-dark-200;
+                }
+            }
+        }
+    }
+
+    .activity-border {
+        &:before {
+            border-color:  $gray-dark-300;
+        }
+    }
+}

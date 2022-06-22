@@ -1,0 +1,20 @@
+//
+// vector-maps.scss
+//
+
+.jvectormap-label {
+    border: none;
+    background: $gray-800;
+    color: $gray-100;
+    font-family: $font-family-base;
+    font-size: $font-size-base;
+    padding: 5px 8px;
+}
+
+// Dark layout
+body[data-layout-mode="dark"] {
+    .jvectormap-label {
+        background: $gray-dark-800;
+        color: $gray-dark-200;
+    }
+}
