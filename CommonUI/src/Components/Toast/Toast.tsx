@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
-
+import OneUptimeDate from 'Common/Types/Date';
 
 export enum ToastType {
     DANGER, 
@@ -14,6 +14,7 @@ export interface ComponentProps {
     description: string;
     onClose?: () => void;
     type?: ToastType;
+    createdAt?: Date;
 }
 
 
@@ -41,7 +42,10 @@ const Component: FunctionComponent<ComponentProps> = (
             <div className="toast fade show" role="alert">
                 <div className="toast-header">
                     {props.type && <div role="status" className={`spinner-grow-sm spinner-grow ${typeCssClass}`}><span className="visually-hidden">Loading...</span></div>}
-                    <strong className="me-auto ms-2">{props.title}</strong><button onClick={() => {
+                    <strong className="me-auto ms-2">{props.title}</strong>
+                    {props.createdAt && <small>{OneUptimeDate.fromNow(props.createdAt)}</small>}
+                    
+                    <button onClick={() => {
                         setShow(false);
                         props.onClose && props.onClose();
                     }} type="button" className="btn-close" aria-label="Close"></button>

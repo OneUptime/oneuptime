@@ -22,6 +22,7 @@ import PageMap from './Utils/PageMap';
 import Settings from './Pages/Settings/Settings';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
 import SettingsApiKeys from './Pages/Settings/APIKeys';
+import SettingsCreateAPIKey from './Pages/Settings/CreateAPIKey';
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
 
@@ -100,6 +101,17 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_APIKEYS]?.toString()}
                     element={
                         <SettingsApiKeys
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                            }
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_CREATE_APIKEY]?.toString()}
+                    element={
+                        <SettingsCreateAPIKey
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEYS] as Route
                             }

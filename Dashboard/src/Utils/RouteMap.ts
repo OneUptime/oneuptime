@@ -23,6 +23,7 @@ const RouteMap: Dictionary<Route> = {
         '/:projectSlug/settings/danger-zone'
     ),
     [PageMap.SETTINGS_APIKEYS]: new Route('/:projectSlug/settings/api-keys'),
+    [PageMap.SETTINGS_CREATE_APIKEY]: new Route('/:projectSlug/settings/api-keys/create'),
 };
 
 export default RouteMap;
