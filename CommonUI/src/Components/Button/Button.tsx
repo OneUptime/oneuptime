@@ -3,16 +3,17 @@ import { KeyboardEventProp } from '../../Types/HtmlEvents';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
 import CSS from 'csstype';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 
 export enum ButtonStyleType {
     PRIMARY, 
+    SECONDRY,
     NORMAL, 
     DANGER
 }
 
 export interface ComponentProps {
-    title: string;
+    title?: string;
     onClick: () => void;
     disabled?: boolean;
     id?: string;
@@ -88,6 +89,10 @@ const Button: FunctionComponent<ComponentProps> = ({
         buttonStyleCssClass = "btn-primary"
     }
 
+    if (buttonStyle === ButtonStyleType.SECONDRY) {
+        buttonStyleCssClass = "btn-secondary"
+    }
+
     return (
         <button
             style={style}
@@ -99,7 +104,7 @@ const Button: FunctionComponent<ComponentProps> = ({
             }}
             type={type}
             disabled={disabled}
-            className={`btn ${buttonStyleCssClass} waves-effect btn-label waves-light`}
+            className={`btn ${buttonStyleCssClass} waves-effect waves-light ${!title && buttonStyle === ButtonStyleType.NORMAL ? "no-border-on-hover" : ""}`}
         >
             {!isLoading && (
                 <div>
@@ -114,10 +119,11 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     size={
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
+                                    thick={ThickProp.Thick}
                                 />
-                            )}
+                            )}{title ? " " : ""}
                         </span>
-                        <span>{title}</span>
+                        {title ? <span><b>{title}</b></span> : <></>}
                         <span
                             style={{
                                 marginLeft: '5px',
@@ -129,6 +135,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     size={
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
+                                    thick={ThickProp.Thick}
                                 />
                             )}
                         </span>

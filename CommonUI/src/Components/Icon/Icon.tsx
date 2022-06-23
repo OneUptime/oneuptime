@@ -32,7 +32,9 @@ import {
     FiShare2,
     FiMessageSquare,
     FiInfo,
-    FiCheck
+    FiCheck,
+    FiTrash,
+    FiX
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -43,6 +45,12 @@ export enum SizeProp {
     Large = '18px',
     Larger = '21px',
     ExtraLarge = '25px',
+}
+
+export enum ThickProp {
+    Normal = '',
+    Thick = '3px',
+    ExtraThick = '5px',
 }
 
 export enum IconProp {
@@ -79,7 +87,9 @@ export enum IconProp {
     Integrations,
     SMS,
     Info,
-    Success
+    Success,
+    Trash,
+    Close
 }
 
 export interface ComponentProps {
@@ -87,6 +97,7 @@ export interface ComponentProps {
     size?: SizeProp;
     className?: string;
     color?: Color | null;
+    thick?: ThickProp;
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({
@@ -94,6 +105,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     icon,
     className,
     color,
+    thick = ThickProp.Normal
 }: ComponentProps): ReactElement => {
     return (
         <span
@@ -103,142 +115,188 @@ const Icon: FunctionComponent<ComponentProps> = ({
             className={className ? className : ''}
         >
             {icon === IconProp.Home && (
-                <FiHome size={size} color={color ? color.toString() : ''} />
+                <FiHome size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.More && (
-                <FiGrid size={size} color={color ? color.toString() : ''} />
+                <FiGrid size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Activity && (
-                <FiActivity size={size} color={color ? color.toString() : ''} />
+                <FiActivity size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Alert && (
                 <FiAlertOctagon
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.Call && (
                 <FiPhoneCall
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.Settings && (
-                <FiSettings size={size} color={color ? color.toString() : ''} />
+                <FiSettings size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Notification && (
-                <FiBell size={size} color={color ? color.toString() : ''} />
+                <FiBell size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.CheckCircle && (
                 <FiCheckCircle
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.Search && (
-                <FiSearch size={size} color={color ? color.toString() : ''} />
+                <FiSearch size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Help && (
                 <FiHelpCircle
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.Logout && (
-                <FiPower size={size} color={color ? color.toString() : ''} />
+                <FiPower size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Billing && (
                 <FiCreditCard
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.User && (
-                <FiUser size={size} color={color ? color.toString() : ''} />
+                <FiUser size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.ChevronDown && (
                 <FiChevronDown
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.ChevronLeft && (
                 <FiChevronLeft
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.ChevronRight && (
                 <FiChevronRight
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.ChevronUp && (
                 <FiChevronUp
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.Email && (
-                <FiMail size={size} color={color ? color.toString() : ''} />
+                <FiMail size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Slack && (
-                <FiSlack size={size} color={color ? color.toString() : ''} />
+                <FiSlack size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Time && (
-                <FiClock size={size} color={color ? color.toString() : ''} />
+                <FiClock size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Terminal && (
-                <FiTerminal size={size} color={color ? color.toString() : ''} />
+                <FiTerminal size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Error && (
                 <FiAlertTriangle
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.Code && (
-                <FiCode size={size} color={color ? color.toString() : ''} />
+                <FiCode size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Report && (
-                <FiPieChart size={size} color={color ? color.toString() : ''} />
+                <FiPieChart size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
             {icon === IconProp.Team && (
-                <FiUsers size={size} color={color ? color.toString() : ''} />
+                <FiUsers size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
 
             {icon === IconProp.Lock && (
-                <FiLock size={size} color={color ? color.toString() : ''} />
+                <FiLock size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
 
             {icon === IconProp.Key && (
-                <FiKey size={size} color={color ? color.toString() : ''} />
+                <FiKey size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
 
             {icon === IconProp.Folder && (
-                <FiFolder size={size} color={color ? color.toString() : ''} />
+                <FiFolder size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
 
             {icon === IconProp.Integrations && (
-                <FiShare2 size={size} color={color ? color.toString() : ''} />
+                <FiShare2 size={size}
+                    strokeWidth={thick ? thick : ""} color={color ? color.toString() : ''} />
             )}
 
             {icon === IconProp.SMS && (
                 <FiMessageSquare
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
-             {icon === IconProp.Info && (
+            {icon === IconProp.Info && (
                 <FiInfo
                     size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}
             {icon === IconProp.Success && (
                 <FiCheck
                     size={size}
+                    strokeWidth={thick ? thick : ""}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Trash && (
+                <FiTrash
+                    size={size}
+                    strokeWidth={thick ? thick : ""}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Close && (
+                <FiX
+                    size={size}
+                    strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}
                 />
             )}

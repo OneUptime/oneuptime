@@ -30,3 +30,10 @@
 .pointer {
     cursor: pointer !important;
 }
+
+.no-border-on-hover{
+    border: none !important;
+    &:hover {
+       border: none !important;
+     }
+}

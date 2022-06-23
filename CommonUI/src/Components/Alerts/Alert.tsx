@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import Icon, { IconProp } from "../Icon/Icon";
+import Icon, { IconProp, SizeProp } from "../Icon/Icon";
 
 export enum AlertType {
     INFO,
@@ -44,14 +44,17 @@ const Alert: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactE
     return (
         <div className="row">
             <div className="col-xl-12">
-                <div className={`alert-label-icon label-arrow alert ${cssClass} alert-danger alert-dismissible fade show`} role="alert">
+                <div className={`alert-label-icon label-arrow alert ${cssClass} alert-dismissible fade show`} role="alert">
                     {props.onClose && <button type="button" className="close" onClick={() => {
                         props.onClose && props.onClose();
                     }} aria-label="Close"><span aria-hidden="true">×</span></button>}
-                    {AlertType.DANGER === type && <Icon icon={IconProp.Error} />}
-                    {AlertType.WARNING === type && <Icon icon={IconProp.Alert} />}
-                    {AlertType.SUCCESS === type && <Icon icon={IconProp.Success} />}
-                    {AlertType.INFO === type && <Icon icon={IconProp.Info} />}
+                    <span style={{ "marginLeft": "-45px" }}>
+                        {AlertType.DANGER === type && <Icon icon={IconProp.Error} size={SizeProp.Large} />}
+                        {AlertType.WARNING === type && <Icon icon={IconProp.Alert} size={SizeProp.Large} />}
+                        {AlertType.SUCCESS === type && <Icon icon={IconProp.Success} size={SizeProp.Large} />}
+                        {AlertType.INFO === type && <Icon icon={IconProp.Info} size={SizeProp.Large} />}
+                        &nbsp;&nbsp;
+                    </span>
                     <strong>{props.strongTitle}</strong> {props.title && props.strongTitle ? "-" : ''} {props.title}
                 </div>
             </div>
