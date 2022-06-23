@@ -1,17 +1,19 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import Button, { ButtonStyleType } from "../Button/Button";
-import { IconProp } from "../Icon/Icon";
+import { ButtonStyleType } from "../Button/Button";
+import ModalHeader from "./ModalHeader";
+import ModalFooter from "./ModalFooter";
+import ModalBody from "./ModalBody";
 
 export interface ComponentProps {
     title: string;
     children: Array<ReactElement> | ReactElement;
-    onClose?: () => void;
+    onClose?: (() => void) | undefined;
     submitButtonText?: string;
     onSubmit: () => void;
     submitButtonType?: ButtonStyleType
 }
 
-const Component: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+const Modal: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
 
 
     return (<div style={{ "position": "relative", "zIndex": "1050", "display": "block" }}>
@@ -19,25 +21,11 @@ const Component: FunctionComponent<ComponentProps> = (props: ComponentProps): Re
             <div className="modal fade show" role="dialog" style={{ "display": "block" }}>
                 <div className="modal-dialog" role="document">
                     <div className="modal-content">
-                        <div className="modal-header">
-                            <h5 className="modal-title mt-0" id="myModalLabel">{props.title}</h5>
-                            {props.onClose ? <Button buttonStyle={ButtonStyleType.NORMAL} icon={IconProp.Close} onClick={() => {
-                                props.onClose && props.onClose();
-                            }} /> : <></>}
-                        </div>
-                        <div className="modal-body">
+                        <ModalHeader title={props.title} onClose={props.onClose ? props.onClose : undefined} />
+                        <ModalBody>
                             {props.children}
-                        </div>
-                        <div className="modal-footer">
-                            {props.onClose ? <Button buttonStyle={ButtonStyleType.NORMAL} title={'Close'} data-dismiss="modal" onClick={() => {
-                                props.onClose && props.onClose();
-                            }} /> : <></>}
-
-                            {props.onSubmit ? <Button buttonStyle={props.submitButtonType ? props.submitButtonType : ButtonStyleType.PRIMARY} title={props.submitButtonText ? props.submitButtonText : 'Save Changes'} onClick={() => {
-                                props.onSubmit();
-                            }} /> : <></>}
-                            
-                        </div>
+                        </ModalBody>
+                        <ModalFooter submitButtonType={props.submitButtonType ? props.submitButtonType : ButtonStyleType.PRIMARY} submitButtonText={props.submitButtonText ? props.submitButtonText : 'Save'} onSubmit={props.onSubmit} onClose={props.onClose ? props.onClose : undefined} />
                     </div>
                 </div>
             </div>
@@ -47,5 +35,5 @@ const Component: FunctionComponent<ComponentProps> = (props: ComponentProps): Re
     )
 }
 
-export default Component;
+export default Modal;
 

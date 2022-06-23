@@ -9,7 +9,7 @@ import DashboardSideMenu from './SideMenu';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import Modal from "CommonUI/src/Components/Modal/Modal";
+import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
 
 const Settings: FunctionComponent<PageComponentProps> = (
     __props: PageComponentProps
@@ -19,7 +19,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-            title={'Project Settings - Danger Zone'}
+            title={'Project Settings'}
             breadcrumbLinks={[
                 {
                     title: 'Project Name',
@@ -49,13 +49,12 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-            {showModal ? <Modal title={"Delete Project"} onSubmit={() => {
+            {showModal ? <ConfirmModal description='Are you sure you want to delete this project?' title={"Delete Project"} onSubmit={() => {
                 setShowModal(false);
             }} onClose={() => {
                 setShowModal(false);
-            }} submitButtonText="DELETE PROJECT" submitButtonType={ButtonStyleType.DANGER} >
-                <p>Are you sure you want to delete this project?</p>
-            </Modal>: <></>}
+            }} submitButtonText="DELETE PROJECT" submitButtonType={ButtonStyleType.DANGER} />
+                : <></>}
 
         </Page>
     );

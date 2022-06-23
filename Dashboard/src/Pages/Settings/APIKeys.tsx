@@ -15,7 +15,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-            title={'Project Settings - API Keys'}
+            title={'Project Settings'}
             breadcrumbLinks={[
                 {
                     title: 'Project Name',
