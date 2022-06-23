@@ -74,12 +74,7 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-
-
-
-
-
-                { /* Settings Routes */}
+                {/* Settings Routes */}
 
                 <PageRoute
                     path={RouteMap[PageMap.SETTINGS]?.toString()}
@@ -94,7 +89,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_DANGERZONE]?.toString()}
                     element={
                         <SettingsDangerZone
-                            pageRoute={RouteMap[PageMap.SETTINGS_DANGERZONE] as Route}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
+                            }
                         />
                     }
                 />
@@ -103,11 +100,12 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_APIKEYS]?.toString()}
                     element={
                         <SettingsApiKeys
-                            pageRoute={RouteMap[PageMap.SETTINGS_APIKEYS] as Route}
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                            }
                         />
                     }
                 />
-
             </Routes>
         </MasterPage>
     );

@@ -6,15 +6,15 @@ import CSS from 'csstype';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 
 export enum ButtonStyleType {
-    PRIMARY, 
+    PRIMARY,
     SECONDRY,
-    NORMAL, 
-    DANGER
+    NORMAL,
+    DANGER,
 }
 
 export interface ComponentProps {
     title?: string;
-    onClick: () => void;
+    onClick?: () => void;
     disabled?: boolean;
     id?: string;
     shortcutKey?: ShortcutKey;
@@ -79,18 +79,18 @@ const Button: FunctionComponent<ComponentProps> = ({
         }
     };
 
-    let buttonStyleCssClass: string = "";
+    let buttonStyleCssClass: string = '';
 
     if (buttonStyle === ButtonStyleType.DANGER) {
-        buttonStyleCssClass = "btn-danger"
+        buttonStyleCssClass = 'btn-danger';
     }
 
     if (buttonStyle === ButtonStyleType.PRIMARY) {
-        buttonStyleCssClass = "btn-primary"
+        buttonStyleCssClass = 'btn-primary';
     }
 
     if (buttonStyle === ButtonStyleType.SECONDRY) {
-        buttonStyleCssClass = "btn-secondary"
+        buttonStyleCssClass = 'btn-secondary';
     }
 
     return (
@@ -104,7 +104,11 @@ const Button: FunctionComponent<ComponentProps> = ({
             }}
             type={type}
             disabled={disabled}
-            className={`btn ${buttonStyleCssClass} waves-effect waves-light ${!title && buttonStyle === ButtonStyleType.NORMAL ? "no-border-on-hover" : ""}`}
+            className={`btn ${buttonStyleCssClass} waves-effect waves-light ${
+                !title && buttonStyle === ButtonStyleType.NORMAL
+                    ? 'no-border-on-hover'
+                    : ''
+            }`}
         >
             {!isLoading && (
                 <div>
@@ -121,9 +125,16 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     }
                                     thick={ThickProp.Thick}
                                 />
-                            )}{title ? " " : ""}
+                            )}
+                            {title ? ' ' : ''}
                         </span>
-                        {title ? <span><b>{title}</b></span> : <></>}
+                        {title ? (
+                            <span>
+                                <b>{title}</b>
+                            </span>
+                        ) : (
+                            <></>
+                        )}
                         <span
                             style={{
                                 marginLeft: '5px',

@@ -34,9 +34,13 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
             ) : (
                 <></>
             )}
-            <span style={{
-                fontWeight: "600"
-            }}>{props.link.title}</span>
+            <span
+                style={{
+                    fontWeight: '600',
+                }}
+            >
+                {props.link.title}
+            </span>
             {props.badge ? (
                 <span className="mt-1 badge bg-success float-end">
                     {props.badge}

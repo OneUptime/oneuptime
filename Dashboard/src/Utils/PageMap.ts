@@ -2,7 +2,7 @@ enum PageMap {
     INIT = 'INIT',
     HOME = 'HOME',
     INCIDENTS = 'INCIDENTS',
-    
+
     MONITORS = 'MONITORS',
     STATUS_PAGE = 'STATUSPAGE',
     LOGS = 'LOGS',
@@ -14,7 +14,7 @@ enum PageMap {
     // Settings Routes
     SETTINGS = 'SETTINGS',
     SETTINGS_DANGERZONE = 'SETTINGS_DANGERZONE',
-    SETTINGS_APIKEYS = "SETTINGS_APIKEYS",
+    SETTINGS_APIKEYS = 'SETTINGS_APIKEYS',
 }
 
 export default PageMap;

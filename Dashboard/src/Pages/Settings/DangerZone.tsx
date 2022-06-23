@@ -9,12 +9,11 @@ import DashboardSideMenu from './SideMenu';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import ConfirmModal from "CommonUI/src/Components/Modal/ConfirmModal";
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     __props: PageComponentProps
 ): ReactElement => {
-
     const [showModal, setShowModal] = useState<boolean>(false);
 
     return (
@@ -36,26 +35,44 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <Alert type={AlertType.DANGER} strongTitle='DANGER ZONE' title='Deleting your project will delete it permanently and there is no way to recover. ' />
-
+            <Alert
+                type={AlertType.DANGER}
+                strongTitle="DANGER ZONE"
+                title="Deleting your project will delete it permanently and there is no way to recover. "
+            />
 
             <Card
                 title="Delete Project"
-                description='Are you sure you want to delete this project?'
+                description="Are you sure you want to delete this project?"
                 buttons={[
-                    <Button title='Delete Project' buttonStyle={ButtonStyleType.DANGER} onClick={() => {
-                        setShowModal(true);
-                    }} icon={IconProp.Trash} />
+                    <Button
+                        key={1}
+                        title="Delete Project"
+                        buttonStyle={ButtonStyleType.DANGER}
+                        onClick={() => {
+                            setShowModal(true);
+                        }}
+                        icon={IconProp.Trash}
+                    />,
                 ]}
             />
 
-            {showModal ? <ConfirmModal description='Are you sure you want to delete this project?' title={"Delete Project"} onSubmit={() => {
-                setShowModal(false);
-            }} onClose={() => {
-                setShowModal(false);
-            }} submitButtonText="DELETE PROJECT" submitButtonType={ButtonStyleType.DANGER} />
-                : <></>}
-
+            {showModal ? (
+                <ConfirmModal
+                    description="Are you sure you want to delete this project?"
+                    title={'Delete Project'}
+                    onSubmit={() => {
+                        setShowModal(false);
+                    }}
+                    onClose={() => {
+                        setShowModal(false);
+                    }}
+                    submitButtonText="DELETE PROJECT"
+                    submitButtonType={ButtonStyleType.DANGER}
+                />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

@@ -17,20 +17,19 @@ const Card: FunctionComponent<ComponentProps> = (
                     <div className="card">
                         <div className="card-header justify-space-between">
                             <div>
-                            <h4 className="card-title">{props.title}</h4>
-                                <p className="card-title-desc">{props.description}</p>
+                                <h4 className="card-title">{props.title}</h4>
+                                <p className="card-title-desc">
+                                    {props.description}
+                                </p>
                             </div>
-                            <div>
-                                { props.buttons}
-                            </div>
+                            <div>{props.buttons}</div>
                         </div>
-                        {props.children && <div className="card-body">
-                            {props.children}
-                        </div>}
+                        {props.children && (
+                            <div className="card-body">{props.children}</div>
+                        )}
                     </div>
                 </div>
             </div>
-
         </React.Fragment>
     );
 };

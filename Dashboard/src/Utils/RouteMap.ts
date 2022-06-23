@@ -8,7 +8,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.INCIDENTS]: new Route('/:projectSlug/incidents/'),
     [PageMap.STATUS_PAGE]: new Route('/:projectSlug/status-pages/'),
     [PageMap.LOGS]: new Route('/:projectSlug/logs/'),
-    
+
     [PageMap.MONITORS]: new Route('/:projectSlug/monitors/'),
     [PageMap.AUTOMATION_SCRIPTS]: new Route(
         '/:projectSlug/automation-scripts/'
@@ -19,7 +19,9 @@ const RouteMap: Dictionary<Route> = {
 
     // Settings Routes
     [PageMap.SETTINGS]: new Route('/:projectSlug/settings/'),
-    [PageMap.SETTINGS_DANGERZONE]: new Route('/:projectSlug/settings/danger-zone'),
+    [PageMap.SETTINGS_DANGERZONE]: new Route(
+        '/:projectSlug/settings/danger-zone'
+    ),
     [PageMap.SETTINGS_APIKEYS]: new Route('/:projectSlug/settings/api-keys'),
 };
 
