@@ -34,7 +34,8 @@ import {
     FiInfo,
     FiCheck,
     FiTrash,
-    FiX
+    FiX,
+    FiPlus
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -89,7 +90,8 @@ export enum IconProp {
     Info,
     Success,
     Trash,
-    Close
+    Close,
+    Add
 }
 
 export interface ComponentProps {
@@ -295,6 +297,13 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.Close && (
                 <FiX
+                    size={size}
+                    strokeWidth={thick ? thick : ""}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Add && (
+                <FiPlus
                     size={size}
                     strokeWidth={thick ? thick : ""}
                     color={color ? color.toString() : ''}

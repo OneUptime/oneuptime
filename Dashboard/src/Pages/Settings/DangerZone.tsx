@@ -19,7 +19,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-            title={'Project Settings'}
+            title={'Project Settings - Danger Zone'}
             breadcrumbLinks={[
                 {
                     title: 'Project Name',
