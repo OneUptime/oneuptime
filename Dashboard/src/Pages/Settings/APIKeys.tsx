@@ -17,7 +17,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
     __props: PageComponentProps
 ): ReactElement => {
     const [showAddForm, setShowAddForm] = useState<boolean>(false);
-
+    const model = new ProjectAPIKey();
     return (
         <Page
             title={'Project Settings'}
@@ -63,7 +63,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                     description="Add new api key here"
                 >
                     <BasicModelForm<ProjectAPIKey>
-                        model={new ProjectAPIKey()}
+                        model={model}
                         id="add-form"
                         fields={[
                             {
@@ -77,7 +77,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                             },
                         ]}
                         submitButtonText={'Add'}
-                        onSubmit={async (values: any) => {
+                        onSubmit={async (_values: any) => {
                             
                         }}
                     />

@@ -1,7 +1,6 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
-import Project from './Project';
 import ColumnType from '../Types/Database/ColumnType';
 import PositiveNumber from '../Types/PositiveNumber';
 import ObjectID from '../Types/ObjectID';
@@ -45,30 +44,6 @@ export default class Model extends BaseModel {
         unique: false,
     })
     public paymentProviderSubscriptionId?: string = undefined;
-
-    @TableColumn({ manyToOneRelationColumn: 'parentProjectId' })
-    @ManyToOne(
-        (_type: string) => {
-            return Project;
-        },
-        {
-            cascade: false,
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'parentProjectId' })
-    public parentProject?: Project;
-
-    @TableColumn()
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public parentProjectId?: ObjectID;
 
     @TableColumn()
     @Column({

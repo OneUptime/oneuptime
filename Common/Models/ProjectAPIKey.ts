@@ -2,10 +2,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import BaseModel from './BaseModel';
-import User from './User';
-import Project from './Project';
 import ColumnLength from '../Types/Database/ColumnLength';
 import TableColumn from '../Types/Database/TableColumn';
+import User from './User';
+import Project from './Project';
 
 @Entity({
     name: 'ProjectAPIKey',
