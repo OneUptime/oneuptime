@@ -36,6 +36,7 @@ import {
     FiTrash,
     FiX,
     FiPlus,
+    FiTag
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -92,6 +93,7 @@ export enum IconProp {
     Trash,
     Close,
     Add,
+    Label
 }
 
 export interface ComponentProps {
@@ -361,6 +363,13 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.Add && (
                 <FiPlus
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Label && (
+                <FiTag
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

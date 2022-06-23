@@ -20,6 +20,13 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 />
                 <SideMenuItem
                     link={{
+                        title: 'Labels',
+                        to: new Route('/:projectSlug/home'),
+                    }}
+                    icon={IconProp.Label}
+                />
+                <SideMenuItem
+                    link={{
                         title: 'Integrations',
                         to: new Route('/:projectSlug/home'),
                     }}
