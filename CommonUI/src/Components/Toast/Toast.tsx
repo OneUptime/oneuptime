@@ -5,9 +5,9 @@ export enum ToastType {
     DANGER, 
     SUCCESS, 
     INFO, 
-    WARNING
+    WARNING,
+    NORMAL
 }
-
 
 export interface ComponentProps {
     title: string;
@@ -40,7 +40,7 @@ const Component: FunctionComponent<ComponentProps> = (
         return (<div className="position-fixed top-0 end-0 p-3" style={{ "zIndex": "1005" }}>
             <div className="toast fade show" role="alert">
                 <div className="toast-header">
-                    <div role="status" className={`spinner-grow-sm spinner-grow ${typeCssClass}`}><span className="visually-hidden">Loading...</span></div>
+                    {props.type && <div role="status" className={`spinner-grow-sm spinner-grow ${typeCssClass}`}><span className="visually-hidden">Loading...</span></div>}
                     <strong className="me-auto ms-2">{props.title}</strong><button onClick={() => {
                         setShow(false);
                         props.onClose && props.onClose();
