@@ -51,6 +51,7 @@ export enum SizeProp {
 
 export enum ThickProp {
     Normal = '',
+    LessThick = '2px',
     Thick = '3px',
     ExtraThick = '5px',
 }

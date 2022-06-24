@@ -13,7 +13,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
 
     return (
-        <div className="email-leftbar card">
+        <div className="email-leftbar card" style={{borderColor: "black"}}>
             {children.map((child: ReactElement, i: number) => {
                 return (
                     <div key={i}>

@@ -14,8 +14,8 @@ const Card: FunctionComponent<ComponentProps> = (
         <React.Fragment>
             <div className="row">
                 <div className="col-xl-12">
-                    <div className="card">
-                        <div className="card-header justify-space-between">
+                    <div className="card" style={{borderColor: "black"}}>
+                        <div className="card-header justify-space-between" style={{borderColor: "black"}}>
                             <div>
                                 <h4 className="card-title">{props.title}</h4>
                                 <p className="card-title-desc">

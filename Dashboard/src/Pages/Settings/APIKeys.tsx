@@ -41,7 +41,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                     <Button
                         key={1}
                         title="Create API Key"
-                        buttonStyle={ButtonStyleType.SECONDRY}
+                        buttonStyle={ButtonStyleType.OUTLINE}
                         onClick={() => {
                             Navigation.navigate(RouteMap[PageMap.SETTINGS_CREATE_APIKEY] as Route)
                         }}

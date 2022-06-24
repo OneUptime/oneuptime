@@ -8,6 +8,7 @@ import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 export enum ButtonStyleType {
     PRIMARY,
     SECONDRY,
+    OUTLINE,
     NORMAL,
     DANGER,
 }
@@ -91,6 +92,10 @@ const Button: FunctionComponent<ComponentProps> = ({
 
     if (buttonStyle === ButtonStyleType.SECONDRY) {
         buttonStyleCssClass = 'btn-secondary';
+    }
+
+    if (buttonStyle === ButtonStyleType.OUTLINE) {
+        buttonStyleCssClass = 'btn-outline-secondary background-primary-on-hover';
     }
 
     return (
