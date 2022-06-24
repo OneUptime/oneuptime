@@ -2,7 +2,9 @@ enum TableColumnType {
     Label,
     Text, 
     User,
-    Action
+    Actions,
+    Date,
+
 }
 
 export default TableColumnType;

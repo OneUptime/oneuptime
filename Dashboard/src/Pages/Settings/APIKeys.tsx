@@ -7,8 +7,10 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import TableCard from 'CommonUI/src/Components/Table/TableCard';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModalTable';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectAPIKey from 'Common/Models/ProjectAPIKey';
+import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 
 const APIKeys: FunctionComponent<PageComponentProps> = (
     __props: PageComponentProps
@@ -34,20 +36,46 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
 
-            <TableCard
-                title="Manage API Keys"
-                description="Create, edit, delete your project API Keys here."
-                headerButtons={[
-                    <Button
-                        key={1}
-                        title="Create API Key"
-                        buttonStyle={ButtonStyleType.OUTLINE}
-                        onClick={() => {
-                            Navigation.navigate(RouteMap[PageMap.SETTINGS_CREATE_APIKEY] as Route)
-                        }}
-                        icon={IconProp.Add}
-                    />,
+            <ModelTable<ProjectAPIKey>
+                model={new ProjectAPIKey()}
+                cardProps={{
+                    title: "Manage API Keys",
+                    description: "Create, edit, delete your project API Keys here.",
+                    headerButtons:
+                        [
+                            <Button
+                                key={1}
+                                title="Create API Key"
+                                buttonStyle={ButtonStyleType.OUTLINE}
+                                onClick={() => {
+                                    Navigation.navigate(RouteMap[PageMap.SETTINGS_CREATE_APIKEY] as Route)
+                                }}
+                                icon={IconProp.Add}
+                            />
+                        ]
+                }}
+
+                columns={[
+                    {
+                        field: {
+                            name: true
+                        },
+                        title: "API Key Name",
+                        type: TableColumnType.Text
+                    },
+                    {
+                        field: {
+                            expires: true
+                        },
+                        title: "Expires",
+                        type: TableColumnType.Date
+                    },
+                    {
+                        title: "Actions",
+                        type: TableColumnType.Actions
+                    }
                 ]}
+
             />
 
 

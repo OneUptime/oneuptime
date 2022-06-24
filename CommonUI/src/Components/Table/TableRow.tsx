@@ -14,7 +14,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
     return (
         <tr>
             {props.columns && props.columns.map((column: Column, i: number) => {
-                return (<td key={i}>{props.item[column.key] as string}</td>);
+                return (<td key={i}>{column.key ? props.item[column.key] as string : <></>}</td>);
             })}
         </tr>
     );
