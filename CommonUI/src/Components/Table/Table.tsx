@@ -6,7 +6,7 @@ import TableRow from './TableRow';
 export interface ComponentProps {}
 
 const Table: FunctionComponent<ComponentProps> = (
-    _props: ComponentProps
+    props: ComponentProps
 ): ReactElement => {
     return (
         <div className="table-responsive">

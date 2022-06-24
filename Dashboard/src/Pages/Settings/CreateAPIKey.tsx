@@ -6,7 +6,7 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import Card from 'CommonUI/src/Components/Card/Card';
-import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import ProjectAPIKey from 'Common/Models/ProjectAPIKey';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -45,10 +45,20 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                 title="Add New API Key"
                 description="Add new api key here"
             >
-                <BasicModelForm<ProjectAPIKey>
+                <ModelForm<ProjectAPIKey>
                     model={model}
                     id="add-form"
                     fields={[
+                        {
+                            field: {
+                                name: true,
+                            },
+                            fieldType: FormFieldSchemaType.Text,
+                            placeholder: 'Integration API Key',
+                            required: false,
+                            title: 'API Key Name',
+                            description: "Friendly name to help you remember what this API key is used for."
+                        },
                         {
                             field: {
                                 expires: true,
@@ -61,8 +71,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     submitButtonText={'Add'}
-                    onSubmit={async (_values: any) => {
-
+                    type={FormType.Create}
+                    onSuccess={() => {
+                        Navigation.goBack();
                     }}
                     onCancel={() => {
                         Navigation.goBack();

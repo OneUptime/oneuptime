@@ -92,6 +92,14 @@ export default class ProjectAPIKey extends BaseModel {
     })
     public apiKey?: ObjectID = undefined;
 
+    @TableColumn()
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: false
+    })
+    public name?: string = undefined;
+
     @TableColumn({ required: true })
     @Column({
         nullable: false,
