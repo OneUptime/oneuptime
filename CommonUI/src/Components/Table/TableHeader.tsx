@@ -1,20 +1,20 @@
 import React, { FunctionComponent, ReactElement } from 'react';
+import Columns from './Types/Columns';
 
-export interface ComponentProps {}
+export interface ComponentProps {
+    columns: Columns;
+    id: string;
+}
 
 const TableHeader: FunctionComponent<ComponentProps> = (
-    _props: ComponentProps
+    props: ComponentProps
 ): ReactElement => {
     return (
         <thead>
             <tr>
-                <th>#</th>
-                <th>Table heading</th>
-                <th>Table heading</th>
-                <th>Table heading</th>
-                <th>Table heading</th>
-                <th>Table heading</th>
-                <th>Table heading</th>
+                {props.columns.map((column, i) => {
+                    return <th key={i}>{column.title}</th>
+                })}
             </tr>
         </thead>
     );

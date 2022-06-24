@@ -1,6 +1,7 @@
 import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
 import React, { FunctionComponent, ReactElement } from 'react';
+import Columns from './Columns';
 
 export interface ComponentProps<TBaseModel extends BaseModel>  {
     model: TBaseModel;
@@ -12,9 +13,9 @@ export interface ComponentProps<TBaseModel extends BaseModel>  {
     // create button is shown on the card header 
     // and user can click on it and go to create form. 
     createPageRoute?: Route 
-
-    columns: Fields<TBaseModel>;
-    itemsOnPage: number; 
+    columns: Columns<TBaseModel>;
+    itemsOnPage: number;
+    disablePagination?: boolean;
 }
 
 const ModalTable: FunctionComponent<ComponentProps> = (
