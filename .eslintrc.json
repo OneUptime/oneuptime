@@ -66,7 +66,7 @@
         "yield-star-spacing": "error",
         "no-implicit-coercion": "error",
         "no-extra-label": "error",
-        "multiline-comment-style": "error",
+        "multiline-comment-style": "off",
         "no-lonely-if": "error",
         "no-floating-decimal": "error",
         "eqeqeq": "error",
@@ -162,9 +162,9 @@
         "react/jsx-pascal-case": "error",
         "array-callback-return": "error",
         "no-loop-func": "error",
-        "no-duplicate-imports": "error", /// Enable this and fix errors.
+        "no-duplicate-imports": "error",
         "no-promise-executor-return": "error",
-        "capitalized-comments": "off", // turn this on after ts-migration.
+        "capitalized-comments": "off", // this is turned off because come commented code should not be capitalized. 
         "for-direction": "error",
         "getter-return": "error",
         "jsx-a11y/anchor-is-valid": "error",
