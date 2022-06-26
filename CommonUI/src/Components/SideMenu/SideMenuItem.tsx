@@ -1,7 +1,7 @@
 import Link from 'Common/Types/Link';
 import React, { FunctionComponent } from 'react';
 import Navigation from '../../Utils/Navigation';
-import Icon, { IconProp } from '../Basic/Icon/Icon';
+import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import UILink from '../Link/Link';
 import { Red, Yellow } from '../../Utils/BrandColors';
 
@@ -28,13 +28,19 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         >
             {props.icon ? (
                 <>
-                    <Icon icon={props.icon} />
+                    <Icon icon={props.icon} thick={ThickProp.Thick} />
                     &nbsp;
                 </>
             ) : (
                 <></>
             )}
-            <span>{props.link.title}</span>
+            <span
+                style={{
+                    fontWeight: '600',
+                }}
+            >
+                {props.link.title}
+            </span>
             {props.badge ? (
                 <span className="mt-1 badge bg-success float-end">
                     {props.badge}

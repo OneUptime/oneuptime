@@ -1,7 +1,7 @@
 import Route from 'Common/Types/API/Route';
 import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp } from '../../Basic/Icon/Icon';
+import Icon, { IconProp } from '../../Icon/Icon';
 import Link from '../../Link/Link';
 
 export interface ComponentProps {

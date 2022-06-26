@@ -14,6 +14,22 @@
     }
 }
 
+.primary-on-hover {
+    cursor: pointer;
+
+    &:hover {
+       color: $primary
+    }
+}
+
+.background-primary-on-hover {
+    cursor: pointer;
+
+    &:hover {
+       background-color: $primary
+    }
+}
+
 .danger-on-hover {
     cursor: pointer;
 
@@ -22,8 +38,18 @@
     }
 }
 
-
+.justify-space-between{
+    display: flex;
+    justify-content: space-between;
+}
 
 .pointer {
     cursor: pointer !important;
+}
+
+.no-border-on-hover{
+    border: none !important;
+    &:hover {
+       border: none !important;
+     }
 }

@@ -46,6 +46,10 @@ abstract class Navigation {
         return false;
     }
 
+    public static goBack(): void {
+        this.navigateHook(-1);
+    }
+
     public static navigate(to: Route | URL): void {
         if (this.navigateHook && to instanceof Route) {
             this.navigateHook(to.toString());

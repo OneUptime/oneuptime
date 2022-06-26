@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Route from 'Common/Types/API/Route';
-import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';

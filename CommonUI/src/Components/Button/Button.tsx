@@ -1,13 +1,21 @@
 import React, { FunctionComponent, ReactElement, useEffect } from 'react';
-import { MouseOnClick, KeyboardEventProp } from '../../../Types/HtmlEvents';
+import { KeyboardEventProp } from '../../Types/HtmlEvents';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
 import CSS from 'csstype';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
+
+export enum ButtonStyleType {
+    PRIMARY,
+    SECONDRY,
+    OUTLINE,
+    NORMAL,
+    DANGER,
+}
 
 export interface ComponentProps {
-    title: string;
-    onClick?: MouseOnClick;
+    title?: string;
+    onClick?: () => void;
     disabled?: boolean;
     id?: string;
     shortcutKey?: ShortcutKey;
@@ -17,6 +25,7 @@ export interface ComponentProps {
     icon?: IconProp;
     showIconOnRight?: boolean;
     iconSize?: SizeProp;
+    buttonStyle?: ButtonStyleType;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -31,6 +40,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     icon,
     iconSize,
     showIconOnRight = false,
+    buttonStyle = ButtonStyleType.NORMAL,
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -70,14 +80,41 @@ const Button: FunctionComponent<ComponentProps> = ({
         }
     };
 
+    let buttonStyleCssClass: string = 'no-border-on-hover';
+
+    if (buttonStyle === ButtonStyleType.DANGER) {
+        buttonStyleCssClass = 'btn-danger';
+    }
+
+    if (buttonStyle === ButtonStyleType.PRIMARY) {
+        buttonStyleCssClass = 'btn-primary';
+    }
+
+    if (buttonStyle === ButtonStyleType.SECONDRY) {
+        buttonStyleCssClass = 'btn-secondary';
+    }
+
+    if (buttonStyle === ButtonStyleType.OUTLINE) {
+        buttonStyleCssClass =
+            'btn-outline-secondary background-primary-on-hover';
+    }
+
     return (
         <button
             style={style}
             id={id}
-            onClick={onClick}
+            onClick={() => {
+                if (onClick) {
+                    onClick();
+                }
+            }}
             type={type}
             disabled={disabled}
-            className="button"
+            className={`btn ${buttonStyleCssClass} waves-effect waves-light ${
+                !title && buttonStyle === ButtonStyleType.NORMAL
+                    ? 'no-border-on-hover'
+                    : ''
+            }`}
         >
             {!isLoading && (
                 <div>
@@ -92,10 +129,18 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     size={
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
+                                    thick={ThickProp.Thick}
                                 />
                             )}
+                            {title ? ' ' : ''}
                         </span>
-                        <span>{title}</span>
+                        {title ? (
+                            <span>
+                                <b>{title}</b>
+                            </span>
+                        ) : (
+                            <></>
+                        )}
                         <span
                             style={{
                                 marginLeft: '5px',
@@ -107,6 +152,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     size={
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
+                                    thick={ThickProp.Thick}
                                 />
                             )}
                         </span>

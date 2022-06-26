@@ -1,10 +1,10 @@
 import React, { ReactElement } from 'react';
 import { ErrorMessage, Field, Form, Formik, FormikErrors } from 'formik';
-import Button from '../Basic/Button/Button';
+import Button, { ButtonStyleType } from '../Button/Button';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import DataField from './Types/Field';
-import ButtonTypes from '../Basic/Button/ButtonTypes';
+import ButtonTypes from '../Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
@@ -28,6 +28,8 @@ export interface ComponentProps<T extends Object> {
     showAsColumns?: number;
     footer: ReactElement;
     isLoading?: boolean;
+    onCancel?: (() => void) | null;
+    cancelButtonText?: string | null;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -36,6 +38,8 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
             return 'email';
         case FormFieldSchemaType.Password:
             return 'password';
+        case FormFieldSchemaType.Date:
+            return 'date';
         default:
             return 'text';
     }
@@ -56,8 +60,8 @@ const BasicForm: Function = <T extends Object>(
             throw new BadDataException('Object cannot be without Field');
         }
         return (
-            <div key={index}>
-                <label>
+            <div className="mb-3" key={index}>
+                <label className="form-Label form-label">
                     <span>{field.title}</span>
                     {
                         <span>
@@ -74,8 +78,9 @@ const BasicForm: Function = <T extends Object>(
                         </span>
                     }
                 </label>
-                <p>{field.description}</p>
+                {field.description && <p>{field.description}</p>}
                 <Field
+                    className="form-control form-control"
                     autoFocus={index === 0 ? true : false}
                     placeholder={field.placeholder}
                     type={fieldType}
@@ -229,46 +234,73 @@ const BasicForm: Function = <T extends Object>(
     };
 
     return (
-        <div>
-            <Formik
-                initialValues={props.initialValues}
-                validate={validate}
-                validateOnChange={true}
-                validateOnBlur={true}
-                onSubmit={(
-                    values: FormValues<T>,
-                    { setSubmitting }: { setSubmitting: Function }
-                ) => {
-                    props.onSubmit(values);
-                    setSubmitting(false);
-                }}
-            >
-                <Form
-                    autoComplete="off"
-                    className={`grid_form_${props.showAsColumns}`}
+        <div className="row">
+            <div className="col-lg-12">
+                <Formik
+                    initialValues={props.initialValues}
+                    validate={validate}
+                    validateOnChange={true}
+                    validateOnBlur={true}
+                    onSubmit={(
+                        values: FormValues<T>,
+                        { setSubmitting }: { setSubmitting: Function }
+                    ) => {
+                        props.onSubmit(values);
+                        setSubmitting(false);
+                    }}
                 >
-                    <h1>{props.title}</h1>
+                    <Form autoComplete="off">
+                        <h1>{props.title}</h1>
 
-                    <p className="description">{props.description}</p>
+                        {Boolean(props.description) && (
+                            <p className="description">{props.description}</p>
+                        )}
 
-                    <div className={`grid_${props.showAsColumns}`}>
-                        {props.fields &&
-                            props.fields.map(
-                                (field: DataField<T>, i: number) => {
-                                    return getFormField(field, i);
-                                }
-                            )}
-                    </div>
+                        <div
+                            className={`col-lg-${
+                                12 / (props.showAsColumns || 1)
+                            }`}
+                        >
+                            {props.fields &&
+                                props.fields.map(
+                                    (field: DataField<T>, i: number) => {
+                                        return getFormField(field, i);
+                                    }
+                                )}
+                        </div>
 
-                    <Button
-                        title={props.submitButtonText || 'Submit'}
-                        type={ButtonTypes.Submit}
-                        id={`${props.id}-submit-button`}
-                        isLoading={props.isLoading || false}
-                    />
-                    {props.footer}
-                </Form>
-            </Formik>
+                        <div
+                            className="row"
+                            style={{
+                                display: 'flex',
+                            }}
+                        >
+                            <div style={{ width: 'auto' }}>
+                                <Button
+                                    title={props.submitButtonText || 'Submit'}
+                                    type={ButtonTypes.Submit}
+                                    id={`${props.id}-submit-button`}
+                                    isLoading={props.isLoading || false}
+                                    buttonStyle={ButtonStyleType.PRIMARY}
+                                />
+                            </div>
+                            <div style={{ width: 'auto' }}>
+                                <Button
+                                    title={props.cancelButtonText || 'Cancel'}
+                                    type={ButtonTypes.Button}
+                                    id={`${props.id}-cancel-button`}
+                                    disabled={props.isLoading || false}
+                                    buttonStyle={ButtonStyleType.NORMAL}
+                                    onClick={() => {
+                                        props.onCancel && props.onCancel();
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        {props.footer}
+                    </Form>
+                </Formik>
+            </div>
         </div>
     );
 };
