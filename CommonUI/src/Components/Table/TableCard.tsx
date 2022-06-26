@@ -1,13 +1,12 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Card from '../Card/Card';
-import Table from './Table';
-import { ComponentProps as TableComponentProps } from './Table';
+import Table, { ComponentProps as TableComponentProps } from './Table';
 
 export interface ComponentProps {
     title: string;
     description: string;
     headerButtons: Array<ReactElement>;
-    tableProps: TableComponentProps
+    tableProps: TableComponentProps;
 }
 
 const TableRow: FunctionComponent<ComponentProps> = (

@@ -96,7 +96,7 @@ export default class ProjectAPIKey extends BaseModel {
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
-        nullable: false
+        nullable: false,
     })
     public name?: string = undefined;
 

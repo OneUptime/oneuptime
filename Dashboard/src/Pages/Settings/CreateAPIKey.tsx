@@ -14,7 +14,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 const APIKeys: FunctionComponent<PageComponentProps> = (
     __props: PageComponentProps
 ): ReactElement => {
-    const model = new ProjectAPIKey();
+    const model: ProjectAPIKey = new ProjectAPIKey();
     return (
         <Page
             title={'Project Settings'}
@@ -38,13 +38,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
-
-
-            <Card
-                title="Add New API Key"
-                description="Add new api key here"
-            >
+            <Card title="Add New API Key" description="Add new api key here">
                 <ModelForm<ProjectAPIKey>
                     model={model}
                     id="add-form"
@@ -57,7 +51,8 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                             placeholder: 'Integration API Key',
                             required: false,
                             title: 'API Key Name',
-                            description: "Friendly name to help you remember what this API key is used for."
+                            description:
+                                'Friendly name to help you remember what this API key is used for.',
                         },
                         {
                             field: {
@@ -67,7 +62,8 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                             placeholder: '12/12/2025',
                             required: false,
                             title: 'Expires At (optional)',
-                            description: "If you leave this blank, this API key will never expire. You can still revoke them if needed."
+                            description:
+                                'If you leave this blank, this API key will never expire. You can still revoke them if needed.',
                         },
                     ]}
                     submitButtonText={'Add'}

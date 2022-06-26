@@ -36,7 +36,7 @@ import {
     FiTrash,
     FiX,
     FiPlus,
-    FiTag
+    FiTag,
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -94,7 +94,7 @@ export enum IconProp {
     Trash,
     Close,
     Add,
-    Label
+    Label,
 }
 
 export interface ComponentProps {

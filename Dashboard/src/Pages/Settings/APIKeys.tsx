@@ -15,7 +15,6 @@ import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType
 const APIKeys: FunctionComponent<PageComponentProps> = (
     __props: PageComponentProps
 ): ReactElement => {
-
     return (
         <Page
             title={'Project Settings'}
@@ -35,50 +34,49 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
             <ModelTable<ProjectAPIKey>
                 model={new ProjectAPIKey()}
                 cardProps={{
-                    title: "Manage API Keys",
-                    description: "Create, edit, delete your project API Keys here.",
-                    headerButtons:
-                        [
-                            <Button
-                                key={1}
-                                title="Create API Key"
-                                buttonStyle={ButtonStyleType.OUTLINE}
-                                onClick={() => {
-                                    Navigation.navigate(RouteMap[PageMap.SETTINGS_CREATE_APIKEY] as Route)
-                                }}
-                                icon={IconProp.Add}
-                            />
-                        ]
+                    title: 'Manage API Keys',
+                    description:
+                        'Create, edit, delete your project API Keys here.',
+                    headerButtons: [
+                        <Button
+                            key={1}
+                            title="Create API Key"
+                            buttonStyle={ButtonStyleType.OUTLINE}
+                            onClick={() => {
+                                Navigation.navigate(
+                                    RouteMap[
+                                        PageMap.SETTINGS_CREATE_APIKEY
+                                    ] as Route
+                                );
+                            }}
+                            icon={IconProp.Add}
+                        />,
+                    ],
                 }}
-
                 columns={[
                     {
                         field: {
-                            name: true
+                            name: true,
                         },
-                        title: "API Key Name",
-                        type: TableColumnType.Text
+                        title: 'API Key Name',
+                        type: TableColumnType.Text,
                     },
                     {
                         field: {
-                            expires: true
+                            expires: true,
                         },
-                        title: "Expires",
-                        type: TableColumnType.Date
+                        title: 'Expires',
+                        type: TableColumnType.Date,
                     },
                     {
-                        title: "Actions",
-                        type: TableColumnType.Actions
-                    }
+                        title: 'Actions',
+                        type: TableColumnType.Actions,
+                    },
                 ]}
-
             />
-
-
         </Page>
     );
 };

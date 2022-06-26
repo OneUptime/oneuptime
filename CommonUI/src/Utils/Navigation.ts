@@ -46,7 +46,7 @@ abstract class Navigation {
         return false;
     }
 
-    public static goBack() {
+    public static goBack(): void {
         this.navigateHook(-1);
     }
 

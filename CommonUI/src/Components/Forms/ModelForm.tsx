@@ -1,13 +1,16 @@
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useState } from 'react';
 import { FormikErrors } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import BasicModelForm from './BasicModelForm';
 
-export enum FormType {
-    Create, Update
-}
+/*
+ * export enum FormType {
+ *     Create,
+ *     Update,
+ * }
+ */
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -21,18 +24,32 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     description?: string;
     showAsColumns?: number;
     footer: ReactElement;
-    isLoading?: boolean;
     onCancel?: () => void;
     onSuccess?: (data: TBaseModel) => void;
     cancelButtonText?: string;
-    formType: FormType
-    
+    // formType: FormType;
 }
 
 const CreateModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
+    const [isLoading] = useState<boolean>(false);
+    // const [data, setData] = useState<TBaseModel>(props.model);
 
+    // useEffect(() => {
+
+    //     let httpMethod: HTTPMethod = HTTPMethod.POST;
+
+    /*
+     *     if (props.formType === FormType.Update) {
+     *         httpMethod = HTTPMethod.PUT;
+     *         setIsLoading(true);
+     *         // Need to fetch data;
+     */
+
+    //     }
+
+    // }, []);
 
     return (
         <BasicModelForm<TBaseModel>
@@ -41,17 +58,19 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
             model={props.model}
             id={props.id}
             fields={props.fields}
+            showAsColumns={props.showAsColumns}
+            footer={props.footer}
+            isLoading={isLoading}
             submitButtonText={props.submitButtonText}
+            cancelButtonText={props.cancelButtonText}
             onSubmit={async (_values: any) => {
-                // Ping POST an API here. 
+                // Ping POST an API here.
                 if (props.onSuccess) {
                     props.onSuccess(props.model);
                 }
             }}
-            
             onValidate={props.onValidate}
             onCancel={props.onCancel}
-
         ></BasicModelForm>
     );
 };

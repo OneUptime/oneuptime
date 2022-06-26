@@ -4,7 +4,7 @@ import TableRow from './TableRow';
 import Columns from './Types/Columns';
 
 export interface ComponentProps {
-    data: Array<JSONObject>
+    data: Array<JSONObject>;
     id: string;
     columns: Columns;
 }
@@ -12,11 +12,16 @@ export interface ComponentProps {
 const TableBody: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return <tbody>
-        {props.data && props.data.map((item: JSONObject, i:number) => {
-            return (<TableRow key={i} item={item} columns={props.columns}/>)  
-        })}
-    </tbody>;
+    return (
+        <tbody id={props.id}>
+            {props.data &&
+                props.data.map((item: JSONObject, i: number) => {
+                    return (
+                        <TableRow key={i} item={item} columns={props.columns} />
+                    );
+                })}
+        </tbody>
+    );
 };
 
 export default TableBody;

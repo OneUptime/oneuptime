@@ -4,7 +4,7 @@ import Column from './Types/Column';
 import Columns from './Types/Columns';
 
 export interface ComponentProps {
-    item: JSONObject
+    item: JSONObject;
     columns: Columns;
 }
 
@@ -13,9 +13,18 @@ const TableRow: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <tr>
-            {props.columns && props.columns.map((column: Column, i: number) => {
-                return (<td key={i}>{column.key ? props.item[column.key] as string : <></>}</td>);
-            })}
+            {props.columns &&
+                props.columns.map((column: Column, i: number) => {
+                    return (
+                        <td key={i}>
+                            {column.key ? (
+                                (props.item[column.key] as string)
+                            ) : (
+                                <></>
+                            )}
+                        </td>
+                    );
+                })}
         </tr>
     );
 };

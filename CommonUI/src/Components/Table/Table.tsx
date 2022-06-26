@@ -2,10 +2,10 @@ import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import TableBody from './TableBody';
 import TableHeader from './TableHeader';
-import Columns from "./Types/Columns";
+import Columns from './Types/Columns';
 
 export interface ComponentProps {
-    data: Array<JSONObject>
+    data: Array<JSONObject>;
     id: string;
     columns: Columns;
     itemsOnPage: number;
@@ -18,8 +18,18 @@ const Table: FunctionComponent<ComponentProps> = (
     return (
         <div className="table-responsive">
             <table className="table mb-0 table">
-                <TableHeader id={`${props.id}-header`} columns={props.columns} />
-                <TableBody id={`${props.id}-body`} data={props.data} columns={props.columns}/>
+                <TableHeader
+                    id={`${props.id}-header`}
+                    columns={props.columns}
+                />
+                <TableBody
+                    id={`${props.id}-body`}
+                    data={props.data}
+                    columns={props.columns}
+                />
+                {!props.disablePagination && (
+                    <div>Pagination here: {props.itemsOnPage}</div>
+                )}
             </table>
         </div>
     );

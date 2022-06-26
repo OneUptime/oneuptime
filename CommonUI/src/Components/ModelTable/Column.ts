@@ -4,7 +4,7 @@ import { IconProp } from '../Icon/Icon';
 import TableColumnType from '../Table/Types/TableColumnType';
 
 export interface ActionButton {
-    buttonText: string; 
+    buttonText: string;
     icon: IconProp;
     onClick: (id: ObjectID) => void;
 }
@@ -14,5 +14,5 @@ export default interface Columns<TEntity> {
     title: string;
     disbaleSort?: boolean;
     type: TableColumnType;
-    actionButtons?: Array<ActionButton>
+    actionButtons?: Array<ActionButton>;
 }

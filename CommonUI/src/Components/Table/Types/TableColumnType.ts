@@ -1,10 +1,9 @@
 enum TableColumnType {
     Label,
-    Text, 
+    Text,
     User,
     Actions,
     Date,
-
 }
 
 export default TableColumnType;

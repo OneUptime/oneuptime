@@ -73,7 +73,6 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             showAsColumns={props.showAsColumns || 1}
             onCancel={props.onCancel}
             cancelButtonText={props.cancelButtonText}
-            
         ></BasicForm>
     );
 };

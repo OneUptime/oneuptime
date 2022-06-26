@@ -29,7 +29,7 @@ export interface ComponentProps<T extends Object> {
     footer: ReactElement;
     isLoading?: boolean;
     onCancel?: (() => void) | null;
-    cancelButtonText?: string | null
+    cancelButtonText?: string | null;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -61,16 +61,17 @@ const BasicForm: Function = <T extends Object>(
         }
         return (
             <div className="mb-3" key={index}>
-                <label className='form-Label form-label'>
+                <label className="form-Label form-label">
                     <span>{field.title}</span>
                     {
                         <span>
                             <a
                                 href={field.sideLink?.url.toString()}
-                                target={`${field.sideLink?.openLinkInNewTab
-                                    ? '_blank'
-                                    : '_self'
-                                    }`}
+                                target={`${
+                                    field.sideLink?.openLinkInNewTab
+                                        ? '_blank'
+                                        : '_self'
+                                }`}
                             >
                                 {field.sideLink?.text}
                             </a>
@@ -108,15 +109,17 @@ const BasicForm: Function = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${field.validation.minLength
-                        } characters.`;
+                    return `${field.title || name} cannot be less than ${
+                        field.validation.minLength
+                    } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${field.validation.maxLength
-                        } characters.`;
+                    return `${field.title || name} cannot be more than ${
+                        field.validation.maxLength
+                    } characters.`;
                 }
             }
         }
@@ -143,7 +146,7 @@ const BasicForm: Function = <T extends Object>(
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
             (entity[field.validation?.toMatchField] as string).trim() !==
-            content.trim()
+                content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -166,73 +169,73 @@ const BasicForm: Function = <T extends Object>(
         values: FormValues<T>
     ) => void | object | Promise<FormikErrors<FormValues<T>>>) &
         Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
-            const errors: JSONObject = {};
-            const entries: JSONObject = { ...values } as JSONObject;
+        const errors: JSONObject = {};
+        const entries: JSONObject = { ...values } as JSONObject;
 
-            for (const field of props.fields) {
-                const name: string = field.overideFieldKey
-                    ? field.overideFieldKey
-                    : (Object.keys(field.field)[0] as string);
-                if (name in values) {
-                    const content: string | undefined = entries[name]?.toString();
+        for (const field of props.fields) {
+            const name: string = field.overideFieldKey
+                ? field.overideFieldKey
+                : (Object.keys(field.field)[0] as string);
+            if (name in values) {
+                const content: string | undefined = entries[name]?.toString();
 
-                    if (content) {
-                        // Check Required fields.
-                        const resultRequired: string | null = validateRequired(
-                            content,
-                            field
-                        );
-                        if (resultRequired) {
-                            errors[name] = resultRequired;
-                        }
-
-                        // Check for valid email data.
-                        const resultValidateData: string | null = validateData(
-                            content,
-                            field
-                        );
-                        if (resultValidateData) {
-                            errors[name] = resultValidateData;
-                        }
-
-                        const resultMatch: string | null = validateMatchField(
-                            content,
-                            field,
-                            entries
-                        );
-
-                        if (resultMatch) {
-                            errors[name] = resultMatch;
-                        }
-
-                        // check for length of content
-                        const result: string | null = validateLength(
-                            content,
-                            field
-                        );
-                        if (result) {
-                            errors[name] = result;
-                        }
+                if (content) {
+                    // Check Required fields.
+                    const resultRequired: string | null = validateRequired(
+                        content,
+                        field
+                    );
+                    if (resultRequired) {
+                        errors[name] = resultRequired;
                     }
-                } else if (field.required) {
-                    errors[name] = `${field.title || name} is required.`;
+
+                    // Check for valid email data.
+                    const resultValidateData: string | null = validateData(
+                        content,
+                        field
+                    );
+                    if (resultValidateData) {
+                        errors[name] = resultValidateData;
+                    }
+
+                    const resultMatch: string | null = validateMatchField(
+                        content,
+                        field,
+                        entries
+                    );
+
+                    if (resultMatch) {
+                        errors[name] = resultMatch;
+                    }
+
+                    // check for length of content
+                    const result: string | null = validateLength(
+                        content,
+                        field
+                    );
+                    if (result) {
+                        errors[name] = result;
+                    }
                 }
+            } else if (field.required) {
+                errors[name] = `${field.title || name} is required.`;
             }
+        }
 
-            let customValidateResult: JSONObject = {};
+        let customValidateResult: JSONObject = {};
 
-            if (props.onValidate) {
-                customValidateResult = props.onValidate(values);
-            }
+        if (props.onValidate) {
+            customValidateResult = props.onValidate(values);
+        }
 
-            return { ...errors, ...customValidateResult } as FormikErrors<
-                FormValues<T>
-            >;
-        };
+        return { ...errors, ...customValidateResult } as FormikErrors<
+            FormValues<T>
+        >;
+    };
 
     return (
         <div className="row">
-            <div className='col-lg-12'>
+            <div className="col-lg-12">
                 <Formik
                     initialValues={props.initialValues}
                     validate={validate}
@@ -246,14 +249,18 @@ const BasicForm: Function = <T extends Object>(
                         setSubmitting(false);
                     }}
                 >
-                    <Form
-                        autoComplete="off"
-                    >
+                    <Form autoComplete="off">
                         <h1>{props.title}</h1>
 
-                        {!!props.description && <p className="description">{props.description}</p>}
+                        {Boolean(props.description) && (
+                            <p className="description">{props.description}</p>
+                        )}
 
-                        <div className={`col-lg-${12 / (props.showAsColumns || 1)}`}>
+                        <div
+                            className={`col-lg-${
+                                12 / (props.showAsColumns || 1)
+                            }`}
+                        >
                             {props.fields &&
                                 props.fields.map(
                                     (field: DataField<T>, i: number) => {
@@ -262,10 +269,13 @@ const BasicForm: Function = <T extends Object>(
                                 )}
                         </div>
 
-                        <div className='row' style={{
-                            "display": "flex"
-                        }}>
-                            <div style={{ "width": "auto" }}>
+                        <div
+                            className="row"
+                            style={{
+                                display: 'flex',
+                            }}
+                        >
+                            <div style={{ width: 'auto' }}>
                                 <Button
                                     title={props.submitButtonText || 'Submit'}
                                     type={ButtonTypes.Submit}
@@ -274,7 +284,7 @@ const BasicForm: Function = <T extends Object>(
                                     buttonStyle={ButtonStyleType.PRIMARY}
                                 />
                             </div>
-                            <div style={{ "width": "auto" }}>
+                            <div style={{ width: 'auto' }}>
                                 <Button
                                     title={props.cancelButtonText || 'Cancel'}
                                     type={ButtonTypes.Button}

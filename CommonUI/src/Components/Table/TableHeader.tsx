@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
+import Column from './Types/Column';
 import Columns from './Types/Columns';
 
 export interface ComponentProps {
@@ -10,10 +11,10 @@ const TableHeader: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <thead>
+        <thead id={props.id}>
             <tr>
-                {props.columns.map((column, i) => {
-                    return <th key={i}>{column.title}</th>
+                {props.columns.map((column: Column, i: number) => {
+                    return <th key={i}>{column.title}</th>;
                 })}
             </tr>
         </thead>
