@@ -12,6 +12,7 @@ export interface ComponentProps {
 const Page: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    console.log('props.breadcrumbLinks', props.breadcrumbLinks);
     return (
         <div className="page-content">
             <div className="container-fluid">
