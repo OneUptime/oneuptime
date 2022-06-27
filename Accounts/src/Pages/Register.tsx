@@ -2,14 +2,12 @@ import React, { FunctionComponent, useState } from 'react';
 import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Common/Models/User';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-// import Footer from '../Footer';
-// import Container from 'CommonUI/src/Container';
 import IdentityAPI from 'CommonUI/src/Utils/API/IdentityAPI';
-import Link from "CommonUI/src/Components/Link/Link";
+import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
 import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import OneUptimeLogo from "CommonUI/src/Images/logos/OneUptimePNG/7.png";
+import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
 
 const RegisterPage: FunctionComponent = () => {
     const [isLaoding, setIsLoading] = useState<boolean>(false);
@@ -36,13 +34,25 @@ const RegisterPage: FunctionComponent = () => {
                         <div className="auth-full-page-content d-flex p-sm-5 p-4">
                             <div className="w-100">
                                 <div className="d-flex flex-column h-100">
-                                    <div className="mb-4 mb-md-5 text-center">
-                                        <img src={`public/${OneUptimeLogo}`} />
+                                    <div className="mt-4 text-center">
+                                        <img
+                                            style={{ height: '40px' }}
+                                            src={`/accounts/public/${OneUptimeLogo}`}
+                                        />
                                     </div>
                                     <div className="auth-content my-auto">
                                         <div className="text-center">
-                                            <h5 className="mb-0">Welcome to OneUptime!</h5>
-                                            <p className="text-muted mt-2">Sign up to continue.</p>
+                                            <h5 className="mb-0">
+                                                Create your OneUptime account.
+                                            </h5>
+                                            <p className="text-muted mt-2 mb-0">
+                                                Join thousands of business that
+                                                use OneUptime{' '}
+                                            </p>
+                                            <p className="text-muted mb-2">
+                                                to help them stay online all the
+                                                time.
+                                            </p>
                                         </div>
 
                                         <BasicModelForm<User>
@@ -56,8 +66,10 @@ const RegisterPage: FunctionComponent = () => {
                                                     field: {
                                                         email: true,
                                                     },
-                                                    fieldType: FormFieldSchemaType.Email,
-                                                    placeholder: 'jeff@example.com',
+                                                    fieldType:
+                                                        FormFieldSchemaType.Email,
+                                                    placeholder:
+                                                        'jeff@example.com',
                                                     required: true,
                                                     title: 'Email',
                                                 },
@@ -65,7 +77,8 @@ const RegisterPage: FunctionComponent = () => {
                                                     field: {
                                                         name: true,
                                                     },
-                                                    fieldType: FormFieldSchemaType.Text,
+                                                    fieldType:
+                                                        FormFieldSchemaType.Text,
                                                     placeholder: 'Jeff Smith',
                                                     required: true,
                                                     title: 'Full Name',
@@ -74,16 +87,19 @@ const RegisterPage: FunctionComponent = () => {
                                                     field: {
                                                         companyName: true,
                                                     },
-                                                    fieldType: FormFieldSchemaType.Text,
+                                                    fieldType:
+                                                        FormFieldSchemaType.Text,
                                                     placeholder: 'Company Name',
                                                     required: true,
                                                     title: 'Company Name',
                                                 },
                                                 {
                                                     field: {
-                                                        companyPhoneNumber: true,
+                                                        companyPhoneNumber:
+                                                            true,
                                                     },
-                                                    fieldType: FormFieldSchemaType.Text,
+                                                    fieldType:
+                                                        FormFieldSchemaType.Text,
                                                     required: true,
                                                     placeholder: 'Phone Number',
                                                     title: 'Phone Number',
@@ -92,7 +108,8 @@ const RegisterPage: FunctionComponent = () => {
                                                     field: {
                                                         password: true,
                                                     },
-                                                    fieldType: FormFieldSchemaType.Password,
+                                                    fieldType:
+                                                        FormFieldSchemaType.Password,
                                                     validation: {
                                                         minLength: 6,
                                                     },
@@ -106,12 +123,16 @@ const RegisterPage: FunctionComponent = () => {
                                                     },
                                                     validation: {
                                                         minLength: 6,
-                                                        toMatchField: 'password',
+                                                        toMatchField:
+                                                            'password',
                                                     },
-                                                    fieldType: FormFieldSchemaType.Password,
-                                                    placeholder: 'Confirm Password',
+                                                    fieldType:
+                                                        FormFieldSchemaType.Password,
+                                                    placeholder:
+                                                        'Confirm Password',
                                                     title: 'Confirm Password',
-                                                    overideFieldKey: 'confirmPassword',
+                                                    overideFieldKey:
+                                                        'confirmPassword',
                                                     required: true,
                                                 },
                                             ]}
@@ -120,10 +141,22 @@ const RegisterPage: FunctionComponent = () => {
                                         />
 
                                         <div className="mt-5 text-center">
-                                            <p className="text-muted mb-0">Have an account? <Link to={new Route('/accounts/login')} className="text-primary fw-semibold" > Log in </Link></p>
+                                            <p className="text-muted mb-0">
+                                                Already have an account?{' '}
+                                                <Link
+                                                    to={
+                                                        new Route(
+                                                            '/accounts/login'
+                                                        )
+                                                    }
+                                                    className="underline-on-hover text-primary fw-semibold"
+                                                >
+                                                    {' '}
+                                                    Log in.{' '}
+                                                </Link>
+                                            </p>
                                         </div>
                                     </div>
-                                   
                                 </div>
                             </div>
                         </div>
@@ -133,14 +166,7 @@ const RegisterPage: FunctionComponent = () => {
                 </div>
             </div>
         </div>
-    )
-
-    // return (
-    //     <Container title="Register">
-
-    //         <Footer />
-    //     </Container>
-    // );
+    );
 };
 
 export default RegisterPage;
