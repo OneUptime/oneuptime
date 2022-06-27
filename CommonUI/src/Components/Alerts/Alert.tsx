@@ -46,7 +46,7 @@ const Alert: FunctionComponent<ComponentProps> = (
         <div className="row">
             <div className="col-xl-12">
                 <div
-                    className={`alert-label-icon label-arrow alert ${cssClass} alert-dismissible fade show`}
+                    className={`alert-label-icon label-arrow alert m-0 ${cssClass} alert-dismissible fade show`}
                     role="alert"
                 >
                     {props.onClose && (
