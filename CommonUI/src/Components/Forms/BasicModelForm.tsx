@@ -21,6 +21,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isLoading?: boolean;
     onCancel?: () => void;
     cancelButtonText?: string;
+    maxPrimaryButtonWidth?: boolean;
 }
 
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(
@@ -73,6 +74,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             showAsColumns={props.showAsColumns || 1}
             onCancel={props.onCancel}
             cancelButtonText={props.cancelButtonText}
+            maxPrimaryButtonWidth={props.maxPrimaryButtonWidth || false}
         ></BasicForm>
     );
 };
