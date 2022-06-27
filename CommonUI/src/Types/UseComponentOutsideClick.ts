@@ -1,10 +1,13 @@
-import {
+import React, {
     useState,
     useEffect,
     useRef,
     MouseEventHandler,
     MouseEvent,
 } from 'react';
+
+console.log("React Outside testing");
+console.log((window as any).React1 === React);
 
 const useComponentOutsideClick: Function = (
     isVisible: boolean

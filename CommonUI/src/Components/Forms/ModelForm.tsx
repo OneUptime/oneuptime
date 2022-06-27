@@ -5,12 +5,11 @@ import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import BasicModelForm from './BasicModelForm';
 
-/*
- * export enum FormType {
- *     Create,
- *     Update,
- * }
- */
+
+ export enum FormType {
+     Create,
+     Update,
+ }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -27,7 +26,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onCancel?: () => void;
     onSuccess?: (data: TBaseModel) => void;
     cancelButtonText?: string;
-    // formType: FormType;
+    formType: FormType;
 }
 
 const CreateModelForm: Function = <TBaseModel extends BaseModel>(

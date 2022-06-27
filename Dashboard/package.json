@@ -3,17 +3,13 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
-        "@fortawesome/free-solid-svg-icons": "^6.1.1",
-        "@fortawesome/react-fontawesome": "^0.1.18",
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
-        "formik": "^2.2.9",
         "react": "^18.1.0",
         "react-dom": "^18.1.0",
         "react-router": "^6.3.0",
         "react-router-dom": "^6.3.0",
-        "react-scripts": "5.0.1",
         "typescript": "^4.6.4"
     },
     "scripts": {
@@ -24,8 +20,9 @@
         "compile": "tsc",
         "start": "node index.ts",
         "audit": "npm audit --audit-level=low",
-        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "dep-check": "depcheck ./ --skip-missing=true'"
+        "preinstall": "cd .. && cd CommonUI && npm install && cd .. && cd Dashboard && npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+        "dep-check": "depcheck ./ --skip-missing=true'",
+        "postinstall": "cd .. && cd CommonUI && npm link ../Dashboard/node_modules/react && cd .. && cd Dashboard"
     },
     "browserslist": {
         "production": [

@@ -26,6 +26,9 @@ import SettingsCreateAPIKey from './Pages/Settings/CreateAPIKey';
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
 
+console.log("React Testing");
+console.log((window as any).React1 === React);
+
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
