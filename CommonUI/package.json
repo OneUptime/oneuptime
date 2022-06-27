@@ -11,6 +11,10 @@
     "license": "MIT",
     "type": "module",
     "dependencies": {
+        "react": "^18.1.0",
+        "react-dom": "^18.1.0",
+        "react-router": "^6.3.0",
+        "react-router-dom": "^6.3.0",
         "@ailibs/feather-react-ts": "^3.0.3",
         "@fortawesome/fontawesome-svg-core": "^6.1.1",
         "@fortawesome/free-regular-svg-icons": "^6.1.1",
@@ -30,15 +34,8 @@
         "web-vitals": "^2.1.4",
         "yup": "^0.32.11"
     },
-    "peerDependencies": {
-        "@types/react": "^18.0.9",
-        "react": "^18.1.0",
-        "react-dom": "^18.1.0",
-        "react-router": "^6.3.0",
-        "react-router-dom": "^6.3.0"
-    },
     "devDependencies": {
-        "@types/node": "^17.0.23"
-
+        "@types/node": "^17.0.23",
+        "@types/react": "^18.0.9"
     }
 }
