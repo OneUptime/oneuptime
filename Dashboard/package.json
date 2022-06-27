@@ -20,9 +20,8 @@
         "compile": "tsc",
         "start": "node index.ts",
         "audit": "npm audit --audit-level=low",
-        "preinstall": "echo 'Pre Install' && cd .. && cd CommonUI && npm install && cd .. && cd Dashboard && npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "dep-check": "depcheck ./ --skip-missing=true'",
-        "postinstall": "echo 'Post Install' && cd .. && cd CommonUI && npm link ../Dashboard/node_modules/react && cd .. && cd Dashboard"
+        "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
+        "dep-check": "depcheck ./ --skip-missing=true'"
     },
     "browserslist": {
         "production": [
