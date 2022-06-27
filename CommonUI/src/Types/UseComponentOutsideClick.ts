@@ -6,8 +6,6 @@ import React, {
     MouseEvent,
 } from 'react';
 
-console.log("React Outside testing");
-console.log((window as any).React1 === React);
 
 const useComponentOutsideClick: Function = (
     isVisible: boolean
