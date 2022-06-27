@@ -280,7 +280,7 @@ services:
         environment: *common-variables
         depends_on:
             - haraka
-            - ppostgres
+            - postgres
             
     application-scanner:
         ports:
