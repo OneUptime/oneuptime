@@ -87,8 +87,8 @@ const ForgotPassword: FunctionComponent = () => {
                                                     }
                                                     className="underline-on-hover text-primary fw-semibold"
                                                 >
-                                                    {' '}
-                                                    Register.{' '}
+                                                    
+                                                    Register.
                                                 </Link>
                                             </p>
                                         </div>

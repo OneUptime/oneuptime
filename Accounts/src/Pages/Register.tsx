@@ -151,8 +151,8 @@ const RegisterPage: FunctionComponent = () => {
                                                     }
                                                     className="underline-on-hover text-primary fw-semibold"
                                                 >
-                                                    {' '}
-                                                    Log in.{' '}
+                                                  
+                                                    Log in.
                                                 </Link>
                                             </p>
                                         </div>
