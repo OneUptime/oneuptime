@@ -11,7 +11,7 @@ export interface ComponentProps {
     icon: IconProp;
 }
 
-const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
+const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
@@ -30,4 +30,4 @@ const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default CreateNewProjectButton;
+export default ProjectPickerMenuItem;
