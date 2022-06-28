@@ -51,7 +51,7 @@ const RegisterPage: FunctionComponent = () => {
                                             </p>
                                             <p className="text-muted mb-2">
                                                 to help them stay online all the
-                                                time.
+                                                time. No credit card required.
                                             </p>
                                         </div>
 

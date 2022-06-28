@@ -24,7 +24,7 @@ const Link: FunctionComponent<ComponentProps> = (
 
     return (
         <a
-            className={`pointer underline-on-hover ${props.className || ''}`}
+            className={`pointer ${props.className || ''}`}
             onClick={() => {
                 if (props.to) {
                     Navigation.navigate(props.to);

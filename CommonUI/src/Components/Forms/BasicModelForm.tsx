@@ -36,7 +36,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             if (
                 props.model.getDisplayColumnTitleAs(
                     Object.keys(field.field)[0] as string
-                )
+                ) && !field.title
             ) {
                 field.title = props.model.getDisplayColumnTitleAs(
                     Object.keys(field.field)[0] as string
@@ -46,7 +46,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             if (
                 props.model.getDisplayColumnDescriptionAs(
                     Object.keys(field.field)[0] as string
-                )
+                )  && !field.description
             ) {
                 field.description = props.model.getDisplayColumnDescriptionAs(
                     Object.keys(field.field)[0] as string
