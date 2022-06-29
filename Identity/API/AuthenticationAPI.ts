@@ -148,7 +148,10 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(req, res, { token: token, user: savedUser.toJSON() });
+                return Response.sendItemResponse(req, res, {
+                    token: token,
+                    user: savedUser.toJSON(),
+                });
             }
 
             throw new BadRequestException('Failed to create a user');

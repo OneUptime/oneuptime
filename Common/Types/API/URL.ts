@@ -104,7 +104,7 @@ export default class URL extends DatabaseProperty {
     }
 
     public addRoute(route: Route | string): URL {
-        if (typeof route === "string") {
+        if (typeof route === 'string') {
             this.route.addRoute(new Route(route));
         } else {
             this.route.addRoute(route);
@@ -122,8 +122,6 @@ export default class URL extends DatabaseProperty {
 
         return null;
     }
-
-
 
     protected static override fromDatabase(_value: string): URL | null {
         if (_value) {

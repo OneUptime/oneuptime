@@ -22,7 +22,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onCancel?: () => void;
     cancelButtonText?: string;
     maxPrimaryButtonWidth?: boolean;
-    error: string | null
+    error: string | null;
 }
 
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(
@@ -37,7 +37,8 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             if (
                 props.model.getDisplayColumnTitleAs(
                     Object.keys(field.field)[0] as string
-                ) && !field.title
+                ) &&
+                !field.title
             ) {
                 field.title = props.model.getDisplayColumnTitleAs(
                     Object.keys(field.field)[0] as string
@@ -47,7 +48,8 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             if (
                 props.model.getDisplayColumnDescriptionAs(
                     Object.keys(field.field)[0] as string
-                )  && !field.description
+                ) &&
+                !field.description
             ) {
                 field.description = props.model.getDisplayColumnDescriptionAs(
                     Object.keys(field.field)[0] as string

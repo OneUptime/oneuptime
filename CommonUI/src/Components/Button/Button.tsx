@@ -165,7 +165,15 @@ const Button: FunctionComponent<ComponentProps> = ({
                     </span>
                 </div>
             )}
-            {isLoading && <div><Loader loaderType={LoaderType.Beats} color={White} size={10} /></div>}
+            {isLoading && (
+                <div>
+                    <Loader
+                        loaderType={LoaderType.Beats}
+                        color={White}
+                        size={10}
+                    />
+                </div>
+            )}
         </button>
     );
 };

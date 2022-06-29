@@ -44,9 +44,9 @@ export default class Response {
         }`;
 
         if (oneUptimeResponse.statusCode > 299) {
-            logger.error(header_info + "\n "+body_info);
+            logger.error(header_info + '\n ' + body_info);
         } else {
-            logger.info(header_info + "\n "+body_info);
+            logger.info(header_info + '\n ' + body_info);
         }
     }
 
@@ -126,7 +126,7 @@ export default class Response {
         req: ExpressRequest,
         res: ExpressResponse,
         list: Array<BaseModel | JSONObject>,
-        count: PositiveNumber,
+        count: PositiveNumber
     ): void {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -186,7 +186,7 @@ export default class Response {
     public static sendItemResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        item: JSONObject | BaseModel,
+        item: JSONObject | BaseModel
     ): void {
         if (item instanceof BaseModel) {
             item = item.toJSON();
@@ -199,7 +199,7 @@ export default class Response {
             'ExpressRequest-Id',
             oneUptimeRequest.id.toString()
         );
-        
+
         oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
         if (oneUptimeRequest.query['output-type'] === 'csv') {

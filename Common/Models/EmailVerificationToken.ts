@@ -10,12 +10,16 @@ import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
 
-@CrudApiEndpoint(new Route("/email-verification-token"))
+@CrudApiEndpoint(new Route('/email-verification-token'))
 @Entity({
     name: 'EmailVerificationToken',
 })
 export default class EmailVerificationToken extends BaseModel {
-    @TableColumn({ manyToOneRelationColumn: 'userId', required: true, type: TableColumnType.Entity })
+    @TableColumn({
+        manyToOneRelationColumn: 'userId',
+        required: true,
+        type: TableColumnType.Entity,
+    })
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -30,7 +34,7 @@ export default class EmailVerificationToken extends BaseModel {
     @JoinColumn({ name: 'userId' })
     public user?: User;
 
-    @TableColumn({type: TableColumnType.ObjectID})
+    @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -38,7 +42,7 @@ export default class EmailVerificationToken extends BaseModel {
     })
     public userId?: ObjectID;
 
-    @TableColumn({type: TableColumnType.Email})
+    @TableColumn({ type: TableColumnType.Email })
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
@@ -48,7 +52,11 @@ export default class EmailVerificationToken extends BaseModel {
     public email?: Email = undefined;
 
     @Index()
-    @TableColumn({ required: true, unique: true, type: TableColumnType.ObjectID })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.ObjectID,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

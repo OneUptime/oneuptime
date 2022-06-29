@@ -226,7 +226,7 @@ export default class API {
                 // Do whatever you want with native error
                 errorResponse = this.getErrorResponse(error);
             } else {
-                throw new APIException(error.message)
+                throw new APIException(error.message);
             }
 
             this.handleError(errorResponse);

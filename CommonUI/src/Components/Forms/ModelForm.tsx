@@ -15,7 +15,7 @@ import { DASHBOARD_API_URL } from '../../Config';
 
 export enum FormType {
     Create,
-    Update
+    Update,
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -31,11 +31,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showAsColumns?: number;
     footer: ReactElement;
     onCancel?: () => void;
-    onSuccess?: (data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void;
+    onSuccess?: (
+        data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
+    ) => void;
     cancelButtonText?: string;
     maxPrimaryButtonWidth?: boolean;
-    apiUrl?: URL,
-    formType: FormType
+    apiUrl?: URL;
+    formType: FormType;
 }
 
 const CreateModelForm: Function = <TBaseModel extends BaseModel>(
@@ -44,28 +46,34 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
     const [isLoading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
 
-    const onSubmit = async (values: any) => {
+    const onSubmit: Function = async (values: JSONObject): Promise<void> => {
         // Ping an API here.
         setError('');
         setLoading(true);
-        let apiUrl = props.apiUrl;
+        let apiUrl: URL | null = props.apiUrl || null;
 
         if (!apiUrl) {
             const apiPath: Route | null = props.model.getCrudApiPath();
             if (!apiPath) {
-                throw new BadDataException("This model does not support CRUD operations.");
+                throw new BadDataException(
+                    'This model does not support CRUD operations.'
+                );
             }
 
             apiUrl = DASHBOARD_API_URL.addRoute(apiPath);
         }
 
-        const result: HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>> =
-            await API.fetch<
-                JSONObject |
-                JSONArray |
-                TBaseModel |
-                Array<TBaseModel
-                >>(props.formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT, apiUrl, values);
+        const result: HTTPResponse<
+            JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
+        > = await API.fetch<
+            JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
+        >(
+            props.formType === FormType.Create
+                ? HTTPMethod.POST
+                : HTTPMethod.PUT,
+            apiUrl,
+            values
+        );
 
         setLoading(false);
 
@@ -74,7 +82,7 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
                 props.onSuccess(result.data);
             }
         } else {
-            setError((result.data as JSONObject)["error"] as string)
+            setError((result.data as JSONObject)['error'] as string);
         }
     };
 

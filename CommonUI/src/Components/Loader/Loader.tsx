@@ -5,7 +5,7 @@ import Color from 'Common/Types/Color';
 
 export enum LoaderType {
     Bar,
-    Beats
+    Beats,
 }
 
 export interface ComponentProps {
@@ -19,7 +19,6 @@ const Loader: FunctionComponent<ComponentProps> = ({
     color = new Color('#000000'),
     loaderType = LoaderType.Bar,
 }: ComponentProps) => {
-
     if (loaderType === LoaderType.Bar) {
         return <BarLoader height={4} width={size} color={color.toString()} />;
     }

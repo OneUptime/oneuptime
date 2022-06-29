@@ -31,7 +31,7 @@ export default class HTTPResponse<
     public constructor(statusCode: number, data: JSONObjectOrArray) {
         this.statusCode = statusCode;
         this.jsonData = data;
-        this.data = data as T;        
+        this.data = data as T;
     }
 
     public isSuccess(): boolean {

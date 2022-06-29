@@ -7,16 +7,15 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import { JSONObject } from 'Common/Types/JSON';
-import UserUtil from "CommonUI/src/Utils/User";
+import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Email from 'Common/Types/Email';
 import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
 import URL from 'Common/Types/API/URL';
-import { SIGNUP_API_URL } from "../Utils/ApiPaths";
+import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 
 const RegisterPage: FunctionComponent = () => {
-
     const user: User = new User();
     const apiUrl: URL = SIGNUP_API_URL;
 
@@ -56,16 +55,14 @@ const RegisterPage: FunctionComponent = () => {
                                             id="register-form"
                                             showAsColumns={2}
                                             maxPrimaryButtonWidth={true}
-                                            initialValues= {
-                                                {
-                                                    email: '',
-                                                    name: '',
-                                                    companyName: '',
-                                                    companyPhoneNumber: '',
-                                                    password: '',
-                                                    confirmPassword: ''
-                                             }
-                                            }
+                                            initialValues={{
+                                                email: '',
+                                                name: '',
+                                                companyName: '',
+                                                companyPhoneNumber: '',
+                                                password: '',
+                                                confirmPassword: '',
+                                            }}
                                             fields={[
                                                 {
                                                     field: {
@@ -106,7 +103,8 @@ const RegisterPage: FunctionComponent = () => {
                                                     fieldType:
                                                         FormFieldSchemaType.Text,
                                                     required: true,
-                                                    placeholder: '+1-123-456-7890',
+                                                    placeholder:
+                                                        '+1-123-456-7890',
                                                     title: 'Phone Number',
                                                 },
                                                 {
@@ -145,17 +143,32 @@ const RegisterPage: FunctionComponent = () => {
                                             formType={FormType.Create}
                                             submitButtonText={'Sign Up'}
                                             onSuccess={(value: JSONObject) => {
-                                                const user: User = User.fromJSON(value["user"] as JSONObject, User) as User;
-                                                const token: string = value["token"] as string;
+                                                const user: User =
+                                                    User.fromJSON(
+                                                        value[
+                                                            'user'
+                                                        ] as JSONObject,
+                                                        User
+                                                    ) as User;
+                                                const token: string = value[
+                                                    'token'
+                                                ] as string;
 
                                                 UserUtil.setAccessToken(token);
-                                                UserUtil.setEmail(user.email as Email);
-                                                UserUtil.setUserId(user.id as ObjectID);
-                                                UserUtil.setName(user.name as Name);
+                                                UserUtil.setEmail(
+                                                    user.email as Email
+                                                );
+                                                UserUtil.setUserId(
+                                                    user.id as ObjectID
+                                                );
+                                                UserUtil.setName(
+                                                    user.name as Name
+                                                );
 
-                                                // go to dashboard, user should be logged in. 
-                                                Navigation.navigate(DASHBOARD_URL);
-
+                                                // go to dashboard, user should be logged in.
+                                                Navigation.navigate(
+                                                    DASHBOARD_URL
+                                                );
                                             }}
                                         />
 

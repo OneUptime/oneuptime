@@ -15,7 +15,7 @@ class BaseAPI extends API {
         super(protocol, hostname, route);
     }
 
-    public static fromURL(url: URL) {
+    public static fromURL(url: URL): BaseAPI {
         return new BaseAPI(url.protocol, url.hostname, url.route);
     }
 
@@ -43,7 +43,7 @@ class BaseAPI extends API {
             cookies.remove('admin-data', { path: '/' });
             cookies.remove('data', { path: '/' });
             User.clear();
-            Navigation.navigate(new Route("/accounts/login"));
+            Navigation.navigate(new Route('/accounts/login'));
         }
 
         return error;

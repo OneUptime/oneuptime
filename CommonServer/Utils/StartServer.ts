@@ -26,7 +26,6 @@ const app: ExpressApplication = Express.getExpressApp();
 
 app.set('port', process.env['PORT']);
 
-
 const logRequest: RequestHandler = (
     req: ExpressRequest,
     _res: ExpressResponse,
@@ -38,15 +37,19 @@ const logRequest: RequestHandler = (
     const method: string = req.method;
     const url: string = req.url;
 
-    const header_info: string = `Request ID: ${(req as OneUptimeRequest).id
-        } -- POD NAME: ${process.env['POD_NAME'] || 'NONE'
-        } -- METHOD: ${method} -- URL: ${url.toString()}`;
+    const header_info: string = `Request ID: ${
+        (req as OneUptimeRequest).id
+    } -- POD NAME: ${
+        process.env['POD_NAME'] || 'NONE'
+    } -- METHOD: ${method} -- URL: ${url.toString()}`;
 
-    const body_info: string = `Request ID: ${(req as OneUptimeRequest).id
-        } -- Request Body: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
-        }`;
+    const body_info: string = `Request ID: ${
+        (req as OneUptimeRequest).id
+    } -- Request Body: ${
+        req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+    }`;
 
-    logger.info(header_info + "\n " + body_info);
+    logger.info(header_info + '\n ' + body_info);
     next();
 };
 
@@ -82,13 +85,12 @@ app.use(ExpressUrlEncoded({ limit: '10mb' }));
 
 app.use(logRequest);
 
-
 const init: Function = async (appName: string): Promise<ExpressApplication> => {
     await Express.launchApplication(appName);
     LocalCache.setString('app', 'name', appName);
     CommonAPI(appName);
 
-    // Attach Error Handler. 
+    // Attach Error Handler.
     app.use(
         (
             err: Error | Exception,
@@ -96,7 +98,6 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
             res: ExpressResponse,
             next: NextFunction
         ) => {
-
             logger.error(err);
 
             if (res.headersSent) {
@@ -108,7 +109,7 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
                 res.send({ error: (err as Exception).message });
             } else {
                 res.status(500);
-                res.send({ error: "Server Error" });
+                res.send({ error: 'Server Error' });
             }
         }
     );

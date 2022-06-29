@@ -63,10 +63,18 @@ const Alert: FunctionComponent<ComponentProps> = (
                     )}
                     <span style={{ marginLeft: '-45px' }}>
                         {AlertType.DANGER === type && (
-                            <Icon thick={ThickProp.LessThick} icon={IconProp.Error} size={SizeProp.Large} />
+                            <Icon
+                                thick={ThickProp.LessThick}
+                                icon={IconProp.Error}
+                                size={SizeProp.Large}
+                            />
                         )}
                         {AlertType.WARNING === type && (
-                            <Icon thick={ThickProp.LessThick} icon={IconProp.Alert} size={SizeProp.Large} />
+                            <Icon
+                                thick={ThickProp.LessThick}
+                                icon={IconProp.Alert}
+                                size={SizeProp.Large}
+                            />
                         )}
                         {AlertType.SUCCESS === type && (
                             <Icon
@@ -76,7 +84,11 @@ const Alert: FunctionComponent<ComponentProps> = (
                             />
                         )}
                         {AlertType.INFO === type && (
-                            <Icon thick={ThickProp.LessThick} icon={IconProp.Info} size={SizeProp.Large} />
+                            <Icon
+                                thick={ThickProp.LessThick}
+                                icon={IconProp.Info}
+                                size={SizeProp.Large}
+                            />
                         )}
                         &nbsp;&nbsp;
                     </span>

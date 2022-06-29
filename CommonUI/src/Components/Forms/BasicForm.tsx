@@ -33,7 +33,7 @@ export interface ComponentProps<T extends Object> {
     onCancel?: (() => void) | null;
     cancelButtonText?: string | null;
     maxPrimaryButtonWidth?: boolean;
-    error: string | null
+    error: string | null;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -52,8 +52,6 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
 const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
-
-
     const getFormField: Function = (
         field: DataField<T>,
         index: number,
@@ -70,7 +68,7 @@ const BasicForm: Function = <T extends Object>(
         if (props.showAsColumns && props.showAsColumns > 2) {
             throw new BadDataException(
                 'showAsCOlumns should be <= 2. It is currently ' +
-                props.showAsColumns
+                    props.showAsColumns
             );
         }
 
@@ -102,9 +100,7 @@ const BasicForm: Function = <T extends Object>(
                     placeholder={field.placeholder}
                     type={fieldType}
                     tabIndex={index + 1}
-                    name={
-                        fieldName
-                    }
+                    name={fieldName}
                     disabled={isDisabled}
                 />
                 <ErrorMessage
@@ -127,15 +123,17 @@ const BasicForm: Function = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${field.validation.minLength
-                        } characters.`;
+                    return `${field.title || name} cannot be less than ${
+                        field.validation.minLength
+                    } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${field.validation.maxLength
-                        } characters.`;
+                    return `${field.title || name} cannot be more than ${
+                        field.validation.maxLength
+                    } characters.`;
                 }
             }
         }
@@ -162,7 +160,7 @@ const BasicForm: Function = <T extends Object>(
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
             (entity[field.validation?.toMatchField] as string).trim() !==
-            content.trim()
+                content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -185,70 +183,69 @@ const BasicForm: Function = <T extends Object>(
         values: FormValues<T>
     ) => void | object | Promise<FormikErrors<FormValues<T>>>) &
         Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
+        const errors: JSONObject = {};
+        const entries: JSONObject = { ...values } as JSONObject;
 
-            const errors: JSONObject = {};
-            const entries: JSONObject = { ...values } as JSONObject;
+        for (const field of props.fields) {
+            const name: string = field.overideFieldKey
+                ? field.overideFieldKey
+                : (Object.keys(field.field)[0] as string);
+            if (name in values) {
+                const content: string | undefined = entries[name]?.toString();
 
-            for (const field of props.fields) {
-                const name: string = field.overideFieldKey
-                    ? field.overideFieldKey
-                    : (Object.keys(field.field)[0] as string);
-                if (name in values) {
-                    const content: string | undefined = entries[name]?.toString();
-
-                    if (content) {
-                        // Check Required fields.
-                        const resultRequired: string | null = validateRequired(
-                            content,
-                            field
-                        );
-                        if (resultRequired) {
-                            errors[name] = resultRequired;
-                        }
-
-                        // Check for valid email data.
-                        const resultValidateData: string | null = validateData(
-                            content,
-                            field
-                        );
-                        if (resultValidateData) {
-                            errors[name] = resultValidateData;
-                        }
-
-                        const resultMatch: string | null = validateMatchField(
-                            content,
-                            field,
-                            entries
-                        );
-
-                        if (resultMatch) {
-                            errors[name] = resultMatch;
-                        }
-
-                        // check for length of content
-                        const result: string | null = validateLength(
-                            content,
-                            field
-                        );
-                        if (result) {
-                            errors[name] = result;
-                        }
+                if (content) {
+                    // Check Required fields.
+                    const resultRequired: string | null = validateRequired(
+                        content,
+                        field
+                    );
+                    if (resultRequired) {
+                        errors[name] = resultRequired;
                     }
-                } else if (field.required) {
-                    errors[name] = `${field.title || name} is required.`;
+
+                    // Check for valid email data.
+                    const resultValidateData: string | null = validateData(
+                        content,
+                        field
+                    );
+                    if (resultValidateData) {
+                        errors[name] = resultValidateData;
+                    }
+
+                    const resultMatch: string | null = validateMatchField(
+                        content,
+                        field,
+                        entries
+                    );
+
+                    if (resultMatch) {
+                        errors[name] = resultMatch;
+                    }
+
+                    // check for length of content
+                    const result: string | null = validateLength(
+                        content,
+                        field
+                    );
+                    if (result) {
+                        errors[name] = result;
+                    }
                 }
+            } else if (field.required) {
+                errors[name] = `${field.title || name} is required.`;
             }
+        }
 
-            let customValidateResult: JSONObject = {};
+        let customValidateResult: JSONObject = {};
 
-            if (props.onValidate) {
-                customValidateResult = props.onValidate(values);
-            }
+        if (props.onValidate) {
+            customValidateResult = props.onValidate(values);
+        }
 
-            return { ...errors, ...customValidateResult } as FormikErrors<
-                FormValues<T>
-            >;
-        };
+        return { ...errors, ...customValidateResult } as FormikErrors<
+            FormValues<T>
+        >;
+    };
 
     return (
         <div className="row">
@@ -266,7 +263,6 @@ const BasicForm: Function = <T extends Object>(
                         setSubmitting(false);
                     }}
                 >
-
                     <Form autoComplete="off">
                         <h1>{props.title}</h1>
 
@@ -274,26 +270,37 @@ const BasicForm: Function = <T extends Object>(
                             <p className="description">{props.description}</p>
                         )}
 
-                        {props.error && <Alert title={props.error} type={AlertType.DANGER} />}
+                        {props.error && (
+                            <Alert
+                                title={props.error}
+                                type={AlertType.DANGER}
+                            />
+                        )}
 
                         <div className={`col-lg-12 flex`}>
                             <div
-                                className={`col-lg-${12 / (props.showAsColumns || 1)
-                                    } ${(props.showAsColumns || 1) > 1
+                                className={`col-lg-${
+                                    12 / (props.showAsColumns || 1)
+                                } ${
+                                    (props.showAsColumns || 1) > 1
                                         ? 'pr-10'
                                         : ''
-                                    }`}
+                                }`}
                             >
                                 {props.fields &&
                                     props.fields.map(
                                         (field: DataField<T>, i: number) => {
                                             if (
                                                 i %
-                                                (props.showAsColumns ||
-                                                    1) ===
+                                                    (props.showAsColumns ||
+                                                        1) ===
                                                 0
                                             ) {
-                                                return getFormField(field, i, props.isLoading);
+                                                return getFormField(
+                                                    field,
+                                                    i,
+                                                    props.isLoading
+                                                );
                                             }
                                             return <div key={i}></div>;
                                         }
@@ -301,11 +308,13 @@ const BasicForm: Function = <T extends Object>(
                             </div>
                             {(props.showAsColumns || 1) > 1 && (
                                 <div
-                                    className={`col-lg-${12 / (props.showAsColumns || 1)
-                                        } ${(props.showAsColumns || 1) > 1
+                                    className={`col-lg-${
+                                        12 / (props.showAsColumns || 1)
+                                    } ${
+                                        (props.showAsColumns || 1) > 1
                                             ? 'pl-10'
                                             : ''
-                                        }`}
+                                    }`}
                                 >
                                     {props.fields &&
                                         props.fields.map(
@@ -315,8 +324,8 @@ const BasicForm: Function = <T extends Object>(
                                             ) => {
                                                 if (
                                                     i %
-                                                    (props.showAsColumns ||
-                                                        1) !==
+                                                        (props.showAsColumns ||
+                                                            1) !==
                                                     0
                                                 ) {
                                                     return getFormField(
@@ -349,7 +358,6 @@ const BasicForm: Function = <T extends Object>(
                                     title={props.submitButtonText || 'Submit'}
                                     type={ButtonTypes.Submit}
                                     id={`${props.id}-submit-button`}
-                                    
                                     isLoading={props.isLoading || false}
                                     buttonStyle={ButtonStyleType.PRIMARY}
                                     style={{

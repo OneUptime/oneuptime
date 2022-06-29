@@ -7,7 +7,7 @@ const logger: Logger = createLogger({
         errors({ stack: true }), // <-- use errors format
         timestamp(),
         prettyPrint()
-      ),
+    ),
     transports: [new transports.Console()],
 });
 
