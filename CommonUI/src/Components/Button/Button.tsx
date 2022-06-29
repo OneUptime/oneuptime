@@ -4,7 +4,8 @@ import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
 import CSS from 'csstype';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
-
+import Loader, { LoaderType } from '../Loader/Loader';
+import { White } from '../../Utils/BrandColors';
 export enum ButtonStyleType {
     PRIMARY,
     SECONDRY,
@@ -164,7 +165,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                     </span>
                 </div>
             )}
-            {isLoading && <div>Implement Loader here</div>}
+            {isLoading && <div><Loader loaderType={LoaderType.Beats} color={White} size={10} /></div>}
         </button>
     );
 };

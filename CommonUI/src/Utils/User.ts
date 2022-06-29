@@ -24,27 +24,27 @@ export default class User {
     }
 
     public static setUserId(id: ObjectID): void {
-        LocalStorage.setItem('id', id.toString());
+        LocalStorage.setItem('user_id', id.toString());
     }
 
     public static getUserId(): ObjectID {
-        return new ObjectID((LocalStorage.getItem('id') as string) || '');
+        return new ObjectID((LocalStorage.getItem('user_id') as string) || '');
     }
 
     public static getName(): Name {
-        return new Name((LocalStorage.getItem('name') as string) || '');
+        return new Name((LocalStorage.getItem('user_name') as string) || '');
     }
 
-    public static setName(name: string): void {
-        LocalStorage.setItem('name', name);
+    public static setName(name: Name): void {
+        LocalStorage.setItem('user_name', name.toString());
     }
 
     public static getEmail(): Email {
-        return new Email(LocalStorage.getItem('email') as string);
+        return new Email(LocalStorage.getItem('user_email') as string);
     }
 
     public static setEmail(email: Email): void {
-        LocalStorage.setItem('email', email);
+        LocalStorage.setItem('user_email', email);
     }
 
     public static initialUrl(): URL {
@@ -73,7 +73,7 @@ export default class User {
     }
 
     public static removeUserId(): void {
-        LocalStorage.removeItem('id');
+        LocalStorage.removeItem('user_id');
     }
 
     public static removeAccessToken(): void {

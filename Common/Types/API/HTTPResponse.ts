@@ -31,14 +31,30 @@ export default class HTTPResponse<
     public constructor(statusCode: number, data: JSONObjectOrArray) {
         this.statusCode = statusCode;
         this.jsonData = data;
+        this.data = data as T;        
+    }
 
-        let obj!: T;
+    public isSuccess(): boolean {
+        return this.statusCode === 200;
+    }
 
-        if (obj instanceof BaseModel) {
-            // this.data = BaseModel.fromJSON(data) as T;
-            this.data = data as T;
-        } else {
-            this.data = data as T;
-        }
+    public isFailure(): boolean {
+        return this.statusCode !== 200;
+    }
+
+    public isNotAuthorized(): boolean {
+        return this.statusCode === 401;
+    }
+
+    public isTooManyRequests(): boolean {
+        return this.statusCode === 429;
+    }
+
+    public isPaymentDeclined(): boolean {
+        return this.statusCode === 402;
+    }
+
+    public isServerError(): boolean {
+        return this.statusCode === 500;
     }
 }

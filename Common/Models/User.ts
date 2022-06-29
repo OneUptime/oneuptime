@@ -14,7 +14,10 @@ import HashedString from '../Types/HashedString';
 import PublicRecordPermissions from '../Types/Database/AccessControls/Public/PublicRecordPermissions';
 import TableColumn from '../Types/Database/TableColumn';
 import PublicColumnPermissions from '../Types/Database/AccessControls/Public/PublicColumnPermissions';
+import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
+import Route from '../Types/API/Route';
 
+@CrudApiEndpoint(new Route("/user"))
 @PublicRecordPermissions({
     create: true,
     readAsList: false,

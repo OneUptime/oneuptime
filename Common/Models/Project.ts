@@ -6,7 +6,10 @@ import PositiveNumber from '../Types/PositiveNumber';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
 import TableColumn from '../Types/Database/TableColumn';
+import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
+import Route from '../Types/API/Route';
 
+@CrudApiEndpoint(new Route("/project"))
 @Entity({
     name: 'Project',
 })

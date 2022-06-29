@@ -9,7 +9,10 @@ import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import URL from '../Types/API/URL';
 import User from './User';
 import TableColumn from '../Types/Database/TableColumn';
+import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
+import Route from '../Types/API/Route';
 
+@CrudApiEndpoint(new Route("/probe"))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Probe',

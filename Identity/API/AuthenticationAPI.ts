@@ -46,7 +46,7 @@ router.post(
             const data: JSONObject = req.body;
 
             const user: User = User.asPublicCreateable<User>(
-                data['user'] as JSONObject,
+                data as JSONObject,
                 User
             );
 

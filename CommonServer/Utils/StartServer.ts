@@ -79,17 +79,21 @@ app.use(
         res: ExpressResponse,
         next: NextFunction
     ) => {
+        logger.error("Code");
         logger.error(err);
 
         if (res.headersSent) {
             return next(err);
         }
 
+        logger.error("Code");
+        logger.error((err as Exception).code);
         if (err instanceof Exception) {
+            logger.error("Exception Error")
             res.status((err as Exception).code);
             res.send({ error: (err as Exception).message });
         } else {
-            res.status(500);
+            res.status(400);
             res.send({ error: err });
         }
     }

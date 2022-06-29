@@ -1,28 +1,24 @@
-import React, { FunctionComponent, useState } from 'react';
-import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
+import React, { FunctionComponent } from 'react';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Common/Models/User';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
-import IdentityAPI from 'CommonUI/src/Utils/API/IdentityAPI';
 import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
-import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
+import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import { JSONObject } from 'Common/Types/JSON';
+import UserUtil from "CommonUI/src/Utils/User";
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Email from 'Common/Types/Email';
+import ObjectID from 'Common/Types/ObjectID';
+import Name from 'Common/Types/Name';
+import URL from 'Common/Types/API/URL';
+import { SIGNUP_API_URL } from "../Utils/ApiPaths";
 
 const RegisterPage: FunctionComponent = () => {
-    const [isLaoding, setIsLoading] = useState<boolean>(false);
 
     const user: User = new User();
-
-    const submitForm: Function = async (values: FormValues<User>) => {
-        setIsLoading(true);
-
-        await IdentityAPI.post<JSONObject>(new Route('/signup'), {
-            user: values as JSONObject,
-        });
-
-        setIsLoading(false);
-    };
+    const apiUrl: URL = SIGNUP_API_URL;
 
     return (
         <div className="auth-page">
@@ -55,12 +51,21 @@ const RegisterPage: FunctionComponent = () => {
                                             </p>
                                         </div>
 
-                                        <BasicModelForm<User>
+                                        <ModelForm<User>
                                             model={user}
-                                            isLoading={isLaoding}
                                             id="register-form"
                                             showAsColumns={2}
                                             maxPrimaryButtonWidth={true}
+                                            initialValues= {
+                                                {
+                                                    email: '',
+                                                    name: '',
+                                                    companyName: '',
+                                                    companyPhoneNumber: '',
+                                                    password: '',
+                                                    confirmPassword: ''
+                                             }
+                                            }
                                             fields={[
                                                 {
                                                     field: {
@@ -89,7 +94,7 @@ const RegisterPage: FunctionComponent = () => {
                                                     },
                                                     fieldType:
                                                         FormFieldSchemaType.Text,
-                                                    placeholder: 'Company Name',
+                                                    placeholder: 'Acme, Inc.',
                                                     required: true,
                                                     title: 'Company Name',
                                                 },
@@ -101,7 +106,7 @@ const RegisterPage: FunctionComponent = () => {
                                                     fieldType:
                                                         FormFieldSchemaType.Text,
                                                     required: true,
-                                                    placeholder: 'Phone Number',
+                                                    placeholder: '+1-123-456-7890',
                                                     title: 'Phone Number',
                                                 },
                                                 {
@@ -136,8 +141,22 @@ const RegisterPage: FunctionComponent = () => {
                                                     required: true,
                                                 },
                                             ]}
-                                            onSubmit={submitForm}
+                                            apiUrl={apiUrl}
+                                            formType={FormType.Create}
                                             submitButtonText={'Sign Up'}
+                                            onSuccess={(value: JSONObject) => {
+                                                const user: User = User.fromJSON(value["user"] as JSONObject, User) as User;
+                                                const token: string = value["token"] as string;
+
+                                                UserUtil.setAccessToken(token);
+                                                UserUtil.setEmail(user.email as Email);
+                                                UserUtil.setUserId(user.id as ObjectID);
+                                                UserUtil.setName(user.name as Name);
+
+                                                // go to dashboard, user should be logged in. 
+                                                Navigation.navigate(DASHBOARD_URL);
+
+                                            }}
                                         />
 
                                         <div className="mt-5 text-center">

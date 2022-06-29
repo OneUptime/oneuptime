@@ -27,6 +27,7 @@ import HashedString from '../Types/HashedString';
 import Email from '../Types/Email';
 import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
+import Route from '../Types/API/Route';
 
 export type DbTypes =
     | string
@@ -100,6 +101,7 @@ export default class BaseModel extends BaseEntity {
     public slugifyColumn!: string | null;
     public saveSlugToColumn!: string | null;
 
+    public crudApiPath!: Route | null;
     // If this resource is by projectId, which column does projectId belong to?
     public projectIdColumn!: string | null;
 
@@ -619,6 +621,10 @@ export default class BaseModel extends BaseEntity {
 
     public getSlugifyColumn(): string | null {
         return this.slugifyColumn;
+    }
+
+    public getCrudApiPath(): Route | null {
+        return this.crudApiPath;
     }
 
     public getSaveSlugToColumn(): string | null {

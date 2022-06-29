@@ -63,5 +63,5 @@ module.exports = {
             writeToDisk: true,
         },
     },
-    devtool: 'inline-source-map',
+    devtool: 'eval-source-map',
 }

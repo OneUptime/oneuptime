@@ -72,8 +72,8 @@ export const HOME_HOSTNAME: Hostname = Hostname.fromString(
 
 export const DASHBOARD_API_URL: URL = new URL(
     HTTP_PROTOCOL,
-    INTEGRATION_HOSTNAME,
-    INTEGRATION_ROUTE
+    DASHBOARD_API_HOSTNAME,
+    DASHBOARD_API_ROUTE
 );
 
 export const IDENTITY_URL: URL = new URL(

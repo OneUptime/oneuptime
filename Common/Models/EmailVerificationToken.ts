@@ -6,7 +6,10 @@ import User from './User';
 import ColumnLength from '../Types/Database/ColumnLength';
 import Email from '../Types/Email';
 import TableColumn from '../Types/Database/TableColumn';
+import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
+import Route from '../Types/API/Route';
 
+@CrudApiEndpoint(new Route("/email-verification-token"))
 @Entity({
     name: 'EmailVerificationToken',
 })

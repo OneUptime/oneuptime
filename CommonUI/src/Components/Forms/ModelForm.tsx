@@ -4,10 +4,19 @@ import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import BasicModelForm from './BasicModelForm';
+import { JSONArray, JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
+import URL from 'Common/Types/API/URL';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import API from '../../Utils/API/API';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Route from 'Common/Types/API/Route';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { DASHBOARD_API_URL } from '../../Config';
+
 
 export enum FormType {
     Create,
-    Update,
+    Update
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -23,30 +32,51 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showAsColumns?: number;
     footer: ReactElement;
     onCancel?: () => void;
-    onSuccess?: (data: TBaseModel) => void;
+    onSuccess?: (data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void;
     cancelButtonText?: string;
+    maxPrimaryButtonWidth?: boolean;
+    apiUrl?: URL,
+    formType: FormType
 }
 
 const CreateModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const [isLoading] = useState<boolean>(false);
-    // const [data, setData] = useState<TBaseModel>(props.model);
+    const [isLoading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
 
-    // useEffect(() => {
+    const onSubmit = async (values: any) => {
+        // Ping an API here.
+        setLoading(true);
+        let apiUrl = props.apiUrl;
 
-    //     let httpMethod: HTTPMethod = HTTPMethod.POST;
+        if (!apiUrl) {
+            const apiPath: Route | null = props.model.getCrudApiPath();
+            if (!apiPath) {
+                throw new BadDataException("This model does not support CRUD operations.");
+            }
 
-    /*
-     *     if (props.formType === FormType.Update) {
-     *         httpMethod = HTTPMethod.PUT;
-     *         setIsLoading(true);
-     *         // Need to fetch data;
-     */
+            apiUrl = DASHBOARD_API_URL.addRoute(apiPath);
+        }
 
-    //     }
+        const result: HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>> =
+            await API.fetch<
+                JSONObject |
+                JSONArray |
+                TBaseModel |
+                Array<TBaseModel
+                >>(props.formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT, apiUrl, values);
 
-    // }, []);
+        setLoading(false);
+
+        if (result.isSuccess()) {
+            if (props.onSuccess) {
+                props.onSuccess(result.data);
+            }
+        } else {
+            setError((result.data as JSONObject)["error"] as string)
+        }
+    };
 
     return (
         <BasicModelForm<TBaseModel>
@@ -60,14 +90,11 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
             isLoading={isLoading}
             submitButtonText={props.submitButtonText}
             cancelButtonText={props.cancelButtonText}
-            onSubmit={async (_values: any) => {
-                // Ping POST an API here.
-                if (props.onSuccess) {
-                    props.onSuccess(props.model);
-                }
-            }}
+            onSubmit={onSubmit}
             onValidate={props.onValidate}
             onCancel={props.onCancel}
+            maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
+            error={error}
         ></BasicModelForm>
     );
 };

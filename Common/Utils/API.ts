@@ -192,7 +192,7 @@ export default class API {
         return await this.fetch(HTTPMethod.POST, url, data, headers);
     }
 
-    private static async fetch<
+    public static async fetch<
         T extends JSONObject | JSONArray | BaseModel | Array<BaseModel>
     >(
         method: HTTPMethod,
