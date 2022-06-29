@@ -349,7 +349,7 @@ const BasicForm: Function = <T extends Object>(
                                     title={props.submitButtonText || 'Submit'}
                                     type={ButtonTypes.Submit}
                                     id={`${props.id}-submit-button`}
-                                    disabled={props.isLoading || false}
+                                    
                                     isLoading={props.isLoading || false}
                                     buttonStyle={ButtonStyleType.PRIMARY}
                                     style={{

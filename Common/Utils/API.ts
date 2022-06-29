@@ -57,7 +57,7 @@ export default class API {
         path: Route,
         data?: JSONObject | JSONArray,
         headers?: Headers
-    ): Promise<HTTPResponse<T>> {
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         return await API.get<T>(
             new URL(
                 this.protocol,
@@ -75,7 +75,7 @@ export default class API {
         path: Route,
         data?: JSONObject | JSONArray,
         headers?: Headers
-    ): Promise<HTTPResponse<T>> {
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         return await API.delete<T>(
             new URL(
                 this.protocol,
@@ -93,7 +93,7 @@ export default class API {
         path: Route,
         data?: JSONObject | JSONArray,
         headers?: Headers
-    ): Promise<HTTPResponse<T>> {
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         return await API.put<T>(
             new URL(
                 this.protocol,
@@ -111,7 +111,7 @@ export default class API {
         path: Route,
         data?: JSONObject | JSONArray,
         headers?: Headers
-    ): Promise<HTTPResponse<T>> {
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         return await API.post<T>(
             new URL(
                 this.protocol,
@@ -158,7 +158,7 @@ export default class API {
         url: URL,
         data?: JSONObject | JSONArray,
         headers?: Headers
-    ): Promise<HTTPResponse<T>> {
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         return await this.fetch<T>(HTTPMethod.GET, url, data, headers);
     }
 
@@ -168,7 +168,7 @@ export default class API {
         url: URL,
         data?: JSONObject | JSONArray,
         headers?: Headers
-    ): Promise<HTTPResponse<T>> {
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         return await this.fetch(HTTPMethod.DELETE, url, data, headers);
     }
 
@@ -178,7 +178,7 @@ export default class API {
         url: URL,
         data?: JSONObject | JSONArray,
         headers?: Headers
-    ): Promise<HTTPResponse<T>> {
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         return await this.fetch(HTTPMethod.PUT, url, data, headers);
     }
 
@@ -188,7 +188,7 @@ export default class API {
         url: URL,
         data?: JSONObject | JSONArray,
         headers?: Headers
-    ): Promise<HTTPResponse<T>> {
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         return await this.fetch(HTTPMethod.POST, url, data, headers);
     }
 
@@ -199,7 +199,7 @@ export default class API {
         url: URL,
         data?: JSONObject | JSONArray,
         headers?: Headers
-    ): Promise<HTTPResponse<T>> {
+    ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         const apiHeaders: Headers = this.getHeaders(headers);
 
         try {
@@ -221,16 +221,16 @@ export default class API {
             return response;
         } catch (e) {
             const error: Error | AxiosError = e as Error | AxiosError;
-            let errorResponse: HTTPErrorResponse | APIException;
+            let errorResponse: HTTPErrorResponse;
             if (axios.isAxiosError(error)) {
                 // Do whatever you want with native error
                 errorResponse = this.getErrorResponse(error);
             } else {
-                errorResponse = new APIException(error.message);
+                throw new APIException(error.message)
             }
 
             this.handleError(errorResponse);
-            throw errorResponse;
+            return errorResponse;
         }
     }
 

@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 
 export enum AlertType {
     INFO,
@@ -63,19 +63,20 @@ const Alert: FunctionComponent<ComponentProps> = (
                     )}
                     <span style={{ marginLeft: '-45px' }}>
                         {AlertType.DANGER === type && (
-                            <Icon icon={IconProp.Error} size={SizeProp.Large} />
+                            <Icon thick={ThickProp.LessThick} icon={IconProp.Error} size={SizeProp.Large} />
                         )}
                         {AlertType.WARNING === type && (
-                            <Icon icon={IconProp.Alert} size={SizeProp.Large} />
+                            <Icon thick={ThickProp.LessThick} icon={IconProp.Alert} size={SizeProp.Large} />
                         )}
                         {AlertType.SUCCESS === type && (
                             <Icon
+                                thick={ThickProp.LessThick}
                                 icon={IconProp.Success}
                                 size={SizeProp.Large}
                             />
                         )}
                         {AlertType.INFO === type && (
-                            <Icon icon={IconProp.Info} size={SizeProp.Large} />
+                            <Icon thick={ThickProp.LessThick} icon={IconProp.Info} size={SizeProp.Large} />
                         )}
                         &nbsp;&nbsp;
                     </span>

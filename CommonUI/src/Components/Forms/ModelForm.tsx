@@ -13,7 +13,6 @@ import Route from 'Common/Types/API/Route';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { DASHBOARD_API_URL } from '../../Config';
 
-
 export enum FormType {
     Create,
     Update
