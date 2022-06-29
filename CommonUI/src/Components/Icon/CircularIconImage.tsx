@@ -13,7 +13,7 @@ const CircularIconImage: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div
-            className="me-3 rounded-circle avatar-sm"
+            className="me-3 rounded-circle avatar-sm shadow-md"
             style={{
                 textAlign: 'center',
                 paddingTop: '3px',

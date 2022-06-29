@@ -10,7 +10,7 @@
     cursor: pointer;
 
     &:hover {
-       color: $primary
+        color: $primary;
     }
 }
 
@@ -18,7 +18,7 @@
     cursor: pointer;
 
     &:hover {
-       color: $primary
+        color: $primary;
     }
 }
 
@@ -26,7 +26,8 @@
     cursor: pointer;
 
     &:hover {
-       background-color: $primary
+        background-color: $primary;
+        color: $light;
     }
 }
 
@@ -34,11 +35,11 @@
     cursor: pointer;
 
     &:hover {
-       color: $danger !important
+        color: $danger !important;
     }
 }
 
-.justify-space-between{
+.justify-space-between {
     display: flex;
     justify-content: space-between;
 }
@@ -47,9 +48,57 @@
     cursor: pointer !important;
 }
 
-.no-border-on-hover{
+.no-border-on-hover {
     border: none !important;
     &:hover {
-       border: none !important;
-     }
+        border: none !important;
+    }
+}
+
+.flex {
+    display: flex !important;
+}
+
+.pr-10 {
+    padding-right: 10px;
+}
+
+.pr-30 {
+    padding-right: 30px;
+}
+
+.pl-10 {
+    padding-left: 10px;
+}
+
+.width-max {
+    width: 100% !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.pt-10 {
+    padding-top: 10px;
+}
+
+.pb-10 {
+    padding-bottom: 10px;
+}
+
+.p-10 {
+    padding: 10px;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.font-bold {
+    font-weight: $font-weight-bold;
+}
+
+.shadow-md {
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
 }

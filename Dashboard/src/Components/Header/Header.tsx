@@ -3,7 +3,7 @@ import SearchBox from 'CommonUI/src/Components/Header/SearchBox';
 import Notifications from './Notifications';
 import Help from './Help';
 import UserProfile from './UserProfile';
-import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
+import ProjectPicker from './ProjectPicker';
 // import ObjectID from 'Common/Types/ObjectID';
 
 import Header from 'CommonUI/src/Components/Header/Header';
@@ -13,10 +13,7 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
         <Header
             leftComponents={
                 <>
-                    <ProjectPicker
-                        key={1}
-                        //onChange={(_value: ObjectID) => {}}
-                    />
+                    <ProjectPicker />
                     <SearchBox key={2} onChange={(_value: string) => {}} />
                 </>
             }
