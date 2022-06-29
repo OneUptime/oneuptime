@@ -28,6 +28,10 @@ export default class OneUptimeDate {
             .toDate();
     }
 
+    public static getSecondsInDays(days: PositiveNumber): number {
+        return days.positiveNumber * 24 * 60 * 60;
+    }
+
     public static getSomeHoursAgo(hours: PositiveNumber): Date {
         return this.getCurrentMomentDate()
             .add(-1 * hours.toNumber(), 'hours')

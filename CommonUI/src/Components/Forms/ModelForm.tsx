@@ -46,6 +46,7 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
 
     const onSubmit = async (values: any) => {
         // Ping an API here.
+        setError('');
         setLoading(true);
         let apiUrl = props.apiUrl;
 

@@ -28,6 +28,8 @@ import Email from '../Types/Email';
 import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
+import Name from '../Types/Name';
+import TableColumnType from '../Types/Database/TableColumnType';
 
 export type DbTypes =
     | string
@@ -42,23 +44,23 @@ export type DbTypes =
     | Buffer;
 
 export default class BaseModel extends BaseEntity {
-    @TableColumn({ title: 'ID' })
+    @TableColumn({ title: 'ID', type: TableColumnType.ObjectID })
     @PrimaryGeneratedColumn('uuid')
     public _id?: string = undefined;
 
-    @TableColumn({ title: 'Created' })
+    @TableColumn({ title: 'Created', type: TableColumnType.Date })
     @CreateDateColumn()
     public createdAt?: Date = undefined;
 
-    @TableColumn({ title: 'Updated' })
+    @TableColumn({ title: 'Updated', type: TableColumnType.Date })
     @UpdateDateColumn()
     public updatedAt?: Date = undefined;
 
-    @TableColumn({ title: 'Deleted' })
+    @TableColumn({ title: 'Deleted', type: TableColumnType.Date })
     @DeleteDateColumn()
     public deletedAt?: Date = undefined;
 
-    @TableColumn({ title: 'Version' })
+    @TableColumn({ title: 'Version', type: TableColumnType.Version })
     @VersionColumn()
     public version?: number = undefined;
 
@@ -152,6 +154,12 @@ export default class BaseModel extends BaseEntity {
 
     public getTableColumns(): Columns {
         return new Columns(Object.keys(getTableColumns(this)));
+    }
+
+    public getTableColumnMetadata(columnName: string): TableColumnMetadata {
+        const dictionary: Dictionary<TableColumnMetadata> =
+            getTableColumns(this);
+        return dictionary[columnName] as TableColumnMetadata;
     }
 
     public hasValue(columnName: string): boolean {
@@ -432,7 +440,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getPublicCreateableColumns<T extends BaseModel>(type: {
-        new (): T;
+        new(): T;
     }): Columns {
         const obj: T = new type();
         const accessControl: Dictionary<AccessControl> =
@@ -647,14 +655,19 @@ export default class BaseModel extends BaseEntity {
 
     private static _fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         const baseModel: T = new type();
-        const hashedColumns: Columns = baseModel.getHashedColumns();
 
         for (const key of Object.keys(json)) {
-            if (hashedColumns.hasColumn(key)) {
+            if (baseModel.getTableColumnMetadata(key) && baseModel.getTableColumnMetadata(key).type === TableColumnType.HashedString) {
                 (baseModel as any)[key] = new HashedString(json[key] as string);
+            } else if (baseModel.getTableColumnMetadata(key) && baseModel.getTableColumnMetadata(key).type === TableColumnType.Name) {
+                (baseModel as any)[key] = new Name(json[key] as string);
+            } else if (baseModel.getTableColumnMetadata(key) && baseModel.getTableColumnMetadata(key).type === TableColumnType.Email) {
+                (baseModel as any)[key] = new Email(json[key] as string);
+            } else if (baseModel.getTableColumnMetadata(key) && baseModel.getTableColumnMetadata(key).type === TableColumnType.ObjectID) {
+                (baseModel as any)[key] = new ObjectID(json[key] as string);
             } else {
                 (baseModel as any)[key] = json[key];
             }
@@ -665,7 +678,7 @@ export default class BaseModel extends BaseEntity {
 
     public static fromJSON<T extends BaseModel>(
         json: JSONObject | JSONArray,
-        type: { new (): T }
+        type: { new(): T }
     ): T | Array<T> {
         if (Array.isArray(json)) {
             const arr: Array<T> = [];
@@ -683,7 +696,7 @@ export default class BaseModel extends BaseEntity {
     private static keepColumns<T extends BaseModel>(
         data: T,
         columnsToKeep: Columns,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         const baseModel: T = new type();
 
@@ -706,7 +719,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asPublicCreateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -728,7 +741,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asPublicUpdateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -745,7 +758,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asPublicReadableItem<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -766,7 +779,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asPublicReadableList<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -787,7 +800,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asPublicDeleteable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -804,7 +817,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asOwnerCreateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -821,7 +834,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asOwnerUpdateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -838,7 +851,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asOwnerReadableItem<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -859,7 +872,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asOwnerReadableList<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -880,7 +893,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asOwnerDeleteable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -897,7 +910,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asUserCreateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -914,7 +927,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asUserUpdateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -931,7 +944,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asUserReadableItem<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -952,7 +965,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asUserReadableList<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -973,7 +986,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asUserDeleteable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -990,7 +1003,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asViewerCreateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1007,7 +1020,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asViewerUpdateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1024,7 +1037,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asViewerReadableItem<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1045,7 +1058,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asViewerReadableList<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1066,7 +1079,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asViewerDeleteable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1083,7 +1096,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asMemberCreateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1100,7 +1113,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asMemberUpdateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1117,7 +1130,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asMemberReadableItem<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1138,7 +1151,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asMemberReadableList<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1159,7 +1172,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asMemberDeleteable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1176,7 +1189,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asAdminCreateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1193,7 +1206,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asAdminUpdateable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1210,7 +1223,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asAdminReadableList<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1231,7 +1244,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asAdminReadableItem<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1252,7 +1265,7 @@ export default class BaseModel extends BaseEntity {
 
     public static asAdminDeleteable<T extends BaseModel>(
         data: JSONObject | T,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         if (!(data instanceof BaseModel)) {
             data = this._fromJSON<T>(data, type);
@@ -1273,9 +1286,19 @@ export default class BaseModel extends BaseEntity {
 
     public toJSON(): JSONObject {
         const json: JSONObject = {};
-        for (const column of this.getTableColumns().columns) {
-            if ((this as any)[column]) {
-                json[column] = (this as any)[column];
+        for (const key of this.getTableColumns().columns) {
+            if ((this as any)[key]) {
+                if (this.getTableColumnMetadata(key) && this.getTableColumnMetadata(key).type === TableColumnType.HashedString) {
+                    json[key] = ((this as any)[key] as HashedString).toString();
+                } else if (this.getTableColumnMetadata(key) && this.getTableColumnMetadata(key).type === TableColumnType.Name) {
+                    json[key] = ((this as any)[key] as Name).toString();
+                } else if (this.getTableColumnMetadata(key) && this.getTableColumnMetadata(key).type === TableColumnType.Email) {
+                    json[key] = ((this as any)[key] as Email).toString();
+                } else if (this.getTableColumnMetadata(key) && this.getTableColumnMetadata(key).type === TableColumnType.ObjectID) {
+                    json[key] = ((this as any)[key] as ObjectID).toString();
+                } else {
+                    json[key] = (this as any)[key];
+                }
             }
         }
 

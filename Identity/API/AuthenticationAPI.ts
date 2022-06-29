@@ -145,10 +145,10 @@ router.post(
                         isMasterAdmin: savedUser.isMasterAdmin!,
                         roles: [],
                     },
-                    OneUptimeDate.getSomeDaysAfter(new PositiveNumber(30))
+                    OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(req, res, { token: token });
+                return Response.sendItemResponse(req, res, { token: token, user: savedUser.toJSON() });
             }
 
             throw new BadRequestException('Failed to create a user');

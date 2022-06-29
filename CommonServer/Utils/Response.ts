@@ -28,7 +28,7 @@ export default class Response {
         const method: string = oneUptimeRequest.method;
         const url: URL = URL.fromString(oneUptimeRequest.url);
 
-        const duration_info: string = `OUTGOING RESPONSE ID: ${
+        const header_info: string = `Response ID: ${
             oneUptimeRequest.id
         } -- POD NAME: ${
             process.env['POD_NAME'] || 'NONE'
@@ -37,18 +37,16 @@ export default class Response {
             (oneUptimeRequest.requestStartedAt as Date).getTime()
         ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
 
-        const body_info: string = `OUTGOING RESPONSE ID: ${
+        const body_info: string = `Response ID: ${
             oneUptimeRequest.id
         } -- RESPONSE BODY: ${
             responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'
         }`;
 
         if (oneUptimeResponse.statusCode > 299) {
-            logger.error(duration_info);
-            logger.error(body_info);
+            logger.error(header_info + "\n "+body_info);
         } else {
-            logger.info(duration_info);
-            logger.info(body_info);
+            logger.info(header_info + "\n "+body_info);
         }
     }
 
@@ -127,8 +125,8 @@ export default class Response {
     public static sendListResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        list: JSONArray | Array<BaseModel>,
-        count: PositiveNumber
+        list: Array<BaseModel | JSONObject>,
+        count: PositiveNumber,
     ): void {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -188,7 +186,7 @@ export default class Response {
     public static sendItemResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        item: JSONObject | BaseModel
+        item: JSONObject | BaseModel,
     ): void {
         if (item instanceof BaseModel) {
             item = item.toJSON();
@@ -201,17 +199,18 @@ export default class Response {
             'ExpressRequest-Id',
             oneUptimeRequest.id.toString()
         );
+        
         oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
         if (oneUptimeRequest.query['output-type'] === 'csv') {
-            const csv: string = JsonToCsv.ToCsv([item]);
+            const csv: string = JsonToCsv.ToCsv([item as JSONObject]);
             oneUptimeResponse.status(200).send(csv);
             this.logResponse(req, res);
             return;
         }
 
-        oneUptimeResponse.logBody = item;
+        oneUptimeResponse.logBody = item as JSONObject;
         oneUptimeResponse.status(200).send(item);
-        this.logResponse(req, res, item);
+        this.logResponse(req, res, item as JSONObject);
     }
 }

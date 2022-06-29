@@ -16,6 +16,7 @@ import TableColumn from '../Types/Database/TableColumn';
 import PublicColumnPermissions from '../Types/Database/AccessControls/Public/PublicColumnPermissions';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
 import Route from '../Types/API/Route';
+import TableColumnType from '../Types/Database/TableColumnType';
 
 @CrudApiEndpoint(new Route("/user"))
 @PublicRecordPermissions({
@@ -37,7 +38,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Name })
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
@@ -53,7 +54,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn({ title: 'Email', required: true, unique: true })
+    @TableColumn({ title: 'Email', required: true, unique: true, type: TableColumnType.Email })
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
@@ -62,7 +63,7 @@ class User extends BaseModel {
     })
     public email?: Email = undefined;
 
-    @TableColumn()
+    @TableColumn({type: TableColumnType.Email})
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
@@ -78,7 +79,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn({ title: 'Password', hashed: true })
+    @TableColumn({ title: 'Password', hashed: true, type: TableColumnType.HashedString })
     @Column({
         type: ColumnType.HashedString,
         length: ColumnLength.HashedString,
@@ -88,7 +89,7 @@ class User extends BaseModel {
     })
     public password?: HashedString = undefined;
 
-    @TableColumn({ isDefaultValueColumn: true })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean  })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -102,7 +103,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn()
+    @TableColumn({type: TableColumnType.Name})
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
@@ -118,7 +119,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ShortText})
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -134,7 +135,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ShortText})
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -150,7 +151,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ShortText})
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -166,7 +167,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Phone})
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
@@ -176,7 +177,7 @@ class User extends BaseModel {
     })
     public companyPhoneNumber?: Phone = undefined;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ShortURL})
     @Column({
         type: ColumnType.ShortURL,
         length: ColumnLength.ShortURL,
@@ -186,7 +187,7 @@ class User extends BaseModel {
     })
     public profilePicImageUrl?: URL = undefined;
 
-    @TableColumn({ isDefaultValueColumn: true, required: true })
+    @TableColumn({ isDefaultValueColumn: true, required: true, type: TableColumnType.Boolean })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -195,7 +196,7 @@ class User extends BaseModel {
     })
     public twoFactorAuthEnabled?: boolean = undefined;
 
-    @TableColumn()
+    @TableColumn({type: TableColumnType.ShortText})
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -204,7 +205,7 @@ class User extends BaseModel {
     })
     public twoFactorSecretCode?: string = undefined;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ShortURL})
     @Column({
         type: ColumnType.ShortURL,
         length: ColumnLength.ShortURL,
@@ -214,7 +215,7 @@ class User extends BaseModel {
     })
     public twoFactorAuthUrl?: URL;
 
-    @TableColumn()
+    @TableColumn({type: TableColumnType.Array})
     @Column({
         type: ColumnType.Array,
         nullable: true,
@@ -222,7 +223,7 @@ class User extends BaseModel {
     })
     public backupCodes?: Array<string> = undefined;
 
-    @TableColumn()
+    @TableColumn({type: TableColumnType.ShortText})
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -231,7 +232,7 @@ class User extends BaseModel {
     })
     public jwtRefreshToken?: string = undefined;
 
-    @TableColumn()
+    @TableColumn({type: TableColumnType.ShortText})
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -240,7 +241,7 @@ class User extends BaseModel {
     })
     public paymentProviderCustomerId?: string = undefined;
 
-    @TableColumn()
+    @TableColumn({type: TableColumnType.ShortText})
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -249,7 +250,7 @@ class User extends BaseModel {
     })
     public resetPasswordToken?: string = undefined;
 
-    @TableColumn()
+    @TableColumn({type: TableColumnType.Date})
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -257,7 +258,7 @@ class User extends BaseModel {
     })
     public resetPasswordExpires?: Date = undefined;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -266,7 +267,7 @@ class User extends BaseModel {
     })
     public timezone?: Timezone = undefined;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Date })
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -281,7 +282,7 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -290,7 +291,7 @@ class User extends BaseModel {
     })
     public promotionName?: string = undefined;
 
-    @TableColumn({ isDefaultValueColumn: true, required: true })
+    @TableColumn({ isDefaultValueColumn: true, required: true, type: TableColumnType.Boolean })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -299,7 +300,7 @@ class User extends BaseModel {
     })
     public isDisabled?: boolean = undefined;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Date })
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -307,7 +308,7 @@ class User extends BaseModel {
     })
     public paymentFailedDate?: Date = undefined;
 
-    @TableColumn({ isDefaultValueColumn: true, required: true })
+    @TableColumn({ isDefaultValueColumn: true, required: true, type: TableColumnType.Boolean })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -316,7 +317,7 @@ class User extends BaseModel {
     })
     public isMasterAdmin?: boolean = undefined;
 
-    @TableColumn({ isDefaultValueColumn: true, required: true })
+    @TableColumn({ isDefaultValueColumn: true, required: true, type: TableColumnType.Boolean })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -325,7 +326,7 @@ class User extends BaseModel {
     })
     public isBlocked?: boolean = undefined;
 
-    @TableColumn()
+    @TableColumn({type: TableColumnType.Phone})
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
@@ -334,7 +335,7 @@ class User extends BaseModel {
     })
     public alertPhoneNumber?: Phone = undefined;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.OTP })
     @Column({
         type: ColumnType.OTP,
         length: ColumnLength.OTP,
@@ -343,7 +344,7 @@ class User extends BaseModel {
     })
     public alertPhoneVerificationCode?: string = undefined;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Date })
     @Column({
         type: ColumnType.Date,
         nullable: true,
@@ -351,7 +352,7 @@ class User extends BaseModel {
     })
     public alertPhoneVerificationCodeRequestTime?: Date = undefined;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Phone })
     @Column({
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
