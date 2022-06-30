@@ -22,6 +22,12 @@ export default class OneUptimeDate {
         return this.getSomeDaysAgo(new PositiveNumber(1));
     }
 
+    public static getSecondsTo(date: Date): number {
+        const dif: number = date.getTime() - this.getCurrentDate().getTime();
+        const Seconds_from_T1_to_T2: number = dif / 1000;
+        return Math.abs(Seconds_from_T1_to_T2);
+    }
+
     public static getSomeMinutesAgo(minutes: PositiveNumber): Date {
         return this.getCurrentMomentDate()
             .add(-1 * minutes.toNumber(), 'minutes')
