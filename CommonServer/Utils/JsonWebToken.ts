@@ -10,7 +10,7 @@ import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 class JSONWebToken {
     public static sign(
         data: JSONWebTokenData | string,
-        expiresIn: Date
+        expiresInSeconds: number
     ): string {
         return jwt.sign(
             typeof data !== 'string'
@@ -25,7 +25,7 @@ class JSONWebToken {
                 : data,
             EncryptionSecret.toString(),
             {
-                expiresIn: String(expiresIn),
+                expiresIn: expiresInSeconds,
             }
         );
     }

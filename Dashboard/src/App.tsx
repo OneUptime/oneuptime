@@ -17,7 +17,7 @@ import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
-
+import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 // Settings Pages
 import Settings from './Pages/Settings/Settings';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
@@ -25,10 +25,15 @@ import SettingsApiKeys from './Pages/Settings/APIKeys';
 import SettingsCreateAPIKey from './Pages/Settings/CreateAPIKey';
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
+import User from 'CommonUI/src/Utils/User';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
+
+    if (!User.isLoggedIn()) {
+        Navigation.navigate(ACCOUNTS_URL);
+    }
 
     return (
         <MasterPage>

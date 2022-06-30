@@ -24,8 +24,8 @@ export default class Route {
         if (this.route.endsWith('/') && routeToBeAdded.trim().startsWith('/')) {
             routeToBeAdded = routeToBeAdded.trim().substring(1); // remove leading  "/" from route
         }
-        const newRoute: Route = new Route(this.route + routeToBeAdded);
-        return newRoute;
+        this.route = new Route(this.route + routeToBeAdded).route;
+        return this;
     }
 
     public toString(): string {

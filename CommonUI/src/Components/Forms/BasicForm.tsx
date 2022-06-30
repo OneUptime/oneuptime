@@ -9,6 +9,8 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
+import Link from '../Link/Link';
+import Alert, { AlertType } from '../Alerts/Alert';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -30,6 +32,8 @@ export interface ComponentProps<T extends Object> {
     isLoading?: boolean;
     onCancel?: (() => void) | null;
     cancelButtonText?: string | null;
+    maxPrimaryButtonWidth?: boolean;
+    error: string | null;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -50,7 +54,8 @@ const BasicForm: Function = <T extends Object>(
 ): ReactElement => {
     const getFormField: Function = (
         field: DataField<T>,
-        index: number
+        index: number,
+        isDisabled: boolean
     ): ReactElement => {
         const fieldType: string = field.fieldType
             ? getFieldType(field.fieldType)
@@ -59,24 +64,34 @@ const BasicForm: Function = <T extends Object>(
         if (Object.keys(field.field).length === 0) {
             throw new BadDataException('Object cannot be without Field');
         }
+
+        if (props.showAsColumns && props.showAsColumns > 2) {
+            throw new BadDataException(
+                'showAsCOlumns should be <= 2. It is currently ' +
+                    props.showAsColumns
+            );
+        }
+
+        const fieldName: string = field.overideFieldKey
+            ? field.overideFieldKey
+            : (Object.keys(field.field)[0] as string);
+
         return (
             <div className="mb-3" key={index}>
-                <label className="form-Label form-label">
+                <label className="form-Label form-label justify-space-between width-max">
                     <span>{field.title}</span>
-                    {
-                        <span>
-                            <a
-                                href={field.sideLink?.url.toString()}
-                                target={`${
-                                    field.sideLink?.openLinkInNewTab
-                                        ? '_blank'
-                                        : '_self'
-                                }`}
-                            >
-                                {field.sideLink?.text}
-                            </a>
-                        </span>
-                    }
+                    {field.sideLink &&
+                        field.sideLink?.text &&
+                        field.sideLink?.url && (
+                            <span>
+                                <Link
+                                    to={field.sideLink?.url}
+                                    className="underline-on-hover"
+                                >
+                                    {field.sideLink?.text}
+                                </Link>
+                            </span>
+                        )}
                 </label>
                 {field.description && <p>{field.description}</p>}
                 <Field
@@ -84,13 +99,12 @@ const BasicForm: Function = <T extends Object>(
                     autoFocus={index === 0 ? true : false}
                     placeholder={field.placeholder}
                     type={fieldType}
-                    name={
-                        field.overideFieldKey
-                            ? field.overideFieldKey
-                            : (Object.keys(field.field)[0] as string)
-                    }
+                    tabIndex={index + 1}
+                    name={fieldName}
+                    disabled={isDisabled}
                 />
                 <ErrorMessage
+                    className="mt-1 text-danger"
                     name={
                         field.overideFieldKey
                             ? field.overideFieldKey
@@ -256,17 +270,75 @@ const BasicForm: Function = <T extends Object>(
                             <p className="description">{props.description}</p>
                         )}
 
-                        <div
-                            className={`col-lg-${
-                                12 / (props.showAsColumns || 1)
-                            }`}
-                        >
-                            {props.fields &&
-                                props.fields.map(
-                                    (field: DataField<T>, i: number) => {
-                                        return getFormField(field, i);
-                                    }
-                                )}
+                        {props.error && (
+                            <Alert
+                                title={props.error}
+                                type={AlertType.DANGER}
+                            />
+                        )}
+
+                        <div className={`col-lg-12 flex`}>
+                            <div
+                                className={`col-lg-${
+                                    12 / (props.showAsColumns || 1)
+                                } ${
+                                    (props.showAsColumns || 1) > 1
+                                        ? 'pr-10'
+                                        : ''
+                                }`}
+                            >
+                                {props.fields &&
+                                    props.fields.map(
+                                        (field: DataField<T>, i: number) => {
+                                            if (
+                                                i %
+                                                    (props.showAsColumns ||
+                                                        1) ===
+                                                0
+                                            ) {
+                                                return getFormField(
+                                                    field,
+                                                    i,
+                                                    props.isLoading
+                                                );
+                                            }
+                                            return <div key={i}></div>;
+                                        }
+                                    )}
+                            </div>
+                            {(props.showAsColumns || 1) > 1 && (
+                                <div
+                                    className={`col-lg-${
+                                        12 / (props.showAsColumns || 1)
+                                    } ${
+                                        (props.showAsColumns || 1) > 1
+                                            ? 'pl-10'
+                                            : ''
+                                    }`}
+                                >
+                                    {props.fields &&
+                                        props.fields.map(
+                                            (
+                                                field: DataField<T>,
+                                                i: number
+                                            ) => {
+                                                if (
+                                                    i %
+                                                        (props.showAsColumns ||
+                                                            1) !==
+                                                    0
+                                                ) {
+                                                    return getFormField(
+                                                        field,
+                                                        i,
+                                                        props.isLoading
+                                                    );
+                                                }
+                                                return <div key={i}></div>;
+                                            }
+                                        )}
+                                </div>
+                            )}
                         </div>
 
                         <div
@@ -275,27 +347,42 @@ const BasicForm: Function = <T extends Object>(
                                 display: 'flex',
                             }}
                         >
-                            <div style={{ width: 'auto' }}>
+                            <div
+                                style={{
+                                    width: props.maxPrimaryButtonWidth
+                                        ? '100%'
+                                        : ' auto',
+                                }}
+                            >
                                 <Button
                                     title={props.submitButtonText || 'Submit'}
                                     type={ButtonTypes.Submit}
                                     id={`${props.id}-submit-button`}
                                     isLoading={props.isLoading || false}
                                     buttonStyle={ButtonStyleType.PRIMARY}
-                                />
-                            </div>
-                            <div style={{ width: 'auto' }}>
-                                <Button
-                                    title={props.cancelButtonText || 'Cancel'}
-                                    type={ButtonTypes.Button}
-                                    id={`${props.id}-cancel-button`}
-                                    disabled={props.isLoading || false}
-                                    buttonStyle={ButtonStyleType.NORMAL}
-                                    onClick={() => {
-                                        props.onCancel && props.onCancel();
+                                    style={{
+                                        width: props.maxPrimaryButtonWidth
+                                            ? '100%'
+                                            : ' auto',
                                     }}
                                 />
                             </div>
+                            {props.onCancel && (
+                                <div style={{ width: 'auto' }}>
+                                    <Button
+                                        title={
+                                            props.cancelButtonText || 'Cancel'
+                                        }
+                                        type={ButtonTypes.Button}
+                                        id={`${props.id}-cancel-button`}
+                                        disabled={props.isLoading || false}
+                                        buttonStyle={ButtonStyleType.NORMAL}
+                                        onClick={() => {
+                                            props.onCancel && props.onCancel();
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </div>
                         {props.footer}
                     </Form>

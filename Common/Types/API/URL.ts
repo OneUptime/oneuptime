@@ -103,6 +103,16 @@ export default class URL extends DatabaseProperty {
         return new URL(protocol, hostname, route);
     }
 
+    public addRoute(route: Route | string): URL {
+        if (typeof route === 'string') {
+            this.route.addRoute(new Route(route));
+        } else {
+            this.route.addRoute(route);
+        }
+
+        return this;
+    }
+
     protected static override toDatabase(
         value: URL | FindOperator<URL>
     ): string | null {

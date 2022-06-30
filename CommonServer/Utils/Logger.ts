@@ -1,22 +1,12 @@
-import { createLogger, format, Logger, transports } from 'winston';
+import { createLogger, Logger, transports, format } from 'winston';
 
-const { combine, timestamp, errors, colorize, cli } = format;
+const { combine, timestamp, errors, prettyPrint } = format;
 
 const logger: Logger = createLogger({
     format: combine(
-        colorize(),
-        cli({
-            colors: {
-                error: 'red',
-                warn: 'yellow',
-                info: 'blue',
-                http: 'green',
-                verbose: 'cyan',
-                debug: 'white',
-            },
-        }),
         errors({ stack: true }), // <-- use errors format
-        timestamp()
+        timestamp(),
+        prettyPrint()
     ),
     transports: [new transports.Console()],
 });

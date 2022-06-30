@@ -1,0 +1,28 @@
+enum ColumnType {
+    Version,
+    Phone,
+    HashedString,
+    Password,
+    Email,
+    Slug,
+    Name,
+    Description,
+    ObjectID,
+    ShortURL,
+    LongURL,
+    ShortText,
+    OTP,
+    LongText,
+    Date,
+    Boolean,
+    Array,
+    SmallPositiveNumber,
+    PositiveNumber,
+    BigPositiveNumber,
+    SmallNumber,
+    Number,
+    BigNumber,
+    Entity,
+}
+
+export default ColumnType;
