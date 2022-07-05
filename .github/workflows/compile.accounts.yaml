@@ -1,4 +1,4 @@
-name: Compile Dashboard
+name: Compile Accounts
 
 on:
   pull_request: 
@@ -19,5 +19,5 @@ jobs:
       - run: cd Common && npm install
       - run: cd CommonServer && npm install
       - run: cd CommonUI && npm install
-      - run: cd Dashboard && npm install && npm run compile
+      - run: cd Accounts && npm install && npm run compile
   
