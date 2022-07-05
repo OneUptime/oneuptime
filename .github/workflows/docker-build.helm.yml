@@ -1,6 +1,7 @@
 name: HelmChart Docker Build
 
-on: 
+on:
+  pull_request: 
   push:
     branches-ignore:
       - 'hotfix-*'   

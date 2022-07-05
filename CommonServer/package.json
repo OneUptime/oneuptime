@@ -12,6 +12,7 @@
     "license": "MIT",
     "dependencies": {
         "@elastic/elasticsearch": "^8.1.0",
+        "@types/ejs": "^3.1.1",
         "@types/gridfs-stream": "^0.5.35",
         "@types/json2csv": "^5.0.3",
         "airtable": "^0.11.3",

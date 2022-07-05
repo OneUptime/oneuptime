@@ -1,3 +1,4 @@
+import 'ejs';
 import express from 'express';
 import logger from './Logger';
 import { JSONObjectOrArray } from 'Common/Types/JSON';

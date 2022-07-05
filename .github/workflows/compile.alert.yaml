@@ -1,6 +1,7 @@
 name: Compile Alert
 
-on: 
+on:
+  pull_request: 
   push:
     branches-ignore:
       - 'hotfix-*'   
