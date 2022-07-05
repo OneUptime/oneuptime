@@ -25,11 +25,7 @@ const DashboardProjectPicker: FunctionComponent = (): ReactElement => {
                     route={new Route('/')}
                     icon={IconProp.Settings}
                 />
-                <CreateNewProjectButton
-                    title="Create New Project"
-                    route={new Route('/')}
-                    icon={IconProp.Add}
-                />
+                <CreateNewProjectButton />
             </ProjectPickerMenu>
         </ProjectPicker>
     );
