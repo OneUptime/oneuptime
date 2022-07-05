@@ -7,6 +7,9 @@ node_modules
 # Build Dist
 */build/dist/*
 
+# Build Dist
+*/dist/*
+
 .idea
 # testing
 /coverage
