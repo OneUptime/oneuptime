@@ -5,6 +5,7 @@ import {
     HomeHostname,
     HttpProtocol,
     IsSaaSService,
+    EncryptionSecret,
 } from 'CommonServer/Config';
 import Express, {
     ExpressRequest,
@@ -28,7 +29,6 @@ import Response from 'CommonServer/Utils/Response';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import { EncryptionSecret } from 'CommonServer/Config';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -81,7 +81,7 @@ router.post(
                 emailVerificationToken &&
                 user &&
                 alreadySavedUser?.id?.toString() ===
-                emailVerificationToken?.userId?.toString()
+                    emailVerificationToken?.userId?.toString()
             ) {
                 user.isEmailVerified = true;
             }
@@ -170,7 +170,6 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-
             const data: JSONObject = req.body;
 
             const user: User = User.asPublicCreateable<User>(
@@ -178,7 +177,7 @@ router.post(
                 User
             );
 
-            user.password?.hashValue(EncryptionSecret);
+            await user.password?.hashValue(EncryptionSecret);
 
             const alreadySavedUser: User | null = await UserService.findOneBy({
                 query: { email: user.email!, password: user.password! },
@@ -187,7 +186,7 @@ router.post(
                     password: true,
                     name: true,
                     email: true,
-                    isMasterAdmin: true
+                    isMasterAdmin: true,
                 },
             });
 
@@ -206,16 +205,15 @@ router.post(
                     token: token,
                     user: alreadySavedUser.toJSON(),
                 });
-            } else {
-                throw new BadDataException("Invalid login: Email or password does not match.")
             }
-
-        }
-        catch (err) {
+            throw new BadDataException(
+                'Invalid login: Email or password does not match.'
+            );
+        } catch (err) {
             return next(err);
         }
-    });
-
+    }
+);
 
 router.post(
     '/reset-password',
@@ -225,7 +223,6 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-
             const data: JSONObject = req.body;
 
             const user: User = User.asPublicCreateable<User>(
@@ -233,7 +230,7 @@ router.post(
                 User
             );
 
-            user.password?.hashValue(EncryptionSecret);
+            await user.password?.hashValue(EncryptionSecret);
 
             const alreadySavedUser: User | null = await UserService.findOneBy({
                 query: { email: user.email!, password: user.password! },
@@ -242,7 +239,7 @@ router.post(
                     password: true,
                     name: true,
                     email: true,
-                    isMasterAdmin: true
+                    isMasterAdmin: true,
                 },
             });
 
@@ -261,16 +258,15 @@ router.post(
                     token: token,
                     user: alreadySavedUser.toJSON(),
                 });
-            } else {
-                throw new BadDataException("Invalid login: Email or password does not match.")
             }
-
-        }
-        catch (err) {
+            throw new BadDataException(
+                'Invalid login: Email or password does not match.'
+            );
+        } catch (err) {
             return next(err);
         }
-    });
-
+    }
+);
 
 router.post(
     '/login',
@@ -280,7 +276,6 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-
             const data: JSONObject = req.body;
 
             const user: User = User.asPublicCreateable<User>(
@@ -288,7 +283,7 @@ router.post(
                 User
             );
 
-            user.password?.hashValue(EncryptionSecret);
+            await user.password?.hashValue(EncryptionSecret);
 
             const alreadySavedUser: User | null = await UserService.findOneBy({
                 query: { email: user.email!, password: user.password! },
@@ -297,7 +292,7 @@ router.post(
                     password: true,
                     name: true,
                     email: true,
-                    isMasterAdmin: true
+                    isMasterAdmin: true,
                 },
             });
 
@@ -316,14 +311,14 @@ router.post(
                     token: token,
                     user: alreadySavedUser.toJSON(),
                 });
-            } else {
-                throw new BadDataException("Invalid login: Email or password does not match.")
             }
-
-        }
-        catch (err) {
+            throw new BadDataException(
+                'Invalid login: Email or password does not match.'
+            );
+        } catch (err) {
             return next(err);
         }
-    });
+    }
+);
 
 export default router;

@@ -15,14 +15,18 @@ const RouteMap: Dictionary<Route> = {
     ),
     [PageMap.ON_CALL]: new Route('/dashboard/:projectSlug/on-call/'),
     [PageMap.REPORTS]: new Route('/dashboard/:projectSlug/reports/'),
-    [PageMap.ERROR_TRACKER]: new Route('/dashboard/:projectSlug/error-tracker/'),
+    [PageMap.ERROR_TRACKER]: new Route(
+        '/dashboard/:projectSlug/error-tracker/'
+    ),
 
     // Settings Routes
     [PageMap.SETTINGS]: new Route('/dashboard/:projectSlug/settings/'),
     [PageMap.SETTINGS_DANGERZONE]: new Route(
         '/dashboard/:projectSlug/settings/danger-zone'
     ),
-    [PageMap.SETTINGS_APIKEYS]: new Route('/dashboard/:projectSlug/settings/api-keys'),
+    [PageMap.SETTINGS_APIKEYS]: new Route(
+        '/dashboard/:projectSlug/settings/api-keys'
+    ),
     [PageMap.SETTINGS_CREATE_APIKEY]: new Route(
         '/dashboard/:projectSlug/settings/api-keys/create'
     ),
