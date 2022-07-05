@@ -18,6 +18,7 @@
         "Common": "file:../Common",
         "cors": "^2.8.5",
         "dotenv": "^16.0.0",
+        "ejs": "^3.1.8",
         "express": "^4.17.3",
         "gridfs-stream": "^1.1.1",
         "handlebars": "^4.7.7",

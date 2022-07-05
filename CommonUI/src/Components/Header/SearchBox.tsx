@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 import { VeryLightGrey } from '../../Utils/BrandColors';
+
 export interface ComponentProps {
     onChange: (search: string) => void;
 }

@@ -1,4 +1,4 @@
-function openTab(evt: $TSFixMe, tabName: $TSFixMe) {
+function openTab(evt, tabName) {
     // Declare all variables
     let i;
 
@@ -21,7 +21,7 @@ function openTab(evt: $TSFixMe, tabName: $TSFixMe) {
 
     setTimeout(() => document.getElementById(tabName + '1').parentNode.click(), 200);
 }
-function openTooltip(name: $TSFixMe) {
+function openTooltip(name) {
     // Declare all variables
     let i;
     const element = document.getElementById(name);
@@ -47,7 +47,7 @@ window.onload = function () {
     const tooltext = document.getElementsByClassName('tooltiptext');
     for (let i = 0; i < tooltext.length; i++) {
 
-        tooltext[i].onclick = function (e: $TSFixMe) {
+        tooltext[i].onclick = function (e) {
             e.stopPropagation();
         }
     }
@@ -64,7 +64,7 @@ window.onload = function () {
 }
 
 const animateHTML = function () {
-    let elem: $TSFixMe, windowHeight: $TSFixMe;
+    let elem, windowHeight;
     const init = function () {
         elem = document.getElementById('Statuspage');
         windowHeight = window.innerHeight;

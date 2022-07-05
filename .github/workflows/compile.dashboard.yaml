@@ -1,0 +1,21 @@
+name: Compile Dashboard
+
+on: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+      - 'staging-release'
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          check-latest: true
+      - run: cd Common && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Dashboard && npm install && npm run compile
+  

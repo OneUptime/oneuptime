@@ -43,8 +43,8 @@ COPY ./Home/package-lock.json /usr/src/app/package-lock.json
 
 # Install app dependencies
 RUN npm install
-
 RUN npm install nodemon -g
+RUN npm install ejs -g
 
 # Expose ports.
 #   - 1444: OneUptime Home
