@@ -7,14 +7,14 @@
             "babelConfig": false
         }
     },
-    "moduleFileExtensions": ["ts", "js", "json"],
+    "moduleFileExtensions": ["ts", "js", "json", "tsx"],
     "transform": {
         ".(ts|tsx)": "ts-jest"
     },
     "testEnvironment": "node",
     "collectCoverage": true,
     "coverageReporters": ["text", "html"],
-    "testRegex": "./Tests/(.*).test.ts",
+    "testRegex": "./Tests/(.*).test.(tsx||ts)",
     "collectCoverageFrom": ["./**/*.(tsx||ts)"],
     "coverageThreshold": {
         "global": {
