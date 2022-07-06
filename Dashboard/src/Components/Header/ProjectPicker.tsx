@@ -1,33 +1,20 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
-import ProjectPickerMenu from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPickerMenu';
-import ProjectPickerMenuItem from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPickerMenuItem';
-import Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import CreateNewProjectButton from 'CommonUI/src/Components/Header/ProjectPicker/CreateNewProjectButton';
+import Project from "Common/Models/Project"; 
 
 const DashboardProjectPicker: FunctionComponent = (): ReactElement => {
+
+    const project = new Project();
+    project.name = "Sample 1"
+
     return (
-        <ProjectPicker title="Project One" icon={IconProp.Settings}>
-            <ProjectPickerMenu>
-                <ProjectPickerMenuItem
-                    title="Project One"
-                    route={new Route('/')}
-                    icon={IconProp.Settings}
-                />
-                <ProjectPickerMenuItem
-                    title="Project Two"
-                    route={new Route('/')}
-                    icon={IconProp.Settings}
-                />
-                <ProjectPickerMenuItem
-                    title="Project Three"
-                    route={new Route('/')}
-                    icon={IconProp.Settings}
-                />
-                <CreateNewProjectButton />
-            </ProjectPickerMenu>
-        </ProjectPicker>
+        <ProjectPicker
+            selectedProjectName="Project One"
+            selectedProjectIcon={IconProp.Folder}
+            projects={[project]}
+            onCreateProjectButtonClicked = {()=>{}}
+        />
     );
 };
 

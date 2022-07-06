@@ -1,15 +1,21 @@
-import Route from 'Common/Types/API/Route';
 import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
 import CircularIconImage from '../../Icon/CircularIconImage';
 import { IconProp } from '../../Icon/Icon';
-import Link from '../../Link/Link';
 
-const CreateNewProjectButton: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+    onCreateButtonClicked: () => void; 
+}
+
+const CreateNewProjectButton: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+    
+   
     return (
-        <Link
-            to={new Route('/')}
+        <div
             className="flex items-center p-10 background-primary-on-hover"
+            onClick={() => {
+                props.onCreateButtonClicked()
+            }}
         >
             <CircularIconImage
                 icon={IconProp.Add}
@@ -18,7 +24,8 @@ const CreateNewProjectButton: FunctionComponent = (): ReactElement => {
             />
 
             <p className="mb-0">Create New Project</p>
-        </Link>
+            
+        </div>
     );
 };
 
