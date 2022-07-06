@@ -34,6 +34,7 @@ export interface ComponentProps<T extends Object> {
     cancelButtonText?: string | null;
     maxPrimaryButtonWidth?: boolean;
     error: string | null;
+    hideSubmitButton?: boolean;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -347,7 +348,7 @@ const BasicForm: Function = <T extends Object>(
                                 display: 'flex',
                             }}
                         >
-                            <div
+                            {!props.hideSubmitButton && <div
                                 style={{
                                     width: props.maxPrimaryButtonWidth
                                         ? '100%'
@@ -366,7 +367,7 @@ const BasicForm: Function = <T extends Object>(
                                             : ' auto',
                                     }}
                                 />
-                            </div>
+                            </div>}
                             {props.onCancel && (
                                 <div style={{ width: 'auto' }}>
                                     <Button

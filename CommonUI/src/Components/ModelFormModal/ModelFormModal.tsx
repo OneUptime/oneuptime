@@ -19,7 +19,7 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel> (
 ): ReactElement => {
     return (
         <Modal {...props}>
-            <ModelForm<TBaseModel> {...props.formProps}/>
+            <ModelForm<TBaseModel> {...props.formProps} hideSubmitButton={true}/>
         </Modal>
     );
 };

@@ -23,6 +23,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     cancelButtonText?: string;
     maxPrimaryButtonWidth?: boolean;
     error: string | null;
+    hideSubmitButton?: boolean;
 }
 
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(
@@ -79,6 +80,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             cancelButtonText={props.cancelButtonText}
             maxPrimaryButtonWidth={props.maxPrimaryButtonWidth || false}
             error={props.error}
+            hideSubmitButton={props.hideSubmitButton}
         ></BasicForm>
     );
 };
