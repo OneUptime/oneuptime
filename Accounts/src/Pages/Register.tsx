@@ -5,13 +5,9 @@ import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
-import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import LoginUtil from "../Utils/Login";
 import { JSONObject } from 'Common/Types/JSON';
-import UserUtil from 'CommonUI/src/Utils/User';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import Email from 'Common/Types/Email';
-import ObjectID from 'Common/Types/ObjectID';
-import Name from 'Common/Types/Name';
+
 import URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 
@@ -143,32 +139,7 @@ const RegisterPage: FunctionComponent = () => {
                                             formType={FormType.Create}
                                             submitButtonText={'Sign Up'}
                                             onSuccess={(value: JSONObject) => {
-                                                const user: User =
-                                                    User.fromJSON(
-                                                        value[
-                                                            'user'
-                                                        ] as JSONObject,
-                                                        User
-                                                    ) as User;
-                                                const token: string = value[
-                                                    'token'
-                                                ] as string;
-
-                                                UserUtil.setAccessToken(token);
-                                                UserUtil.setEmail(
-                                                    user.email as Email
-                                                );
-                                                UserUtil.setUserId(
-                                                    user.id as ObjectID
-                                                );
-                                                UserUtil.setName(
-                                                    user.name as Name
-                                                );
-
-                                                // go to dashboard, user should be logged in.
-                                                Navigation.navigate(
-                                                    DASHBOARD_URL
-                                                );
+                                                LoginUtil.login(value);
                                             }}
                                         />
 
