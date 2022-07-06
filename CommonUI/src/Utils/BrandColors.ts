@@ -2,6 +2,7 @@ import Color from 'Common/Types/Color';
 
 export const Blue: Color = new Color('#7a7fdc');
 export const Black: Color = new Color('#000000');
+export const White: Color = new Color('#ffffff');
 export const Indigo: Color = new Color('#564ab1');
 export const Purple: Color = new Color('#6f42c1');
 export const Pink: Color = new Color('#e83e8c');

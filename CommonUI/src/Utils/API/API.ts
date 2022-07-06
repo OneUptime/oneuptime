@@ -1,5 +1,4 @@
 import User from '../User';
-import history from '../History';
 import Headers from 'Common/Types/API/Headers';
 import API from 'Common/Utils/API';
 import APIException from 'Common/Types/Exception/ApiException';
@@ -8,10 +7,16 @@ import Cookies from 'universal-cookie';
 import Protocol from 'Common/Types/API/Protocol';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
+import URL from 'Common/Types/API/URL';
+import Navigation from '../Navigation';
 
 class BaseAPI extends API {
     public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
         super(protocol, hostname, route);
+    }
+
+    public static fromURL(url: URL): BaseAPI {
+        return new BaseAPI(url.protocol, url.hostname, url.route);
     }
 
     protected static override getHeaders(): Headers {
@@ -38,7 +43,7 @@ class BaseAPI extends API {
             cookies.remove('admin-data', { path: '/' });
             cookies.remove('data', { path: '/' });
             User.clear();
-            history.push('/login');
+            Navigation.navigate(new Route('/accounts/login'));
         }
 
         return error;

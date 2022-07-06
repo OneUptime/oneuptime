@@ -6,12 +6,13 @@ import ColumnLength from '../Types/Database/ColumnLength';
 import TableColumn from '../Types/Database/TableColumn';
 import User from './User';
 import Project from './Project';
+import TableColumnType from '../Types/Database/TableColumnType';
 
 @Entity({
     name: 'ProjectAPIKey',
 })
 export default class ProjectAPIKey extends BaseModel {
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Entity })
     @ManyToOne(
         (_type: string) => {
             return Project;
@@ -27,7 +28,7 @@ export default class ProjectAPIKey extends BaseModel {
     @JoinColumn({ name: 'projectId' })
     public project?: Project;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -35,7 +36,7 @@ export default class ProjectAPIKey extends BaseModel {
     })
     public projectId?: ObjectID;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Entity })
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -51,7 +52,7 @@ export default class ProjectAPIKey extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -59,7 +60,7 @@ export default class ProjectAPIKey extends BaseModel {
     })
     public deletedByUserId?: ObjectID;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Entity })
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -74,7 +75,7 @@ export default class ProjectAPIKey extends BaseModel {
     @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
@@ -83,7 +84,7 @@ export default class ProjectAPIKey extends BaseModel {
     public createdByUserId?: ObjectID;
 
     @Index()
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
         length: ColumnLength.ObjectID,
@@ -92,7 +93,7 @@ export default class ProjectAPIKey extends BaseModel {
     })
     public apiKey?: ObjectID = undefined;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
@@ -100,7 +101,7 @@ export default class ProjectAPIKey extends BaseModel {
     })
     public name?: string = undefined;
 
-    @TableColumn({ required: true })
+    @TableColumn({ required: true, type: TableColumnType.Date })
     @Column({
         nullable: false,
         type: ColumnType.Date,

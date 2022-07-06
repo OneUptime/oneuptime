@@ -19,7 +19,7 @@ module.exports = {
     output: {
         filename: "bundle.js",
         path: path.resolve(__dirname, "dist"),
-        publicPath: "//assets/",
+        publicPath: "/assets/",
     },
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.scss'],
@@ -52,8 +52,8 @@ module.exports = {
                 use: ['style-loader', 'css-loader', "sass-loader"]
             },
             {
-                test: /\.(png|j?g|svg|gif)?$/,
-                use: 'file-loader'
+                test: /\.(jpe?g|png|gif|svg)$/i, 
+                loader: 'file-loader'
             }
         ],
     },
@@ -63,5 +63,5 @@ module.exports = {
             writeToDisk: true,
         },
     },
-    devtool: 'inline-source-map',
+    devtool: 'eval-source-map',
 }

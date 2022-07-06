@@ -3,7 +3,7 @@ import {
     HTTP_PROTOCOL,
     DASHBOARD_API_ROUTE,
 } from '../../Config';
-import BaseAPI from './BaseAPI';
+import BaseAPI from './API';
 
 class BackendAPI extends BaseAPI {
     public constructor() {

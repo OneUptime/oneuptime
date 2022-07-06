@@ -6,12 +6,20 @@ import User from './User';
 import ColumnLength from '../Types/Database/ColumnLength';
 import Email from '../Types/Email';
 import TableColumn from '../Types/Database/TableColumn';
+import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
+import Route from '../Types/API/Route';
+import TableColumnType from '../Types/Database/TableColumnType';
 
+@CrudApiEndpoint(new Route('/email-verification-token'))
 @Entity({
     name: 'EmailVerificationToken',
 })
 export default class EmailVerificationToken extends BaseModel {
-    @TableColumn({ manyToOneRelationColumn: 'userId', required: true })
+    @TableColumn({
+        manyToOneRelationColumn: 'userId',
+        required: true,
+        type: TableColumnType.Entity,
+    })
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -26,7 +34,7 @@ export default class EmailVerificationToken extends BaseModel {
     @JoinColumn({ name: 'userId' })
     public user?: User;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -34,7 +42,7 @@ export default class EmailVerificationToken extends BaseModel {
     })
     public userId?: ObjectID;
 
-    @TableColumn()
+    @TableColumn({ type: TableColumnType.Email })
     @Column({
         type: ColumnType.Email,
         length: ColumnLength.Email,
@@ -44,7 +52,11 @@ export default class EmailVerificationToken extends BaseModel {
     public email?: Email = undefined;
 
     @Index()
-    @TableColumn({ required: true, unique: true })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.ObjectID,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -54,7 +66,7 @@ export default class EmailVerificationToken extends BaseModel {
     })
     public token?: ObjectID;
 
-    @TableColumn({ required: true })
+    @TableColumn({ required: true, type: TableColumnType.Date })
     @Column({
         nullable: false,
         type: ColumnType.Date,
