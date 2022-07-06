@@ -15,9 +15,9 @@
     },
     "scripts": {
         "dev": "webpack-dev-server --port=3009 --mode=development",
-        "build": "react-app-rewired build",
+        "build": "webpack build",
         "test": "react-app-rewired test",
-        "eject": "react-scripts eject",
+        "eject": "webpack eject",
         "compile": "tsc",
         "start": "node index.ts",
         "audit": "npm audit --audit-level=low",
