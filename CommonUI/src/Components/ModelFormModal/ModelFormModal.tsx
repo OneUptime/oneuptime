@@ -11,7 +11,7 @@ export interface ComponentProps {
     submitButtonType?: ButtonStyleType;
 }
 
-const Component: FunctionComponent<ComponentProps> = (
+const ModelFromModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
@@ -87,4 +87,4 @@ const Component: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default Component;
+export default ModelFromModal;
