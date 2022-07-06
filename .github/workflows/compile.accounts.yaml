@@ -1,4 +1,4 @@
-name: Compile Common
+name: Compile Accounts
 
 on:
   pull_request: 
@@ -16,5 +16,8 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           check-latest: true
-      - run: cd Common && npm install && npm run compile
+      - run: cd Common && npm install
+      - run: cd CommonServer && npm install
+      - run: cd CommonUI && npm install
+      - run: cd Accounts && npm install && npm run compile
   

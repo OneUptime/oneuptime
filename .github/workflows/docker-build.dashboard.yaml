@@ -1,4 +1,4 @@
-name: Mail Docker Build
+name: Dashboard Docker Build
 
 on:
   pull_request: 
@@ -9,13 +9,13 @@ on:
       - 'staging-release'
 
 jobs:
- # define job to build docker image
-   docker-build:
+ # define jobs to build docker imag
+  docker-build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout 
         uses: actions/checkout@v2
 
-      # build image for mail service
+      # build image for home
       - name: build docker image
-        run: npm run build-ci mail
+        run: npm run build-ci dashboard

@@ -1,6 +1,6 @@
 
 ! function () {
-    function n(n: $TSFixMe, e: $TSFixMe) {
+    function n(n, e) {
         
         $('.hidden', n)
             .eq(e)
@@ -13,7 +13,7 @@
             .attr('class', 'shown')
     }
     
-    function e(n: $TSFixMe, e: $TSFixMe) {
+    function e(n, e) {
         if (n.hasClass('is-visible')) {
             
             const a = $('.shown', n)
@@ -25,7 +25,7 @@
     }
     
     $('.card')
-        .each(function (e: $TSFixMe, a: $TSFixMe) {
+        .each(function (e, a) {
             if (window.IntersectionObserver) a.observer = new IntersectionObserver(e => {
                 e.forEach(e => {
                     if (e.isIntersecting || e.intersectionRatio > 0) {

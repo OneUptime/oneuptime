@@ -5,6 +5,7 @@ import {
     HomeHostname,
     HttpProtocol,
     IsSaaSService,
+    EncryptionSecret,
 } from 'CommonServer/Config';
 import Express, {
     ExpressRequest,
@@ -155,6 +156,165 @@ router.post(
             }
 
             throw new BadRequestException('Failed to create a user');
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+router.post(
+    '/request-reset-password',
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const data: JSONObject = req.body;
+
+            const user: User = User.asPublicCreateable<User>(
+                data as JSONObject,
+                User
+            );
+
+            await user.password?.hashValue(EncryptionSecret);
+
+            const alreadySavedUser: User | null = await UserService.findOneBy({
+                query: { email: user.email!, password: user.password! },
+                select: {
+                    _id: true,
+                    password: true,
+                    name: true,
+                    email: true,
+                    isMasterAdmin: true,
+                },
+            });
+
+            if (alreadySavedUser) {
+                const token: string = JSONWebToken.sign(
+                    {
+                        userId: alreadySavedUser.id!,
+                        email: alreadySavedUser.email!,
+                        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
+                        roles: [],
+                    },
+                    OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
+                );
+
+                return Response.sendItemResponse(req, res, {
+                    token: token,
+                    user: alreadySavedUser.toJSON(),
+                });
+            }
+            throw new BadDataException(
+                'Invalid login: Email or password does not match.'
+            );
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+router.post(
+    '/reset-password',
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const data: JSONObject = req.body;
+
+            const user: User = User.asPublicCreateable<User>(
+                data as JSONObject,
+                User
+            );
+
+            await user.password?.hashValue(EncryptionSecret);
+
+            const alreadySavedUser: User | null = await UserService.findOneBy({
+                query: { email: user.email!, password: user.password! },
+                select: {
+                    _id: true,
+                    password: true,
+                    name: true,
+                    email: true,
+                    isMasterAdmin: true,
+                },
+            });
+
+            if (alreadySavedUser) {
+                const token: string = JSONWebToken.sign(
+                    {
+                        userId: alreadySavedUser.id!,
+                        email: alreadySavedUser.email!,
+                        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
+                        roles: [],
+                    },
+                    OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
+                );
+
+                return Response.sendItemResponse(req, res, {
+                    token: token,
+                    user: alreadySavedUser.toJSON(),
+                });
+            }
+            throw new BadDataException(
+                'Invalid login: Email or password does not match.'
+            );
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+router.post(
+    '/login',
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const data: JSONObject = req.body;
+
+            const user: User = User.asPublicCreateable<User>(
+                data as JSONObject,
+                User
+            );
+
+            await user.password?.hashValue(EncryptionSecret);
+
+            const alreadySavedUser: User | null = await UserService.findOneBy({
+                query: { email: user.email!, password: user.password! },
+                select: {
+                    _id: true,
+                    password: true,
+                    name: true,
+                    email: true,
+                    isMasterAdmin: true,
+                },
+            });
+
+            if (alreadySavedUser) {
+                const token: string = JSONWebToken.sign(
+                    {
+                        userId: alreadySavedUser.id!,
+                        email: alreadySavedUser.email!,
+                        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
+                        roles: [],
+                    },
+                    OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
+                );
+
+                return Response.sendItemResponse(req, res, {
+                    token: token,
+                    user: alreadySavedUser.toJSON(),
+                });
+            }
+            throw new BadDataException(
+                'Invalid login: Email or password does not match.'
+            );
         } catch (err) {
             return next(err);
         }

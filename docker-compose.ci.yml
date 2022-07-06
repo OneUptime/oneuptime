@@ -115,7 +115,7 @@ services:
             
     dashboard:
         ports:
-            - '3000:3000'
+            - '3009:3009'
         build:
             context: .
             dockerfile: ./Dashboard/Dockerfile

@@ -1,5 +1,5 @@
 #
-# Dashboard Dockerfile
+# dashboard Dockerfile
 #
 
 # Pull base image nodejs image.

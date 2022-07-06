@@ -1,6 +1,7 @@
 name: Probe Api Test
 
-on: 
+on:
+  pull_request: 
   push:
     branches-ignore:
       - 'hotfix-*'   # excludes hotfix branches

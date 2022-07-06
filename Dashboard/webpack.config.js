@@ -19,10 +19,10 @@ module.exports = {
     output: {
         filename: "bundle.js",
         path: path.resolve(__dirname, "dist"),
-        publicPath: "//assets/",
+        publicPath: "/assets/",
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss'],
+        extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.scss'],
         alias: {
             react: path.resolve('./node_modules/react'),
         }
@@ -53,15 +53,15 @@ module.exports = {
             },
             {
                 test: /\.(jpe?g|png|gif|svg)$/i, 
-                loader: 'file-loader',
-                options: {
-                  name: '/public/images/[name].[ext]'
-                }
+                loader: 'file-loader'
             }
         ],
     },
     devServer: {
         historyApiFallback: true,
+        devMiddleware: {
+            writeToDisk: true,
+        },
     },
     devtool: 'eval-source-map',
 }

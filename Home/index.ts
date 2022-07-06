@@ -1,3 +1,4 @@
+import 'ejs';
 import Express, {
     ExpressRequest,
     ExpressResponse,

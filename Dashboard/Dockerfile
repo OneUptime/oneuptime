@@ -61,8 +61,8 @@ COPY ./Dashboard /usr/src/app
 RUN npm run build
 
 # Expose ports.
-#   - 3005:  Dashboard
-EXPOSE 3005
+#   - 3009:  Dashboard
+EXPOSE 3009
 
 #Run the app
 CMD [ "npm", "start" ]

@@ -1,9 +1,10 @@
 
-let accountsUrl = window.location.origin + '/accounts';
-let backendUrl = window.location.hostname === 'localhost' ? 'http://localhost:3002' : window.location.origin + '/api'
+let accountsUrl = window.location.origin+'/accounts';
+let backendUrl = window.location.hostname==='localhost'? 'http://localhost:3002': window.location.origin+'/api'
 
 
-function loginUrl(extra: string) {
+//eslint-disable-next-line
+function loginUrl(extra) {
     if (extra) {
         window.location.href = `${accountsUrl}/login${extra}`;
     }
@@ -11,8 +12,8 @@ function loginUrl(extra: string) {
         window.location.href = `${accountsUrl}/login`;
     }
 }
-
-function registerUrl(params: string) {
+//eslint-disable-next-line
+function registerUrl(params) {
     if (params) {
         window.location.href = `${accountsUrl}/register${params}`;
     }
@@ -20,7 +21,7 @@ function registerUrl(params: string) {
         window.location.href = `${accountsUrl}/register`;
     }
 }
+//eslint-disable-next-line
 function formUrl() {
     return `${backendUrl}/lead/`;
 }
-
