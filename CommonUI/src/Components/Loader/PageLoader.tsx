@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from "../../Utils/React";
+import React, { FunctionComponent, ReactElement } from "react";
 import Loader, { LoaderType } from "./Loader";
 import { Black } from "../../Utils/BrandColors";
 
@@ -9,7 +9,7 @@ export interface ComponentProps {
 const PageLoader: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
     if (props.isVisible) {
         return (
-            <div><Loader loaderType={LoaderType.Bar} color={Black} /></div>
+            <div className='row text-center vertical-center'><Loader loaderType={LoaderType.Bar} color={Black} size={200} /></div>
         )
     } else {
         return <></>
