@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp, SizeProp } from '../Basic/Icon/Icon';
+import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 import useComponentOutsideClick from '../../Types/UseComponentOutsideClick';
 
 export interface ComponentProps {

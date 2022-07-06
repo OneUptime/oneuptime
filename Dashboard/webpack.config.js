@@ -22,7 +22,10 @@ module.exports = {
         publicPath: "//assets/",
     },
     resolve: {
-        extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss']
+        extensions: ['.ts', '.tsx', '.js', '.json', '.css', '.scss'],
+        alias: {
+            react: path.resolve('./node_modules/react'),
+        }
     },
     externals: {
         'react-native-sqlite-storage': 'react-native-sqlite-storage'
@@ -36,7 +39,7 @@ module.exports = {
                     ...readEnvFile('./.env')
                 }
             }
-          }),
+        }),
     ],
     module: {
         rules: [

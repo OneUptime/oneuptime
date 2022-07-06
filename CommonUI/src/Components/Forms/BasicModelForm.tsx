@@ -19,6 +19,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showAsColumns?: number;
     footer: ReactElement;
     isLoading?: boolean;
+    onCancel?: () => void;
+    cancelButtonText?: string;
 }
 
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(
@@ -69,6 +71,8 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             description={props.description || ''}
             footer={props.footer}
             showAsColumns={props.showAsColumns || 1}
+            onCancel={props.onCancel}
+            cancelButtonText={props.cancelButtonText}
         ></BasicForm>
     );
 };

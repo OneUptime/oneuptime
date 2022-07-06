@@ -3,7 +3,7 @@ import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconD
 import IconDropdwonItem from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownItem';
 import IconDropdwonMenu from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownMenu';
 import IconDropdwonRow from 'CommonUI/src/Components/Header/IconDropdown/IconDropdownRow';
-import { IconProp } from 'CommonUI/src/Components/Basic/Icon/Icon';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import URL from 'Common/Types/API/URL';
 
 const Help: FunctionComponent = (): ReactElement => {

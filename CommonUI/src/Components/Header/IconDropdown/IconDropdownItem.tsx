@@ -1,6 +1,6 @@
 import URL from 'Common/Types/API/URL';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp, SizeProp } from '../../Basic/Icon/Icon';
+import Icon, { IconProp, SizeProp } from '../../Icon/Icon';
 import Link from '../../Link/Link';
 
 export interface ComponentProps {

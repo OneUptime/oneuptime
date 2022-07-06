@@ -1,7 +1,7 @@
 import URL from 'Common/Types/API/URL';
 import Name from 'Common/Types/Name';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp } from '../../Basic/Icon/Icon';
+import Icon, { IconProp } from '../../Icon/Icon';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 
 export interface ComponentProps {
