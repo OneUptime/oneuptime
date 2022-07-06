@@ -5,27 +5,19 @@ import CircularIconImage from '../../Icon/CircularIconImage';
 import { IconProp } from '../../Icon/Icon';
 import Link from '../../Link/Link';
 
-export interface ComponentProps {
-    title: string;
-    route: Route;
-    icon: IconProp;
-}
-
-const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
-): ReactElement => {
+const CreateNewProjectButton: FunctionComponent = (): ReactElement => {
     return (
         <Link
-            to={props.route}
+            to={new Route('/')}
             className="flex items-center p-10 background-primary-on-hover"
         >
             <CircularIconImage
-                icon={props.icon}
+                icon={IconProp.Add}
                 iconColor={new Color('#000')}
                 backgroundColor={new Color('#fff')}
             />
 
-            <p className="mb-0">{props.title}</p>
+            <p className="mb-0">Create New Project</p>
         </Link>
     );
 };
