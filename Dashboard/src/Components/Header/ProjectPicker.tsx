@@ -3,6 +3,9 @@ import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectP
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Project from "Common/Models/Project";
 import ModelFromModal from "CommonUI/src/Components/ModelFormModal/ModelFormModal";
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import { JSONObject } from 'Common/Types/JSON';
 
 const DashboardProjectPicker: FunctionComponent = (): ReactElement => {
 
@@ -22,7 +25,7 @@ const DashboardProjectPicker: FunctionComponent = (): ReactElement => {
                     setShowModel(true);
                 }}
             />
-            {showModel ? <ModelFromModal
+            {showModel ? <ModelFromModal<Project>
                 title="Create New Project"
                 onClose={() => {
                     setShowModel(false);
@@ -31,7 +34,33 @@ const DashboardProjectPicker: FunctionComponent = (): ReactElement => {
                 onSubmit={() => {
 
                 }}
-            ><div></div></ModelFromModal> : <></>}
+                formProps={
+                    {
+                        model: new Project(),
+                        id: "create-project-from",
+                        fields: [
+                            {
+                                field: {
+                                    name: true,
+                                },
+                                validation: {
+                                    minLength: 6,
+                                },
+                                fieldType:
+                                    FormFieldSchemaType.Text,
+                                placeholder:
+                                    'Acme',
+                                title: 'Project Name',
+                                required: true,
+                            }
+                        ],
+                        formType: FormType.Create,
+                        onSuccess: (_value: JSONObject) => {
+                            
+                        }
+                    }
+                }
+            /> : <></>}
         </>
     );
 };

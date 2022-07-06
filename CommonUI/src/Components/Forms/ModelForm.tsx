@@ -40,7 +40,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     formType: FormType;
 }
 
-const CreateModelForm: Function = <TBaseModel extends BaseModel>(
+const ModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isLoading, setLoading] = useState<boolean>(false);
@@ -107,4 +107,4 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
     );
 };
 
-export default CreateModelForm;
+export default ModelForm;

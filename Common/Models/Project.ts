@@ -15,11 +15,11 @@ import TableColumnType from '../Types/Database/TableColumnType';
     name: 'Project',
 })
 export default class Model extends BaseModel {
-    @TableColumn({ required: true, type: TableColumnType.Name })
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
         nullable: false,
-        type: ColumnType.Name,
-        length: ColumnLength.Name,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
     })
     public name?: string = undefined;
 
