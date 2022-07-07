@@ -42,21 +42,21 @@ export default class BaseAPI<
 
         // Get Item
         router.get(
-            `${this.entityType.name}/id/:id`,
+            `${this.entityType.name}/:id`,
             UserMiddleware.getUserMiddleware,
             this.getItem
         );
 
         // Update
         router.put(
-            `${this.entityType.name}/id/:id`,
+            `${this.entityType.name}/:id`,
             UserMiddleware.getUserMiddleware,
             this.updateItem
         );
 
         // Delete
         router.delete(
-            `${this.entityType.name}/id/:id`,
+            `${this.entityType.name}/:id`,
             UserMiddleware.getUserMiddleware,
             this.deleteItem
         );
