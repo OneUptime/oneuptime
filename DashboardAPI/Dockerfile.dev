@@ -1,5 +1,5 @@
 #
-# OneUptime-backend Dockerfile
+# OneUptime-DashboardAPI Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -35,27 +35,18 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
-#SET ENV Variables
-
-WORKDIR /usr/src/app
-
-# Install trivy for container scanning
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
-
+WORKDIR /usr/src/app/
 # Install app dependencies
-RUN cd /usr/src/app
-
-RUN mkdir -p greenlock.d || echo "Directory already exists"
-
-# Copy package.json files
-COPY ./DashboardAPI/package.json /usr/src/app/package.json
-COPY ./DashboardAPI/package-lock.json /usr/src/app/package-lock.json
-
-
+COPY ./DashboardAPI/package*.json /usr/src/app/
 RUN npm install
+RUN npm install -g ts-node
+
+
+# Bundle app source
+COPY ./DashboardAPI /usr/src/app
 
 # Expose ports.
-#   - 3002: OneUptime-backend
+#   - 3002: OneUptime-DashboardAPI
 EXPOSE 3002
 EXPOSE 9229
 
