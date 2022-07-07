@@ -42,7 +42,7 @@ services:
             - '3002:3002'
         build:
             context: .
-            dockerfile: ./dashboard-api/Dockerfile
+            dockerfile: ./DashboardAPI/Dockerfile
         env_file:
             - ./Common/.env
             - ./CommonServer/.env

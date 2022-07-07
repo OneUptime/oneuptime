@@ -637,6 +637,7 @@ services:
         depends_on:
             - identity
             - accounts
+            - dashboard-api
             - dashboard
             - home
         restart: always
