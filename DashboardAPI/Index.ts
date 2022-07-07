@@ -1,12 +1,39 @@
 import 'ejs';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
-//import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
+import BaseAPI from "CommonServer/API/BaseAPI";
 import App from 'CommonServer/Utils/StartServer';
 
-//const app: ExpressApplication = Express.getExpressApp();
+import User from 'Common/Models/User';
+import UserService, {
+    Service as UserServiceType,
+} from 'CommonServer/Services/UserService';
+
+import Project from 'Common/Models/Project';
+import ProjectService, {
+    Service as ProjectServiceType,
+} from 'CommonServer/Services/ProjectService';
+
+import Probe from 'Common/Models/Probe';
+import ProbeService, {
+    Service as ProbeServiceType,
+} from 'CommonServer/Services/ProbeService';
+
+import EmailVerificationToken from 'Common/Models/EmailVerificationToken';
+import EmailVerificationTokenService, {
+    Service as EmailVerificationTokenServiceType,
+} from 'CommonServer/Services/EmailVerificationTokenService';
+
+const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'dashboard-api';
+
+app.use(new User().getCrudApiPath()?.toString()!, new BaseAPI<User, UserServiceType>(User, UserService).getRouter());
+app.use(new Project().getCrudApiPath()?.toString()!, new BaseAPI<Project, ProjectServiceType>(Project, ProjectService).getRouter());
+app.use(new Probe().getCrudApiPath()?.toString()!, new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
+app.use(new Probe().getCrudApiPath()?.toString()!, new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
+app.use(new EmailVerificationToken().getCrudApiPath()?.toString()!, new BaseAPI<EmailVerificationToken, EmailVerificationTokenServiceType>(EmailVerificationToken, EmailVerificationTokenService).getRouter());
 
 const init: Function = async (): Promise<void> => {
     try {
