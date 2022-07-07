@@ -29,6 +29,7 @@ const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'dashboard-api';
 
+//attach api's
 app.use(new User().getCrudApiPath()?.toString()!, new BaseAPI<User, UserServiceType>(User, UserService).getRouter());
 app.use(new Project().getCrudApiPath()?.toString()!, new BaseAPI<Project, ProjectServiceType>(Project, ProjectService).getRouter());
 app.use(new Probe().getCrudApiPath()?.toString()!, new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
