@@ -78,7 +78,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 ? HTTPMethod.POST
                 : HTTPMethod.PUT,
             apiUrl,
-            values
+            { "data": values }
         );
 
         setLoading(false);

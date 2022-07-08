@@ -1033,6 +1033,7 @@ export default class BaseModel extends BaseEntity {
 
         return this.keepColumns(data, data.getViewerCreateableColumns(), type);
     }
+    
 
     public static asViewerUpdateable<T extends BaseModel>(
         data: JSONObject | T,

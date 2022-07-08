@@ -10,6 +10,8 @@ import ProjectMiddleware from './ProjectAuthorization';
 import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
 import UserRole from 'Common/Types/UserRole';
+import OneUptimeDate from 'Common/Types/Date';
+import Role from 'Common/Types/Role';
 
 export default class UserMiddleware {
     /*
@@ -42,6 +44,7 @@ export default class UserMiddleware {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
+        
         const projectId: ObjectID | null = ProjectMiddleware.getProjectId(req);
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
@@ -57,7 +60,9 @@ export default class UserMiddleware {
             }
         }
 
-        const accessToken: string | null = this.getAccessToken(req);
+        console.log(UserMiddleware);
+
+        const accessToken: string | null = UserMiddleware.getAccessToken(req);
 
         if (!accessToken) {
             oneuptimeRequest.authorizationType = AuthorizationType.Public;
@@ -76,7 +81,7 @@ export default class UserMiddleware {
             query: {
                 _id: oneuptimeRequest.userAuthorization.userId.toString(),
             },
-            data: { lastActive: Date.now() },
+            data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
         const userRole: UserRole | undefined | null =
@@ -87,6 +92,8 @@ export default class UserMiddleware {
 
         if (userRole) {
             oneuptimeRequest.role = userRole.role;
+        } else if (oneuptimeRequest.authorizationType === AuthorizationType.User) {
+            oneuptimeRequest.role = Role.User;
         }
 
         return next();

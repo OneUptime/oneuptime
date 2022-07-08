@@ -44,7 +44,7 @@ router.post(
                 throw new BadRequestException('Sign up is disabled.');
             }
 
-            const data: JSONObject = req.body;
+            const data: JSONObject = req.body["data"];
 
             const user: User = User.asPublicCreateable<User>(
                 data as JSONObject,
@@ -170,7 +170,7 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            const data: JSONObject = req.body;
+            const data: JSONObject = req.body["data"];
 
             const user: User = User.asPublicCreateable<User>(
                 data as JSONObject,
@@ -223,7 +223,7 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            const data: JSONObject = req.body;
+            const data: JSONObject = req.body["data"];
 
             const user: User = User.asPublicCreateable<User>(
                 data as JSONObject,
@@ -276,7 +276,7 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            const data: JSONObject = req.body;
+            const data: JSONObject = req.body["data"];
 
             const user: User = User.asPublicCreateable<User>(
                 data as JSONObject,

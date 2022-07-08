@@ -417,6 +417,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
             });
         }
 
+        if (role === Role.User) {
+            return await this.create({
+                data: BaseModel.asUserCreateable<TBaseModel>(
+                    createBy.data,
+                    this.entityType
+                ),
+            });
+        }
+
         if (role === Role.Owner) {
             return await this.create({
                 data: BaseModel.asOwnerCreateable<TBaseModel>(

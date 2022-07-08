@@ -32,8 +32,9 @@ class JSONWebToken {
 
     public static decode(token: string): JSONWebTokenData {
         try {
+            const decodedToken: string = JSON.stringify(jwt.verify(token, EncryptionSecret.toString()) as string);
             const decoded: JSONObject = JSON.parse(
-                jwt.verify(token, EncryptionSecret.toString()) as string
+                decodedToken
             );
 
             return {
