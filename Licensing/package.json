@@ -15,7 +15,7 @@
         "express": "^4.17.3",
         "jsonwebtoken": "^8.5.1",
         "mocha": "^9.2.2",
-        "moment": "^2.29.1",
+        "moment": "^2.29.4",
         "winston": "^3.6.0",
         "CommonServer": "file:../CommonServer",
         "Common": "file:../Common"
