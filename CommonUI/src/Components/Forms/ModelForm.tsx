@@ -1,5 +1,5 @@
-import React, { ReactElement, useState } from 'react';
-import { FormikErrors } from 'formik';
+import React, { MutableRefObject, ReactElement, useState } from 'react';
+import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
@@ -39,6 +39,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     apiUrl?: URL;
     formType: FormType;
     hideSubmitButton?: boolean;
+    formRef?: MutableRefObject<FormikProps<FormikValues>>;
+    onLoadingChange?: (isLoading: boolean) => void; 
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
@@ -51,6 +53,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         // Ping an API here.
         setError('');
         setLoading(true);
+        if (props.onLoadingChange) {
+            props.onLoadingChange(true);
+        }
         let apiUrl: URL | null = props.apiUrl || null;
 
         if (!apiUrl) {
@@ -61,7 +66,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 );
             }
 
-            apiUrl = DASHBOARD_API_URL.addRoute(apiPath);
+            apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
         }
 
         const result: HTTPResponse<
@@ -77,6 +82,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         );
 
         setLoading(false);
+        if (props.onLoadingChange) {
+            props.onLoadingChange(false);
+        }
 
         if (result.isSuccess()) {
             if (props.onSuccess) {
@@ -105,6 +113,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
             error={error}
             hideSubmitButton={props.hideSubmitButton}
+            formRef={props.formRef}
         ></BasicModelForm>
     );
 };

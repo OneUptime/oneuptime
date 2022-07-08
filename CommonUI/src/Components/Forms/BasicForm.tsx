@@ -1,5 +1,5 @@
-import React, { ReactElement } from 'react';
-import { ErrorMessage, Field, Form, Formik, FormikErrors } from 'formik';
+import React, { MutableRefObject, ReactElement, useRef } from 'react';
+import { ErrorMessage, Field, Form, Formik, FormikErrors, FormikProps, FormikValues } from 'formik';
 import Button, { ButtonStyleType } from '../Button/Button';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
@@ -35,6 +35,7 @@ export interface ComponentProps<T extends Object> {
     maxPrimaryButtonWidth?: boolean;
     error: string | null;
     hideSubmitButton?: boolean;
+    formRef?: MutableRefObject<FormikProps<FormikValues>>
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -53,6 +54,7 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
 const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
+    
     const getFormField: Function = (
         field: DataField<T>,
         index: number,
@@ -246,12 +248,15 @@ const BasicForm: Function = <T extends Object>(
         return { ...errors, ...customValidateResult } as FormikErrors<
             FormValues<T>
         >;
-    };
+        };
+    
+    const formRef: any = useRef<any>(null);
 
     return (
         <div className="row">
             <div className="col-lg-12">
                 <Formik
+                    innerRef={props.formRef ? props.formRef : formRef}
                     initialValues={props.initialValues}
                     validate={validate}
                     validateOnChange={true}

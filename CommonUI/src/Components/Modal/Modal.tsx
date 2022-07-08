@@ -13,6 +13,7 @@ export interface ComponentProps {
     onSubmit: () => void;
     submitButtonStyleType?: ButtonStyleType;
     submitButtonType?: ButtonType;
+    isLoading?: boolean;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (
@@ -51,6 +52,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 onClose={
                                     props.onClose ? props.onClose : undefined
                                 }
+                                isLoading={props.isLoading || false}
                             />
                         </div>
                     </div>

@@ -28,35 +28,35 @@ export default class BaseAPI<
 
         // Create
         router.post(
-            `${this.entityType.name}/`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}`,
             UserMiddleware.getUserMiddleware,
             this.createItem
         );
 
         // List
         router.get(
-            `${this.entityType.name}/list`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/list`,
             UserMiddleware.getUserMiddleware,
             this.getList
         );
 
         // Get Item
         router.get(
-            `${this.entityType.name}/:id`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
             this.getItem
         );
 
         // Update
         router.put(
-            `${this.entityType.name}/:id`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
             this.updateItem
         );
 
         // Delete
         router.delete(
-            `${this.entityType.name}/:id`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
             this.deleteItem
         );

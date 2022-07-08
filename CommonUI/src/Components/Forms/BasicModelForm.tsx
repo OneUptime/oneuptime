@@ -1,5 +1,5 @@
-import React, { ReactElement } from 'react';
-import { FormikErrors } from 'formik';
+import React, { MutableRefObject, ReactElement } from 'react';
+import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
@@ -24,6 +24,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     maxPrimaryButtonWidth?: boolean;
     error: string | null;
     hideSubmitButton?: boolean;
+    formRef?: MutableRefObject<FormikProps<FormikValues>>
 }
 
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(
@@ -81,6 +82,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             maxPrimaryButtonWidth={props.maxPrimaryButtonWidth || false}
             error={props.error}
             hideSubmitButton={props.hideSubmitButton}
+            formRef={props.formRef}
         ></BasicForm>
     );
 };

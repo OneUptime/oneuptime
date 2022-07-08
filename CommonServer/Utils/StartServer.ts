@@ -38,17 +38,13 @@ const logRequest: RequestHandler = (
     const method: string = req.method;
     const url: string = req.url;
 
-    const header_info: string = `Request ID: ${
-        (req as OneUptimeRequest).id
-    } -- POD NAME: ${
-        process.env['POD_NAME'] || 'NONE'
-    } -- METHOD: ${method} -- URL: ${url.toString()}`;
+    const header_info: string = `Request ID: ${(req as OneUptimeRequest).id
+        } -- POD NAME: ${process.env['POD_NAME'] || 'NONE'
+        } -- METHOD: ${method} -- URL: ${url.toString()}`;
 
-    const body_info: string = `Request ID: ${
-        (req as OneUptimeRequest).id
-    } -- Request Body: ${
-        req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
-    }`;
+    const body_info: string = `Request ID: ${(req as OneUptimeRequest).id
+        } -- Request Body: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+        }`;
 
     logger.info(header_info + '\n ' + body_info);
     next();
@@ -114,6 +110,22 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
             }
         }
     );
+
+    app.post('*', function (_req, res) {
+        res.status(404).json({ "error": "API not found" });
+    });
+
+    app.put('*', function (_req, res) {
+        res.status(404).json({ "error": "API not found" });
+    });
+
+    app.delete('*', function (_req, res) {
+        res.status(404).json({ "error": "API not found" });
+    });
+
+    app.get('*', function (_req, res) {
+        res.status(404).json({ "error": "API not found" });
+    });
 
     return app;
 };
