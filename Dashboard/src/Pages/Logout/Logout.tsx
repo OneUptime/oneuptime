@@ -12,14 +12,12 @@ import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 const Logout: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
     useEffect(() => {
         UserUtil.logout();
         Navigation.navigate(ACCOUNTS_URL);
-    },[])
+    }, []);
 
     return (
-        
         <Page
             title={'Logout'}
             breadcrumbLinks={[

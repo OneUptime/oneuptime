@@ -1,5 +1,13 @@
 import React, { MutableRefObject, ReactElement, useRef } from 'react';
-import { ErrorMessage, Field, Form, Formik, FormikErrors, FormikProps, FormikValues } from 'formik';
+import {
+    ErrorMessage,
+    Field,
+    Form,
+    Formik,
+    FormikErrors,
+    FormikProps,
+    FormikValues,
+} from 'formik';
 import Button, { ButtonStyleType } from '../Button/Button';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
@@ -35,7 +43,7 @@ export interface ComponentProps<T extends Object> {
     maxPrimaryButtonWidth?: boolean;
     error: string | null;
     hideSubmitButton?: boolean;
-    formRef?: MutableRefObject<FormikProps<FormikValues>>
+    formRef?: MutableRefObject<FormikProps<FormikValues>>;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -54,7 +62,6 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
 const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
-    
     const getFormField: Function = (
         field: DataField<T>,
         index: number,
@@ -248,8 +255,8 @@ const BasicForm: Function = <T extends Object>(
         return { ...errors, ...customValidateResult } as FormikErrors<
             FormValues<T>
         >;
-        };
-    
+    };
+
     const formRef: any = useRef<any>(null);
 
     return (
@@ -353,26 +360,30 @@ const BasicForm: Function = <T extends Object>(
                                 display: 'flex',
                             }}
                         >
-                            {!props.hideSubmitButton && <div
-                                style={{
-                                    width: props.maxPrimaryButtonWidth
-                                        ? '100%'
-                                        : ' auto',
-                                }}
-                            >
-                                <Button
-                                    title={props.submitButtonText || 'Submit'}
-                                    type={ButtonTypes.Submit}
-                                    id={`${props.id}-submit-button`}
-                                    isLoading={props.isLoading || false}
-                                    buttonStyle={ButtonStyleType.PRIMARY}
+                            {!props.hideSubmitButton && (
+                                <div
                                     style={{
                                         width: props.maxPrimaryButtonWidth
                                             ? '100%'
                                             : ' auto',
                                     }}
-                                />
-                            </div>}
+                                >
+                                    <Button
+                                        title={
+                                            props.submitButtonText || 'Submit'
+                                        }
+                                        type={ButtonTypes.Submit}
+                                        id={`${props.id}-submit-button`}
+                                        isLoading={props.isLoading || false}
+                                        buttonStyle={ButtonStyleType.PRIMARY}
+                                        style={{
+                                            width: props.maxPrimaryButtonWidth
+                                                ? '100%'
+                                                : ' auto',
+                                        }}
+                                    />
+                                </div>
+                            )}
                             {props.onCancel && (
                                 <div style={{ width: 'auto' }}>
                                     <Button

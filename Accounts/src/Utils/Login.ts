@@ -8,32 +8,19 @@ import { JSONObject } from 'Common/Types/JSON';
 import User from 'Common/Models/User';
 
 export default abstract class LoginUtil {
-    public static login(value: JSONObject) {
-        const user: User =
-            User.fromJSON(
-                value[
-                'user'
-                ] as JSONObject,
-                User
-            ) as User;
-        const token: string = value[
-            'token'
-        ] as string;
+    public static login(value: JSONObject): void {
+        const user: User = User.fromJSON(
+            value['user'] as JSONObject,
+            User
+        ) as User;
+        const token: string = value['token'] as string;
 
         UserUtil.setAccessToken(token);
-        UserUtil.setEmail(
-            user.email as Email
-        );
-        UserUtil.setUserId(
-            user.id as ObjectID
-        );
-        UserUtil.setName(
-            user.name as Name
-        );
+        UserUtil.setEmail(user.email as Email);
+        UserUtil.setUserId(user.id as ObjectID);
+        UserUtil.setName(user.name as Name);
 
         // go to dashboard, user should be logged in.
-        Navigation.navigate(
-            DASHBOARD_URL
-        );
+        Navigation.navigate(DASHBOARD_URL);
     }
 }

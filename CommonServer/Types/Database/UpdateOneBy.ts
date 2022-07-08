@@ -1,9 +1,10 @@
 import BaseModel from 'Common/Models/BaseModel';
-import ObjectID from 'Common/Types/ObjectID';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import DatabaseCommonInteractionProps from './DatabaseCommonInteractionProps';
+import Query from './Query';
 
-export default interface UpdateBy<TBaseModel extends BaseModel> extends DatabaseCommonInteractionProps {
-    id: ObjectID;
+export default interface UpdateOneBy<TBaseModel extends BaseModel>
+    extends DatabaseCommonInteractionProps {
+    query: Query<TBaseModel>;
     data: QueryDeepPartialEntity<TBaseModel>;
 }

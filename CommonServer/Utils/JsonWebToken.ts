@@ -32,10 +32,10 @@ class JSONWebToken {
 
     public static decode(token: string): JSONWebTokenData {
         try {
-            const decodedToken: string = JSON.stringify(jwt.verify(token, EncryptionSecret.toString()) as string);
-            const decoded: JSONObject = JSON.parse(
-                decodedToken
+            const decodedToken: string = JSON.stringify(
+                jwt.verify(token, EncryptionSecret.toString()) as string
             );
+            const decoded: JSONObject = JSON.parse(decodedToken);
 
             return {
                 userId: new ObjectID(decoded['userId'] as string),

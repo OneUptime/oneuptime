@@ -2,7 +2,7 @@ import 'ejs';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
-import BaseAPI from "CommonServer/API/BaseAPI";
+import BaseAPI from 'CommonServer/API/BaseAPI';
 import App from 'CommonServer/Utils/StartServer';
 
 import User from 'Common/Models/User';
@@ -31,13 +31,22 @@ const APP_NAME: string = 'api';
 
 //attach api's
 app.use(new BaseAPI<User, UserServiceType>(User, UserService).getRouter());
-app.use(new BaseAPI<Project, ProjectServiceType>(Project, ProjectService).getRouter());
+app.use(
+    new BaseAPI<Project, ProjectServiceType>(
+        Project,
+        ProjectService
+    ).getRouter()
+);
 app.use(new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
 app.use(new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
-app.use(new BaseAPI<EmailVerificationToken, EmailVerificationTokenServiceType>(EmailVerificationToken, EmailVerificationTokenService).getRouter());
+app.use(
+    new BaseAPI<EmailVerificationToken, EmailVerificationTokenServiceType>(
+        EmailVerificationToken,
+        EmailVerificationTokenService
+    ).getRouter()
+);
 
 const init: Function = async (): Promise<void> => {
-    
     try {
         // init the app
         await App(APP_NAME);

@@ -65,7 +65,7 @@ class User extends BaseModel {
         length: ColumnLength.Email,
         unique: true,
         nullable: false,
-        transformer: Email.getDatabaseTransformer()
+        transformer: Email.getDatabaseTransformer(),
     })
     public email?: Email = undefined;
 
@@ -75,7 +75,7 @@ class User extends BaseModel {
         length: ColumnLength.Email,
         unique: false,
         nullable: true,
-        transformer: Email.getDatabaseTransformer()
+        transformer: Email.getDatabaseTransformer(),
     })
     public newUnverifiedTemporaryEmail?: string = undefined;
 

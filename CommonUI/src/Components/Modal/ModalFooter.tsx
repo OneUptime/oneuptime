@@ -8,7 +8,7 @@ export interface ComponentProps {
     onSubmit: () => void;
     submitButtonStyleType?: ButtonStyleType;
     submitButtonType?: ButtonType;
-    isLoading?: boolean
+    isLoading?: boolean;
 }
 
 const ModalFooter: FunctionComponent<ComponentProps> = (
@@ -46,7 +46,11 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                         props.onSubmit();
                     }}
                     isLoading={props.isLoading || false}
-                    type={props.submitButtonType ? props.submitButtonType : ButtonType.Button}
+                    type={
+                        props.submitButtonType
+                            ? props.submitButtonType
+                            : ButtonType.Button
+                    }
                 />
             ) : (
                 <></>

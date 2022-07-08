@@ -44,7 +44,6 @@ export default class UserMiddleware {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-        
         const projectId: ObjectID | null = ProjectMiddleware.getProjectId(req);
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
@@ -59,8 +58,6 @@ export default class UserMiddleware {
                 );
             }
         }
-
-        console.log(UserMiddleware);
 
         const accessToken: string | null = UserMiddleware.getAccessToken(req);
 
@@ -92,7 +89,9 @@ export default class UserMiddleware {
 
         if (userRole) {
             oneuptimeRequest.role = userRole.role;
-        } else if (oneuptimeRequest.authorizationType === AuthorizationType.User) {
+        } else if (
+            oneuptimeRequest.authorizationType === AuthorizationType.User
+        ) {
             oneuptimeRequest.role = Role.User;
         }
 

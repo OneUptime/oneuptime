@@ -125,16 +125,11 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-
                 {/* Misc Routes */}
                 <PageRoute
                     path={RouteMap[PageMap.LOGOUT]?.toString()}
                     element={
-                        <Logout
-                            pageRoute={
-                                RouteMap[PageMap.LOGOUT] as Route
-                            }
-                        />
+                        <Logout pageRoute={RouteMap[PageMap.LOGOUT] as Route} />
                     }
                 />
             </Routes>

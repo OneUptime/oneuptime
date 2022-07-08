@@ -24,7 +24,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     maxPrimaryButtonWidth?: boolean;
     error: string | null;
     hideSubmitButton?: boolean;
-    formRef?: MutableRefObject<FormikProps<FormikValues>>
+    formRef?: MutableRefObject<FormikProps<FormikValues>>;
 }
 
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(

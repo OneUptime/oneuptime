@@ -12,8 +12,8 @@ import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
-import CreateBy from '../Types/DB/CreateBy';
-import DatabaseCommonInteractionProps from '../Types/DB/DatabaseCommonInteractionProps';
+import CreateBy from '../Types/Database/CreateBy';
+import DatabaseCommonInteractionProps from '../Types/Database/DatabaseCommonInteractionProps';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -21,7 +21,6 @@ export default class BaseAPI<
 > {
     private entityType: { new (): TBaseModel };
 
-   
     public router: ExpressRouter;
     private service: TBaseService;
 
@@ -33,8 +32,8 @@ export default class BaseAPI<
         router.post(
             `/${new this.entityType().getCrudApiPath()?.toString()}`,
             UserMiddleware.getUserMiddleware,
-            (req, res) => {
-                this.createItem(req, res);
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.createItem(req, res);
             }
         );
 
@@ -42,8 +41,8 @@ export default class BaseAPI<
         router.get(
             `/${new this.entityType().getCrudApiPath()?.toString()}/list`,
             UserMiddleware.getUserMiddleware,
-            (req, res) => {
-                this.getList(req, res);
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.getList(req, res);
             }
         );
 
@@ -51,8 +50,8 @@ export default class BaseAPI<
         router.get(
             `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            (req, res) => {
-                this.getItem(req, res);
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.getItem(req, res);
             }
         );
 
@@ -60,8 +59,8 @@ export default class BaseAPI<
         router.put(
             `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            (req, res) => {
-                this.updateItem(req, res);
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.updateItem(req, res);
             }
         );
 
@@ -69,21 +68,24 @@ export default class BaseAPI<
         router.delete(
             `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            (req, res) => {
-                this.deleteItem(req, res);
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.deleteItem(req, res);
             }
         );
 
         this.router = router;
         this.service = service;
-        debugger;
     }
 
-    public getDatabaseCommonInteractionProps(req: ExpressRequest): DatabaseCommonInteractionProps {
-
+    public getDatabaseCommonInteractionProps(
+        req: ExpressRequest
+    ): DatabaseCommonInteractionProps {
         const props: DatabaseCommonInteractionProps = {};
 
-        if ((req as OneUptimeRequest).userAuthorization && (req as OneUptimeRequest).userAuthorization?.userId) {
+        if (
+            (req as OneUptimeRequest).userAuthorization &&
+            (req as OneUptimeRequest).userAuthorization?.userId
+        ) {
             props.userId = (req as OneUptimeRequest).userAuthorization!.userId;
         }
 
@@ -95,7 +97,7 @@ export default class BaseAPI<
             props.userRoleInProject = (req as OneUptimeRequest).role;
         }
 
-        return props; 
+        return props;
     }
 
     public async getList(
@@ -196,8 +198,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        debugger; 
-        
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const body: JSONObject = req.body;
 
@@ -206,11 +206,10 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
-
         const createBy: CreateBy<TBaseModel> = {
             data: item,
-            ...this.getDatabaseCommonInteractionProps(req)
-        }
+            ...this.getDatabaseCommonInteractionProps(req),
+        };
 
         const savedItem: BaseModel = await this.service.createByRole(
             oneuptimeRequest.role,

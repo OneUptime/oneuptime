@@ -37,7 +37,11 @@ const Modal: FunctionComponent<ComponentProps> = (
                             />
                             <ModalBody>{props.children}</ModalBody>
                             <ModalFooter
-                                submitButtonType={props.submitButtonType ? props.submitButtonType : ButtonType.Button}
+                                submitButtonType={
+                                    props.submitButtonType
+                                        ? props.submitButtonType
+                                        : ButtonType.Button
+                                }
                                 submitButtonStyleType={
                                     props.submitButtonStyleType
                                         ? props.submitButtonStyleType

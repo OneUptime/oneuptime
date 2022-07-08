@@ -4,7 +4,8 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import BaseModel from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from './DatabaseCommonInteractionProps';
 
-export default interface SearchBy<TBaseModel extends BaseModel> extends DatabaseCommonInteractionProps {
+export default interface SearchBy<TBaseModel extends BaseModel>
+    extends DatabaseCommonInteractionProps {
     text: string;
     column: keyof TBaseModel;
     limit: PositiveNumber;

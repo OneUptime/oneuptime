@@ -4,17 +4,17 @@ import CircularIconImage from '../../Icon/CircularIconImage';
 import { IconProp } from '../../Icon/Icon';
 
 export interface ComponentProps {
-    onCreateButtonClicked: () => void; 
+    onCreateButtonClicked: () => void;
 }
 
-const CreateNewProjectButton: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
-    
-   
+const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <div
             className="flex items-center p-10 background-primary-on-hover"
             onClick={() => {
-                props.onCreateButtonClicked()
+                props.onCreateButtonClicked();
             }}
         >
             <CircularIconImage
@@ -24,7 +24,6 @@ const CreateNewProjectButton: FunctionComponent<ComponentProps> = (props: Compon
             />
 
             <p className="mb-0">Create New Project</p>
-            
         </div>
     );
 };

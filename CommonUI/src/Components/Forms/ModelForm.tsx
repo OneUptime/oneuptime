@@ -40,7 +40,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     formType: FormType;
     hideSubmitButton?: boolean;
     formRef?: MutableRefObject<FormikProps<FormikValues>>;
-    onLoadingChange?: (isLoading: boolean) => void; 
+    onLoadingChange?: (isLoading: boolean) => void;
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
@@ -78,7 +78,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 ? HTTPMethod.POST
                 : HTTPMethod.PUT,
             apiUrl,
-            { "data": values }
+            { data: values }
         );
 
         setLoading(false);

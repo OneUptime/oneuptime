@@ -18,13 +18,13 @@ const Footer: FunctionComponent<ComponentProps> = (
                         {props.copyright && (
                             <div className="col-md-6">
                                 <p>
-                                    <span>{new Date().getFullYear()} ©{' '}</span>
+                                    <span>{new Date().getFullYear()} © </span>
                                     <span>{props.copyright}</span>
                                 </p>
                             </div>
                         )}
                         {props.links && props.links.length > 1 && (
-                            <div className="col-md-6" key={"links"}>
+                            <div className="col-md-6" key={'links'}>
                                 <div className="text-sm-end d-none d-sm-block">
                                     {props.links &&
                                         props.links.map(

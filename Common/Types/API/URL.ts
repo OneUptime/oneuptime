@@ -62,7 +62,7 @@ export default class URL extends DatabaseProperty {
         return urlString;
     }
 
-    public static fromURL(url: URL): URL { 
+    public static fromURL(url: URL): URL {
         return URL.fromString(url.toString());
     }
 
