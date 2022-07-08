@@ -1,5 +1,5 @@
-import React, { ReactElement, useState } from 'react';
-import { FormikErrors } from 'formik';
+import React, { MutableRefObject, ReactElement, useState } from 'react';
+import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
@@ -38,9 +38,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     maxPrimaryButtonWidth?: boolean;
     apiUrl?: URL;
     formType: FormType;
+    hideSubmitButton?: boolean;
+    formRef?: MutableRefObject<FormikProps<FormikValues>>;
+    onLoadingChange?: (isLoading: boolean) => void;
 }
 
-const CreateModelForm: Function = <TBaseModel extends BaseModel>(
+const ModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isLoading, setLoading] = useState<boolean>(false);
@@ -50,6 +53,9 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
         // Ping an API here.
         setError('');
         setLoading(true);
+        if (props.onLoadingChange) {
+            props.onLoadingChange(true);
+        }
         let apiUrl: URL | null = props.apiUrl || null;
 
         if (!apiUrl) {
@@ -60,7 +66,7 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
                 );
             }
 
-            apiUrl = DASHBOARD_API_URL.addRoute(apiPath);
+            apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
         }
 
         const result: HTTPResponse<
@@ -72,10 +78,13 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
                 ? HTTPMethod.POST
                 : HTTPMethod.PUT,
             apiUrl,
-            values
+            { data: values }
         );
 
         setLoading(false);
+        if (props.onLoadingChange) {
+            props.onLoadingChange(false);
+        }
 
         if (result.isSuccess()) {
             if (props.onSuccess) {
@@ -103,8 +112,10 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
             onCancel={props.onCancel}
             maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
             error={error}
+            hideSubmitButton={props.hideSubmitButton}
+            formRef={props.formRef}
         ></BasicModelForm>
     );
 };
 
-export default CreateModelForm;
+export default ModelForm;

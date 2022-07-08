@@ -1,33 +1,63 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
-import ProjectPickerMenu from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPickerMenu';
-import ProjectPickerMenuItem from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPickerMenuItem';
-import Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import CreateNewProjectButton from 'CommonUI/src/Components/Header/ProjectPicker/CreateNewProjectButton';
+import Project from 'Common/Models/Project';
+import ModelFromModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import { JSONObject } from 'Common/Types/JSON';
 
 const DashboardProjectPicker: FunctionComponent = (): ReactElement => {
+    const project: Project = new Project();
+    project.name = 'Sample 1';
+
+    const [showModel, setShowModel] = useState<boolean>(false);
+
     return (
-        <ProjectPicker title="Project One" icon={IconProp.Settings}>
-            <ProjectPickerMenu>
-                <ProjectPickerMenuItem
-                    title="Project One"
-                    route={new Route('/')}
-                    icon={IconProp.Settings}
+        <>
+            <ProjectPicker
+                selectedProjectName="Project One"
+                selectedProjectIcon={IconProp.Folder}
+                projects={[project]}
+                onCreateProjectButtonClicked={() => {
+                    setShowModel(true);
+                }}
+            />
+            {showModel ? (
+                <ModelFromModal<Project>
+                    title="Create New Project"
+                    onClose={() => {
+                        setShowModel(false);
+                    }}
+                    submitButtonText="Create Project"
+                    onSubmit={() => {}}
+                    formProps={{
+                        model: new Project(),
+                        id: 'create-project-from',
+                        fields: [
+                            {
+                                field: {
+                                    name: true,
+                                },
+                                validation: {
+                                    minLength: 6,
+                                },
+                                fieldType: FormFieldSchemaType.Text,
+                                placeholder: 'Acme',
+                                title: 'Project Name',
+                                required: true,
+                            },
+                        ],
+                        formType: FormType.Create,
+                        onSuccess: (_value: JSONObject) => {
+                            setShowModel(false);
+                        },
+                    }}
                 />
-                <ProjectPickerMenuItem
-                    title="Project Two"
-                    route={new Route('/')}
-                    icon={IconProp.Settings}
-                />
-                <ProjectPickerMenuItem
-                    title="Project Three"
-                    route={new Route('/')}
-                    icon={IconProp.Settings}
-                />
-                <CreateNewProjectButton />
-            </ProjectPickerMenu>
-        </ProjectPicker>
+            ) : (
+                <></>
+            )}
+        </>
     );
 };
 

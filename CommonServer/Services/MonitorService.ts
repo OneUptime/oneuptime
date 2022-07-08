@@ -3,7 +3,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Common/Models/Monitor';
-import Query from '../Types/DB/Query';
+import Query from '../Types/Database/Query';
 import DatabaseService from './DatabaseService';
 import { In, IsNull, LessThan } from 'typeorm';
 import MonitorType from 'Common/Types/Monitor/MonitorType';

@@ -18,7 +18,7 @@ export const IS_SAAS_SERVICE: boolean = env('IS_SAAS_SERVICE') === 'true';
 export const DISABLE_SIGNUP: boolean = env('DISABLE_SIGNUP') === 'true';
 export const VERSION: Version = new Version(env('VERSION') || '1.0.0');
 
-export const DASHBOARD_API_ROUTE: Route = new Route(env('DASHBOARD_API_Route'));
+export const DASHBOARD_API_ROUTE: Route = new Route(env('DASHBOARD_API_ROUTE'));
 
 export const IDENTITY_ROUTE: Route = new Route(env('IDENTITY_ROUTE'));
 

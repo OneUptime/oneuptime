@@ -9,17 +9,35 @@ import TableColumn from '../Types/Database/TableColumn';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
+import UserRecordPermissions from '../Types/Database/AccessControls/User/UserRecordPermissions';
+import UserColumnPermissions from '../Types/Database/AccessControls/User/UserColumnPermissions';
+import SlugifyColumn from '../Types/Database/SlugifyColumn';
 
 @CrudApiEndpoint(new Route('/project'))
+@UserRecordPermissions({
+    create: true,
+    readAsList: false,
+    readAsItem: false,
+    update: false,
+    delete: false,
+})
+@SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Project',
 })
 export default class Model extends BaseModel {
-    @TableColumn({ required: true, type: TableColumnType.Name })
+    @UserColumnPermissions({
+        create: true,
+        readAsList: false,
+        readAsItem: false,
+        update: false,
+        delete: false,
+    })
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
         nullable: false,
-        type: ColumnType.Name,
-        length: ColumnLength.Name,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
     })
     public name?: string = undefined;
 
@@ -49,7 +67,10 @@ export default class Model extends BaseModel {
     })
     public paymentProviderSubscriptionId?: string = undefined;
 
-    @TableColumn({ type: TableColumnType.SmallPositiveNumber })
+    @TableColumn({
+        type: TableColumnType.SmallPositiveNumber,
+        isDefaultValueColumn: true,
+    })
     @Column({
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
@@ -103,7 +124,7 @@ export default class Model extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: true })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -112,7 +133,11 @@ export default class Model extends BaseModel {
     })
     public apiKey?: ObjectID;
 
-    @TableColumn({ required: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Boolean,
+        isDefaultValueColumn: true,
+    })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -121,7 +146,11 @@ export default class Model extends BaseModel {
     })
     public alertsEnabled?: boolean = undefined;
 
-    @TableColumn({ required: true, type: TableColumnType.SmallPositiveNumber })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.SmallPositiveNumber,
+        isDefaultValueColumn: true,
+    })
     @Column({
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
@@ -130,7 +159,11 @@ export default class Model extends BaseModel {
     })
     public alertAccountBalance?: number;
 
-    @TableColumn({ required: true, type: TableColumnType.Boolean })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Boolean,
+        isDefaultValueColumn: true,
+    })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,

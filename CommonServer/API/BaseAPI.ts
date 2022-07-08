@@ -12,6 +12,8 @@ import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
+import CreateBy from '../Types/Database/CreateBy';
+import DatabaseCommonInteractionProps from '../Types/Database/DatabaseCommonInteractionProps';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -28,41 +30,74 @@ export default class BaseAPI<
 
         // Create
         router.post(
-            `${this.entityType.name}/`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}`,
             UserMiddleware.getUserMiddleware,
-            this.createItem
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.createItem(req, res);
+            }
         );
 
         // List
         router.get(
-            `${this.entityType.name}/list`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/list`,
             UserMiddleware.getUserMiddleware,
-            this.getList
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.getList(req, res);
+            }
         );
 
         // Get Item
         router.get(
-            `${this.entityType.name}/id/:id`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            this.getItem
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.getItem(req, res);
+            }
         );
 
         // Update
         router.put(
-            `${this.entityType.name}/id/:id`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            this.updateItem
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.updateItem(req, res);
+            }
         );
 
         // Delete
         router.delete(
-            `${this.entityType.name}/id/:id`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            this.deleteItem
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                await this.deleteItem(req, res);
+            }
         );
 
         this.router = router;
         this.service = service;
+    }
+
+    public getDatabaseCommonInteractionProps(
+        req: ExpressRequest
+    ): DatabaseCommonInteractionProps {
+        const props: DatabaseCommonInteractionProps = {};
+
+        if (
+            (req as OneUptimeRequest).userAuthorization &&
+            (req as OneUptimeRequest).userAuthorization?.userId
+        ) {
+            props.userId = (req as OneUptimeRequest).userAuthorization!.userId;
+        }
+
+        if ((req as OneUptimeRequest).role && (req as OneUptimeRequest).role) {
+            props.userRoleInProject = (req as OneUptimeRequest).role;
+        }
+
+        if ((req as OneUptimeRequest).role && (req as OneUptimeRequest).role) {
+            props.userRoleInProject = (req as OneUptimeRequest).role;
+        }
+
+        return props;
     }
 
     public async getList(
@@ -171,9 +206,14 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
+        const createBy: CreateBy<TBaseModel> = {
+            data: item,
+            ...this.getDatabaseCommonInteractionProps(req),
+        };
+
         const savedItem: BaseModel = await this.service.createByRole(
             oneuptimeRequest.role,
-            { data: item }
+            createBy
         );
 
         return Response.sendItemResponse(req, res, savedItem);

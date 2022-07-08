@@ -22,7 +22,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
             submitButtonText={
                 props.submitButtonText ? props.submitButtonText : 'Confirm'
             }
-            submitButtonType={
+            submitButtonStyleType={
                 props.submitButtonType
                     ? props.submitButtonType
                     : ButtonStyleType.PRIMARY

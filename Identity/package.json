@@ -14,8 +14,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
-    "Common": "file:../Common"
+    "ejs": "^3.1.8"
   },
   "devDependencies": {
     "@types/jest": "^27.5.0",

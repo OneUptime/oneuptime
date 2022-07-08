@@ -25,6 +25,7 @@ import ObjectID from 'Common/Types/ObjectID';
 const app: ExpressApplication = Express.getExpressApp();
 
 app.set('port', process.env['PORT']);
+app.set('view engine', 'ejs');
 
 const logRequest: RequestHandler = (
     req: ExpressRequest,
@@ -113,6 +114,22 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
             }
         }
     );
+
+    app.post('*', (_req: ExpressRequest, res: ExpressResponse) => {
+        res.status(404).json({ error: 'API not found' });
+    });
+
+    app.put('*', (_req: ExpressRequest, res: ExpressResponse) => {
+        res.status(404).json({ error: 'API not found' });
+    });
+
+    app.delete('*', (_req: ExpressRequest, res: ExpressResponse) => {
+        res.status(404).json({ error: 'API not found' });
+    });
+
+    app.get('*', (_req: ExpressRequest, res: ExpressResponse) => {
+        res.status(404).json({ error: 'API not found' });
+    });
 
     return app;
 };

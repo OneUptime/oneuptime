@@ -62,6 +62,10 @@ export default class URL extends DatabaseProperty {
         return urlString;
     }
 
+    public static fromURL(url: URL): URL {
+        return URL.fromString(url.toString());
+    }
+
     public static fromString(url: string): URL {
         let protocol: Protocol = Protocol.HTTPS;
 

@@ -30,6 +30,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_CREATE_APIKEY]: new Route(
         '/dashboard/:projectSlug/settings/api-keys/create'
     ),
+    [PageMap.LOGOUT]: new Route('/dashboard/logout'),
 };
 
 export default RouteMap;

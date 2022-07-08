@@ -3,6 +3,7 @@ import { ButtonStyleType } from '../Button/Button';
 import ModalHeader from './ModalHeader';
 import ModalFooter from './ModalFooter';
 import ModalBody from './ModalBody';
+import ButtonType from '../Button/ButtonTypes';
 
 export interface ComponentProps {
     title: string;
@@ -10,7 +11,9 @@ export interface ComponentProps {
     onClose?: (() => void) | undefined;
     submitButtonText?: string;
     onSubmit: () => void;
-    submitButtonType?: ButtonStyleType;
+    submitButtonStyleType?: ButtonStyleType;
+    submitButtonType?: ButtonType;
+    isLoading?: boolean;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (
@@ -37,6 +40,11 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 submitButtonType={
                                     props.submitButtonType
                                         ? props.submitButtonType
+                                        : ButtonType.Button
+                                }
+                                submitButtonStyleType={
+                                    props.submitButtonStyleType
+                                        ? props.submitButtonStyleType
                                         : ButtonStyleType.PRIMARY
                                 }
                                 submitButtonText={
@@ -48,6 +56,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 onClose={
                                     props.onClose ? props.onClose : undefined
                                 }
+                                isLoading={props.isLoading || false}
                             />
                         </div>
                     </div>

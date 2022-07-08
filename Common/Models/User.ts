@@ -65,6 +65,7 @@ class User extends BaseModel {
         length: ColumnLength.Email,
         unique: true,
         nullable: false,
+        transformer: Email.getDatabaseTransformer(),
     })
     public email?: Email = undefined;
 
@@ -74,6 +75,7 @@ class User extends BaseModel {
         length: ColumnLength.Email,
         unique: false,
         nullable: true,
+        transformer: Email.getDatabaseTransformer(),
     })
     public newUnverifiedTemporaryEmail?: string = undefined;
 
@@ -112,10 +114,10 @@ class User extends BaseModel {
         update: false,
         delete: false,
     })
-    @TableColumn({ type: TableColumnType.Name })
+    @TableColumn({ type: TableColumnType.ShortText })
     @Column({
-        type: ColumnType.Name,
-        length: ColumnLength.Name,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
         nullable: true,
         unique: false,
     })

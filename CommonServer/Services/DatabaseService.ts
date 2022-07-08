@@ -1,19 +1,19 @@
 import Slug from 'Common/Utils/Slug';
-import FindOneBy from '../Types/DB/FindOneBy';
-import UpdateOneBy from '../Types/DB/UpdateOneBy';
-import CountBy from '../Types/DB/CountBy';
-import DeleteOneBy from '../Types/DB/DeleteOneBy';
-import SearchBy from '../Types/DB/SearchBy';
-import DeleteBy from '../Types/DB/DeleteBy';
+import FindOneBy from '../Types/Database/FindOneBy';
+import UpdateOneBy from '../Types/Database/UpdateOneBy';
+import CountBy from '../Types/Database/CountBy';
+import DeleteOneBy from '../Types/Database/DeleteOneBy';
+import SearchBy from '../Types/Database/SearchBy';
+import DeleteBy from '../Types/Database/DeleteBy';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import FindBy from '../Types/DB/FindBy';
-import UpdateBy from '../Types/DB/UpdateBy';
-import Query from '../Types/DB/Query';
-import CreateBy from '../Types/DB/CreateBy';
+import FindBy from '../Types/Database/FindBy';
+import UpdateBy from '../Types/Database/UpdateBy';
+import Query from '../Types/Database/Query';
+import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 import Exception from 'Common/Types/Exception/Exception';
-import SearchResult from '../Types/DB/SearchResult';
+import SearchResult from '../Types/Database/SearchResult';
 import Encryption from '../Utils/Encryption';
 import { JSONObject } from 'Common/Types/JSON';
 import BaseModel from 'Common/Models/BaseModel';
@@ -21,11 +21,11 @@ import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
 import { DataSource, Repository } from 'typeorm';
-import SortOrder from '../Types/DB/SortOrder';
-import HardDeleteBy from '../Types/DB/HardDeleteBy';
+import SortOrder from '../Types/Database/SortOrder';
+import HardDeleteBy from '../Types/Database/HardDeleteBy';
 import { EncryptionSecret } from '../Config';
 import HashedString from 'Common/Types/HashedString';
-import UpdateByID from '../Types/DB/UpdateByID';
+import UpdateByID from '../Types/Database/UpdateByID';
 import ObjectID from 'Common/Types/ObjectID';
 import Role from 'Common/Types/Role';
 import Columns from 'Common/Types/Database/Columns';
@@ -185,10 +185,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     protected async onCreateSuccess(
-        createdItem: TBaseModel
-    ): Promise<TBaseModel> {
+        createBy: CreateBy<TBaseModel>
+    ): Promise<CreateBy<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(createdItem);
+        return Promise.resolve(createBy);
     }
 
     protected async onCreateError(error: Exception): Promise<Exception> {
@@ -259,9 +259,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-        let _createdBy: CreateBy<TBaseModel> = await this.onBeforeCreate({
-            data: createBy.data,
-        });
+        let _createdBy: CreateBy<TBaseModel> = await this.onBeforeCreate(
+            createBy
+        );
 
         _createdBy = this.generateSlug(_createdBy);
 
@@ -281,7 +281,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         try {
             const savedData: TBaseModel = await this.getRepository().save(data);
-            await this.onCreateSuccess(savedData);
+            createBy.data = savedData;
+            await this.onCreateSuccess(createBy);
             return savedData;
         } catch (error) {
             await this.onCreateError(error as Exception);
@@ -382,48 +383,54 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy: CreateBy<TBaseModel>
     ): Promise<TBaseModel> {
         if (role === Role.Administrator) {
-            return await this.create({
-                data: BaseModel.asAdminCreateable<TBaseModel>(
-                    createBy.data,
-                    this.entityType
-                ),
-            });
+            createBy.data = BaseModel.asAdminCreateable<TBaseModel>(
+                createBy.data,
+                this.entityType
+            );
+            return await this.create(createBy);
         }
 
         if (role === Role.Member) {
-            return await this.create({
-                data: BaseModel.asMemberCreateable<TBaseModel>(
-                    createBy.data,
-                    this.entityType
-                ),
-            });
+            createBy.data = BaseModel.asMemberCreateable<TBaseModel>(
+                createBy.data,
+                this.entityType
+            );
+
+            return await this.create(createBy);
         }
 
         if (role === Role.Public) {
-            return await this.create({
-                data: BaseModel.asPublicCreateable<TBaseModel>(
-                    createBy.data,
-                    this.entityType
-                ),
-            });
+            createBy.data = BaseModel.asPublicCreateable<TBaseModel>(
+                createBy.data,
+                this.entityType
+            );
+
+            return await this.create(createBy);
         }
 
         if (role === Role.Viewer) {
-            return await this.create({
-                data: BaseModel.asViewerCreateable<TBaseModel>(
-                    createBy.data,
-                    this.entityType
-                ),
-            });
+            createBy.data = BaseModel.asViewerCreateable<TBaseModel>(
+                createBy.data,
+                this.entityType
+            );
+
+            return await this.create(createBy);
+        }
+
+        if (role === Role.User) {
+            createBy.data = BaseModel.asUserCreateable<TBaseModel>(
+                createBy.data,
+                this.entityType
+            );
+            return await this.create(createBy);
         }
 
         if (role === Role.Owner) {
-            return await this.create({
-                data: BaseModel.asOwnerCreateable<TBaseModel>(
-                    createBy.data,
-                    this.entityType
-                ),
-            });
+            createBy.data = BaseModel.asOwnerCreateable<TBaseModel>(
+                createBy.data,
+                this.entityType
+            );
+            return await this.create(createBy);
         }
 
         throw new BadDataException(`Invalid role - ${role}`);

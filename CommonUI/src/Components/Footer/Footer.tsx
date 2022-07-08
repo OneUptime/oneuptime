@@ -18,28 +18,27 @@ const Footer: FunctionComponent<ComponentProps> = (
                         {props.copyright && (
                             <div className="col-md-6">
                                 <p>
-                                    {new Date().getFullYear()} ©{' '}
-                                    {props.copyright}
+                                    <span>{new Date().getFullYear()} © </span>
+                                    <span>{props.copyright}</span>
                                 </p>
                             </div>
                         )}
                         {props.links && props.links.length > 1 && (
-                            <div className="col-md-6">
+                            <div className="col-md-6" key={'links'}>
                                 <div className="text-sm-end d-none d-sm-block">
                                     {props.links &&
                                         props.links.map(
                                             (link: Link, i: number) => {
                                                 return (
-                                                    <>
+                                                    <span key={i}>
                                                         <UILink
                                                             className="ms-1 underline-on-hover"
                                                             to={link.to}
-                                                            key={i}
                                                         >
                                                             {link.title}
                                                         </UILink>
                                                         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                                                    </>
+                                                    </span>
                                                 );
                                             }
                                         )}

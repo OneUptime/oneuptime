@@ -1,14 +1,18 @@
 import React, { FunctionComponent } from 'react';
-import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Common/Models/User';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
 import Link from 'CommonUI/src/Components/Link/Link';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+import { LOGIN_API_URL } from '../Utils/ApiPaths';
+import URL from 'Common/Types/API/URL';
+import { JSONObject } from 'Common/Types/JSON';
+import LoginUtil from '../Utils/Login';
 
 const LoginPage: FunctionComponent = () => {
     const user: User = new User();
+    const apiUrl: URL = LOGIN_API_URL;
 
     return (
         <div className="auth-page">
@@ -41,7 +45,7 @@ const LoginPage: FunctionComponent = () => {
                                             </p>
                                         </div>
 
-                                        <BasicModelForm<User>
+                                        <ModelForm<User>
                                             model={user}
                                             id="login-form"
                                             fields={[
@@ -74,10 +78,12 @@ const LoginPage: FunctionComponent = () => {
                                                     },
                                                 },
                                             ]}
-                                            onSubmit={(
-                                                _values: FormValues<User>
-                                            ) => {}}
+                                            apiUrl={apiUrl}
+                                            formType={FormType.Create}
                                             submitButtonText={'Login'}
+                                            onSuccess={(value: JSONObject) => {
+                                                LoginUtil.login(value);
+                                            }}
                                             maxPrimaryButtonWidth={true}
                                             footer={
                                                 <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">

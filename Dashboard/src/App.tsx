@@ -26,6 +26,7 @@ import SettingsCreateAPIKey from './Pages/Settings/CreateAPIKey';
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
 import User from 'CommonUI/src/Utils/User';
+import Logout from './Pages/Logout/Logout';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -121,6 +122,14 @@ const App: FunctionComponent = () => {
                                 RouteMap[PageMap.SETTINGS_APIKEYS] as Route
                             }
                         />
+                    }
+                />
+
+                {/* Misc Routes */}
+                <PageRoute
+                    path={RouteMap[PageMap.LOGOUT]?.toString()}
+                    element={
+                        <Logout pageRoute={RouteMap[PageMap.LOGOUT] as Route} />
                     }
                 />
             </Routes>

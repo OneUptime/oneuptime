@@ -87,4 +87,8 @@ export default class User {
     public static isLoggedIn(): boolean {
         return LocalStorage.getItem('access_token') ? true : false;
     }
+
+    public static logout(): void {
+        LocalStorage.clear();
+    }
 }

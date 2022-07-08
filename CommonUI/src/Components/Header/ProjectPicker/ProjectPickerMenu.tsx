@@ -3,6 +3,7 @@ import ProjectPickerFilterBox from './ProjectPickerFilterBox';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
+    onFilter: (value: string) => void;
 }
 
 const ProjectPickerMenu: FunctionComponent<ComponentProps> = (
@@ -22,7 +23,12 @@ const ProjectPickerMenu: FunctionComponent<ComponentProps> = (
                 transform: 'translate3d(0px, 70px, 0px)',
             }}
         >
-            <ProjectPickerFilterBox key={2} onChange={(_value: string) => {}} />
+            <ProjectPickerFilterBox
+                key={2}
+                onChange={(value: string) => {
+                    props.onFilter(value);
+                }}
+            />
             <div className=" dropdown-menu-scroll">{props.children}</div>
         </div>
     );

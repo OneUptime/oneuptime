@@ -8,6 +8,8 @@ import Name from 'Common/Types/Name';
 import URL from 'Common/Types/API/URL';
 import Route from 'Common/Types/API/Route';
 import { Red } from 'CommonUI/src/Utils/BrandColors';
+import RouteMap from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 
 const DashboardUserProfile: FunctionComponent = (): ReactElement => {
     return (
@@ -36,7 +38,7 @@ const DashboardUserProfile: FunctionComponent = (): ReactElement => {
                 <UserProfileDropdownDivider />
                 <UserProfileMenuItem
                     title="Log out"
-                    route={new Route('/logout')}
+                    route={RouteMap[PageMap.LOGOUT] as Route}
                     icon={IconProp.Logout}
                     iconColor={Red}
                 />
