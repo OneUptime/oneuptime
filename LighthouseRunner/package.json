@@ -23,7 +23,7 @@
         "express": "^4.17.3",
         "get-ssl-certificate": "^2.3.3",
         "lighthouse": "^9.5.0",
-        "moment": "^2.29.1",
+        "moment": "^2.29.4",
         "node-cron": "^3.0.0",
         "node-fetch": "^3.2.3",
         "ping": "^0.4.1",
