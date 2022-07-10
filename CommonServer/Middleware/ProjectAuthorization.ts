@@ -72,13 +72,14 @@ export default class ProjectMiddleware {
             query: {
                 projectId: projectId,
                 apiKey: apiKey,
-                expiresAt: LessThan(OneUptimeDate.getCurrentDate())
+                expiresAt: LessThan(OneUptimeDate.getCurrentDate()),
             },
         });
 
         if (apiKeyModel) {
             (req as OneUptimeRequest).userType = UserType.API;
-            (req as OneUptimeRequest).permissions = apiKeyModel.permissions || [];
+            (req as OneUptimeRequest).permissions =
+                apiKeyModel.permissions || [];
             (req as OneUptimeRequest).projectId = projectId;
             return next();
         }

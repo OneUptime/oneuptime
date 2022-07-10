@@ -25,7 +25,10 @@ import Name from '../Types/Name';
 import TableColumnType from '../Types/Database/TableColumnType';
 import Permission, { PermissionUtil } from '../Types/Permission';
 import BadRequestException from '../Types/Exception/BadRequestException';
-import { ColumnAccessControl, getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
+import {
+    ColumnAccessControl,
+    getColumnAccessControlForAllColumns,
+} from '../Types/Database/AccessControl/ColumnAccessControl';
 
 export type DbTypes =
     | string
@@ -107,34 +110,45 @@ export default class BaseModel extends BaseEntity {
     public asCreateableByPermissions(
         permissions: Array<Permission>
     ): BaseModel {
-        
-        // If system is making this query then let the query run! 
+        // If system is making this query then let the query run!
         if (permissions.includes(Permission.Root)) {
-            return this; 
+            return this;
         }
 
-        if (!PermissionUtil.doesPermissionsIntersect(permissions, this.createRecordPermissions)) {
+        if (
+            !PermissionUtil.doesPermissionsIntersect(
+                permissions,
+                this.createRecordPermissions
+            )
+        ) {
             throw new BadRequestException(
                 'A user does not have permissions to crate record.'
             );
         }
 
         const data: BaseModel = this.keepColumns(
-            this.getCreateableColumnsByPermissions(permissions),
+            this.getCreateableColumnsByPermissions(permissions)
         );
 
         return data;
     }
 
-    public getCreateableColumnsByPermissions(permissions: Array<Permission>): Columns {
-        
+    public getCreateableColumnsByPermissions(
+        permissions: Array<Permission>
+    ): Columns {
         const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(this);
-        
+
         const columns: Array<string> = [];
 
         for (const key in accessControl) {
-            if (accessControl[key]?.update && PermissionUtil.doesPermissionsIntersect(permissions, accessControl[key]?.update || [])) {
+            if (
+                accessControl[key]?.update &&
+                PermissionUtil.doesPermissionsIntersect(
+                    permissions,
+                    accessControl[key]?.update || []
+                )
+            ) {
                 columns.push(key);
             }
         }
@@ -142,29 +156,24 @@ export default class BaseModel extends BaseEntity {
         return new Columns(columns);
     }
 
-
-    private keepColumns(
-        columnsToKeep: Columns,
-    ): BaseModel {
-
+    private keepColumns(columnsToKeep: Columns): BaseModel {
         if (!columnsToKeep) {
-            return this; 
+            return this;
         }
 
         for (const key of Object.keys(this)) {
-
             const columns: Columns = this.getTableColumns();
-            
+
             if (
-                !(columnsToKeep &&
+                !(
+                    columnsToKeep &&
                     columnsToKeep.columns.length > 0 &&
                     columnsToKeep.columns.includes(key)
-                )
-                &&
+                ) &&
                 columns.hasColumn(key)
             ) {
                 (this as any)[key] = undefined;
-            } 
+            }
         }
 
         return this;
@@ -263,7 +272,7 @@ export default class BaseModel extends BaseEntity {
 
     private static _fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new(): T }
+        type: { new (): T }
     ): T {
         const baseModel: T = new type();
 
@@ -271,25 +280,25 @@ export default class BaseModel extends BaseEntity {
             if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                TableColumnType.HashedString
+                    TableColumnType.HashedString
             ) {
                 (baseModel as any)[key] = new HashedString(json[key] as string);
             } else if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                TableColumnType.Name
+                    TableColumnType.Name
             ) {
                 (baseModel as any)[key] = new Name(json[key] as string);
             } else if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                TableColumnType.Email
+                    TableColumnType.Email
             ) {
                 (baseModel as any)[key] = new Email(json[key] as string);
             } else if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                TableColumnType.ObjectID
+                    TableColumnType.ObjectID
             ) {
                 (baseModel as any)[key] = new ObjectID(json[key] as string);
             } else {
@@ -302,7 +311,7 @@ export default class BaseModel extends BaseEntity {
 
     public static fromJSON<T extends BaseModel>(
         json: JSONObject | JSONArray,
-        type: { new(): T }
+        type: { new (): T }
     ): T | Array<T> {
         if (Array.isArray(json)) {
             const arr: Array<T> = [];
@@ -328,25 +337,25 @@ export default class BaseModel extends BaseEntity {
                 if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                    TableColumnType.HashedString
+                        TableColumnType.HashedString
                 ) {
                     json[key] = ((this as any)[key] as HashedString).toString();
                 } else if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                    TableColumnType.Name
+                        TableColumnType.Name
                 ) {
                     json[key] = ((this as any)[key] as Name).toString();
                 } else if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                    TableColumnType.Email
+                        TableColumnType.Email
                 ) {
                     json[key] = ((this as any)[key] as Email).toString();
                 } else if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                    TableColumnType.ObjectID
+                        TableColumnType.ObjectID
                 ) {
                     json[key] = ((this as any)[key] as ObjectID).toString();
                 } else {

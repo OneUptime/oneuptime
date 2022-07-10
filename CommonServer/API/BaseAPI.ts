@@ -18,13 +18,13 @@ import DatabaseCommonInteractionProps from '../Types/Database/DatabaseCommonInte
 export default class BaseAPI<
     TBaseModel extends BaseModel,
     TBaseService extends DatabaseService<BaseModel>
-    > {
-    private entityType: { new(): TBaseModel };
+> {
+    private entityType: { new (): TBaseModel };
 
     public router: ExpressRouter;
     private service: TBaseService;
 
-    public constructor(type: { new(): TBaseModel }, service: TBaseService) {
+    public constructor(type: { new (): TBaseModel }, service: TBaseService) {
         this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
 
@@ -80,12 +80,11 @@ export default class BaseAPI<
     public getDatabaseCommonInteractionProps(
         req: ExpressRequest
     ): DatabaseCommonInteractionProps {
-
         const props: DatabaseCommonInteractionProps = {
             projectId: undefined,
             userPermissions: [],
             userId: undefined,
-            userType: undefined
+            userType: undefined,
         };
 
         if (
@@ -110,7 +109,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-
         const skip: PositiveNumber = req.query['skip']
             ? new PositiveNumber(req.query['skip'] as string)
             : new PositiveNumber(0);
@@ -123,14 +121,12 @@ export default class BaseAPI<
             throw new BadRequestException('Limit should be less than 50');
         }
 
-        const list: Array<BaseModel> = await this.service.findBy(
-            {
-                query: {},
-                skip: skip,
-                limit: limit,
-                ...this.getDatabaseCommonInteractionProps(req)
-            }
-        );
+        const list: Array<BaseModel> = await this.service.findBy({
+            query: {},
+            skip: skip,
+            limit: limit,
+            ...this.getDatabaseCommonInteractionProps(req),
+        });
 
         const count: PositiveNumber = await this.service.countBy({
             query: {},
@@ -143,12 +139,11 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
         const item: BaseModel | null = await this.service.findOneById({
             id: objectId,
-            ...this.getDatabaseCommonInteractionProps(req)
+            ...this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendItemResponse(req, res, item?.toJSON() || {});
@@ -158,14 +153,13 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
         await this.service.deleteBy({
             query: {
                 _id: objectId.toString(),
             },
-            ...this.getDatabaseCommonInteractionProps(req)
+            ...this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -188,7 +182,7 @@ export default class BaseAPI<
                 _id: objectId.toString(),
             },
             data: item,
-            ...this.getDatabaseCommonInteractionProps(req)
+            ...this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -210,9 +204,7 @@ export default class BaseAPI<
             ...this.getDatabaseCommonInteractionProps(req),
         };
 
-        const savedItem: BaseModel = await this.service.create(
-            createBy
-        );
+        const savedItem: BaseModel = await this.service.create(createBy);
 
         return Response.sendItemResponse(req, res, savedItem);
     }

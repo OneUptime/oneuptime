@@ -18,7 +18,6 @@ import Permission from '../Types/Permission';
     name: 'ApiKey',
 })
 export default class ApiKey extends BaseModel {
-
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
@@ -141,5 +140,4 @@ export default class ApiKey extends BaseModel {
         default: ObjectID.generate(),
     })
     public apiKey?: ObjectID;
-
 }

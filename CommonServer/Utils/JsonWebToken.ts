@@ -38,7 +38,8 @@ class JSONWebToken {
             return {
                 userId: new ObjectID(decoded['userId'] as string),
                 email: new Email(decoded['email'] as string),
-                permissions: decoded['permissions'] as Array<Permission> || [],
+                permissions:
+                    (decoded['permissions'] as Array<Permission>) || [],
                 isMasterAdmin: Boolean(decoded['isMasterAdmin']),
             };
         } catch (e) {

@@ -18,7 +18,6 @@ import Color from '../Types/Color';
     name: 'Label',
 })
 export default class Label extends BaseModel {
-
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
@@ -116,7 +115,6 @@ export default class Label extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
-
     @TableColumn({
         title: 'Color',
         required: true,
@@ -131,5 +129,4 @@ export default class Label extends BaseModel {
         transformer: Color.getDatabaseTransformer(),
     })
     public color?: Color = undefined;
-
 }

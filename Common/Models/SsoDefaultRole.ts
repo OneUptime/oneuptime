@@ -14,7 +14,6 @@ export default class SsoDefaultRole extends BaseModel {
     @Column()
     public project?: Project;
 
-
     @Column()
     public deletedByUser?: User;
 }

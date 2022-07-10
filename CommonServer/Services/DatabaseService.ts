@@ -31,10 +31,10 @@ import FindOneByID from '../Types/Database/FindOneByID';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new(): TBaseModel };
+    private entityType!: { new (): TBaseModel };
 
     public constructor(
-        type: { new(): TBaseModel },
+        type: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = type;
@@ -250,7 +250,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
+                    createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -259,7 +259,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-
         let _createdBy: CreateBy<TBaseModel> = await this.onBeforeCreate(
             createBy
         );
@@ -280,7 +279,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // hash data
         data = await this.hash(data);
 
-        data = await data.asCreateableByPermissions(createBy.userPermissions || []) as TBaseModel;
+        data = data.asCreateableByPermissions(
+            createBy.userPermissions || []
+        ) as TBaseModel;
 
         try {
             const savedData: TBaseModel = await this.getRepository().save(data);
@@ -359,7 +360,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 userPermissions: deleteBy.userPermissions || [],
                 userId: deleteBy.userId,
                 userType: deleteBy.userType,
-                projectId: deleteBy.projectId
+                projectId: deleteBy.projectId,
             });
             const numberOfDocsAffected: number =
                 (
@@ -434,15 +435,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return null;
     }
 
-    public async findOneById(findOneById: FindOneByID): Promise<TBaseModel | null> {
+    public async findOneById(
+        findOneById: FindOneByID
+    ): Promise<TBaseModel | null> {
         return await this.findOneBy({
             query: {
                 _id: findOneById.id.toString() as any,
             },
-            userPermissions: findOneById.userPermissions|| [],
+            userPermissions: findOneById.userPermissions || [],
             userId: findOneById.userId,
             userType: findOneById.userType,
-            projectId: findOneById.projectId
+            projectId: findOneById.projectId,
         });
     }
 
@@ -468,7 +471,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public async updateOneBy(updateOneBy: UpdateOneBy<TBaseModel>): Promise<number> {
+    public async updateOneBy(
+        updateOneBy: UpdateOneBy<TBaseModel>
+    ): Promise<number> {
         return await this._updateBy(updateOneBy);
     }
 
@@ -487,7 +492,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             userPermissions: updateById.userPermissions || [],
             userId: updateById.userId,
             userType: updateById.userType,
-            projectId: updateById.projectId
+            projectId: updateById.projectId,
         });
     }
 
@@ -497,10 +502,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         await this.updateOneById(updateById);
         return this.findOneById({
             id: updateById.id,
-            userPermissions: updateById.userPermissions|| [],
+            userPermissions: updateById.userPermissions || [],
             userId: updateById.userId,
             userType: updateById.userType,
-            projectId: updateById. projectId
+            projectId: updateById.projectId,
         });
     }
 

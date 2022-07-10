@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -18,7 +26,6 @@ import TeamPermission from './TeamPermission';
     name: 'Team',
 })
 export default class Team extends BaseModel {
-
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
@@ -55,7 +62,6 @@ export default class Team extends BaseModel {
     })
     public name?: string = undefined;
 
-   
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
         nullable: true,
@@ -117,8 +123,9 @@ export default class Team extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
-    @ManyToMany(() => TeamPermission)
+    @ManyToMany(() => {
+        return TeamPermission;
+    })
     @JoinTable()
     public permissions?: Array<TeamPermission> = undefined;
-
 }

@@ -1,5 +1,5 @@
-import { FindOperator } from "typeorm";
-import DatabaseProperty from "./Database/DatabaseProperty";
+import { FindOperator } from 'typeorm';
+import DatabaseProperty from './Database/DatabaseProperty';
 
 export default class Color extends DatabaseProperty {
     private _color!: string;

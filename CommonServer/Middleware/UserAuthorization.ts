@@ -81,10 +81,9 @@ export default class UserMiddleware {
         });
 
         if (oneuptimeRequest.userAuthorization.permissions) {
-            oneuptimeRequest.permissions = oneuptimeRequest.userAuthorization.permissions;
-        } else if (
-            oneuptimeRequest.userType === UserType.User
-        ) {
+            oneuptimeRequest.permissions =
+                oneuptimeRequest.userAuthorization.permissions;
+        } else if (oneuptimeRequest.userType === UserType.User) {
             oneuptimeRequest.permissions = [Permission.User];
         }
 

@@ -17,7 +17,6 @@ import SlugifyColumn from '../Types/Database/SlugifyColumn';
     name: 'Project',
 })
 export default class Model extends BaseModel {
-    
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
         nullable: false,

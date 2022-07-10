@@ -70,7 +70,6 @@ export default class TeamMember extends BaseModel {
     })
     public projectId?: ObjectID;
 
-
     @TableColumn({
         manyToOneRelationColumn: 'userId',
         type: TableColumnType.Entity,
@@ -96,8 +95,6 @@ export default class TeamMember extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public userId?: ObjectID;
-
-
 
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',

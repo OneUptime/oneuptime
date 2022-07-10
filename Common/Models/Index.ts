@@ -19,5 +19,5 @@ export default [
     Team,
     TeamMember,
     TeamPermission,
-    ApiKey
+    ApiKey,
 ];

@@ -18,7 +18,6 @@ import Project from './Project';
     name: 'TeamPermission',
 })
 export default class TeamPermission extends BaseModel {
-
     @TableColumn({
         manyToOneRelationColumn: 'teamId',
         type: TableColumnType.Entity,
@@ -126,7 +125,6 @@ export default class TeamPermission extends BaseModel {
     })
     public permission?: Permission = undefined;
 
-
     @TableColumn({
         manyToOneRelationColumn: 'labelId',
         type: TableColumnType.Entity,
@@ -153,5 +151,4 @@ export default class TeamPermission extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public labelId?: ObjectID;
-
 }

@@ -56,7 +56,6 @@ class User extends BaseModel {
     })
     public newUnverifiedTemporaryEmail?: string = undefined;
 
-    
     @TableColumn({
         title: 'Password',
         hashed: true,
@@ -78,7 +77,6 @@ class User extends BaseModel {
     })
     public isEmailVerified?: boolean = undefined;
 
-   
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -88,7 +86,6 @@ class User extends BaseModel {
     })
     public companyName?: string = undefined;
 
-   
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -98,7 +95,6 @@ class User extends BaseModel {
     })
     public jobRole?: JobRole = undefined;
 
-   
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -108,7 +104,6 @@ class User extends BaseModel {
     })
     public companySize?: CompanySize = undefined;
 
-    
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -118,7 +113,6 @@ class User extends BaseModel {
     })
     public referral?: string = undefined;
 
-    
     @TableColumn({ type: TableColumnType.Phone })
     @Column({
         type: ColumnType.Phone,
@@ -231,7 +225,6 @@ class User extends BaseModel {
     })
     public lastActive?: Date = undefined;
 
-    
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,

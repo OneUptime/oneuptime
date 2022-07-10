@@ -12,7 +12,6 @@ export class Service extends DatabaseService<Model> {
     protected override onBeforeCreate(
         data: CreateBy<Model>
     ): Promise<CreateBy<Model>> {
-
         if (data.userId) {
             data.data.createdByUserId = data.userId;
         } else {

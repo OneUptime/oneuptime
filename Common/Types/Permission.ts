@@ -1,7 +1,6 @@
 enum Permission {
-
-    // Root 
-    Root = 'ROOT', // System Permission. Should not be assigned to any user. 
+    // Root
+    Root = 'ROOT', // System Permission. Should not be assigned to any user.
 
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',
@@ -10,7 +9,7 @@ enum Permission {
 
     User = 'User', //registered user. Can or cannot belong to a project.
 
-    Public = 'Public', // non-registered user. Everyone has this permission. 
+    Public = 'Public', // non-registered user. Everyone has this permission.
 
     // Billing Permissions (Owner Permission)
     CanDeleteProject = 'CanDeleteProject',
@@ -30,7 +29,7 @@ enum Permission {
     CanReadTeam = 'CanReadTeam',
     CanEditTeamPermissions = 'CanEditTeamPermissions',
 
-    CanInviteTeamMembers = 'CanEditTeam', // Owner + Admin can have this permission. 
+    CanInviteTeamMembers = 'CanEditTeam', // Owner + Admin can have this permission.
 
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateLabel = 'CanCreateLabel',
@@ -47,11 +46,20 @@ enum Permission {
 }
 
 export class PermissionUtil {
-    public static doesPermissionsIntersect(permissions1: Array<Permission>, permissions2: Array<Permission>): boolean {
-        return permissions1.filter(value => permissions2.includes(value)).length > 0;
+    public static doesPermissionsIntersect(
+        permissions1: Array<Permission>,
+        permissions2: Array<Permission>
+    ): boolean {
+        return (
+            permissions1.filter((value: Permission) => {
+                return permissions2.includes(value);
+            }).length > 0
+        );
     }
 }
 
-export const PermissionsArray: Array<string> = [...new Set(Object.keys(Permissions))]; // Returns ["Owner", "Administrator"...]
+export const PermissionsArray: Array<string> = [
+    ...new Set(Object.keys(Permissions)),
+]; // Returns ["Owner", "Administrator"...]
 
 export default Permission;

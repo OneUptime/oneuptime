@@ -1,5 +1,4 @@
 enum Role {
-
     Owner = 'Owner', // owner of a project. An owner owns all the billing info.
     Administrator = 'Administrator', // admin of a project
     Member = 'Member', // member of a project
@@ -23,10 +22,9 @@ enum Role {
     CanEditResources = 'CanEditResources',
     CanDeleteResources = 'CanDeleteResources',
 
-    User = 'User', //registered user. 
+    User = 'User', //registered user.
 
     Public = 'Public', // non-registered user.
-
 }
 
 export const RoleArray: Array<string> = [...new Set(Object.keys(Role))]; // Returns ["Owner", "Administrator"...]
