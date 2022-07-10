@@ -46,6 +46,7 @@ export default class Team extends BaseModel {
     })
     public projectId?: ObjectID;
 
+    @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
         nullable: false,
@@ -54,7 +55,7 @@ export default class Team extends BaseModel {
     })
     public name?: string = undefined;
 
-    @Index()
+   
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
         nullable: true,

@@ -6,6 +6,7 @@ import TableColumn from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
 import ObjectID from '../Types/ObjectID';
 import BaseModel from './BaseModel';
+import Project from './Project';
 
 import Team from './Team';
 import User from './User';
@@ -42,7 +43,32 @@ export default class TeamMember extends BaseModel {
     })
     public teamId?: ObjectID;
 
-    
+    @TableColumn({
+        manyToOneRelationColumn: 'projectId',
+        type: TableColumnType.Entity,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Project;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'projectId' })
+    public project?: Project;
+
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public projectId?: ObjectID;
 
 
     @TableColumn({

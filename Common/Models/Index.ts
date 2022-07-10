@@ -9,7 +9,7 @@ import TeamMember from './TeamMember';
 import TeamPermission from './TeamPermission';
 
 // API Keys
-import ApiKey from './ApiKeya';
+import ApiKey from './ApiKey';
 
 export default [
     User,

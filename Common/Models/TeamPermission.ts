@@ -11,6 +11,7 @@ import ColumnLength from '../Types/Database/ColumnLength';
 import Permission from '../Types/Permission';
 import Label from './Labels';
 import Team from './Team';
+import Project from './Project';
 
 @CrudApiEndpoint(new Route('/team-permission'))
 @Entity({
@@ -35,6 +36,33 @@ export default class TeamPermission extends BaseModel {
     )
     @JoinColumn({ name: 'teamId' })
     public team?: Team;
+
+    @TableColumn({
+        manyToOneRelationColumn: 'projectId',
+        type: TableColumnType.Entity,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Project;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'projectId' })
+    public project?: Project;
+
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public projectId?: ObjectID;
 
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID })

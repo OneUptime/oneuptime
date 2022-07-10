@@ -109,15 +109,6 @@ export default class Model extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
-    @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: true })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: false,
-        transformer: ObjectID.getDatabaseTransformer(),
-        default: ObjectID.generate(),
-    })
-    public apiKey?: ObjectID;
-
     @TableColumn({
         required: true,
         type: TableColumnType.Boolean,

@@ -46,6 +46,7 @@ export default class ApiKey extends BaseModel {
     })
     public projectId?: ObjectID;
 
+    @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
         nullable: false,
@@ -54,7 +55,6 @@ export default class ApiKey extends BaseModel {
     })
     public name?: string = undefined;
 
-    @Index()
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
         nullable: true,
@@ -131,5 +131,15 @@ export default class ApiKey extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public expiresAt?: Date = undefined;
+
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: true })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+        default: ObjectID.generate(),
+    })
+    public apiKey?: ObjectID;
 
 }

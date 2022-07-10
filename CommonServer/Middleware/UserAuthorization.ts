@@ -9,7 +9,6 @@ import UserService from '../Services/UserService';
 import ProjectMiddleware from './ProjectAuthorization';
 import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
-import UserRole from 'Common/Types/UserRole';
 import OneUptimeDate from 'Common/Types/Date';
 import Permission from 'Common/Types/Permission';
 
@@ -81,14 +80,8 @@ export default class UserMiddleware {
             data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
-        const userRole: UserRole | undefined | null =
-            projectId &&
-            oneuptimeRequest.userAuthorization.roles.find((role: UserRole) => {
-                return role.projectId.toString() === role.projectId.toString();
-            });
-
-        if (userRole) {
-            oneuptimeRequest.permissions = [userRole.permission];
+        if (oneuptimeRequest.userAuthorization.permissions) {
+            oneuptimeRequest.permissions = oneuptimeRequest.userAuthorization.permissions;
         } else if (
             oneuptimeRequest.userType === userType.User
         ) {
