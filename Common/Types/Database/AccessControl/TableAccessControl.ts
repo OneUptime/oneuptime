@@ -1,11 +1,6 @@
-import Permission from '../../Permission';
+import AccessControl from "./AccessControl";
 
-export default (accessControl: {
-    read: Array<Permission>;
-    create: Array<Permission>;
-    delete: Array<Permission>;
-    update: Array<Permission>;
-}) => {
+export default (accessControl: AccessControl) => {
     return (ctr: Function) => {
         if (accessControl.create) {
             ctr.prototype.createRecordPermissions = accessControl.create;

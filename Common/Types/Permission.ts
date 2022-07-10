@@ -5,9 +5,13 @@ enum Permission {
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',
 
-    Member = 'Member', // member of a project
+    AnyMember = 'AnyMember', // member of a project
 
-    User = 'User', //registered user. Can or cannot belong to a project.
+    AnyUser = 'AnyUser', //registered user. Can or cannot belong to a project.
+
+    CurrentUser = 'CurrentUser', // Current logged in user. 
+
+    CustomerSupport = 'CustomerSupport', // Customer Support for OneUptime. 
 
     Public = 'Public', // non-registered user. Everyone has this permission.
 
