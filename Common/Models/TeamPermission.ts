@@ -8,7 +8,7 @@ import TableColumn from '../Types/Database/TableColumn';
 import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
-import Role from '../Types/Role';
+import Role from '../Types/Permissions';
 import Label from './Labels';
 import Team from './Team';
 

@@ -3,7 +3,7 @@ import BaseModel from './BaseModel';
 
 import User from './User';
 import Project from './Project';
-import Role from '../Types/Role';
+import Role from '../Types/Permissions';
 
 @Entity({
     name: 'SsoDefaultRole',

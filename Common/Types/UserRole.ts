@@ -1,6 +1,6 @@
 import { JSONObject } from './JSON';
 import ObjectID from './ObjectID';
-import Role from './Role';
+import Role from './Permissions';
 
 export default class UserRole {
     public projectId!: ObjectID;

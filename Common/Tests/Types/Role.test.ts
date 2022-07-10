@@ -1,4 +1,4 @@
-import Role from '../../Types/Role';
+import Role from '../../Types/Permissions';
 
 describe('Role', () => {
     test('Role.Owner should be Owner', () => {
