@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -10,14 +10,14 @@ import TableColumn from '../Types/Database/TableColumn';
 import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
-import TeamPermission from './TeamPermission';
+import Permission from '../Types/Permission';
 
-@CrudApiEndpoint(new Route('/team'))
+@CrudApiEndpoint(new Route('/api-key'))
 @SlugifyColumn('name', 'slug')
 @Entity({
-    name: 'Team',
+    name: 'ApiKey',
 })
-export default class Team extends BaseModel {
+export default class ApiKey extends BaseModel {
 
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
@@ -116,8 +116,20 @@ export default class Team extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
-    @ManyToMany(() => TeamPermission)
-    @JoinTable()
-    public permissions?: Array<TeamPermission> = undefined;
+    @TableColumn({ title: 'Permissions', type: TableColumnType.Array })
+    @Column({
+        type: ColumnType.Array,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public permissions?: Array<Permission> = undefined;
+
+    @TableColumn({ title: 'Expires At', type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public expiresAt?: Date = undefined;
 
 }

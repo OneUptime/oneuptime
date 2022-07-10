@@ -7,6 +7,12 @@ enum Permission {
     CanDeleteProject = 'CanDeleteProject',
 
     // Billing Permissions (Owner Permission)
+    CanCreateApiKey = 'CanCreateApiKey',
+    CanDeleteApiKey = 'CanDeleteApiKey',
+    CanReadApiKey = 'CanReadApiKey',
+    CanEditApiKeyPermissions = 'CanEditApiKeyPermissions',
+
+    // Billing Permissions (Owner Permission)
     CanManageBilling = 'CanManageBilling',
 
     // Billing Permissions (Owner Permission)
