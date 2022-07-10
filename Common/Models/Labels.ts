@@ -1,27 +1,31 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import Route from '../Types/API/Route';
-import ColumnType from '../Types/Database/ColumnType';
-import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
-import TableColumn from '../Types/Database/TableColumn';
-import TableColumnType from '../Types/Database/TableColumnType';
-import ObjectID from '../Types/ObjectID';
 import BaseModel from './BaseModel';
-
-import Team from './Team';
 import User from './User';
+import Project from './Project';
+import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
+import SlugifyColumn from '../Types/Database/SlugifyColumn';
+import Route from '../Types/API/Route';
+import TableColumnType from '../Types/Database/TableColumnType';
+import TableColumn from '../Types/Database/TableColumn';
+import ColumnType from '../Types/Database/ColumnType';
+import ObjectID from '../Types/ObjectID';
+import ColumnLength from '../Types/Database/ColumnLength';
+import Color from '../Types/Color';
 
-@CrudApiEndpoint(new Route('/team-member'))
+@CrudApiEndpoint(new Route('/label'))
+@SlugifyColumn('name', 'slug')
 @Entity({
-    name: 'TeamMember',
+    name: 'Label',
 })
-export default class TeamMember extends BaseModel {
+export default class Label extends BaseModel {
+
     @TableColumn({
-        manyToOneRelationColumn: 'teamId',
+        manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
     })
     @ManyToOne(
         (_type: string) => {
-            return Team;
+            return Project;
         },
         {
             eager: false,
@@ -30,8 +34,8 @@ export default class TeamMember extends BaseModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'teamId' })
-    public team?: Team;
+    @JoinColumn({ name: 'projectId' })
+    public project?: Project;
 
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -40,38 +44,32 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public teamId?: ObjectID;
+    public projectId?: ObjectID;
 
-    
-
-
-    @TableColumn({
-        manyToOneRelationColumn: 'userId',
-        type: TableColumnType.Entity,
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return User;
-        },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'userId' })
-    public user?: User;
-
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
-        type: ColumnType.ObjectID,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
     })
-    public userId?: ObjectID;
+    public name?: string = undefined;
 
+    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @Column({
+        nullable: false,
+        type: ColumnType.Slug,
+        length: ColumnLength.Slug,
+    })
+    public slug?: string = undefined;
 
+    @Index()
+    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @Column({
+        nullable: true,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+    })
+    public description?: string = undefined;
 
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
@@ -117,4 +115,21 @@ export default class TeamMember extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
+
+
+    @TableColumn({
+        title: 'Color',
+        required: true,
+        unique: false,
+        type: TableColumnType.Color,
+    })
+    @Column({
+        type: ColumnType.Color,
+        length: ColumnLength.Color,
+        unique: false,
+        nullable: false,
+        transformer: Color.getDatabaseTransformer(),
+    })
+    public color?: Color = undefined;
+
 }

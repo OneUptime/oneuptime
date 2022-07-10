@@ -1,4 +1,5 @@
 enum ColumnType {
+    Color = 'varchar',
     Version = 'varchar',
     Phone = 'varchar',
     HashedString = 'varchar',

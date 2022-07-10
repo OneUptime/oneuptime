@@ -1,20 +1,23 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import Route from '../Types/API/Route';
-import ColumnType from '../Types/Database/ColumnType';
-import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
-import TableColumn from '../Types/Database/TableColumn';
-import TableColumnType from '../Types/Database/TableColumnType';
-import ObjectID from '../Types/ObjectID';
 import BaseModel from './BaseModel';
-
-import Team from './Team';
 import User from './User';
+import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
+import Route from '../Types/API/Route';
+import TableColumnType from '../Types/Database/TableColumnType';
+import TableColumn from '../Types/Database/TableColumn';
+import ColumnType from '../Types/Database/ColumnType';
+import ObjectID from '../Types/ObjectID';
+import ColumnLength from '../Types/Database/ColumnLength';
+import Role from '../Types/Role';
+import Label from './Labels';
+import Team from './Team';
 
-@CrudApiEndpoint(new Route('/team-member'))
+@CrudApiEndpoint(new Route('/team-permission'))
 @Entity({
-    name: 'TeamMember',
+    name: 'TeamPermission',
 })
-export default class TeamMember extends BaseModel {
+export default class TeamPermission extends BaseModel {
+
     @TableColumn({
         manyToOneRelationColumn: 'teamId',
         type: TableColumnType.Entity,
@@ -41,37 +44,6 @@ export default class TeamMember extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public teamId?: ObjectID;
-
-    
-
-
-    @TableColumn({
-        manyToOneRelationColumn: 'userId',
-        type: TableColumnType.Entity,
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return User;
-        },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'userId' })
-    public user?: User;
-
-    @TableColumn({ type: TableColumnType.ObjectID })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public userId?: ObjectID;
-
-
 
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
@@ -117,4 +89,41 @@ export default class TeamMember extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
+
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public role?: Role = undefined;
+
+
+    @TableColumn({
+        manyToOneRelationColumn: 'labelId',
+        type: TableColumnType.Entity,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Label;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'labelId' })
+    public label?: Team = undefined;
+
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public labelId?: ObjectID;
+
 }
