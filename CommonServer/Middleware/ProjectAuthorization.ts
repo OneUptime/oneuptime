@@ -1,4 +1,4 @@
-import ProjectService from '../Services/ProjectService';
+import ApiKeyService from '../Services/ApiKeyService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import {
@@ -9,8 +9,9 @@ import {
     OneUptimeRequest,
 } from '../Utils/Express';
 
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import Permission from 'Common/Types/Permission';
+import ApiKey from 'Common/Models/ApiKeya';
+import { LessThan } from 'typeorm';
+import OneUptimeDate from 'Common/Types/Date';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -67,16 +68,17 @@ export default class ProjectMiddleware {
             throw new BadDataException('ApiKey not found in the request');
         }
 
-        const projectCount: PositiveNumber = await ProjectService.countBy({
+        const apiKeyModel: ApiKey | null = await ApiKeyService.findOneBy({
             query: {
-                _id: projectId.toString(),
+                projectId: projectId,
                 apiKey: apiKey,
+                expiresAt: LessThan(OneUptimeDate.getCurrentDate())
             },
         });
 
-        if (projectCount.toNumber() > 0) {
+        if (apiKeyModel) {
             (req as OneUptimeRequest).userType = userType.API;
-            (req as OneUptimeRequest).permissions = [Permission];
+            (req as OneUptimeRequest).permissions = apiKeyModel.permissions || [];
             (req as OneUptimeRequest).projectId = projectId;
             return next();
         }
