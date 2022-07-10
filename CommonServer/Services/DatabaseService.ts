@@ -356,7 +356,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data: {
                     deletedByUser: deleteBy.deletedByUser,
                 } as any,
-                userPermissions: deleteBy.userPermissions,
+                userPermissions: deleteBy.userPermissions || [],
                 userId: deleteBy.userId,
                 userType: deleteBy.userType,
                 projectId: deleteBy.projectId
@@ -439,7 +439,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             query: {
                 _id: findOneById.id.toString() as any,
             },
-            userPermissions: findOneById.userPermissions,
+            userPermissions: findOneById.userPermissions|| [],
             userId: findOneById.userId,
             userType: findOneById.userType,
             projectId: findOneById.projectId
@@ -484,7 +484,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 _id: updateById.id.toString() as any,
             },
             data: updateById.data,
-            userPermissions: updateById.userPermissions,
+            userPermissions: updateById.userPermissions || [],
             userId: updateById.userId,
             userType: updateById.userType,
             projectId: updateById.projectId
@@ -497,7 +497,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         await this.updateOneById(updateById);
         return this.findOneById({
             id: updateById.id,
-            userPermissions: updateById.userPermissions,
+            userPermissions: updateById.userPermissions|| [],
             userId: updateById.userId,
             userType: updateById.userType,
             projectId: updateById. projectId
@@ -526,7 +526,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     limit,
                     select,
                     populate,
-                    userPermissions,
+                    userPermissions: userPermissions || [],
                     userId,
                     userType,
                     projectId,
@@ -535,7 +535,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     query,
                     skip: new PositiveNumber(0),
                     limit: new PositiveNumber(Infinity),
-                    userPermissions,
+                    userPermissions: userPermissions || [],
                     userId,
                     userType,
                     projectId,

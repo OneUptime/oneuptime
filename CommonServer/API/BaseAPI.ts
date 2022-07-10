@@ -18,13 +18,13 @@ import DatabaseCommonInteractionProps from '../Types/Database/DatabaseCommonInte
 export default class BaseAPI<
     TBaseModel extends BaseModel,
     TBaseService extends DatabaseService<BaseModel>
-> {
-    private entityType: { new (): TBaseModel };
+    > {
+    private entityType: { new(): TBaseModel };
 
     public router: ExpressRouter;
     private service: TBaseService;
 
-    public constructor(type: { new (): TBaseModel }, service: TBaseService) {
+    public constructor(type: { new(): TBaseModel }, service: TBaseService) {
         this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
 
@@ -110,7 +110,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
         const skip: PositiveNumber = req.query['skip']
             ? new PositiveNumber(req.query['skip'] as string)
@@ -124,12 +123,12 @@ export default class BaseAPI<
             throw new BadRequestException('Limit should be less than 50');
         }
 
-        const list: Array<BaseModel> = await this.service.getli(
-            oneuptimeRequest.role,
+        const list: Array<BaseModel> = await this.service.findBy(
             {
                 query: {},
                 skip: skip,
                 limit: limit,
+                ...this.getDatabaseCommonInteractionProps(req)
             }
         );
 
@@ -144,18 +143,13 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-        const item: BaseModel | null = await this.service.getItemByRole(
-            oneuptimeRequest.role,
-            {
-                query: {
-                    _id: objectId.toString(),
-                },
-            }
-        );
+        const item: BaseModel | null = await this.service.findOneById({
+            id: objectId,
+            ...this.getDatabaseCommonInteractionProps(req)
+        });
 
         return Response.sendItemResponse(req, res, item?.toJSON() || {});
     }
@@ -164,14 +158,14 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-        await this.service.deleteByRole(oneuptimeRequest.role, {
+        await this.service.deleteBy({
             query: {
                 _id: objectId.toString(),
             },
+            ...this.getDatabaseCommonInteractionProps(req)
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -181,7 +175,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         const body: JSONObject = req.body;
 
@@ -190,11 +183,12 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
-        await this.service.updateByRole(oneuptimeRequest.role, {
+        await this.service.updateBy({
             query: {
                 _id: objectId.toString(),
             },
             data: item,
+            ...this.getDatabaseCommonInteractionProps(req)
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -204,7 +198,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
@@ -217,8 +210,7 @@ export default class BaseAPI<
             ...this.getDatabaseCommonInteractionProps(req),
         };
 
-        const savedItem: BaseModel = await this.service.createByRole(
-            oneuptimeRequest.role,
+        const savedItem: BaseModel = await this.service.create(
             createBy
         );
 

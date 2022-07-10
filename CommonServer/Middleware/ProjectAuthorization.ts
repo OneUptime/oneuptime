@@ -2,14 +2,14 @@ import ApiKeyService from '../Services/ApiKeyService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import {
-    userType,
     ExpressRequest,
     ExpressResponse,
     NextFunction,
     OneUptimeRequest,
+    UserType,
 } from '../Utils/Express';
 
-import ApiKey from 'Common/Models/ApiKeya';
+import ApiKey from 'Common/Models/ApiKey';
 import { LessThan } from 'typeorm';
 import OneUptimeDate from 'Common/Types/Date';
 
@@ -77,7 +77,7 @@ export default class ProjectMiddleware {
         });
 
         if (apiKeyModel) {
-            (req as OneUptimeRequest).userType = userType.API;
+            (req as OneUptimeRequest).userType = UserType.API;
             (req as OneUptimeRequest).permissions = apiKeyModel.permissions || [];
             (req as OneUptimeRequest).projectId = projectId;
             return next();

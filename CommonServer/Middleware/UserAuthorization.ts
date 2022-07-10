@@ -3,7 +3,7 @@ import {
     ExpressRequest,
     NextFunction,
     OneUptimeRequest,
-    userType,
+    UserType,
 } from '../Utils/Express';
 import UserService from '../Services/UserService';
 import ProjectMiddleware from './ProjectAuthorization';
@@ -61,16 +61,16 @@ export default class UserMiddleware {
         const accessToken: string | null = UserMiddleware.getAccessToken(req);
 
         if (!accessToken) {
-            oneuptimeRequest.userType = userType.Public;
+            oneuptimeRequest.userType = UserType.Public;
             return next();
         }
 
         oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
 
         if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
-            oneuptimeRequest.userType = userType.MasterAdmin;
+            oneuptimeRequest.userType = UserType.MasterAdmin;
         } else {
-            oneuptimeRequest.userType = userType.User;
+            oneuptimeRequest.userType = UserType.User;
         }
 
         await UserService.updateOneBy({
@@ -83,7 +83,7 @@ export default class UserMiddleware {
         if (oneuptimeRequest.userAuthorization.permissions) {
             oneuptimeRequest.permissions = oneuptimeRequest.userAuthorization.permissions;
         } else if (
-            oneuptimeRequest.userType === userType.User
+            oneuptimeRequest.userType === UserType.User
         ) {
             oneuptimeRequest.permissions = [Permission.User];
         }
