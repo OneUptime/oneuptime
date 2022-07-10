@@ -2,7 +2,7 @@ import ProjectService from '../Services/ProjectService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import {
-    AuthorizationType,
+    userType,
     ExpressRequest,
     ExpressResponse,
     NextFunction,
@@ -10,7 +10,7 @@ import {
 } from '../Utils/Express';
 
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import Role from 'Common/Types/Role';
+import Permission from 'Common/Types/Permission';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -75,8 +75,8 @@ export default class ProjectMiddleware {
         });
 
         if (projectCount.toNumber() > 0) {
-            (req as OneUptimeRequest).authorizationType = AuthorizationType.API;
-            (req as OneUptimeRequest).role = Role.Administrator;
+            (req as OneUptimeRequest).userType = userType.API;
+            (req as OneUptimeRequest).permissions = [Permission];
             (req as OneUptimeRequest).projectId = projectId;
             return next();
         }

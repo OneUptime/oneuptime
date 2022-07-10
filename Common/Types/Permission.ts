@@ -1,9 +1,7 @@
-enum Permissions {
+enum Permission {
 
-    Owner = 'Owner', // owner of a project. An owner owns all the billing info.
-    Administrator = 'Administrator', // admin of a project
-    Member = 'Member', // member of a project
-    Viewer = 'Viewer', // user who is a viewer in a project
+    // Root 
+    Root = 'ROOT', // System Permission. Should not be assigned to any user. 
 
     // Billing Permissions (Owner Permission)
     CanDeleteProject = 'CanDeleteProject',
@@ -14,6 +12,7 @@ enum Permissions {
     // Billing Permissions (Owner Permission)
     CanCreateTeam = 'CanCreateTeam',
     CanDeleteTeam = 'CanDeleteTeam',
+    CanReadTeam = 'CanReadTeam',
     CanEditTeamPermissions = 'CanEditTeamPermissions',
 
     CanInviteTeamMembers = 'CanEditTeam', // Owner + Admin can have this permission. 
@@ -21,6 +20,7 @@ enum Permissions {
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateLabel = 'CanCreateLabel',
     CanEditLabel = 'CanEditLabel',
+    CanReadLabel = 'CanReadLabel',
     CanDeleteLabel = 'CanDeleteLabel',
     CanAddLabelsToResources = 'CanAddLabelsToResources',
 
@@ -28,14 +28,22 @@ enum Permissions {
     CanCreateResources = 'CanCreateResources',
     CanEditResources = 'CanEditResources',
     CanDeleteResources = 'CanDeleteResources',
-    
+    CanReadResources = 'CanReadResources',
 
-    User = 'User', //registered user. Only registered user have this permission.
+    Member = 'Member', // member of a project
+
+    User = 'User', //registered user. Can or cannot belong to a project.
 
     Public = 'Public', // non-registered user. Everyone has this permission. 
 
 }
 
+export class PermissionUtil {
+    public static doesPermissionsIntersect(permissions1: Array<Permission>, permissions2: Array<Permission>): boolean {
+        return permissions1.filter(value => permissions2.includes(value)).length > 0;
+    }
+}
+
 export const PermissionsArray: Array<string> = [...new Set(Object.keys(Permissions))]; // Returns ["Owner", "Administrator"...]
 
-export default Permissions;
+export default Permission;

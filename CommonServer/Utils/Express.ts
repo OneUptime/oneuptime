@@ -4,7 +4,7 @@ import logger from './Logger';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
-import Role from 'Common/Types/Role';
+import Permission from 'Common/Types/Permission';
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
 
@@ -21,7 +21,7 @@ export type ExpressResponse = express.Response;
 export type ExpressApplication = express.Application;
 export type ExpressRouter = express.Router;
 
-export enum AuthorizationType {
+export enum userType {
     API = 'API',
     User = 'User',
     MasterAdmin = 'MasterAdmin',
@@ -33,10 +33,10 @@ export interface OneUptimeRequest extends express.Request {
     id: ObjectID;
     requestStartedAt?: Date;
     requestEndedAt?: Date;
-    authorizationType?: string;
+    userType?: string;
     userAuthorization?: JSONWebTokenData;
     projectId?: ObjectID;
-    role: Role;
+    permissions: Array<Permission>;
 }
 
 export interface OneUptimeResponse extends express.Response {

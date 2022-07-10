@@ -9,30 +9,15 @@ import TableColumn from '../Types/Database/TableColumn';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
-import UserRecordPermissions from '../Types/Database/AccessControls/User/UserRecordPermissions';
-import UserColumnPermissions from '../Types/Database/AccessControls/User/UserColumnPermissions';
 import SlugifyColumn from '../Types/Database/SlugifyColumn';
 
 @CrudApiEndpoint(new Route('/project'))
-@UserRecordPermissions({
-    create: true,
-    readAsList: false,
-    readAsItem: false,
-    update: false,
-    delete: false,
-})
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Project',
 })
 export default class Model extends BaseModel {
-    @UserColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
+    
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
         nullable: false,

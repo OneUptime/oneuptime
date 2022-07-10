@@ -118,7 +118,7 @@ export default class BaseAPI<
             throw new BadRequestException('Limit should be less than 50');
         }
 
-        const list: Array<BaseModel> = await this.service.getListByRole(
+        const list: Array<BaseModel> = await this.service.getli(
             oneuptimeRequest.role,
             {
                 query: {},

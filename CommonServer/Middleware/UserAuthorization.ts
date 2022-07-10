@@ -3,7 +3,7 @@ import {
     ExpressRequest,
     NextFunction,
     OneUptimeRequest,
-    AuthorizationType,
+    userType,
 } from '../Utils/Express';
 import UserService from '../Services/UserService';
 import ProjectMiddleware from './ProjectAuthorization';
@@ -11,7 +11,7 @@ import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
 import UserRole from 'Common/Types/UserRole';
 import OneUptimeDate from 'Common/Types/Date';
-import Role from 'Common/Types/Role';
+import Permission from 'Common/Types/Permission';
 
 export default class UserMiddleware {
     /*
@@ -62,16 +62,16 @@ export default class UserMiddleware {
         const accessToken: string | null = UserMiddleware.getAccessToken(req);
 
         if (!accessToken) {
-            oneuptimeRequest.authorizationType = AuthorizationType.Public;
+            oneuptimeRequest.userType = userType.Public;
             return next();
         }
 
         oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
 
         if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
-            oneuptimeRequest.authorizationType = AuthorizationType.MasterAdmin;
+            oneuptimeRequest.userType = userType.MasterAdmin;
         } else {
-            oneuptimeRequest.authorizationType = AuthorizationType.User;
+            oneuptimeRequest.userType = userType.User;
         }
 
         await UserService.updateOneBy({
@@ -88,11 +88,11 @@ export default class UserMiddleware {
             });
 
         if (userRole) {
-            oneuptimeRequest.role = userRole.role;
+            oneuptimeRequest.permissions = [userRole.permission];
         } else if (
-            oneuptimeRequest.authorizationType === AuthorizationType.User
+            oneuptimeRequest.userType === userType.User
         ) {
-            oneuptimeRequest.role = Role.User;
+            oneuptimeRequest.permissions = [Permission.User];
         }
 
         return next();

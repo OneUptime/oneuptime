@@ -1,5 +1,5 @@
 import { Column, Entity } from 'typeorm';
-import Role from '../Types/Permissions';
+import Role from '../Types/Permission';
 import BaseModel from './BaseModel';
 
 import Project from './Project';

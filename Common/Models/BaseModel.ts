@@ -6,22 +6,15 @@ import {
     PrimaryGeneratedColumn,
     BaseEntity,
 } from 'typeorm';
-import { getPublicAccessControlForAllColumns } from '../Types/Database/AccessControls/Public/PublicColumnPermissions';
-import { getMemberAccessControlForAllColumns } from '../Types/Database/AccessControls/Member/MemberColumnPermissions';
-import { getOwnerAccessControlForAllColumns } from '../Types/Database/AccessControls/Owner/OwnerColumnPermissions';
-import { getViewerAccessControlForAllColumns } from '../Types/Database/AccessControls/Viewer/ViewerColumnPermissions';
-import { getAdminAccessControlForAllColumns } from '../Types/Database/AccessControls/Admin/AdminColumnPermissions';
-import { getUserAccessControlForAllColumns } from '../Types/Database/AccessControls/User/UserColumnPermissions';
+
 import Columns from '../Types/Database/Columns';
 import TableColumn, {
     getTableColumn,
     getTableColumns,
     TableColumnMetadata,
 } from '../Types/Database/TableColumn';
-import BadRequestException from '../Types/Exception/BadRequestException';
 import { JSONArray, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
-import AccessControl from '../Types/Database/AccessControls/AccessControl';
 import Dictionary from '../Types/Dictionary';
 import HashedString from '../Types/HashedString';
 import Email from '../Types/Email';
@@ -30,6 +23,9 @@ import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import Name from '../Types/Name';
 import TableColumnType from '../Types/Database/TableColumnType';
+import Permission, { PermissionUtil } from '../Types/Permission';
+import BadRequestException from '../Types/Exception/BadRequestException';
+import { ColumnAccessControl, getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 
 export type DbTypes =
     | string
@@ -64,41 +60,10 @@ export default class BaseModel extends BaseEntity {
     @VersionColumn()
     public version?: number = undefined;
 
-    public canAdminCreateRecord!: boolean;
-    public canAdminDeleteRecord!: boolean;
-    public canAdminUpdateRecord!: boolean;
-    public canAdminReadItemRecord!: boolean;
-    public canAdminReadListRecord!: boolean;
-
-    public canPublicCreateRecord!: boolean;
-    public canPublicDeleteRecord!: boolean;
-    public canPublicUpdateRecord!: boolean;
-    public canPublicReadItemRecord!: boolean;
-    public canPublicReadListRecord!: boolean;
-
-    public canOwnerCreateRecord!: boolean;
-    public canOwnerDeleteRecord!: boolean;
-    public canOwnerUpdateRecord!: boolean;
-    public canOwnerReadItemRecord!: boolean;
-    public canOwnerReadListRecord!: boolean;
-
-    public canMemberCreateRecord!: boolean;
-    public canMemberDeleteRecord!: boolean;
-    public canMemberUpdateRecord!: boolean;
-    public canMemberReadItemRecord!: boolean;
-    public canMemberReadListRecord!: boolean;
-
-    public canViewerCreateRecord!: boolean;
-    public canViewerDeleteRecord!: boolean;
-    public canViewerUpdateRecord!: boolean;
-    public canViewerReadItemRecord!: boolean;
-    public canViewerReadListRecord!: boolean;
-
-    public canUserCreateRecord!: boolean;
-    public canUserDeleteRecord!: boolean;
-    public canUserUpdateRecord!: boolean;
-    public canUserReadItemRecord!: boolean;
-    public canUserReadListRecord!: boolean;
+    public createRecordPermissions!: Array<Permission>;
+    public readRecordPermissions!: Array<Permission>;
+    public deleteRecordPermissions!: Array<Permission>;
+    public updateRecordPermissions!: Array<Permission>;
 
     public slugifyColumn!: string | null;
     public saveSlugToColumn!: string | null;
@@ -137,6 +102,72 @@ export default class BaseModel extends BaseEntity {
 
     public getDisplayColumnDescriptionAs(columnName: string): string | null {
         return getTableColumn(this, columnName)?.description || null;
+    }
+
+    public asCreateableByPermissions(
+        permissions: Array<Permission>
+    ): BaseModel {
+        
+        // If system is making this query then let the query run! 
+        if (permissions.includes(Permission.Root)) {
+            return this; 
+        }
+
+        if (!PermissionUtil.doesPermissionsIntersect(permissions, this.createRecordPermissions)) {
+            throw new BadRequestException(
+                'A user does not have permissions to crate record.'
+            );
+        }
+
+        const data: BaseModel = this.keepColumns(
+            this.getCreateableColumnsByPermissions(permissions),
+        );
+
+        return data;
+    }
+
+    public getCreateableColumnsByPermissions(permissions: Array<Permission>): Columns {
+        
+        const accessControl: Dictionary<ColumnAccessControl> =
+            getColumnAccessControlForAllColumns(this);
+        
+        const columns: Array<string> = [];
+
+        for (const key in accessControl) {
+            if (accessControl[key]?.update && PermissionUtil.doesPermissionsIntersect(permissions, accessControl[key]?.update || [])) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+
+    private keepColumns(
+        columnsToKeep: Columns,
+    ): BaseModel {
+
+        if (!columnsToKeep) {
+            return this; 
+        }
+
+        for (const key of Object.keys(this)) {
+
+            const columns: Columns = this.getTableColumns();
+            
+            if (
+                !(columnsToKeep &&
+                    columnsToKeep.columns.length > 0 &&
+                    columnsToKeep.columns.includes(key)
+                )
+                &&
+                columns.hasColumn(key)
+            ) {
+                (this as any)[key] = undefined;
+            } 
+        }
+
+        return this;
     }
 
     public getEncryptedColumns(): Columns {
@@ -180,429 +211,6 @@ export default class BaseModel extends BaseEntity {
         const columns: Array<string> = [];
         for (const key in dictionary) {
             if (dictionary[key]?.unique) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getUserCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.create) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getUserDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.delete) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getUserUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.update) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getUserReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsItem) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getUserReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getUserAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsList) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getOwnerCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.create) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getOwnerDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.delete) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getOwnerReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsItem) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getOwnerReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsList) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getOwnerUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getOwnerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.update) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getAdminDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.delete) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getAdminCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.create) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getAdminReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsItem) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getAdminReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsList) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getAdminUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getAdminAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.update) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getPublicReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getPublicAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsItem) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getPublicReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getPublicAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsList) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getPublicUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getPublicAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.update) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getPublicCreateableColumns<T extends BaseModel>(type: {
-        new (): T;
-    }): Columns {
-        const obj: T = new type();
-        const accessControl: Dictionary<AccessControl> =
-            getPublicAccessControlForAllColumns(obj);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.create) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getPublicDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getPublicAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.delete) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getMemberReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsItem) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getMemberReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsList) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getMemberUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.update) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getMemberCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.create) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getMemberDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getMemberAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.delete) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getViewerReadableAsItemColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsItem) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getViewerReadableAsListColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.readAsList) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getViewerUpdateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.update) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getViewerCreateableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.create) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getViewerDeleteableColumns(): Columns {
-        const accessControl: Dictionary<AccessControl> =
-            getViewerAccessControlForAllColumns(this);
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (accessControl[key]?.delete) {
                 columns.push(key);
             }
         }
@@ -655,7 +263,7 @@ export default class BaseModel extends BaseEntity {
 
     private static _fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new (): T }
+        type: { new(): T }
     ): T {
         const baseModel: T = new type();
 
@@ -663,25 +271,25 @@ export default class BaseModel extends BaseEntity {
             if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                    TableColumnType.HashedString
+                TableColumnType.HashedString
             ) {
                 (baseModel as any)[key] = new HashedString(json[key] as string);
             } else if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                    TableColumnType.Name
+                TableColumnType.Name
             ) {
                 (baseModel as any)[key] = new Name(json[key] as string);
             } else if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                    TableColumnType.Email
+                TableColumnType.Email
             ) {
                 (baseModel as any)[key] = new Email(json[key] as string);
             } else if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                    TableColumnType.ObjectID
+                TableColumnType.ObjectID
             ) {
                 (baseModel as any)[key] = new ObjectID(json[key] as string);
             } else {
@@ -694,7 +302,7 @@ export default class BaseModel extends BaseEntity {
 
     public static fromJSON<T extends BaseModel>(
         json: JSONObject | JSONArray,
-        type: { new (): T }
+        type: { new(): T }
     ): T | Array<T> {
         if (Array.isArray(json)) {
             const arr: Array<T> = [];
@@ -709,593 +317,6 @@ export default class BaseModel extends BaseEntity {
         return this._fromJSON<T>(json, type);
     }
 
-    private static keepColumns<T extends BaseModel>(
-        data: T,
-        columnsToKeep: Columns,
-        type: { new (): T }
-    ): T {
-        const baseModel: T = new type();
-
-        for (const key of Object.keys(data)) {
-            if (!columnsToKeep) {
-                (baseModel as any)[key] = (data as any)[key];
-            }
-
-            if (
-                columnsToKeep &&
-                columnsToKeep.columns.length > 0 &&
-                columnsToKeep.columns.includes(key)
-            ) {
-                (baseModel as any)[key] = (data as any)[key];
-            }
-        }
-
-        return baseModel as T;
-    }
-
-    public static asPublicCreateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canPublicCreateRecord) {
-            throw new BadRequestException(
-                'A user of role public cannot create this record.'
-            );
-        }
-
-        data = this.keepColumns<T>(
-            data as T,
-            data.getPublicCreateableColumns(type),
-            type
-        );
-        return data;
-    }
-
-    public static asPublicUpdateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canPublicUpdateRecord) {
-            throw new BadRequestException(
-                'A user of role public cannot update this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getPublicUpdateableColumns(), type);
-    }
-
-    public static asPublicReadableItem<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canPublicReadItemRecord) {
-            throw new BadRequestException(
-                'A user of role public cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getPublicReadableAsItemColumns(),
-            type
-        );
-    }
-
-    public static asPublicReadableList<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canPublicReadListRecord) {
-            throw new BadRequestException(
-                'A user of role public cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getPublicReadableAsListColumns(),
-            type
-        );
-    }
-
-    public static asPublicDeleteable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canPublicDeleteRecord) {
-            throw new BadRequestException(
-                'A user of role public cannot delete this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getPublicDeleteableColumns(), type);
-    }
-
-    public static asOwnerCreateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canOwnerCreateRecord) {
-            throw new BadRequestException(
-                'A user of role owner cannot create this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getOwnerCreateableColumns(), type);
-    }
-
-    public static asOwnerUpdateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canOwnerUpdateRecord) {
-            throw new BadRequestException(
-                'A user of role owner cannot update this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getOwnerUpdateableColumns(), type);
-    }
-
-    public static asOwnerReadableItem<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canOwnerReadItemRecord) {
-            throw new BadRequestException(
-                'A user of role owner cannot delete this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getOwnerReadableAsItemColumns(),
-            type
-        );
-    }
-
-    public static asOwnerReadableList<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canOwnerReadListRecord) {
-            throw new BadRequestException(
-                'A user of role owner cannot delete this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getOwnerReadableAsListColumns(),
-            type
-        );
-    }
-
-    public static asOwnerDeleteable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canOwnerDeleteRecord) {
-            throw new BadRequestException(
-                'A user of role owner cannot delete this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getOwnerDeleteableColumns(), type);
-    }
-
-    public static asUserCreateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canUserCreateRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot create this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getUserCreateableColumns(), type);
-    }
-
-    public static asUserUpdateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canUserUpdateRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot update this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getUserUpdateableColumns(), type);
-    }
-
-    public static asUserReadableItem<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canUserReadItemRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getUserReadableAsItemColumns(),
-            type
-        );
-    }
-
-    public static asUserReadableList<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canUserReadListRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getUserReadableAsListColumns(),
-            type
-        );
-    }
-
-    public static asUserDeleteable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canUserDeleteRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot delete this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getUserDeleteableColumns(), type);
-    }
-
-    public static asViewerCreateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canViewerCreateRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot create this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getViewerCreateableColumns(), type);
-    }
-
-    public static asViewerUpdateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canViewerUpdateRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot update this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getViewerUpdateableColumns(), type);
-    }
-
-    public static asViewerReadableItem<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canViewerReadItemRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getViewerReadableAsItemColumns(),
-            type
-        );
-    }
-
-    public static asViewerReadableList<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canViewerReadListRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getViewerReadableAsListColumns(),
-            type
-        );
-    }
-
-    public static asViewerDeleteable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canViewerDeleteRecord) {
-            throw new BadRequestException(
-                'A user of role viewer cannot delete this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getViewerDeleteableColumns(), type);
-    }
-
-    public static asMemberCreateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canMemberCreateRecord) {
-            throw new BadRequestException(
-                'A user of role member cannot create this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getMemberCreateableColumns(), type);
-    }
-
-    public static asMemberUpdateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canMemberUpdateRecord) {
-            throw new BadRequestException(
-                'A user of role member cannot update this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getMemberUpdateableColumns(), type);
-    }
-
-    public static asMemberReadableItem<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canMemberReadItemRecord) {
-            throw new BadRequestException(
-                'A user of role member cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getMemberReadableAsItemColumns(),
-            type
-        );
-    }
-
-    public static asMemberReadableList<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canMemberReadListRecord) {
-            throw new BadRequestException(
-                'A user of role member cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getMemberReadableAsListColumns(),
-            type
-        );
-    }
-
-    public static asMemberDeleteable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canMemberDeleteRecord) {
-            throw new BadRequestException(
-                'A user of role member cannot delete this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getMemberDeleteableColumns(), type);
-    }
-
-    public static asAdminCreateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canAdminCreateRecord) {
-            throw new BadRequestException(
-                'A user of role admin cannot create this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getAdminCreateableColumns(), type);
-    }
-
-    public static asAdminUpdateable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canAdminUpdateRecord) {
-            throw new BadRequestException(
-                'A user of role admin cannot update this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getAdminUpdateableColumns(), type);
-    }
-
-    public static asAdminReadableList<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canAdminReadListRecord) {
-            throw new BadRequestException(
-                'A user of role admin cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getAdminReadableAsListColumns(),
-            type
-        );
-    }
-
-    public static asAdminReadableItem<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canAdminReadItemRecord) {
-            throw new BadRequestException(
-                'A user of role admin cannot read this record.'
-            );
-        }
-
-        return this.keepColumns(
-            data,
-            data.getAdminReadableAsItemColumns(),
-            type
-        );
-    }
-
-    public static asAdminDeleteable<T extends BaseModel>(
-        data: JSONObject | T,
-        type: { new (): T }
-    ): T {
-        if (!(data instanceof BaseModel)) {
-            data = this._fromJSON<T>(data, type);
-        }
-
-        if (!data.canAdminDeleteRecord) {
-            throw new BadRequestException(
-                'A user of role admin cannot delete this record.'
-            );
-        }
-
-        return this.keepColumns(data, data.getAdminDeleteableColumns(), type);
-    }
-
     public isDefaultValueColumn(columnName: string): boolean {
         return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
     }
@@ -1307,25 +328,25 @@ export default class BaseModel extends BaseEntity {
                 if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                        TableColumnType.HashedString
+                    TableColumnType.HashedString
                 ) {
                     json[key] = ((this as any)[key] as HashedString).toString();
                 } else if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                        TableColumnType.Name
+                    TableColumnType.Name
                 ) {
                     json[key] = ((this as any)[key] as Name).toString();
                 } else if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                        TableColumnType.Email
+                    TableColumnType.Email
                 ) {
                     json[key] = ((this as any)[key] as Email).toString();
                 } else if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                        TableColumnType.ObjectID
+                    TableColumnType.ObjectID
                 ) {
                     json[key] = ((this as any)[key] as ObjectID).toString();
                 } else {

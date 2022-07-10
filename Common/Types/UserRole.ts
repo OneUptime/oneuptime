@@ -1,23 +1,23 @@
 import { JSONObject } from './JSON';
 import ObjectID from './ObjectID';
-import Role from './Permissions';
+import Permission from './Permission';
 
 export default class UserRole {
     public projectId!: ObjectID;
     public userId!: ObjectID;
-    public role!: Role;
+    public permissions!: Array<Permission>;
 
-    public constructor(projectId: ObjectID, userId: ObjectID, role: Role) {
+    public constructor(projectId: ObjectID, userId: ObjectID, permissions: Array<Permission>) {
         this.projectId = projectId;
         this.userId = userId;
-        this.role = role;
+        this.permissions = permissions;
     }
 
     public toJSON(): JSONObject {
         return {
             userId: this.userId.toString(),
             projectId: this.projectId.toString(),
-            role: this.role,
+            permissions: this.permissions,
         };
     }
 
@@ -25,7 +25,7 @@ export default class UserRole {
         return new UserRole(
             new ObjectID(data['projectId'] as string),
             new ObjectID(data['userId'] as string),
-            data['role'] as Role
+            data['permission'] as Array<Permission>
         );
     }
 }

@@ -11,33 +11,17 @@ import Timezone from '../Types/Timezone';
 import CompanySize from '../Types/Company/CompanySize';
 import JobRole from '../Types/Company/JobRole';
 import HashedString from '../Types/HashedString';
-import PublicRecordPermissions from '../Types/Database/AccessControls/Public/PublicRecordPermissions';
 import TableColumn from '../Types/Database/TableColumn';
-import PublicColumnPermissions from '../Types/Database/AccessControls/Public/PublicColumnPermissions';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
 
 @CrudApiEndpoint(new Route('/user'))
-@PublicRecordPermissions({
-    create: true,
-    readAsList: false,
-    readAsItem: false,
-    update: false,
-    delete: false,
-})
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'User',
 })
 class User extends BaseModel {
-    @PublicColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
     @TableColumn({ type: TableColumnType.Name })
     @Column({
         type: ColumnType.Name,
@@ -47,13 +31,6 @@ class User extends BaseModel {
     })
     public name?: Name = undefined;
 
-    @PublicColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
     @TableColumn({
         title: 'Email',
         required: true,
@@ -79,13 +56,7 @@ class User extends BaseModel {
     })
     public newUnverifiedTemporaryEmail?: string = undefined;
 
-    @PublicColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
+    
     @TableColumn({
         title: 'Password',
         hashed: true,
@@ -107,13 +78,7 @@ class User extends BaseModel {
     })
     public isEmailVerified?: boolean = undefined;
 
-    @PublicColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
+   
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -123,13 +88,7 @@ class User extends BaseModel {
     })
     public companyName?: string = undefined;
 
-    @PublicColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
+   
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -139,13 +98,7 @@ class User extends BaseModel {
     })
     public jobRole?: JobRole = undefined;
 
-    @PublicColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
+   
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -155,13 +108,7 @@ class User extends BaseModel {
     })
     public companySize?: CompanySize = undefined;
 
-    @PublicColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
+    
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -171,13 +118,7 @@ class User extends BaseModel {
     })
     public referral?: string = undefined;
 
-    @PublicColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
+    
     @TableColumn({ type: TableColumnType.Phone })
     @Column({
         type: ColumnType.Phone,
@@ -290,13 +231,7 @@ class User extends BaseModel {
     })
     public lastActive?: Date = undefined;
 
-    @PublicColumnPermissions({
-        create: true,
-        readAsList: false,
-        readAsItem: false,
-        update: false,
-        delete: false,
-    })
+    
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -387,28 +322,6 @@ class User extends BaseModel {
         unique: false,
     })
     public tempAlertPhoneNumber?: Phone = undefined;
-
-    /*
-     * @Column()
-     * public sso?: SSO;
-     */
-
-    /*
-     * @Column({
-     *     nullable: true,
-     * })
-     * public createdBy?: User;
-     */
-
-    /*
-     * @Column()
-     * public isBlockedByUser?: User;
-     */
-
-    /*
-     * @Column()
-     * public deletedByUser?: User;
-     */
 }
 
 export default User;
