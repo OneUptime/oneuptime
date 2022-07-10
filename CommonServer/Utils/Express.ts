@@ -21,7 +21,7 @@ export type ExpressResponse = express.Response;
 export type ExpressApplication = express.Application;
 export type ExpressRouter = express.Router;
 
-export enum userType {
+export enum UserType {
     API = 'API',
     User = 'User',
     MasterAdmin = 'MasterAdmin',
@@ -33,7 +33,7 @@ export interface OneUptimeRequest extends express.Request {
     id: ObjectID;
     requestStartedAt?: Date;
     requestEndedAt?: Date;
-    userType?: string;
+    userType?: UserType;
     userAuthorization?: JSONWebTokenData;
     projectId?: ObjectID;
     permissions: Array<Permission>;

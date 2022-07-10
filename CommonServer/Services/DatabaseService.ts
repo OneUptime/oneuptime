@@ -26,19 +26,19 @@ import HardDeleteBy from '../Types/Database/HardDeleteBy';
 import { EncryptionSecret } from '../Config';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
-import ObjectID from 'Common/Types/ObjectID';
 import Columns from 'Common/Types/Database/Columns';
+import FindOneByID from '../Types/Database/FindOneByID';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    private entityType!: { new(): TBaseModel };
 
     public constructor(
-        type: { new (): TBaseModel },
+        type: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = type;
-        
+
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
         }
@@ -250,7 +250,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                    createBy.data.getSlugifyColumn() as string
+                createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -356,6 +356,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data: {
                     deletedByUser: deleteBy.deletedByUser,
                 } as any,
+                userPermissions: deleteBy.userPermissions,
+                userId: deleteBy.userId,
+                userType: deleteBy.userType,
+                projectId: deleteBy.projectId
             });
             const numberOfDocsAffected: number =
                 (
@@ -371,7 +375,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             throw this.getException(error as Exception);
         }
     }
-    
+
     public async findBy(
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
@@ -430,24 +434,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return null;
     }
 
-    public async findOneById(id: ObjectID): Promise<TBaseModel | null> {
+    public async findOneById(findOneById: FindOneByID): Promise<TBaseModel | null> {
         return await this.findOneBy({
             query: {
-                _id: id.toString() as any,
+                _id: findOneById.id.toString() as any,
             },
+            userPermissions: findOneById.userPermissions,
+            userId: findOneById.userId,
+            userType: findOneById.userType,
+            projectId: findOneById.projectId
         });
     }
 
-    private async _updateBy({
-        query,
-        data,
-    }: UpdateBy<TBaseModel>): Promise<number> {
+    private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
         try {
             const beforeUpdateBy: UpdateBy<TBaseModel> =
-                await this.onBeforeUpdate({
-                    query,
-                    data,
-                });
+                await this.onBeforeUpdate(updateBy);
 
             const numberOfDocsAffected: number =
                 (
@@ -466,18 +468,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public async updateOneBy({
-        query,
-        data,
-    }: UpdateOneBy<TBaseModel>): Promise<number> {
-        return await this._updateBy({ query, data });
+    public async updateOneBy(updateOneBy: UpdateOneBy<TBaseModel>): Promise<number> {
+        return await this._updateBy(updateOneBy);
     }
 
-    public async updateBy({
-        query,
-        data,
-    }: UpdateBy<TBaseModel>): Promise<number> {
-        return await this._updateBy({ query, data });
+    public async updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
+        return await this._updateBy(updateBy);
     }
 
     public async updateOneById(
@@ -488,6 +484,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 _id: updateById.id.toString() as any,
             },
             data: updateById.data,
+            userPermissions: updateById.userPermissions,
+            userId: updateById.userId,
+            userType: updateById.userType,
+            projectId: updateById.projectId
         });
     }
 
@@ -495,7 +495,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
         updateById: UpdateByID<TBaseModel>
     ): Promise<TBaseModel | null> {
         await this.updateOneById(updateById);
-        return this.findOneById(updateById.id);
+        return this.findOneById({
+            id: updateById.id,
+            userPermissions: updateById.userPermissions,
+            userId: updateById.userId,
+            userType: updateById.userType,
+            projectId: updateById. projectId
+        });
     }
 
     public async searchBy({
@@ -503,6 +509,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         limit,
         select,
         populate,
+        userPermissions,
+        userId,
+        userType,
+        projectId,
     }: SearchBy<TBaseModel>): Promise<SearchResult<TBaseModel>> {
         const query: Query<TBaseModel> = {};
 
@@ -516,11 +526,19 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     limit,
                     select,
                     populate,
+                    userPermissions,
+                    userId,
+                    userType,
+                    projectId,
                 }),
                 this.countBy({
                     query,
                     skip: new PositiveNumber(0),
                     limit: new PositiveNumber(Infinity),
+                    userPermissions,
+                    userId,
+                    userType,
+                    projectId,
                 }),
             ]);
 

@@ -3,6 +3,15 @@ enum Permission {
     // Root 
     Root = 'ROOT', // System Permission. Should not be assigned to any user. 
 
+    // Owner of a Project
+    ProjectOwner = 'ProjectOwner',
+
+    Member = 'Member', // member of a project
+
+    User = 'User', //registered user. Can or cannot belong to a project.
+
+    Public = 'Public', // non-registered user. Everyone has this permission. 
+
     // Billing Permissions (Owner Permission)
     CanDeleteProject = 'CanDeleteProject',
 
@@ -35,13 +44,6 @@ enum Permission {
     CanEditResources = 'CanEditResources',
     CanDeleteResources = 'CanDeleteResources',
     CanReadResources = 'CanReadResources',
-
-    Member = 'Member', // member of a project
-
-    User = 'User', //registered user. Can or cannot belong to a project.
-
-    Public = 'Public', // non-registered user. Everyone has this permission. 
-
 }
 
 export class PermissionUtil {

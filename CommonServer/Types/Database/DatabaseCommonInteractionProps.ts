@@ -1,9 +1,10 @@
 import ObjectID from 'Common/Types/ObjectID';
 import Permission from 'Common/Types/Permission';
-import { userType } from '../../Utils/Express';
+import { UserType } from '../../Utils/Express';
 
 export default interface DatabaseCommonInteractionProps {
-    userId?: ObjectID;
-    userPermissions?: Array<Permission>;
-    userType?: userType;
+    userId: ObjectID| undefined;
+    userPermissions: Array<Permission>;
+    userType: UserType | undefined;
+    projectId: ObjectID | undefined;
 }

@@ -80,7 +80,13 @@ export default class BaseAPI<
     public getDatabaseCommonInteractionProps(
         req: ExpressRequest
     ): DatabaseCommonInteractionProps {
-        const props: DatabaseCommonInteractionProps = {};
+
+        const props: DatabaseCommonInteractionProps = {
+            projectId: undefined,
+            userPermissions: [],
+            userId: undefined,
+            userType: undefined
+        };
 
         if (
             (req as OneUptimeRequest).userAuthorization &&
@@ -89,12 +95,12 @@ export default class BaseAPI<
             props.userId = (req as OneUptimeRequest).userAuthorization!.userId;
         }
 
-        if ((req as OneUptimeRequest).role && (req as OneUptimeRequest).role) {
-            props.userRoleInProject = (req as OneUptimeRequest).role;
+        if ((req as OneUptimeRequest).permissions) {
+            props.userPermissions = (req as OneUptimeRequest).permissions;
         }
 
-        if ((req as OneUptimeRequest).role && (req as OneUptimeRequest).role) {
-            props.userRoleInProject = (req as OneUptimeRequest).role;
+        if ((req as OneUptimeRequest).permissions) {
+            props.projectId = (req as OneUptimeRequest).projectId || undefined;
         }
 
         return props;
