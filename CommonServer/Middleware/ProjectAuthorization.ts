@@ -6,12 +6,12 @@ import {
     ExpressResponse,
     NextFunction,
     OneUptimeRequest,
-    UserType,
 } from '../Utils/Express';
 
 import ApiKey from 'Common/Models/ApiKey';
 import { LessThan } from 'typeorm';
 import OneUptimeDate from 'Common/Types/Date';
+import UserType from 'Common/Types/UserType';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {

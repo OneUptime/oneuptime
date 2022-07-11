@@ -3,7 +3,6 @@ import {
     ExpressRequest,
     NextFunction,
     OneUptimeRequest,
-    UserType,
 } from '../Utils/Express';
 import UserService from '../Services/UserService';
 import ProjectMiddleware from './ProjectAuthorization';
@@ -11,6 +10,7 @@ import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
 import Permission from 'Common/Types/Permission';
+import UserType from 'Common/Types/UserType';
 
 export default class UserMiddleware {
     /*
@@ -84,7 +84,7 @@ export default class UserMiddleware {
             oneuptimeRequest.permissions =
                 oneuptimeRequest.userAuthorization.permissions;
         } else if (oneuptimeRequest.userType === UserType.User) {
-            oneuptimeRequest.permissions = [Permission.User];
+            oneuptimeRequest.permissions = [Permission.AnyUser];
         }
 
         return next();
