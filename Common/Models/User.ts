@@ -26,21 +26,20 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
     create: [Permission.Public],
     read: [Permission.CurrentUser, Permission.AnyMember],
     delete: [Permission.CurrentUser],
-    update: [Permission.CurrentUser]
+    update: [Permission.CurrentUser],
 })
 @CrudApiEndpoint(new Route('/user'))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'User',
 })
-@UserColumn("_id")
-@ProjectColumn("projects")
+@UserColumn('_id')
+@ProjectColumn('projects')
 class User extends BaseModel {
-
     @ColumnAccessControl({
         create: [Permission.Public],
         read: [Permission.CurrentUser, Permission.AnyMember],
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Name })
     @Column({
@@ -55,7 +54,7 @@ class User extends BaseModel {
         create: [Permission.Public],
         read: [Permission.CurrentUser, Permission.AnyMember],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({
         title: 'Email',
@@ -76,7 +75,7 @@ class User extends BaseModel {
         create: [],
         read: [Permission.CurrentUser],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Email })
     @Column({
@@ -92,14 +91,14 @@ class User extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.AnyUser],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
-        unique: true
+        unique: true,
     })
     public slug?: string = undefined;
 
@@ -107,7 +106,7 @@ class User extends BaseModel {
         create: [Permission.Public],
         read: [Permission.CurrentUser],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({
         title: 'Password',
@@ -123,12 +122,11 @@ class User extends BaseModel {
     })
     public password?: HashedString = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],
 
-        update: []
+        update: [],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
@@ -137,12 +135,11 @@ class User extends BaseModel {
     })
     public isEmailVerified?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [Permission.Public],
         read: [Permission.CurrentUser],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -157,7 +154,7 @@ class User extends BaseModel {
         create: [Permission.Public],
         read: [Permission.CurrentUser],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -172,7 +169,7 @@ class User extends BaseModel {
         create: [Permission.Public],
         read: [Permission.CurrentUser],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -187,7 +184,7 @@ class User extends BaseModel {
         create: [Permission.Public],
         read: [Permission.CurrentUser],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -202,7 +199,7 @@ class User extends BaseModel {
         create: [Permission.Public],
         read: [Permission.CurrentUser],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Phone })
     @Column({
@@ -218,7 +215,7 @@ class User extends BaseModel {
         create: [],
         read: [Permission.CurrentUser, Permission.AnyMember],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortURL })
     @Column({
@@ -230,12 +227,11 @@ class User extends BaseModel {
     })
     public profilePicImageUrl?: URL = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser, Permission.AnyMember],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -250,12 +246,11 @@ class User extends BaseModel {
     })
     public twoFactorAuthEnabled?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -270,7 +265,7 @@ class User extends BaseModel {
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ShortURL })
     @Column({
@@ -282,12 +277,11 @@ class User extends BaseModel {
     })
     public twoFactorAuthUrl?: URL;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Array })
     @Column({
@@ -301,7 +295,7 @@ class User extends BaseModel {
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -316,7 +310,7 @@ class User extends BaseModel {
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -331,7 +325,7 @@ class User extends BaseModel {
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -346,7 +340,7 @@ class User extends BaseModel {
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
@@ -356,12 +350,11 @@ class User extends BaseModel {
     })
     public resetPasswordExpires?: Date = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser, Permission.AnyMember],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -372,12 +365,11 @@ class User extends BaseModel {
     })
     public timezone?: Timezone = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
@@ -387,12 +379,11 @@ class User extends BaseModel {
     })
     public lastActive?: Date = undefined;
 
-
     @ColumnAccessControl({
         create: [Permission.Public],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -407,7 +398,7 @@ class User extends BaseModel {
         create: [],
         read: [Permission.CustomerSupport],
 
-        update: [Permission.CustomerSupport]
+        update: [Permission.CustomerSupport],
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -422,12 +413,11 @@ class User extends BaseModel {
     })
     public isDisabled?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
@@ -437,12 +427,11 @@ class User extends BaseModel {
     })
     public paymentFailedDate?: Date = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -457,12 +446,11 @@ class User extends BaseModel {
     })
     public isMasterAdmin?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CustomerSupport],
 
-        update: [Permission.CustomerSupport]
+        update: [Permission.CustomerSupport],
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -477,12 +465,11 @@ class User extends BaseModel {
     })
     public isBlocked?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser, Permission.AnyMember],
 
-        update: [Permission.CurrentUser]
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Phone })
     @Column({
@@ -493,12 +480,11 @@ class User extends BaseModel {
     })
     public alertPhoneNumber?: Phone = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.OTP })
     @Column({
@@ -509,12 +495,11 @@ class User extends BaseModel {
     })
     public alertPhoneVerificationCode?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
@@ -524,12 +509,11 @@ class User extends BaseModel {
     })
     public alertPhoneVerificationCodeRequestTime?: Date = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Phone })
     @Column({
@@ -540,18 +524,18 @@ class User extends BaseModel {
     })
     public tempAlertPhoneNumber?: Phone = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
 
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Array })
-    @ManyToMany(() => Project)
+    @ManyToMany(() => {
+        return Project;
+    })
     @JoinTable()
     public projects?: Array<Project> = undefined;
-
 }
 
 export default User;

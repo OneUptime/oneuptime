@@ -19,20 +19,27 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
     create: [Permission.AnyUser],
     read: [Permission.AnyMember],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProject],
-    update: [Permission.ProjectOwner, Permission.CanManageBilling, Permission.CanUpdateProject]
+    update: [
+        Permission.ProjectOwner,
+        Permission.CanManageBilling,
+        Permission.CanUpdateProject,
+    ],
 })
 @CrudApiEndpoint(new Route('/project'))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Project',
 })
-@ProjectColumn("_id")
+@ProjectColumn('_id')
 export default class Model extends BaseModel {
-
     @ColumnAccessControl({
         create: [Permission.AnyUser],
         read: [Permission.AnyMember],
-        update: [Permission.ProjectOwner, Permission.CanManageBilling, Permission.CanUpdateProject]
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageBilling,
+            Permission.CanUpdateProject,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -46,22 +53,21 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.AnyUser],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
-        unique: true
+        unique: true,
     })
     public slug?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.AnyUser],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -75,7 +81,7 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.AnyUser],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -89,7 +95,7 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({
         type: TableColumnType.SmallPositiveNumber,
@@ -106,7 +112,7 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.AnyUser],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
@@ -126,11 +132,10 @@ export default class Model extends BaseModel {
     @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -140,11 +145,10 @@ export default class Model extends BaseModel {
     })
     public createdByUserId?: ObjectID;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
@@ -168,7 +172,7 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -178,11 +182,14 @@ export default class Model extends BaseModel {
     })
     public deletedByUserId?: ObjectID;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.AnyMember],
-        update: [Permission.ProjectOwner, Permission.CanManageBilling, Permission.CanUpdateProject]
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageBilling,
+            Permission.CanUpdateProject,
+        ],
     })
     @TableColumn({
         required: true,
@@ -200,7 +207,7 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [Permission.ProjectOwner, Permission.CanManageBilling],
-        update: []
+        update: [],
     })
     @TableColumn({
         required: true,
@@ -218,7 +225,7 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({
         required: true,
@@ -236,7 +243,7 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.SmallPositiveNumber })
     @Column({
@@ -249,7 +256,7 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
@@ -262,7 +269,7 @@ export default class Model extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({

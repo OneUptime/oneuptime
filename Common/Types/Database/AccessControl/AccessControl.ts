@@ -1,4 +1,4 @@
-import Permission from "../../Permission";
+import Permission from '../../Permission';
 
 export interface ColumnAccessControl {
     read: Array<Permission>;
@@ -6,6 +6,6 @@ export interface ColumnAccessControl {
     update: Array<Permission>;
 }
 
-export interface TableAccessControl extends ColumnAccessControl{
+export interface TableAccessControl extends ColumnAccessControl {
     delete: Array<Permission>;
 }

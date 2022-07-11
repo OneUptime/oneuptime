@@ -15,7 +15,7 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 
-@ProjectColumn("projectId")
+@ProjectColumn('projectId')
 @CrudApiEndpoint(new Route('/api-key'))
 @SlugifyColumn('name', 'slug')
 @Entity({
@@ -25,14 +25,17 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
     create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
     read: [Permission.ProjectOwner, Permission.CanReadApiKey],
     delete: [Permission.ProjectOwner, Permission.CanDeleteApiKey],
-    update: [Permission.ProjectOwner, Permission.CanEditApiKeyPermissions, Permission.CanEditApiKey]
+    update: [
+        Permission.ProjectOwner,
+        Permission.CanEditApiKeyPermissions,
+        Permission.CanEditApiKey,
+    ],
 })
 export default class ApiKey extends BaseModel {
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: []
+        update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
@@ -55,7 +58,7 @@ export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: []
+        update: [],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -69,7 +72,7 @@ export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: [Permission.CanEditApiKey]
+        update: [Permission.CanEditApiKey],
     })
     @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -83,7 +86,7 @@ export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: [Permission.CanEditApiKey]
+        update: [Permission.CanEditApiKey],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -96,7 +99,7 @@ export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: []
+        update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
     @Column({
@@ -108,8 +111,8 @@ export default class ApiKey extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner,Permission.CanReadApiKey],
-        update: []
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
@@ -131,8 +134,8 @@ export default class ApiKey extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner,Permission.CanReadApiKey],
-        update: []
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -145,7 +148,7 @@ export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
@@ -166,11 +169,10 @@ export default class ApiKey extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -183,7 +185,7 @@ export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: [Permission.CanEditApiKeyPermissions]
+        update: [Permission.CanEditApiKeyPermissions],
     })
     @TableColumn({ title: 'Permissions', type: TableColumnType.Array })
     @Column({
@@ -193,11 +195,10 @@ export default class ApiKey extends BaseModel {
     })
     public permissions?: Array<Permission> = undefined;
 
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: [Permission.CanEditApiKey]
+        update: [Permission.CanEditApiKey],
     })
     @TableColumn({ title: 'Expires At', type: TableColumnType.Date })
     @Column({
@@ -210,7 +211,7 @@ export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: []
+        update: [],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: true })

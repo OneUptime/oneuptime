@@ -1,8 +1,8 @@
- enum UserType {
+enum UserType {
     API = 'API',
     User = 'User',
     MasterAdmin = 'MasterAdmin',
     Public = 'Public',
- }
+}
 
-export default UserType; 
+export default UserType;

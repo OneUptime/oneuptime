@@ -31,18 +31,16 @@ import FindOneByID from '../Types/Database/FindOneByID';
 import Permission, { PermissionUtil } from 'Common/Types/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Dictionary from 'Common/Types/Dictionary';
-import {
-    getColumnAccessControlForAllColumns,
-} from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new(): TBaseModel };
+    private entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        type: { new(): TBaseModel },
+        type: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = type;
@@ -259,7 +257,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
+                    createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -288,9 +286,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // hash data
         data = await this.hash(data);
 
-        data = this.asCreateableByPermissions(
-            createBy
-        );
+        data = this.asCreateableByPermissions(createBy);
 
         try {
             const savedData: TBaseModel = await this.getRepository().save(data);
@@ -306,7 +302,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asCreateableByPermissions(
         createBy: CreateBy<TBaseModel>
     ): TBaseModel {
-
         // If system is making this query then let the query run!
         if (createBy.isRoot) {
             return createBy.data;
@@ -324,7 +319,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         const data: TBaseModel = this.keepColumns(
-            this.getCreateableColumnsByPermissions(createBy.userPermissions || []), createBy.data
+            this.getCreateableColumnsByPermissions(
+                createBy.userPermissions || []
+            ),
+            createBy.data
         );
 
         return data;
@@ -333,7 +331,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asFindByByPermissions(
         findBy: FindBy<TBaseModel>
     ): FindBy<TBaseModel> {
-
         if (findBy.isRoot) {
             return findBy;
         }
@@ -341,9 +338,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         let tablePermissions: Array<Permission> = [];
         let columns: Columns = new Columns([]);
 
-
         tablePermissions = this.model.readRecordPermissions;
-
 
         if (
             !PermissionUtil.doesPermissionsIntersect(
@@ -356,14 +351,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
         }
 
+        columns = this.getReadColumnsByPermissions(
+            findBy.userPermissions || []
+        );
 
-        columns = this.getReadColumnsByPermissions(findBy.userPermissions || []);
-
-        // Now we need to check all columns. 
-
+        // Now we need to check all columns.
 
         for (const key in findBy.query) {
-
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to query on - ${key}.`
@@ -372,7 +366,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         for (const key in findBy.select) {
-
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to select on - ${key}.`
@@ -388,26 +381,30 @@ class DatabaseService<TBaseModel extends BaseModel> {
             (findBy.query as any)[this.model.userColumn] = findBy.userId;
         }
 
-
         if (this.model.isPermissionIf) {
             for (const key in this.model.isPermissionIf) {
                 const permission: Permission = key as Permission;
 
-                if (findBy.userPermissions?.includes(permission) && this.model.isPermissionIf[permission]) {
-                    const columnName = Object.keys(this.model.isPermissionIf[permission] as any)[0] as string
-                    (findBy.query as any)[columnName] = (this.model.isPermissionIf[permission] as any)[columnName];
+                if (
+                    findBy.userPermissions?.includes(permission) &&
+                    this.model.isPermissionIf[permission]
+                ) {
+                    const columnName: string = Object.keys(
+                        this.model.isPermissionIf[permission] as any
+                    )[0] as string;
+                    (findBy.query as any)[columnName] = (
+                        this.model.isPermissionIf[permission] as any
+                    )[columnName];
                 }
             }
         }
 
         return findBy;
-
     }
 
     public asUpdateByByPermissions(
         updateBy: UpdateBy<TBaseModel>
     ): UpdateBy<TBaseModel> {
-
         if (updateBy.isRoot) {
             return updateBy;
         }
@@ -416,9 +413,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         let updateColumns: Columns = new Columns([]);
         let readColumns: Columns = new Columns([]);
 
-
         tablePermissions = this.model.updateRecordPermissions;
-
 
         if (
             !PermissionUtil.doesPermissionsIntersect(
@@ -431,15 +426,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
         }
 
+        updateColumns = this.getUpdateColumnsByPermissions(
+            updateBy.userPermissions || []
+        );
+        readColumns = this.getReadColumnsByPermissions(
+            updateBy.userPermissions || []
+        );
 
-        updateColumns = this.getUpdateColumnsByPermissions(updateBy.userPermissions || []);
-        readColumns = this.getReadColumnsByPermissions(updateBy.userPermissions || []);
-
-        // Now we need to check all columns. 
-
+        // Now we need to check all columns.
 
         for (const key in updateBy.query) {
-
             if (!readColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to query on - ${key}.`
@@ -448,7 +444,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         for (const key in updateBy.data) {
-
             if (!updateColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to update this record at - ${key}.`
@@ -457,16 +452,24 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         if (this.model.projectColumn) {
-            (updateBy.query as any)[this.model.projectColumn] = updateBy.projectId;
+            (updateBy.query as any)[this.model.projectColumn] =
+                updateBy.projectId;
         }
 
         if (this.model.isPermissionIf) {
             for (const key in this.model.isPermissionIf) {
                 const permission: Permission = key as Permission;
 
-                if (updateBy.userPermissions?.includes(permission) && this.model.isPermissionIf[permission]) {
-                    const columnName = Object.keys(this.model.isPermissionIf[permission] as any)[0] as string
-                    (updateBy.query as any)[columnName] = (this.model.isPermissionIf[permission] as any)[columnName];
+                if (
+                    updateBy.userPermissions?.includes(permission) &&
+                    this.model.isPermissionIf[permission]
+                ) {
+                    const columnName: string = Object.keys(
+                        this.model.isPermissionIf[permission] as any
+                    )[0] as string;
+                    (updateBy.query as any)[columnName] = (
+                        this.model.isPermissionIf[permission] as any
+                    )[columnName];
                 }
             }
         }
@@ -476,13 +479,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         return updateBy;
-
     }
 
     public asDeleteByPermissions(
         deleteBy: DeleteBy<TBaseModel>
     ): DeleteBy<TBaseModel> {
-
         if (deleteBy.isRoot) {
             return deleteBy;
         }
@@ -503,7 +504,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         if (this.model.projectColumn) {
-            (deleteBy.query as any)[this.model.projectColumn] = deleteBy.projectId;
+            (deleteBy.query as any)[this.model.projectColumn] =
+                deleteBy.projectId;
         }
 
         if (this.model.userColumn) {
@@ -511,7 +513,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         return deleteBy;
-
     }
 
     public getCreateableColumnsByPermissions(
@@ -663,7 +664,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         try {
             let beforeDeleteBy: DeleteBy<TBaseModel> =
                 await this.onBeforeDelete(deleteBy);
-            
+
             beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
 
             await this._updateBy({

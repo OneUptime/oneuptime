@@ -20,14 +20,13 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
     create: [],
     read: [],
     delete: [],
-    update: []
+    update: [],
 })
 export default class EmailVerificationToken extends BaseModel {
-
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'userId',
@@ -51,7 +50,7 @@ export default class EmailVerificationToken extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -64,7 +63,7 @@ export default class EmailVerificationToken extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.Email })
     @Column({
@@ -78,7 +77,7 @@ export default class EmailVerificationToken extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @Index()
     @TableColumn({
@@ -98,7 +97,7 @@ export default class EmailVerificationToken extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({ required: true, type: TableColumnType.Date })
     @Column({

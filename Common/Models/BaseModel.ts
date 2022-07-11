@@ -38,7 +38,6 @@ export type DbTypes =
     | Buffer;
 
 export default class BaseModel extends BaseEntity {
-
     @TableColumn({ title: 'ID', type: TableColumnType.ObjectID })
     @PrimaryGeneratedColumn('uuid')
     public _id?: string = undefined;
@@ -69,7 +68,7 @@ export default class BaseModel extends BaseEntity {
     public slugifyColumn!: string | null;
     public saveSlugToColumn!: string | null;
 
-    public isPermissionIf: Dictionary<JSONObject> = {}; 
+    public isPermissionIf: Dictionary<JSONObject> = {};
 
     public crudApiPath!: Route | null;
     // If this resource is by projectId, which column does projectId belong to?
@@ -107,8 +106,6 @@ export default class BaseModel extends BaseEntity {
         return getTableColumn(this, columnName)?.description || null;
     }
 
-   
-
     public getEncryptedColumns(): Columns {
         const dictionary: Dictionary<TableColumnMetadata> =
             getTableColumns(this);
@@ -144,8 +141,12 @@ export default class BaseModel extends BaseEntity {
         (this as any)[columnName] = value;
     }
 
-    public doesPermissionHasConfitions(permission: Permission): JSONObject | null {
-        return this.isPermissionIf[permission] ? this.isPermissionIf[permission] as JSONObject : null;
+    public doesPermissionHasConfitions(
+        permission: Permission
+    ): JSONObject | null {
+        return this.isPermissionIf[permission]
+            ? (this.isPermissionIf[permission] as JSONObject)
+            : null;
     }
 
     public getUniqueColumns(): Columns {

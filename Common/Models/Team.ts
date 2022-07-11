@@ -24,13 +24,21 @@ import Permission from '../Types/Permission';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 import ProjectColumn from '../Types/Database/ProjectColumn';
 
-
-@ProjectColumn("projectId")
+@ProjectColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-    read: [Permission.ProjectOwner, Permission.CanReadTeam, Permission.AnyMember],
+    read: [
+        Permission.ProjectOwner,
+        Permission.CanReadTeam,
+        Permission.AnyMember,
+    ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteTeam],
-    update: [Permission.ProjectOwner, Permission.CanInviteTeamMembers, Permission.CanEditTeamPermissions, Permission.CanEditTeam]
+    update: [
+        Permission.ProjectOwner,
+        Permission.CanInviteTeamMembers,
+        Permission.CanEditTeamPermissions,
+        Permission.CanEditTeam,
+    ],
 })
 @CrudApiEndpoint(new Route('/team'))
 @SlugifyColumn('name', 'slug')
@@ -38,12 +46,14 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
     name: 'Team',
 })
 export default class Team extends BaseModel {
-
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [Permission.ProjectOwner,Permission.CanReadTeam, Permission.AnyMember],
-        update: []
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadTeam,
+            Permission.AnyMember,
+        ],
+        update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
@@ -65,8 +75,12 @@ export default class Team extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [Permission.ProjectOwner,Permission.CanReadTeam, Permission.AnyMember],
-        update: []
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadTeam,
+            Permission.AnyMember,
+        ],
+        update: [],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -77,11 +91,14 @@ export default class Team extends BaseModel {
     })
     public projectId?: ObjectID;
 
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [Permission.ProjectOwner,Permission.CanReadTeam, Permission.AnyMember],
-        update: [Permission.ProjectOwner, Permission.CanEditTeam]
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadTeam,
+            Permission.AnyMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditTeam],
     })
     @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -92,11 +109,14 @@ export default class Team extends BaseModel {
     })
     public name?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [Permission.ProjectOwner,Permission.CanReadTeam, Permission.AnyMember],
-        update: [Permission.ProjectOwner, Permission.CanEditTeam]
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadTeam,
+            Permission.AnyMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditTeam],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -106,27 +126,33 @@ export default class Team extends BaseModel {
     })
     public description?: string = undefined;
 
-
     @Index()
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [Permission.ProjectOwner,Permission.CanReadTeam, Permission.AnyMember],
-        update: []
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadTeam,
+            Permission.AnyMember,
+        ],
+        update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
-        unique: true
+        unique: true,
     })
     public slug?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [Permission.ProjectOwner,Permission.CanReadTeam, Permission.AnyMember],
-        update: []
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadTeam,
+            Permission.AnyMember,
+        ],
+        update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
@@ -148,8 +174,12 @@ export default class Team extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [Permission.ProjectOwner,Permission.CanReadTeam, Permission.AnyMember],
-        update: []
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadTeam,
+            Permission.AnyMember,
+        ],
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -162,7 +192,7 @@ export default class Team extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [],
-        update: []
+        update: [],
     })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
@@ -186,7 +216,7 @@ export default class Team extends BaseModel {
     @ColumnAccessControl({
         create: [],
         read: [Permission.AnyMember],
-        update: []
+        update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -202,11 +232,14 @@ export default class Team extends BaseModel {
     @JoinTable()
     public permissions?: Array<TeamPermission> = undefined;
 
-
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanEditTeam, Permission.CanEditTeamPermissions],
-        update: []
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanEditTeam,
+            Permission.CanEditTeamPermissions,
+        ],
+        update: [],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
