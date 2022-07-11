@@ -1,6 +1,6 @@
-import AccessControl from "./AccessControl";
+import { TableAccessControl } from "./AccessControl";
 
-export default (accessControl: AccessControl) => {
+export default (accessControl: TableAccessControl) => {
     return (ctr: Function) => {
         if (accessControl.create) {
             ctr.prototype.createRecordPermissions = accessControl.create;

@@ -2,31 +2,31 @@ import 'reflect-metadata';
 import BaseModel from '../../../Models/BaseModel';
 import Dictionary from '../../Dictionary';
 import { ReflectionMetadataType } from '../../Reflection';
-import AccessControl from './AccessControl';
+import {ColumnAccessControl} from './AccessControl';
 
 const accessControlSymbol: Symbol = Symbol('ColumnAccessControl');
 
-export default (accessControl: AccessControl): ReflectionMetadataType => {
+export default (accessControl: ColumnAccessControl): ReflectionMetadataType => {
     return Reflect.metadata(accessControlSymbol, accessControl);
 };
 
 export const getColumnAccessControl: Function = (
     target: BaseModel,
     propertyKey: string
-): AccessControl => {
+): ColumnAccessControl => {
     return Reflect.getMetadata(
         accessControlSymbol,
         target,
         propertyKey
-    ) as AccessControl;
+    ) as ColumnAccessControl;
 };
 
 export const getColumnAccessControlForAllColumns: Function = <
     T extends BaseModel
 >(
     target: T
-): Dictionary<AccessControl> => {
-    const dictonary: Dictionary<AccessControl> = {};
+): Dictionary<ColumnAccessControl> => {
+    const dictonary: Dictionary<ColumnAccessControl> = {};
     const keys: Array<string> = Object.keys(target);
 
     for (const key of keys) {
@@ -35,7 +35,7 @@ export const getColumnAccessControlForAllColumns: Function = <
                 accessControlSymbol,
                 target,
                 key
-            ) as AccessControl;
+            ) as ColumnAccessControl;
         }
     }
 

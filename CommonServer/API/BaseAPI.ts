@@ -13,7 +13,7 @@ import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
 import CreateBy from '../Types/Database/CreateBy';
-import DatabaseCommonInteractionProps from '../Types/Database/DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,

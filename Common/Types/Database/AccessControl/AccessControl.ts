@@ -1,10 +1,11 @@
 import Permission from "../../Permission";
 
-interface AccessControl {
+export interface ColumnAccessControl {
     read: Array<Permission>;
     create: Array<Permission>;
-    delete: Array<Permission>;
     update: Array<Permission>;
 }
 
-export default AccessControl;
+export interface TableAccessControl extends ColumnAccessControl{
+    delete: Array<Permission>;
+}

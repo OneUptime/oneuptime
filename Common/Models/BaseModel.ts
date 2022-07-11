@@ -23,12 +23,7 @@ import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import Name from '../Types/Name';
 import TableColumnType from '../Types/Database/TableColumnType';
-import Permission, { PermissionUtil } from '../Types/Permission';
-import BadRequestException from '../Types/Exception/BadRequestException';
-import {
-    ColumnAccessControl,
-    getColumnAccessControlForAllColumns,
-} from '../Types/Database/AccessControl/ColumnAccessControl';
+import Permission from '../Types/Permission';
 
 export type DbTypes =
     | string
@@ -43,6 +38,7 @@ export type DbTypes =
     | Buffer;
 
 export default class BaseModel extends BaseEntity {
+
     @TableColumn({ title: 'ID', type: TableColumnType.ObjectID })
     @PrimaryGeneratedColumn('uuid')
     public _id?: string = undefined;
@@ -68,12 +64,14 @@ export default class BaseModel extends BaseEntity {
     public deleteRecordPermissions!: Array<Permission>;
     public updateRecordPermissions!: Array<Permission>;
 
+    public userColumn!: string | null;
+    public labelsColumn!: string | null;
     public slugifyColumn!: string | null;
     public saveSlugToColumn!: string | null;
 
     public crudApiPath!: Route | null;
     // If this resource is by projectId, which column does projectId belong to?
-    public projectIdColumn!: string | null;
+    public projectColumn!: string | null;
 
     public constructor(id?: ObjectID) {
         super();
@@ -107,77 +105,7 @@ export default class BaseModel extends BaseEntity {
         return getTableColumn(this, columnName)?.description || null;
     }
 
-    public asCreateableByPermissions(
-        permissions: Array<Permission>
-    ): BaseModel {
-        // If system is making this query then let the query run!
-        if (permissions.includes(Permission.Root)) {
-            return this;
-        }
-
-        if (
-            !PermissionUtil.doesPermissionsIntersect(
-                permissions,
-                this.createRecordPermissions
-            )
-        ) {
-            throw new BadRequestException(
-                'A user does not have permissions to crate record.'
-            );
-        }
-
-        const data: BaseModel = this.keepColumns(
-            this.getCreateableColumnsByPermissions(permissions)
-        );
-
-        return data;
-    }
-
-    public getCreateableColumnsByPermissions(
-        permissions: Array<Permission>
-    ): Columns {
-        const accessControl: Dictionary<ColumnAccessControl> =
-            getColumnAccessControlForAllColumns(this);
-
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (
-                accessControl[key]?.update &&
-                PermissionUtil.doesPermissionsIntersect(
-                    permissions,
-                    accessControl[key]?.update || []
-                )
-            ) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    private keepColumns(columnsToKeep: Columns): BaseModel {
-        if (!columnsToKeep) {
-            return this;
-        }
-
-        for (const key of Object.keys(this)) {
-            const columns: Columns = this.getTableColumns();
-
-            if (
-                !(
-                    columnsToKeep &&
-                    columnsToKeep.columns.length > 0 &&
-                    columnsToKeep.columns.includes(key)
-                ) &&
-                columns.hasColumn(key)
-            ) {
-                (this as any)[key] = undefined;
-            }
-        }
-
-        return this;
-    }
+   
 
     public getEncryptedColumns(): Columns {
         const dictionary: Dictionary<TableColumnMetadata> =
@@ -256,8 +184,16 @@ export default class BaseModel extends BaseEntity {
         return this.saveSlugToColumn;
     }
 
-    public getProjectIdColumn(): string | null {
-        return this.projectIdColumn;
+    public getprojectColumn(): string | null {
+        return this.projectColumn;
+    }
+
+    public getuserColumn(): string | null {
+        return this.userColumn;
+    }
+
+    public getLabelsColumn(): string | null {
+        return this.labelsColumn;
     }
 
     public get id(): ObjectID | null {
@@ -375,5 +311,9 @@ export default class BaseModel extends BaseEntity {
         }
 
         return array;
+    }
+
+    public hasPermission(_permissions: Array<Permission>): boolean {
+        return false;
     }
 }

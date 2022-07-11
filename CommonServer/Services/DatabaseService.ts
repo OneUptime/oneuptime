@@ -28,16 +28,35 @@ import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
 import FindOneByID from '../Types/Database/FindOneByID';
+import Permission, { PermissionUtil } from 'Common/Types/Permission';
+import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import BadRequestException from 'Common/Types/Exception/BadRequestException';
+import AccessControl from 'Common/Types/Database/AccessControl/AccessControl';
+import Dictionary from 'Common/Types/Dictionary';
+import {
+    getColumnAccessControlForAllColumns,
+} from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
+import Select from '../Types/Database/Select';
+import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+
+enum QueryType {
+    Read = "read",
+    Update = "update",
+    Delete = "delete"
+}
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    private entityType!: { new(): TBaseModel };
+    private model!: TBaseModel;
 
     public constructor(
-        type: { new (): TBaseModel },
+        type: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = type;
+        this.model = new type();
 
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
@@ -250,7 +269,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                    createBy.data.getSlugifyColumn() as string
+                createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -279,9 +298,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // hash data
         data = await this.hash(data);
 
-        data = data.asCreateableByPermissions(
-            createBy.userPermissions || []
-        ) as TBaseModel;
+        data = this.asCreateableByPermissions(
+            createBy
+        );
 
         try {
             const savedData: TBaseModel = await this.getRepository().save(data);
@@ -292,6 +311,278 @@ class DatabaseService<TBaseModel extends BaseModel> {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    public asCreateableByPermissions(
+        createBy: CreateBy<TBaseModel>
+    ): TBaseModel {
+
+        // If system is making this query then let the query run!
+        if (createBy.isRoot) {
+            return createBy.data;
+        }
+
+        if (
+            !PermissionUtil.doesPermissionsIntersect(
+                createBy.userPermissions || [],
+                createBy.data.createRecordPermissions
+            )
+        ) {
+            throw new NotAuthorizedException(
+                'A user does not have permissions to create record.'
+            );
+        }
+
+        const data: TBaseModel = this.keepColumns(
+            this.getCreateableColumnsByPermissions(createBy.userPermissions || []), createBy.data
+        );
+
+        return data;
+    }
+
+    public asFindByByPermissions(
+        findBy: FindBy<TBaseModel>
+    ): FindBy<TBaseModel> {
+
+        if (findBy.isRoot) {
+            return findBy;
+        }
+
+        let tablePermissions: Array<Permission> = [];
+        let columns: Columns = new Columns([]);
+
+
+        tablePermissions = this.model.readRecordPermissions;
+
+
+        if (
+            !PermissionUtil.doesPermissionsIntersect(
+                findBy.userPermissions || [],
+                tablePermissions
+            )
+        ) {
+            throw new NotAuthorizedException(
+                `A user does not have permissions to read record.`
+            );
+        }
+
+       
+        columns = this.getReadColumnsByPermissions(findBy.userPermissions || []);
+
+        // Now we need to check all columns. 
+
+        
+        for (const key in findBy.query) {
+            
+            if (!columns.columns.includes(key)) {
+                delete findBy.query[key];
+            }
+        }
+
+        for (const key in findBy.select) {
+            
+            if (!columns.columns.includes(key)) {
+                delete findBy.select[key];
+            }
+        }
+
+        if (Permission.AnyMember && this.model.projectColumn) {
+            (findBy.query as any)[this.model.projectColumn] = findBy.projectId;
+        }
+
+        if (Permission.CurrentUser && this.model.userColumn) {
+            (findBy.query as any)[this.model.userColumn] = findBy.userId;
+        }
+
+        return findBy;
+
+    }
+
+    public asUpdateByByPermissions(
+        updateBy: UpdateBy<TBaseModel>
+    ): UpdateBy<TBaseModel> {
+
+        if (updateBy.isRoot) {
+            return updateBy;
+        }
+
+        let tablePermissions: Array<Permission> = [];
+        let updateColumns: Columns = new Columns([]);
+        let readColumns: Columns = new Columns([]);
+
+
+        tablePermissions = this.model.updateRecordPermissions;
+
+
+        if (
+            !PermissionUtil.doesPermissionsIntersect(
+                updateBy.userPermissions || [],
+                tablePermissions
+            )
+        ) {
+            throw new NotAuthorizedException(
+                `A user does not have permissions to update record.`
+            );
+        }
+
+       
+        updateColumns = this.getUpdateColumnsByPermissions(updateBy.userPermissions || []);
+        readColumns = this.getReadColumnsByPermissions(updateBy.userPermissions || []);
+
+        // Now we need to check all columns. 
+
+        
+        for (const key in updateBy.query) {
+            
+            if (!readColumns.columns.includes(key)) {
+                delete updateBy.query[key];
+            }
+        }
+
+        for (const key in updateBy.data) {
+            
+            if (!updateColumns.columns.includes(key)) {
+                delete updateBy.data[key];
+            }
+        }
+
+        if (Permission.AnyMember && this.model.projectColumn) {
+            (updateBy.query as any)[this.model.projectColumn] = updateBy.projectId;
+        }
+
+        if (Permission.CurrentUser && this.model.userColumn) {
+            (updateBy.query as any)[this.model.userColumn] = updateBy.userId;
+        }
+
+        return updateBy;
+
+    }
+
+    public asDeleteByPermissions(
+        deleteBy: DeleteBy<TBaseModel>
+    ): DeleteBy<TBaseModel> {
+
+        if (deleteBy.isRoot) {
+            return deleteBy;
+        }
+
+        let tablePermissions: Array<Permission> = [];
+
+        tablePermissions = this.model.deleteRecordPermissions;
+
+        if (
+            !PermissionUtil.doesPermissionsIntersect(
+                deleteBy.userPermissions || [],
+                tablePermissions
+            )
+        ) {
+            throw new NotAuthorizedException(
+                `A user does not have permissions to delete record.`
+            );
+        }
+
+        if (Permission.AnyMember && this.model.projectColumn) {
+            (deleteBy.query as any)[this.model.projectColumn] = deleteBy.projectId;
+        }
+
+        if (Permission.CurrentUser && this.model.userColumn) {
+            (deleteBy.query as any)[this.model.userColumn] = deleteBy.userId;
+        }
+
+        return deleteBy;
+
+    }
+
+    public getCreateableColumnsByPermissions(
+        permissions: Array<Permission>
+    ): Columns {
+        const accessControl: Dictionary<AccessControl> =
+            getColumnAccessControlForAllColumns(this.model);
+
+        const columns: Array<string> = [];
+
+        for (const key in accessControl) {
+            if (
+                accessControl[key]?.create &&
+                PermissionUtil.doesPermissionsIntersect(
+                    permissions,
+                    accessControl[key]?.create || []
+                )
+            ) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getReadColumnsByPermissions(
+        permissions: Array<Permission>
+    ): Columns {
+        const accessControl: Dictionary<AccessControl> =
+            getColumnAccessControlForAllColumns(this.model);
+
+        const columns: Array<string> = [];
+
+        for (const key in accessControl) {
+            if (
+                accessControl[key]?.read &&
+                PermissionUtil.doesPermissionsIntersect(
+                    permissions,
+                    accessControl[key]?.read || []
+                )
+            ) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getUpdateColumnsByPermissions(
+        permissions: Array<Permission>
+    ): Columns {
+        const accessControl: Dictionary<AccessControl> =
+            getColumnAccessControlForAllColumns(this.model);
+
+        const columns: Array<string> = [];
+
+        for (const key in accessControl) {
+            if (
+                accessControl[key]?.update &&
+                PermissionUtil.doesPermissionsIntersect(
+                    permissions,
+                    accessControl[key]?.update || []
+                )
+            ) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    private keepColumns(columnsToKeep: Columns, data: TBaseModel): TBaseModel {
+        if (!columnsToKeep) {
+            return data;
+        }
+
+        for (const key of Object.keys(this)) {
+            const columns: Columns = data.getTableColumns();
+
+            if (
+                !(
+                    columnsToKeep &&
+                    columnsToKeep.columns.length > 0 &&
+                    columnsToKeep.columns.includes(key)
+                ) &&
+                columns.hasColumn(key)
+            ) {
+                (this as any)[key] = undefined;
+            }
+        }
+
+        return data;
     }
 
     public async countBy({

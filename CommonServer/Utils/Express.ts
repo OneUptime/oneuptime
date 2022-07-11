@@ -5,6 +5,10 @@ import { JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Permission from 'Common/Types/Permission';
+import UserType from "Common/Types/UserType";
+
+
+
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
 
@@ -21,12 +25,6 @@ export type ExpressResponse = express.Response;
 export type ExpressApplication = express.Application;
 export type ExpressRouter = express.Router;
 
-export enum UserType {
-    API = 'API',
-    User = 'User',
-    MasterAdmin = 'MasterAdmin',
-    Public = 'Public',
-}
 
 export interface OneUptimeRequest extends express.Request {
     probe?: ProbeRequest;

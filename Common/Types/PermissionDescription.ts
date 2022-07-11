@@ -1,4 +1,4 @@
-enum Permission {
+enum PermissionDescription {
 
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',
@@ -47,21 +47,4 @@ enum Permission {
     CanReadResources = 'CanReadResources',
 }
 
-export class PermissionUtil {
-    public static doesPermissionsIntersect(
-        permissions1: Array<Permission>,
-        permissions2: Array<Permission>
-    ): boolean {
-        return (
-            permissions1.filter((value: Permission) => {
-                return permissions2.includes(value);
-            }).length > 0
-        );
-    }
-}
-
-export const PermissionsArray: Array<string> = [
-    ...new Set(Object.keys(Permissions)),
-]; // Returns ["Owner", "Administrator"...]
-
-export default Permission;
+export default PermissionDescription;

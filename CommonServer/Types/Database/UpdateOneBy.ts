@@ -1,6 +1,6 @@
 import BaseModel from 'Common/Models/BaseModel';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import DatabaseCommonInteractionProps from './DatabaseCommonInteractionProps';
+import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import Query from './Query';
 
 export default interface UpdateOneBy<TBaseModel extends BaseModel>

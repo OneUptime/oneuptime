@@ -128,4 +128,12 @@ export default class Team extends BaseModel {
     })
     @JoinTable()
     public permissions?: Array<TeamPermission> = undefined;
+
+    
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public isPermissionsEditable?: boolean = undefined;
 }
