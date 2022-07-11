@@ -20,10 +20,10 @@ import Permission from '../Types/Permission';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 
 @TableAccessControl({
-    create: [Permission.Public],
-    read: [Permission.CurrentUser],
-    delete: [],
-    update: [Permission.CurrentUser]
+    create: [Permission.Root, Permission.Public],
+    read: [Permission.Root, Permission.CurrentUser],
+    delete: [Permission.Root],
+    update: [Permission.Root, Permission.CurrentUser]
 })
 @CrudApiEndpoint(new Route('/user'))
 @SlugifyColumn('name', 'slug')
@@ -33,10 +33,10 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
 class User extends BaseModel {
 
     @ColumnAccessControl({
-        create: [Permission.Public],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root, Permission.Public],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.Name })
     @Column({
@@ -48,10 +48,10 @@ class User extends BaseModel {
     public name?: Name = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.Public],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root, Permission.Public],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({
         title: 'Email',
@@ -69,10 +69,10 @@ class User extends BaseModel {
     public email?: Email = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.Email })
     @Column({
@@ -86,10 +86,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [Permission.Public],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root, Permission.Public],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({
         title: 'Password',
@@ -107,10 +107,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
@@ -121,10 +121,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [Permission.Public],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root, Permission.Public],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -136,10 +136,10 @@ class User extends BaseModel {
     public companyName?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.Public],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root, Permission.Public],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -151,10 +151,10 @@ class User extends BaseModel {
     public jobRole?: JobRole = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.Public],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root, Permission.Public],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -166,10 +166,10 @@ class User extends BaseModel {
     public companySize?: CompanySize = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.Public],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root, Permission.Public],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -181,10 +181,10 @@ class User extends BaseModel {
     public referral?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.Public],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root, Permission.Public],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.Phone })
     @Column({
@@ -197,10 +197,10 @@ class User extends BaseModel {
     public companyPhoneNumber?: Phone = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.ShortURL })
     @Column({
@@ -214,10 +214,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -234,10 +234,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -249,10 +249,10 @@ class User extends BaseModel {
     public twoFactorSecretCode?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.ShortURL })
     @Column({
@@ -266,10 +266,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.Array })
     @Column({
@@ -280,10 +280,10 @@ class User extends BaseModel {
     public backupCodes?: Array<string> = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -295,10 +295,10 @@ class User extends BaseModel {
     public jwtRefreshToken?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -310,10 +310,10 @@ class User extends BaseModel {
     public paymentProviderCustomerId?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -325,10 +325,10 @@ class User extends BaseModel {
     public resetPasswordToken?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
@@ -340,10 +340,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -356,10 +356,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
@@ -371,10 +371,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [Permission.Public],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root, Permission.Public],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -386,10 +386,10 @@ class User extends BaseModel {
     public promotionName?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CustomerSupport],
-        delete: [],
-        update: [Permission.CustomerSupport]
+        create: [Permission.Root],
+        read: [Permission.Root, Permission.CustomerSupport],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CustomerSupport]
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -406,10 +406,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
@@ -421,10 +421,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -441,10 +441,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CustomerSupport],
-        delete: [],
-        update: [Permission.CustomerSupport]
+        create: [Permission.Root],
+        read: [Permission.Root, Permission.CustomerSupport],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CustomerSupport]
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -461,10 +461,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.CurrentUser],
-        delete: [],
-        update: [Permission.CurrentUser]
+        create: [Permission.Root],
+        read: [Permission.Root, Permission.CurrentUser],
+        delete: [Permission.Root],
+        update: [Permission.Root, Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.Phone })
     @Column({
@@ -477,10 +477,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.OTP })
     @Column({
@@ -493,10 +493,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
@@ -508,10 +508,10 @@ class User extends BaseModel {
 
 
     @ColumnAccessControl({
-        create: [],
-        read: [],
-        delete: [],
-        update: []
+        create: [Permission.Root],
+        read: [Permission.Root],
+        delete: [Permission.Root],
+        update: [Permission.Root]
     })
     @TableColumn({ type: TableColumnType.Phone })
     @Column({
