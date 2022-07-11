@@ -29,6 +29,7 @@ import Response from 'CommonServer/Utils/Response';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import Permission from 'Common/Types/Permission';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -141,7 +142,7 @@ router.post(
                         userId: savedUser.id!,
                         email: savedUser.email!,
                         isMasterAdmin: savedUser.isMasterAdmin!,
-                        roles: [],
+                        permissions: [Permission.AnyUser],
                     },
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
@@ -239,7 +240,7 @@ router.post(
                         userId: alreadySavedUser.id!,
                         email: alreadySavedUser.email!,
                         isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        roles: [],
+                        permissions: [Permission.AnyUser],
                     },
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
@@ -289,7 +290,7 @@ router.post(
                         userId: alreadySavedUser.id!,
                         email: alreadySavedUser.email!,
                         isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        roles: [],
+                        permissions: [Permission.AnyUser],
                     },
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
