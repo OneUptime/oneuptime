@@ -11,6 +11,9 @@ import TeamPermission from './TeamPermission';
 // API Keys
 import ApiKey from './ApiKey';
 
+//Labels.
+import Label from './Labels';
+
 export default [
     User,
     Probe,
@@ -20,4 +23,5 @@ export default [
     TeamMember,
     TeamPermission,
     ApiKey,
+    Label,
 ];

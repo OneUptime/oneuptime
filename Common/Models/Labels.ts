@@ -11,13 +11,37 @@ import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
 import Color from '../Types/Color';
+import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
+import Permission from '../Types/Permission';
+import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
+import ProjectColumn from '../Types/Database/ProjectColumn';
 
+@ProjectColumn('projectId')
+@TableAccessControl({
+    create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+    read: [
+        Permission.ProjectOwner,
+        Permission.CanReadLabel,
+        Permission.AnyMember,
+    ],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteLabel],
+    update: [Permission.ProjectOwner, Permission.CanEditLabel],
+})
 @CrudApiEndpoint(new Route('/label'))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Label',
 })
 export default class Label extends BaseModel {
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [],
+    })
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
@@ -36,6 +60,15 @@ export default class Label extends BaseModel {
     @JoinColumn({ name: 'projectId' })
     public project?: Project;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [],
+    })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -45,6 +78,15 @@ export default class Label extends BaseModel {
     })
     public projectId?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditLabel],
+    })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
         nullable: false,
@@ -53,6 +95,15 @@ export default class Label extends BaseModel {
     })
     public name?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [],
+    })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
     @Column({
         nullable: false,
@@ -61,6 +112,15 @@ export default class Label extends BaseModel {
     })
     public slug?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditLabel],
+    })
     @Index()
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -70,6 +130,15 @@ export default class Label extends BaseModel {
     })
     public description?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [],
+    })
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
@@ -88,6 +157,15 @@ export default class Label extends BaseModel {
     @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
@@ -96,6 +174,15 @@ export default class Label extends BaseModel {
     })
     public createdByUserId?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [],
+    })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.ObjectID,
@@ -115,6 +202,32 @@ export default class Label extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public deletedByUserId?: ObjectID;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadLabel,
+            Permission.AnyMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditLabel],
+    })
     @TableColumn({
         title: 'Color',
         required: true,
