@@ -69,6 +69,8 @@ export default class BaseModel extends BaseEntity {
     public slugifyColumn!: string | null;
     public saveSlugToColumn!: string | null;
 
+    public isPermissionIf: Dictionary<JSONObject> = {}; 
+
     public crudApiPath!: Route | null;
     // If this resource is by projectId, which column does projectId belong to?
     public projectColumn!: string | null;
@@ -140,6 +142,10 @@ export default class BaseModel extends BaseEntity {
 
     public setValue<T extends DbTypes>(columnName: string, value: T): void {
         (this as any)[columnName] = value;
+    }
+
+    public doesPermissionHasConfitions(permission: Permission): JSONObject | null {
+        return this.isPermissionIf[permission] ? this.isPermissionIf[permission] as JSONObject : null;
     }
 
     public getUniqueColumns(): Columns {

@@ -1,4 +1,4 @@
-import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
+import { Column, Entity, Index, JoinTable, ManyToMany } from 'typeorm';
 import BaseModel from './BaseModel';
 import ColumnType from '../Types/Database/ColumnType';
 import ColumnLength from '../Types/Database/ColumnLength';
@@ -40,7 +40,6 @@ class User extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.Public],
         read: [Permission.CurrentUser, Permission.AnyMember],
-
         update: [Permission.CurrentUser]
     })
     @TableColumn({ type: TableColumnType.Name })
@@ -89,6 +88,20 @@ class User extends BaseModel {
     })
     public newUnverifiedTemporaryEmail?: string = undefined;
 
+    @Index()
+    @ColumnAccessControl({
+        create: [Permission.AnyUser],
+        read: [Permission.AnyMember],
+        update: []
+    })
+    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @Column({
+        nullable: false,
+        type: ColumnType.Slug,
+        length: ColumnLength.Slug,
+        unique: true
+    })
+    public slug?: string = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],

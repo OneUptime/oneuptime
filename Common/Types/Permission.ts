@@ -15,11 +15,13 @@ enum Permission {
 
     // Billing Permissions (Owner Permission)
     CanDeleteProject = 'CanDeleteProject',
+    CanUpdateProject = 'CanDeleteProject',
 
     // Billing Permissions (Owner Permission)
     CanCreateApiKey = 'CanCreateApiKey',
     CanDeleteApiKey = 'CanDeleteApiKey',
     CanReadApiKey = 'CanReadApiKey',
+    CanEditApiKey = 'CanEditApiKey',
     CanEditApiKeyPermissions = 'CanEditApiKeyPermissions',
 
     // Billing Permissions (Owner Permission)
@@ -29,9 +31,14 @@ enum Permission {
     CanCreateTeam = 'CanCreateTeam',
     CanDeleteTeam = 'CanDeleteTeam',
     CanReadTeam = 'CanReadTeam',
+    CanEditTeam = 'CanEditTeam',
+    CanInviteTeamMembers = 'CanInviteTeamMembers',
     CanEditTeamPermissions = 'CanEditTeamPermissions',
 
-    CanInviteTeamMembers = 'CanEditTeam', // Owner + Admin can have this permission.
+    // Probe Permissions (Owner Permission)
+    CanCreateProbe = 'CanCreateProbe',
+    CanDeleteProbe = 'CanDeleteProbe',
+    CanEditProbe = 'CanEditProbe',
 
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateLabel = 'CanCreateLabel',

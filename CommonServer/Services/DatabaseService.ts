@@ -380,12 +380,24 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        if (Permission.AnyMember && this.model.projectColumn) {
+        if (this.model.projectColumn) {
             (findBy.query as any)[this.model.projectColumn] = findBy.projectId;
         }
 
-        if (Permission.CurrentUser && this.model.userColumn) {
+        if (this.model.userColumn) {
             (findBy.query as any)[this.model.userColumn] = findBy.userId;
+        }
+
+
+        if (this.model.isPermissionIf) {
+            for (const key in this.model.isPermissionIf) {
+                const permission: Permission = key as Permission;
+
+                if (findBy.userPermissions?.includes(permission) && this.model.isPermissionIf[permission]) {
+                    const columnName = Object.keys(this.model.isPermissionIf[permission] as any)[0] as string
+                    (findBy.query as any)[columnName] = (this.model.isPermissionIf[permission] as any)[columnName];
+                }
+            }
         }
 
         return findBy;
@@ -444,11 +456,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        if (Permission.AnyMember && this.model.projectColumn) {
+        if (this.model.projectColumn) {
             (updateBy.query as any)[this.model.projectColumn] = updateBy.projectId;
         }
 
-        if (Permission.CurrentUser && this.model.userColumn) {
+        if (this.model.isPermissionIf) {
+            for (const key in this.model.isPermissionIf) {
+                const permission: Permission = key as Permission;
+
+                if (updateBy.userPermissions?.includes(permission) && this.model.isPermissionIf[permission]) {
+                    const columnName = Object.keys(this.model.isPermissionIf[permission] as any)[0] as string
+                    (updateBy.query as any)[columnName] = (this.model.isPermissionIf[permission] as any)[columnName];
+                }
+            }
+        }
+
+        if (this.model.userColumn) {
             (updateBy.query as any)[this.model.userColumn] = updateBy.userId;
         }
 
@@ -479,11 +502,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
         }
 
-        if (Permission.AnyMember && this.model.projectColumn) {
+        if (this.model.projectColumn) {
             (deleteBy.query as any)[this.model.projectColumn] = deleteBy.projectId;
         }
 
-        if (Permission.CurrentUser && this.model.userColumn) {
+        if (this.model.userColumn) {
             (deleteBy.query as any)[this.model.userColumn] = deleteBy.userId;
         }
 

@@ -9,12 +9,26 @@ import TableColumn from '../Types/Database/TableColumn';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
+import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
+import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 
 @CrudApiEndpoint(new Route('/email-verification-token'))
 @Entity({
     name: 'EmailVerificationToken',
 })
+@TableAccessControl({
+    create: [],
+    read: [],
+    delete: [],
+    update: []
+})
 export default class EmailVerificationToken extends BaseModel {
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: []
+    })
     @TableColumn({
         manyToOneRelationColumn: 'userId',
         required: true,
@@ -34,6 +48,11 @@ export default class EmailVerificationToken extends BaseModel {
     @JoinColumn({ name: 'userId' })
     public user?: User;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: []
+    })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
@@ -42,6 +61,11 @@ export default class EmailVerificationToken extends BaseModel {
     })
     public userId?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: []
+    })
     @TableColumn({ type: TableColumnType.Email })
     @Column({
         type: ColumnType.Email,
@@ -51,6 +75,11 @@ export default class EmailVerificationToken extends BaseModel {
     })
     public email?: Email = undefined;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: []
+    })
     @Index()
     @TableColumn({
         required: true,
@@ -66,6 +95,11 @@ export default class EmailVerificationToken extends BaseModel {
     })
     public token?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: []
+    })
     @TableColumn({ required: true, type: TableColumnType.Date })
     @Column({
         nullable: false,

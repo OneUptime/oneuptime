@@ -11,13 +11,29 @@ import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
 import Permission from '../Types/Permission';
+import ProjectColumn from '../Types/Database/ProjectColumn';
+import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
+import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 
+@ProjectColumn("projectId")
 @CrudApiEndpoint(new Route('/api-key'))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'ApiKey',
 })
+@TableAccessControl({
+    create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+    read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteApiKey],
+    update: [Permission.ProjectOwner, Permission.CanEditApiKeyPermissions, Permission.CanEditApiKey]
+})
 export default class ApiKey extends BaseModel {
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: []
+    })
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
@@ -36,6 +52,11 @@ export default class ApiKey extends BaseModel {
     @JoinColumn({ name: 'projectId' })
     public project?: Project;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: []
+    })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -45,6 +66,11 @@ export default class ApiKey extends BaseModel {
     })
     public projectId?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [Permission.CanEditApiKey]
+    })
     @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -54,6 +80,11 @@ export default class ApiKey extends BaseModel {
     })
     public name?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [Permission.CanEditApiKey]
+    })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
         nullable: true,
@@ -62,6 +93,11 @@ export default class ApiKey extends BaseModel {
     })
     public description?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: []
+    })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
     @Column({
         nullable: false,
@@ -70,6 +106,11 @@ export default class ApiKey extends BaseModel {
     })
     public slug?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner,Permission.CanReadApiKey],
+        update: []
+    })
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
@@ -88,6 +129,11 @@ export default class ApiKey extends BaseModel {
     @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner,Permission.CanReadApiKey],
+        update: []
+    })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
@@ -96,6 +142,11 @@ export default class ApiKey extends BaseModel {
     })
     public createdByUserId?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: []
+    })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.ObjectID,
@@ -115,6 +166,25 @@ export default class ApiKey extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.AnyMember],
+        update: []
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public deletedByUserId?: ObjectID;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [Permission.CanEditApiKeyPermissions]
+    })
     @TableColumn({ title: 'Permissions', type: TableColumnType.Array })
     @Column({
         type: ColumnType.Array,
@@ -123,6 +193,12 @@ export default class ApiKey extends BaseModel {
     })
     public permissions?: Array<Permission> = undefined;
 
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [Permission.CanEditApiKey]
+    })
     @TableColumn({ title: 'Expires At', type: TableColumnType.Date })
     @Column({
         type: ColumnType.ObjectID,
@@ -131,6 +207,11 @@ export default class ApiKey extends BaseModel {
     })
     public expiresAt?: Date = undefined;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: []
+    })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: true })
     @Column({
