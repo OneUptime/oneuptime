@@ -125,11 +125,12 @@ export default class BaseAPI<
             query: {},
             skip: skip,
             limit: limit,
-            ...this.getDatabaseCommonInteractionProps(req),
+            props: this.getDatabaseCommonInteractionProps(req),
         });
 
         const count: PositiveNumber = await this.service.countBy({
             query: {},
+            props: this.getDatabaseCommonInteractionProps(req)
         });
 
         return Response.sendListResponse(req, res, list, count);
@@ -143,7 +144,7 @@ export default class BaseAPI<
 
         const item: BaseModel | null = await this.service.findOneById({
             id: objectId,
-            ...this.getDatabaseCommonInteractionProps(req),
+            props: this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendItemResponse(req, res, item?.toJSON() || {});
@@ -159,7 +160,7 @@ export default class BaseAPI<
             query: {
                 _id: objectId.toString(),
             },
-            ...this.getDatabaseCommonInteractionProps(req),
+            props: this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -182,7 +183,7 @@ export default class BaseAPI<
                 _id: objectId.toString(),
             },
             data: item,
-            ...this.getDatabaseCommonInteractionProps(req),
+            props: this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -201,7 +202,7 @@ export default class BaseAPI<
 
         const createBy: CreateBy<TBaseModel> = {
             data: item,
-            ...this.getDatabaseCommonInteractionProps(req),
+            props: this.getDatabaseCommonInteractionProps(req),
         };
 
         const savedItem: BaseModel = await this.service.create(createBy);

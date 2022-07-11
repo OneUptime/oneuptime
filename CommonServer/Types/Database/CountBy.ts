@@ -4,8 +4,9 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import Query from './Query';
 
 export default interface CountBy<TBaseModel extends BaseModel>
-    extends DatabaseCommonInteractionProps {
+    {
     query: Query<TBaseModel>;
     skip?: PositiveNumber;
     limit?: PositiveNumber;
+    props: DatabaseCommonInteractionProps;
 }

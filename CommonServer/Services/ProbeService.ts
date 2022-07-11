@@ -4,6 +4,7 @@ import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import OneUptimeDate from 'Common/Types/Date';
+import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -13,7 +14,8 @@ export class Service extends DatabaseService<Model> {
     public async createProbe(
         name: string,
         key?: ObjectID,
-        version?: Version
+        version?: Version,
+        props?: DatabaseCommonInteractionProps
     ): Promise<Model> {
         if (!key) {
             key = ObjectID.generate();
@@ -27,13 +29,14 @@ export class Service extends DatabaseService<Model> {
         probe.name = name;
         probe.key = key;
         probe.probeVersion = version;
-        const savedProbe: Model = await this.create({ data: probe });
+        const savedProbe: Model = await this.create({ data: probe, props: props || {}});
         return savedProbe;
     }
 
     public async updateProbeKeyByName(
         name: string,
-        key: ObjectID
+        key: ObjectID,
+        props?: DatabaseCommonInteractionProps
     ): Promise<void> {
         await this.updateOneBy({
             query: {
@@ -42,25 +45,29 @@ export class Service extends DatabaseService<Model> {
             data: {
                 key,
             },
+            props: props || {}
         });
     }
 
     public async updateProbeVersionByName(
         name: string,
-        version: Version
+        version: Version,
+        props?: DatabaseCommonInteractionProps
     ): Promise<void> {
         await this.updateOneBy({
             query: { name },
             data: { probeVersion: version },
+            props: props || {}
         });
     }
 
-    public async updateLastAlive(name: string): Promise<void> {
+    public async updateLastAlive(name: string, props?: DatabaseCommonInteractionProps): Promise<void> {
         await this.updateOneBy({
             query: { name },
             data: {
                 lastAlive: OneUptimeDate.getCurrentDate(),
             },
+            props: props || {}
         });
     }
 }

@@ -4,7 +4,8 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import Query from './Query';
 
 export default interface UpdateOneBy<TBaseModel extends BaseModel>
-    extends DatabaseCommonInteractionProps {
+{
     query: Query<TBaseModel>;
     data: QueryDeepPartialEntity<TBaseModel>;
+    props: DatabaseCommonInteractionProps;
 }

@@ -12,8 +12,8 @@ export class Service extends DatabaseService<Model> {
     protected override onBeforeCreate(
         data: CreateBy<Model>
     ): Promise<CreateBy<Model>> {
-        if (data.userId) {
-            data.data.createdByUserId = data.userId;
+        if (data.props.userId) {
+            data.data.createdByUserId = data.props.userId;
         } else {
             throw new NotAuthorizedException(
                 'User should be logged in to create the project.'

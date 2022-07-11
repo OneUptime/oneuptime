@@ -303,13 +303,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy: CreateBy<TBaseModel>
     ): TBaseModel {
         // If system is making this query then let the query run!
-        if (createBy.isRoot) {
+        if (createBy.props.isRoot) {
             return createBy.data;
         }
 
         if (
             !PermissionUtil.doesPermissionsIntersect(
-                createBy.userPermissions || [],
+                createBy.props.userPermissions || [],
                 createBy.data.createRecordPermissions
             )
         ) {
@@ -320,7 +320,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         const data: TBaseModel = this.keepColumns(
             this.getCreateableColumnsByPermissions(
-                createBy.userPermissions || []
+                createBy.props.userPermissions || []
             ),
             createBy.data
         );
@@ -331,7 +331,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asFindByByPermissions(
         findBy: FindBy<TBaseModel>
     ): FindBy<TBaseModel> {
-        if (findBy.isRoot) {
+        if (findBy.props.isRoot) {
             return findBy;
         }
 
@@ -342,7 +342,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         if (
             !PermissionUtil.doesPermissionsIntersect(
-                findBy.userPermissions || [],
+                findBy.props.userPermissions || [],
                 tablePermissions
             )
         ) {
@@ -352,7 +352,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         columns = this.getReadColumnsByPermissions(
-            findBy.userPermissions || []
+            findBy.props.userPermissions || []
         );
 
         // Now we need to check all columns.
@@ -374,11 +374,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         if (this.model.projectColumn) {
-            (findBy.query as any)[this.model.projectColumn] = findBy.projectId;
+            (findBy.query as any)[this.model.projectColumn] = findBy.props.projectId;
         }
 
         if (this.model.userColumn) {
-            (findBy.query as any)[this.model.userColumn] = findBy.userId;
+            (findBy.query as any)[this.model.userColumn] = findBy.props.userId;
         }
 
         if (this.model.isPermissionIf) {
@@ -386,7 +386,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 const permission: Permission = key as Permission;
 
                 if (
-                    findBy.userPermissions?.includes(permission) &&
+                    findBy.props.userPermissions?.includes(permission) &&
                     this.model.isPermissionIf[permission]
                 ) {
                     const columnName: string = Object.keys(
@@ -405,7 +405,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asUpdateByByPermissions(
         updateBy: UpdateBy<TBaseModel>
     ): UpdateBy<TBaseModel> {
-        if (updateBy.isRoot) {
+        if (updateBy.props.isRoot) {
             return updateBy;
         }
 
@@ -417,7 +417,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         if (
             !PermissionUtil.doesPermissionsIntersect(
-                updateBy.userPermissions || [],
+                updateBy.props.userPermissions || [],
                 tablePermissions
             )
         ) {
@@ -427,10 +427,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         updateColumns = this.getUpdateColumnsByPermissions(
-            updateBy.userPermissions || []
+            updateBy.props.userPermissions || []
         );
         readColumns = this.getReadColumnsByPermissions(
-            updateBy.userPermissions || []
+            updateBy.props.userPermissions || []
         );
 
         // Now we need to check all columns.
@@ -453,7 +453,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         if (this.model.projectColumn) {
             (updateBy.query as any)[this.model.projectColumn] =
-                updateBy.projectId;
+                updateBy.props.projectId;
         }
 
         if (this.model.isPermissionIf) {
@@ -461,7 +461,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 const permission: Permission = key as Permission;
 
                 if (
-                    updateBy.userPermissions?.includes(permission) &&
+                    updateBy.props.userPermissions?.includes(permission) &&
                     this.model.isPermissionIf[permission]
                 ) {
                     const columnName: string = Object.keys(
@@ -475,7 +475,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         if (this.model.userColumn) {
-            (updateBy.query as any)[this.model.userColumn] = updateBy.userId;
+            (updateBy.query as any)[this.model.userColumn] = updateBy.props.userId;
         }
 
         return updateBy;
@@ -484,7 +484,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asDeleteByPermissions(
         deleteBy: DeleteBy<TBaseModel>
     ): DeleteBy<TBaseModel> {
-        if (deleteBy.isRoot) {
+        if (deleteBy.props.isRoot) {
             return deleteBy;
         }
 
@@ -494,7 +494,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         if (
             !PermissionUtil.doesPermissionsIntersect(
-                deleteBy.userPermissions || [],
+                deleteBy.props.userPermissions || [],
                 tablePermissions
             )
         ) {
@@ -505,11 +505,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         if (this.model.projectColumn) {
             (deleteBy.query as any)[this.model.projectColumn] =
-                deleteBy.projectId;
+                deleteBy.props.projectId;
         }
 
         if (this.model.userColumn) {
-            (deleteBy.query as any)[this.model.userColumn] = deleteBy.userId;
+            (deleteBy.query as any)[this.model.userColumn] = deleteBy.props.userId;
         }
 
         return deleteBy;
@@ -672,10 +672,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data: {
                     deletedByUser: deleteBy.deletedByUser,
                 } as any,
-                userPermissions: deleteBy.userPermissions || [],
-                userId: deleteBy.userId,
-                userType: deleteBy.userType,
-                projectId: deleteBy.projectId,
+                props: {
+                    userPermissions: deleteBy.props.userPermissions || [],
+                    userId: deleteBy.props.userId,
+                    userType: deleteBy.props.userType,
+                    projectId: deleteBy.props.projectId,
+                }
             });
             const numberOfDocsAffected: number =
                 (
@@ -759,10 +761,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
             query: {
                 _id: findOneById.id.toString() as any,
             },
-            userPermissions: findOneById.userPermissions || [],
-            userId: findOneById.userId,
-            userType: findOneById.userType,
-            projectId: findOneById.projectId,
+            props: {
+                userPermissions: findOneById.props.userPermissions || [],
+                userId: findOneById.props.userId,
+                userType: findOneById.props.userType,
+                projectId: findOneById.props.projectId,
+            }
         });
     }
 
@@ -808,10 +812,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 _id: updateById.id.toString() as any,
             },
             data: updateById.data,
-            userPermissions: updateById.userPermissions || [],
-            userId: updateById.userId,
-            userType: updateById.userType,
-            projectId: updateById.projectId,
+            props: updateById.props
         });
     }
 
@@ -821,10 +822,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         await this.updateOneById(updateById);
         return this.findOneById({
             id: updateById.id,
-            userPermissions: updateById.userPermissions || [],
-            userId: updateById.userId,
-            userType: updateById.userType,
-            projectId: updateById.projectId,
+            props: updateById.props
         });
     }
 
@@ -833,10 +831,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         limit,
         select,
         populate,
-        userPermissions,
-        userId,
-        userType,
-        projectId,
+        props
     }: SearchBy<TBaseModel>): Promise<SearchResult<TBaseModel>> {
         const query: Query<TBaseModel> = {};
 
@@ -850,19 +845,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     limit,
                     select,
                     populate,
-                    userPermissions: userPermissions || [],
-                    userId,
-                    userType,
-                    projectId,
+                    props: props
                 }),
                 this.countBy({
                     query,
                     skip: new PositiveNumber(0),
                     limit: new PositiveNumber(Infinity),
-                    userPermissions: userPermissions || [],
-                    userId,
-                    userType,
-                    projectId,
+                    props: props
                 }),
             ]);
 

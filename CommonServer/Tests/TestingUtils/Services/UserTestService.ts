@@ -24,7 +24,7 @@ export default class UserTestService {
         user.isBlocked = false;
         user.isMasterAdmin = false;
         const userService: UserService = new UserService(this.database);
-        const savedUser: User = await userService.create({ data: user });
+        const savedUser: User = await userService.create({ data: user, props: { isRoot: true } });
 
         return savedUser;
     }

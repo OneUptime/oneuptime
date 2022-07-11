@@ -74,6 +74,7 @@ export default class ProjectMiddleware {
                 apiKey: apiKey,
                 expiresAt: LessThan(OneUptimeDate.getCurrentDate()),
             },
+            props: { isRoot: true }
         });
 
         if (apiKeyModel) {

@@ -77,6 +77,7 @@ export default class UserMiddleware {
             query: {
                 _id: oneuptimeRequest.userAuthorization.userId.toString(),
             },
+            props: { isRoot: true },
             data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
