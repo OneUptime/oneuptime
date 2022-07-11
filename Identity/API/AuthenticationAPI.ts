@@ -191,7 +191,7 @@ router.post(
                         userId: alreadySavedUser.id!,
                         email: alreadySavedUser.email!,
                         isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        roles: [],
+                        permissions: [Permission.AnyUser],
                     },
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
