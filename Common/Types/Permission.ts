@@ -67,7 +67,7 @@ export class PermissionUtil {
 }
 
 export const PermissionsArray: Array<string> = [
-    ...new Set(Object.keys(Permissions)),
+    ...new Set(Object.keys(Permission)),
 ]; // Returns ["Owner", "Administrator"...]
 
 export default Permission;
