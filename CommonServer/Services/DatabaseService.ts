@@ -29,22 +29,12 @@ import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
 import FindOneByID from '../Types/Database/FindOneByID';
 import Permission, { PermissionUtil } from 'Common/Types/Permission';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
-import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import AccessControl from 'Common/Types/Database/AccessControl/AccessControl';
+import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Dictionary from 'Common/Types/Dictionary';
 import {
     getColumnAccessControlForAllColumns,
 } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
-import Select from '../Types/Database/Select';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
-
-enum QueryType {
-    Read = "read",
-    Update = "update",
-    Delete = "delete"
-}
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
@@ -366,23 +356,27 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
         }
 
-       
+
         columns = this.getReadColumnsByPermissions(findBy.userPermissions || []);
 
         // Now we need to check all columns. 
 
-        
+
         for (const key in findBy.query) {
-            
+
             if (!columns.columns.includes(key)) {
-                delete findBy.query[key];
+                throw new NotAuthorizedException(
+                    `A user does not have permissions to query on - ${key}.`
+                );
             }
         }
 
         for (const key in findBy.select) {
-            
+
             if (!columns.columns.includes(key)) {
-                delete findBy.select[key];
+                throw new NotAuthorizedException(
+                    `A user does not have permissions to select on - ${key}.`
+                );
             }
         }
 
@@ -425,24 +419,28 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
         }
 
-       
+
         updateColumns = this.getUpdateColumnsByPermissions(updateBy.userPermissions || []);
         readColumns = this.getReadColumnsByPermissions(updateBy.userPermissions || []);
 
         // Now we need to check all columns. 
 
-        
+
         for (const key in updateBy.query) {
-            
+
             if (!readColumns.columns.includes(key)) {
-                delete updateBy.query[key];
+                throw new NotAuthorizedException(
+                    `A user does not have permissions to query on - ${key}.`
+                );
             }
         }
 
         for (const key in updateBy.data) {
-            
+
             if (!updateColumns.columns.includes(key)) {
-                delete updateBy.data[key];
+                throw new NotAuthorizedException(
+                    `A user does not have permissions to update this record at - ${key}.`
+                );
             }
         }
 
@@ -496,7 +494,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public getCreateableColumnsByPermissions(
         permissions: Array<Permission>
     ): Columns {
-        const accessControl: Dictionary<AccessControl> =
+        const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(this.model);
 
         const columns: Array<string> = [];
@@ -519,7 +517,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public getReadColumnsByPermissions(
         permissions: Array<Permission>
     ): Columns {
-        const accessControl: Dictionary<AccessControl> =
+        const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(this.model);
 
         const columns: Array<string> = [];
@@ -542,7 +540,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public getUpdateColumnsByPermissions(
         permissions: Array<Permission>
     ): Columns {
-        const accessControl: Dictionary<AccessControl> =
+        const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(this.model);
 
         const columns: Array<string> = [];
@@ -640,8 +638,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
-            const beforeDeleteBy: DeleteBy<TBaseModel> =
+            let beforeDeleteBy: DeleteBy<TBaseModel> =
                 await this.onBeforeDelete(deleteBy);
+            
+            beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
 
             await this._updateBy({
                 query: deleteBy.query,
@@ -684,9 +684,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 };
             }
 
-            const onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
+            let onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
                 findBy
             );
+
+            onBeforeFind = this.asFindByByPermissions(findBy);
 
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
@@ -742,8 +744,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
         try {
-            const beforeUpdateBy: UpdateBy<TBaseModel> =
+            let beforeUpdateBy: UpdateBy<TBaseModel> =
                 await this.onBeforeUpdate(updateBy);
+
+            beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
             const numberOfDocsAffected: number =
                 (
