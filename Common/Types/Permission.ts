@@ -1,6 +1,5 @@
 // Have "Project" string in the permission to make sure this permission is by Project.
 
-
 enum Permission {
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',

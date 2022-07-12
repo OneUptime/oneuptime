@@ -373,7 +373,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        if (this.model.projectColumn) {
+        if (
+            this.model.projectColumn &&
+            findBy.props.userPermissions &&
+            findBy.props.userPermissions.filter((permission: Permission) => {
+                return permission.includes('Project');
+            }).length > 0
+        ) {
             (findBy.query as any)[this.model.projectColumn] =
                 findBy.props.projectId;
         }
@@ -452,9 +458,20 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        if (this.model.projectColumn) {
+        if (
+            this.model.projectColumn &&
+            updateBy.props.userPermissions &&
+            updateBy.props.userPermissions.filter((permission: Permission) => {
+                return permission.includes('Project');
+            }).length > 0
+        ) {
             (updateBy.query as any)[this.model.projectColumn] =
                 updateBy.props.projectId;
+        }
+
+        if (this.model.userColumn) {
+            (updateBy.query as any)[this.model.userColumn] =
+                updateBy.props.userId;
         }
 
         if (this.model.isPermissionIf) {
@@ -473,11 +490,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     )[columnName];
                 }
             }
-        }
-
-        if (this.model.userColumn) {
-            (updateBy.query as any)[this.model.userColumn] =
-                updateBy.props.userId;
         }
 
         return updateBy;
@@ -505,7 +517,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
         }
 
-        if (this.model.projectColumn) {
+        if (
+            this.model.projectColumn &&
+            deleteBy.props.userPermissions &&
+            deleteBy.props.userPermissions.filter((permission: Permission) => {
+                return permission.includes('Project');
+            }).length > 0
+        ) {
             (deleteBy.query as any)[this.model.projectColumn] =
                 deleteBy.props.projectId;
         }
