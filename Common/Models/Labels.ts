@@ -18,14 +18,14 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
 
 @ProjectColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+    create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
     read: [
         Permission.ProjectOwner,
-        Permission.CanReadLabel,
-        Permission.AnyMember,
+        Permission.CanReadProjectLabel,
+        Permission.AnyProjectMember,
     ],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteLabel],
-    update: [Permission.ProjectOwner, Permission.CanEditLabel],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectLabel],
+    update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
 })
 @CrudApiEndpoint(new Route('/label'))
 @SlugifyColumn('name', 'slug')
@@ -34,11 +34,11 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
 })
 export default class Label extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
         update: [],
     })
@@ -61,11 +61,11 @@ export default class Label extends BaseModel {
     public project?: Project;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
         update: [],
     })
@@ -79,13 +79,13 @@ export default class Label extends BaseModel {
     public projectId?: ObjectID;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditLabel],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -99,8 +99,8 @@ export default class Label extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
         update: [],
     })
@@ -113,13 +113,13 @@ export default class Label extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditLabel],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
     @Index()
     @TableColumn({ required: false, type: TableColumnType.LongText })
@@ -131,11 +131,11 @@ export default class Label extends BaseModel {
     public description?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
         update: [],
     })
@@ -158,11 +158,11 @@ export default class Label extends BaseModel {
     public createdByUser?: User;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
         update: [],
     })
@@ -178,8 +178,8 @@ export default class Label extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
         update: [],
     })
@@ -206,8 +206,8 @@ export default class Label extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
         update: [],
     })
@@ -220,13 +220,13 @@ export default class Label extends BaseModel {
     public deletedByUserId?: ObjectID;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateLabel],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadLabel,
-            Permission.AnyMember,
+            Permission.CanReadProjectLabel,
+            Permission.AnyProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditLabel],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
     @TableColumn({
         title: 'Color',

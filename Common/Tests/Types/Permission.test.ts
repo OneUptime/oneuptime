@@ -1,8 +1,8 @@
 import Permission from '../../Types/Permission';
 
 describe('Permission', () => {
-    test('Permission.AnyMember should be AnyMember', () => {
-        expect(Permission.AnyMember).toBe('AnyMember');
+    test('Permission.AnyProjectMember should be AnyProjectMember', () => {
+        expect(Permission.AnyProjectMember).toBe('AnyProjectMember');
     });
 
     test('Permission.Public should be Public', () => {

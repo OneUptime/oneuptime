@@ -22,19 +22,19 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
     name: 'ApiKey',
 })
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-    read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteApiKey],
+    create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
+    read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectApiKey],
     update: [
         Permission.ProjectOwner,
-        Permission.CanEditApiKeyPermissions,
-        Permission.CanEditApiKey,
+        Permission.CanEditProjectApiKeyPermissions,
+        Permission.CanEditProjectApiKey,
     ],
 })
 export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @TableColumn({
@@ -56,8 +56,8 @@ export default class ApiKey extends BaseModel {
     public project?: Project;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @Index()
@@ -70,9 +70,9 @@ export default class ApiKey extends BaseModel {
     public projectId?: ObjectID;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: [Permission.CanEditApiKey],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
+        update: [Permission.CanEditProjectApiKey],
     })
     @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -84,9 +84,9 @@ export default class ApiKey extends BaseModel {
     public name?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: [Permission.CanEditApiKey],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
+        update: [Permission.CanEditProjectApiKey],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -98,7 +98,7 @@ export default class ApiKey extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -110,8 +110,8 @@ export default class ApiKey extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @TableColumn({
@@ -133,8 +133,8 @@ export default class ApiKey extends BaseModel {
     public createdByUser?: User;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -171,7 +171,7 @@ export default class ApiKey extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyMember],
+        read: [Permission.AnyProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -183,9 +183,9 @@ export default class ApiKey extends BaseModel {
     public deletedByUserId?: ObjectID;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: [Permission.CanEditApiKeyPermissions],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
+        update: [Permission.CanEditProjectApiKeyPermissions],
     })
     @TableColumn({ title: 'Permissions', type: TableColumnType.Array })
     @Column({
@@ -196,9 +196,9 @@ export default class ApiKey extends BaseModel {
     public permissions?: Array<Permission> = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
-        update: [Permission.CanEditApiKey],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
+        update: [Permission.CanEditProjectApiKey],
     })
     @TableColumn({ title: 'Expires At', type: TableColumnType.Date })
     @Column({
@@ -210,7 +210,7 @@ export default class ApiKey extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @Index()

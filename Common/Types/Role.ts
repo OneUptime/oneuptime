@@ -5,22 +5,22 @@ enum Role {
     Viewer = 'Viewer', // user who is a viewer in a project
 
     // Billing Permissions (Owner Permission)
-    CanManageBilling = 'CanManageBilling',
+    CanManageProjectBilling = 'CanManageProjectBilling',
 
     // Billing Permissions (Owner + Admin Permission)
-    CanCreateTeam = 'CanCreateTeam',
-    CanEditTeam = 'CanEditTeam',
-    CanDeleteTeam = 'CanDeleteTeam',
+    CanCreateProjectTeam = 'CanCreateProjectTeam',
+    CanEditProjectTeam = 'CanEditProjectTeam',
+    CanDeleteProjectTeam = 'CanDeleteProjectTeam',
 
     // Label Permissions (Owner + Admin Permission by default)
-    CanCreateLabel = 'CanCreateLabel',
-    CanEditLabel = 'CanEditLabel',
-    CanDeleteLabel = 'CanDeleteLabel',
+    CanCreateProjectLabel = 'CanCreateProjectLabel',
+    CanEditProjectLabel = 'CanEditProjectLabel',
+    CanDeleteProjectLabel = 'CanDeleteProjectLabel',
 
     // Resource Permissions (Team Permission)
-    CanCreateResources = 'CanCreateResources',
-    CanEditResources = 'CanEditResources',
-    CanDeleteResources = 'CanDeleteResources',
+    CanCreateProjectResources = 'CanCreateProjectResources',
+    CanEditProjectResources = 'CanEditProjectResources',
+    CanDeleteProjectResources = 'CanDeleteProjectResources',
 
     User = 'User', //registered user.
 

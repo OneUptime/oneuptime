@@ -2,7 +2,7 @@ enum PermissionDescription {
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',
 
-    AnyMember = 'AnyMember', // member of a project
+    AnyProjectMember = 'AnyProjectMember', // member of a project
 
     AnyUser = 'AnyUser', //registered user. Can or cannot belong to a project.
 
@@ -16,34 +16,34 @@ enum PermissionDescription {
     CanDeleteProject = 'CanDeleteProject',
 
     // Billing Permissions (Owner Permission)
-    CanCreateApiKey = 'CanCreateApiKey',
-    CanDeleteApiKey = 'CanDeleteApiKey',
-    CanReadApiKey = 'CanReadApiKey',
-    CanEditApiKeyPermissions = 'CanEditApiKeyPermissions',
+    CanCreateProjectApiKey = 'CanCreateProjectApiKey',
+    CanDeleteProjectApiKey = 'CanDeleteProjectApiKey',
+    CanReadProjectApiKey = 'CanReadProjectApiKey',
+    CanEditProjectApiKeyPermissions = 'CanEditProjectApiKeyPermissions',
 
     // Billing Permissions (Owner Permission)
-    CanManageBilling = 'CanManageBilling',
+    CanManageProjectBilling = 'CanManageProjectBilling',
 
     // Billing Permissions (Owner Permission)
-    CanCreateTeam = 'CanCreateTeam',
-    CanDeleteTeam = 'CanDeleteTeam',
-    CanReadTeam = 'CanReadTeam',
-    CanEditTeamPermissions = 'CanEditTeamPermissions',
+    CanCreateProjectTeam = 'CanCreateProjectTeam',
+    CanDeleteProjectTeam = 'CanDeleteProjectTeam',
+    CanReadProjectTeam = 'CanReadProjectTeam',
+    CanEditProjectTeamPermissions = 'CanEditProjectTeamPermissions',
 
-    CanInviteTeamMembers = 'CanEditTeam', // Owner + Admin can have this permission.
+    CanInviteProjectTeamMembers = 'CanEditProjectTeam', // Owner + Admin can have this permission.
 
     // Label Permissions (Owner + Admin Permission by default)
-    CanCreateLabel = 'CanCreateLabel',
-    CanEditLabel = 'CanEditLabel',
-    CanReadLabel = 'CanReadLabel',
-    CanDeleteLabel = 'CanDeleteLabel',
-    CanAddLabelsToResources = 'CanAddLabelsToResources',
+    CanCreateProjectLabel = 'CanCreateProjectLabel',
+    CanEditProjectLabel = 'CanEditProjectLabel',
+    CanReadProjectLabel = 'CanReadProjectLabel',
+    CanDeleteProjectLabel = 'CanDeleteProjectLabel',
+    CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
 
     // Resource Permissions (Team Permission)
-    CanCreateResources = 'CanCreateResources',
-    CanEditResources = 'CanEditResources',
-    CanDeleteResources = 'CanDeleteResources',
-    CanReadResources = 'CanReadResources',
+    CanCreateProjectResources = 'CanCreateProjectResources',
+    CanEditProjectResources = 'CanEditProjectResources',
+    CanDeleteProjectResources = 'CanDeleteProjectResources',
+    CanReadProjectResources = 'CanReadProjectResources',
 }
 
 export default PermissionDescription;

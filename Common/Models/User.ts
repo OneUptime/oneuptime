@@ -24,7 +24,7 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
 
 @TableAccessControl({
     create: [Permission.Public],
-    read: [Permission.CurrentUser, Permission.AnyMember],
+    read: [Permission.CurrentUser, Permission.AnyProjectMember],
     delete: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
 })
@@ -38,7 +38,7 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
 class User extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.CurrentUser, Permission.AnyMember],
+        read: [Permission.CurrentUser, Permission.AnyProjectMember],
         update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Name })
@@ -52,7 +52,7 @@ class User extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.CurrentUser, Permission.AnyMember],
+        read: [Permission.CurrentUser, Permission.AnyProjectMember],
 
         update: [Permission.CurrentUser],
     })
@@ -90,7 +90,7 @@ class User extends BaseModel {
     @Index()
     @ColumnAccessControl({
         create: [Permission.AnyUser],
-        read: [Permission.AnyMember],
+        read: [Permission.AnyProjectMember],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -213,7 +213,7 @@ class User extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.CurrentUser, Permission.AnyMember],
+        read: [Permission.CurrentUser, Permission.AnyProjectMember],
 
         update: [Permission.CurrentUser],
     })
@@ -229,7 +229,7 @@ class User extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.CurrentUser, Permission.AnyMember],
+        read: [Permission.CurrentUser, Permission.AnyProjectMember],
 
         update: [Permission.CurrentUser],
     })
@@ -352,7 +352,7 @@ class User extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.CurrentUser, Permission.AnyMember],
+        read: [Permission.CurrentUser, Permission.AnyProjectMember],
 
         update: [Permission.CurrentUser],
     })
@@ -467,7 +467,7 @@ class User extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.CurrentUser, Permission.AnyMember],
+        read: [Permission.CurrentUser, Permission.AnyProjectMember],
 
         update: [Permission.CurrentUser],
     })
