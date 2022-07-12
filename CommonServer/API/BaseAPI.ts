@@ -48,7 +48,7 @@ export default class BaseAPI<
 
         // List
         router.get(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/list`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,

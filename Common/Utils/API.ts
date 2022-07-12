@@ -10,6 +10,7 @@ import Protocol from '../Types/API/Protocol';
 import Hostname from '../Types/API/Hostname';
 import Route from '../Types/API/Route';
 import BaseModel from '../Models/BaseModel';
+import Dictionary from '../Types/Dictionary';
 
 export default class API {
     private _protocol: Protocol = Protocol.HTTPS;
@@ -198,9 +199,14 @@ export default class API {
         method: HTTPMethod,
         url: URL,
         data?: JSONObject | JSONArray,
-        headers?: Headers
+        headers?: Headers,
+        params?: Dictionary<string>
     ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         const apiHeaders: Headers = this.getHeaders(headers);
+
+        if (params) {
+            url.addQueryParams(params);
+        }
 
         try {
             const result: {

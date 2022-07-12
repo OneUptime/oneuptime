@@ -19,8 +19,7 @@ export interface ComponentProps {
 const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const project: Project = new Project();
-    project.name = 'Sample 1';
+   
 
     const [showModel, setShowModel] = useState<boolean>(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(
@@ -32,7 +31,9 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     }, []);
 
     useEffect(() => {
-        ProjectUtil.setCurrentProject(project);
+        if (selectedProject) {
+            ProjectUtil.setCurrentProject(selectedProject);
+        }
     }, [selectedProject]);
 
     return (
