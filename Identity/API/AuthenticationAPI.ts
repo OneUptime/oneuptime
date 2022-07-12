@@ -64,6 +64,9 @@ router.post(
                         query: {
                             token: verificationToken,
                         },
+                        props: {
+                            isRoot: true,
+                        },
                     });
             }
 
@@ -72,6 +75,9 @@ router.post(
                 select: {
                     _id: true,
                     password: true,
+                },
+                props: {
+                    isRoot: true,
                 },
             });
 
@@ -95,9 +101,17 @@ router.post(
                 savedUser = await UserService.updateOneByIdAndFetch({
                     id: alreadySavedUser.id!,
                     data: user,
+                    props: {
+                        isRoot: true,
+                    },
                 });
             } else {
-                savedUser = await UserService.create({ data: user });
+                savedUser = await UserService.create({
+                    data: user,
+                    props: {
+                        isRoot: true,
+                    },
+                });
             }
 
             if (alreadySavedUser) {
@@ -183,6 +197,9 @@ router.post(
                     email: true,
                     isMasterAdmin: true,
                 },
+                props: {
+                    isRoot: true,
+                },
             });
 
             if (alreadySavedUser) {
@@ -231,6 +248,9 @@ router.post(
                     name: true,
                     email: true,
                     isMasterAdmin: true,
+                },
+                props: {
+                    isRoot: true,
                 },
             });
 
@@ -281,6 +301,9 @@ router.post(
                     name: true,
                     email: true,
                     isMasterAdmin: true,
+                },
+                props: {
+                    isRoot: true,
                 },
             });
 
