@@ -22,7 +22,7 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadProjectLabel,
-        Permission.AnyProjectMember,
+        Permission.ProjectMember,
     ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectLabel],
     update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
@@ -38,7 +38,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -65,7 +65,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -83,7 +83,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
@@ -100,7 +100,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -117,7 +117,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
@@ -135,7 +135,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -162,7 +162,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -179,7 +179,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -207,7 +207,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -224,7 +224,7 @@ export default class Label extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectLabel,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })

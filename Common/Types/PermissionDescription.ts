@@ -2,9 +2,9 @@ enum PermissionDescription {
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',
 
-    AnyProjectMember = 'AnyProjectMember', // member of a project
+    ProjectMember = 'ProjectMember', // member of a project
 
-    AnyUser = 'AnyUser', //registered user. Can or cannot belong to a project.
+    User = 'User', //registered user. Can or cannot belong to a project.
 
     CurrentUser = 'CurrentUser', // Current logged in user.
 

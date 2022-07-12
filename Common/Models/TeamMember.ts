@@ -25,7 +25,7 @@ import User from './User';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadProjectTeam,
-        Permission.AnyProjectMember,
+        Permission.ProjectMember,
     ],
     delete: [
         Permission.ProjectOwner,
@@ -54,7 +54,7 @@ export default class TeamMember extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -85,7 +85,7 @@ export default class TeamMember extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -107,7 +107,7 @@ export default class TeamMember extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -138,7 +138,7 @@ export default class TeamMember extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -160,7 +160,7 @@ export default class TeamMember extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -191,7 +191,7 @@ export default class TeamMember extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -205,7 +205,7 @@ export default class TeamMember extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({
@@ -228,7 +228,7 @@ export default class TeamMember extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -241,7 +241,7 @@ export default class TeamMember extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({
@@ -265,7 +265,7 @@ export default class TeamMember extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })

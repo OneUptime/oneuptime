@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinTable, ManyToMany } from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from './BaseModel';
 import ColumnType from '../Types/Database/ColumnType';
 import ColumnLength from '../Types/Database/ColumnLength';
@@ -18,13 +18,11 @@ import TableColumnType from '../Types/Database/TableColumnType';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import Permission from '../Types/Permission';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
-import Project from './Project';
 import UserColumn from '../Types/Database/UserColumn';
-import ProjectColumn from '../Types/Database/ProjectColumn';
 
 @TableAccessControl({
     create: [Permission.Public],
-    read: [Permission.CurrentUser, Permission.AnyProjectMember],
+    read: [Permission.CurrentUser, Permission.ProjectMember],
     delete: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
 })
@@ -34,11 +32,10 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
     name: 'User',
 })
 @UserColumn('_id')
-@ProjectColumn('projects')
 class User extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.CurrentUser, Permission.AnyProjectMember],
+        read: [Permission.CurrentUser, Permission.ProjectMember],
         update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Name })
@@ -47,12 +44,13 @@ class User extends BaseModel {
         length: ColumnLength.Name,
         nullable: true,
         unique: false,
+        transformer: Name.getDatabaseTransformer()
     })
     public name?: Name = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.CurrentUser, Permission.AnyProjectMember],
+        read: [Permission.CurrentUser, Permission.ProjectMember],
 
         update: [Permission.CurrentUser],
     })
@@ -89,8 +87,8 @@ class User extends BaseModel {
 
     @Index()
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyProjectMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -213,7 +211,7 @@ class User extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.CurrentUser, Permission.AnyProjectMember],
+        read: [Permission.CurrentUser, Permission.ProjectMember],
 
         update: [Permission.CurrentUser],
     })
@@ -229,7 +227,7 @@ class User extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.CurrentUser, Permission.AnyProjectMember],
+        read: [Permission.CurrentUser, Permission.ProjectMember],
 
         update: [Permission.CurrentUser],
     })
@@ -352,7 +350,7 @@ class User extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.CurrentUser, Permission.AnyProjectMember],
+        read: [Permission.CurrentUser, Permission.ProjectMember],
 
         update: [Permission.CurrentUser],
     })
@@ -467,7 +465,7 @@ class User extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.CurrentUser, Permission.AnyProjectMember],
+        read: [Permission.CurrentUser, Permission.ProjectMember],
 
         update: [Permission.CurrentUser],
     })
@@ -523,19 +521,6 @@ class User extends BaseModel {
         unique: false,
     })
     public tempAlertPhoneNumber?: Phone = undefined;
-
-    @ColumnAccessControl({
-        create: [],
-        read: [],
-
-        update: [],
-    })
-    @TableColumn({ type: TableColumnType.Array })
-    @ManyToMany(() => {
-        return Project;
-    })
-    @JoinTable()
-    public projects?: Array<Project> = undefined;
 }
 
 export default User;

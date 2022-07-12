@@ -20,7 +20,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import SortOrder from '../Types/Database/SortOrder';
 import HardDeleteBy from '../Types/Database/HardDeleteBy';
 import { EncryptionSecret } from '../Config';
@@ -49,6 +49,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
         }
+    }
+
+    public getQueryBuilder(modelName: string): SelectQueryBuilder<TBaseModel> {
+        return this.getRepository().createQueryBuilder(modelName);
     }
 
     public getRepository(): Repository<TBaseModel> {
@@ -313,6 +317,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.createRecordPermissions
             )
         ) {
+
             throw new NotAuthorizedException(
                 `A user does not have permissions to create record of type ${this.entityType.name}.`
             );

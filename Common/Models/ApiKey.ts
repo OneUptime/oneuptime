@@ -171,7 +171,7 @@ export default class ApiKey extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })

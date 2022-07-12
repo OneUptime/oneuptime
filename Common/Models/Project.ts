@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import ColumnType from '../Types/Database/ColumnType';
@@ -16,8 +16,8 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
 import ProjectColumn from '../Types/Database/ProjectColumn';
 
 @TableAccessControl({
-    create: [Permission.AnyUser],
-    read: [Permission.AnyProjectMember],
+    create: [Permission.User],
+    read: [Permission.ProjectMember],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProject],
     update: [
         Permission.ProjectOwner,
@@ -33,8 +33,8 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
 @ProjectColumn('_id')
 export default class Model extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyProjectMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [
             Permission.ProjectOwner,
             Permission.CanManageProjectBilling,
@@ -51,8 +51,8 @@ export default class Model extends BaseModel {
 
     @Index()
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyProjectMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -65,8 +65,8 @@ export default class Model extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyProjectMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -79,8 +79,8 @@ export default class Model extends BaseModel {
     public paymentProviderPlanId?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyProjectMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -94,7 +94,7 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({
@@ -110,8 +110,8 @@ export default class Model extends BaseModel {
     public numberOfLicensesIssued?: PositiveNumber;
 
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyProjectMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({
@@ -134,7 +134,7 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -171,7 +171,7 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -184,7 +184,7 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [
             Permission.ProjectOwner,
             Permission.CanManageProjectBilling,
@@ -278,4 +278,16 @@ export default class Model extends BaseModel {
         unique: false,
     })
     public paymentSuccessDate?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Array })
+    @ManyToMany(() => {
+        return User;
+    })
+    @JoinTable()
+    public users?: Array<User> = undefined;
 }

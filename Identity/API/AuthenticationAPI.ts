@@ -156,7 +156,7 @@ router.post(
                         userId: savedUser.id!,
                         email: savedUser.email!,
                         isMasterAdmin: savedUser.isMasterAdmin!,
-                        permissions: [Permission.AnyUser],
+                        permissions: [Permission.User],
                     },
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
@@ -208,7 +208,7 @@ router.post(
                         userId: alreadySavedUser.id!,
                         email: alreadySavedUser.email!,
                         isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        permissions: [Permission.AnyUser],
+                        permissions: [Permission.User],
                     },
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
@@ -260,7 +260,7 @@ router.post(
                         userId: alreadySavedUser.id!,
                         email: alreadySavedUser.email!,
                         isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        permissions: [Permission.AnyUser],
+                        permissions: [Permission.User],
                     },
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
@@ -313,7 +313,7 @@ router.post(
                         userId: alreadySavedUser.id!,
                         email: alreadySavedUser.email!,
                         isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        permissions: [Permission.AnyUser],
+                        permissions: [Permission.User],
                     },
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );

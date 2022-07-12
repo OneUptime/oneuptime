@@ -85,7 +85,7 @@ export default class UserMiddleware {
             oneuptimeRequest.permissions =
                 oneuptimeRequest.userAuthorization.permissions;
         } else if (oneuptimeRequest.userType === UserType.User) {
-            oneuptimeRequest.permissions = [Permission.AnyUser];
+            oneuptimeRequest.permissions = [Permission.User];
         }
 
         return next();

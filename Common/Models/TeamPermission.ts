@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
@@ -25,7 +25,7 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
     read: [
         Permission.ProjectOwner,
         Permission.CanReadProjectTeam,
-        Permission.AnyProjectMember,
+        Permission.ProjectMember,
     ],
     delete: [
         Permission.ProjectOwner,
@@ -54,7 +54,7 @@ export default class TeamPermission extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -85,7 +85,7 @@ export default class TeamPermission extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -116,7 +116,7 @@ export default class TeamPermission extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -138,7 +138,7 @@ export default class TeamPermission extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -156,7 +156,7 @@ export default class TeamPermission extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -183,7 +183,7 @@ export default class TeamPermission extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -200,7 +200,7 @@ export default class TeamPermission extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -225,7 +225,7 @@ export default class TeamPermission extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyProjectMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -245,7 +245,7 @@ export default class TeamPermission extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [
             Permission.ProjectOwner,
@@ -271,7 +271,7 @@ export default class TeamPermission extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
+            Permission.ProjectMember,
         ],
         update: [
             Permission.ProjectOwner,
@@ -280,48 +280,8 @@ export default class TeamPermission extends BaseModel {
             Permission.CanEditProjectTeam,
         ],
     })
-    @TableColumn({
-        manyToOneRelationColumn: 'labelId',
-        type: TableColumnType.Entity,
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return Label;
-        },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'labelId' })
-    public label?: Label = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectTeam,
-            Permission.CanEditProjectTeamPermissions,
-        ],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectTeam,
-            Permission.AnyProjectMember,
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanInviteProjectTeamMembers,
-            Permission.CanEditProjectTeamPermissions,
-            Permission.CanEditProjectTeam,
-        ],
-    })
-    @Index()
-    @TableColumn({ type: TableColumnType.ObjectID })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public labelId?: ObjectID;
+    @TableColumn({ required: true, type: TableColumnType.Array })
+    @ManyToMany(() => Label)
+    @JoinTable()
+    labels?: Label[];
 }

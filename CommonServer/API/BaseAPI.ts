@@ -4,6 +4,7 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
+    NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
 import UserMiddleware from '../Middleware/UserAuthorization';
@@ -18,13 +19,13 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 export default class BaseAPI<
     TBaseModel extends BaseModel,
     TBaseService extends DatabaseService<BaseModel>
-> {
-    private entityType: { new (): TBaseModel };
+    > {
+    private entityType: { new(): TBaseModel };
 
     public router: ExpressRouter;
     private service: TBaseService;
 
-    public constructor(type: { new (): TBaseModel }, service: TBaseService) {
+    public constructor(type: { new(): TBaseModel }, service: TBaseService) {
         this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
 
@@ -32,8 +33,13 @@ export default class BaseAPI<
         router.post(
             `/${new this.entityType().getCrudApiPath()?.toString()}`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.createItem(req, res);
+            async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+                try {
+                    await this.createItem(req, res);
+                }
+                catch (err) {
+                    next(err);
+                }
             }
         );
 
@@ -41,8 +47,13 @@ export default class BaseAPI<
         router.get(
             `/${new this.entityType().getCrudApiPath()?.toString()}/list`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.getList(req, res);
+            async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+                try {
+                    await this.getList(req, res);
+                }
+                catch (err) {
+                    next(err);
+                }
             }
         );
 
@@ -50,8 +61,13 @@ export default class BaseAPI<
         router.get(
             `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.getItem(req, res);
+            async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+                try {
+                    await this.getItem(req, res);
+                }
+                catch (err) {
+                    next(err);
+                }
             }
         );
 
@@ -59,8 +75,13 @@ export default class BaseAPI<
         router.put(
             `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.updateItem(req, res);
+            async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+                try {
+                    await this.updateItem(req, res);
+                }
+                catch (err) {
+                    next(err);
+                }
             }
         );
 
@@ -68,8 +89,13 @@ export default class BaseAPI<
         router.delete(
             `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.deleteItem(req, res);
+            async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+                try {
+                    await this.deleteItem(req, res);
+                }
+                catch (err) {
+                    next(err);
+                }
             }
         );
 
@@ -193,6 +219,7 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        debugger;
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
