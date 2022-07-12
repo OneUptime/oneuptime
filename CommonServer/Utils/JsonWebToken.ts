@@ -1,11 +1,11 @@
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import UserRole from 'Common/Types/UserRole';
 import jwt from 'jsonwebtoken';
 import { EncryptionSecret } from '../Config';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+import Permission from 'Common/Types/Permission';
 
 class JSONWebToken {
     public static sign(
@@ -17,9 +17,7 @@ class JSONWebToken {
                 ? {
                       userId: data.userId.toString(),
                       email: data.email.toString(),
-                      roles: data.roles.map((role: UserRole): JSONObject => {
-                          return role.toJSON();
-                      }),
+                      permissions: data.permissions,
                       isMasterAdmin: data.isMasterAdmin,
                   }
                 : data,
@@ -40,11 +38,8 @@ class JSONWebToken {
             return {
                 userId: new ObjectID(decoded['userId'] as string),
                 email: new Email(decoded['email'] as string),
-                roles: (decoded['roles'] as JSONArray).map(
-                    (obj: JSONObject): UserRole => {
-                        return UserRole.fromJSON(obj);
-                    }
-                ),
+                permissions:
+                    (decoded['permissions'] as Array<Permission>) || [],
                 isMasterAdmin: Boolean(decoded['isMasterAdmin']),
             };
         } catch (e) {

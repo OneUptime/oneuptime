@@ -1,10 +1,11 @@
 import Email from './Email';
 import ObjectID from './ObjectID';
-import UserRole from './UserRole';
+import Permission from './Permission';
 
 export default interface JSONWebTokenData {
     userId: ObjectID;
     email: Email;
-    roles: Array<UserRole>;
+    permissions: Array<Permission>;
+    projectId?: ObjectID;
     isMasterAdmin: boolean;
 }

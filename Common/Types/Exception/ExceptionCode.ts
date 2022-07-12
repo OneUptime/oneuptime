@@ -6,7 +6,8 @@ enum ExceptionCode {
     BadOperationException = 5,
     BadDataException = 400,
     BadRequestException = 400,
-    NotAuthorizedException = 401,
+    NotAuthorizedException = 403,
+    NotAuthenticatedxception = 401,
 }
 
 export default ExceptionCode;

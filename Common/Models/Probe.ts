@@ -12,13 +12,31 @@ import TableColumn from '../Types/Database/TableColumn';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
+import ProjectColumn from '../Types/Database/ProjectColumn';
+import Permission from '../Types/Permission';
+import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
+import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
+import IsPermissionsIf from '../Types/Database/IsPermissionsIf';
 
+@IsPermissionsIf(Permission.Public, 'projectId', null)
+@ProjectColumn('projectId')
 @CrudApiEndpoint(new Route('/probe'))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Probe',
 })
+@TableAccessControl({
+    create: [Permission.ProjectOwner, Permission.CanCreateProbe],
+    read: [Permission.AnyMember, Permission.Public],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteProbe],
+    update: [Permission.ProjectOwner, Permission.CanEditProbe],
+})
 export default class Probe extends BaseModel {
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProbe],
+        read: [],
+        update: [],
+    })
     @TableColumn({
         required: true,
         unique: true,
@@ -33,6 +51,11 @@ export default class Probe extends BaseModel {
     })
     public key?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProbe],
+        read: [Permission.AnyMember, Permission.Public],
+        update: [Permission.ProjectOwner, Permission.CanEditProbe],
+    })
     @TableColumn({ required: true, type: TableColumnType.Name })
     @Column({
         nullable: false,
@@ -41,6 +64,24 @@ export default class Probe extends BaseModel {
     })
     public name?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProbe],
+        read: [Permission.AnyMember, Permission.Public],
+        update: [Permission.ProjectOwner, Permission.CanEditProbe],
+    })
+    @TableColumn({ required: false, type: TableColumnType.Name })
+    @Column({
+        nullable: true,
+        type: ColumnType.Name,
+        length: ColumnLength.Name,
+    })
+    public description?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.AnyMember, Permission.Public],
+        update: [],
+    })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
     @Column({
         nullable: false,
@@ -49,6 +90,11 @@ export default class Probe extends BaseModel {
     })
     public slug?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.AnyMember, Permission.Public],
+        update: [],
+    })
     @TableColumn({ required: true, type: TableColumnType.Version })
     @Column({
         nullable: false,
@@ -58,6 +104,11 @@ export default class Probe extends BaseModel {
     })
     public probeVersion?: Version;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.AnyMember, Permission.Public],
+        update: [],
+    })
     @TableColumn({
         isDefaultValueColumn: true,
         required: true,
@@ -72,6 +123,11 @@ export default class Probe extends BaseModel {
     })
     public lastAlive?: Date = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProbe],
+        read: [Permission.AnyMember, Permission.Public],
+        update: [Permission.ProjectOwner, Permission.CanEditProbe],
+    })
     @TableColumn({ type: TableColumnType.ShortURL })
     @Column({
         type: ColumnType.ShortURL,
@@ -81,8 +137,12 @@ export default class Probe extends BaseModel {
     })
     public iconUrl?: URL;
 
-    // If this probe is custom to the project and only monitoring reosurces in this project.
-    @TableColumn({ type: TableColumnType.Entity })
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProbe],
+        read: [Permission.AnyMember, Permission.Public],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Entity, required: false })
     @ManyToOne(
         (_type: string) => {
             return Project;
@@ -98,6 +158,11 @@ export default class Probe extends BaseModel {
     @JoinColumn({ name: 'projectId' })
     public project?: Project;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProbe],
+        read: [Permission.AnyMember, Permission.Public],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
@@ -106,6 +171,11 @@ export default class Probe extends BaseModel {
     })
     public projectId?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.Entity })
     @ManyToOne(
         (_type: string) => {
@@ -122,6 +192,11 @@ export default class Probe extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
@@ -130,6 +205,11 @@ export default class Probe extends BaseModel {
     })
     public deletedByUserId?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProbe],
+        read: [Permission.ProjectOwner, Permission.AnyMember],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ObjectID })
     @ManyToOne(
         (_type: string) => {
@@ -145,6 +225,11 @@ export default class Probe extends BaseModel {
     @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User;
 
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProbe],
+        read: [Permission.ProjectOwner, Permission.AnyMember],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,

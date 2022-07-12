@@ -26,19 +26,26 @@ import HardDeleteBy from '../Types/Database/HardDeleteBy';
 import { EncryptionSecret } from '../Config';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
-import ObjectID from 'Common/Types/ObjectID';
-import Role from 'Common/Types/Role';
 import Columns from 'Common/Types/Database/Columns';
+import FindOneByID from '../Types/Database/FindOneByID';
+import Permission, { PermissionUtil } from 'Common/Types/Permission';
+import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import Dictionary from 'Common/Types/Dictionary';
+import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
     private entityType!: { new (): TBaseModel };
+    private model!: TBaseModel;
 
     public constructor(
         type: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = type;
+        this.model = new type();
+
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
         }
@@ -279,6 +286,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // hash data
         data = await this.hash(data);
 
+        data = this.asCreateableByPermissions(createBy);
+
         try {
             const savedData: TBaseModel = await this.getRepository().save(data);
             createBy.data = savedData;
@@ -288,6 +297,317 @@ class DatabaseService<TBaseModel extends BaseModel> {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    public asCreateableByPermissions(
+        createBy: CreateBy<TBaseModel>
+    ): TBaseModel {
+        // If system is making this query then let the query run!
+        if (createBy.props.isRoot) {
+            return createBy.data;
+        }
+
+        if (
+            !PermissionUtil.doesPermissionsIntersect(
+                createBy.props.userPermissions || [],
+                createBy.data.createRecordPermissions
+            )
+        ) {
+            throw new NotAuthorizedException(
+                `A user does not have permissions to create record of type ${this.entityType.name}.`
+            );
+        }
+
+        const data: TBaseModel = this.keepColumns(
+            this.getCreateableColumnsByPermissions(
+                createBy.props.userPermissions || []
+            ),
+            createBy.data
+        );
+
+        return data;
+    }
+
+    public asFindByByPermissions(
+        findBy: FindBy<TBaseModel>
+    ): FindBy<TBaseModel> {
+        if (findBy.props.isRoot) {
+            return findBy;
+        }
+
+        let tablePermissions: Array<Permission> = [];
+        let columns: Columns = new Columns([]);
+
+        tablePermissions = this.model.readRecordPermissions;
+
+        if (
+            !PermissionUtil.doesPermissionsIntersect(
+                findBy.props.userPermissions || [],
+                tablePermissions
+            )
+        ) {
+            throw new NotAuthorizedException(
+                `A user does not have permissions to read record.`
+            );
+        }
+
+        columns = this.getReadColumnsByPermissions(
+            findBy.props.userPermissions || []
+        );
+
+        // Now we need to check all columns.
+
+        for (const key in findBy.query) {
+            if (!columns.columns.includes(key)) {
+                throw new NotAuthorizedException(
+                    `A user does not have permissions to query on - ${key}.`
+                );
+            }
+        }
+
+        for (const key in findBy.select) {
+            if (!columns.columns.includes(key)) {
+                throw new NotAuthorizedException(
+                    `A user does not have permissions to select on - ${key}.`
+                );
+            }
+        }
+
+        if (this.model.projectColumn) {
+            (findBy.query as any)[this.model.projectColumn] =
+                findBy.props.projectId;
+        }
+
+        if (this.model.userColumn) {
+            (findBy.query as any)[this.model.userColumn] = findBy.props.userId;
+        }
+
+        if (this.model.isPermissionIf) {
+            for (const key in this.model.isPermissionIf) {
+                const permission: Permission = key as Permission;
+
+                if (
+                    findBy.props.userPermissions?.includes(permission) &&
+                    this.model.isPermissionIf[permission]
+                ) {
+                    const columnName: string = Object.keys(
+                        this.model.isPermissionIf[permission] as any
+                    )[0] as string;
+                    (findBy.query as any)[columnName] = (
+                        this.model.isPermissionIf[permission] as any
+                    )[columnName];
+                }
+            }
+        }
+
+        return findBy;
+    }
+
+    public asUpdateByByPermissions(
+        updateBy: UpdateBy<TBaseModel>
+    ): UpdateBy<TBaseModel> {
+        if (updateBy.props.isRoot) {
+            return updateBy;
+        }
+
+        let tablePermissions: Array<Permission> = [];
+        let updateColumns: Columns = new Columns([]);
+        let readColumns: Columns = new Columns([]);
+
+        tablePermissions = this.model.updateRecordPermissions;
+
+        if (
+            !PermissionUtil.doesPermissionsIntersect(
+                updateBy.props.userPermissions || [],
+                tablePermissions
+            )
+        ) {
+            throw new NotAuthorizedException(
+                `A user does not have permissions to update record.`
+            );
+        }
+
+        updateColumns = this.getUpdateColumnsByPermissions(
+            updateBy.props.userPermissions || []
+        );
+        readColumns = this.getReadColumnsByPermissions(
+            updateBy.props.userPermissions || []
+        );
+
+        // Now we need to check all columns.
+
+        for (const key in updateBy.query) {
+            if (!readColumns.columns.includes(key)) {
+                throw new NotAuthorizedException(
+                    `A user does not have permissions to query on - ${key}.`
+                );
+            }
+        }
+
+        for (const key in updateBy.data) {
+            if (!updateColumns.columns.includes(key)) {
+                throw new NotAuthorizedException(
+                    `A user does not have permissions to update this record at - ${key}.`
+                );
+            }
+        }
+
+        if (this.model.projectColumn) {
+            (updateBy.query as any)[this.model.projectColumn] =
+                updateBy.props.projectId;
+        }
+
+        if (this.model.isPermissionIf) {
+            for (const key in this.model.isPermissionIf) {
+                const permission: Permission = key as Permission;
+
+                if (
+                    updateBy.props.userPermissions?.includes(permission) &&
+                    this.model.isPermissionIf[permission]
+                ) {
+                    const columnName: string = Object.keys(
+                        this.model.isPermissionIf[permission] as any
+                    )[0] as string;
+                    (updateBy.query as any)[columnName] = (
+                        this.model.isPermissionIf[permission] as any
+                    )[columnName];
+                }
+            }
+        }
+
+        if (this.model.userColumn) {
+            (updateBy.query as any)[this.model.userColumn] =
+                updateBy.props.userId;
+        }
+
+        return updateBy;
+    }
+
+    public asDeleteByPermissions(
+        deleteBy: DeleteBy<TBaseModel>
+    ): DeleteBy<TBaseModel> {
+        if (deleteBy.props.isRoot) {
+            return deleteBy;
+        }
+
+        let tablePermissions: Array<Permission> = [];
+
+        tablePermissions = this.model.deleteRecordPermissions;
+
+        if (
+            !PermissionUtil.doesPermissionsIntersect(
+                deleteBy.props.userPermissions || [],
+                tablePermissions
+            )
+        ) {
+            throw new NotAuthorizedException(
+                `A user does not have permissions to delete record.`
+            );
+        }
+
+        if (this.model.projectColumn) {
+            (deleteBy.query as any)[this.model.projectColumn] =
+                deleteBy.props.projectId;
+        }
+
+        if (this.model.userColumn) {
+            (deleteBy.query as any)[this.model.userColumn] =
+                deleteBy.props.userId;
+        }
+
+        return deleteBy;
+    }
+
+    public getCreateableColumnsByPermissions(
+        permissions: Array<Permission>
+    ): Columns {
+        const accessControl: Dictionary<ColumnAccessControl> =
+            getColumnAccessControlForAllColumns(this.model);
+
+        const columns: Array<string> = [];
+
+        for (const key in accessControl) {
+            if (
+                accessControl[key]?.create &&
+                PermissionUtil.doesPermissionsIntersect(
+                    permissions,
+                    accessControl[key]?.create || []
+                )
+            ) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getReadColumnsByPermissions(
+        permissions: Array<Permission>
+    ): Columns {
+        const accessControl: Dictionary<ColumnAccessControl> =
+            getColumnAccessControlForAllColumns(this.model);
+
+        const columns: Array<string> = [];
+
+        for (const key in accessControl) {
+            if (
+                accessControl[key]?.read &&
+                PermissionUtil.doesPermissionsIntersect(
+                    permissions,
+                    accessControl[key]?.read || []
+                )
+            ) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    public getUpdateColumnsByPermissions(
+        permissions: Array<Permission>
+    ): Columns {
+        const accessControl: Dictionary<ColumnAccessControl> =
+            getColumnAccessControlForAllColumns(this.model);
+
+        const columns: Array<string> = [];
+
+        for (const key in accessControl) {
+            if (
+                accessControl[key]?.update &&
+                PermissionUtil.doesPermissionsIntersect(
+                    permissions,
+                    accessControl[key]?.update || []
+                )
+            ) {
+                columns.push(key);
+            }
+        }
+
+        return new Columns(columns);
+    }
+
+    private keepColumns(columnsToKeep: Columns, data: TBaseModel): TBaseModel {
+        if (!columnsToKeep) {
+            return data;
+        }
+
+        for (const key of Object.keys(this)) {
+            const columns: Columns = data.getTableColumns();
+
+            if (
+                !(
+                    columnsToKeep &&
+                    columnsToKeep.columns.length > 0 &&
+                    columnsToKeep.columns.includes(key)
+                ) &&
+                columns.hasColumn(key)
+            ) {
+                (this as any)[key] = undefined;
+            }
+        }
+
+        return data;
     }
 
     public async countBy({
@@ -324,145 +644,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return await this._deleteBy(deleteOneBy);
     }
 
-    public async deleteByRole(
-        role: Role,
-        deleteBy: DeleteBy<TBaseModel>
-    ): Promise<number> {
-        if (role === Role.Administrator) {
-            return await this.deleteByForAdmin(deleteBy);
-        }
-
-        if (role === Role.Member) {
-            return await this.deleteByForMember(deleteBy);
-        }
-
-        if (role === Role.Public) {
-            return await this.deleteByForPublic(deleteBy);
-        }
-
-        if (role === Role.Viewer) {
-            return await this.deleteByForViewer(deleteBy);
-        }
-
-        if (role === Role.Owner) {
-            return await this.deleteByForOwner(deleteBy);
-        }
-
-        throw new BadDataException(`Invalid role - ${role}`);
-    }
-
-    public async updateByRole(
-        role: Role,
-        updateBy: UpdateBy<TBaseModel>
-    ): Promise<void> {
-        if (role === Role.Administrator) {
-            await this.updateBy(updateBy);
-        }
-
-        if (role === Role.Member) {
-            await this.updateBy(updateBy);
-        }
-
-        if (role === Role.Public) {
-            await this.updateBy(updateBy);
-        }
-
-        if (role === Role.Viewer) {
-            await this.updateBy(updateBy);
-        }
-
-        if (role === Role.Owner) {
-            await this.updateBy(updateBy);
-        }
-
-        throw new BadDataException(`Invalid role - ${role}`);
-    }
-
-    public async createByRole(
-        role: Role,
-        createBy: CreateBy<TBaseModel>
-    ): Promise<TBaseModel> {
-        if (role === Role.Administrator) {
-            createBy.data = BaseModel.asAdminCreateable<TBaseModel>(
-                createBy.data,
-                this.entityType
-            );
-            return await this.create(createBy);
-        }
-
-        if (role === Role.Member) {
-            createBy.data = BaseModel.asMemberCreateable<TBaseModel>(
-                createBy.data,
-                this.entityType
-            );
-
-            return await this.create(createBy);
-        }
-
-        if (role === Role.Public) {
-            createBy.data = BaseModel.asPublicCreateable<TBaseModel>(
-                createBy.data,
-                this.entityType
-            );
-
-            return await this.create(createBy);
-        }
-
-        if (role === Role.Viewer) {
-            createBy.data = BaseModel.asViewerCreateable<TBaseModel>(
-                createBy.data,
-                this.entityType
-            );
-
-            return await this.create(createBy);
-        }
-
-        if (role === Role.User) {
-            createBy.data = BaseModel.asUserCreateable<TBaseModel>(
-                createBy.data,
-                this.entityType
-            );
-            return await this.create(createBy);
-        }
-
-        if (role === Role.Owner) {
-            createBy.data = BaseModel.asOwnerCreateable<TBaseModel>(
-                createBy.data,
-                this.entityType
-            );
-            return await this.create(createBy);
-        }
-
-        throw new BadDataException(`Invalid role - ${role}`);
-    }
-
-    public deleteByForOwner(
-        deleteBy: DeleteBy<TBaseModel>
-    ): PromiseLike<number> {
-        return this.deleteBy(deleteBy);
-    }
-    public deleteByForViewer(
-        deleteBy: DeleteBy<TBaseModel>
-    ): PromiseLike<number> {
-        return this.deleteBy(deleteBy);
-    }
-    public deleteByForPublic(
-        deleteBy: DeleteBy<TBaseModel>
-    ): PromiseLike<number> {
-        return this.deleteBy(deleteBy);
-    }
-    public deleteByForMember(
-        deleteBy: DeleteBy<TBaseModel>
-    ): PromiseLike<number> {
-        return this.deleteBy(deleteBy);
-    }
-
-    public deleteByForAdmin(
-        deleteBy: DeleteBy<TBaseModel>
-    ): PromiseLike<number> {
-        return this.deleteBy(deleteBy);
-    }
-
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         return await this._deleteBy(deleteBy);
     }
@@ -484,14 +665,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
-            const beforeDeleteBy: DeleteBy<TBaseModel> =
+            let beforeDeleteBy: DeleteBy<TBaseModel> =
                 await this.onBeforeDelete(deleteBy);
+
+            beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
 
             await this._updateBy({
                 query: deleteBy.query,
                 data: {
                     deletedByUser: deleteBy.deletedByUser,
                 } as any,
+                props: deleteBy.props,
             });
             const numberOfDocsAffected: number =
                 (
@@ -506,120 +690,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             await this.onDeleteError(error as Exception);
             throw this.getException(error as Exception);
         }
-    }
-
-    public async getListForViewer(
-        findBy: FindBy<TBaseModel>
-    ): Promise<Array<TBaseModel>> {
-        return await this.findBy(findBy);
-    }
-
-    public async getListForAdmin(
-        findBy: FindBy<TBaseModel>
-    ): Promise<Array<TBaseModel>> {
-        return await this.findBy(findBy);
-    }
-
-    public async getListForOwner(
-        findBy: FindBy<TBaseModel>
-    ): Promise<Array<TBaseModel>> {
-        return await this.findBy(findBy);
-    }
-
-    public async getListForMember(
-        findBy: FindBy<TBaseModel>
-    ): Promise<Array<TBaseModel>> {
-        return await this.findBy(findBy);
-    }
-
-    public async getListByRole(
-        role: Role,
-        findBy: FindBy<TBaseModel>
-    ): Promise<Array<TBaseModel>> {
-        if (role === Role.Administrator) {
-            return await this.getListForAdmin(findBy);
-        }
-
-        if (role === Role.Member) {
-            return await this.getListForMember(findBy);
-        }
-
-        if (role === Role.Public) {
-            return await this.getListForPublic(findBy);
-        }
-
-        if (role === Role.Viewer) {
-            return await this.getListForViewer(findBy);
-        }
-
-        if (role === Role.Owner) {
-            return await this.getListForOwner(findBy);
-        }
-
-        throw new BadDataException(`Invalid role - ${role}`);
-    }
-
-    public async getListForPublic(
-        findBy: FindBy<TBaseModel>
-    ): Promise<Array<TBaseModel>> {
-        return await this.findBy(findBy);
-    }
-
-    public async getItemForViewer(
-        findOneBy: FindOneBy<TBaseModel>
-    ): Promise<TBaseModel | null> {
-        return await this.findOneBy(findOneBy);
-    }
-
-    public async getItemForAdmin(
-        findOneBy: FindOneBy<TBaseModel>
-    ): Promise<TBaseModel | null> {
-        return await this.findOneBy(findOneBy);
-    }
-
-    public async getItemForMember(
-        findOneBy: FindOneBy<TBaseModel>
-    ): Promise<TBaseModel | null> {
-        return await this.findOneBy(findOneBy);
-    }
-
-    public async getItemForOwner(
-        findOneBy: FindOneBy<TBaseModel>
-    ): Promise<TBaseModel | null> {
-        return await this.findOneBy(findOneBy);
-    }
-
-    public async getItemForPublic(
-        findOneBy: FindOneBy<TBaseModel>
-    ): Promise<TBaseModel | null> {
-        return await this.findOneBy(findOneBy);
-    }
-
-    public async getItemByRole(
-        role: Role,
-        findOneBy: FindOneBy<TBaseModel>
-    ): Promise<TBaseModel | null> {
-        if (role === Role.Administrator) {
-            return await this.getItemForAdmin(findOneBy);
-        }
-
-        if (role === Role.Member) {
-            return await this.getItemForMember(findOneBy);
-        }
-
-        if (role === Role.Public) {
-            return await this.getItemForPublic(findOneBy);
-        }
-
-        if (role === Role.Viewer) {
-            return await this.getItemForViewer(findOneBy);
-        }
-
-        if (role === Role.Owner) {
-            return await this.getItemForOwner(findOneBy);
-        }
-
-        throw new BadDataException(`Invalid role - ${role}`);
     }
 
     public async findBy(
@@ -638,9 +708,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 };
             }
 
-            const onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
+            let onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
                 findBy
             );
+
+            onBeforeFind = this.asFindByByPermissions(findBy);
 
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
@@ -680,24 +752,28 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return null;
     }
 
-    public async findOneById(id: ObjectID): Promise<TBaseModel | null> {
+    public async findOneById(
+        findOneById: FindOneByID
+    ): Promise<TBaseModel | null> {
         return await this.findOneBy({
             query: {
-                _id: id.toString() as any,
+                _id: findOneById.id.toString() as any,
+            },
+            props: {
+                userPermissions: findOneById.props.userPermissions || [],
+                userId: findOneById.props.userId,
+                userType: findOneById.props.userType,
+                projectId: findOneById.props.projectId,
             },
         });
     }
 
-    private async _updateBy({
-        query,
-        data,
-    }: UpdateBy<TBaseModel>): Promise<number> {
+    private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
         try {
-            const beforeUpdateBy: UpdateBy<TBaseModel> =
-                await this.onBeforeUpdate({
-                    query,
-                    data,
-                });
+            let beforeUpdateBy: UpdateBy<TBaseModel> =
+                await this.onBeforeUpdate(updateBy);
+
+            beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
             const numberOfDocsAffected: number =
                 (
@@ -716,18 +792,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    public async updateOneBy({
-        query,
-        data,
-    }: UpdateOneBy<TBaseModel>): Promise<number> {
-        return await this._updateBy({ query, data });
+    public async updateOneBy(
+        updateOneBy: UpdateOneBy<TBaseModel>
+    ): Promise<number> {
+        return await this._updateBy(updateOneBy);
     }
 
-    public async updateBy({
-        query,
-        data,
-    }: UpdateBy<TBaseModel>): Promise<number> {
-        return await this._updateBy({ query, data });
+    public async updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
+        return await this._updateBy(updateBy);
     }
 
     public async updateOneById(
@@ -738,6 +810,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 _id: updateById.id.toString() as any,
             },
             data: updateById.data,
+            props: updateById.props,
         });
     }
 
@@ -745,7 +818,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         updateById: UpdateByID<TBaseModel>
     ): Promise<TBaseModel | null> {
         await this.updateOneById(updateById);
-        return this.findOneById(updateById.id);
+        return this.findOneById({
+            id: updateById.id,
+            props: updateById.props,
+        });
     }
 
     public async searchBy({
@@ -753,6 +829,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         limit,
         select,
         populate,
+        props,
     }: SearchBy<TBaseModel>): Promise<SearchResult<TBaseModel>> {
         const query: Query<TBaseModel> = {};
 
@@ -766,11 +843,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     limit,
                     select,
                     populate,
+                    props: props,
                 }),
                 this.countBy({
                     query,
                     skip: new PositiveNumber(0),
                     limit: new PositiveNumber(Infinity),
+                    props: props,
                 }),
             ]);
 

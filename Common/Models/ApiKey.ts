@@ -1,12 +1,4 @@
-import {
-    Column,
-    Entity,
-    Index,
-    JoinColumn,
-    JoinTable,
-    ManyToMany,
-    ManyToOne,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -18,41 +10,31 @@ import TableColumn from '../Types/Database/TableColumn';
 import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
-import TeamPermission from './TeamPermission';
-import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import Permission from '../Types/Permission';
-import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 import ProjectColumn from '../Types/Database/ProjectColumn';
+import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
+import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 
 @ProjectColumn('projectId')
-@TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadTeam,
-        Permission.AnyMember,
-    ],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteTeam],
-    update: [
-        Permission.ProjectOwner,
-        Permission.CanInviteTeamMembers,
-        Permission.CanEditTeamPermissions,
-        Permission.CanEditTeam,
-    ],
-})
-@CrudApiEndpoint(new Route('/team'))
+@CrudApiEndpoint(new Route('/api-key'))
 @SlugifyColumn('name', 'slug')
 @Entity({
-    name: 'Team',
+    name: 'ApiKey',
 })
-export default class Team extends BaseModel {
+@TableAccessControl({
+    create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+    read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteApiKey],
+    update: [
+        Permission.ProjectOwner,
+        Permission.CanEditApiKeyPermissions,
+        Permission.CanEditApiKey,
+    ],
+})
+export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadTeam,
-            Permission.AnyMember,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
         update: [],
     })
     @TableColumn({
@@ -74,12 +56,8 @@ export default class Team extends BaseModel {
     public project?: Project;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadTeam,
-            Permission.AnyMember,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
         update: [],
     })
     @Index()
@@ -92,13 +70,9 @@ export default class Team extends BaseModel {
     public projectId?: ObjectID;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadTeam,
-            Permission.AnyMember,
-        ],
-        update: [Permission.ProjectOwner, Permission.CanEditTeam],
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [Permission.CanEditApiKey],
     })
     @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -110,13 +84,9 @@ export default class Team extends BaseModel {
     public name?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadTeam,
-            Permission.AnyMember,
-        ],
-        update: [Permission.ProjectOwner, Permission.CanEditTeam],
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [Permission.CanEditApiKey],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -126,14 +96,9 @@ export default class Team extends BaseModel {
     })
     public description?: string = undefined;
 
-    @Index()
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadTeam,
-            Permission.AnyMember,
-        ],
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -141,17 +106,12 @@ export default class Team extends BaseModel {
         nullable: false,
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
-        unique: true,
     })
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadTeam,
-            Permission.AnyMember,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
         update: [],
     })
     @TableColumn({
@@ -173,12 +133,8 @@ export default class Team extends BaseModel {
     public createdByUser?: User;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateTeam],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadTeam,
-            Permission.AnyMember,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -226,25 +182,44 @@ export default class Team extends BaseModel {
     })
     public deletedByUserId?: ObjectID;
 
-    @ManyToMany(() => {
-        return TeamPermission;
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [Permission.CanEditApiKeyPermissions],
     })
-    @JoinTable()
-    public permissions?: Array<TeamPermission> = undefined;
+    @TableColumn({ title: 'Permissions', type: TableColumnType.Array })
+    @Column({
+        type: ColumnType.Array,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public permissions?: Array<Permission> = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateApiKey],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
+        update: [Permission.CanEditApiKey],
+    })
+    @TableColumn({ title: 'Expires At', type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public expiresAt?: Date = undefined;
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanEditTeam,
-            Permission.CanEditTeamPermissions,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadApiKey],
         update: [],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: true })
     @Column({
-        type: ColumnType.Boolean,
-        default: true,
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+        default: ObjectID.generate(),
     })
-    public isPermissionsEditable?: boolean = undefined;
+    public apiKey?: ObjectID;
 }

@@ -1,8 +1,8 @@
 import Exception from './Exception';
 import ExceptionCode from './ExceptionCode';
 
-export default class NotAuthorizedException extends Exception {
+export default class NotAuthenticatedException extends Exception {
     public constructor(message: string) {
-        super(ExceptionCode.NotAuthorizedException, message);
+        super(ExceptionCode.NotAuthenticatedxception, message);
     }
 }

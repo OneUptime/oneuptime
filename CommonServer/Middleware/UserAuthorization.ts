@@ -3,15 +3,14 @@ import {
     ExpressRequest,
     NextFunction,
     OneUptimeRequest,
-    AuthorizationType,
 } from '../Utils/Express';
 import UserService from '../Services/UserService';
 import ProjectMiddleware from './ProjectAuthorization';
 import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
-import UserRole from 'Common/Types/UserRole';
 import OneUptimeDate from 'Common/Types/Date';
-import Role from 'Common/Types/Role';
+import Permission from 'Common/Types/Permission';
+import UserType from 'Common/Types/UserType';
 
 export default class UserMiddleware {
     /*
@@ -62,37 +61,31 @@ export default class UserMiddleware {
         const accessToken: string | null = UserMiddleware.getAccessToken(req);
 
         if (!accessToken) {
-            oneuptimeRequest.authorizationType = AuthorizationType.Public;
+            oneuptimeRequest.userType = UserType.Public;
             return next();
         }
 
         oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
 
         if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
-            oneuptimeRequest.authorizationType = AuthorizationType.MasterAdmin;
+            oneuptimeRequest.userType = UserType.MasterAdmin;
         } else {
-            oneuptimeRequest.authorizationType = AuthorizationType.User;
+            oneuptimeRequest.userType = UserType.User;
         }
 
         await UserService.updateOneBy({
             query: {
                 _id: oneuptimeRequest.userAuthorization.userId.toString(),
             },
+            props: { isRoot: true },
             data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
-        const userRole: UserRole | undefined | null =
-            projectId &&
-            oneuptimeRequest.userAuthorization.roles.find((role: UserRole) => {
-                return role.projectId.toString() === role.projectId.toString();
-            });
-
-        if (userRole) {
-            oneuptimeRequest.role = userRole.role;
-        } else if (
-            oneuptimeRequest.authorizationType === AuthorizationType.User
-        ) {
-            oneuptimeRequest.role = Role.User;
+        if (oneuptimeRequest.userAuthorization.permissions) {
+            oneuptimeRequest.permissions =
+                oneuptimeRequest.userAuthorization.permissions;
+        } else if (oneuptimeRequest.userType === UserType.User) {
+            oneuptimeRequest.permissions = [Permission.AnyUser];
         }
 
         return next();

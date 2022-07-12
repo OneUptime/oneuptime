@@ -35,6 +35,9 @@ export default class MailService {
                 select: {
                     value: true,
                 },
+                props: {
+                    isRoot: true,
+                },
             });
 
         if (document && document.value && !document.value['internalSmtp']) {
@@ -113,6 +116,9 @@ export default class MailService {
                     fromName: true,
                     fromEmail: true,
                     secure: true,
+                },
+                props: {
+                    isRoot: true,
                 },
             });
 
@@ -250,7 +256,12 @@ export default class MailService {
             log.project = new Project(data.projectId);
         }
 
-        await EmailLogService.create({ data: log });
+        await EmailLogService.create({
+            data: log,
+            props: {
+                isRoot: true,
+            },
+        });
     }
 
     private static async transportMail(
