@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import ColumnType from '../Types/Database/ColumnType';

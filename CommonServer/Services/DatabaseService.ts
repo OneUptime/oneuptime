@@ -317,7 +317,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.createRecordPermissions
             )
         ) {
-
             throw new NotAuthorizedException(
                 `A user does not have permissions to create record of type ${this.entityType.name}.`
             );

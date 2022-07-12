@@ -1,26 +1,34 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useState,
+    useEffect,
+} from 'react';
 import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Project from 'Common/Models/Project';
 import ModelFromModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import ProjectUtil from "CommonUI/src/Utils/Project";
-import { useEffect } from 'react';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
 
 export interface ComponentProps {
     projects: Array<Project>;
 }
 
-const DashboardProjectPicker: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     const project: Project = new Project();
     project.name = 'Sample 1';
 
     const [showModel, setShowModel] = useState<boolean>(false);
-    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    const [selectedProject, setSelectedProject] = useState<Project | null>(
+        null
+    );
 
     useEffect(() => {
-        setSelectedProject(ProjectUtil.getCurrentProject())
+        setSelectedProject(ProjectUtil.getCurrentProject());
     }, []);
 
     useEffect(() => {

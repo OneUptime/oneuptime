@@ -4,15 +4,15 @@ import { JSONValue } from 'Common/Types/JSON';
 
 export default class LocalStorage {
     public static setItem(key: string, value: JSONValue | Email | URL): void {
-        if (typeof value === "object") {
-            // if of type jsonobject. 
+        if (typeof value === 'object') {
+            // if of type jsonobject.
             value = JSON.stringify(value);
         }
         localStorage.setItem(key, value as string);
     }
 
     public static getItem(key: string): JSONValue {
-        const value = localStorage.getItem(key) as JSONValue;
+        const value: JSONValue = localStorage.getItem(key) as JSONValue;
 
         try {
             if (value) {

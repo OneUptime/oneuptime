@@ -44,7 +44,7 @@ class User extends BaseModel {
         length: ColumnLength.Name,
         nullable: true,
         unique: false,
-        transformer: Name.getDatabaseTransformer()
+        transformer: Name.getDatabaseTransformer(),
     })
     public name?: Name = undefined;
 

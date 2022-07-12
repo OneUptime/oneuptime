@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
@@ -281,7 +289,9 @@ export default class TeamPermission extends BaseModel {
         ],
     })
     @TableColumn({ required: true, type: TableColumnType.Array })
-    @ManyToMany(() => Label)
+    @ManyToMany(() => {
+        return Label;
+    })
     @JoinTable()
-    labels?: Label[];
+    public labels?: Label[];
 }

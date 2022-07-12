@@ -27,7 +27,7 @@ abstract class Navigation {
         if (!this.params || !this.params[param]) {
             return null;
         }
-        return this.params[param] as string; 
+        return this.params[param] as string;
     }
 
     public static getCurrentRoute(): Route {
