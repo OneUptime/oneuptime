@@ -5,8 +5,7 @@ import Sort from './Sort';
 import BaseModel from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
-export default interface FindOneBy<TBaseModel extends BaseModel>
-    {
+export default interface FindOneBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
     select?: Select<TBaseModel>;
     populate?: Populate<TBaseModel>;

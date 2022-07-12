@@ -130,7 +130,7 @@ export default class BaseAPI<
 
         const count: PositiveNumber = await this.service.countBy({
             query: {},
-            props: this.getDatabaseCommonInteractionProps(req)
+            props: this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendListResponse(req, res, list, count);

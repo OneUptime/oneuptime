@@ -374,7 +374,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         if (this.model.projectColumn) {
-            (findBy.query as any)[this.model.projectColumn] = findBy.props.projectId;
+            (findBy.query as any)[this.model.projectColumn] =
+                findBy.props.projectId;
         }
 
         if (this.model.userColumn) {
@@ -475,7 +476,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         if (this.model.userColumn) {
-            (updateBy.query as any)[this.model.userColumn] = updateBy.props.userId;
+            (updateBy.query as any)[this.model.userColumn] =
+                updateBy.props.userId;
         }
 
         return updateBy;
@@ -509,7 +511,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         if (this.model.userColumn) {
-            (deleteBy.query as any)[this.model.userColumn] = deleteBy.props.userId;
+            (deleteBy.query as any)[this.model.userColumn] =
+                deleteBy.props.userId;
         }
 
         return deleteBy;
@@ -672,7 +675,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data: {
                     deletedByUser: deleteBy.deletedByUser,
                 } as any,
-                props: deleteBy.props
+                props: deleteBy.props,
             });
             const numberOfDocsAffected: number =
                 (
@@ -761,7 +764,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 userId: findOneById.props.userId,
                 userType: findOneById.props.userType,
                 projectId: findOneById.props.projectId,
-            }
+            },
         });
     }
 
@@ -807,7 +810,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 _id: updateById.id.toString() as any,
             },
             data: updateById.data,
-            props: updateById.props
+            props: updateById.props,
         });
     }
 
@@ -817,7 +820,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         await this.updateOneById(updateById);
         return this.findOneById({
             id: updateById.id,
-            props: updateById.props
+            props: updateById.props,
         });
     }
 
@@ -826,7 +829,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         limit,
         select,
         populate,
-        props
+        props,
     }: SearchBy<TBaseModel>): Promise<SearchResult<TBaseModel>> {
         const query: Query<TBaseModel> = {};
 
@@ -840,13 +843,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     limit,
                     select,
                     populate,
-                    props: props
+                    props: props,
                 }),
                 this.countBy({
                     query,
                     skip: new PositiveNumber(0),
                     limit: new PositiveNumber(Infinity),
-                    props: props
+                    props: props,
                 }),
             ]);
 

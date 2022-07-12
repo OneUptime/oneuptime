@@ -96,7 +96,7 @@ export default class ProbeMiddleware {
                     query: {
                         name: probeName,
                     },
-                    props: { isRoot: true }
+                    props: { isRoot: true },
                 });
 
                 if (probe && probe.id) {
@@ -119,7 +119,7 @@ export default class ProbeMiddleware {
                     key: true,
                     probeVersion: true,
                 },
-                props: { isRoot: true }
+                props: { isRoot: true },
             });
 
             if (probe && probe.id) {
@@ -144,7 +144,7 @@ export default class ProbeMiddleware {
 
             probe = await ProbeService.create({
                 data: probe,
-                props: { isRoot: true }
+                props: { isRoot: true },
             });
 
             probeId = probe.id;
@@ -165,7 +165,7 @@ export default class ProbeMiddleware {
                     key: true,
                     probeVersion: true,
                 },
-                props: { isRoot: true }
+                props: { isRoot: true },
             });
 
             if (probe) {

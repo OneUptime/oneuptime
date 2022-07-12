@@ -29,7 +29,10 @@ export class Service extends DatabaseService<Model> {
         probe.name = name;
         probe.key = key;
         probe.probeVersion = version;
-        const savedProbe: Model = await this.create({ data: probe, props: props || {}});
+        const savedProbe: Model = await this.create({
+            data: probe,
+            props: props || {},
+        });
         return savedProbe;
     }
 
@@ -45,7 +48,7 @@ export class Service extends DatabaseService<Model> {
             data: {
                 key,
             },
-            props: props || {}
+            props: props || {},
         });
     }
 
@@ -57,17 +60,20 @@ export class Service extends DatabaseService<Model> {
         await this.updateOneBy({
             query: { name },
             data: { probeVersion: version },
-            props: props || {}
+            props: props || {},
         });
     }
 
-    public async updateLastAlive(name: string, props?: DatabaseCommonInteractionProps): Promise<void> {
+    public async updateLastAlive(
+        name: string,
+        props?: DatabaseCommonInteractionProps
+    ): Promise<void> {
         await this.updateOneBy({
             query: { name },
             data: {
                 lastAlive: OneUptimeDate.getCurrentDate(),
             },
-            props: props || {}
+            props: props || {},
         });
     }
 }

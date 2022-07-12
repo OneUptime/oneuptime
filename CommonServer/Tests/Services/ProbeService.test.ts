@@ -33,7 +33,7 @@ describe('probeService', () => {
             key,
             probeVersion,
             {
-                isRoot: true
+                isRoot: true,
             }
         );
 
@@ -59,7 +59,7 @@ describe('probeService', () => {
             key,
             probeVersion,
             {
-                isRoot: true
+                isRoot: true,
             }
         );
 
@@ -71,7 +71,7 @@ describe('probeService', () => {
             query: {
                 name: savedProbe.name,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         if (!fetchedProbe) {
@@ -102,7 +102,7 @@ describe('probeService', () => {
             key,
             probeVersion,
             {
-                isRoot: true
+                isRoot: true,
             }
         );
 
@@ -110,7 +110,7 @@ describe('probeService', () => {
             query: {
                 probeVersion: new Version('1.0.2'),
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         if (!fetchedProbe) {
@@ -136,13 +136,15 @@ describe('probeService', () => {
         const name: string = Faker.generateName();
         const probeVersion: Version = new Version('1.0.2');
         const key: ObjectID = ObjectID.generate();
-        await probeService.createProbe(name, key, probeVersion, { isRoot: true });
+        await probeService.createProbe(name, key, probeVersion, {
+            isRoot: true,
+        });
 
         const fetchedProbe: Probe | null = await probeService.findOneBy({
             query: {
                 name: name + '-invalid',
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         expect(fetchedProbe).toBeNull();
@@ -166,7 +168,7 @@ describe('probeService', () => {
             query: {
                 key: key,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         if (!fetchedProbe) {
@@ -217,7 +219,7 @@ describe('probeService', () => {
             query: {},
             limit: new PositiveNumber(10),
             skip: new PositiveNumber(0),
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         if (fetchedProbes.length !== 2) {
@@ -257,10 +259,9 @@ describe('probeService', () => {
             const probeVersion: Version = new Version('1.0.2');
             const key: ObjectID = ObjectID.generate();
             savedProbes.push(
-                await probeService.createProbe(name, key, probeVersion,
-                    {
-                        isRoot: true,
-                    })
+                await probeService.createProbe(name, key, probeVersion, {
+                    isRoot: true,
+                })
             );
         }
 
@@ -268,7 +269,7 @@ describe('probeService', () => {
             query: {},
             limit: new PositiveNumber(10),
             skip: new PositiveNumber(0),
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         if (savedProbes.length !== 20) {
@@ -307,10 +308,9 @@ describe('probeService', () => {
             const probeVersion: Version = new Version('1.0.2');
             const key: ObjectID = ObjectID.generate();
             savedProbes.push(
-                await probeService.createProbe(name, key, probeVersion,
-                    {
-                        isRoot: true,
-                    })
+                await probeService.createProbe(name, key, probeVersion, {
+                    isRoot: true,
+                })
             );
         }
 
@@ -318,7 +318,7 @@ describe('probeService', () => {
             query: {},
             limit: new PositiveNumber(10),
             skip: new PositiveNumber(10),
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         if (savedProbes.length !== 20) {
@@ -368,14 +368,14 @@ describe('probeService', () => {
             query: {
                 key: key,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         const fetchedProbe: Probe | null = await probeService.findOneBy({
             query: {
                 key: key,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         expect(fetchedProbe).toBeNull();
@@ -403,14 +403,14 @@ describe('probeService', () => {
             query: {
                 key: key,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         const fetchedProbe: Probe | null = await probeService.findOneBy({
             query: {
                 key: key,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         expect(fetchedProbe).toBeNull();
@@ -442,14 +442,14 @@ describe('probeService', () => {
             data: {
                 name: updatedName,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         const fetchedProbe: Probe | null = await probeService.findOneBy({
             query: {
                 key: key,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         expect(fetchedProbe).toBeTruthy();
@@ -482,14 +482,14 @@ describe('probeService', () => {
             data: {
                 name: updatedName,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         const fetchedProbe: Probe | null = await probeService.findOneBy({
             query: {
                 key: key,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         expect(fetchedProbe).toBeTruthy();
@@ -549,7 +549,7 @@ describe('probeService', () => {
             query: {
                 _id: updatedProbe._id,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         expect(findProbe).toBeTruthy();
@@ -592,7 +592,7 @@ describe('probeService', () => {
             populate: {
                 createdByUser: true,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         expect(findProbe).toBeTruthy();
@@ -642,7 +642,7 @@ describe('probeService', () => {
             populate: {
                 createdByUser: true,
             },
-            props: { isRoot: true }
+            props: { isRoot: true },
         });
 
         expect(findProbe).toBeTruthy();

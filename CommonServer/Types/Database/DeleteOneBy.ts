@@ -3,8 +3,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import User from 'Common/Models/User';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
-export default interface DeleteOneBy<TBaseModel extends BaseModel>
-    {
+export default interface DeleteOneBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
     deletedByUser?: User;
     props: DatabaseCommonInteractionProps;
