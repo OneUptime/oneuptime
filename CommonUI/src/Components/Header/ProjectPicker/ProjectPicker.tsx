@@ -73,7 +73,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                                             <ProjectPickerMenuItem
                                                 key={i}
                                                 title={project.name!}
-                                                route={new Route('/')}
+                                                route={new Route('/dashboard/'+project.id?.toString())}
                                                 icon={IconProp.Folder}
                                             />
                                         );

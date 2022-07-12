@@ -5,20 +5,34 @@ import Project from 'Common/Models/Project';
 import ModelFromModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import { JSONObject } from 'Common/Types/JSON';
+import ProjectUtil from "CommonUI/src/Utils/Project";
+import { useEffect } from 'react';
 
-const DashboardProjectPicker: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+    projects: Array<Project>;
+}
+
+const DashboardProjectPicker: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
     const project: Project = new Project();
     project.name = 'Sample 1';
 
     const [showModel, setShowModel] = useState<boolean>(false);
+    const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+    useEffect(() => {
+        setSelectedProject(ProjectUtil.getCurrentProject())
+    }, []);
+
+    useEffect(() => {
+        ProjectUtil.setCurrentProject(project);
+    }, [selectedProject]);
 
     return (
         <>
             <ProjectPicker
-                selectedProjectName="Project One"
+                selectedProjectName={selectedProject?.name || ''}
                 selectedProjectIcon={IconProp.Folder}
-                projects={[project]}
+                projects={props.projects}
                 onCreateProjectButtonClicked={() => {
                     setShowModel(true);
                 }}
@@ -30,7 +44,10 @@ const DashboardProjectPicker: FunctionComponent = (): ReactElement => {
                         setShowModel(false);
                     }}
                     submitButtonText="Create Project"
-                    onSubmit={() => {}}
+                    onSuccess={(project: Project) => {
+                        setSelectedProject(project);
+                        setShowModel(false);
+                    }}
                     formProps={{
                         model: new Project(),
                         id: 'create-project-from',
@@ -49,9 +66,6 @@ const DashboardProjectPicker: FunctionComponent = (): ReactElement => {
                             },
                         ],
                         formType: FormType.Create,
-                        onSuccess: (_value: JSONObject) => {
-                            setShowModel(false);
-                        },
                     }}
                 />
             ) : (

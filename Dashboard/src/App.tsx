@@ -5,6 +5,7 @@ import {
     Route as PageRoute,
     useNavigate,
     useLocation,
+    useParams,
 } from 'react-router-dom';
 import MasterPage from './Components/MasterPage/MasterPage';
 // Pages
@@ -29,8 +30,10 @@ import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
 
 const App: FunctionComponent = () => {
+    
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
+    Navigation.setParams(useParams());
 
     if (!User.isLoggedIn()) {
         Navigation.navigate(ACCOUNTS_URL);

@@ -1,10 +1,11 @@
 import Route from 'Common/Types/API/Route';
-import { NavigateFunction, Location } from 'react-router-dom';
+import { NavigateFunction, Location, Params } from 'react-router-dom';
 import URL from 'Common/Types/API/URL';
 
 abstract class Navigation {
     private static navigateHook: NavigateFunction;
     private static location: Location;
+    private static params: Params;
 
     public static setNavigateHook(navigateHook: NavigateFunction): void {
         this.navigateHook = navigateHook;
@@ -12,6 +13,21 @@ abstract class Navigation {
 
     public static setLocation(location: Location): void {
         this.location = location;
+    }
+
+    public static setParams(params: Params): void {
+        this.params = params;
+    }
+
+    public static getParams(): Params {
+        return this.params;
+    }
+
+    public static getParamByName(param: string): string | null {
+        if (!this.params || !this.params[param]) {
+            return null;
+        }
+        return this.params[param] as string; 
     }
 
     public static getCurrentRoute(): Route {
