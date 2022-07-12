@@ -314,7 +314,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                'A user does not have permissions to create record.'
+                `A user does not have permissions to create record of type ${this.entityType.name}.`
             );
         }
 
@@ -672,12 +672,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data: {
                     deletedByUser: deleteBy.deletedByUser,
                 } as any,
-                props: {
-                    userPermissions: deleteBy.props.userPermissions || [],
-                    userId: deleteBy.props.userId,
-                    userType: deleteBy.props.userType,
-                    projectId: deleteBy.props.projectId,
-                }
+                props: deleteBy.props
             });
             const numberOfDocsAffected: number =
                 (
