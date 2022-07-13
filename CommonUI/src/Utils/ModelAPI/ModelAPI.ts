@@ -13,7 +13,15 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import { FormType } from "../../Components/Forms/ModelForm";
 
-export class ModelAPI {
+
+export interface ListResult<TBaseModel extends BaseModel> {
+    data: Array<TBaseModel>;
+    count: number;
+    skip: number;
+    limit: number;
+}
+
+export default class ModelAPI {
 
 
     public static async create<TBaseModel extends BaseModel>(model: TBaseModel, apiUrlOverride?: URL,): Promise<HTTPResponse<
@@ -30,7 +38,7 @@ export class ModelAPI {
         return await ModelAPI.createOrUpdate(model, FormType.Update, apiUrlOverride);
     }
 
-    public static async createOrUpdate<TBaseModel extends BaseModel>(model: TBaseModel, formType: FormType, apiUrlOverride?: URL,): Promise<HTTPResponse<
+    public static async createOrUpdate<TBaseModel extends BaseModel>(model: TBaseModel, formType: FormType, apiUrlOverride?: URL): Promise<HTTPResponse<
         JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
     >> {
         let apiUrl: URL | null = apiUrlOverride || null;
@@ -39,7 +47,7 @@ export class ModelAPI {
             const apiPath: Route | null = model.getCrudApiPath();
             if (!apiPath) {
                 throw new BadDataException(
-                    'This model does not support CRUD operations.'
+                    'This model does not support create or update operations.'
                 );
             }
 
@@ -66,19 +74,14 @@ export class ModelAPI {
 
 
     }
-    public static async getList<TBaseModel extends BaseModel>(type: { new (): TBaseModel }, query: Query, limit: 0, skip: 0, select: Select): Promise<{
-        data: Array<TBaseModel>;
-        count: number;
-        skip: number;
-        limit: number;
-    }> {
+    public static async getList<TBaseModel extends BaseModel>(type: { new (): TBaseModel }, query: Query<TBaseModel>, limit: number, skip: number, select: Select<TBaseModel>): Promise<ListResult<TBaseModel>> {
 
         let apiUrl: URL;
 
         const apiPath: Route | null = new type().getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
-                'This model does not support CRUD operations.'
+                'This model does not support list operations.'
             );
         }
 
@@ -87,7 +90,7 @@ export class ModelAPI {
 
         if (!apiUrl) {
             throw new BadDataException(
-                'This model does not support CRUD operations.'
+                'This model does not support list operations.'
             );
         }
 
@@ -99,8 +102,8 @@ export class ModelAPI {
             HTTPMethod.GET,
             apiUrl,
             {
-                query: query.toJSON(),
-                select: select.toJSON()
+                query: query as JSONObject,
+                select: select as JSONObject
             },
             undefined,
             {
@@ -121,7 +124,42 @@ export class ModelAPI {
         }
     }
 
-    public static async getItem<TBaseModel extends BaseModel>(model: TBaseModel, id: ObjectID, select: Select): Promise<TBaseModel | null> {
-        return null;
+    public static async getItem<TBaseModel extends BaseModel>(type: { new (): TBaseModel }, id: ObjectID, select: Select<TBaseModel>): Promise<TBaseModel | null> {
+        let apiUrl: URL;
+
+        const apiPath: Route | null = new type().getCrudApiPath();
+        if (!apiPath) {
+            throw new BadDataException(
+                'This model does not support get operations.'
+            );
+        }
+
+        apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath).addRoute("/"+id.toString());
+
+
+        if (!apiUrl) {
+            throw new BadDataException(
+                'This model does not support get operations.'
+            );
+        }
+
+        const result: HTTPResponse<
+        TBaseModel
+        > | HTTPErrorResponse = await API.fetch<
+        TBaseModel
+        >(
+            HTTPMethod.GET,
+            apiUrl,
+            {
+                select: select as JSONObject
+            },
+            undefined,
+        );
+
+        if (result.isSuccess()) {
+            return result.data as TBaseModel;
+        } else {
+            throw result;
+        }
     }
 }

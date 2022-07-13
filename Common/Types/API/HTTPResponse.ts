@@ -58,12 +58,14 @@ export default class HTTPResponse<
     
     
 
-    public constructor(statusCode: number, data: JSONObject) {
+    public constructor(statusCode: number, data: JSONObject | Array<JSONObject>) {
         this.statusCode = statusCode;
 
-        if (data["count"] && data["skip"] && data["limit"]) {
+        if (!Array.isArray(data) && data["count"] && data["skip"] && data["limit"]) {
             // likely a list returned. 
-            
+            this.count = data["count"] as number; 
+            this.skip = data["skip"] as number; 
+            this.limit = data["limit"] as number; 
         }
 
         this.jsonData = data;

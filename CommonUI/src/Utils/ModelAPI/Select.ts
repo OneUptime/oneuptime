@@ -1,15 +1,7 @@
-import Dictionary from "Common/Types/Dictionary";
-import { JSONObject } from "Common/Types/JSON";
+import BaseModel from 'Common/Models/BaseModel';
 
-export default class Select {
-    private select: Dictionary<boolean> = {};
+type Select<TBaseModel extends BaseModel> = {
+    [P in keyof TBaseModel]?: boolean;
+};
 
-    public selectColumn(columnName: string): Select {
-        this.select[columnName] = true; 
-        return this;
-    }
-    
-    public toJSON(): JSONObject {
-        return this.select; 
-    }
-}
+export default Select;

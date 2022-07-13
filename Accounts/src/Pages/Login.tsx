@@ -46,6 +46,7 @@ const LoginPage: FunctionComponent = () => {
                                         </div>
 
                                         <ModelForm<User>
+                                            type={User}
                                             model={user}
                                             id="login-form"
                                             fields={[

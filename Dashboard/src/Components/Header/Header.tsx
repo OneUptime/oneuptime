@@ -9,7 +9,11 @@ import ProjectPicker from './ProjectPicker';
 import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Common/Models/Project';
 
-const DashboardHeader: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+    projects: Array<Project>
+}
+
+const DashboardHeader: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
     
     const project: Project = new Project();
     project.name = 'Sample 1';
@@ -18,7 +22,7 @@ const DashboardHeader: FunctionComponent = (): ReactElement => {
         <Header
             leftComponents={
                 <>
-                    <ProjectPicker projects={[project]} />
+                    <ProjectPicker projects={props.projects} />
                     <SearchBox key={2} onChange={(_value: string) => {}} />
                 </>
             }

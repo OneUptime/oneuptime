@@ -7,7 +7,7 @@ import BasicModelForm from './BasicModelForm';
 import { JSONArray, JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import { ModelAPI } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export enum FormType {
@@ -16,6 +16,7 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
+    type: { new(): TBaseModel },
     model: TBaseModel;
     id: string;
     onValidate?: (
@@ -59,22 +60,19 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         >;
 
         try {
-            result = await ModelAPI.createOrUpdate<TBaseModel>(props.model.fromJSON(values), props.formType, props.apiUrl);
-        } catch (err: Error | HTTPErrorResponse) {
+            result = await ModelAPI.createOrUpdate<TBaseModel>(props.model.fromJSON(values, props.type), props.formType, props.apiUrl);
 
-        }
-
-        setLoading(false);
-        if (props.onLoadingChange) {
-            props.onLoadingChange(false);
-        }
-
-        if (result.isSuccess()) {
             if (props.onSuccess) {
                 props.onSuccess(result.data);
             }
-        } else {
-            setError((result.data as JSONObject)['error'] as string);
+        } catch (err) {
+            setError(((err as HTTPErrorResponse).data as JSONObject)['error'] as string);
+        }
+
+        setLoading(false);
+        
+        if (props.onLoadingChange) {
+            props.onLoadingChange(false);
         }
     };
 
