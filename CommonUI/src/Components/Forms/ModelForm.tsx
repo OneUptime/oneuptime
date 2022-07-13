@@ -6,12 +6,9 @@ import Fields from './Types/Fields';
 import BasicModelForm from './BasicModelForm';
 import { JSONArray, JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import API from '../../Utils/API/API';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import Route from 'Common/Types/API/Route';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { DASHBOARD_API_URL } from '../../Config';
+import { ModelAPI } from '../../Utils/ModelAPI/ModelAPI';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export enum FormType {
     Create,
@@ -56,30 +53,16 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         if (props.onLoadingChange) {
             props.onLoadingChange(true);
         }
-        let apiUrl: URL | null = props.apiUrl || null;
 
-        if (!apiUrl) {
-            const apiPath: Route | null = props.model.getCrudApiPath();
-            if (!apiPath) {
-                throw new BadDataException(
-                    'This model does not support CRUD operations.'
-                );
-            }
+        let result: HTTPResponse<
+            JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
+        >;
 
-            apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
+        try {
+            result = await ModelAPI.createOrUpdate<TBaseModel>(props.model.fromJSON(values), props.formType, props.apiUrl);
+        } catch (err: Error | HTTPErrorResponse) {
+
         }
-
-        const result: HTTPResponse<
-            JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-        > = await API.fetch<
-            JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-        >(
-            props.formType === FormType.Create
-                ? HTTPMethod.POST
-                : HTTPMethod.PUT,
-            apiUrl,
-            { data: values }
-        );
 
         setLoading(false);
         if (props.onLoadingChange) {

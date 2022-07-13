@@ -210,7 +210,7 @@ export default class API {
 
         try {
             const result: {
-                data: JSONObject | JSONArray;
+                data: JSONObject;
                 status: number;
             } = await axios({
                 method: method,
