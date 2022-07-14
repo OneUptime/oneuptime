@@ -123,7 +123,7 @@ export default class BaseAPI<
     ): DatabaseCommonInteractionProps {
         const props: DatabaseCommonInteractionProps = {
             projectId: undefined,
-            userPermissions: [],
+            userGlobalAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
         };
@@ -135,11 +135,11 @@ export default class BaseAPI<
             props.userId = (req as OneUptimeRequest).userAuthorization!.userId;
         }
 
-        if ((req as OneUptimeRequest).permissions) {
-            props.userPermissions = (req as OneUptimeRequest).permissions;
+        if ((req as OneUptimeRequest).userGlobalAccessPermission) {
+            props.userGlobalAccessPermission = (req as OneUptimeRequest).userGlobalAccessPermission;
         }
 
-        if ((req as OneUptimeRequest).permissions) {
+        if ((req as OneUptimeRequest).projectId) {
             props.projectId = (req as OneUptimeRequest).projectId || undefined;
         }
 

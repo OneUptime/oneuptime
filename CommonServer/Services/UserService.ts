@@ -6,7 +6,7 @@ import TeamMemberService from './TeamMemberService';
 import TeamMember from 'Common/Models/TeamMember';
 import GlobalCache from '../Infrastructure/GlobalCache';
 import { JSONObject } from 'Common/Types/JSON';
-import { UserAccessPermission } from 'Common/Types/Permission';
+import Permission, { UserGlobalAccessPermission } from 'Common/Types/Permission';
 
 
 export class Service extends DatabaseService<Model> {
@@ -14,7 +14,7 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    public async refreshUserAccessPermission(userId: ObjectID): Promise<UserAccessPermission>{
+    public async refreshUserAccessPermission(userId: ObjectID): Promise<UserGlobalAccessPermission>{
         // query for all projects user belongs to. 
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
             query: {
@@ -33,21 +33,20 @@ export class Service extends DatabaseService<Model> {
         const projectIds: Array<ObjectID> = teamMembers.map((teamMember) => teamMember.projectId!);
 
 
-        const permissionToStore: UserAccessPermission = {
-            userId, 
-            projectIds
+        const permissionToStore: UserGlobalAccessPermission = {
+            projectIds,
+            globalPermissions: [Permission.Public, Permission.User]
         }
 
         await GlobalCache.setJSON("user", userId.toString(), {
-            userId: permissionToStore.userId,
-            projectIds: permissionToStore.projectIds
+            projectIds: permissionToStore.projectIds.map((item)=> item.toString()),
+            globalPermissions: permissionToStore.globalPermissions
         });
 
         return permissionToStore;
     }
 
-    public async getUserAccessPermission(userId: ObjectID): Promise<UserAccessPermission | null> {
-        
+    public async getUserAccessPermission(userId: ObjectID): Promise<UserGlobalAccessPermission | null> {
 
         const json: JSONObject | null = await GlobalCache.getJSON("user", userId.toString());
 
@@ -55,10 +54,20 @@ export class Service extends DatabaseService<Model> {
             return null;
         }
 
-        return {
-            userId: json["userId"] as ObjectID,
-            projectIds: json["projectIds"] as Array<ObjectID>
-        } as UserAccessPermission
+        if (!json["projectId"]) {
+            json["projectId"] = [];
+        }
+
+        if (!Array.isArray(json["projectId"])) {
+            json["projectId"] = []
+        }
+
+        const accessPermission: UserGlobalAccessPermission = {
+            projectIds: (json["projectIds"] as Array<string>).map((item) => new ObjectID(item)),
+            globalPermissions: []
+        }
+
+        return accessPermission
     }
 }
 

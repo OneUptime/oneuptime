@@ -28,11 +28,19 @@ import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
 import FindOneByID from '../Types/Database/FindOneByID';
-import Permission, { PermissionUtil } from 'Common/Types/Permission';
+import Permission, { PermissionUtil, UserPermission } from 'Common/Types/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Dictionary from 'Common/Types/Dictionary';
 import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
+import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+
+enum DatabaseRequestType {
+    Create = "create",
+    Read = "read",
+    Update = "update",
+    Delete = "delete"
+}
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
@@ -303,6 +311,84 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
+    public getPermissions(props: DatabaseCommonInteractionProps, type: DatabaseRequestType): Array<UserPermission> {
+
+        if (!props.userGlobalAccessPermission) {
+            throw new NotAuthorizedException(
+                `Permissions not found.`
+            );
+        }
+
+        let isPublicAllowed = false; 
+        let modelPermissions: Array<Permission> = [];
+
+        if (type === DatabaseRequestType.Create) {
+            isPublicAllowed = this.model.createRecordPermissions.includes(Permission.Public);
+            modelPermissions = this.model.createRecordPermissions;
+        }
+
+        if (type === DatabaseRequestType.Update) {
+            isPublicAllowed = this.model.updateRecordPermissions.includes(Permission.Public);
+            modelPermissions = this.model.updateRecordPermissions;
+        }
+
+        if (type === DatabaseRequestType.Delete) {
+            isPublicAllowed = this.model.deleteRecordPermissions.includes(Permission.Public);
+            modelPermissions = this.model.deleteRecordPermissions;
+        }
+
+        if (type === DatabaseRequestType.Read) {
+            isPublicAllowed = this.model.readRecordPermissions.includes(Permission.Public);
+            modelPermissions = this.model.readRecordPermissions;
+        }
+
+        if (!isPublicAllowed && !props.userId) {
+            // this means the record is not publicly createable and the user is not logged in.
+            throw new NotAuthorizedException(
+                `A user should be logged in to ${type} record of type ${this.entityType.name}.`
+            );
+        }
+
+        if (props.userGlobalAccessPermission && !props.userGlobalAccessPermission.globalPermissions.includes(Permission.Public)) {
+            props.userGlobalAccessPermission.globalPermissions.push(Permission.Public); // add public permission if not already. 
+        }
+
+        let userPermissions: Array<UserPermission> = [];
+
+        if (!props.projectId && props.userGlobalAccessPermission) { 
+            /// take gloabl permissions. 
+            userPermissions = props.userGlobalAccessPermission.globalPermissions.map((permission) => {
+                return {
+                    permission: permission,
+                    labelIds: []
+                }
+            });
+        } else if (props.projectId && props.userProjectAccessPermission) {
+            /// take project based permissions because this is a project request. 
+            userPermissions = props.userProjectAccessPermission.permissions;
+            
+        } else {
+            throw new NotAuthorizedException(
+                `Permissions not found.`
+            );
+        }
+
+        if (
+            props.userProjectAccessPermission && 
+            !PermissionUtil.doesPermissionsIntersect(
+                props.userProjectAccessPermission.permissions.map((userPermission)=> userPermission.permission) || [],
+                modelPermissions
+            )
+        ) {
+            throw new NotAuthorizedException(
+                `A user does not have permissions to ${type} record of type ${this.entityType.name}.`
+            );
+        }
+
+        return userPermissions;
+    }
+
+
     public asCreateableByPermissions(
         createBy: CreateBy<TBaseModel>
     ): TBaseModel {
@@ -311,20 +397,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
             return createBy.data;
         }
 
-        if (
-            !PermissionUtil.doesPermissionsIntersect(
-                createBy.props.userPermissions || [],
-                createBy.data.createRecordPermissions
-            )
-        ) {
-            throw new NotAuthorizedException(
-                `A user does not have permissions to create record of type ${this.entityType.name}.`
-            );
-        }
+        let userPermissions: Array<UserPermission> = this.getPermissions(createBy.props, DatabaseRequestType.Create);
+
+
 
         const data: TBaseModel = this.keepColumns(
             this.getCreateableColumnsByPermissions(
-                createBy.props.userPermissions || []
+                userPermissions || []
             ),
             createBy.data
         );
@@ -335,28 +414,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asFindByByPermissions(
         findBy: FindBy<TBaseModel>
     ): FindBy<TBaseModel> {
+
         if (findBy.props.isRoot) {
             return findBy;
         }
-
-        let tablePermissions: Array<Permission> = [];
+       
         let columns: Columns = new Columns([]);
 
-        tablePermissions = this.model.readRecordPermissions;
-
-        if (
-            !PermissionUtil.doesPermissionsIntersect(
-                findBy.props.userPermissions || [],
-                tablePermissions
-            )
-        ) {
-            throw new NotAuthorizedException(
-                `A user does not have permissions to read record.`
-            );
-        }
+        const userPermissions = this.getPermissions(findBy.props, DatabaseRequestType.Read);
 
         columns = this.getReadColumnsByPermissions(
-            findBy.props.userPermissions || []
+            userPermissions || []
         );
 
         // Now we need to check all columns.
@@ -379,16 +447,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         if (
             this.model.projectColumn &&
-            findBy.props.userPermissions &&
-            findBy.props.userPermissions.filter((permission: Permission) => {
-                return permission.includes('Project');
-            }).length > 0
+            findBy.props.projectId
         ) {
             (findBy.query as any)[this.model.projectColumn] =
                 findBy.props.projectId;
         }
 
-        if (this.model.userColumn) {
+        if (this.model.userColumn && findBy.props.userId) {
             (findBy.query as any)[this.model.userColumn] = findBy.props.userId;
         }
 
@@ -397,7 +462,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 const permission: Permission = key as Permission;
 
                 if (
-                    findBy.props.userPermissions?.includes(permission) &&
+                    userPermissions.map((i) => { return i.permission })?.includes(permission) &&
                     this.model.isPermissionIf[permission]
                 ) {
                     const columnName: string = Object.keys(
@@ -416,32 +481,21 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asUpdateByByPermissions(
         updateBy: UpdateBy<TBaseModel>
     ): UpdateBy<TBaseModel> {
+
         if (updateBy.props.isRoot) {
             return updateBy;
         }
 
-        let tablePermissions: Array<Permission> = [];
+        const userPermissions = this.getPermissions(updateBy.props, DatabaseRequestType.Update);
+
         let updateColumns: Columns = new Columns([]);
         let readColumns: Columns = new Columns([]);
 
-        tablePermissions = this.model.updateRecordPermissions;
-
-        if (
-            !PermissionUtil.doesPermissionsIntersect(
-                updateBy.props.userPermissions || [],
-                tablePermissions
-            )
-        ) {
-            throw new NotAuthorizedException(
-                `A user does not have permissions to update record.`
-            );
-        }
-
         updateColumns = this.getUpdateColumnsByPermissions(
-            updateBy.props.userPermissions || []
+            userPermissions || []
         );
         readColumns = this.getReadColumnsByPermissions(
-            updateBy.props.userPermissions || []
+            userPermissions || []
         );
 
         // Now we need to check all columns.
@@ -464,16 +518,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         if (
             this.model.projectColumn &&
-            updateBy.props.userPermissions &&
-            updateBy.props.userPermissions.filter((permission: Permission) => {
-                return permission.includes('Project');
-            }).length > 0
+            updateBy.props.projectId
         ) {
             (updateBy.query as any)[this.model.projectColumn] =
                 updateBy.props.projectId;
         }
 
-        if (this.model.userColumn) {
+        if (this.model.userColumn && updateBy.props.userId) {
             (updateBy.query as any)[this.model.userColumn] =
                 updateBy.props.userId;
         }
@@ -483,7 +534,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 const permission: Permission = key as Permission;
 
                 if (
-                    updateBy.props.userPermissions?.includes(permission) &&
+                    userPermissions.map((i) => { return i.permission })?.includes(permission) &&
                     this.model.isPermissionIf[permission]
                 ) {
                     const columnName: string = Object.keys(
@@ -506,27 +557,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
             return deleteBy;
         }
 
-        let tablePermissions: Array<Permission> = [];
-
-        tablePermissions = this.model.deleteRecordPermissions;
-
-        if (
-            !PermissionUtil.doesPermissionsIntersect(
-                deleteBy.props.userPermissions || [],
-                tablePermissions
-            )
-        ) {
-            throw new NotAuthorizedException(
-                `A user does not have permissions to delete record.`
-            );
-        }
-
+        this.getPermissions(deleteBy.props, DatabaseRequestType.Delete);
+        
         if (
             this.model.projectColumn &&
-            deleteBy.props.userPermissions &&
-            deleteBy.props.userPermissions.filter((permission: Permission) => {
-                return permission.includes('Project');
-            }).length > 0
+            deleteBy.props.projectId
         ) {
             (deleteBy.query as any)[this.model.projectColumn] =
                 deleteBy.props.projectId;
@@ -541,8 +576,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public getCreateableColumnsByPermissions(
-        permissions: Array<Permission>
+        userPermissions: Array<UserPermission>
     ): Columns {
+
+        const permissions = userPermissions.map((item) => item.permission); 
+
         const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(this.model);
 
@@ -564,12 +602,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public getReadColumnsByPermissions(
-        permissions: Array<Permission>
+        userPermissions: Array<UserPermission>
     ): Columns {
         const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(this.model);
 
         const columns: Array<string> = [];
+
+        const permissions = userPermissions.map((item) => item.permission); 
 
         for (const key in accessControl) {
             if (
@@ -587,12 +627,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public getUpdateColumnsByPermissions(
-        permissions: Array<Permission>
+        userPermissions: Array<UserPermission>
     ): Columns {
         const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(this.model);
 
         const columns: Array<string> = [];
+
+        const permissions = userPermissions.map((item) => item.permission); 
 
         for (const key in accessControl) {
             if (
@@ -789,12 +831,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             query: {
                 _id: findOneById.id.toString() as any,
             },
-            props: {
-                userPermissions: findOneById.props.userPermissions || [],
-                userId: findOneById.props.userId,
-                userType: findOneById.props.userType,
-                projectId: findOneById.props.projectId,
-            },
+            props: findOneById.props,
         });
     }
 

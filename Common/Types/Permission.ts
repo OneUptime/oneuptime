@@ -73,9 +73,9 @@ export class PermissionUtil {
     }
 }
 
-export interface UserAccessPermission {
-    userId: ObjectID;
+export interface UserGlobalAccessPermission {
     projectIds: Array<ObjectID>;
+    globalPermissions: Array<Permission>;
 }
 
 export interface UserPermission {
@@ -84,7 +84,6 @@ export interface UserPermission {
 }
 
 export interface UserProjectAccessPermission {
-    userId: ObjectID;
     projectId: ObjectID;
     permissions: Array<UserPermission>
 }

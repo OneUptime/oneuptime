@@ -9,7 +9,6 @@ import ProjectMiddleware from './ProjectAuthorization';
 import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
-import Permission from 'Common/Types/Permission';
 import UserType from 'Common/Types/UserType';
 
 export default class UserMiddleware {
@@ -81,13 +80,13 @@ export default class UserMiddleware {
             data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
-        let userAccessPermission = await UserService.getUserAccessPermission(oneuptimeRequest.userAuthorization.userId);
+        let userGlobalAccessPermission = await UserService.getUserAccessPermission(oneuptimeRequest.userAuthorization.userId);
 
-        if (!userAccessPermission) {
-            userAccessPermission = await UserService.refreshUserAccessPermission(oneuptimeRequest.userAuthorization.userId);
+        if (!userGlobalAccessPermission) {
+            userGlobalAccessPermission = await UserService.refreshUserAccessPermission(oneuptimeRequest.userAuthorization.userId);
         }
 
-        oneuptimeRequest.userAccessPermission = userAccessPermission;
+        oneuptimeRequest.userGlobalAccessPermission = userGlobalAccessPermission;
 
         return next();
     }
