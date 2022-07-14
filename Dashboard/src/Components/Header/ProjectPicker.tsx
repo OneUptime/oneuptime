@@ -19,8 +19,6 @@ export interface ComponentProps {
 const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-   
-
     const [showModel, setShowModel] = useState<boolean>(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(
         null

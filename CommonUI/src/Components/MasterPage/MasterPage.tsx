@@ -14,21 +14,22 @@ export interface ComponentProps {
 const MasterPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     if (props.isLoading) {
         return (
             <React.Fragment>
                 <PageLoader isVisible={true} />
-            </React.Fragment>)
+            </React.Fragment>
+        );
     }
 
     if (props.error) {
         return (
             <React.Fragment>
                 <PageError message={props.error} />
-            </React.Fragment>)
+            </React.Fragment>
+        );
     }
-    
+
     return (
         <React.Fragment>
             <div id="layout-wrapper">

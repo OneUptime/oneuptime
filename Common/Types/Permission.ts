@@ -1,6 +1,6 @@
 // Have "Project" string in the permission to make sure this permission is by Project.
 
-import ObjectID from "./ObjectID";
+import ObjectID from './ObjectID';
 
 enum Permission {
     // Owner of a Project
@@ -79,13 +79,13 @@ export interface UserGlobalAccessPermission {
 }
 
 export interface UserPermission {
-    permission: Permission, 
-    labelIds: Array<ObjectID>,
+    permission: Permission;
+    labelIds: Array<ObjectID>;
 }
 
 export interface UserProjectAccessPermission {
     projectId: ObjectID;
-    permissions: Array<UserPermission>
+    permissions: Array<UserPermission>;
 }
 
 export const PermissionsArray: Array<string> = [

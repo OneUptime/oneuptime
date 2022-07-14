@@ -22,7 +22,7 @@ import LocalCache from '../Infrastructure/LocalCache';
 import Exception from 'Common/Types/Exception/Exception';
 import ObjectID from 'Common/Types/ObjectID';
 
-// import "./OpenTelemetry";
+// import OpenTelemetrySDK from "./OpenTelemetry";
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -40,13 +40,17 @@ const logRequest: RequestHandler = (
     const method: string = req.method;
     const url: string = req.url;
 
-    const header_info: string = `Request ID: ${(req as OneUptimeRequest).id
-        } -- POD NAME: ${process.env['POD_NAME'] || 'NONE'
-        } -- METHOD: ${method} -- URL: ${url.toString()}`;
+    const header_info: string = `Request ID: ${
+        (req as OneUptimeRequest).id
+    } -- POD NAME: ${
+        process.env['POD_NAME'] || 'NONE'
+    } -- METHOD: ${method} -- URL: ${url.toString()}`;
 
-    const body_info: string = `Request ID: ${(req as OneUptimeRequest).id
-        } -- Request Body: ${req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
-        }`;
+    const body_info: string = `Request ID: ${
+        (req as OneUptimeRequest).id
+    } -- Request Body: ${
+        req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
+    }`;
 
     logger.info(header_info + '\n ' + body_info);
     next();
@@ -97,8 +101,6 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
             res: ExpressResponse,
             next: NextFunction
         ) => {
-
-            debugger;
             logger.error(err);
 
             if (res.headersSent) {
@@ -106,12 +108,11 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
             }
 
             if (err instanceof Promise) {
-                err.catch((exception) => {
+                err.catch((exception: Exception) => {
                     res.status((exception as Exception).code);
                     res.send({ error: (exception as Exception).message });
-                })
-            }
-            else if (err instanceof Exception) {
+                });
+            } else if (err instanceof Exception) {
                 res.status((err as Exception).code);
                 res.send({ error: (err as Exception).message });
             } else {
@@ -136,6 +137,8 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
     app.get('*', (_req: ExpressRequest, res: ExpressResponse) => {
         res.status(404).json({ error: 'API not found' });
     });
+
+    // await OpenTelemetrySDK.start();
 
     return app;
 };

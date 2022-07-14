@@ -13,8 +13,7 @@ class JSONWebToken {
         data: JSONWebTokenData | User,
         expiresInSeconds: number
     ): string {
-        
-        let jsonObj: JSONObject; 
+        let jsonObj: JSONObject;
 
         if (!(data instanceof User)) {
             jsonObj = {
@@ -22,23 +21,19 @@ class JSONWebToken {
                 email: data.email.toString(),
                 name: data.name.toString(),
                 isMasterAdmin: data.isMasterAdmin,
-            }
+            };
         } else {
             jsonObj = {
                 userId: data.id!.toString(),
                 email: data.email!.toString(),
                 name: data.name!.toString(),
                 isMasterAdmin: data.isMasterAdmin!,
-            }
+            };
         }
 
-        return jwt.sign(
-            jsonObj,
-            EncryptionSecret.toString(),
-            {
-                expiresIn: expiresInSeconds,
-            }
-        );
+        return jwt.sign(jsonObj, EncryptionSecret.toString(), {
+            expiresIn: expiresInSeconds,
+        });
     }
 
     public static decode(token: string): JSONWebTokenData {

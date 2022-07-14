@@ -79,7 +79,7 @@ export default class ProjectMiddleware {
 
         if (apiKeyModel) {
             (req as OneUptimeRequest).userType = UserType.API;
-            // TODO: Add API key permissions. 
+            // TODO: Add API key permissions.
             // (req as OneUptimeRequest).permissions =
             //     apiKeyModel.permissions || [];
             (req as OneUptimeRequest).projectId = projectId;

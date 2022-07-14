@@ -14,15 +14,13 @@ export default class URL extends DatabaseProperty {
         this._route = v;
     }
 
-    
-    private _params : Dictionary<string> = {};
-    public get params() : Dictionary<string> {
+    private _params: Dictionary<string> = {};
+    public get params(): Dictionary<string> {
         return this._params;
     }
-    public set params(v : Dictionary<string>) {
+    public set params(v: Dictionary<string>) {
         this._params = v;
     }
-    
 
     private _hostname!: Hostname;
     public get hostname(): Hostname {
@@ -72,10 +70,10 @@ export default class URL extends DatabaseProperty {
         }
 
         if (Object.keys(this.params).length > 0) {
-            urlString += "?";
-            
+            urlString += '?';
+
             for (const key of Object.keys(this.params)) {
-                urlString += key + '=' + this.params[key] + "&";
+                urlString += key + '=' + this.params[key] + '&';
             }
 
             urlString = urlString.substring(0, urlString.length - 1); // remove last &
@@ -146,9 +144,9 @@ export default class URL extends DatabaseProperty {
 
     public addQueryParams(params: Dictionary<string>): URL {
         this.params = {
-            ...this.params, 
-            ...params
-        }
+            ...this.params,
+            ...params,
+        };
         return this;
     }
 

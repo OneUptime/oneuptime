@@ -9,14 +9,11 @@ const Init: FunctionComponent<PageComponentProps> = (
     useEffect(() => {
         // set slug to latest project and redirect to home.
     });
-    return (<Page
-        title={''}
-        breadcrumbLinks={[
-           
-        ]}
-    >
-        <PageLoader isVisible={true} />
-    </Page>);
+    return (
+        <Page title={''} breadcrumbLinks={[]}>
+            <PageLoader isVisible={true} />
+        </Page>
+    );
 };
 
 export default Init;

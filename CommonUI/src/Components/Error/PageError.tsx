@@ -7,11 +7,10 @@ export interface ComponentProps {
 const PageError: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    
-    let message = props.message;
+    let message: string = props.message;
 
-    if (props.message === "Server Error") {
-        message = "Network Error: Please reload the page and try again."
+    if (props.message === 'Server Error') {
+        message = 'Network Error: Please reload the page and try again.';
     }
 
     return (

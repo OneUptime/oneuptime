@@ -10,11 +10,12 @@ import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Common/Models/Project';
 
 export interface ComponentProps {
-    projects: Array<Project>
+    projects: Array<Project>;
 }
 
-const DashboardHeader: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
-    
+const DashboardHeader: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     const project: Project = new Project();
     project.name = 'Sample 1';
 

@@ -58,7 +58,6 @@ const init: Function = async (): Promise<void> => {
 
         // connect redis
         await Redis.connect();
-        
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

@@ -215,7 +215,7 @@ export default class BaseModel extends BaseEntity {
 
     private static _fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new(): T }
+        type: { new (): T }
     ): T {
         const baseModel: T = new type();
 
@@ -223,25 +223,25 @@ export default class BaseModel extends BaseEntity {
             if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                TableColumnType.HashedString
+                    TableColumnType.HashedString
             ) {
                 (baseModel as any)[key] = new HashedString(json[key] as string);
             } else if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                TableColumnType.Name
+                    TableColumnType.Name
             ) {
                 (baseModel as any)[key] = new Name(json[key] as string);
             } else if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                TableColumnType.Email
+                    TableColumnType.Email
             ) {
                 (baseModel as any)[key] = new Email(json[key] as string);
             } else if (
                 baseModel.getTableColumnMetadata(key) &&
                 baseModel.getTableColumnMetadata(key).type ===
-                TableColumnType.ObjectID
+                    TableColumnType.ObjectID
             ) {
                 (baseModel as any)[key] = new ObjectID(json[key] as string);
             } else {
@@ -254,7 +254,7 @@ export default class BaseModel extends BaseEntity {
 
     public static fromJSON<T extends BaseModel>(
         json: JSONObject | JSONArray,
-        type: { new(): T }
+        type: { new (): T }
     ): T | Array<T> {
         if (Array.isArray(json)) {
             const arr: Array<T> = [];
@@ -271,14 +271,14 @@ export default class BaseModel extends BaseEntity {
 
     public fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new(): T }
+        type: { new (): T }
     ): T {
         return BaseModel._fromJSON<T>(json, type);
     }
 
     public fromJSONArray<T extends BaseModel>(
         json: Array<JSONObject>,
-        type: { new(): T }
+        type: { new (): T }
     ): Array<T> {
         const arr: Array<T> = [];
 
@@ -300,25 +300,25 @@ export default class BaseModel extends BaseEntity {
                 if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                    TableColumnType.HashedString
+                        TableColumnType.HashedString
                 ) {
                     json[key] = ((this as any)[key] as HashedString).toString();
                 } else if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                    TableColumnType.Name
+                        TableColumnType.Name
                 ) {
                     json[key] = ((this as any)[key] as Name).toString();
                 } else if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                    TableColumnType.Email
+                        TableColumnType.Email
                 ) {
                     json[key] = ((this as any)[key] as Email).toString();
                 } else if (
                     this.getTableColumnMetadata(key) &&
                     this.getTableColumnMetadata(key).type ===
-                    TableColumnType.ObjectID
+                        TableColumnType.ObjectID
                 ) {
                     json[key] = ((this as any)[key] as ObjectID).toString();
                 } else {

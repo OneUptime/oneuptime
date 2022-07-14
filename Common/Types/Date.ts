@@ -29,8 +29,7 @@ export default class OneUptimeDate {
     }
 
     public static getSomeMinutesAgo(minutes: PositiveNumber | number): Date {
-
-        if (!(minutes instanceof PositiveNumber)){
+        if (!(minutes instanceof PositiveNumber)) {
             minutes = new PositiveNumber(minutes);
         }
 
@@ -40,14 +39,14 @@ export default class OneUptimeDate {
     }
 
     public static getSecondsInDays(days: PositiveNumber | number): number {
-        if (!(days instanceof PositiveNumber)){
+        if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
         return days.positiveNumber * 24 * 60 * 60;
     }
 
     public static getSomeHoursAgo(hours: PositiveNumber | number): Date {
-        if (!(hours instanceof PositiveNumber)){
+        if (!(hours instanceof PositiveNumber)) {
             hours = new PositiveNumber(hours);
         }
         return this.getCurrentMomentDate()
@@ -56,7 +55,7 @@ export default class OneUptimeDate {
     }
 
     public static getSomeDaysAgo(days: PositiveNumber | number): Date {
-        if (!(days instanceof PositiveNumber)){
+        if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
         return this.getCurrentMomentDate()
@@ -65,10 +64,10 @@ export default class OneUptimeDate {
     }
 
     public static getSomeSecondsAgo(seconds: PositiveNumber | number): Date {
-        if (!(seconds instanceof PositiveNumber)){
+        if (!(seconds instanceof PositiveNumber)) {
             seconds = new PositiveNumber(seconds);
         }
-        
+
         return this.getCurrentMomentDate()
             .add(-1 * seconds.toNumber(), 'seconds')
             .toDate();
@@ -83,9 +82,7 @@ export default class OneUptimeDate {
     }
 
     public static getSomeMinutesAfter(minutes: PositiveNumber | number): Date {
-
-
-        if (!(minutes instanceof PositiveNumber)){
+        if (!(minutes instanceof PositiveNumber)) {
             minutes = new PositiveNumber(minutes);
         }
 
@@ -95,18 +92,16 @@ export default class OneUptimeDate {
     }
 
     public static getSomeHoursAfter(hours: PositiveNumber | number): Date {
-
-        if (!(hours instanceof PositiveNumber)){
+        if (!(hours instanceof PositiveNumber)) {
             hours = new PositiveNumber(hours);
-        } 
+        }
         return this.getCurrentMomentDate()
             .add(hours.toNumber(), 'hours')
             .toDate();
     }
 
     public static getSomeDaysAfter(days: PositiveNumber | number): Date {
-
-        if (!(days instanceof PositiveNumber)){
+        if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
 
@@ -116,7 +111,6 @@ export default class OneUptimeDate {
     }
 
     public static getSomeSecondsAfter(seconds: PositiveNumber | number): Date {
-        
         if (!(seconds instanceof PositiveNumber)) {
             seconds = new PositiveNumber(seconds);
         }

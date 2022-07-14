@@ -1,19 +1,13 @@
-import { createClient, RedisClientType } from 'redis'
-import {
-    RedisHostname,
-    RedisPassword,
-    RedisPort,
-} from '../Config';
+import { createClient, RedisClientType } from 'redis';
+import { RedisHostname, RedisPassword, RedisPort } from '../Config';
 import logger from '../Utils/Logger';
 
 export type ClientType = RedisClientType;
 
 export default abstract class Redis {
-
     private static client: RedisClientType | null = null;
 
     public static isConnected(): boolean {
-
         if (!this.client) {
             return false;
         }
@@ -26,21 +20,21 @@ export default abstract class Redis {
     }
 
     public static async connect(): Promise<RedisClientType> {
-
         try {
-            
             this.client = createClient({
                 password: RedisPassword,
                 socket: {
                     host: RedisHostname,
-                    port: RedisPort.toNumber()
-                }
-            })
+                    port: RedisPort.toNumber(),
+                },
+            });
 
             await this.client.connect();
-            logger.info(`Redis connected on ${RedisHostname}:${RedisPort.toNumber()}`)
+            logger.info(
+                `Redis connected on ${RedisHostname}:${RedisPort.toNumber()}`
+            );
             return this.client;
-        }catch (err) {
+        } catch (err) {
             logger.error('Redis Connection Failed');
             logger.error(err);
             throw err;
@@ -54,4 +48,3 @@ export default abstract class Redis {
         }
     }
 }
-

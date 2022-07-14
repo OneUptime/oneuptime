@@ -138,7 +138,9 @@ export default class BaseAPI<
         }
 
         if ((req as OneUptimeRequest).userGlobalAccessPermission) {
-            props.userGlobalAccessPermission = (req as OneUptimeRequest).userGlobalAccessPermission;
+            props.userGlobalAccessPermission = (
+                req as OneUptimeRequest
+            ).userGlobalAccessPermission;
         }
 
         if ((req as OneUptimeRequest).projectId) {
@@ -152,7 +154,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        debugger;
         const skip: PositiveNumber = req.query['skip']
             ? new PositiveNumber(req.query['skip'] as string)
             : new PositiveNumber(0);
@@ -160,8 +161,6 @@ export default class BaseAPI<
         const limit: PositiveNumber = req.query['limit']
             ? new PositiveNumber(req.query['limit'] as string)
             : new PositiveNumber(10);
-
-        
 
         if (limit.toNumber() > 50) {
             throw new BadRequestException('Limit should be less than 50');

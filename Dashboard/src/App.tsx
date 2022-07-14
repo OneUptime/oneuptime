@@ -11,7 +11,7 @@ import MasterPage from './Components/MasterPage/MasterPage';
 // Pages
 import Init from './Pages/Init/Init';
 import Home from './Pages/Home/Home';
-import useAsyncEffect from "use-async-effect";
+import useAsyncEffect from 'use-async-effect';
 import StatusPages from './Pages/StatusPages/StatusPages';
 import Incidents from './Pages/Incidents/Incidents';
 import Logs from './Pages/Logs/Logs';
@@ -42,7 +42,6 @@ const App: FunctionComponent = () => {
         Navigation.navigate(ACCOUNTS_URL);
     }
 
-
     const [isLoading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [projects, setProjects] = useState<Array<Project>>([]);
@@ -50,19 +49,28 @@ const App: FunctionComponent = () => {
     useAsyncEffect(async () => {
         setLoading(true);
 
-        // get list of projects. 
+        // get list of projects.
         try {
-            const result: ListResult<Project> = await ModelAPI.getList<Project>(Project, {}, 50, 0, {
-                name: true, 
-                _id: true
-            });
+            const result: ListResult<Project> = await ModelAPI.getList<Project>(
+                Project,
+                {},
+                50,
+                0,
+                {
+                    name: true,
+                    _id: true,
+                }
+            );
             setProjects(result.data);
         } catch (err) {
-            setError(((err as HTTPErrorResponse).data as JSONObject)['error'] as string);
+            setError(
+                ((err as HTTPErrorResponse).data as JSONObject)[
+                    'error'
+                ] as string
+            );
         }
 
         setLoading(false);
-
     }, []);
 
     return (
@@ -71,19 +79,19 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={RouteMap[PageMap.INIT]?.toString()}
                     element={
-                        <Init pageRoute={RouteMap[PageMap.INIT] as Route}  />
+                        <Init pageRoute={RouteMap[PageMap.INIT] as Route} />
                     }
                 />
                 <PageRoute
                     path={RouteMap[PageMap.HOME]?.toString()}
                     element={
-                        <Home pageRoute={RouteMap[PageMap.HOME] as Route}  />
+                        <Home pageRoute={RouteMap[PageMap.HOME] as Route} />
                     }
                 />
                 <PageRoute
                     path={RouteMap[PageMap.MONITORS]?.toString()}
                     element={
-                        <Init pageRoute={RouteMap[PageMap.MONITORS] as Route}  />
+                        <Init pageRoute={RouteMap[PageMap.MONITORS] as Route} />
                     }
                 />
 
@@ -91,7 +99,7 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.STATUS_PAGE]?.toString()}
                     element={
                         <StatusPages
-                            pageRoute={RouteMap[PageMap.STATUS_PAGE] as Route} 
+                            pageRoute={RouteMap[PageMap.STATUS_PAGE] as Route}
                         />
                     }
                 />
@@ -99,14 +107,14 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.INCIDENTS]?.toString()}
                     element={
                         <Incidents
-                            pageRoute={RouteMap[PageMap.INCIDENTS] as Route} 
+                            pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
                         />
                     }
                 />
                 <PageRoute
                     path={RouteMap[PageMap.LOGS]?.toString()}
                     element={
-                        <Logs pageRoute={RouteMap[PageMap.LOGS] as Route}  />
+                        <Logs pageRoute={RouteMap[PageMap.LOGS] as Route} />
                     }
                 />
 
@@ -116,7 +124,7 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS]?.toString()}
                     element={
                         <Settings
-                            pageRoute={RouteMap[PageMap.SETTINGS] as Route} 
+                            pageRoute={RouteMap[PageMap.SETTINGS] as Route}
                         />
                     }
                 />
@@ -128,7 +136,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
                             }
-                            
                         />
                     }
                 />
@@ -140,7 +147,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEYS] as Route
                             }
-                            
                         />
                     }
                 />
@@ -152,7 +158,6 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEYS] as Route
                             }
-                            
                         />
                     }
                 />
@@ -161,7 +166,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={RouteMap[PageMap.LOGOUT]?.toString()}
                     element={
-                        <Logout pageRoute={RouteMap[PageMap.LOGOUT] as Route}  />
+                        <Logout pageRoute={RouteMap[PageMap.LOGOUT] as Route} />
                     }
                 />
             </Routes>

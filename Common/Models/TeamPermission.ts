@@ -288,7 +288,6 @@ export default class TeamPermission extends BaseModel {
             Permission.CanEditProjectTeam,
         ],
     })
-        
     @TableColumn({ required: true, type: TableColumnType.Array })
     @ManyToMany(() => {
         return Label;

@@ -16,7 +16,7 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    type: { new(): TBaseModel },
+    type: { new (): TBaseModel };
     model: TBaseModel;
     id: string;
     onValidate?: (
@@ -60,17 +60,25 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         >;
 
         try {
-            result = await ModelAPI.createOrUpdate<TBaseModel>(props.model.fromJSON(values, props.type), props.formType, props.apiUrl);
+            result = await ModelAPI.createOrUpdate<TBaseModel>(
+                props.model.fromJSON(values, props.type),
+                props.formType,
+                props.apiUrl
+            );
 
             if (props.onSuccess) {
                 props.onSuccess(result.data);
             }
         } catch (err) {
-            setError(((err as HTTPErrorResponse).data as JSONObject)['error'] as string);
+            setError(
+                ((err as HTTPErrorResponse).data as JSONObject)[
+                    'error'
+                ] as string
+            );
         }
 
         setLoading(false);
-        
+
         if (props.onLoadingChange) {
             props.onLoadingChange(false);
         }
