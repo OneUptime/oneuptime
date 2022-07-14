@@ -10,12 +10,16 @@ import User from 'Common/Models/User';
 
 class JSONWebToken {
     public static sign(
-        data: JSONWebTokenData | User,
+        data: JSONWebTokenData | User | string,
         expiresInSeconds: number
     ): string {
         let jsonObj: JSONObject;
 
-        if (!(data instanceof User)) {
+        if (typeof data === 'string') {
+            jsonObj = {
+                data,
+            };
+        } else if (!(data instanceof User)) {
             jsonObj = {
                 userId: data.userId.toString(),
                 email: data.email.toString(),
