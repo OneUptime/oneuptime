@@ -269,6 +269,26 @@ export default class BaseModel extends BaseEntity {
         return this._fromJSON<T>(json, type);
     }
 
+    public fromJSON<T extends BaseModel>(
+        json: JSONObject,
+        type: { new (): T }
+    ): T {
+        return BaseModel._fromJSON<T>(json, type);
+    }
+
+    public fromJSONArray<T extends BaseModel>(
+        json: Array<JSONObject>,
+        type: { new (): T }
+    ): Array<T> {
+        const arr: Array<T> = [];
+
+        for (const item of json) {
+            arr.push(BaseModel._fromJSON<T>(item, type));
+        }
+
+        return arr;
+    }
+
     public isDefaultValueColumn(columnName: string): boolean {
         return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
     }

@@ -9,8 +9,11 @@ import ProjectMiddleware from './ProjectAuthorization';
 import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
-import Permission from 'Common/Types/Permission';
 import UserType from 'Common/Types/UserType';
+import {
+    UserGlobalAccessPermission,
+    UserProjectAccessPermission,
+} from 'Common/Types/Permission';
 
 export default class UserMiddleware {
     /*
@@ -81,11 +84,39 @@ export default class UserMiddleware {
             data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
-        if (oneuptimeRequest.userAuthorization.permissions) {
-            oneuptimeRequest.permissions =
-                oneuptimeRequest.userAuthorization.permissions;
-        } else if (oneuptimeRequest.userType === UserType.User) {
-            oneuptimeRequest.permissions = [Permission.AnyUser];
+        let userGlobalAccessPermission: UserGlobalAccessPermission | null =
+            await UserService.getUserGlobalAccessPermission(
+                oneuptimeRequest.userAuthorization.userId
+            );
+
+        if (!userGlobalAccessPermission) {
+            userGlobalAccessPermission =
+                await UserService.refreshUserGlobalAccessPermission(
+                    oneuptimeRequest.userAuthorization.userId
+                );
+        }
+
+        oneuptimeRequest.userGlobalAccessPermission =
+            userGlobalAccessPermission;
+
+        if (projectId) {
+            // get project level permissions if projectid exists in request.
+
+            let userProjectAccessPermission: UserProjectAccessPermission | null =
+                await UserService.getUserProjectAccessPermission(
+                    oneuptimeRequest.userAuthorization.userId,
+                    projectId
+                );
+            if (!userProjectAccessPermission) {
+                userProjectAccessPermission =
+                    await UserService.refreshUserProjectAccessPermission(
+                        oneuptimeRequest.userAuthorization.userId,
+                        projectId
+                    );
+            }
+
+            oneuptimeRequest.userProjectAccessPermission =
+                userProjectAccessPermission;
         }
 
         return next();

@@ -16,12 +16,12 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
 import ProjectColumn from '../Types/Database/ProjectColumn';
 
 @TableAccessControl({
-    create: [Permission.AnyUser],
-    read: [Permission.AnyMember],
+    create: [Permission.User],
+    read: [Permission.ProjectMember],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProject],
     update: [
         Permission.ProjectOwner,
-        Permission.CanManageBilling,
+        Permission.CanManageProjectBilling,
         Permission.CanUpdateProject,
     ],
 })
@@ -33,11 +33,11 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
 @ProjectColumn('_id')
 export default class Model extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [
             Permission.ProjectOwner,
-            Permission.CanManageBilling,
+            Permission.CanManageProjectBilling,
             Permission.CanUpdateProject,
         ],
     })
@@ -51,8 +51,8 @@ export default class Model extends BaseModel {
 
     @Index()
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -65,8 +65,8 @@ export default class Model extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -79,8 +79,8 @@ export default class Model extends BaseModel {
     public paymentProviderPlanId?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -94,7 +94,7 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({
@@ -110,8 +110,8 @@ export default class Model extends BaseModel {
     public numberOfLicensesIssued?: PositiveNumber;
 
     @ColumnAccessControl({
-        create: [Permission.AnyUser],
-        read: [Permission.AnyMember],
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({
@@ -134,7 +134,7 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -171,7 +171,7 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyMember],
+        read: [Permission.ProjectMember],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -184,10 +184,10 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.AnyMember],
+        read: [Permission.ProjectMember],
         update: [
             Permission.ProjectOwner,
-            Permission.CanManageBilling,
+            Permission.CanManageProjectBilling,
             Permission.CanUpdateProject,
         ],
     })
@@ -206,7 +206,7 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanManageBilling],
+        read: [Permission.ProjectOwner, Permission.CanManageProjectBilling],
         update: [],
     })
     @TableColumn({

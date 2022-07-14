@@ -25,12 +25,16 @@ export interface JSONObject {
 export type JSONArray = Array<JSONObject>;
 
 export class JSONFunctions {
-    public toCompressedString(val: JSONValue): string {
+    public static toCompressedString(val: JSONValue): string {
         return JSON.stringify(val, null, 2);
     }
 
-    public toString(val: JSONValue): string {
+    public static toString(val: JSONValue): string {
         return JSON.stringify(val);
+    }
+
+    public static toJSON(val: JSONObject | JSONArray): Object {
+        return JSON.parse(JSON.stringify(val));
     }
 }
 

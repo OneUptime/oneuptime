@@ -1,10 +1,17 @@
+// Have "Project" string in the permission to make sure this permission is by Project.
+
+import ObjectID from './ObjectID';
+
 enum Permission {
     // Owner of a Project
     ProjectOwner = 'ProjectOwner',
 
-    AnyMember = 'AnyMember', // member of a project
+    // Project Admin
+    ProjectAdmin = 'ProjectAdmin',
 
-    AnyUser = 'AnyUser', //registered user. Can or cannot belong to a project.
+    ProjectMember = 'ProjectMember', // member of a project
+
+    User = 'User', //registered user. Can or cannot belong to a project.
 
     CurrentUser = 'CurrentUser', // Current logged in user.
 
@@ -17,40 +24,40 @@ enum Permission {
     CanUpdateProject = 'CanDeleteProject',
 
     // Billing Permissions (Owner Permission)
-    CanCreateApiKey = 'CanCreateApiKey',
-    CanDeleteApiKey = 'CanDeleteApiKey',
-    CanReadApiKey = 'CanReadApiKey',
-    CanEditApiKey = 'CanEditApiKey',
-    CanEditApiKeyPermissions = 'CanEditApiKeyPermissions',
+    CanCreateProjectApiKey = 'CanCreateProjectApiKey',
+    CanDeleteProjectApiKey = 'CanDeleteProjectApiKey',
+    CanReadProjectApiKey = 'CanReadProjectApiKey',
+    CanEditProjectApiKey = 'CanEditProjectApiKey',
+    CanEditProjectApiKeyPermissions = 'CanEditProjectApiKeyPermissions',
 
     // Billing Permissions (Owner Permission)
-    CanManageBilling = 'CanManageBilling',
+    CanManageProjectBilling = 'CanManageProjectBilling',
 
     // Billing Permissions (Owner Permission)
-    CanCreateTeam = 'CanCreateTeam',
-    CanDeleteTeam = 'CanDeleteTeam',
-    CanReadTeam = 'CanReadTeam',
-    CanEditTeam = 'CanEditTeam',
-    CanInviteTeamMembers = 'CanInviteTeamMembers',
-    CanEditTeamPermissions = 'CanEditTeamPermissions',
+    CanCreateProjectTeam = 'CanCreateProjectTeam',
+    CanDeleteProjectTeam = 'CanDeleteProjectTeam',
+    CanReadProjectTeam = 'CanReadProjectTeam',
+    CanEditProjectTeam = 'CanEditProjectTeam',
+    CanInviteProjectTeamMembers = 'CanInviteProjectTeamMembers',
+    CanEditProjectTeamPermissions = 'CanEditProjectTeamPermissions',
 
     // Probe Permissions (Owner Permission)
-    CanCreateProbe = 'CanCreateProbe',
-    CanDeleteProbe = 'CanDeleteProbe',
-    CanEditProbe = 'CanEditProbe',
+    CanCreateProjectProbe = 'CanCreateProjectProbe',
+    CanDeleteProjectProbe = 'CanDeleteProjectProbe',
+    CanEditProjectProbe = 'CanEditProjectProbe',
 
     // Label Permissions (Owner + Admin Permission by default)
-    CanCreateLabel = 'CanCreateLabel',
-    CanEditLabel = 'CanEditLabel',
-    CanReadLabel = 'CanReadLabel',
-    CanDeleteLabel = 'CanDeleteLabel',
-    CanAddLabelsToResources = 'CanAddLabelsToResources',
+    CanCreateProjectLabel = 'CanCreateProjectLabel',
+    CanEditProjectLabel = 'CanEditProjectLabel',
+    CanReadProjectLabel = 'CanReadProjectLabel',
+    CanDeleteProjectLabel = 'CanDeleteProjectLabel',
+    CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
 
     // Resource Permissions (Team Permission)
-    CanCreateResources = 'CanCreateResources',
-    CanEditResources = 'CanEditResources',
-    CanDeleteResources = 'CanDeleteResources',
-    CanReadResources = 'CanReadResources',
+    CanCreateProjectResources = 'CanCreateProjectResources',
+    CanEditProjectResources = 'CanEditProjectResources',
+    CanDeleteProjectResources = 'CanDeleteProjectResources',
+    CanReadProjectResources = 'CanReadProjectResources',
 }
 
 export class PermissionUtil {
@@ -64,6 +71,21 @@ export class PermissionUtil {
             }).length > 0
         );
     }
+}
+
+export interface UserGlobalAccessPermission {
+    projectIds: Array<ObjectID>;
+    globalPermissions: Array<Permission>;
+}
+
+export interface UserPermission {
+    permission: Permission;
+    labelIds: Array<ObjectID>;
+}
+
+export interface UserProjectAccessPermission {
+    projectId: ObjectID;
+    permissions: Array<UserPermission>;
 }
 
 export const PermissionsArray: Array<string> = [

@@ -41,6 +41,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
             <Card title="Add New API Key" description="Add new api key here">
                 <ModelForm<ProjectAPIKey>
                     model={model}
+                    type={ProjectAPIKey}
                     id="add-form"
                     fields={[
                         {
@@ -67,7 +68,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                     ]}
                     submitButtonText={'Add'}
-                    type={FormType.Create}
+                    formType={FormType.Create}
                     onSuccess={() => {
                         Navigation.goBack();
                     }}

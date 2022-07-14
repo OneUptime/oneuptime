@@ -1,16 +1,17 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
     Routes,
     Route as PageRoute,
     useNavigate,
     useLocation,
+    useParams,
 } from 'react-router-dom';
 import MasterPage from './Components/MasterPage/MasterPage';
 // Pages
 import Init from './Pages/Init/Init';
 import Home from './Pages/Home/Home';
-
+import useAsyncEffect from 'use-async-effect';
 import StatusPages from './Pages/StatusPages/StatusPages';
 import Incidents from './Pages/Incidents/Incidents';
 import Logs from './Pages/Logs/Logs';
@@ -27,17 +28,53 @@ import SettingsCreateAPIKey from './Pages/Settings/CreateAPIKey';
 import 'CommonUI/src/Styles/theme.scss';
 import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import Project from 'Common/Models/Project';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import { JSONObject } from 'Common/Types/JSON';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
+    Navigation.setParams(useParams());
 
     if (!User.isLoggedIn()) {
         Navigation.navigate(ACCOUNTS_URL);
     }
 
+    const [isLoading, setLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [projects, setProjects] = useState<Array<Project>>([]);
+
+    useAsyncEffect(async () => {
+        setLoading(true);
+
+        // get list of projects.
+        try {
+            const result: ListResult<Project> = await ModelAPI.getList<Project>(
+                Project,
+                {},
+                50,
+                0,
+                {
+                    name: true,
+                    _id: true,
+                }
+            );
+            setProjects(result.data);
+        } catch (err) {
+            setError(
+                ((err as HTTPErrorResponse).data as JSONObject)[
+                    'error'
+                ] as string
+            );
+        }
+
+        setLoading(false);
+    }, []);
+
     return (
-        <MasterPage>
+        <MasterPage isLoading={isLoading} projects={projects} error={error}>
             <Routes>
                 <PageRoute
                     path={RouteMap[PageMap.INIT]?.toString()}

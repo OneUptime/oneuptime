@@ -5,27 +5,39 @@ import ObjectID from 'Common/Types/ObjectID';
 import jwt from 'jsonwebtoken';
 import { EncryptionSecret } from '../Config';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
-import Permission from 'Common/Types/Permission';
+import Name from 'Common/Types/Name';
+import User from 'Common/Models/User';
 
 class JSONWebToken {
     public static sign(
-        data: JSONWebTokenData | string,
+        data: JSONWebTokenData | User | string,
         expiresInSeconds: number
     ): string {
-        return jwt.sign(
-            typeof data !== 'string'
-                ? {
-                      userId: data.userId.toString(),
-                      email: data.email.toString(),
-                      permissions: data.permissions,
-                      isMasterAdmin: data.isMasterAdmin,
-                  }
-                : data,
-            EncryptionSecret.toString(),
-            {
-                expiresIn: expiresInSeconds,
-            }
-        );
+        let jsonObj: JSONObject;
+
+        if (typeof data === 'string') {
+            jsonObj = {
+                data,
+            };
+        } else if (!(data instanceof User)) {
+            jsonObj = {
+                userId: data.userId.toString(),
+                email: data.email.toString(),
+                name: data.name.toString(),
+                isMasterAdmin: data.isMasterAdmin,
+            };
+        } else {
+            jsonObj = {
+                userId: data.id!.toString(),
+                email: data.email!.toString(),
+                name: data.name!.toString(),
+                isMasterAdmin: data.isMasterAdmin!,
+            };
+        }
+
+        return jwt.sign(jsonObj, EncryptionSecret.toString(), {
+            expiresIn: expiresInSeconds,
+        });
     }
 
     public static decode(token: string): JSONWebTokenData {
@@ -38,8 +50,7 @@ class JSONWebToken {
             return {
                 userId: new ObjectID(decoded['userId'] as string),
                 email: new Email(decoded['email'] as string),
-                permissions:
-                    (decoded['permissions'] as Array<Permission>) || [],
+                name: new Name(decoded['name'] as string),
                 isMasterAdmin: Boolean(decoded['isMasterAdmin']),
             };
         } catch (e) {

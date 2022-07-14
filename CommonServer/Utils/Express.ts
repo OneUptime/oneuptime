@@ -4,7 +4,10 @@ import logger from './Logger';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
-import Permission from 'Common/Types/Permission';
+import {
+    UserGlobalAccessPermission,
+    UserProjectAccessPermission,
+} from 'Common/Types/Permission';
 import UserType from 'Common/Types/UserType';
 
 export type RequestHandler = express.RequestHandler;
@@ -31,7 +34,8 @@ export interface OneUptimeRequest extends express.Request {
     userType?: UserType;
     userAuthorization?: JSONWebTokenData;
     projectId?: ObjectID;
-    permissions: Array<Permission>;
+    userGlobalAccessPermission?: UserGlobalAccessPermission;
+    userProjectAccessPermission?: UserProjectAccessPermission;
 }
 
 export interface OneUptimeResponse extends express.Response {

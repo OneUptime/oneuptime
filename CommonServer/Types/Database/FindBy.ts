@@ -4,6 +4,6 @@ import FindOneBy from './FindOneBy';
 
 export default interface FindBy<TBaseModel extends BaseModel>
     extends FindOneBy<TBaseModel> {
-    limit: PositiveNumber;
-    skip: PositiveNumber;
+    limit: PositiveNumber | number;
+    skip: PositiveNumber | number;
 }

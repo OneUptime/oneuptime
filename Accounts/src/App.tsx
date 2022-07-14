@@ -1,5 +1,11 @@
 import React, { ReactElement } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import {
+    Routes,
+    Route,
+    useNavigate,
+    useLocation,
+    useParams,
+} from 'react-router-dom';
 import LoginPage from './Pages/Login';
 import SsoLoginPage from './Pages/SsoLogin';
 import ForgotPasswordPage from './Pages/ForgotPassword';
@@ -13,6 +19,7 @@ import User from 'CommonUI/src/Utils/User';
 function App(): ReactElement {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
+    Navigation.setParams(useParams());
 
     if (User.isLoggedIn()) {
         Navigation.navigate(DASHBOARD_URL);

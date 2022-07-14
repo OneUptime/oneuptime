@@ -22,6 +22,8 @@ import LocalCache from '../Infrastructure/LocalCache';
 import Exception from 'Common/Types/Exception/Exception';
 import ObjectID from 'Common/Types/ObjectID';
 
+// import OpenTelemetrySDK from "./OpenTelemetry";
+
 const app: ExpressApplication = Express.getExpressApp();
 
 app.set('port', process.env['PORT']);
@@ -105,7 +107,12 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
                 return next(err);
             }
 
-            if (err instanceof Exception) {
+            if (err instanceof Promise) {
+                err.catch((exception: Exception) => {
+                    res.status((exception as Exception).code);
+                    res.send({ error: (exception as Exception).message });
+                });
+            } else if (err instanceof Exception) {
                 res.status((err as Exception).code);
                 res.send({ error: (err as Exception).message });
             } else {
@@ -130,6 +137,8 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
     app.get('*', (_req: ExpressRequest, res: ExpressResponse) => {
         res.status(404).json({ error: 'API not found' });
     });
+
+    // await OpenTelemetrySDK.start();
 
     return app;
 };

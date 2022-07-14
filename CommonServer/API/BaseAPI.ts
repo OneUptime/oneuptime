@@ -4,6 +4,7 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
+    NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
 import UserMiddleware from '../Middleware/UserAuthorization';
@@ -14,6 +15,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
 import CreateBy from '../Types/Database/CreateBy';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import Query from '../Types/Database/Query';
+import Select from '../Types/Database/Select';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -32,17 +35,33 @@ export default class BaseAPI<
         router.post(
             `/${new this.entityType().getCrudApiPath()?.toString()}`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.createItem(req, res);
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.createItem(req, res);
+                } catch (err) {
+                    next(err);
+                }
             }
         );
 
         // List
-        router.get(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/list`,
+        router.post(
+            `/${new this.entityType().getCrudApiPath()?.toString()}/get`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.getList(req, res);
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.getList(req, res);
+                } catch (err) {
+                    next(err);
+                }
             }
         );
 
@@ -50,8 +69,16 @@ export default class BaseAPI<
         router.get(
             `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.getItem(req, res);
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.getItem(req, res);
+                } catch (err) {
+                    next(err);
+                }
             }
         );
 
@@ -59,8 +86,16 @@ export default class BaseAPI<
         router.put(
             `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.updateItem(req, res);
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.updateItem(req, res);
+                } catch (err) {
+                    next(err);
+                }
             }
         );
 
@@ -68,8 +103,16 @@ export default class BaseAPI<
         router.delete(
             `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            async (req: ExpressRequest, res: ExpressResponse) => {
-                await this.deleteItem(req, res);
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.deleteItem(req, res);
+                } catch (err) {
+                    next(err);
+                }
             }
         );
 
@@ -82,7 +125,7 @@ export default class BaseAPI<
     ): DatabaseCommonInteractionProps {
         const props: DatabaseCommonInteractionProps = {
             projectId: undefined,
-            userPermissions: [],
+            userGlobalAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
         };
@@ -94,11 +137,13 @@ export default class BaseAPI<
             props.userId = (req as OneUptimeRequest).userAuthorization!.userId;
         }
 
-        if ((req as OneUptimeRequest).permissions) {
-            props.userPermissions = (req as OneUptimeRequest).permissions;
+        if ((req as OneUptimeRequest).userGlobalAccessPermission) {
+            props.userGlobalAccessPermission = (
+                req as OneUptimeRequest
+            ).userGlobalAccessPermission;
         }
 
-        if ((req as OneUptimeRequest).permissions) {
+        if ((req as OneUptimeRequest).projectId) {
             props.projectId = (req as OneUptimeRequest).projectId || undefined;
         }
 
@@ -121,8 +166,17 @@ export default class BaseAPI<
             throw new BadRequestException('Limit should be less than 50');
         }
 
+        let query: Query<BaseModel> = {};
+        let select: Select<BaseModel> = {};
+
+        if (req.body && req.body['data']) {
+            query = req.body['data']['query'] as Query<BaseModel>;
+            select = req.body['data']['select'] as Select<BaseModel>;
+        }
+
         const list: Array<BaseModel> = await this.service.findBy({
-            query: {},
+            query,
+            select,
             skip: skip,
             limit: limit,
             props: this.getDatabaseCommonInteractionProps(req),

@@ -72,12 +72,14 @@ services:
             - ./saml/users.php:/var/www/simplesamlphp/config/authsources.php
 
     redis:
-        image: redis:5.0.7
+        image: redis:7.0.3
         ports:
-            - '6390:6379'
-        command: redis-server
+            - '6379:6379'
+        command: redis-server /usr/local/etc/redis/redis.conf
         env_file:
             - ./Redis/.env
+        volumes:
+            - ./Redis/redis.conf:/usr/local/etc/redis/redis.conf
 
     accounts:
         ports:
