@@ -20,7 +20,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
+import { DataSource, In, Repository, SelectQueryBuilder } from 'typeorm';
 import SortOrder from '../Types/Database/SortOrder';
 import HardDeleteBy from '../Types/Database/HardDeleteBy';
 import { EncryptionSecret } from '../Config';
@@ -44,11 +44,11 @@ enum DatabaseRequestType {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    private entityType!: { new(): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        type: { new (): TBaseModel },
+        type: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = type;
@@ -269,7 +269,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                    createBy.data.getSlugifyColumn() as string
+                createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -319,7 +319,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
         }
 
-        let isPublicAllowed = false; 
+        let isPublicAllowed = false;
         let modelPermissions: Array<Permission> = [];
 
         if (type === DatabaseRequestType.Create) {
@@ -355,7 +355,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         let userPermissions: Array<UserPermission> = [];
 
-        if (!props.projectId && props.userGlobalAccessPermission) { 
+        if (!props.projectId && props.userGlobalAccessPermission) {
             /// take gloabl permissions. 
             userPermissions = props.userGlobalAccessPermission.globalPermissions.map((permission) => {
                 return {
@@ -366,7 +366,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         } else if (props.projectId && props.userProjectAccessPermission) {
             /// take project based permissions because this is a project request. 
             userPermissions = props.userProjectAccessPermission.permissions;
-            
+
         } else {
             throw new NotAuthorizedException(
                 `Permissions not found.`
@@ -374,9 +374,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         if (
-            props.userProjectAccessPermission && 
+            props.userProjectAccessPermission &&
             !PermissionUtil.doesPermissionsIntersect(
-                props.userProjectAccessPermission.permissions.map((userPermission)=> userPermission.permission) || [],
+                props.userProjectAccessPermission.permissions.map((userPermission) => userPermission.permission) || [],
                 modelPermissions
             )
         ) {
@@ -418,7 +418,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         if (findBy.props.isRoot) {
             return findBy;
         }
-       
+
         let columns: Columns = new Columns([]);
 
         const userPermissions = this.getPermissions(findBy.props, DatabaseRequestType.Read);
@@ -451,6 +451,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
         ) {
             (findBy.query as any)[this.model.projectColumn] =
                 findBy.props.projectId;
+        } else if (this.model.projectColumn &&
+            !findBy.props.projectId && findBy.props.userGlobalAccessPermission) {
+            (findBy.query as any)[this.model.projectColumn] = In(findBy.props.userGlobalAccessPermission?.projectIds);
+        } else if (this.model.projectColumn) {
+            throw new NotAuthorizedException("Not enough permissions to read the record");
         }
 
         if (this.model.userColumn && findBy.props.userId) {
@@ -522,6 +527,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
         ) {
             (updateBy.query as any)[this.model.projectColumn] =
                 updateBy.props.projectId;
+        } else if (this.model.projectColumn &&
+            !updateBy.props.projectId && updateBy.props.userGlobalAccessPermission) {
+            (updateBy.query as any)[this.model.projectColumn] = In(updateBy.props.userGlobalAccessPermission?.projectIds);
+        } else if (this.model.projectColumn) {
+            throw new NotAuthorizedException("Not enough permissions to read the record");
         }
 
         if (this.model.userColumn && updateBy.props.userId) {
@@ -558,7 +568,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         this.getPermissions(deleteBy.props, DatabaseRequestType.Delete);
-        
+
         if (
             this.model.projectColumn &&
             deleteBy.props.projectId
@@ -579,7 +589,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         userPermissions: Array<UserPermission>
     ): Columns {
 
-        const permissions = userPermissions.map((item) => item.permission); 
+        const permissions = userPermissions.map((item) => item.permission);
 
         const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(this.model);
@@ -609,7 +619,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         const columns: Array<string> = [];
 
-        const permissions = userPermissions.map((item) => item.permission); 
+        const permissions = userPermissions.map((item) => item.permission);
 
         for (const key in accessControl) {
             if (
@@ -634,7 +644,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         const columns: Array<string> = [];
 
-        const permissions = userPermissions.map((item) => item.permission); 
+        const permissions = userPermissions.map((item) => item.permission);
 
         for (const key in accessControl) {
             if (
