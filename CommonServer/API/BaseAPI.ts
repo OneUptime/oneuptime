@@ -15,6 +15,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import { JSONObject } from 'Common/Types/JSON';
 import CreateBy from '../Types/Database/CreateBy';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import Query from '../Types/Database/Query';
+import Select from '../Types/Database/Select';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -47,8 +49,8 @@ export default class BaseAPI<
         );
 
         // List
-        router.get(
-            `/${new this.entityType().getCrudApiPath()?.toString()}`,
+        router.post(
+            `/${new this.entityType().getCrudApiPath()?.toString()}/get`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -150,6 +152,7 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        debugger;
         const skip: PositiveNumber = req.query['skip']
             ? new PositiveNumber(req.query['skip'] as string)
             : new PositiveNumber(0);
@@ -158,12 +161,23 @@ export default class BaseAPI<
             ? new PositiveNumber(req.query['limit'] as string)
             : new PositiveNumber(10);
 
+        
+
         if (limit.toNumber() > 50) {
             throw new BadRequestException('Limit should be less than 50');
         }
 
+        let query: Query<BaseModel> = {};
+        let select: Select<BaseModel> = {};
+
+        if (req.body && req.body['data']) {
+            query = req.body['data']['query'] as Query<BaseModel>;
+            select = req.body['data']['select'] as Select<BaseModel>;
+        }
+
         const list: Array<BaseModel> = await this.service.findBy({
-            query: {},
+            query,
+            select,
             skip: skip,
             limit: limit,
             props: this.getDatabaseCommonInteractionProps(req),

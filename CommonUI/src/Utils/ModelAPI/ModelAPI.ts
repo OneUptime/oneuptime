@@ -85,7 +85,7 @@ export default class ModelAPI {
             );
         }
 
-        apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
+        apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath).addRoute("/get");
 
 
         if (!apiUrl) {
@@ -99,7 +99,7 @@ export default class ModelAPI {
         > | HTTPErrorResponse = await API.fetch<
             Array<TBaseModel>
         >(
-            HTTPMethod.GET,
+            HTTPMethod.POST,
             apiUrl,
             {
                 query: query as JSONObject,

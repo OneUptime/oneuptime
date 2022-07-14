@@ -12,7 +12,7 @@ export default abstract class Cache {
             throw new DatabaseNotConnectedException("Cache is not connected");
         }
 
-        const jsonObject: any = await client?.HMGET(`${namespace}-${key}`, []);
+        const jsonObject: any = await client?.HMGET(`${namespace}`, key);
 
         if (!jsonObject) {
             return null;

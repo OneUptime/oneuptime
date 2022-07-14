@@ -63,12 +63,12 @@ export class Service extends DatabaseService<Model> {
             return null;
         }
 
-        if (!json["projectId"]) {
-            json["projectId"] = [];
+        if (!json["projectIds"]) {
+            json["projectIds"] = [];
         }
 
-        if (!Array.isArray(json["projectId"])) {
-            json["projectId"] = []
+        if (!Array.isArray(json["globalPermissions"])) {
+            json["globalPermissions"] = []
         }
 
         const accessPermission: UserGlobalAccessPermission = {

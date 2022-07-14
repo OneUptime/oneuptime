@@ -22,6 +22,8 @@ import LocalCache from '../Infrastructure/LocalCache';
 import Exception from 'Common/Types/Exception/Exception';
 import ObjectID from 'Common/Types/ObjectID';
 
+// import "./OpenTelemetry";
+
 const app: ExpressApplication = Express.getExpressApp();
 
 app.set('port', process.env['PORT']);

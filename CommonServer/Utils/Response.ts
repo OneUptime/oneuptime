@@ -178,7 +178,6 @@ export default class Response {
         } else {
             oneUptimeResponse.status(200).send(listData);
             oneUptimeResponse.logBody = listData.toJSON(); // To be used in 'auditLog' middleware to log reponse data;
-            oneUptimeResponse.status(200).send(listData);
             this.logResponse(req, res, listData.toJSON());
         }
     }
