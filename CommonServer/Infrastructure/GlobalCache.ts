@@ -1,7 +1,8 @@
-import { JSONFunctions, JSONObject } from "Common/Types/JSON";
+import { JSONObject } from "Common/Types/JSON";
 import Redis, { ClientType } from "./Redis";
 import DatabaseNotConnectedException from "Common/Types/Exception/DatabaseNotConnectedException";
 import OneUptimeDate from "Common/Types/Date";
+import logger from "../Utils/Logger";
 
 export default abstract class Cache {
 
@@ -11,14 +12,27 @@ export default abstract class Cache {
         if (!client || !Redis.isConnected()) {
             throw new DatabaseNotConnectedException("Cache is not connected");
         }
+        
+        const value: string | null = await client?.get(`${namespace}-${key}`);
 
-        const jsonObject: any = await client?.HMGET(`${namespace}`, key);
-
-        if (!jsonObject) {
+        if (!value) {
             return null;
         }
-        
-        return jsonObject;
+
+        try {
+            const jsonObject: JSONObject = JSON.parse(value);
+
+            if (!jsonObject) {
+                return null;
+            }
+            
+            return jsonObject;
+
+        } catch (err) {
+            logger.error(err);
+            return null;
+        }
+
     }
 
     public static async setJSON(namespace: string, key: string, value: JSONObject): Promise<void> {
@@ -28,7 +42,7 @@ export default abstract class Cache {
             throw new DatabaseNotConnectedException("Cache is not connected");
         }
 
-        await client?.hSet(`${namespace}-${key}`, JSONFunctions.toJSON(value) as any);
+        await client.set(`${namespace}-${key}`,JSON.stringify(value));
         await client.expire(`${namespace}-${key}`, OneUptimeDate.getSecondsInDays(30));
     }
 }

@@ -453,7 +453,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 findBy.props.projectId;
         } else if (this.model.projectColumn &&
             !findBy.props.projectId && findBy.props.userGlobalAccessPermission) {
-            (findBy.query as any)[this.model.projectColumn] = In(findBy.props.userGlobalAccessPermission?.projectIds);
+            
+            if (this.model.projectColumn === "_id") {
+                (findBy.query as any)[this.model.projectColumn] = In(findBy.props.userGlobalAccessPermission?.projectIds.map((item)=> item.toString()));
+            } else {
+                (findBy.query as any)[this.model.projectColumn] = In(findBy.props.userGlobalAccessPermission?.projectIds);
+            }
+            
         } else if (this.model.projectColumn) {
             throw new NotAuthorizedException("Not enough permissions to read the record");
         }
@@ -529,7 +535,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 updateBy.props.projectId;
         } else if (this.model.projectColumn &&
             !updateBy.props.projectId && updateBy.props.userGlobalAccessPermission) {
-            (updateBy.query as any)[this.model.projectColumn] = In(updateBy.props.userGlobalAccessPermission?.projectIds);
+            
+            
+                if (this.model.projectColumn === "_id") {
+                    (updateBy.query as any)[this.model.projectColumn] = In(updateBy.props.userGlobalAccessPermission?.projectIds.map((item)=> item.toString()));
+                } else {
+                    (updateBy.query as any)[this.model.projectColumn] = In(updateBy.props.userGlobalAccessPermission?.projectIds);
+                }
+            
         } else if (this.model.projectColumn) {
             throw new NotAuthorizedException("Not enough permissions to read the record");
         }

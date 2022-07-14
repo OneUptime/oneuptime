@@ -81,6 +81,8 @@ export default class UserMiddleware {
             data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
+        debugger;
+
         let userGlobalAccessPermission: UserGlobalAccessPermission | null = await UserService.getUserGlobalAccessPermission(oneuptimeRequest.userAuthorization.userId);
 
         if (!userGlobalAccessPermission) {
