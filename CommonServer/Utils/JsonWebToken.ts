@@ -5,7 +5,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import jwt from 'jsonwebtoken';
 import { EncryptionSecret } from '../Config';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
-import Permission from 'Common/Types/Permission';
+import Name from 'Common/Types/Name';
 
 class JSONWebToken {
     public static sign(
@@ -17,7 +17,7 @@ class JSONWebToken {
                 ? {
                       userId: data.userId.toString(),
                       email: data.email.toString(),
-                      permissions: data.permissions,
+                      name: data.name.toString(),
                       isMasterAdmin: data.isMasterAdmin,
                   }
                 : data,
@@ -38,8 +38,7 @@ class JSONWebToken {
             return {
                 userId: new ObjectID(decoded['userId'] as string),
                 email: new Email(decoded['email'] as string),
-                permissions:
-                    (decoded['permissions'] as Array<Permission>) || [],
+                name: new Name(decoded['name'] as string),
                 isMasterAdmin: Boolean(decoded['isMasterAdmin']),
             };
         } catch (e) {

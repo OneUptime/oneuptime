@@ -10,7 +10,6 @@ import TeamMember from 'Common/Models/TeamMember';
 import TeamPermission from 'Common/Models/TeamPermission';
 import Permission from 'Common/Types/Permission';
 import TeamPermissionService from './TeamPermissionService';
-import User from 'Common/Models/User';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export class Service extends DatabaseService<Model> {
@@ -44,13 +43,6 @@ export class Service extends DatabaseService<Model> {
 
         if (data.props.userId) {
             data.data.createdByUserId = data.props.userId;
-
-            if (!data.data.users) {
-                data.data.users = [];
-            }
-            const user: User = new User();
-            user.id = data.props.userId;
-            data.data.users?.push(user);
         } else {
             throw new NotAuthorizedException(
                 'User should be logged in to create the project.'

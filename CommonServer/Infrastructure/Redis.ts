@@ -6,6 +6,8 @@ import {
 } from '../Config';
 import logger from '../Utils/Logger';
 
+export type ClientType = RedisClientType;
+
 export default abstract class Redis {
 
     private static client: RedisClientType | null = null;
@@ -17,6 +19,10 @@ export default abstract class Redis {
         }
 
         return this.client.isReady;
+    }
+
+    public static getClient(): RedisClientType | null {
+        return this.client;
     }
 
     public static async connect(): Promise<RedisClientType> {

@@ -81,12 +81,13 @@ export default class UserMiddleware {
             data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
-        if (oneuptimeRequest.userAuthorization.permissions) {
-            oneuptimeRequest.permissions =
-                oneuptimeRequest.userAuthorization.permissions;
-        } else if (oneuptimeRequest.userType === UserType.User) {
-            oneuptimeRequest.permissions = [Permission.User];
+        let userAccessPermission = await UserService.getUserAccessPermission(oneuptimeRequest.userAuthorization.userId);
+
+        if (!userAccessPermission) {
+            userAccessPermission = await UserService.refreshUserAccessPermission(oneuptimeRequest.userAuthorization.userId);
         }
+
+        oneuptimeRequest.userAccessPermission = userAccessPermission;
 
         return next();
     }

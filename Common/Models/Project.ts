@@ -3,8 +3,6 @@ import {
     Entity,
     Index,
     JoinColumn,
-    JoinTable,
-    ManyToMany,
     ManyToOne,
 } from 'typeorm';
 import BaseModel from './BaseModel';
@@ -286,16 +284,4 @@ export default class Model extends BaseModel {
         unique: false,
     })
     public paymentSuccessDate?: Date = undefined;
-
-    @ColumnAccessControl({
-        create: [],
-        read: [],
-        update: [],
-    })
-    @TableColumn({ type: TableColumnType.Array })
-    @ManyToMany(() => {
-        return User;
-    })
-    @JoinTable()
-    public users?: Array<User> = undefined;
 }

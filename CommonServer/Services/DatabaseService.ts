@@ -736,6 +736,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             onBeforeFind = this.asFindByByPermissions(findBy);
 
+            if (!(onBeforeFind.skip instanceof PositiveNumber)) {
+                onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
+            }
+
+            if (!(onBeforeFind.limit instanceof PositiveNumber)) {
+                onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
+            }
+
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
