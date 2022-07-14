@@ -10,6 +10,7 @@ import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
 import UserType from 'Common/Types/UserType';
+import { UserGlobalAccessPermission, UserProjectAccessPermission } from 'Common/Types/Permission';
 
 export default class UserMiddleware {
     /*
@@ -80,13 +81,25 @@ export default class UserMiddleware {
             data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
-        let userGlobalAccessPermission = await UserService.getUserAccessPermission(oneuptimeRequest.userAuthorization.userId);
+        let userGlobalAccessPermission: UserGlobalAccessPermission | null = await UserService.getUserGlobalAccessPermission(oneuptimeRequest.userAuthorization.userId);
 
         if (!userGlobalAccessPermission) {
-            userGlobalAccessPermission = await UserService.refreshUserAccessPermission(oneuptimeRequest.userAuthorization.userId);
+            userGlobalAccessPermission = await UserService.refreshUserGlobalAccessPermission(oneuptimeRequest.userAuthorization.userId);
         }
 
         oneuptimeRequest.userGlobalAccessPermission = userGlobalAccessPermission;
+
+        if (projectId) {
+            // get project level permissions if projectid exists in request. 
+
+            let userProjectAccessPermission: UserProjectAccessPermission | null = await UserService.getUserProjectAccessPermission(oneuptimeRequest.userAuthorization.userId, projectId);
+            if (!userProjectAccessPermission) {
+                userProjectAccessPermission = await UserService.refreshUserProjectAccessPermission(oneuptimeRequest.userAuthorization.userId, projectId);
+            }
+
+            oneuptimeRequest.userProjectAccessPermission = userProjectAccessPermission;
+
+        }
 
         return next();
     }
