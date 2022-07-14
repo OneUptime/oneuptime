@@ -1,5 +1,6 @@
 import 'ejs';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
+import Redis from 'CommonServer/Infrastructure/Redis';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import BaseAPI from 'CommonServer/API/BaseAPI';
@@ -54,6 +55,10 @@ const init: Function = async (): Promise<void> => {
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
+
+        // connect redis
+        await Redis.connect();
+        
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

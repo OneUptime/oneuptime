@@ -12,7 +12,7 @@ mobile_lighthouse_accounts:
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-        - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+        - sudo docker run --name redis -p 6379:6379 -d redis:7.0.3 redis-server
         - sudo docker build -t oneuptime/backend:4.0.$CI_PIPELINE_ID ./backend
         - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d oneuptime/backend:4.0.$CI_PIPELINE_ID
         - sudo docker build -t oneuptime/accounts:4.0.$CI_PIPELINE_ID ./accounts
@@ -50,7 +50,7 @@ desktop_lighthouse_accounts:
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
-        - sudo docker run --name redis -p 6379:6379 -d redis:5.0.7 redis-server
+        - sudo docker run --name redis -p 6379:6379 -d redis:7.0.3 redis-server
         - sudo docker build -t oneuptime/backend:4.0.$CI_PIPELINE_ID ./backend
         - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d oneuptime/backend:4.0.$CI_PIPELINE_ID
         - sudo docker build -t oneuptime/accounts:4.0.$CI_PIPELINE_ID ./accounts

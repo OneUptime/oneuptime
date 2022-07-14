@@ -74,3 +74,9 @@ export const HttpProtocol: Protocol = (
 ).includes('https')
     ? Protocol.HTTPS
     : Protocol.HTTP;
+
+
+// Redis does not require password. 
+export const RedisHostname: string = process.env["REDIS_HOST"] || '';
+export const RedisPassword: string = process.env["REDIS_PASSWORD"] || '';
+export const RedisPort: Port = new Port(process.env['REDIS_PORT'] || '');
