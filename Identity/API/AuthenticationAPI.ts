@@ -29,7 +29,6 @@ import Response from 'CommonServer/Utils/Response';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import Permission from 'Common/Types/Permission';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -152,12 +151,7 @@ router.post(
 
             if (savedUser) {
                 const token: string = JSONWebToken.sign(
-                    {
-                        userId: savedUser.id!,
-                        email: savedUser.email!,
-                        isMasterAdmin: savedUser.isMasterAdmin!,
-                        permissions: [Permission.User],
-                    },
+                    savedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
@@ -204,12 +198,7 @@ router.post(
 
             if (alreadySavedUser) {
                 const token: string = JSONWebToken.sign(
-                    {
-                        userId: alreadySavedUser.id!,
-                        email: alreadySavedUser.email!,
-                        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        permissions: [Permission.User],
-                    },
+                    alreadySavedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
@@ -256,12 +245,7 @@ router.post(
 
             if (alreadySavedUser) {
                 const token: string = JSONWebToken.sign(
-                    {
-                        userId: alreadySavedUser.id!,
-                        email: alreadySavedUser.email!,
-                        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        permissions: [Permission.User],
-                    },
+                    alreadySavedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
@@ -309,12 +293,7 @@ router.post(
 
             if (alreadySavedUser) {
                 const token: string = JSONWebToken.sign(
-                    {
-                        userId: alreadySavedUser.id!,
-                        email: alreadySavedUser.email!,
-                        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        permissions: [Permission.User],
-                    },
+                    alreadySavedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 

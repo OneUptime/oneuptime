@@ -6,21 +6,34 @@ import jwt from 'jsonwebtoken';
 import { EncryptionSecret } from '../Config';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Name from 'Common/Types/Name';
+import User from 'Common/Models/User';
 
 class JSONWebToken {
     public static sign(
-        data: JSONWebTokenData | string,
+        data: JSONWebTokenData | User,
         expiresInSeconds: number
     ): string {
+        
+        let jsonObj: JSONObject; 
+
+        if (!(data instanceof User)) {
+            jsonObj = {
+                userId: data.userId.toString(),
+                email: data.email.toString(),
+                name: data.name.toString(),
+                isMasterAdmin: data.isMasterAdmin,
+            }
+        } else {
+            jsonObj = {
+                userId: data.id!.toString(),
+                email: data.email!.toString(),
+                name: data.name!.toString(),
+                isMasterAdmin: data.isMasterAdmin!,
+            }
+        }
+
         return jwt.sign(
-            typeof data !== 'string'
-                ? {
-                      userId: data.userId.toString(),
-                      email: data.email.toString(),
-                      name: data.name.toString(),
-                      isMasterAdmin: data.isMasterAdmin,
-                  }
-                : data,
+            jsonObj,
             EncryptionSecret.toString(),
             {
                 expiresIn: expiresInSeconds,
