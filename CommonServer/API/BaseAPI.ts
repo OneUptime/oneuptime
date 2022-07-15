@@ -12,7 +12,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import CreateBy from '../Types/Database/CreateBy';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
@@ -170,8 +170,8 @@ export default class BaseAPI<
         let select: Select<BaseModel> = {};
 
         if (req.body && req.body['data']) {
-            query = req.body['data']['query'] as Query<BaseModel>;
-            select = req.body['data']['select'] as Select<BaseModel>;
+            query = JSONFunctions.deserialize(req.body['data']['query']) as Query<BaseModel>;
+            select = JSONFunctions.deserialize(req.body['data']['select']) as Select<BaseModel>;
         }
 
         const list: Array<BaseModel> = await this.service.findBy({

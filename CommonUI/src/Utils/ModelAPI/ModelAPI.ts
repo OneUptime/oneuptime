@@ -10,7 +10,7 @@ import { DASHBOARD_API_URL } from '../../Config';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import { FormType } from '../../Components/Forms/ModelForm';
 
 export interface ListResult<TBaseModel extends BaseModel> {
@@ -111,8 +111,8 @@ export default class ModelAPI {
                 HTTPMethod.POST,
                 apiUrl,
                 {
-                    query: query as JSONObject,
-                    select: select as JSONObject,
+                    query: JSONFunctions.serialize(query as JSONObject),
+                    select: JSONFunctions.serialize(select as JSONObject),
                 },
                 undefined,
                 {
@@ -159,7 +159,7 @@ export default class ModelAPI {
                 HTTPMethod.GET,
                 apiUrl,
                 {
-                    select: select as JSONObject,
+                    select: JSONFunctions.serialize(select as JSONObject),
                 },
                 undefined
             );
