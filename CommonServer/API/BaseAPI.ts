@@ -126,6 +126,7 @@ export default class BaseAPI<
         const props: DatabaseCommonInteractionProps = {
             projectId: undefined,
             userGlobalAccessPermission: undefined,
+            userProjectAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
         };
@@ -141,6 +142,12 @@ export default class BaseAPI<
             props.userGlobalAccessPermission = (
                 req as OneUptimeRequest
             ).userGlobalAccessPermission;
+        }
+
+        if ((req as OneUptimeRequest).userProjectAccessPermission) {
+            props.userProjectAccessPermission = (
+                req as OneUptimeRequest
+            ).userProjectAccessPermission;
         }
 
         if ((req as OneUptimeRequest).projectId) {
@@ -225,6 +232,7 @@ export default class BaseAPI<
         res: ExpressResponse
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
+        const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
@@ -234,7 +242,7 @@ export default class BaseAPI<
 
         await this.service.updateBy({
             query: {
-                _id: objectId.toString(),
+                _id: objectIdString,
             },
             data: item,
             props: this.getDatabaseCommonInteractionProps(req),
