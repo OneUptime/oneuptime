@@ -6,6 +6,7 @@ import Color from './Color';
 import Route from './API/Route';
 import URL from './API/URL';
 import Name from './Name';
+import Permission from './Permission';
 
 enum ObjectType { 
     ObjectID = "ObjectID", 
@@ -46,6 +47,8 @@ export type JSONValue =
     | Array<Version>
     | Version
     | Buffer
+    | Permission
+    | Array<Permission>
     | null;
 
 export interface JSONObject {
