@@ -11,6 +11,7 @@ import TeamPermission from 'Common/Models/TeamPermission';
 import Permission from 'Common/Types/Permission';
 import TeamPermissionService from './TeamPermissionService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import AccessTokenService from './AccessTokenService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -156,6 +157,15 @@ export class Service extends DatabaseService<Model> {
                 isRoot: true,
             },
         });
+
+        /// Refresh tokens.
+        await AccessTokenService.refreshUserGlobalAccessPermission(
+            createdItem.props.userId!
+        );
+        await AccessTokenService.refreshUserProjectAccessPermission(
+            createdItem.props.userId!,
+            createdItem.data.id!
+        );
 
         return Promise.resolve(createdItem);
     }

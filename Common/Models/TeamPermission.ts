@@ -17,7 +17,7 @@ import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
 import Permission from '../Types/Permission';
-import Label from './Labels';
+import Label from './Label';
 import Team from './Team';
 import Project from './Project';
 import ProjectColumn from '../Types/Database/ProjectColumn';

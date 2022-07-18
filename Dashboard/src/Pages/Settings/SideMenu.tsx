@@ -21,7 +21,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 <SideMenuItem
                     link={{
                         title: 'Labels',
-                        to: new Route('/:projectSlug/home'),
+                        to: RouteMap[PageMap.SETTINGS_LABELS] as Route,
                     }}
                     icon={IconProp.Label}
                 />

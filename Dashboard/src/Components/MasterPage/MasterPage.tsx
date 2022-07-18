@@ -10,6 +10,8 @@ export interface ComponentProps {
     isLoading: boolean;
     projects: Array<Project>;
     error: string;
+    onProjectSelected: (project: Project) => void;
+    currentProject: Project | null;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -18,8 +20,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     return (
         <MasterPage
             footer={<Footer />}
-            header={<Header projects={props.projects} />}
-            navBar={<NavBar />}
+            header={
+                <Header
+                    projects={props.projects}
+                    onProjectSelected={props.onProjectSelected}
+                />
+            }
+            navBar={<NavBar currentProject={props.currentProject} />}
             isLoading={props.isLoading}
             error={props.error}
         >

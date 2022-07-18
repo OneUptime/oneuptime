@@ -12,7 +12,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import CreateBy from '../Types/Database/CreateBy';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
@@ -126,6 +126,7 @@ export default class BaseAPI<
         const props: DatabaseCommonInteractionProps = {
             projectId: undefined,
             userGlobalAccessPermission: undefined,
+            userProjectAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
         };
@@ -141,6 +142,12 @@ export default class BaseAPI<
             props.userGlobalAccessPermission = (
                 req as OneUptimeRequest
             ).userGlobalAccessPermission;
+        }
+
+        if ((req as OneUptimeRequest).userProjectAccessPermission) {
+            props.userProjectAccessPermission = (
+                req as OneUptimeRequest
+            ).userProjectAccessPermission;
         }
 
         if ((req as OneUptimeRequest).projectId) {
@@ -170,8 +177,12 @@ export default class BaseAPI<
         let select: Select<BaseModel> = {};
 
         if (req.body && req.body['data']) {
-            query = req.body['data']['query'] as Query<BaseModel>;
-            select = req.body['data']['select'] as Select<BaseModel>;
+            query = JSONFunctions.deserialize(
+                req.body['data']['query']
+            ) as Query<BaseModel>;
+            select = JSONFunctions.deserialize(
+                req.body['data']['select']
+            ) as Select<BaseModel>;
         }
 
         const list: Array<BaseModel> = await this.service.findBy({
@@ -225,6 +236,7 @@ export default class BaseAPI<
         res: ExpressResponse
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
+        const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
@@ -232,9 +244,10 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
+        // @ts-ignore
         await this.service.updateBy({
             query: {
-                _id: objectId.toString(),
+                _id: objectIdString,
             },
             data: item,
             props: this.getDatabaseCommonInteractionProps(req),

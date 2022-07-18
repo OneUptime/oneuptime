@@ -14,6 +14,7 @@ import {
     UserGlobalAccessPermission,
     UserProjectAccessPermission,
 } from 'Common/Types/Permission';
+import AccessTokenService from '../Services/AccessTokenService';
 
 export default class UserMiddleware {
     /*
@@ -85,13 +86,13 @@ export default class UserMiddleware {
         });
 
         let userGlobalAccessPermission: UserGlobalAccessPermission | null =
-            await UserService.getUserGlobalAccessPermission(
+            await AccessTokenService.getUserGlobalAccessPermission(
                 oneuptimeRequest.userAuthorization.userId
             );
 
         if (!userGlobalAccessPermission) {
             userGlobalAccessPermission =
-                await UserService.refreshUserGlobalAccessPermission(
+                await AccessTokenService.refreshUserGlobalAccessPermission(
                     oneuptimeRequest.userAuthorization.userId
                 );
         }
@@ -103,13 +104,13 @@ export default class UserMiddleware {
             // get project level permissions if projectid exists in request.
 
             let userProjectAccessPermission: UserProjectAccessPermission | null =
-                await UserService.getUserProjectAccessPermission(
+                await AccessTokenService.getUserProjectAccessPermission(
                     oneuptimeRequest.userAuthorization.userId,
                     projectId
                 );
             if (!userProjectAccessPermission) {
                 userProjectAccessPermission =
-                    await UserService.refreshUserProjectAccessPermission(
+                    await AccessTokenService.refreshUserProjectAccessPermission(
                         oneuptimeRequest.userAuthorization.userId,
                         projectId
                     );

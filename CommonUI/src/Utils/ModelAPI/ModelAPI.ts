@@ -10,7 +10,7 @@ import { DASHBOARD_API_URL } from '../../Config';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import { FormType } from '../../Components/Forms/ModelForm';
 
 export interface ListResult<TBaseModel extends BaseModel> {
@@ -82,6 +82,7 @@ export default class ModelAPI {
         }
         throw result;
     }
+
     public static async getList<TBaseModel extends BaseModel>(
         type: { new (): TBaseModel },
         query: Query<TBaseModel>,
@@ -89,7 +90,8 @@ export default class ModelAPI {
         skip: number,
         select: Select<TBaseModel>
     ): Promise<ListResult<TBaseModel>> {
-        const apiPath: Route | null = new type().getCrudApiPath();
+        const model: TBaseModel = new type();
+        const apiPath: Route | null = model.getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
                 'This model does not support list operations.'
@@ -106,13 +108,13 @@ export default class ModelAPI {
             );
         }
 
-        const result: HTTPResponse<Array<TBaseModel>> | HTTPErrorResponse =
-            await API.fetch<Array<TBaseModel>>(
+        const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
+            await API.fetch<JSONArray>(
                 HTTPMethod.POST,
                 apiUrl,
                 {
-                    query: query as JSONObject,
-                    select: select as JSONObject,
+                    query: JSONFunctions.serialize(query as JSONObject),
+                    select: JSONFunctions.serialize(select as JSONObject),
                 },
                 undefined,
                 {
@@ -123,7 +125,7 @@ export default class ModelAPI {
 
         if (result.isSuccess()) {
             return {
-                data: result.data as Array<TBaseModel>,
+                data: model.fromJSONArray(result.data as JSONArray, type),
                 count: result.count,
                 skip: result.skip,
                 limit: result.limit,
@@ -159,7 +161,7 @@ export default class ModelAPI {
                 HTTPMethod.GET,
                 apiUrl,
                 {
-                    select: select as JSONObject,
+                    select: JSONFunctions.serialize(select as JSONObject),
                 },
                 undefined
             );

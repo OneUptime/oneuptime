@@ -24,6 +24,8 @@ import Settings from './Pages/Settings/Settings';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
 import SettingsApiKeys from './Pages/Settings/APIKeys';
 import SettingsCreateAPIKey from './Pages/Settings/CreateAPIKey';
+import SettingLabels from './Pages/Settings/Labels';
+
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
 import User from 'CommonUI/src/Utils/User';
@@ -45,6 +47,16 @@ const App: FunctionComponent = () => {
     const [isLoading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [projects, setProjects] = useState<Array<Project>>([]);
+
+    const [selectedProject, setSelectedProject] = useState<Project | null>(
+        null
+    );
+
+    const onProjectSelected: (project: Project) => void = (
+        project: Project
+    ): void => {
+        setSelectedProject(project);
+    };
 
     useAsyncEffect(async () => {
         setLoading(true);
@@ -74,24 +86,39 @@ const App: FunctionComponent = () => {
     }, []);
 
     return (
-        <MasterPage isLoading={isLoading} projects={projects} error={error}>
+        <MasterPage
+            isLoading={isLoading}
+            projects={projects}
+            error={error}
+            onProjectSelected={onProjectSelected}
+            currentProject={selectedProject}
+        >
             <Routes>
                 <PageRoute
                     path={RouteMap[PageMap.INIT]?.toString()}
                     element={
-                        <Init pageRoute={RouteMap[PageMap.INIT] as Route} />
+                        <Init
+                            pageRoute={RouteMap[PageMap.INIT] as Route}
+                            currentProject={selectedProject}
+                        />
                     }
                 />
                 <PageRoute
                     path={RouteMap[PageMap.HOME]?.toString()}
                     element={
-                        <Home pageRoute={RouteMap[PageMap.HOME] as Route} />
+                        <Home
+                            pageRoute={RouteMap[PageMap.HOME] as Route}
+                            currentProject={selectedProject}
+                        />
                     }
                 />
                 <PageRoute
                     path={RouteMap[PageMap.MONITORS]?.toString()}
                     element={
-                        <Init pageRoute={RouteMap[PageMap.MONITORS] as Route} />
+                        <Init
+                            pageRoute={RouteMap[PageMap.MONITORS] as Route}
+                            currentProject={selectedProject}
+                        />
                     }
                 />
 
@@ -100,6 +127,7 @@ const App: FunctionComponent = () => {
                     element={
                         <StatusPages
                             pageRoute={RouteMap[PageMap.STATUS_PAGE] as Route}
+                            currentProject={selectedProject}
                         />
                     }
                 />
@@ -108,13 +136,17 @@ const App: FunctionComponent = () => {
                     element={
                         <Incidents
                             pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
+                            currentProject={selectedProject}
                         />
                     }
                 />
                 <PageRoute
                     path={RouteMap[PageMap.LOGS]?.toString()}
                     element={
-                        <Logs pageRoute={RouteMap[PageMap.LOGS] as Route} />
+                        <Logs
+                            pageRoute={RouteMap[PageMap.LOGS] as Route}
+                            currentProject={selectedProject}
+                        />
                     }
                 />
 
@@ -125,6 +157,7 @@ const App: FunctionComponent = () => {
                     element={
                         <Settings
                             pageRoute={RouteMap[PageMap.SETTINGS] as Route}
+                            currentProject={selectedProject}
                         />
                     }
                 />
@@ -136,6 +169,7 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
                             }
+                            currentProject={selectedProject}
                         />
                     }
                 />
@@ -147,6 +181,7 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEYS] as Route
                             }
+                            currentProject={selectedProject}
                         />
                     }
                 />
@@ -158,6 +193,19 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEYS] as Route
                             }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_LABELS]?.toString()}
+                    element={
+                        <SettingLabels
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_LABELS] as Route
+                            }
+                            currentProject={selectedProject}
                         />
                     }
                 />
@@ -166,7 +214,10 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={RouteMap[PageMap.LOGOUT]?.toString()}
                     element={
-                        <Logout pageRoute={RouteMap[PageMap.LOGOUT] as Route} />
+                        <Logout
+                            pageRoute={RouteMap[PageMap.LOGOUT] as Route}
+                            currentProject={selectedProject}
+                        />
                     }
                 />
             </Routes>

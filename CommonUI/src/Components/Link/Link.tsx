@@ -9,6 +9,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement> | string;
     className?: string;
     to: Route | URL | null;
+    onClick?: () => void;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
@@ -28,6 +29,10 @@ const Link: FunctionComponent<ComponentProps> = (
             onClick={() => {
                 if (props.to) {
                     Navigation.navigate(props.to);
+                }
+
+                if (props.onClick) {
+                    props.onClick();
                 }
             }}
         >
