@@ -158,9 +158,14 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-        /// Refresh tokens. 
-        await AccessTokenService.refreshUserGlobalAccessPermission(createdItem.props.userId!);
-        await AccessTokenService.refreshUserProjectAccessPermission(createdItem.props.userId!, createdItem.data.id!);
+        /// Refresh tokens.
+        await AccessTokenService.refreshUserGlobalAccessPermission(
+            createdItem.props.userId!
+        );
+        await AccessTokenService.refreshUserProjectAccessPermission(
+            createdItem.props.userId!,
+            createdItem.data.id!
+        );
 
         return Promise.resolve(createdItem);
     }

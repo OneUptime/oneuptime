@@ -9,17 +9,16 @@ import Link from '../../Link/Link';
 export interface ComponentProps {
     icon: IconProp;
     onProjectSelected: (project: Project) => void;
-    project: Project
+    project: Project;
 }
 
 const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const title = props.project.name!
-    const route = new Route(
-        '/dashboard/' +
-        props.project.id?.toString()
-    )
+    const title: string = props.project.name!;
+    const route: Route = new Route(
+        '/dashboard/' + props.project.id?.toString()
+    );
 
     return (
         <Link

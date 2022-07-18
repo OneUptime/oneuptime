@@ -12,7 +12,7 @@ import TeamPermission from './TeamPermission';
 import ApiKey from './ApiKey';
 
 //Labels.
-import Label from './Labels';
+import Label from './Label';
 
 export default [
     User,

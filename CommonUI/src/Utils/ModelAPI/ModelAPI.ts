@@ -90,7 +90,7 @@ export default class ModelAPI {
         skip: number,
         select: Select<TBaseModel>
     ): Promise<ListResult<TBaseModel>> {
-        const model = new type();
+        const model: TBaseModel = new type();
         const apiPath: Route | null = model.getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
@@ -125,7 +125,7 @@ export default class ModelAPI {
 
         if (result.isSuccess()) {
             return {
-                data:  model.fromJSONArray(result.data as JSONArray, type),
+                data: model.fromJSONArray(result.data as JSONArray, type),
                 count: result.count,
                 skip: result.skip,
                 limit: result.limit,

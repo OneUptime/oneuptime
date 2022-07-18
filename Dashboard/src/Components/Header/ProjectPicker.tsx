@@ -14,7 +14,7 @@ import ProjectUtil from 'CommonUI/src/Utils/Project';
 
 export interface ComponentProps {
     projects: Array<Project>;
-    onProjectSelected: (project: Project) => void; 
+    onProjectSelected: (project: Project) => void;
 }
 
 const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
@@ -43,7 +43,12 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     }, [selectedProject]);
 
     useEffect(() => {
-        if (props.projects && props.projects.length > 0 && !selectedProject && props.projects[0]) {
+        if (
+            props.projects &&
+            props.projects.length > 0 &&
+            !selectedProject &&
+            props.projects[0]
+        ) {
             setSelectedProject(props.projects[0]);
         }
     }, [props.projects]);

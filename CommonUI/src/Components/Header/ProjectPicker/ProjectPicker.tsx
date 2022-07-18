@@ -13,7 +13,7 @@ export interface ComponentProps {
     selectedProjectIcon: IconProp;
     selectedProjectName: string;
     onCreateProjectButtonClicked: () => void;
-    onProjectSelected: (project: Project) => void; 
+    onProjectSelected: (project: Project) => void;
 }
 
 const ProjectPicker: FunctionComponent<ComponentProps> = (
@@ -73,8 +73,12 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                                             <ProjectPickerMenuItem
                                                 key={i}
                                                 project={project}
-                                                onProjectSelected={(project: Project) => {
-                                                    props.onProjectSelected(project);
+                                                onProjectSelected={(
+                                                    project: Project
+                                                ) => {
+                                                    props.onProjectSelected(
+                                                        project
+                                                    );
                                                 }}
                                                 icon={IconProp.Folder}
                                             />

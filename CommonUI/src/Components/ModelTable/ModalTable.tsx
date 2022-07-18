@@ -14,6 +14,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardComponentProps;
     columns: Columns<TBaseModel>;
     itemsOnPage: number;
+    isDeleteable: boolean;
+    isEditable: boolean;
+    isCreateable: boolean;
     disablePagination?: boolean;
 }
 

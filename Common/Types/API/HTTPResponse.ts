@@ -1,5 +1,10 @@
 import BaseModel from '../../Models/BaseModel';
-import { JSONArray, JSONFunctions, JSONObject, JSONObjectOrArray } from '../JSON';
+import {
+    JSONArray,
+    JSONFunctions,
+    JSONObject,
+    JSONObjectOrArray,
+} from '../JSON';
 
 export default class HTTPResponse<
     T extends JSONObjectOrArray | BaseModel | Array<BaseModel>
@@ -68,7 +73,9 @@ export default class HTTPResponse<
             this.count = data['count'] as number;
             this.skip = data['skip'] as number;
             this.limit = data['limit'] as number;
-            this.jsonData = JSONFunctions.deserializeArray(data['data'] as JSONArray);
+            this.jsonData = JSONFunctions.deserializeArray(
+                data['data'] as JSONArray
+            );
         } else {
             this.jsonData = JSONFunctions.deserialize(data as JSONObject);
         }

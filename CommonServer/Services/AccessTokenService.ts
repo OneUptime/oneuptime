@@ -12,7 +12,7 @@ import TeamPermission from 'Common/Models/TeamPermission';
 import TeamPermissionService from './TeamPermissionService';
 import { In } from 'typeorm';
 import LIMIT_MAX from '../Types/Database/LimitMax';
-import Label from 'Common/Models/Labels';
+import Label from 'Common/Models/Label';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 
 enum PermissionNamespace {

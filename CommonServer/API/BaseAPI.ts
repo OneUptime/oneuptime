@@ -177,8 +177,12 @@ export default class BaseAPI<
         let select: Select<BaseModel> = {};
 
         if (req.body && req.body['data']) {
-            query = JSONFunctions.deserialize(req.body['data']['query']) as Query<BaseModel>;
-            select = JSONFunctions.deserialize(req.body['data']['select']) as Select<BaseModel>;
+            query = JSONFunctions.deserialize(
+                req.body['data']['query']
+            ) as Query<BaseModel>;
+            select = JSONFunctions.deserialize(
+                req.body['data']['select']
+            ) as Select<BaseModel>;
         }
 
         const list: Array<BaseModel> = await this.service.findBy({

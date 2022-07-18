@@ -11,18 +11,20 @@ import Project from 'Common/Models/Project';
 
 export interface ComponentProps {
     projects: Array<Project>;
-    onProjectSelected: (project: Project) => void; 
+    onProjectSelected: (project: Project) => void;
 }
 
 const DashboardHeader: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     return (
         <Header
             leftComponents={
                 <>
-                    <ProjectPicker projects={props.projects} onProjectSelected={props.onProjectSelected} />
+                    <ProjectPicker
+                        projects={props.projects}
+                        onProjectSelected={props.onProjectSelected}
+                    />
                     <SearchBox key={2} onChange={(_value: string) => {}} />
                 </>
             }

@@ -9,7 +9,6 @@ export default abstract class Cache {
         namespace: string,
         key: string
     ): Promise<JSONObject | null> {
-
         const value: string | null = await this.getString(namespace, key);
 
         if (!value) {
@@ -17,7 +16,9 @@ export default abstract class Cache {
         }
 
         try {
-            const jsonObject: JSONObject = JSONFunctions.deserialize(JSON.parse(value)) as JSONObject;
+            const jsonObject: JSONObject = JSONFunctions.deserialize(
+                JSON.parse(value)
+            ) as JSONObject;
 
             if (!jsonObject) {
                 return null;
@@ -46,7 +47,7 @@ export default abstract class Cache {
             return null;
         }
 
-        return value; 
+        return value;
     }
 
     public static async setJSON(
@@ -54,7 +55,11 @@ export default abstract class Cache {
         key: string,
         value: JSONObject
     ): Promise<void> {
-        await this.setString(namespace, key, JSON.stringify(JSONFunctions.serialize(value)));
+        await this.setString(
+            namespace,
+            key,
+            JSON.stringify(JSONFunctions.serialize(value))
+        );
     }
 
     public static async setString(
