@@ -14,6 +14,7 @@ import ProjectUtil from 'CommonUI/src/Utils/Project';
 
 export interface ComponentProps {
     projects: Array<Project>;
+    onProjectSelected: (project: Project) => void; 
 }
 
 const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
@@ -25,14 +26,27 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     );
 
     useEffect(() => {
-        setSelectedProject(ProjectUtil.getCurrentProject());
+        const currentProject: Project | null = ProjectUtil.getCurrentProject();
+        setSelectedProject(currentProject);
+        if (currentProject && props.onProjectSelected) {
+            props.onProjectSelected(currentProject);
+        }
     }, []);
 
     useEffect(() => {
         if (selectedProject) {
             ProjectUtil.setCurrentProject(selectedProject);
+            if (props.onProjectSelected) {
+                props.onProjectSelected(selectedProject);
+            }
         }
     }, [selectedProject]);
+
+    useEffect(() => {
+        if (props.projects && props.projects.length > 0 && !selectedProject && props.projects[0]) {
+            setSelectedProject(props.projects[0]);
+        }
+    }, [props.projects]);
 
     return (
         <>
@@ -42,6 +56,9 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                 projects={props.projects}
                 onCreateProjectButtonClicked={() => {
                     setShowModel(true);
+                }}
+                onProjectSelected={(project: Project) => {
+                    setSelectedProject(project);
                 }}
             />
             {showModel ? (
@@ -53,6 +70,9 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     submitButtonText="Create Project"
                     onSuccess={(project: Project) => {
                         setSelectedProject(project);
+                        if (project && props.onProjectSelected) {
+                            props.onProjectSelected(project);
+                        }
                         setShowModel(false);
                     }}
                     formProps={{

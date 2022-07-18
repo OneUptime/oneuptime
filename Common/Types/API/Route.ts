@@ -35,4 +35,9 @@ export default class Route {
     public static fromString(route: string): Route {
         return new Route(route);
     }
+
+    public addRouteParam(paramName: string, value: string): Route {
+        this.route = this.route.replace(paramName, value);
+        return this; 
+    }
 }

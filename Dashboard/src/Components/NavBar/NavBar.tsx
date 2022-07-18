@@ -8,45 +8,62 @@ import Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
+import Project from 'Common/Models/Project';
+import RouteParams from '../../Utils/RouteParams';
 
-const DashboardNavbar: FunctionComponent = () => {
+export interface ComponentProps {
+    currentProject: Project | null;
+}
+
+const DashboardNavbar: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+
+    const addRouteParam = (route: Route): Route => {
+
+        if (!props.currentProject || !props.currentProject._id) {
+            return route;
+        }
+
+        return route.addRouteParam(RouteParams.ProjectID, props.currentProject._id);
+    }
+
     return (
         <NavBar
             rightContent={
                 <NavBarItem
                     title="Project Settings"
                     icon={IconProp.Settings}
+                    route={addRouteParam(RouteMap[PageMap.SETTINGS] as Route)}
                 ></NavBarItem>
             }
         >
             <NavBarItem
                 title="Home"
                 icon={IconProp.Home}
-                route={RouteMap[PageMap.HOME] as Route}
+                route={addRouteParam(RouteMap[PageMap.HOME] as Route)}
             ></NavBarItem>
 
             <NavBarItem
                 title="Monitors"
-                route={RouteMap[PageMap.MONITORS] as Route}
+                route={addRouteParam(RouteMap[PageMap.MONITORS] as Route)}
                 icon={IconProp.Activity}
             ></NavBarItem>
 
             <NavBarItem
                 title="Incidents"
-                route={RouteMap[PageMap.INCIDENTS] as Route}
+                route={addRouteParam(RouteMap[PageMap.INCIDENTS] as Route)}
                 icon={IconProp.Alert}
             ></NavBarItem>
 
             <NavBarItem
                 title="On-Call Duty"
-                route={RouteMap[PageMap.ON_CALL] as Route}
+                route={addRouteParam(RouteMap[PageMap.ON_CALL] as Route)}
                 icon={IconProp.Call}
             ></NavBarItem>
 
             <NavBarItem
                 title="Status Pages"
                 icon={IconProp.CheckCircle}
-                route={RouteMap[PageMap.STATUS_PAGE] as Route}
+                route={addRouteParam(RouteMap[PageMap.STATUS_PAGE] as Route)}
             ></NavBarItem>
 
             <NavBarItem title="More" icon={IconProp.More}>
@@ -54,12 +71,12 @@ const DashboardNavbar: FunctionComponent = () => {
                     <NavBarMenuColumn title="More">
                         <NavBarMenuItem
                             title="Logs Management"
-                            route={RouteMap[PageMap.LOGS] as Route}
+                            route={addRouteParam(RouteMap[PageMap.LOGS] as Route)}
                             icon={IconProp.Terminal}
                         />
                         <NavBarMenuItem
                             title="Error Tracker"
-                            route={RouteMap[PageMap.ERROR_TRACKER] as Route}
+                            route={addRouteParam(RouteMap[PageMap.ERROR_TRACKER] as Route)}
                             icon={IconProp.Error}
                         />
                     </NavBarMenuColumn>
@@ -67,13 +84,13 @@ const DashboardNavbar: FunctionComponent = () => {
                         <NavBarMenuItem
                             title="Automation Scripts"
                             route={
-                                RouteMap[PageMap.AUTOMATION_SCRIPTS] as Route
+                                addRouteParam(RouteMap[PageMap.AUTOMATION_SCRIPTS] as Route)
                             }
                             icon={IconProp.Code}
                         />
                         <NavBarMenuItem
                             title="Reports"
-                            route={RouteMap[PageMap.REPORTS] as Route}
+                            route={addRouteParam(RouteMap[PageMap.REPORTS] as Route)}
                             icon={IconProp.Report}
                         />
                     </NavBarMenuColumn>

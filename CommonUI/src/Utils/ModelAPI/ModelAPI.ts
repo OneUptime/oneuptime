@@ -82,6 +82,7 @@ export default class ModelAPI {
         }
         throw result;
     }
+
     public static async getList<TBaseModel extends BaseModel>(
         type: { new (): TBaseModel },
         query: Query<TBaseModel>,
@@ -89,7 +90,8 @@ export default class ModelAPI {
         skip: number,
         select: Select<TBaseModel>
     ): Promise<ListResult<TBaseModel>> {
-        const apiPath: Route | null = new type().getCrudApiPath();
+        const model = new type();
+        const apiPath: Route | null = model.getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
                 'This model does not support list operations.'
@@ -106,8 +108,8 @@ export default class ModelAPI {
             );
         }
 
-        const result: HTTPResponse<Array<TBaseModel>> | HTTPErrorResponse =
-            await API.fetch<Array<TBaseModel>>(
+        const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
+            await API.fetch<JSONArray>(
                 HTTPMethod.POST,
                 apiUrl,
                 {
@@ -123,7 +125,7 @@ export default class ModelAPI {
 
         if (result.isSuccess()) {
             return {
-                data: result.data as Array<TBaseModel>,
+                data:  model.fromJSONArray(result.data as JSONArray, type),
                 count: result.count,
                 skip: result.skip,
                 limit: result.limit,

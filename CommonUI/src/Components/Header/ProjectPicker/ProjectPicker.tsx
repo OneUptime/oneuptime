@@ -6,7 +6,6 @@ import Icon, { IconProp } from '../../Icon/Icon';
 import Project from 'Common/Models/Project';
 import ProjectPickerMenu from './ProjectPickerMenu';
 import ProjectPickerMenuItem from './ProjectPickerMenuItem';
-import Route from 'Common/Types/API/Route';
 import CreateNewProjectButton from './CreateNewProjectButton';
 
 export interface ComponentProps {
@@ -14,6 +13,7 @@ export interface ComponentProps {
     selectedProjectIcon: IconProp;
     selectedProjectName: string;
     onCreateProjectButtonClicked: () => void;
+    onProjectSelected: (project: Project) => void; 
 }
 
 const ProjectPicker: FunctionComponent<ComponentProps> = (
@@ -72,13 +72,10 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                                         return (
                                             <ProjectPickerMenuItem
                                                 key={i}
-                                                title={project.name!}
-                                                route={
-                                                    new Route(
-                                                        '/dashboard/' +
-                                                            project.id?.toString()
-                                                    )
-                                                }
+                                                project={project}
+                                                onProjectSelected={(project: Project) => {
+                                                    props.onProjectSelected(project);
+                                                }}
                                                 icon={IconProp.Folder}
                                             />
                                         );

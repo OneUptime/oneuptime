@@ -240,6 +240,7 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
+        // @ts-ignore
         await this.service.updateBy({
             query: {
                 _id: objectIdString,

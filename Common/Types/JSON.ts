@@ -170,6 +170,27 @@ export class JSONFunctions {
         return val; 
     }
 
+    public static deserializeArray(array: JSONArray): JSONArray { 
+        const returnArr = [];
+        
+        for (const obj of array) {
+            returnArr.push(this.deserialize(obj));
+        }
+
+        return returnArr;
+    }
+
+    public static serializeArray(array: JSONArray): JSONArray { 
+        const returnArr = [];
+        
+        for (const obj of array) {
+            returnArr.push(this.serialize(obj));
+        }
+
+        return returnArr;
+    }
+
+
     public static deserialize(val: JSONObject): JSONObject {
 
 
