@@ -28,16 +28,13 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         >
             {props.icon ? (
                 <>
-                    <Icon icon={props.icon} thick={ThickProp.Thick} />
+                    <Icon icon={props.icon} thick={ThickProp.LessThick} />
                     &nbsp;
                 </>
             ) : (
                 <></>
             )}
             <span
-                style={{
-                    fontWeight: '600',
-                }}
             >
                 {props.link.title}
             </span>

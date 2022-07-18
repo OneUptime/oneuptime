@@ -32,7 +32,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             <ModelTable<Label>
+                type={Label}
                 model={new Label()}
+                id="labels-table"
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}

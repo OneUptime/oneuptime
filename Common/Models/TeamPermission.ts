@@ -23,6 +23,7 @@ import Project from './Project';
 import ProjectColumn from '../Types/Database/ProjectColumn';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
+import EntityName from '../Types/Database/EntityName';
 
 @TableAccessControl({
     create: [
@@ -52,6 +53,7 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
 @Entity({
     name: 'TeamPermission',
 })
+@EntityName("Team Permission", "Team Permissions")
 export default class TeamPermission extends BaseModel {
     @ColumnAccessControl({
         create: [

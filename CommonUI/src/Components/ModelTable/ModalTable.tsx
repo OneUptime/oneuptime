@@ -1,13 +1,22 @@
 import BaseModel from 'Common/Models/BaseModel';
-import React, { ReactElement, useEffect } from 'react';
+import React, { ReactElement, useEffect, useState } from 'react';
 import Columns from './Columns';
 import Table from '../Table/Table';
 import TableColumn from '../Table/Types/Column';
 import { JSONObject } from 'Common/Types/JSON';
 import Card, { ComponentProps as CardComponentProps } from '../Card/Card';
+import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
+import Select from '../../Utils/ModelAPI/Select';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import Button, { ButtonStyleType } from '../Button/Button';
+import ModelFromModal from '../ModelFormModal/ModelFormModal';
+import { IconProp } from '../Icon/Icon';
+import { FormType } from '../Forms/ModelForm';
+import Fields from '../Forms/Types/Fields';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
+    type: { new(): TBaseModel };
     id: string;
     onFetchInit?: (pageNumber: number, itemsOnPage: number) => void;
     onFetchSuccess?: (data: Array<TBaseModel>, totalCount: number) => void;
@@ -18,16 +27,61 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isEditable: boolean;
     isCreateable: boolean;
     disablePagination?: boolean;
+    select: Select<TBaseModel>;
+    createFormFields?: Fields<TBaseModel>
+}
+
+enum ModalType {
+    Create, Edit
 }
 
 const ModalTable: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
+
     const columns: Array<TableColumn> = [];
-    const data: Array<JSONObject> = [];
+    const model: TBaseModel = new props.type();
+
+    const [data, setData] = useState<Array<TBaseModel>>([]);
+    const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
+    const [totalItemsCount, setTotalItemsCount] = useState<number>(1);
+    const [isLoading, setIsLaoding] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [showModel, setShowModal] = useState<boolean>(false);
+    const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
+
+    const fetchItems = async () => {
+
+        setIsLaoding(true);
+
+        if (props.onFetchInit) {
+            props.onFetchInit(currentPageNumber, props.itemsOnPage);
+        }
+
+        try {
+            const listResult: ListResult<TBaseModel> = await ModelAPI.getList<TBaseModel>(props.type, {}, props.itemsOnPage, currentPageNumber * props.itemsOnPage, props.select);
+
+            setTotalItemsCount(listResult.count);
+            setData(listResult.data);
+
+        } catch (err) {
+            setError(
+                ((err as HTTPErrorResponse).data as JSONObject)[
+                'error'
+                ] as string
+            );
+        }
+
+        setIsLaoding(false);
+    };
 
     useEffect(() => {
-        /// Convert ModelColumns to TableColumns.
+        fetchItems();
+    }, [currentPageNumber])
+
+
+    useEffect(() => {
+        // Convert ModelColumns to TableColumns.
         for (const column of props.columns) {
             columns.push({
                 title: column.title,
@@ -38,18 +92,67 @@ const ModalTable: Function = <TBaseModel extends BaseModel>(
                     : null,
             });
         }
-    });
+
+        // add header buttons. 
+
+        if (props.isCreateable) {
+            props.cardProps.buttons = [
+                <Button
+                    key={1}
+                    title={`Create ${model.singularName}`}
+                    buttonStyle={ButtonStyleType.OUTLINE}
+                    onClick={() => {
+                        setModalType(ModalType.Create);
+                        setShowModal(true);
+                    }}
+                    icon={IconProp.Add}
+                />,
+            ]
+        }
+
+        fetchItems();
+    }, []);
 
     return (
-        <Card {...props.cardProps}>
-            <Table
-                data={data}
-                id={props.id}
-                columns={columns}
-                itemsOnPage={props.itemsOnPage}
-                disablePagination={props.disablePagination || false}
-            />
-        </Card>
+        <>
+            <Card {...props.cardProps}>
+                <Table
+                    error={error}
+                    currentPageNumber={currentPageNumber}
+                    isLoading={isLoading}
+                    totalItemsCount={totalItemsCount}
+                    data={BaseModel.toJSONArray(data)}
+                    id={props.id}
+                    columns={columns}
+                    itemsOnPage={props.itemsOnPage}
+                    disablePagination={props.disablePagination || false}
+                    onNavigateToPage={(pageNumber: number) => {
+                        setCurrentPageNumber(pageNumber);
+                    }}
+                />
+            </Card>
+
+            {showModel ? (
+                <ModelFromModal<TBaseModel>
+                    title={ modalType === ModalType.Create ? `Create New ${model.singularName}` : `Edit ${model.singularName}`}
+                    onClose={() => {
+                        setShowModal(false);
+                    }}
+                    submitButtonText={`Create ${model.singularName}`}
+                    onSuccess={(_item: TBaseModel) => {
+                        setCurrentPageNumber(1);
+                    }}
+                    formProps={{
+                        model: model,
+                        id: `create-${props.type.name}-from`,
+                        fields: props.createFormFields || [],
+                        formType: ModalType.Create ? FormType.Create : FormType.Update,
+                    }}
+                />
+            ) : (
+                <></>
+            )}
+        </>
     );
 };
 

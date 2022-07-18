@@ -17,6 +17,7 @@ import Permission from '../Types/Permission';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 import IsPermissionsIf from '../Types/Database/IsPermissionsIf';
+import EntityName from '../Types/Database/EntityName';
 
 @IsPermissionsIf(Permission.Public, 'projectId', null)
 @ProjectColumn('projectId')
@@ -25,6 +26,7 @@ import IsPermissionsIf from '../Types/Database/IsPermissionsIf';
 @Entity({
     name: 'Probe',
 })
+@EntityName("Probe", "Probes")
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
     read: [Permission.ProjectMember, Permission.Public],

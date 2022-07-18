@@ -19,6 +19,7 @@ import TableAccessControl from '../Types/Database/AccessControl/TableAccessContr
 import Permission from '../Types/Permission';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 import UserColumn from '../Types/Database/UserColumn';
+import EntityName from '../Types/Database/EntityName';
 
 @TableAccessControl({
     create: [Permission.Public],
@@ -31,6 +32,7 @@ import UserColumn from '../Types/Database/UserColumn';
 @Entity({
     name: 'User',
 })
+@EntityName("User", "Users")
 @UserColumn('_id')
 class User extends BaseModel {
     @ColumnAccessControl({

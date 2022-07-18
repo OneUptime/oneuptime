@@ -67,6 +67,8 @@ export default class BaseModel extends BaseEntity {
     public labelsColumn!: string | null;
     public slugifyColumn!: string | null;
     public saveSlugToColumn!: string | null;
+    public singularName!: string | null;
+    public pluralName!: string | null;
 
     public isPermissionIf: Dictionary<JSONObject> = {};
 
