@@ -15,8 +15,7 @@ export default class QueryHelper {
         );
     }
 
-    public static In(values: Array<string | ObjectID>): FindOperator<any> {
-
+    public static in(values: Array<string | ObjectID>): FindOperator<any> {
         values = values.map((value) => value.toString());
         const rid = Text.generateRandomText(10);
         return Raw(
@@ -25,6 +24,19 @@ export default class QueryHelper {
             },
             {
                 [rid]: values
+            }
+        );
+    }
+
+    public static equalTo(value: string): FindOperator<any> {
+        
+        const rid = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `${alias} = :${rid}`
+            },
+            {
+                [rid]: value.toString()
             }
         );
     }

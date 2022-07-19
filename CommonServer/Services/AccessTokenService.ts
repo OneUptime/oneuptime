@@ -130,7 +130,6 @@ export default class AccessTokenService {
         }
 
         // get team permissions.
-        debugger; 
         const teamPermissions: Array<TeamPermission> =
             await TeamPermissionService.findBy({
                 query: {

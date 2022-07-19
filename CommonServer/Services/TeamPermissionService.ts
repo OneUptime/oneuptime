@@ -14,7 +14,7 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onCreateSuccess(createBy: CreateBy<Model>): Promise<CreateBy<Model>> {
 
-        debugger; 
+      
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
             query: {
                 teamId: createBy.data.teamId!,

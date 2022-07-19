@@ -15,7 +15,7 @@ export class Service extends DatabaseService<Model> {
             createBy.data.userId!
          );
         
-        debugger; 
+       
         await AccessTokenService.refreshUserProjectAccessPermission(
             createBy.data.userId!,
             createBy.data.projectId!

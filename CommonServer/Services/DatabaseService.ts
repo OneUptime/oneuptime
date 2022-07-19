@@ -490,7 +490,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             findBy.props.userGlobalAccessPermission
         ) {
 
-            (findBy.query as any)[this.model.projectColumn] = QueryHelper.In(
+            (findBy.query as any)[this.model.projectColumn] = QueryHelper.in(
                 findBy.props.userGlobalAccessPermission?.projectIds
             );
 
@@ -582,7 +582,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             updateBy.props.userGlobalAccessPermission
         ) {
 
-            (updateBy.query as any)[this.model.projectColumn] =  QueryHelper.In(
+            (updateBy.query as any)[this.model.projectColumn] =  QueryHelper.in(
                 updateBy.props.userGlobalAccessPermission?.projectIds
             );
 
@@ -759,7 +759,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         skip,
         limit,
     }: CountBy<TBaseModel>): Promise<PositiveNumber> {
-        debugger; 
+        
         try {
             if (!skip) {
                 skip = new PositiveNumber(0);
@@ -789,7 +789,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         for (const key in query) {
 
-
             if (query[key]
                 && (query[key] as any)._value && Array.isArray((query[key] as any)._value) && (query[key] as any)._value.length > 0) {
                 
@@ -802,10 +801,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 }
                 
             } else if (query[key] && query[key] instanceof ObjectID) {
-                query[key] = ((query[key] as ObjectID).toString() as any);
+                if (this.entityType.name === "TeamMember") {
+                    debugger;
+                }
+               
+                query[key] = QueryHelper.equalTo((query[key] as ObjectID).toString() as any) as any;
             } else if (query[key] && Array.isArray(query[key])) {
-                query[key] = (QueryHelper.In(query[key] as any) as FindOperator<any>) as any;
-            }
+                query[key] = (QueryHelper.in(query[key] as any) as FindOperator<any>) as any;
+            } 
         }
 
         return query;
@@ -905,10 +908,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
 
             onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
-
-            if (this.entityType.name === "TeamPermission") {
-                debugger; 
-            }
 
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
