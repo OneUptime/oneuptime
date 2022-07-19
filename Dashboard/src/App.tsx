@@ -71,7 +71,8 @@ const App: FunctionComponent = () => {
                 {
                     name: true,
                     _id: true,
-                }
+                },
+                {}
             );
             setProjects(result.data);
         } catch (err) {

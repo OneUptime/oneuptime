@@ -48,7 +48,6 @@ export default class Probe extends BaseModel {
         type: ColumnType.ObjectID,
         nullable: false,
         unique: true,
-        length: ColumnLength.ObjectID,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public key?: ObjectID;

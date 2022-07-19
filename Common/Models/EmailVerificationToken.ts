@@ -91,7 +91,7 @@ export default class EmailVerificationToken extends BaseModel {
         type: ColumnType.ObjectID,
         nullable: false,
         unique: true,
-        length: ColumnLength.ObjectID,
+        
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public token?: ObjectID;

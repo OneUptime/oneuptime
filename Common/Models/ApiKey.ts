@@ -216,12 +216,11 @@ export default class ApiKey extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: true })
+    @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: false })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
-        default: ObjectID.generate(),
     })
     public apiKey?: ObjectID;
 }

@@ -7,7 +7,6 @@ enum ColumnLength {
     Description = 500,
     LongText = 500,
     Password = 500,
-    ObjectID = 50,
     ShortURL = 100,
     ShortText = 100,
     HashedString = 64,

@@ -8,7 +8,7 @@ enum ColumnType {
     Slug = 'varchar',
     Name = 'varchar',
     Description = 'varchar',
-    ObjectID = 'varchar',
+    ObjectID = 'uuid',
     ShortURL = 'varchar',
     LongURL = 'text',
     ShortText = 'varchar',

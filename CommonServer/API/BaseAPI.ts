@@ -17,6 +17,7 @@ import CreateBy from '../Types/Database/CreateBy';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
+import Sort from '../Types/Database/Sort';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -175,6 +176,7 @@ export default class BaseAPI<
 
         let query: Query<BaseModel> = {};
         let select: Select<BaseModel> = {};
+        let sort: Sort<BaseModel> = {};
 
         if (req.body) {
             query = JSONFunctions.deserialize(
@@ -183,14 +185,17 @@ export default class BaseAPI<
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
+            sort = JSONFunctions.deserialize(
+                req.body['sort']
+            ) as Sort<BaseModel>;
         }
 
-        debugger; 
         const list: Array<BaseModel> = await this.service.findBy({
             query,
             select,
             skip: skip,
             limit: limit,
+            sort: sort,
             props: this.getDatabaseCommonInteractionProps(req),
         });
 

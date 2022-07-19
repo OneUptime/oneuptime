@@ -13,7 +13,8 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONArray, JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import { FormType } from '../../Components/Forms/ModelForm';
 import Dictionary from 'Common/Types/Dictionary';
-import Navigation from '../Navigation';
+import ProjectUtil from '../Project';
+import Sort from './Sort';
 
 export interface ListResult<TBaseModel extends BaseModel> {
     data: Array<TBaseModel>;
@@ -91,7 +92,8 @@ export default class ModelAPI {
         query: Query<TBaseModel>,
         limit: number,
         skip: number,
-        select: Select<TBaseModel>
+        select: Select<TBaseModel>,
+        sort: Sort<TBaseModel>
     ): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new type();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -118,6 +120,7 @@ export default class ModelAPI {
                 {
                     query: JSONFunctions.serialize(query as JSONObject),
                     select: JSONFunctions.serialize(select as JSONObject),
+                    sort: JSONFunctions.serialize(sort as JSONObject),
                 },
                 this.getCommonHeaders(),
                 {
@@ -143,10 +146,10 @@ export default class ModelAPI {
 
         };
 
-        const proejctId = Navigation.getParamByName("projectId");
+        const project = ProjectUtil.getCurrentProject();
 
-        if (proejctId) {
-            headers["projectid"] = proejctId;
+        if (project && project.id) {
+            headers["projectid"] = project.id.toString();
         }
 
         return headers;

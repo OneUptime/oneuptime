@@ -20,9 +20,9 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import { DataSource, In, Repository, SelectQueryBuilder } from 'typeorm';
+import { DataSource, FindOperator, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
-import SortOrder from '../Types/Database/SortOrder';
+import SortOrder from 'Common/Types/Database/SortOrder';
 import HardDeleteBy from '../Types/Database/HardDeleteBy';
 import { EncryptionSecret } from '../Config';
 import HashedString from 'Common/Types/HashedString';
@@ -38,6 +38,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import QueryHelper from '../Types/Database/QueryHelper';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -48,11 +49,11 @@ enum DatabaseRequestType {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    private entityType!: { new(): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        type: { new (): TBaseModel },
+        type: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = type;
@@ -273,7 +274,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                    createBy.data.getSlugifyColumn() as string
+                createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -435,6 +436,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asFindByByPermissions(
         findBy: FindBy<TBaseModel>
     ): FindBy<TBaseModel> {
+        
         if (findBy.props.isRoot) {
             return findBy;
         }
@@ -448,9 +450,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         columns = this.getReadColumnsByPermissions(userPermissions || []);
 
+
+        const excludedColumns = ['_id', 'createdAt', 'deletedAt', 'updatedAt'];
+
         // Now we need to check all columns.
 
         for (const key in findBy.query) {
+
+            if (excludedColumns.includes(key)) {
+                continue;
+            }
+
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to query on - ${key}.`
@@ -459,6 +469,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         for (const key in findBy.select) {
+
+            if (excludedColumns.includes(key)) {
+                continue;
+            }
+
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to select on - ${key}.`
@@ -474,19 +489,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !findBy.props.projectId &&
             findBy.props.userGlobalAccessPermission
         ) {
-            if (this.model.projectColumn === '_id') {
-                (findBy.query as any)[this.model.projectColumn] = In(
-                    findBy.props.userGlobalAccessPermission?.projectIds.map(
-                        (item: ObjectID) => {
-                            return item.toString();
-                        }
-                    )
-                );
-            } else {
-                (findBy.query as any)[this.model.projectColumn] = In(
-                    findBy.props.userGlobalAccessPermission?.projectIds
-                );
-            }
+
+            (findBy.query as any)[this.model.projectColumn] = QueryHelper.In(
+                findBy.props.userGlobalAccessPermission?.projectIds
+            );
+
         } else if (this.model.projectColumn) {
             throw new NotAuthorizedException(
                 'Not enough permissions to read the record'
@@ -543,8 +550,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
         readColumns = this.getReadColumnsByPermissions(userPermissions || []);
 
         // Now we need to check all columns.
+        const excludedColumns = ['_id', 'createdAt', 'deletedAt', 'updatedAt'];
 
         for (const key in updateBy.query) {
+
+            if (excludedColumns.includes(key)) {
+                continue;
+            }
+
             if (!readColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to query on - ${key}.`
@@ -568,19 +581,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !updateBy.props.projectId &&
             updateBy.props.userGlobalAccessPermission
         ) {
-            if (this.model.projectColumn === '_id') {
-                (updateBy.query as any)[this.model.projectColumn] = In(
-                    updateBy.props.userGlobalAccessPermission?.projectIds.map(
-                        (item: ObjectID) => {
-                            return item.toString();
-                        }
-                    )
-                );
-            } else {
-                (updateBy.query as any)[this.model.projectColumn] = In(
-                    updateBy.props.userGlobalAccessPermission?.projectIds
-                );
-            }
+
+            (updateBy.query as any)[this.model.projectColumn] =  QueryHelper.In(
+                updateBy.props.userGlobalAccessPermission?.projectIds
+            );
+
         } else if (this.model.projectColumn) {
             throw new NotAuthorizedException(
                 'Not enough permissions to read the record'
@@ -763,6 +768,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 limit = new PositiveNumber(Infinity);
             }
 
+            query = this.serializeQuery(query);
+
             const count: number = await this.getRepository().count({
                 where: query as any,
                 skip: skip.toNumber(),
@@ -775,6 +782,32 @@ class DatabaseService<TBaseModel extends BaseModel> {
             await this.onCountError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    private serializeQuery(query: Query<TBaseModel>): Query<TBaseModel> {
+
+        for (const key in query) {
+
+
+            if (query[key]
+                && (query[key] as any)._value && Array.isArray((query[key] as any)._value) && (query[key] as any)._value.length > 0) {
+                
+                let counter = 0; 
+                for (const item of (query[key] as any)._value) {
+                    if (item instanceof ObjectID) {
+                        ((query[key] as any)._value as any)[counter] = ((query[key] as any)._value as any)[counter].toString();
+                    }
+                    counter++;
+                }
+                
+            } else if (query[key] && query[key] instanceof ObjectID) {
+                query[key] = ((query[key] as ObjectID).toString() as any);
+            } else if (query[key] && Array.isArray(query[key])) {
+                query[key] = (QueryHelper.In(query[key] as any) as FindOperator<any>) as any;
+            }
+        }
+
+        return query;
     }
 
     public async deleteOneBy(
@@ -816,6 +849,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 } as any,
                 props: deleteBy.props,
             });
+
             const numberOfDocsAffected: number =
                 (
                     await this.getRepository().softDelete(
@@ -824,6 +858,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 ).affected || 0;
 
             await this.onDeleteSuccess();
+
             return numberOfDocsAffected;
         } catch (error) {
             await this.onDeleteError(error as Exception);
@@ -840,6 +875,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     private async _findBy(
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
+        
         try {
             if (!findBy.sort) {
                 findBy.sort = {
@@ -850,12 +886,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
             let onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
                 findBy
             );
-            debugger; 
+            
             onBeforeFind = this.asFindByByPermissions(findBy);
 
             if (!(onBeforeFind.skip instanceof PositiveNumber)) {
                 onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
-            } 
+            }
 
             if (!(onBeforeFind.select) || Object.keys(onBeforeFind.select).length === 0) {
                 onBeforeFind.select = {
@@ -865,6 +901,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             if (!(onBeforeFind.limit instanceof PositiveNumber)) {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
+            }
+
+            onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
+
+            if (this.entityType.name === "TeamPermission") {
+                debugger; 
             }
 
             const items: Array<TBaseModel> = await this.getRepository().find({

@@ -59,7 +59,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         try {
-            const listResult: ListResult<TBaseModel> = await ModelAPI.getList<TBaseModel>(props.type, {}, props.itemsOnPage, currentPageNumber * props.itemsOnPage, props.select);
+            const listResult: ListResult<TBaseModel> = await ModelAPI.getList<TBaseModel>(props.type, {}, props.itemsOnPage, currentPageNumber * props.itemsOnPage, props.select, {});
 
             setTotalItemsCount(listResult.count);
             setData(listResult.data);

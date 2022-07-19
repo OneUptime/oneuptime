@@ -11,6 +11,7 @@ import { FormikProps, FormikValues } from 'formik';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
+    type: { new (): TBaseModel };
     onClose?: () => void;
     submitButtonText?: string;
     onSuccess?: (
@@ -37,6 +38,7 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
         >
             <ModelForm<TBaseModel>
                 {...props.formProps}
+                type={props.type}
                 hideSubmitButton={true}
                 onLoadingChange={(isFormLoading: boolean) => {
                     setIsLoading(isFormLoading);

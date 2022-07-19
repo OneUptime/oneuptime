@@ -10,7 +10,6 @@ import Permission, {
 } from 'Common/Types/Permission';
 import TeamPermission from 'Common/Models/TeamPermission';
 import TeamPermissionService from './TeamPermissionService';
-import { In } from 'typeorm';
 import LIMIT_MAX from '../Types/Database/LimitMax';
 import Label from 'Common/Models/Label';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
@@ -49,6 +48,11 @@ export default class AccessTokenService {
             projectIds,
             globalPermissions: [Permission.Public, Permission.User],
         };
+
+        // if user is a part of any project then, he is the project member. 
+        if (projectIds.length > 0) {
+            permissionToStore.globalPermissions.push(Permission.ProjectMember);
+        }
 
         await GlobalCache.setJSON('user', userId.toString(), {
             projectIds: permissionToStore.projectIds.map((item: ObjectID) => {
@@ -126,11 +130,11 @@ export default class AccessTokenService {
         }
 
         // get team permissions.
-
+        debugger; 
         const teamPermissions: Array<TeamPermission> =
             await TeamPermissionService.findBy({
                 query: {
-                    teamId: In(teamIds),
+                    teamId: teamIds,
                 },
                 select: {
                     permission: true,
