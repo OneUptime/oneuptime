@@ -5,7 +5,7 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModalTable';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Label from 'Common/Models/Label';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 
@@ -38,6 +38,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
+                itemsOnPage={10}
                 cardProps={{
                     title: 'Labels',
                     description:

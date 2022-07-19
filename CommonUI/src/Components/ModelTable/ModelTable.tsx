@@ -35,7 +35,7 @@ enum ModalType {
     Create, Edit
 }
 
-const ModalTable: Function = <TBaseModel extends BaseModel>(
+const ModelTable: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
 
@@ -44,7 +44,7 @@ const ModalTable: Function = <TBaseModel extends BaseModel>(
 
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
-    const [totalItemsCount, setTotalItemsCount] = useState<number>(1);
+    const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
     const [isLoading, setIsLaoding] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [showModel, setShowModal] = useState<boolean>(false);
@@ -111,12 +111,15 @@ const ModalTable: Function = <TBaseModel extends BaseModel>(
         }
 
         fetchItems();
+        
     }, []);
 
     return (
         <>
-            <Card {...props.cardProps}>
+            <Card {...props.cardProps} cardBodyStyle={{"padding": "0px"}}>
                 <Table
+                    singularLabel={model.singularName || 'Item'}
+                    pluralLabel={model.pluralName || 'Items'}
                     error={error}
                     currentPageNumber={currentPageNumber}
                     isLoading={isLoading}
@@ -128,6 +131,9 @@ const ModalTable: Function = <TBaseModel extends BaseModel>(
                     disablePagination={props.disablePagination || false}
                     onNavigateToPage={(pageNumber: number) => {
                         setCurrentPageNumber(pageNumber);
+                    }}
+                    onRefreshClick={() => {
+                        fetchItems();
                     }}
                 />
             </Card>
@@ -148,6 +154,7 @@ const ModalTable: Function = <TBaseModel extends BaseModel>(
                         fields: props.createFormFields || [],
                         formType: ModalType.Create ? FormType.Create : FormType.Update,
                     }}
+                    
                 />
             ) : (
                 <></>
@@ -156,4 +163,4 @@ const ModalTable: Function = <TBaseModel extends BaseModel>(
     );
 };
 
-export default ModalTable;
+export default ModelTable;

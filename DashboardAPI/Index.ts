@@ -26,6 +26,28 @@ import EmailVerificationTokenService, {
     Service as EmailVerificationTokenServiceType,
 } from 'CommonServer/Services/EmailVerificationTokenService';
 
+import Team from 'Common/Models/Team';
+import TeamService, {
+    Service as TeamServiceType,
+} from 'CommonServer/Services/TeamService';
+
+import TeamMember from 'Common/Models/TeamMember';
+import TeamMemberService, {
+    Service as TeamMemberServiceType,
+} from 'CommonServer/Services/TeamMemberService';
+
+import TeamPermission from 'Common/Models/TeamPermission';
+import TeamPermissionService, {
+    Service as TeamPermissionServiceType,
+} from 'CommonServer/Services/TeamPermissionService';
+
+import Label from 'Common/Models/Label';
+import LabelService, {
+    Service as LabelServiceType,
+} from 'CommonServer/Services/LabelService';
+
+
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -39,7 +61,14 @@ app.use(
     ).getRouter()
 );
 app.use(new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
-app.use(new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
+
+
+app.use(new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter());
+app.use(new BaseAPI<TeamMember, TeamMemberServiceType>(TeamMember, TeamMemberService).getRouter());
+app.use(new BaseAPI<TeamPermission, TeamPermissionServiceType>(TeamPermission, TeamPermissionService).getRouter());
+
+app.use(new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter());
+
 app.use(
     new BaseAPI<EmailVerificationToken, EmailVerificationTokenServiceType>(
         EmailVerificationToken,

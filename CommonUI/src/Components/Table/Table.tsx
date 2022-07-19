@@ -4,7 +4,8 @@ import TableBody from './TableBody';
 import TableHeader from './TableHeader';
 import Columns from './Types/Columns';
 import Pagination from './Pagination';
-import PageLoader from '../Loader/PageLoader';
+import Loader, { LoaderType } from '../Loader/Loader';
+import { VeryLightGrey } from '../../Utils/BrandColors';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -15,8 +16,11 @@ export interface ComponentProps {
     currentPageNumber: number;
     totalItemsCount: number;
     itemsOnPage: number;
-    error: string; 
+    error: string;
     isLoading: boolean;
+    singularLabel: string;
+    pluralLabel: string;
+    onRefreshClick?: () => void;
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -26,11 +30,54 @@ const Table: FunctionComponent<ComponentProps> = (
     const getTablebody = (): ReactElement => {
 
         if (props.isLoading) {
-            return (<PageLoader isVisible={true} />)
+            return (
+                <tbody>
+                    <tr>
+                        <td colSpan={props.columns.length}>
+                            <div className="row text-center" style={{
+                                marginTop: "50px",
+                                marginBottom: "50px"
+                            }}>
+                                <Loader loaderType={LoaderType.Bar} color={VeryLightGrey} size={200} />
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            )
         }
 
         if (props.error) {
-            return (<p>{props.error}</p>)
+            return (
+                <tbody>
+                    <tr>
+                        <td colSpan={props.columns.length}>
+                            <p className='text-center color-light-grey' style={{
+                                marginTop: "50px",
+                                marginBottom: "50px"
+                            }}>{props.error} <br /> {props.onRefreshClick ? <span onClick={() => {
+                                if (props.onRefreshClick) {
+                                    props.onRefreshClick();
+                                }
+                            }} className="underline primary-on-hover">Refresh?</span> : <></>}</p>
+                        </td>
+                    </tr>
+                </tbody>
+            )
+        }
+
+        if (props.data.length === 0) {
+            return (
+                <tbody>
+                    <tr>
+                        <td colSpan={props.columns.length}>
+                            <p className='text-center color-light-grey' style={{
+                                marginTop: "50px",
+                                marginBottom: "50px"
+                            }}> No {props.singularLabel.toLocaleLowerCase()} </p>
+                        </td>
+                    </tr>
+                </tbody>
+            )
         }
 
         return (<TableBody
@@ -49,6 +96,8 @@ const Table: FunctionComponent<ComponentProps> = (
                 />
                 {getTablebody()}
                 <Pagination
+                    singularLabel={props.singularLabel}
+                    pluralLabel={props.pluralLabel}
                     currentPageNumber={props.currentPageNumber}
                     totalItemsCount={props.totalItemsCount}
                     itemsOnPage={props.itemsOnPage}

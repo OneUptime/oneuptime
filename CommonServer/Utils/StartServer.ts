@@ -123,19 +123,19 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
     );
 
     app.post('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: 'API not found' });
+        res.status(404).json({ error: '404 - Not Found.' });
     });
 
     app.put('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: 'API not found' });
+        res.status(404).json({ error: '404 - Not Found.' });
     });
 
     app.delete('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: 'API not found' });
+        res.status(404).json({ error: '404 - Not Found.' });
     });
 
     app.get('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: 'API not found' });
+        res.status(404).json({ error: '404 - Not Found.' });
     });
 
     // await OpenTelemetrySDK.start();

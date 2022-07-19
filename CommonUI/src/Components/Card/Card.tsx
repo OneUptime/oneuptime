@@ -1,10 +1,11 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     title: string;
     description: string;
     buttons?: Array<ReactElement>;
     children?: Array<ReactElement> | ReactElement;
+    cardBodyStyle?: CSSProperties
 }
 
 const Card: FunctionComponent<ComponentProps> = (
@@ -27,7 +28,7 @@ const Card: FunctionComponent<ComponentProps> = (
                             <div>{props.buttons}</div>
                         </div>
                         {props.children && (
-                            <div className="card-body">{props.children}</div>
+                            <div className="card-body" style={props.cardBodyStyle || {}}>{props.children}</div>
                         )}
                     </div>
                 </div>

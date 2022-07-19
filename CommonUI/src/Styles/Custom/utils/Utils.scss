@@ -1,9 +1,19 @@
+@import "../../BrandColors";
+
 .underline-on-hover {
     cursor: pointer;
 
     &:hover {
         text-decoration: underline !important;
     }
+}
+
+.underline{
+    text-decoration: underline !important;
+}
+
+.color-light-grey{
+    color: $color-light-grey;
 }
 
 .primary-on-hover {

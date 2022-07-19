@@ -7,7 +7,7 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModalTable';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ProjectAPIKey from 'Common/Models/ProjectAPIKey';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
