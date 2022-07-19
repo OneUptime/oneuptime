@@ -12,6 +12,8 @@ import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONArray, JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import { FormType } from '../../Components/Forms/ModelForm';
+import Dictionary from 'Common/Types/Dictionary';
+import Navigation from '../Navigation';
 
 export interface ListResult<TBaseModel extends BaseModel> {
     data: Array<TBaseModel>;
@@ -74,7 +76,8 @@ export default class ModelAPI {
         >(
             formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT,
             apiUrl,
-            { data: model.toJSON() }
+            { data: model.toJSON() },
+            this.getCommonHeaders()
         );
 
         if (result.isSuccess()) {
@@ -116,7 +119,7 @@ export default class ModelAPI {
                     query: JSONFunctions.serialize(query as JSONObject),
                     select: JSONFunctions.serialize(select as JSONObject),
                 },
-                undefined,
+                this.getCommonHeaders(),
                 {
                     limit: limit.toString(),
                     skip: skip.toString(),
@@ -132,6 +135,21 @@ export default class ModelAPI {
             };
         }
         throw result;
+    }
+
+
+    public static getCommonHeaders(): Dictionary<string>{
+        const headers: Dictionary<string> = {
+
+        };
+
+        const proejctId = Navigation.getParamByName("projectId");
+
+        if (proejctId) {
+            headers["projectid"] = proejctId;
+        }
+
+        return headers;
     }
 
     public static async getItem<TBaseModel extends BaseModel>(
@@ -155,6 +173,7 @@ export default class ModelAPI {
                 'This model does not support get operations.'
             );
         }
+    
 
         const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
             await API.fetch<TBaseModel>(
@@ -163,7 +182,7 @@ export default class ModelAPI {
                 {
                     select: JSONFunctions.serialize(select as JSONObject),
                 },
-                undefined
+                this.getCommonHeaders()
             );
 
         if (result.isSuccess()) {

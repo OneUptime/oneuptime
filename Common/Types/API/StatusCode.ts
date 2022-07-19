@@ -22,4 +22,20 @@ export default class StatusCode {
     public toNumber(): number {
         return this.statusCode.toNumber();
     }
+
+    public static isValidStausCode(statusCode: number | string): boolean {
+        try {
+            if (typeof statusCode === "string") {
+                statusCode = parseInt(statusCode);
+            }
+
+            if (statusCode >= 100 && statusCode <= 599) {
+                return true;
+            }
+
+            return false; 
+        } catch (err) {
+            return false; 
+        }
+    }
 }

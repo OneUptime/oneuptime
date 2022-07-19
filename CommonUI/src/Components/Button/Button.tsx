@@ -97,7 +97,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
     if (buttonStyle === ButtonStyleType.OUTLINE) {
         buttonStyleCssClass =
-            'btn-outline-secondary background-primary-on-hover';
+            'btn-outline-secondary background-very-light-grey-on-hover';
     }
 
     return (

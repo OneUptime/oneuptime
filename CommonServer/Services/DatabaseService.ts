@@ -850,11 +850,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
             let onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
                 findBy
             );
-
+            debugger; 
             onBeforeFind = this.asFindByByPermissions(findBy);
 
             if (!(onBeforeFind.skip instanceof PositiveNumber)) {
                 onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
+            } 
+
+            if (!(onBeforeFind.select) || Object.keys(onBeforeFind.select).length === 0) {
+                onBeforeFind.select = {
+                    _id!: true
+                } as any;
             }
 
             if (!(onBeforeFind.limit instanceof PositiveNumber)) {
@@ -867,6 +873,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 where: onBeforeFind.query as any,
                 order: onBeforeFind.sort as any,
                 relations: onBeforeFind.populate as any,
+                select: onBeforeFind.select as any
             });
 
             const decryptedItems: Array<TBaseModel> = [];

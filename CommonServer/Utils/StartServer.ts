@@ -21,7 +21,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import LocalCache from '../Infrastructure/LocalCache';
 import Exception from 'Common/Types/Exception/Exception';
 import ObjectID from 'Common/Types/ObjectID';
-
+import StatusCode from 'Common/Types/API/StatusCode';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -102,15 +102,21 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
             next: NextFunction
         ) => {
             logger.error(err);
-
+            
             if (res.headersSent) {
                 return next(err);
             }
 
             if (err instanceof Promise) {
                 err.catch((exception: Exception) => {
-                    res.status((exception as Exception).code);
-                    res.send({ error: (exception as Exception).message });
+                    if (StatusCode.isValidStausCode((exception as Exception).code)) {
+                        res.status((exception as Exception).code);
+                        res.send({ error: (exception as Exception).message });
+                    } else {
+                        res.status(500);
+                        res.send({ error: "Server Error" });
+                    }
+                    
                 });
             } else if (err instanceof Exception) {
                 res.status((err as Exception).code);

@@ -32,6 +32,32 @@
     }
 }
 
+.background-light-grey-on-hover {
+    cursor: pointer;
+
+    &:hover {
+        background-color: $color-light-grey;
+    }
+}
+
+.background-very-light-grey-on-hover {
+    cursor: pointer;
+
+    &:hover {
+        background-color: $color-very-light-grey;
+    }
+}
+
+
+
+.light-grey-on-hover {
+    cursor: pointer;
+
+    &:hover {
+        color: $color-light-grey;
+    }
+}
+
 .background-primary-on-hover {
     cursor: pointer;
 
