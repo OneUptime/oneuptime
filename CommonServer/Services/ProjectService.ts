@@ -31,9 +31,10 @@ export class Service extends DatabaseService<Model> {
 
         let existingProjectWithSameNameCount: number = 0;
         if (data.props.userGlobalAccessPermission && data.props.userGlobalAccessPermission?.projectIds.length > 0) {
+            debugger; 
             existingProjectWithSameNameCount = (await this.countBy({
                 query: {
-                    _id: QueryHelper.In(data.props.userGlobalAccessPermission?.projectIds || []),
+                    _id: data.props.userGlobalAccessPermission?.projectIds.map((item)=> item.toString()) || [],
                     name: QueryHelper.findWithSameName(data.data.name!)
                 },
                 props:
