@@ -12,7 +12,7 @@ export interface ActionButton {
 export default interface Columns<TEntity> {
     field?: SelectEntityField<TEntity>;
     title: string;
-    disbaleSort?: boolean;
+    disableSort?: boolean;
     type: TableColumnType;
     actionButtons?: Array<ActionButton>;
 }

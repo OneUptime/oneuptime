@@ -4,7 +4,7 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
@@ -14,14 +14,14 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 <SideMenuItem
                     link={{
                         title: 'Project',
-                        to: RouteMap[PageMap.SETTINGS] as Route,
+                        to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
                     }}
                     icon={IconProp.Folder}
                 />
                 <SideMenuItem
                     link={{
                         title: 'Labels',
-                        to: RouteMap[PageMap.SETTINGS_LABELS] as Route,
+                        to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_LABELS] as Route),
                     }}
                     icon={IconProp.Label}
                 />

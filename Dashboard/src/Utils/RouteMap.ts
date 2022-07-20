@@ -1,5 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Dictionary from 'Common/Types/Dictionary';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
 import PageMap from './PageMap';
 import RouteParams from './RouteParams';
 
@@ -54,5 +55,23 @@ const RouteMap: Dictionary<Route> = {
     // logout.
     [PageMap.LOGOUT]: new Route(`/dashboard/logout`),
 };
+
+
+export class RouteUtil { 
+    public static populateRouteParams(route: Route): Route {
+
+        // populate projectid
+        const project = ProjectUtil.getCurrentProject();
+
+        if (project && project._id) {
+            route =  route.addRouteParam(
+                RouteParams.ProjectID,
+                project._id
+            );
+        }
+
+        return route;
+    };
+}
 
 export default RouteMap;

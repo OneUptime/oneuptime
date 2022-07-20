@@ -19,6 +19,9 @@ import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
 import Link from '../Link/Link';
 import Alert, { AlertType } from '../Alerts/Alert';
+import ColorPicker from './Fields/ColorPicker';
+import Color from 'Common/Types/Color';
+import TextArea from './Fields/TextArea';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -54,6 +57,10 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
             return 'password';
         case FormFieldSchemaType.Date:
             return 'date';
+        case FormFieldSchemaType.LongText:
+            return 'textarea';
+        case FormFieldSchemaType.Color:
+            return 'color';
         default:
             return 'text';
     }
@@ -62,6 +69,7 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
 const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
+
     const getFormField: Function = (
         field: DataField<T>,
         index: number,
@@ -78,7 +86,7 @@ const BasicForm: Function = <T extends Object>(
         if (props.showAsColumns && props.showAsColumns > 2) {
             throw new BadDataException(
                 'showAsCOlumns should be <= 2. It is currently ' +
-                    props.showAsColumns
+                props.showAsColumns
             );
         }
 
@@ -104,15 +112,51 @@ const BasicForm: Function = <T extends Object>(
                         )}
                 </label>
                 {field.description && <p>{field.description}</p>}
-                <Field
-                    className="form-control form-control"
-                    autoFocus={index === 0 ? true : false}
-                    placeholder={field.placeholder}
-                    type={fieldType}
-                    tabIndex={index + 1}
-                    name={fieldName}
-                    disabled={isDisabled}
-                />
+
+
+                {
+                    field.fieldType === FormFieldSchemaType.Color &&
+                    <Field name={fieldName}>
+                        {({
+                            form,
+                        }: {
+                            form: any
+                        }) => (
+                            <ColorPicker onChange={(color: Color) => {
+                                form.setFieldValue(color);
+                            }} placeholder={field.placeholder || ''} />
+                        )}
+                    </Field>
+                }
+
+                {
+                    field.fieldType === FormFieldSchemaType.LongText &&
+                    <Field name={fieldName}>
+                        {({
+                            form,
+                        }: {
+                            form: any
+                        }) => (
+                            <TextArea onChange={(text: string) => {
+                                form.setFieldValue(text);
+                            }} initialValue={''} placeholder={field.placeholder || ''} />
+                        )}
+                    </Field>
+                }
+
+                {/* Default Field */}
+                {
+                    field.fieldType !== FormFieldSchemaType.Color &&
+                    field.fieldType !== FormFieldSchemaType.LongText &&
+                    <Field
+                        className="form-control form-control"
+                        autoFocus={index === 0 ? true : false}
+                        placeholder={field.placeholder}
+                        type={fieldType}
+                        tabIndex={index + 1}
+                        name={fieldName}
+                        disabled={isDisabled}
+                    />}
                 <ErrorMessage
                     className="mt-1 text-danger"
                     name={
@@ -133,17 +177,21 @@ const BasicForm: Function = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${
-                        field.validation.minLength
-                    } characters.`;
+                    return `${field.title || name} cannot be less than ${field.validation.minLength
+                        } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${
-                        field.validation.maxLength
-                    } characters.`;
+                    return `${field.title || name} cannot be more than ${field.validation.maxLength
+                        } characters.`;
+                }
+            }
+
+            if (field.validation.noSpaces) {
+                if (content.trim().includes(" ")) {
+                    return `${field.title || name} should have no spaces.`;
                 }
             }
         }
@@ -170,7 +218,7 @@ const BasicForm: Function = <T extends Object>(
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
             (entity[field.validation?.toMatchField] as string).trim() !==
-                content.trim()
+            content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -193,69 +241,69 @@ const BasicForm: Function = <T extends Object>(
         values: FormValues<T>
     ) => void | object | Promise<FormikErrors<FormValues<T>>>) &
         Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
-        const errors: JSONObject = {};
-        const entries: JSONObject = { ...values } as JSONObject;
+            const errors: JSONObject = {};
+            const entries: JSONObject = { ...values } as JSONObject;
 
-        for (const field of props.fields) {
-            const name: string = field.overideFieldKey
-                ? field.overideFieldKey
-                : (Object.keys(field.field)[0] as string);
-            if (name in values) {
-                const content: string | undefined = entries[name]?.toString();
+            for (const field of props.fields) {
+                const name: string = field.overideFieldKey
+                    ? field.overideFieldKey
+                    : (Object.keys(field.field)[0] as string);
+                if (name in values) {
+                    const content: string | undefined = entries[name]?.toString();
 
-                if (content) {
-                    // Check Required fields.
-                    const resultRequired: string | null = validateRequired(
-                        content,
-                        field
-                    );
-                    if (resultRequired) {
-                        errors[name] = resultRequired;
+                    if (content) {
+                        // Check Required fields.
+                        const resultRequired: string | null = validateRequired(
+                            content,
+                            field
+                        );
+                        if (resultRequired) {
+                            errors[name] = resultRequired;
+                        }
+
+                        // Check for valid email data.
+                        const resultValidateData: string | null = validateData(
+                            content,
+                            field
+                        );
+                        if (resultValidateData) {
+                            errors[name] = resultValidateData;
+                        }
+
+                        const resultMatch: string | null = validateMatchField(
+                            content,
+                            field,
+                            entries
+                        );
+
+                        if (resultMatch) {
+                            errors[name] = resultMatch;
+                        }
+
+                        // check for length of content
+                        const result: string | null = validateLength(
+                            content,
+                            field
+                        );
+                        if (result) {
+                            errors[name] = result;
+                        }
                     }
-
-                    // Check for valid email data.
-                    const resultValidateData: string | null = validateData(
-                        content,
-                        field
-                    );
-                    if (resultValidateData) {
-                        errors[name] = resultValidateData;
-                    }
-
-                    const resultMatch: string | null = validateMatchField(
-                        content,
-                        field,
-                        entries
-                    );
-
-                    if (resultMatch) {
-                        errors[name] = resultMatch;
-                    }
-
-                    // check for length of content
-                    const result: string | null = validateLength(
-                        content,
-                        field
-                    );
-                    if (result) {
-                        errors[name] = result;
-                    }
+                } else if (field.required) {
+                    errors[name] = `${field.title || name} is required.`;
                 }
-            } else if (field.required) {
-                errors[name] = `${field.title || name} is required.`;
             }
-        }
 
-        let customValidateResult: JSONObject = {};
+            let customValidateResult: JSONObject = {};
 
-        if (props.onValidate) {
-            customValidateResult = props.onValidate(values);
-        }
+            if (props.onValidate) {
+                customValidateResult = props.onValidate(values);
+            }
 
-        return { ...errors, ...customValidateResult } as FormikErrors<
-            FormValues<T>
-        >;
-    };
+            return { ...errors, ...customValidateResult } as FormikErrors<
+                FormValues<T>
+            >;
+        };
 
     const formRef: any = useRef<any>(null);
 
@@ -292,21 +340,19 @@ const BasicForm: Function = <T extends Object>(
 
                         <div className={`col-lg-12 flex`}>
                             <div
-                                className={`col-lg-${
-                                    12 / (props.showAsColumns || 1)
-                                } ${
-                                    (props.showAsColumns || 1) > 1
+                                className={`col-lg-${12 / (props.showAsColumns || 1)
+                                    } ${(props.showAsColumns || 1) > 1
                                         ? 'pr-10'
                                         : ''
-                                }`}
+                                    }`}
                             >
                                 {props.fields &&
                                     props.fields.map(
                                         (field: DataField<T>, i: number) => {
                                             if (
                                                 i %
-                                                    (props.showAsColumns ||
-                                                        1) ===
+                                                (props.showAsColumns ||
+                                                    1) ===
                                                 0
                                             ) {
                                                 return getFormField(
@@ -321,13 +367,11 @@ const BasicForm: Function = <T extends Object>(
                             </div>
                             {(props.showAsColumns || 1) > 1 && (
                                 <div
-                                    className={`col-lg-${
-                                        12 / (props.showAsColumns || 1)
-                                    } ${
-                                        (props.showAsColumns || 1) > 1
+                                    className={`col-lg-${12 / (props.showAsColumns || 1)
+                                        } ${(props.showAsColumns || 1) > 1
                                             ? 'pl-10'
                                             : ''
-                                    }`}
+                                        }`}
                                 >
                                     {props.fields &&
                                         props.fields.map(
@@ -337,8 +381,8 @@ const BasicForm: Function = <T extends Object>(
                                             ) => {
                                                 if (
                                                     i %
-                                                        (props.showAsColumns ||
-                                                            1) !==
+                                                    (props.showAsColumns ||
+                                                        1) !==
                                                     0
                                                 ) {
                                                     return getFormField(

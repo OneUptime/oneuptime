@@ -18,6 +18,7 @@ export default interface Field<TEntity> {
         minLength?: number;
         maxLength?: number;
         toMatchField?: string;
+        noSpaces?: boolean;
     };
     fieldType?: FormFieldSchemaType;
     overideFieldKey?: string;

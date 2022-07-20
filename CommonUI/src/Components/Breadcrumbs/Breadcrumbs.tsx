@@ -18,11 +18,11 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                         return (
                             <li
                                 key={i}
-                                className={`breadcrumb-item ${
+                                className={`breadcrumb-item primary-on-hover ${
                                     i === links.length - 1 ? 'active' : ''
                                 }`}
                             >
-                                <UILink to={link.to}>{link.title}</UILink>
+                                <UILink className='primary-on-hover' to={link.to}>{link.title}</UILink>
                             </li>
                         );
                     })}

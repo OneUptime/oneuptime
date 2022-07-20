@@ -8,6 +8,7 @@ import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Label from 'Common/Models/Label';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const APIKeys: FunctionComponent<PageComponentProps> = (
     __props: PageComponentProps
@@ -44,6 +45,42 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                     description:
                         'Create, edit, delete your project labels here.',
                 }}
+                noItemsMessage={'No labels created for this project so far.'}
+                formFields={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        fieldType:
+                            FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: "internal-service",
+                        validation: {
+                            noSpaces: true
+                        }
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        fieldType:
+                            FormFieldSchemaType.LongText,
+                        required: true,
+                        placeholder: "This label is for all the internal services."
+                    },
+                    {
+                        field: {
+                            color: true,
+                        },
+                        title: 'Label Color',
+                        fieldType:
+                            FormFieldSchemaType.Color,
+                        required: true,
+                        placeholder: "Please select color for this label."
+                    }
+                ]}
                 columns={[
                     {
                         field: {
@@ -54,10 +91,10 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            name: true,
+                            description: true,
                         },
-                        title: 'Expires',
-                        type: TableColumnType.Date,
+                        title: 'Description',
+                        type: TableColumnType.Text,
                     },
                     {
                         title: 'Actions',

@@ -21,6 +21,7 @@ export interface ComponentProps {
     singularLabel: string;
     pluralLabel: string;
     onRefreshClick?: () => void;
+    noItemsMessage?: string; 
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -73,7 +74,7 @@ const Table: FunctionComponent<ComponentProps> = (
                             <p className='text-center color-light-grey' style={{
                                 marginTop: "50px",
                                 marginBottom: "50px"
-                            }}> No {props.singularLabel.toLocaleLowerCase()} </p>
+                            }}> {props.noItemsMessage ? props.noItemsMessage : `No ${props.singularLabel.toLocaleLowerCase()}`} </p>
                         </td>
                     </tr>
                 </tbody>
@@ -95,17 +96,18 @@ const Table: FunctionComponent<ComponentProps> = (
                     columns={props.columns}
                 />
                 {getTablebody()}
-                <Pagination
-                    singularLabel={props.singularLabel}
-                    pluralLabel={props.pluralLabel}
-                    currentPageNumber={props.currentPageNumber}
-                    totalItemsCount={props.totalItemsCount}
-                    itemsOnPage={props.itemsOnPage}
-                    onNavigateToPage={props.onNavigateToPage}
-                    isLoading={props.isLoading}
-                    isError={!!props.error}
-                />
+
             </table>
+            <Pagination
+                singularLabel={props.singularLabel}
+                pluralLabel={props.pluralLabel}
+                currentPageNumber={props.currentPageNumber}
+                totalItemsCount={props.totalItemsCount}
+                itemsOnPage={props.itemsOnPage}
+                onNavigateToPage={props.onNavigateToPage}
+                isLoading={props.isLoading}
+                isError={!!props.error}
+            />
         </div>
     );
 };

@@ -17,10 +17,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
 
     const isPreviousDisabled: boolean = (props.currentPageNumber === 1 || props.isLoading || props.isError);
     const isNextDisabled: boolean = (
-        props.currentPageNumber * props.itemsOnPage < props.totalItemsCount
+        props.currentPageNumber * props.itemsOnPage >= props.totalItemsCount
         || props.isLoading || props.isError
     );
-    const isCurrentPageButtonDisabled: boolean = props.isLoading || props.isError;
+    const isCurrentPageButtonDisabled: boolean = props.totalItemsCount === 0 || props.isLoading || props.isError;
 
     return (
         <div className='justify-space-between'>
@@ -31,9 +31,13 @@ const Pagination: FunctionComponent<ComponentProps> = (
             </div>
             <div>
                 <nav className="" aria-label="Page navigation example" style={{
-                    "height": "54px"
+                    "height": "45px"
                 }}>
-                    <ul className="pagination">
+                    <ul className="pagination" style={{
+                        marginTop: "15px",
+                        marginBottom: "15px",
+                        marginRight: "15px",
+                    }}>
                         <li onClick={() => {
                             if (props.onNavigateToPage && !isPreviousDisabled) {
                                 props.onNavigateToPage(props.currentPageNumber - 1);

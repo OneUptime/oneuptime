@@ -7,27 +7,16 @@ import NavBarMenuColumn from 'CommonUI/src/Components/Navbar/NavBarMenuColumn';
 import Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import Project from 'Common/Models/Project';
-import RouteParams from '../../Utils/RouteParams';
 
 export interface ComponentProps {
     currentProject: Project | null;
 }
 
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+    _props: ComponentProps
 ) => {
-    const addRouteParam: Function = (route: Route): Route => {
-        if (!props.currentProject || !props.currentProject._id) {
-            return route;
-        }
-
-        return route.addRouteParam(
-            RouteParams.ProjectID,
-            props.currentProject._id
-        );
-    };
 
     return (
         <NavBar
@@ -35,38 +24,38 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 <NavBarItem
                     title="Project Settings"
                     icon={IconProp.Settings}
-                    route={addRouteParam(RouteMap[PageMap.SETTINGS] as Route)}
+                    route={RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route)}
                 ></NavBarItem>
             }
         >
             <NavBarItem
                 title="Home"
                 icon={IconProp.Home}
-                route={addRouteParam(RouteMap[PageMap.HOME] as Route)}
+                route={RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route)}
             ></NavBarItem>
 
             <NavBarItem
                 title="Monitors"
-                route={addRouteParam(RouteMap[PageMap.MONITORS] as Route)}
+                route={RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route)}
                 icon={IconProp.Activity}
             ></NavBarItem>
 
             <NavBarItem
                 title="Incidents"
-                route={addRouteParam(RouteMap[PageMap.INCIDENTS] as Route)}
+                route={RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENTS] as Route)}
                 icon={IconProp.Alert}
             ></NavBarItem>
 
             <NavBarItem
                 title="On-Call Duty"
-                route={addRouteParam(RouteMap[PageMap.ON_CALL] as Route)}
+                route={RouteUtil.populateRouteParams(RouteMap[PageMap.ON_CALL] as Route)}
                 icon={IconProp.Call}
             ></NavBarItem>
 
             <NavBarItem
                 title="Status Pages"
                 icon={IconProp.CheckCircle}
-                route={addRouteParam(RouteMap[PageMap.STATUS_PAGE] as Route)}
+                route={RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGE] as Route)}
             ></NavBarItem>
 
             <NavBarItem title="More" icon={IconProp.More}>
@@ -74,14 +63,14 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                     <NavBarMenuColumn title="More">
                         <NavBarMenuItem
                             title="Logs Management"
-                            route={addRouteParam(
+                            route={RouteUtil.populateRouteParams(
                                 RouteMap[PageMap.LOGS] as Route
                             )}
                             icon={IconProp.Terminal}
                         />
                         <NavBarMenuItem
                             title="Error Tracker"
-                            route={addRouteParam(
+                            route={RouteUtil.populateRouteParams(
                                 RouteMap[PageMap.ERROR_TRACKER] as Route
                             )}
                             icon={IconProp.Error}
@@ -90,14 +79,14 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                     <NavBarMenuColumn title="Advanced">
                         <NavBarMenuItem
                             title="Automation Scripts"
-                            route={addRouteParam(
+                            route={RouteUtil.populateRouteParams(
                                 RouteMap[PageMap.AUTOMATION_SCRIPTS] as Route
                             )}
                             icon={IconProp.Code}
                         />
                         <NavBarMenuItem
                             title="Reports"
-                            route={addRouteParam(
+                            route={RouteUtil.populateRouteParams(
                                 RouteMap[PageMap.REPORTS] as Route
                             )}
                             icon={IconProp.Report}

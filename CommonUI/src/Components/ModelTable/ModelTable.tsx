@@ -28,7 +28,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isCreateable: boolean;
     disablePagination?: boolean;
     select: Select<TBaseModel>;
-    createFormFields?: Fields<TBaseModel>
+    formFields?: Fields<TBaseModel>;
+    noItemsMessage?: string;
 }
 
 enum ModalType {
@@ -39,7 +40,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
 
-    const columns: Array<TableColumn> = [];
+    const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
+    const [cardButtons, setCardButtons] = useState<Array<ReactElement>>([]);
     const model: TBaseModel = new props.type();
 
     const [data, setData] = useState<Array<TBaseModel>>([]);
@@ -82,10 +84,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
+
+        const columns = [];
         for (const column of props.columns) {
             columns.push({
                 title: column.title,
-                disbaleSort: column.disbaleSort || false,
+                disableSort: column.disableSort || false,
                 type: column.type,
                 key: column.field
                     ? (Object.keys(column.field)[0] as string)
@@ -93,10 +97,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             });
         }
 
+
+
         // add header buttons. 
 
         if (props.isCreateable) {
-            props.cardProps.buttons = [
+            setCardButtons([
                 <Button
                     key={1}
                     title={`Create ${model.singularName}`}
@@ -107,16 +113,18 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     icon={IconProp.Add}
                 />,
-            ]
+            ])
         }
 
+        setColumns(columns);
         fetchItems();
-        
+
+
     }, []);
 
     return (
         <>
-            <Card {...props.cardProps} cardBodyStyle={{"padding": "0px"}}>
+            <Card {...props.cardProps} cardBodyStyle={{ "padding": "0px" }} buttons={cardButtons}>
                 <Table
                     singularLabel={model.singularName || 'Item'}
                     pluralLabel={model.pluralName || 'Items'}
@@ -126,12 +134,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     totalItemsCount={totalItemsCount}
                     data={BaseModel.toJSONArray(data)}
                     id={props.id}
-                    columns={columns}
+                    columns={tableColumns}
                     itemsOnPage={props.itemsOnPage}
                     disablePagination={props.disablePagination || false}
                     onNavigateToPage={(pageNumber: number) => {
                         setCurrentPageNumber(pageNumber);
                     }}
+                    noItemsMessage={props.noItemsMessage || ''}
                     onRefreshClick={() => {
                         fetchItems();
                     }}
@@ -140,7 +149,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             {showModel ? (
                 <ModelFromModal<TBaseModel>
-                    title={ modalType === ModalType.Create ? `Create New ${model.singularName}` : `Edit ${model.singularName}`}
+                    title={modalType === ModalType.Create ? `Create New ${model.singularName}` : `Edit ${model.singularName}`}
                     onClose={() => {
                         setShowModal(false);
                     }}
@@ -151,10 +160,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     formProps={{
                         model: model,
                         id: `create-${props.type.name}-from`,
-                        fields: props.createFormFields || [],
+                        fields: props.formFields || [],
                         formType: ModalType.Create ? FormType.Create : FormType.Update,
                     }}
-                    
+
                 />
             ) : (
                 <></>
