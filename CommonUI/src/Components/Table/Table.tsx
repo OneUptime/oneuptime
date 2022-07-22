@@ -6,6 +6,7 @@ import Columns from './Types/Columns';
 import Pagination from './Pagination';
 import Loader, { LoaderType } from '../Loader/Loader';
 import { VeryLightGrey } from '../../Utils/BrandColors';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -21,7 +22,8 @@ export interface ComponentProps {
     singularLabel: string;
     pluralLabel: string;
     onRefreshClick?: () => void;
-    noItemsMessage?: string; 
+    noItemsMessage?: string;
+    onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -94,6 +96,7 @@ const Table: FunctionComponent<ComponentProps> = (
                 <TableHeader
                     id={`${props.id}-header`}
                     columns={props.columns}
+                    onSortChanged={props.onSortChanged}
                 />
                 {getTablebody()}
 

@@ -13,6 +13,7 @@ import ModelFromModal from '../ModelFormModal/ModelFormModal';
 import { IconProp } from '../Icon/Icon';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -51,6 +52,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
     const [showModel, setShowModal] = useState<boolean>(false);
     const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
+    const [sortBy, setSortBy] = useState<string>("");
+    const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
     const fetchItems = async () => {
 
@@ -61,7 +64,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         try {
-            const listResult: ListResult<TBaseModel> = await ModelAPI.getList<TBaseModel>(props.type, {}, props.itemsOnPage, currentPageNumber * props.itemsOnPage, props.select, {});
+            const listResult: ListResult<TBaseModel> = await ModelAPI.getList<TBaseModel>(props.type, {}, props.itemsOnPage, currentPageNumber * props.itemsOnPage, props.select, {
+                [sortBy as any]: sortOrder
+            });
 
             setTotalItemsCount(listResult.count);
             setData(listResult.data);
@@ -79,7 +84,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         fetchItems();
-    }, [currentPageNumber])
+    }, [currentPageNumber, sortBy, sortOrder])
 
 
     useEffect(() => {
@@ -126,6 +131,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         <>
             <Card {...props.cardProps} cardBodyStyle={{ "padding": "0px" }} buttons={cardButtons}>
                 <Table
+                    onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
+                        setSortBy(sortBy);
+                        setSortOrder(sortOrder);
+                    }}
                     singularLabel={model.singularName || 'Item'}
                     pluralLabel={model.pluralName || 'Items'}
                     error={error}
