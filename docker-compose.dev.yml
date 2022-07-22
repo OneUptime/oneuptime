@@ -69,7 +69,7 @@ services:
             - ./CommonServer/.env
             - ./SAML/.env
         volumes:
-            - ./saml/users.php:/var/www/simplesamlphp/config/authsources.php
+            - ./SAML/users.php:/var/www/simplesamlphp/config/authsources.php
 
     redis:
         image: redis:5.0.7
