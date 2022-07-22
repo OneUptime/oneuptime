@@ -1,13 +1,19 @@
 import Color from 'Common/Types/Color';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import CircularIconImage from '../../Icon/CircularIconImage';
 import Icon, { IconProp } from '../../Icon/Icon';
+import Project from 'Common/Models/Project';
+import ProjectPickerMenu from './ProjectPickerMenu';
+import ProjectPickerMenuItem from './ProjectPickerMenuItem';
+import CreateNewProjectButton from './CreateNewProjectButton';
 
 export interface ComponentProps {
-    children: ReactElement | Array<ReactElement>;
-    icon: IconProp;
-    title: string;
+    projects: Array<Project>;
+    selectedProjectIcon: IconProp;
+    selectedProjectName: string;
+    onCreateProjectButtonClicked: () => void;
+    onProjectSelected: (project: Project) => void;
 }
 
 const ProjectPicker: FunctionComponent<ComponentProps> = (
@@ -15,6 +21,8 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const { ref, isComponentVisible, setIsComponentVisible } =
         useComponentOutsideClick(false);
+
+    const [filterValue, setFilterValue] = useState<string>('');
 
     return (
         <div className="d-inline-block dropdown">
@@ -26,16 +34,69 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                 aria-haspopup="true"
                 className="btn header-item flex items-center pr-30"
                 aria-expanded="false"
+                style={{
+                    paddingLeft: '0px',
+                    marginLeft: '-8px',
+                }}
             >
                 <CircularIconImage
-                    icon={props.icon}
+                    icon={props.selectedProjectIcon}
                     iconColor={new Color('#000')}
                     backgroundColor={new Color('#fff')}
                 />
-                <h6 className="mb-0">{props.title}</h6>
+                <h6 className="mb-0">{props.selectedProjectName}</h6>
                 <Icon icon={IconProp.ChevronDown} />
             </button>
-            <div ref={ref}>{isComponentVisible && props.children}</div>
+            <div ref={ref}>
+                {isComponentVisible && (
+                    <ProjectPickerMenu
+                        onFilter={(value: string) => {
+                            setFilterValue(value.trim());
+                        }}
+                    >
+                        <>
+                            {props.projects && props.projects.length > 0 ? (
+                                props.projects
+                                    .filter((project: Project) => {
+                                        if (!filterValue) {
+                                            return true;
+                                        }
+                                        return (
+                                            project.name &&
+                                            project.name
+                                                .toLowerCase()
+                                                .includes(filterValue)
+                                        );
+                                    })
+                                    .map((project: Project, i: number) => {
+                                        return (
+                                            <ProjectPickerMenuItem
+                                                key={i}
+                                                project={project}
+                                                onProjectSelected={(
+                                                    project: Project
+                                                ) => {
+                                                    props.onProjectSelected(
+                                                        project
+                                                    );
+                                                }}
+                                                icon={IconProp.Folder}
+                                            />
+                                        );
+                                    })
+                            ) : (
+                                <></>
+                            )}
+                        </>
+                        <CreateNewProjectButton
+                            onCreateButtonClicked={() => {
+                                setIsComponentVisible(false);
+                                props.onCreateProjectButtonClicked();
+                            }}
+                        />
+                    </ProjectPickerMenu>
+                )}
+            </div>
         </div>
     );
 };

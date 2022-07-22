@@ -4,6 +4,7 @@ enum ColumnType {
     HashedString,
     Password,
     Email,
+    Color,
     Slug,
     Name,
     Description,

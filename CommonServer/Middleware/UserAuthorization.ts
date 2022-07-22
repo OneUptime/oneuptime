@@ -3,13 +3,18 @@ import {
     ExpressRequest,
     NextFunction,
     OneUptimeRequest,
-    AuthorizationType,
 } from '../Utils/Express';
 import UserService from '../Services/UserService';
 import ProjectMiddleware from './ProjectAuthorization';
 import JSONWebToken from '../Utils/JsonWebToken';
 import ObjectID from 'Common/Types/ObjectID';
-import UserRole from 'Common/Types/UserRole';
+import OneUptimeDate from 'Common/Types/Date';
+import UserType from 'Common/Types/UserType';
+import {
+    UserGlobalAccessPermission,
+    UserProjectAccessPermission,
+} from 'Common/Types/Permission';
+import AccessTokenService from '../Services/AccessTokenService';
 
 export default class UserMiddleware {
     /*
@@ -57,36 +62,62 @@ export default class UserMiddleware {
             }
         }
 
-        const accessToken: string | null = this.getAccessToken(req);
+        const accessToken: string | null = UserMiddleware.getAccessToken(req);
 
         if (!accessToken) {
-            oneuptimeRequest.authorizationType = AuthorizationType.Public;
+            oneuptimeRequest.userType = UserType.Public;
             return next();
         }
 
         oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
 
         if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
-            oneuptimeRequest.authorizationType = AuthorizationType.MasterAdmin;
+            oneuptimeRequest.userType = UserType.MasterAdmin;
         } else {
-            oneuptimeRequest.authorizationType = AuthorizationType.User;
+            oneuptimeRequest.userType = UserType.User;
         }
 
         await UserService.updateOneBy({
             query: {
                 _id: oneuptimeRequest.userAuthorization.userId.toString(),
             },
-            data: { lastActive: Date.now() },
+            props: { isRoot: true },
+            data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
-        const userRole: UserRole | undefined | null =
-            projectId &&
-            oneuptimeRequest.userAuthorization.roles.find((role: UserRole) => {
-                return role.projectId.toString() === role.projectId.toString();
-            });
+        let userGlobalAccessPermission: UserGlobalAccessPermission | null =
+            await AccessTokenService.getUserGlobalAccessPermission(
+                oneuptimeRequest.userAuthorization.userId
+            );
 
-        if (userRole) {
-            oneuptimeRequest.role = userRole.role;
+        if (!userGlobalAccessPermission) {
+            userGlobalAccessPermission =
+                await AccessTokenService.refreshUserGlobalAccessPermission(
+                    oneuptimeRequest.userAuthorization.userId
+                );
+        }
+
+        oneuptimeRequest.userGlobalAccessPermission =
+            userGlobalAccessPermission;
+
+        if (projectId) {
+            // get project level permissions if projectid exists in request.
+
+            let userProjectAccessPermission: UserProjectAccessPermission | null =
+                await AccessTokenService.getUserProjectAccessPermission(
+                    oneuptimeRequest.userAuthorization.userId,
+                    projectId
+                );
+            if (!userProjectAccessPermission) {
+                userProjectAccessPermission =
+                    await AccessTokenService.refreshUserProjectAccessPermission(
+                        oneuptimeRequest.userAuthorization.userId,
+                        projectId
+                    );
+            }
+
+            oneuptimeRequest.userProjectAccessPermission =
+                userProjectAccessPermission;
         }
 
         return next();

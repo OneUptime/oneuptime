@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import ColumnType from '../Types/Database/ColumnType';
@@ -9,28 +9,66 @@ import TableColumn from '../Types/Database/TableColumn';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
+import SlugifyColumn from '../Types/Database/SlugifyColumn';
+import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
+import Permission from '../Types/Permission';
+import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
+import ProjectColumn from '../Types/Database/ProjectColumn';
 
+@TableAccessControl({
+    create: [Permission.User],
+    read: [Permission.ProjectMember],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteProject],
+    update: [
+        Permission.ProjectOwner,
+        Permission.CanManageProjectBilling,
+        Permission.CanUpdateProject,
+    ],
+})
 @CrudApiEndpoint(new Route('/project'))
+@SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Project',
 })
+@ProjectColumn('_id')
 export default class Model extends BaseModel {
-    @TableColumn({ required: true, type: TableColumnType.Name })
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+            Permission.CanUpdateProject,
+        ],
+    })
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
         nullable: false,
-        type: ColumnType.Name,
-        length: ColumnLength.Name,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
     })
     public name?: string = undefined;
 
+    @Index()
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
+        update: [],
+    })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
+        unique: true,
     })
     public slug?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -40,6 +78,11 @@ export default class Model extends BaseModel {
     })
     public paymentProviderPlanId?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
@@ -49,7 +92,15 @@ export default class Model extends BaseModel {
     })
     public paymentProviderSubscriptionId?: string = undefined;
 
-    @TableColumn({ type: TableColumnType.SmallPositiveNumber })
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectMember],
+        update: [],
+    })
+    @TableColumn({
+        type: TableColumnType.SmallPositiveNumber,
+        isDefaultValueColumn: true,
+    })
     @Column({
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
@@ -58,6 +109,11 @@ export default class Model extends BaseModel {
     })
     public numberOfLicensesIssued?: PositiveNumber;
 
+    @ColumnAccessControl({
+        create: [Permission.User],
+        read: [Permission.ProjectMember],
+        update: [],
+    })
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
@@ -76,6 +132,11 @@ export default class Model extends BaseModel {
     @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectMember],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
@@ -84,6 +145,11 @@ export default class Model extends BaseModel {
     })
     public createdByUserId?: ObjectID;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
     @TableColumn({
         manyToOneRelationColumn: 'deletedByUserId',
         type: TableColumnType.ObjectID,
@@ -103,16 +169,33 @@ export default class Model extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectMember],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: false,
+        nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
-        default: ObjectID.generate(),
     })
-    public apiKey?: ObjectID;
+    public deletedByUserId?: ObjectID;
 
-    @TableColumn({ required: true, type: TableColumnType.Boolean })
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectMember],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanManageProjectBilling,
+            Permission.CanUpdateProject,
+        ],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Boolean,
+        isDefaultValueColumn: true,
+    })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -121,7 +204,16 @@ export default class Model extends BaseModel {
     })
     public alertsEnabled?: boolean = undefined;
 
-    @TableColumn({ required: true, type: TableColumnType.SmallPositiveNumber })
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanManageProjectBilling],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.SmallPositiveNumber,
+        isDefaultValueColumn: true,
+    })
     @Column({
         type: ColumnType.SmallPositiveNumber,
         nullable: false,
@@ -130,7 +222,16 @@ export default class Model extends BaseModel {
     })
     public alertAccountBalance?: number;
 
-    @TableColumn({ required: true, type: TableColumnType.Boolean })
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Boolean,
+        isDefaultValueColumn: true,
+    })
     @Column({
         type: ColumnType.Boolean,
         nullable: false,
@@ -139,6 +240,11 @@ export default class Model extends BaseModel {
     })
     public isBlocked?: boolean = undefined;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.SmallPositiveNumber })
     @Column({
         type: ColumnType.SmallPositiveNumber,
@@ -147,6 +253,11 @@ export default class Model extends BaseModel {
     })
     public unpaidSubscriptionNotificationCount?: PositiveNumber;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
         type: ColumnType.Date,
@@ -155,6 +266,11 @@ export default class Model extends BaseModel {
     })
     public paymentFailedDate?: Date = undefined;
 
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.Date })
     @Column({
         type: ColumnType.Date,

@@ -1,16 +1,17 @@
-import ProjectService from '../Services/ProjectService';
+import ApiKeyService from '../Services/ApiKeyService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import {
-    AuthorizationType,
     ExpressRequest,
     ExpressResponse,
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
 
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import Role from 'Common/Types/Role';
+import ApiKey from 'Common/Models/ApiKey';
+import { LessThan } from 'typeorm';
+import OneUptimeDate from 'Common/Types/Date';
+import UserType from 'Common/Types/UserType';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -67,16 +68,20 @@ export default class ProjectMiddleware {
             throw new BadDataException('ApiKey not found in the request');
         }
 
-        const projectCount: PositiveNumber = await ProjectService.countBy({
+        const apiKeyModel: ApiKey | null = await ApiKeyService.findOneBy({
             query: {
-                _id: projectId.toString(),
+                projectId: projectId,
                 apiKey: apiKey,
+                expiresAt: LessThan(OneUptimeDate.getCurrentDate()),
             },
+            props: { isRoot: true },
         });
 
-        if (projectCount.toNumber() > 0) {
-            (req as OneUptimeRequest).authorizationType = AuthorizationType.API;
-            (req as OneUptimeRequest).role = Role.Administrator;
+        if (apiKeyModel) {
+            (req as OneUptimeRequest).userType = UserType.API;
+            // TODO: Add API key permissions.
+            // (req as OneUptimeRequest).permissions =
+            //     apiKeyModel.permissions || [];
             (req as OneUptimeRequest).projectId = projectId;
             return next();
         }

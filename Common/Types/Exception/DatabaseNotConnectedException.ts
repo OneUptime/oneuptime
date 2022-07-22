@@ -2,10 +2,10 @@ import Exception from './Exception';
 import ExceptionCode from './ExceptionCode';
 
 export default class DatabaseNotConnectedException extends Exception {
-    public constructor() {
+    public constructor(message?: string) {
         super(
             ExceptionCode.DatabaseNotConnectedException,
-            'Database not connected'
+            message || 'Database not connected'
         );
     }
 }

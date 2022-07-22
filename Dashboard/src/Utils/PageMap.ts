@@ -14,8 +14,16 @@ enum PageMap {
     // Settings Routes
     SETTINGS = 'SETTINGS',
     SETTINGS_DANGERZONE = 'SETTINGS_DANGERZONE',
+
+    // API Keys.
     SETTINGS_APIKEYS = 'SETTINGS_APIKEYS',
     SETTINGS_CREATE_APIKEY = 'SETTINGS_CREATE_APIKEY',
+
+    // Labels.
+    SETTINGS_LABELS = 'SETTINGS_LABELS',
+
+    // Misc
+    LOGOUT = 'LOGOUT',
 }
 
 export default PageMap;

@@ -11,7 +11,8 @@
         "react-icons": "^4.4.0",
         "react-router": "^6.3.0",
         "react-router-dom": "^6.3.0",
-        "typescript": "^4.6.4"
+        "typescript": "^4.6.4",
+        "use-async-effect": "^2.2.6"
     },
     "scripts": {
         "dev": "webpack-dev-server --port=3009 --mode=development",

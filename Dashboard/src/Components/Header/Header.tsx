@@ -7,13 +7,24 @@ import ProjectPicker from './ProjectPicker';
 // import ObjectID from 'Common/Types/ObjectID';
 
 import Header from 'CommonUI/src/Components/Header/Header';
+import Project from 'Common/Models/Project';
 
-const DashboardHeader: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+    projects: Array<Project>;
+    onProjectSelected: (project: Project) => void;
+}
+
+const DashboardHeader: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <Header
             leftComponents={
                 <>
-                    <ProjectPicker />
+                    <ProjectPicker
+                        projects={props.projects}
+                        onProjectSelected={props.onProjectSelected}
+                    />
                     <SearchBox key={2} onChange={(_value: string) => {}} />
                 </>
             }

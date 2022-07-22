@@ -1,17 +1,14 @@
-import React, { ReactElement, useState } from 'react';
-import { FormikErrors } from 'formik';
+import React, { MutableRefObject, ReactElement, useState } from 'react';
+import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import BasicModelForm from './BasicModelForm';
 import { JSONArray, JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import API from '../../Utils/API/API';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import Route from 'Common/Types/API/Route';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import { DASHBOARD_API_URL } from '../../Config';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export enum FormType {
     Create,
@@ -19,6 +16,7 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
+    type: { new (): TBaseModel };
     model: TBaseModel;
     id: string;
     onValidate?: (
@@ -38,9 +36,12 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     maxPrimaryButtonWidth?: boolean;
     apiUrl?: URL;
     formType: FormType;
+    hideSubmitButton?: boolean;
+    formRef?: MutableRefObject<FormikProps<FormikValues>>;
+    onLoadingChange?: (isLoading: boolean) => void;
 }
 
-const CreateModelForm: Function = <TBaseModel extends BaseModel>(
+const ModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isLoading, setLoading] = useState<boolean>(false);
@@ -50,39 +51,36 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
         // Ping an API here.
         setError('');
         setLoading(true);
-        let apiUrl: URL | null = props.apiUrl || null;
-
-        if (!apiUrl) {
-            const apiPath: Route | null = props.model.getCrudApiPath();
-            if (!apiPath) {
-                throw new BadDataException(
-                    'This model does not support CRUD operations.'
-                );
-            }
-
-            apiUrl = DASHBOARD_API_URL.addRoute(apiPath);
+        if (props.onLoadingChange) {
+            props.onLoadingChange(true);
         }
 
-        const result: HTTPResponse<
+        let result: HTTPResponse<
             JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-        > = await API.fetch<
-            JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
-        >(
-            props.formType === FormType.Create
-                ? HTTPMethod.POST
-                : HTTPMethod.PUT,
-            apiUrl,
-            values
-        );
+        >;
 
-        setLoading(false);
+        try {
+            result = await ModelAPI.createOrUpdate<TBaseModel>(
+                props.model.fromJSON(values, props.type),
+                props.formType,
+                props.apiUrl
+            );
 
-        if (result.isSuccess()) {
             if (props.onSuccess) {
                 props.onSuccess(result.data);
             }
-        } else {
-            setError((result.data as JSONObject)['error'] as string);
+        } catch (err) {
+            setError(
+                ((err as HTTPErrorResponse).data as JSONObject)[
+                    'error'
+                ] as string
+            );
+        }
+
+        setLoading(false);
+
+        if (props.onLoadingChange) {
+            props.onLoadingChange(false);
         }
     };
 
@@ -103,8 +101,10 @@ const CreateModelForm: Function = <TBaseModel extends BaseModel>(
             onCancel={props.onCancel}
             maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
             error={error}
+            hideSubmitButton={props.hideSubmitButton}
+            formRef={props.formRef}
         ></BasicModelForm>
     );
 };
 
-export default CreateModelForm;
+export default ModelForm;

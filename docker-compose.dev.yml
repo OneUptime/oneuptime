@@ -72,12 +72,14 @@ services:
             - ./SAML/users.php:/var/www/simplesamlphp/config/authsources.php
 
     redis:
-        image: redis:5.0.7
+        image: redis:7.0.3
         ports:
-            - '6390:6379'
-        command: redis-server
+            - '6379:6379'
+        command: redis-server /usr/local/etc/redis/redis.conf
         env_file:
             - ./Redis/.env
+        volumes:
+            - ./Redis/redis.conf:/usr/local/etc/redis/redis.conf
 
     accounts:
         ports:
@@ -314,32 +316,38 @@ services:
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
 
-    # dashboard-api:
-    #     ports:
-    #         - '3002:3002' # Service Port.
-    #         - '9232:9229' # Debugging port.
-    #     build:
-    #         network: host
-    #         context: .
-    #         dockerfile: ./DashboardAPI/Dockerfile.dev
-    #     env_file:
-    #         - ./Common/.env
-    #         - ./CommonServer/.env
-    #         - ./DashboardAPI/.env
-    #     environment: *common-variables
-    #     depends_on:
-    #         - redis
-    #     volumes:
-    #         - ./DashboardAPI:/usr/src/app
-    #         # Use node modules of the container and not host system.
-    #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
-    #         - /usr/src/app/node_modules/
-    #         - ./Common:/usr/src/Common
-    #         - ./CommonServer:/usr/src/CommonServer
-    #         - ./CommonUI:/usr/src/CommonUI
-    #         - /usr/src/Common/node_modules/
-    #         - /usr/src/CommonUI/node_modules/
-    #         - /usr/src/CommonServer/node_modules/
+    dashboard-api:
+        ports:
+            - '3002:3002'
+            - '9232:9229' # Debugging port.
+        build:
+            network: host
+            context: .
+            dockerfile: ./DashboardAPI/Dockerfile.dev
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./DashboardAPI/.env
+        environment: *common-variables
+        depends_on:
+            - redis
+            - postgres
+            - mail
+        links:
+            - redis
+            - postgres
+            - mail
+        volumes:
+            - ./DashboardAPI:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
 
     identity:
         ports:
@@ -631,6 +639,7 @@ services:
         depends_on:
             - identity
             - accounts
+            - dashboard-api
             - dashboard
             - home
         restart: always

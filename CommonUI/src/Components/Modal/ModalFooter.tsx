@@ -1,11 +1,14 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
+import ButtonType from '../Button/ButtonTypes';
 
 export interface ComponentProps {
     onClose?: (() => void) | undefined;
     submitButtonText?: string;
     onSubmit: () => void;
-    submitButtonType?: ButtonStyleType;
+    submitButtonStyleType?: ButtonStyleType;
+    submitButtonType?: ButtonType;
+    isLoading?: boolean;
 }
 
 const ModalFooter: FunctionComponent<ComponentProps> = (
@@ -21,6 +24,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                         props.onClose && props.onClose();
                     }}
+                    isLoading={props.isLoading || false}
                 />
             ) : (
                 <></>
@@ -29,8 +33,8 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
             {props.onSubmit ? (
                 <Button
                     buttonStyle={
-                        props.submitButtonType
-                            ? props.submitButtonType
+                        props.submitButtonStyleType
+                            ? props.submitButtonStyleType
                             : ButtonStyleType.PRIMARY
                     }
                     title={
@@ -41,6 +45,12 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                         props.onSubmit();
                     }}
+                    isLoading={props.isLoading || false}
+                    type={
+                        props.submitButtonType
+                            ? props.submitButtonType
+                            : ButtonType.Button
+                    }
                 />
             ) : (
                 <></>

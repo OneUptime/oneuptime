@@ -7,4 +7,5 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 }
+
 export default new Service();

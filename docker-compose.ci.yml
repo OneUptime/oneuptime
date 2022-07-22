@@ -30,7 +30,7 @@ services:
             - ./saml/users.php:/var/www/simplesamlphp/config/authsources.php
 
     redis:
-        image: redis:5.0.7
+        image: redis:7.0.3
         ports:
             - '6379:6379'
         command: redis-server
@@ -42,7 +42,7 @@ services:
             - '3002:3002'
         build:
             context: .
-            dockerfile: ./dashboard-api/Dockerfile
+            dockerfile: ./DashboardAPI/Dockerfile
         env_file:
             - ./Common/.env
             - ./CommonServer/.env

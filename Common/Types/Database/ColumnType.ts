@@ -1,4 +1,5 @@
 enum ColumnType {
+    Color = 'varchar',
     Version = 'varchar',
     Phone = 'varchar',
     HashedString = 'varchar',
@@ -12,7 +13,8 @@ enum ColumnType {
     LongURL = 'text',
     ShortText = 'varchar',
     OTP = 'varchar',
-    LongText = 'text',
+    LongText = 'varchar',
+    VeryLongText = 'text',
     Date = 'timestamptz',
     Boolean = 'boolean',
     Array = 'simple-array',

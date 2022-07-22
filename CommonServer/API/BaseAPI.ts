@@ -4,6 +4,7 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
+    NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
 import UserMiddleware from '../Middleware/UserAuthorization';
@@ -11,7 +12,11 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
+import CreateBy from '../Types/Database/CreateBy';
+import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import Query from '../Types/Database/Query';
+import Select from '../Types/Database/Select';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -28,49 +33,134 @@ export default class BaseAPI<
 
         // Create
         router.post(
-            `${this.entityType.name}/`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}`,
             UserMiddleware.getUserMiddleware,
-            this.createItem
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.createItem(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
         );
 
         // List
-        router.get(
-            `${this.entityType.name}/list`,
+        router.post(
+            `/${new this.entityType().getCrudApiPath()?.toString()}/get`,
             UserMiddleware.getUserMiddleware,
-            this.getList
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.getList(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
         );
 
         // Get Item
         router.get(
-            `${this.entityType.name}/id/:id`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            this.getItem
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.getItem(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
         );
 
         // Update
         router.put(
-            `${this.entityType.name}/id/:id`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            this.updateItem
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.updateItem(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
         );
 
         // Delete
         router.delete(
-            `${this.entityType.name}/id/:id`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
-            this.deleteItem
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.deleteItem(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
         );
 
         this.router = router;
         this.service = service;
     }
 
+    public getDatabaseCommonInteractionProps(
+        req: ExpressRequest
+    ): DatabaseCommonInteractionProps {
+        const props: DatabaseCommonInteractionProps = {
+            projectId: undefined,
+            userGlobalAccessPermission: undefined,
+            userProjectAccessPermission: undefined,
+            userId: undefined,
+            userType: undefined,
+        };
+
+        if (
+            (req as OneUptimeRequest).userAuthorization &&
+            (req as OneUptimeRequest).userAuthorization?.userId
+        ) {
+            props.userId = (req as OneUptimeRequest).userAuthorization!.userId;
+        }
+
+        if ((req as OneUptimeRequest).userGlobalAccessPermission) {
+            props.userGlobalAccessPermission = (
+                req as OneUptimeRequest
+            ).userGlobalAccessPermission;
+        }
+
+        if ((req as OneUptimeRequest).userProjectAccessPermission) {
+            props.userProjectAccessPermission = (
+                req as OneUptimeRequest
+            ).userProjectAccessPermission;
+        }
+
+        if ((req as OneUptimeRequest).projectId) {
+            props.projectId = (req as OneUptimeRequest).projectId || undefined;
+        }
+
+        return props;
+    }
+
     public async getList(
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-
         const skip: PositiveNumber = req.query['skip']
             ? new PositiveNumber(req.query['skip'] as string)
             : new PositiveNumber(0);
@@ -83,17 +173,29 @@ export default class BaseAPI<
             throw new BadRequestException('Limit should be less than 50');
         }
 
-        const list: Array<BaseModel> = await this.service.getListByRole(
-            oneuptimeRequest.role,
-            {
-                query: {},
-                skip: skip,
-                limit: limit,
-            }
-        );
+        let query: Query<BaseModel> = {};
+        let select: Select<BaseModel> = {};
+
+        if (req.body && req.body['data']) {
+            query = JSONFunctions.deserialize(
+                req.body['data']['query']
+            ) as Query<BaseModel>;
+            select = JSONFunctions.deserialize(
+                req.body['data']['select']
+            ) as Select<BaseModel>;
+        }
+
+        const list: Array<BaseModel> = await this.service.findBy({
+            query,
+            select,
+            skip: skip,
+            limit: limit,
+            props: this.getDatabaseCommonInteractionProps(req),
+        });
 
         const count: PositiveNumber = await this.service.countBy({
             query: {},
+            props: this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendListResponse(req, res, list, count);
@@ -103,18 +205,12 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-        const item: BaseModel | null = await this.service.getItemByRole(
-            oneuptimeRequest.role,
-            {
-                query: {
-                    _id: objectId.toString(),
-                },
-            }
-        );
+        const item: BaseModel | null = await this.service.findOneById({
+            id: objectId,
+            props: this.getDatabaseCommonInteractionProps(req),
+        });
 
         return Response.sendItemResponse(req, res, item?.toJSON() || {});
     }
@@ -123,14 +219,13 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-        await this.service.deleteByRole(oneuptimeRequest.role, {
+        await this.service.deleteBy({
             query: {
                 _id: objectId.toString(),
             },
+            props: this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -140,8 +235,8 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
+        const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
@@ -149,11 +244,13 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
-        await this.service.updateByRole(oneuptimeRequest.role, {
+        // @ts-ignore
+        await this.service.updateBy({
             query: {
-                _id: objectId.toString(),
+                _id: objectIdString,
             },
             data: item,
+            props: this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -163,7 +260,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
@@ -171,10 +267,12 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
-        const savedItem: BaseModel = await this.service.createByRole(
-            oneuptimeRequest.role,
-            { data: item }
-        );
+        const createBy: CreateBy<TBaseModel> = {
+            data: item,
+            props: this.getDatabaseCommonInteractionProps(req),
+        };
+
+        const savedItem: BaseModel = await this.service.create(createBy);
 
         return Response.sendItemResponse(req, res, savedItem);
     }

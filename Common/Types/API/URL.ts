@@ -3,6 +3,7 @@ import Route from './Route';
 import Hostname from './Hostname';
 import DatabaseProperty from '../Database/DatabaseProperty';
 import { FindOperator } from 'typeorm';
+import Dictionary from '../Dictionary';
 
 export default class URL extends DatabaseProperty {
     private _route: Route = new Route();
@@ -11,6 +12,14 @@ export default class URL extends DatabaseProperty {
     }
     public set route(v: Route) {
         this._route = v;
+    }
+
+    private _params: Dictionary<string> = {};
+    public get params(): Dictionary<string> {
+        return this._params;
+    }
+    public set params(v: Dictionary<string>) {
+        this._params = v;
     }
 
     private _hostname!: Hostname;
@@ -59,7 +68,22 @@ export default class URL extends DatabaseProperty {
         } else {
             urlString += '/' + this.route.toString();
         }
+
+        if (Object.keys(this.params).length > 0) {
+            urlString += '?';
+
+            for (const key of Object.keys(this.params)) {
+                urlString += key + '=' + this.params[key] + '&';
+            }
+
+            urlString = urlString.substring(0, urlString.length - 1); // remove last &
+        }
+
         return urlString;
+    }
+
+    public static fromURL(url: URL): URL {
+        return URL.fromString(url.toString());
     }
 
     public static fromString(url: string): URL {
@@ -110,6 +134,19 @@ export default class URL extends DatabaseProperty {
             this.route.addRoute(route);
         }
 
+        return this;
+    }
+
+    public addQueryParam(paramName: string, value: string): URL {
+        this.params[paramName] = value;
+        return this;
+    }
+
+    public addQueryParams(params: Dictionary<string>): URL {
+        this.params = {
+            ...this.params,
+            ...params,
+        };
         return this;
     }
 

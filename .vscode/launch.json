@@ -12,8 +12,8 @@
         },
         {
             "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/backend",
-            "name": "Backend: Debug with Docker",
+            "localRoot": "${workspaceFolder}/DashboardAPI",
+            "name": "Dashboard API: Debug with Docker",
             "port": 9232,
             "remoteRoot": "/usr/src/app",
             "request": "attach",

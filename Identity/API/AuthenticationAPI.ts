@@ -44,12 +44,9 @@ router.post(
                 throw new BadRequestException('Sign up is disabled.');
             }
 
-            const data: JSONObject = req.body;
+            const data: JSONObject = req.body['data'];
 
-            const user: User = User.asPublicCreateable<User>(
-                data as JSONObject,
-                User
-            );
+            const user: User = User.fromJSON(data as JSONObject, User) as User;
 
             if (IsSaaSService) {
                 //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
@@ -66,6 +63,9 @@ router.post(
                         query: {
                             token: verificationToken,
                         },
+                        props: {
+                            isRoot: true,
+                        },
                     });
             }
 
@@ -74,6 +74,9 @@ router.post(
                 select: {
                     _id: true,
                     password: true,
+                },
+                props: {
+                    isRoot: true,
                 },
             });
 
@@ -94,12 +97,21 @@ router.post(
 
             let savedUser: User | null = null;
             if (alreadySavedUser) {
+                // @ts-ignore
                 savedUser = await UserService.updateOneByIdAndFetch({
                     id: alreadySavedUser.id!,
                     data: user,
+                    props: {
+                        isRoot: true,
+                    },
                 });
             } else {
-                savedUser = await UserService.create({ data: user });
+                savedUser = await UserService.create({
+                    data: user,
+                    props: {
+                        isRoot: true,
+                    },
+                });
             }
 
             if (alreadySavedUser) {
@@ -140,12 +152,7 @@ router.post(
 
             if (savedUser) {
                 const token: string = JSONWebToken.sign(
-                    {
-                        userId: savedUser.id!,
-                        email: savedUser.email!,
-                        isMasterAdmin: savedUser.isMasterAdmin!,
-                        roles: [],
-                    },
+                    savedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
@@ -170,12 +177,9 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            const data: JSONObject = req.body;
+            const data: JSONObject = req.body['data'];
 
-            const user: User = User.asPublicCreateable<User>(
-                data as JSONObject,
-                User
-            );
+            const user: User = User.fromJSON(data as JSONObject, User) as User;
 
             await user.password?.hashValue(EncryptionSecret);
 
@@ -188,16 +192,14 @@ router.post(
                     email: true,
                     isMasterAdmin: true,
                 },
+                props: {
+                    isRoot: true,
+                },
             });
 
             if (alreadySavedUser) {
                 const token: string = JSONWebToken.sign(
-                    {
-                        userId: alreadySavedUser.id!,
-                        email: alreadySavedUser.email!,
-                        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        roles: [],
-                    },
+                    alreadySavedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
@@ -223,13 +225,9 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            const data: JSONObject = req.body;
+            const data: JSONObject = req.body['data'];
 
-            const user: User = User.asPublicCreateable<User>(
-                data as JSONObject,
-                User
-            );
-
+            const user: User = User.fromJSON(data as JSONObject, User) as User;
             await user.password?.hashValue(EncryptionSecret);
 
             const alreadySavedUser: User | null = await UserService.findOneBy({
@@ -241,16 +239,14 @@ router.post(
                     email: true,
                     isMasterAdmin: true,
                 },
+                props: {
+                    isRoot: true,
+                },
             });
 
             if (alreadySavedUser) {
                 const token: string = JSONWebToken.sign(
-                    {
-                        userId: alreadySavedUser.id!,
-                        email: alreadySavedUser.email!,
-                        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        roles: [],
-                    },
+                    alreadySavedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
@@ -276,12 +272,9 @@ router.post(
         next: NextFunction
     ): Promise<void> => {
         try {
-            const data: JSONObject = req.body;
+            const data: JSONObject = req.body['data'];
 
-            const user: User = User.asPublicCreateable<User>(
-                data as JSONObject,
-                User
-            );
+            const user: User = User.fromJSON(data as JSONObject, User) as User;
 
             await user.password?.hashValue(EncryptionSecret);
 
@@ -294,16 +287,14 @@ router.post(
                     email: true,
                     isMasterAdmin: true,
                 },
+                props: {
+                    isRoot: true,
+                },
             });
 
             if (alreadySavedUser) {
                 const token: string = JSONWebToken.sign(
-                    {
-                        userId: alreadySavedUser.id!,
-                        email: alreadySavedUser.email!,
-                        isMasterAdmin: alreadySavedUser.isMasterAdmin!,
-                        roles: [],
-                    },
+                    alreadySavedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
