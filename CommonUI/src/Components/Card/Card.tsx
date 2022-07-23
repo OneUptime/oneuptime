@@ -22,7 +22,7 @@ const Card: FunctionComponent<ComponentProps> = (
                             className="card-header justify-space-between"
                         >
                             <div>
-                                <h4 className="card-title">{props.icon ? <span><Icon icon={props.icon} thick={ThickProp.Thick} />&nbsp;</span> : <></>}{props.title}</h4>
+                                <h4 className="card-title flex">{props.icon ? <span><Icon icon={props.icon} thick={ThickProp.Thick} />&nbsp;</span> : <></>}{props.title}</h4>
                                 <p className="card-title-desc">
                                     {props.description}
                                 </p>

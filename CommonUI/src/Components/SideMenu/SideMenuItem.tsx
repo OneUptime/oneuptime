@@ -21,7 +21,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
         <UILink
             className={`${
                 props.className ? props.className : ''
-            } primary-on-hover pointer ${
+            } primary-on-hover pointer flex ${
                 Navigation.isOnThisPage(props.link.to) ? 'active' : ''
             }`}
             to={props.link.to}

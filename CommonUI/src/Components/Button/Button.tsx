@@ -138,7 +138,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                     <div>
                         <div></div>
                     </div>
-                    <span>
+                    <span className='flex'>
                         <span>
                             {icon && !showIconOnRight && (
                                 <Icon

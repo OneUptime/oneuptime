@@ -23,7 +23,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
             }`}
         >
             <Link
-                className="nav-link dropdown-toggle arrow-none"
+                className="flex nav-link dropdown-toggle arrow-none"
                 to={props.route ? props.route : null}
             >
                 {props.icon ? <Icon icon={props.icon} /> : <></>}

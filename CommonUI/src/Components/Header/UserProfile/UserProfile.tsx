@@ -24,7 +24,7 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                 }}
                 id="page-header-user-dropdown"
                 aria-haspopup="true"
-                className="btn header-item bg-soft-light border-start border-end"
+                className="btn header-item bg-soft-light border-start border-end flex"
                 aria-expanded="false"
             >
                 <img

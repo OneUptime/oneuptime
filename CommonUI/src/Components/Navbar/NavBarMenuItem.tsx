@@ -23,7 +23,7 @@ const NavBarMenuItem: FunctionComponent<ComponentProps> = (
 
     const getDropdownItem: Function = (): ReactElement => {
         return (
-            <Link className="dropdown-item" to={props.route}>
+            <Link className="dropdown-item flex" to={props.route}>
                 {props.icon ? (
                     <>
                         <Icon icon={props.icon} size={SizeProp.Large} /> &nbsp;

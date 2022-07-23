@@ -119,7 +119,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     thick = ThickProp.Normal,
 }: ComponentProps): ReactElement => {
     return (
-        <span
+        <div
             style={{
                 cursor: 'pointer',
             }}
@@ -403,7 +403,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                     color={color ? color.toString() : ''}
                 />
             )}
-        </span>
+        </div>
     );
 };
 

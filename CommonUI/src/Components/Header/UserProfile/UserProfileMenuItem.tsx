@@ -16,7 +16,7 @@ const UserProfile: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <Link to={props.route} onClick={undefined} className="dropdown-item">
+        <Link to={props.route} onClick={undefined} className="dropdown-item flex">
             {props.badge ? (
                 <span className="badge bg-success float-end">
                     {props.badge}
