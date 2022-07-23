@@ -8,6 +8,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import ButtonType from '../Button/ButtonTypes';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import { FormikProps, FormikValues } from 'formik';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
@@ -19,6 +20,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     ) => void);
     submitButtonStyleType?: undefined | ButtonStyleType;
     formProps: ModelFormComponentProps<TBaseModel>;
+    modelIdToEdit?: ObjectID | undefined;
 }
 
 const ModelFromModal: Function = <TBaseModel extends BaseModel>(

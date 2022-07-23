@@ -8,7 +8,7 @@ import Loader, { LoaderType } from '../Loader/Loader';
 import { VeryLightGrey } from '../../Utils/BrandColors';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Dictionary from 'Common/Types/Dictionary';
-import ActionButtonSchema from './Types/ActionButtonSchema';
+import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -29,7 +29,7 @@ export interface ComponentProps {
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
     showFilter?: undefined | boolean;
     onFilterChanged?: undefined | ((filterData: Dictionary<string | boolean>) => void); 
-    onActionEvent?: undefined | ((key: string, item: JSONObject) => void) | undefined;
+    onActionEvent?: ((actionType: ActionType, item: JSONObject) => void) | undefined;
 }
 
 const Table: FunctionComponent<ComponentProps> = (

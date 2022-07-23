@@ -16,6 +16,9 @@ import Fields from '../Forms/Types/Fields';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import TableColumnType from '../Table/Types/TableColumnType';
 import Dictionary from 'Common/Types/Dictionary';
+import ActionButtonSchema, { ActionType } from '../Table/Types/ActionButtonSchema';
+import ObjectID from 'Common/Types/ObjectID';
+import ConfirmModal from '../Modal/ConfirmModal';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -48,6 +51,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [cardButtons, setCardButtons] = useState<Array<ReactElement>>([]);
     const model: TBaseModel = new props.type();
     const [select, setSelect] = useState<Select<TBaseModel>>({});
+    const [actionButtonSchema, setActionButtonSchema] = useState<Array<ActionButtonSchema>>([]);
 
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
@@ -59,6 +63,31 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
     const [sortBy, setSortBy] = useState<string>("");
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
+    const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
+    const [currentEditableItem, setCurrentEditableItem] = useState<JSONObject | null>(null);
+    const [currentDeleteableItem, setCurrentDeleteableItem] = useState<JSONObject | null>(null);
+
+
+    const deleteItem = async (id: ObjectID) => {
+        setIsLaoding(true);
+        try {
+            await ModelAPI.deleteItem<TBaseModel>(props.type, id);
+        } catch (err) {
+            try {
+                setError(
+                    ((err as HTTPErrorResponse).data as JSONObject)[
+                    'error'
+                    ] as string
+                );
+            } catch (e) {
+                setError(
+                    "Server Error. Please try again"
+                );
+            }
+        }
+
+        setIsLaoding(false);
+    }
 
     const fetchItems = async () => {
 
@@ -194,10 +223,31 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             );
         }
 
+        const actionsSchema: Array<ActionButtonSchema> = [];
+
+        if (props.isEditable) {
+            actionsSchema.push({
+                title: "Edit",
+                icon: IconProp.Edit,
+                buttonStyleType: ButtonStyleType.NORMAL,
+                actionType: ActionType.Edit
+            })
+        }
+
+        if (props.isDeleteable) {
+            actionsSchema.push({
+                title: "Delete",
+                icon: IconProp.Trash,
+                buttonStyleType: ButtonStyleType.DANGER,
+                actionType: ActionType.Delete
+            })
+        }
+
+        setActionButtonSchema(actionsSchema);
 
         setCardButtons(headerbuttons);
         setColumns(columns);
-    
+
 
     }, []);
 
@@ -228,6 +278,19 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     onRefreshClick={() => {
                         fetchItems();
                     }}
+                    actionButtons={actionButtonSchema}
+                    onActionEvent={(key: ActionType, item: JSONObject) => {
+                        if (key === ActionType.Edit) {
+                            setModalType(ModalType.Edit);
+                            setShowModal(true);
+                            setCurrentEditableItem(item);
+                        }
+
+                        if (key === ActionType.Delete) {
+                            setShowDeleteConfirmModal(true);
+                            setCurrentDeleteableItem(item);
+                        }
+                    }}
                 />
             </Card>
 
@@ -250,11 +313,26 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         formType: modalType === ModalType.Create ? FormType.Create : FormType.Update,
                         type: props.type
                     }}
-
+                    modelIdToEdit={currentEditableItem ? new ObjectID(currentEditableItem["id"] as string) : undefined}
                 />
             ) : (
                 <></>
             )}
+
+            {showDeleteConfirmModal && <ConfirmModal
+                title={"Confirm Delete"}
+                description={`Are you sure you want to delete this ${model.singularName}?`}
+                onClose={() => {
+                    setShowDeleteConfirmModal(false);
+                }}
+                submitButtonText={"Delete"}
+                onSubmit={() => {
+                    if (currentDeleteableItem && currentDeleteableItem["_id"]) {
+                        deleteItem(new ObjectID(currentDeleteableItem["_id"].toString()))
+                    }
+                }}
+                submitButtonType={ButtonStyleType.DANGER}
+            />}
         </>
     );
 };

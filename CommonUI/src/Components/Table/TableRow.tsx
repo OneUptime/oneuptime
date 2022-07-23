@@ -1,7 +1,7 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Button from '../Button/Button';
-import ActionButtonSchema from './Types/ActionButtonSchema';
+import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import TableColumnType from './Types/TableColumnType';
@@ -9,7 +9,7 @@ import TableColumnType from './Types/TableColumnType';
 export interface ComponentProps {
     item: JSONObject;
     columns: Columns;
-    onActionEvent?: ((key: string, item: JSONObject) => void) | undefined;
+    onActionEvent?: ((actionType: ActionType, item: JSONObject) => void) | undefined;
     actionButtons?: Array<ActionButtonSchema> | undefined;
 }
 
@@ -32,13 +32,13 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                 <div>{props.actionButtons?.map((button, i) => {
                                     return <span style={i > 0 ? {
                                         marginLeft: "10px"
-                                    } : {}} key={i}>{
-                                            <Button title={button.title} icon={button.icon} buttonStyle={button.buttonStyleType} onClick={() => {
-                                                if (props.onActionEvent) {
-                                                    props.onActionEvent(button.actionKey, props.item);
-                                                }
-                                            }} />
-                                        }</span>
+                                    } : {}} key={i}>
+                                        <Button title={button.title} icon={button.icon} buttonStyle={button.buttonStyleType} onClick={() => {
+                                            if (props.onActionEvent) {
+                                                props.onActionEvent(button.actionType, props.item);
+                                            }
+                                        }} />
+                                    </span>
                                 })}</div>
                             }
                         </td>

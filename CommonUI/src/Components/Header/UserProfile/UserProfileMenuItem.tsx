@@ -27,8 +27,6 @@ const UserProfile: FunctionComponent<ComponentProps> = (
             <Icon
                 icon={props.icon}
                 color={props.iconColor ? props.iconColor : null}
-                thick={undefined}
-                size={undefined}
             />
             {<span>&nbsp;&nbsp;{props.title}&nbsp;&nbsp;&nbsp;&nbsp;</span>}
         </Link>

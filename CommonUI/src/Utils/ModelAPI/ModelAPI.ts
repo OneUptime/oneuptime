@@ -194,4 +194,41 @@ export default class ModelAPI {
         }
         throw result;
     }
+
+    public static async deleteItem<TBaseModel extends BaseModel>(
+        type: { new (): TBaseModel },
+        id: ObjectID,
+    ): Promise<void> {
+        const apiPath: Route | null = new type().getCrudApiPath();
+        if (!apiPath) {
+            throw new BadDataException(
+                'This model does not support delete operations.'
+            );
+        }
+
+        const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+            .addRoute(apiPath)
+            .addRoute('/' + id.toString());
+
+        if (!apiUrl) {
+            throw new BadDataException(
+                'This model does not support delete operations.'
+            );
+        }
+    
+
+        const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
+            await API.fetch<TBaseModel>(
+                HTTPMethod.DELETE,
+                apiUrl,
+                undefined,
+                this.getCommonHeaders()
+            );
+
+        if (result.isSuccess()) {
+            return;
+        }
+        
+        throw result;
+    }
 }
