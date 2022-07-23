@@ -14,23 +14,26 @@ import { IconProp } from '../Icon/Icon';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import TableColumnType from '../Table/Types/TableColumnType';
+import Dictionary from 'Common/Types/Dictionary';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
     type: { new(): TBaseModel };
     id: string;
-    onFetchInit?: (pageNumber: number, itemsOnPage: number) => void;
-    onFetchSuccess?: (data: Array<TBaseModel>, totalCount: number) => void;
+    onFetchInit?: undefined | ((pageNumber: number, itemsOnPage: number) => void);
+    onFetchSuccess?: undefined | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps: CardComponentProps;
     columns: Columns<TBaseModel>;
     itemsOnPage: number;
     isDeleteable: boolean;
     isEditable: boolean;
     isCreateable: boolean;
-    disablePagination?: boolean;
-    select: Select<TBaseModel>;
-    formFields?: Fields<TBaseModel>;
-    noItemsMessage?: string;
+    disablePagination?: undefined | boolean;
+    formFields?: undefined | Fields<TBaseModel>;
+    noItemsMessage?: undefined | string;
+    showRefreshButton?: undefined | boolean;
+    showFilterButton?: undefined | boolean
 }
 
 enum ModalType {
@@ -44,6 +47,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
     const [cardButtons, setCardButtons] = useState<Array<ReactElement>>([]);
     const model: TBaseModel = new props.type();
+    const [select, setSelect] = useState<Select<TBaseModel>>({});
 
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
@@ -51,32 +55,43 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [isLoading, setIsLaoding] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [showModel, setShowModal] = useState<boolean>(false);
+    const [showTableFilter, setShowTableFilter] = useState<boolean>(false);
     const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
     const [sortBy, setSortBy] = useState<string>("");
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
     const fetchItems = async () => {
 
+        setError('');
         setIsLaoding(true);
+
 
         if (props.onFetchInit) {
             props.onFetchInit(currentPageNumber, props.itemsOnPage);
         }
 
         try {
-            const listResult: ListResult<TBaseModel> = await ModelAPI.getList<TBaseModel>(props.type, {}, props.itemsOnPage, currentPageNumber * props.itemsOnPage, props.select, {
-                [sortBy as any]: sortOrder
-            });
+            const listResult: ListResult<TBaseModel> = await ModelAPI.getList<TBaseModel>(props.type, {}, props.itemsOnPage, (currentPageNumber - 1) * props.itemsOnPage, select,
+                sortBy ? {
+                    [sortBy as any]: sortOrder
+                } : {}
+            );
 
             setTotalItemsCount(listResult.count);
             setData(listResult.data);
 
         } catch (err) {
-            setError(
-                ((err as HTTPErrorResponse).data as JSONObject)[
-                'error'
-                ] as string
-            );
+            try {
+                setError(
+                    ((err as HTTPErrorResponse).data as JSONObject)[
+                    'error'
+                    ] as string
+                );
+            } catch (e) {
+                setError(
+                    "Server Error. Please try again"
+                );
+            }
         }
 
         setIsLaoding(false);
@@ -84,30 +99,57 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         fetchItems();
-    }, [currentPageNumber, sortBy, sortOrder])
+    }, [currentPageNumber, sortBy, sortOrder, select])
 
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
 
         const columns = [];
+
+
+        const select: Select<TBaseModel> = {
+            _id: true
+        }
+
+        const slugifyColumn = props.model.getSlugifyColumn();
+
+        if (slugifyColumn) {
+            (select as Dictionary<boolean>)[slugifyColumn] = true;
+        }
+
         for (const column of props.columns) {
+
+            let key: string | null = column.field
+                ? (Object.keys(column.field)[0] as string)
+                : null;
+
             columns.push({
                 title: column.title,
                 disableSort: column.disableSort || false,
                 type: column.type,
-                key: column.field
-                    ? (Object.keys(column.field)[0] as string)
-                    : null,
+                key: key,
+                isFilterable: column.isFilterable
             });
+
+            if (key) {
+                (select as Dictionary<boolean>)[key] = true;
+            }
         }
 
+        setSelect(select);
 
+        if (props.isDeleteable || props.isEditable) {
+            columns.push({
+                title: 'Actions',
+                type: TableColumnType.Actions,
+            })
+        }
 
         // add header buttons. 
-
+        const headerbuttons = [];
         if (props.isCreateable) {
-            setCardButtons([
+            headerbuttons.push(
                 <Button
                     key={1}
                     title={`Create ${model.singularName}`}
@@ -118,12 +160,44 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     icon={IconProp.Add}
                 />,
-            ])
+            );
         }
 
-        setColumns(columns);
-        fetchItems();
+        if (props.showRefreshButton) {
+            headerbuttons.push(
+                <Button
+                    key={2}
+                    title={``}
+                    buttonStyle={ButtonStyleType.OUTLINE}
+                    onClick={() => {
+                        fetchItems();
+                    }}
+                    disabled={isLoading}
+                    icon={IconProp.Refresh}
+                />,
+            );
+        }
 
+        if (props.showFilterButton) {
+            headerbuttons.push(
+                <Button
+                    key={3}
+                    title={``}
+                    buttonStyle={ButtonStyleType.OUTLINE}
+                    onClick={() => {
+                        const isShowFilter = showTableFilter;
+                        setShowTableFilter(!isShowFilter)
+                    }}
+                    disabled={isLoading}
+                    icon={IconProp.Filter}
+                />,
+            );
+        }
+
+
+        setCardButtons(headerbuttons);
+        setColumns(columns);
+    
 
     }, []);
 
@@ -149,6 +223,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     onNavigateToPage={(pageNumber: number) => {
                         setCurrentPageNumber(pageNumber);
                     }}
+                    showFilter={showTableFilter}
                     noItemsMessage={props.noItemsMessage || ''}
                     onRefreshClick={() => {
                         fetchItems();
@@ -164,13 +239,16 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={`Create ${model.singularName}`}
                     onSuccess={(_item: TBaseModel) => {
+                        setShowModal(false);
                         setCurrentPageNumber(1);
                     }}
+                    type={props.type}
                     formProps={{
                         model: model,
                         id: `create-${props.type.name}-from`,
                         fields: props.formFields || [],
-                        formType: ModalType.Create ? FormType.Create : FormType.Update,
+                        formType: modalType === ModalType.Create ? FormType.Create : FormType.Update,
+                        type: props.type
                     }}
 
                 />

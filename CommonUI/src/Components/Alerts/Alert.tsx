@@ -9,10 +9,10 @@ export enum AlertType {
 }
 
 export interface ComponentProps {
-    strongTitle?: string;
-    title?: string;
-    onClose?: () => void;
-    type?: AlertType;
+    strongTitle?: undefined | string;
+    title?: undefined | string;
+    onClose?: undefined | (() => void);
+    type?: undefined | AlertType;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (

@@ -7,12 +7,14 @@ import Pagination from './Pagination';
 import Loader, { LoaderType } from '../Loader/Loader';
 import { VeryLightGrey } from '../../Utils/BrandColors';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import Dictionary from 'Common/Types/Dictionary';
+import ActionButtonSchema from './Types/ActionButtonSchema';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
     id: string;
     columns: Columns;
-    disablePagination?: boolean;
+    disablePagination?: undefined | boolean;
     onNavigateToPage: (pageNumber: number) => void;
     currentPageNumber: number;
     totalItemsCount: number;
@@ -21,9 +23,13 @@ export interface ComponentProps {
     isLoading: boolean;
     singularLabel: string;
     pluralLabel: string;
-    onRefreshClick?: () => void;
-    noItemsMessage?: string;
+    actionButtons?: undefined | Array<ActionButtonSchema>;
+    onRefreshClick?: undefined | () => void;
+    noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
+    showFilter?: undefined | boolean;
+    onFilterChanged?: undefined | (filterData: Dictionary<string | boolean>) => void; 
+    onActionEvent?: undefined | ((key: string, item: JSONObject) => void) | undefined;
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -76,7 +82,11 @@ const Table: FunctionComponent<ComponentProps> = (
                             <p className='text-center color-light-grey' style={{
                                 marginTop: "50px",
                                 marginBottom: "50px"
-                            }}> {props.noItemsMessage ? props.noItemsMessage : `No ${props.singularLabel.toLocaleLowerCase()}`} </p>
+                            }}> {props.noItemsMessage ? props.noItemsMessage : `No ${props.singularLabel.toLocaleLowerCase()}`} <br /> {props.onRefreshClick ? <span onClick={() => {
+                                if (props.onRefreshClick) {
+                                    props.onRefreshClick();
+                                }
+                            }} className="underline primary-on-hover">Refresh?</span> : <></>}</p>
                         </td>
                     </tr>
                 </tbody>
@@ -87,6 +97,8 @@ const Table: FunctionComponent<ComponentProps> = (
             id={`${props.id}-body`}
             data={props.data}
             columns={props.columns}
+            actionButtons={props.actionButtons}
+            onActionEvent={props.onActionEvent}
         />)
     }
 
@@ -97,9 +109,10 @@ const Table: FunctionComponent<ComponentProps> = (
                     id={`${props.id}-header`}
                     columns={props.columns}
                     onSortChanged={props.onSortChanged}
+                    showFilter={props.showFilter || false}
+                    onFilterChanged={props.onFilterChanged || undefined}
                 />
                 {getTablebody()}
-
             </table>
             <Pagination
                 singularLabel={props.singularLabel}

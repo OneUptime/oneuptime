@@ -4,7 +4,7 @@ import { IconProp } from '../Icon/Icon';
 
 export interface ComponentProps {
     title: string;
-    onClose?: (() => void) | undefined;
+    onClose?: undefined | (() => void) | undefined;
 }
 
 const ModalHeader: FunctionComponent<ComponentProps> = (

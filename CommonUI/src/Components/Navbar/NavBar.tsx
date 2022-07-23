@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
-    rightContent?: ReactElement | Array<ReactElement>;
+    rightContent?: undefined | ReactElement | Array<ReactElement>;
 }
 
 const Navbar: FunctionComponent<ComponentProps> = (

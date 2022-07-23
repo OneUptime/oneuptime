@@ -3,12 +3,12 @@ import Button, { ButtonStyleType } from '../Button/Button';
 import ButtonType from '../Button/ButtonTypes';
 
 export interface ComponentProps {
-    onClose?: (() => void) | undefined;
-    submitButtonText?: string;
+    onClose?: undefined | (() => void) | undefined;
+    submitButtonText?: undefined | string;
     onSubmit: () => void;
-    submitButtonStyleType?: ButtonStyleType;
-    submitButtonType?: ButtonType;
-    isLoading?: boolean;
+    submitButtonStyleType?: undefined | ButtonStyleType;
+    submitButtonType?: undefined | ButtonType;
+    isLoading?: undefined | boolean;
 }
 
 const ModalFooter: FunctionComponent<ComponentProps> = (

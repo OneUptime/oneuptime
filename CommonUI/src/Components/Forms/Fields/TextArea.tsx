@@ -3,7 +3,7 @@ import React, { FunctionComponent, ReactElement, useEffect, useState } from "rea
 export interface ComponentProps {
     onChange: (value: string) => void;
     initialValue: string;
-    placeholder?: string;
+    placeholder?: undefined | string;
 }
 
 const TextArea: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
@@ -22,7 +22,7 @@ const TextArea: FunctionComponent<ComponentProps> = (props: ComponentProps): Rea
     };
 
     return (<div>
-        <textarea placeholder={props.placeholder} className="form-control form-control" value={text} onChange={(e) => {
+        <textarea placeholder={props.placeholder} className="form-control" value={text} onChange={(e) => {
             handleChange(e.target.value);
         }} />
     </div>)

@@ -8,12 +8,12 @@ import ButtonType from '../Button/ButtonTypes';
 export interface ComponentProps {
     title: string;
     children: Array<ReactElement> | ReactElement;
-    onClose?: (() => void) | undefined;
-    submitButtonText?: string;
+    onClose?: undefined | (() => void);
+    submitButtonText?: undefined | string;
     onSubmit: () => void;
-    submitButtonStyleType?: ButtonStyleType;
-    submitButtonType?: ButtonType;
-    isLoading?: boolean;
+    submitButtonStyleType?: undefined | ButtonStyleType;
+    submitButtonType?: undefined | ButtonType;
+    isLoading?: undefined | boolean;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (

@@ -28,7 +28,6 @@ export default class DatabaseProperty {
     ): string | number | null {
 
         if (value && (value as any)._type === 'raw' && Object.keys((value as any)._objectLiteralParameters).length > 0) {
-            debugger;
             let returnVal = (value as any)._objectLiteralParameters[(Object.keys((value as any)._objectLiteralParameters) as any)[0]] as any;
             if (Array.isArray(returnVal) && returnVal.length > 0) {
                 

@@ -95,6 +95,7 @@ export default class ModelAPI {
         select: Select<TBaseModel>,
         sort: Sort<TBaseModel>
     ): Promise<ListResult<TBaseModel>> {
+        
         const model: TBaseModel = new type();
         const apiPath: Route | null = model.getCrudApiPath();
         if (!apiPath) {

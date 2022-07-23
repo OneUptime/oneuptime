@@ -81,13 +81,16 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         placeholder: "Please select color for this label."
                     }
                 ]}
+                showRefreshButton={true}
+                showFilterButton={true}
                 columns={[
                     {
                         field: {
-                            color: true,
+                            name: true,
                         },
                         title: 'Name',
                         type: TableColumnType.Text,
+                        isFilterable: true
                     },
                     {
                         field: {
@@ -95,11 +98,8 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: TableColumnType.Text,
-                    },
-                    {
-                        title: 'Actions',
-                        type: TableColumnType.Actions,
-                    },
+                        isFilterable: true
+                    }
                 ]}
             />
         </Page>

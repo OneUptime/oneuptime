@@ -14,5 +14,6 @@ export default interface Columns<TEntity> {
     title: string;
     disableSort?: boolean;
     type: TableColumnType;
+    isFilterable: boolean;
     actionButtons?: Array<ActionButton>;
 }

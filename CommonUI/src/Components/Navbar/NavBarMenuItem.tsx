@@ -6,8 +6,8 @@ import Link from '../Link/Link';
 export interface ComponentProps {
     title: string;
     route: Route;
-    children?: Array<ReactElement> | ReactElement;
-    icon?: IconProp;
+    children?: undefined | Array<ReactElement> | ReactElement;
+    icon?: undefined | IconProp;
 }
 
 const NavBarMenuItem: FunctionComponent<ComponentProps> = (

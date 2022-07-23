@@ -2,7 +2,7 @@ enum ColumnLength {
     Version = 30,
     Slug = 100,
     Email = 100,
-    Color = 6,
+    Color = 7,
     Name = 50,
     Description = 500,
     LongText = 500,

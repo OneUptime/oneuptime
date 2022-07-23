@@ -3,9 +3,9 @@ import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
 export interface ComponentProps {
     title: string;
     description: string;
-    buttons?: Array<ReactElement>;
-    children?: Array<ReactElement> | ReactElement;
-    cardBodyStyle?: CSSProperties
+    buttons?: undefined | Array<ReactElement>;
+    children?: undefined | Array<ReactElement> | ReactElement;
+    cardBodyStyle?: undefined | CSSProperties
 }
 
 const Card: FunctionComponent<ComponentProps> = (
@@ -25,7 +25,11 @@ const Card: FunctionComponent<ComponentProps> = (
                                     {props.description}
                                 </p>
                             </div>
-                            <div>{props.buttons}</div>
+                            <div>{props.buttons?.map((button, i) => {
+                                return <span style={i > 0 ? {
+                                    marginLeft: "10px"
+                                }:{}} key={i}>{button}</span>
+                            })}</div>
                         </div>
                         {props.children && (
                             <div className="card-body" style={props.cardBodyStyle || {}}>{props.children}</div>

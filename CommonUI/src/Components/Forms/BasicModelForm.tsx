@@ -9,22 +9,22 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
     id: string;
     onSubmit: (values: FormValues<TBaseModel>) => void;
-    onValidate?: (
+    onValidate?: undefined | ((
         values: FormValues<TBaseModel>
-    ) => FormikErrors<FormValues<TBaseModel>>;
+    ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
-    submitButtonText?: string;
-    title?: string;
-    description?: string;
-    showAsColumns?: number;
+    submitButtonText?: undefined | string;
+    title?: undefined | string;
+    description?: undefined | string;
+    showAsColumns?: undefined | number;
     footer: ReactElement;
-    isLoading?: boolean;
-    onCancel?: () => void;
-    cancelButtonText?: string;
-    maxPrimaryButtonWidth?: boolean;
+    isLoading?: undefined | boolean;
+    onCancel?: undefined | (() => void);
+    cancelButtonText?: undefined | string;
+    maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
-    hideSubmitButton?: boolean;
-    formRef?: MutableRefObject<FormikProps<FormikValues>>;
+    hideSubmitButton?: undefined | boolean;
+    formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
 }
 
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(

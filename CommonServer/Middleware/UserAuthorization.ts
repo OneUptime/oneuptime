@@ -49,7 +49,7 @@ export default class UserMiddleware {
     ): Promise<void> {
         const projectId: ObjectID | null = ProjectMiddleware.getProjectId(req);
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-
+         
         if (projectId) {
             oneuptimeRequest.projectId = projectId;
 

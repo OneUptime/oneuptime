@@ -1,12 +1,15 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import TableRow from './TableRow';
+import ActionButtonSchema from './Types/ActionButtonSchema';
 import Columns from './Types/Columns';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
     id: string;
     columns: Columns;
+    actionButtons?: undefined | Array<ActionButtonSchema> | undefined;
+    onActionEvent:  ((key: string, item: JSONObject) => void) | undefined;
 }
 
 const TableBody: FunctionComponent<ComponentProps> = (
@@ -17,7 +20,7 @@ const TableBody: FunctionComponent<ComponentProps> = (
             {props.data &&
                 props.data.map((item: JSONObject, i: number) => {
                     return (
-                        <TableRow key={i} item={item} columns={props.columns} />
+                        <TableRow key={i} item={item} columns={props.columns} actionButtons={props.actionButtons} onActionEvent={props.onActionEvent} />
                     );
                 })}
         </tbody>

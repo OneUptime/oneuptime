@@ -7,11 +7,11 @@ import { Red, Yellow } from '../../Utils/BrandColors';
 
 export interface ComponentProps {
     link: Link;
-    showAlert?: boolean;
-    showWarning?: boolean;
-    badge?: number;
-    icon?: IconProp;
-    className?: string;
+    showAlert?: undefined | boolean;
+    showWarning?: undefined | boolean;
+    badge?: undefined | number;
+    icon?: undefined | IconProp;
+    className?: undefined | string;
 }
 
 const SideMenuItem: FunctionComponent<ComponentProps> = (

@@ -7,9 +7,9 @@ import Navigation from '../../Utils/Navigation';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement> | string;
-    className?: string;
-    to: Route | URL | null;
-    onClick?: () => void;
+    className?: undefined | string;
+    to: Route | URL | null | undefined;
+    onClick?: undefined | (() => void);
 }
 
 const Link: FunctionComponent<ComponentProps> = (

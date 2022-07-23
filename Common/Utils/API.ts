@@ -215,7 +215,7 @@ export default class API {
             } = await axios({
                 method: method,
                 url: url.toString(),
-                headers: apiHeaders,
+                headers: { ...apiHeaders, ...headers },
                 data,
             });
 

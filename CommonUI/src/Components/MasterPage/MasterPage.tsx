@@ -3,9 +3,9 @@ import PageError from '../Error/PageError';
 import PageLoader from '../Loader/PageLoader';
 
 export interface ComponentProps {
-    header?: ReactElement;
-    footer?: ReactElement;
-    navBar?: ReactElement;
+    header?: undefined | ReactElement;
+    footer?: undefined | ReactElement;
+    navBar?: undefined | ReactElement;
     children: ReactElement | Array<ReactElement>;
     isLoading: boolean;
     error: string;

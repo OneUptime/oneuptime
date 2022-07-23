@@ -15,18 +15,18 @@ export enum ButtonStyleType {
 }
 
 export interface ComponentProps {
-    title?: string;
-    onClick?: () => void;
-    disabled?: boolean;
-    id?: string;
-    shortcutKey?: ShortcutKey;
-    type?: ButtonType;
-    isLoading?: boolean;
-    style?: CSS.Properties;
-    icon?: IconProp;
-    showIconOnRight?: boolean;
-    iconSize?: SizeProp;
-    buttonStyle?: ButtonStyleType;
+    title?: undefined | string;
+    onClick?: undefined | (() => void);
+    disabled?: undefined | boolean;
+    id?: undefined | string;
+    shortcutKey?: undefined | ShortcutKey;
+    type?: undefined | ButtonType;
+    isLoading?: undefined | boolean;
+    style?: undefined | CSS.Properties;
+    icon?: undefined | IconProp;
+    showIconOnRight?: undefined | boolean;
+    iconSize?: undefined | SizeProp;
+    buttonStyle?: undefined | ButtonStyleType;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -131,6 +131,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
                                     thick={ThickProp.Thick}
+                                
                                 />
                             )}
                             {title ? ' ' : ''}

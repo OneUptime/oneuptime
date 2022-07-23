@@ -12,12 +12,12 @@ import { FormikProps, FormikValues } from 'formik';
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
     type: { new (): TBaseModel };
-    onClose?: () => void;
-    submitButtonText?: string;
-    onSuccess?: (
+    onClose?: undefined | (() => void);
+    submitButtonText?: undefined | string;
+    onSuccess?: undefined | ((
         data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
-    ) => void;
-    submitButtonStyleType?: ButtonStyleType;
+    ) => void);
+    submitButtonStyleType?: undefined | ButtonStyleType;
     formProps: ModelFormComponentProps<TBaseModel>;
 }
 

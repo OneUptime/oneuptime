@@ -33,20 +33,20 @@ export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
-    onValidate?: (values: FormValues<T>) => JSONObject;
+    onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     fields: Fields<T>;
-    submitButtonText?: string;
-    title?: string;
-    description?: string;
-    showAsColumns?: number;
+    submitButtonText?: undefined | string;
+    title?: undefined | string;
+    description?: undefined | string;
+    showAsColumns?: undefined | number;
     footer: ReactElement;
-    isLoading?: boolean;
-    onCancel?: (() => void) | null;
-    cancelButtonText?: string | null;
-    maxPrimaryButtonWidth?: boolean;
+    isLoading?: undefined | boolean;
+    onCancel?: undefined | (() => void) | null;
+    cancelButtonText?: undefined | string | null;
+    maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
-    hideSubmitButton?: boolean;
-    formRef?: MutableRefObject<FormikProps<FormikValues>>;
+    hideSubmitButton?: undefined | boolean;
+    formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -123,7 +123,7 @@ const BasicForm: Function = <T extends Object>(
                             form: any
                         }) => (
                             <ColorPicker onChange={(color: Color) => {
-                                form.setFieldValue(color);
+                                form.setFieldValue(fieldName, color);
                             }} placeholder={field.placeholder || ''} />
                         )}
                     </Field>
@@ -138,7 +138,7 @@ const BasicForm: Function = <T extends Object>(
                             form: any
                         }) => (
                             <TextArea onChange={(text: string) => {
-                                form.setFieldValue(text);
+                                form.setFieldValue(fieldName, text);
                             }} initialValue={''} placeholder={field.placeholder || ''} />
                         )}
                     </Field>
@@ -149,7 +149,7 @@ const BasicForm: Function = <T extends Object>(
                     field.fieldType !== FormFieldSchemaType.Color &&
                     field.fieldType !== FormFieldSchemaType.LongText &&
                     <Field
-                        className="form-control form-control"
+                        className="form-control"
                         autoFocus={index === 0 ? true : false}
                         placeholder={field.placeholder}
                         type={fieldType}

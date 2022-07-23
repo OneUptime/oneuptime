@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
-    title?: string;
+    title?: undefined | string;
 }
 
 const NavBarMenuColumn: FunctionComponent<ComponentProps> = (

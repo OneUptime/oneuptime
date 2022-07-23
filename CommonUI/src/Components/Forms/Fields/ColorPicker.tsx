@@ -6,7 +6,7 @@ import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 
 export interface ComponentProps {
     onChange: (value: Color) => void;
-    initialValue?: Color;
+    initialValue?: undefined | Color;
     placeholder: string;
 }
 
@@ -28,7 +28,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (props: ComponentProps): 
     };
 
     return (<div>
-        <input placeholder={props.placeholder} className="form-control form-control" value={color} type="text" onClick={() => {
+        <input placeholder={props.placeholder} className="form-control" value={color} type="text" onClick={() => {
             setIsComponentVisible(!isComponentVisible);
         }} />
         {isComponentVisible ?

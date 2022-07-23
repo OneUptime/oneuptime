@@ -109,11 +109,20 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    protected async onBeforeCreate({
-        data,
-    }: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
+    protected async onBeforeCreate(createBy: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve({ data } as CreateBy<TBaseModel>);
+        return Promise.resolve(createBy as CreateBy<TBaseModel>);
+    }
+
+    private async _onBeforeCreate(createBy: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
+        // Private method that runs before create.
+        const projectIdColumn = this.model.getProjectColumn();
+
+        if (projectIdColumn && createBy.props.projectId) {
+            (createBy.data as any)[projectIdColumn] = createBy.props.projectId;
+        }
+
+        return await this.onBeforeCreate(createBy);
     }
 
     protected encrypt(data: TBaseModel): TBaseModel {
@@ -283,7 +292,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-        let _createdBy: CreateBy<TBaseModel> = await this.onBeforeCreate(
+        let _createdBy: CreateBy<TBaseModel> = await this._onBeforeCreate(
             createBy
         );
 
@@ -801,10 +810,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 }
                 
             } else if (query[key] && query[key] instanceof ObjectID) {
-                if (this.entityType.name === "TeamMember") {
-                    debugger;
-                }
-               
                 query[key] = QueryHelper.equalTo((query[key] as ObjectID).toString() as any) as any;
             } else if (query[key] && Array.isArray(query[key])) {
                 query[key] = (QueryHelper.in(query[key] as any) as FindOperator<any>) as any;
@@ -881,7 +886,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     ): Promise<Array<TBaseModel>> {
         
         try {
-            if (!findBy.sort) {
+            if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
                     createdAt: SortOrder.Descending,
                 };
@@ -909,6 +914,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
 
+            debugger;
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
