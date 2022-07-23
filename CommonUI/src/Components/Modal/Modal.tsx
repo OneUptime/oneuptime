@@ -14,6 +14,8 @@ export interface ComponentProps {
     submitButtonStyleType?: undefined | ButtonStyleType;
     submitButtonType?: undefined | ButtonType;
     isLoading?: undefined | boolean;
+    disableSubmitButton?: undefined | boolean;
+    error?: string | undefined
 }
 
 const Modal: FunctionComponent<ComponentProps> = (
@@ -57,6 +59,8 @@ const Modal: FunctionComponent<ComponentProps> = (
                                     props.onClose ? props.onClose : undefined
                                 }
                                 isLoading={props.isLoading || false}
+                                disableSubmitButton={props.disableSubmitButton}
+                                error={props.error}
                             />
                         </div>
                     </div>

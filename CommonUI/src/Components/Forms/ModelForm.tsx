@@ -39,6 +39,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     hideSubmitButton?: undefined | boolean;
     formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
+    initialValues?: FormValues<TBaseModel> | undefined;
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
@@ -103,6 +104,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             error={error}
             hideSubmitButton={props.hideSubmitButton}
             formRef={props.formRef}
+            initialValues={props.initialValues}
         ></BasicModelForm>
     );
 };

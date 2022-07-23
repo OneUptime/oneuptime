@@ -323,7 +323,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         formType: modalType === ModalType.Create ? FormType.Create : FormType.Update,
                         type: props.type
                     }}
-                    modelIdToEdit={currentEditableItem ? new ObjectID(currentEditableItem["id"] as string) : undefined}
+                    modelIdToEdit={currentEditableItem ? new ObjectID(currentEditableItem["_id"] as string) : undefined}
                 />
             ) : (
                 <></>

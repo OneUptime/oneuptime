@@ -28,7 +28,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (props: ComponentProps): 
     };
 
     return (<div>
-        <input placeholder={props.placeholder} className="form-control" value={color} type="text" onClick={() => {
+        <input placeholder={props.placeholder} className="form-control white-background-on-readonly" value={color} readOnly={true} type="text" onClick={() => {
             setIsComponentVisible(!isComponentVisible);
         }} />
         {isComponentVisible ?

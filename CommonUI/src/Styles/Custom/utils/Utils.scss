@@ -50,6 +50,12 @@
     }
 }
 
+.white-background-on-readonly{
+    &:read-only {
+        background-color: $color-white;
+    }
+}
+
 
 
 .light-grey-on-hover {

@@ -25,12 +25,17 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     error: string | null;
     hideSubmitButton?: undefined | boolean;
     formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    initialValues?: FormValues<TBaseModel> | undefined;
 }
 
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const initialValues: FormValues<TBaseModel> = {};
+    let initialValues: FormValues<TBaseModel> = {};
+
+    if (props.initialValues) {
+        initialValues = { ...props.initialValues };
+    }
 
     const fields: Fields<TBaseModel> = [];
     // Prep
