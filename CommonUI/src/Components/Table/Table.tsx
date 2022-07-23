@@ -24,11 +24,11 @@ export interface ComponentProps {
     singularLabel: string;
     pluralLabel: string;
     actionButtons?: undefined | Array<ActionButtonSchema>;
-    onRefreshClick?: undefined | () => void;
+    onRefreshClick?: undefined | (() => void);
     noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
     showFilter?: undefined | boolean;
-    onFilterChanged?: undefined | (filterData: Dictionary<string | boolean>) => void; 
+    onFilterChanged?: undefined | ((filterData: Dictionary<string | boolean>) => void); 
     onActionEvent?: undefined | ((key: string, item: JSONObject) => void) | undefined;
 }
 
