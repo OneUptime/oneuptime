@@ -14,14 +14,18 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 <SideMenuItem
                     link={{
                         title: 'Project',
-                        to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS] as Route
+                        ),
                     }}
                     icon={IconProp.Folder}
                 />
                 <SideMenuItem
                     link={{
                         title: 'Labels',
-                        to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_LABELS] as Route),
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_LABELS] as Route
+                        ),
                     }}
                     icon={IconProp.Label}
                 />

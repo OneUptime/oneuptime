@@ -16,16 +16,22 @@ import Fields from '../Forms/Types/Fields';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import TableColumnType from '../Table/Types/TableColumnType';
 import Dictionary from 'Common/Types/Dictionary';
-import ActionButtonSchema, { ActionType } from '../Table/Types/ActionButtonSchema';
+import ActionButtonSchema, {
+    ActionType,
+} from '../Table/Types/ActionButtonSchema';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from '../Modal/ConfirmModal';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
-    type: { new(): TBaseModel };
+    type: { new (): TBaseModel };
     id: string;
-    onFetchInit?: undefined | ((pageNumber: number, itemsOnPage: number) => void);
-    onFetchSuccess?: undefined | ((data: Array<TBaseModel>, totalCount: number) => void);
+    onFetchInit?:
+        | undefined
+        | ((pageNumber: number, itemsOnPage: number) => void);
+    onFetchSuccess?:
+        | undefined
+        | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps: CardComponentProps;
     columns: Columns<TBaseModel>;
     itemsOnPage: number;
@@ -37,22 +43,23 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     noItemsMessage?: undefined | string;
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
-    
 }
 
 enum ModalType {
-    Create, Edit
+    Create,
+    Edit,
 }
 
 const ModelTable: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
     const [cardButtons, setCardButtons] = useState<Array<ReactElement>>([]);
     const model: TBaseModel = new props.type();
     const [select, setSelect] = useState<Select<TBaseModel>>({});
-    const [actionButtonSchema, setActionButtonSchema] = useState<Array<ActionButtonSchema>>([]);
+    const [actionButtonSchema, setActionButtonSchema] = useState<
+        Array<ActionButtonSchema>
+    >([]);
 
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
@@ -62,14 +69,16 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [showModel, setShowModal] = useState<boolean>(false);
     const [showTableFilter, setShowTableFilter] = useState<boolean>(false);
     const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
-    const [sortBy, setSortBy] = useState<string>("");
+    const [sortBy, setSortBy] = useState<string>('');
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
-    const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState<boolean>(false);
-    const [currentEditableItem, setCurrentEditableItem] = useState<JSONObject | null>(null);
-    const [currentDeleteableItem, setCurrentDeleteableItem] = useState<JSONObject | null>(null);
+    const [showDeleteConfirmModal, setShowDeleteConfirmModal] =
+        useState<boolean>(false);
+    const [currentEditableItem, setCurrentEditableItem] =
+        useState<JSONObject | null>(null);
+    const [currentDeleteableItem, setCurrentDeleteableItem] =
+        useState<JSONObject | null>(null);
 
-
-    const deleteItem = async (id: ObjectID) => {
+    const deleteItem: Function = async (id: ObjectID) => {
         setIsLaoding(true);
         try {
             await ModelAPI.deleteItem<TBaseModel>(props.type, id);
@@ -77,50 +86,51 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
-                setError(
-                    "Server Error. Please try again"
-                );
+                setError('Server Error. Please try again');
             }
         }
 
         setIsLaoding(false);
-    }
+    };
 
-    const fetchItems = async () => {
-
+    const fetchItems: Function = async () => {
         setError('');
         setIsLaoding(true);
-
 
         if (props.onFetchInit) {
             props.onFetchInit(currentPageNumber, props.itemsOnPage);
         }
 
         try {
-            const listResult: ListResult<TBaseModel> = await ModelAPI.getList<TBaseModel>(props.type, {}, props.itemsOnPage, (currentPageNumber - 1) * props.itemsOnPage, select,
-                sortBy ? {
-                    [sortBy as any]: sortOrder
-                } : {}
-            );
+            const listResult: ListResult<TBaseModel> =
+                await ModelAPI.getList<TBaseModel>(
+                    props.type,
+                    {},
+                    props.itemsOnPage,
+                    (currentPageNumber - 1) * props.itemsOnPage,
+                    select,
+                    sortBy
+                        ? {
+                              [sortBy as any]: sortOrder,
+                          }
+                        : {}
+                );
 
             setTotalItemsCount(listResult.count);
             setData(listResult.data);
-
         } catch (err) {
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
-                setError(
-                    "Server Error. Please try again"
-                );
+                setError('Server Error. Please try again');
             }
         }
 
@@ -129,18 +139,16 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         fetchItems();
-    }, [currentPageNumber, sortBy, sortOrder, select])
-
+    }, [currentPageNumber, sortBy, sortOrder, select]);
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
 
         const columns = [];
 
-
         const select: Select<TBaseModel> = {
-            _id: true
-        }
+            _id: true,
+        };
 
         const slugifyColumn = props.model.getSlugifyColumn();
 
@@ -149,13 +157,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         for (const column of props.columns) {
-
-            let key: string | null = column.field
+            const key: string | null = column.field
                 ? (Object.keys(column.field)[0] as string)
                 : null;
-            
-                let moreFields: Array<string> = column.moreFields
-                ? (Object.keys(column.moreFields))
+
+            const moreFields: Array<string> = column.moreFields
+                ? Object.keys(column.moreFields)
                 : [];
 
             columns.push({
@@ -164,7 +171,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 type: column.type,
                 key: key,
                 isFilterable: column.isFilterable,
-                getColumnElement: column.getColumnElement ? column.getColumnElement : undefined
+                getColumnElement: column.getColumnElement
+                    ? column.getColumnElement
+                    : undefined,
             });
 
             if (key) {
@@ -182,10 +191,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             columns.push({
                 title: 'Actions',
                 type: TableColumnType.Actions,
-            })
+            });
         }
 
-        // add header buttons. 
+        // add header buttons.
         const headerbuttons = [];
         if (props.isCreateable) {
             headerbuttons.push(
@@ -198,7 +207,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         setShowModal(true);
                     }}
                     icon={IconProp.Add}
-                />,
+                />
             );
         }
 
@@ -213,7 +222,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     disabled={isLoading}
                     icon={IconProp.Refresh}
-                />,
+                />
             );
         }
 
@@ -225,11 +234,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     buttonStyle={ButtonStyleType.OUTLINE}
                     onClick={() => {
                         const isShowFilter = showTableFilter;
-                        setShowTableFilter(!isShowFilter)
+                        setShowTableFilter(!isShowFilter);
                     }}
                     disabled={isLoading}
                     icon={IconProp.Filter}
-                />,
+                />
             );
         }
 
@@ -237,33 +246,35 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         if (props.isEditable) {
             actionsSchema.push({
-                title: "Edit",
+                title: 'Edit',
                 icon: IconProp.Edit,
                 buttonStyleType: ButtonStyleType.NORMAL,
-                actionType: ActionType.Edit
-            })
+                actionType: ActionType.Edit,
+            });
         }
 
         if (props.isDeleteable) {
             actionsSchema.push({
-                title: "Delete",
+                title: 'Delete',
                 icon: IconProp.Trash,
                 buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
-                actionType: ActionType.Delete
-            })
+                actionType: ActionType.Delete,
+            });
         }
 
         setActionButtonSchema(actionsSchema);
 
         setCardButtons(headerbuttons);
         setColumns(columns);
-
-
     }, []);
 
     return (
         <>
-            <Card {...props.cardProps} cardBodyStyle={{ "padding": "0px" }} buttons={cardButtons}>
+            <Card
+                {...props.cardProps}
+                cardBodyStyle={{ padding: '0px' }}
+                buttons={cardButtons}
+            >
                 <Table
                     onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
                         setSortBy(sortBy);
@@ -306,11 +317,19 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             {showModel ? (
                 <ModelFromModal<TBaseModel>
-                    title={modalType === ModalType.Create ? `Create New ${model.singularName}` : `Edit ${model.singularName}`}
+                    title={
+                        modalType === ModalType.Create
+                            ? `Create New ${model.singularName}`
+                            : `Edit ${model.singularName}`
+                    }
                     onClose={() => {
                         setShowModal(false);
                     }}
-                    submitButtonText={modalType === ModalType.Create ? `Create ${model.singularName}` : `Save Changes`}
+                    submitButtonText={
+                        modalType === ModalType.Create
+                            ? `Create ${model.singularName}`
+                            : `Save Changes`
+                    }
                     onSuccess={(_item: TBaseModel) => {
                         setShowModal(false);
                         setCurrentPageNumber(1);
@@ -320,29 +339,47 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         model: model,
                         id: `create-${props.type.name}-from`,
                         fields: props.formFields || [],
-                        formType: modalType === ModalType.Create ? FormType.Create : FormType.Update,
-                        type: props.type
+                        formType:
+                            modalType === ModalType.Create
+                                ? FormType.Create
+                                : FormType.Update,
+                        type: props.type,
                     }}
-                    modelIdToEdit={currentEditableItem ? new ObjectID(currentEditableItem["_id"] as string) : undefined}
+                    modelIdToEdit={
+                        currentEditableItem
+                            ? new ObjectID(currentEditableItem['_id'] as string)
+                            : undefined
+                    }
                 />
             ) : (
                 <></>
             )}
 
-            {showDeleteConfirmModal && <ConfirmModal
-                title={`Delete ${model.singularName}`}
-                description={`Are you sure you want to delete this ${(model.singularName || "item")?.toLowerCase()}?`}
-                onClose={() => {
-                    setShowDeleteConfirmModal(false);
-                }}
-                submitButtonText={"Delete"}
-                onSubmit={() => {
-                    if (currentDeleteableItem && currentDeleteableItem["_id"]) {
-                        deleteItem(new ObjectID(currentDeleteableItem["_id"].toString()))
-                    }
-                }}
-                submitButtonType={ButtonStyleType.DANGER}
-            />}
+            {showDeleteConfirmModal && (
+                <ConfirmModal
+                    title={`Delete ${model.singularName}`}
+                    description={`Are you sure you want to delete this ${(
+                        model.singularName || 'item'
+                    )?.toLowerCase()}?`}
+                    onClose={() => {
+                        setShowDeleteConfirmModal(false);
+                    }}
+                    submitButtonText={'Delete'}
+                    onSubmit={() => {
+                        if (
+                            currentDeleteableItem &&
+                            currentDeleteableItem['_id']
+                        ) {
+                            deleteItem(
+                                new ObjectID(
+                                    currentDeleteableItem['_id'].toString()
+                                )
+                            );
+                        }
+                    }}
+                    submitButtonType={ButtonStyleType.DANGER}
+                />
+            )}
         </>
     );
 };

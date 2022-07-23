@@ -26,7 +26,7 @@ import EntityName from '../Types/Database/EntityName';
         Permission.CanUpdateProject,
     ],
 })
-@EntityName("Project", "Projects")
+@EntityName('Project', 'Projects')
 @CrudApiEndpoint(new Route('/project'))
 @SlugifyColumn('name', 'slug')
 @Entity({

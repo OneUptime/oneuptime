@@ -59,7 +59,6 @@ export default class BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-                    
                     await this.getList(req, res);
                 } catch (err) {
                     next(err);
@@ -273,8 +272,6 @@ export default class BaseAPI<
             body['data'] as JSONObject,
             this.entityType
         ) as TBaseModel;
-
-        
 
         const createBy: CreateBy<TBaseModel> = {
             data: item,

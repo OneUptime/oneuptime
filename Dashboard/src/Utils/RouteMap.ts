@@ -56,22 +56,17 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.LOGOUT]: new Route(`/dashboard/logout`),
 };
 
-
-export class RouteUtil { 
+export class RouteUtil {
     public static populateRouteParams(route: Route): Route {
-
         // populate projectid
         const project = ProjectUtil.getCurrentProject();
 
         if (project && project._id) {
-            route =  route.addRouteParam(
-                RouteParams.ProjectID,
-                project._id
-            );
+            route = route.addRouteParam(RouteParams.ProjectID, project._id);
         }
 
         return route;
-    };
+    }
 }
 
 export default RouteMap;

@@ -1,15 +1,17 @@
-import { ButtonStyleType } from "../../Button/Button";
-import { IconProp } from "../../Icon/Icon";
+import { ButtonStyleType } from '../../Button/Button';
+import { IconProp } from '../../Icon/Icon';
 
-export enum ActionType { 
-    View, Edit, Delete
+export enum ActionType {
+    View,
+    Edit,
+    Delete,
 }
 
-interface ActionButtonSchema { 
-    title: string; 
+interface ActionButtonSchema {
+    title: string;
     icon: IconProp;
     buttonStyleType: ButtonStyleType;
-    actionType: ActionType; 
+    actionType: ActionType;
 }
 
 export default ActionButtonSchema;

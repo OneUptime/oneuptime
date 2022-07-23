@@ -22,7 +22,12 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                                     i === links.length - 1 ? 'active' : ''
                                 }`}
                             >
-                                <UILink className='primary-on-hover' to={link.to}>{link.title}</UILink>
+                                <UILink
+                                    className="primary-on-hover"
+                                    to={link.to}
+                                >
+                                    {link.title}
+                                </UILink>
                             </li>
                         );
                     })}

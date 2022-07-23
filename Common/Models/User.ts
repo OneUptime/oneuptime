@@ -32,7 +32,7 @@ import EntityName from '../Types/Database/EntityName';
 @Entity({
     name: 'User',
 })
-@EntityName("User", "Users")
+@EntityName('User', 'Users')
 @UserColumn('_id')
 class User extends BaseModel {
     @ColumnAccessControl({

@@ -13,13 +13,13 @@ export enum ButtonStyleType {
     OUTLINE,
     NORMAL,
     DANGER,
-    DANGER_OUTLINE
+    DANGER_OUTLINE,
 }
 
 export enum ButtonSize {
-    Normal = "btn", 
-    Small = "btn-sm",
-    Large = "btn-lg"
+    Normal = 'btn',
+    Small = 'btn-sm',
+    Large = 'btn-lg',
 }
 
 export interface ComponentProps {
@@ -35,7 +35,7 @@ export interface ComponentProps {
     showIconOnRight?: undefined | boolean;
     iconSize?: undefined | SizeProp;
     buttonStyle?: undefined | ButtonStyleType;
-    buttonSize?:  ButtonSize | undefined
+    buttonSize?: ButtonSize | undefined;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -51,10 +51,8 @@ const Button: FunctionComponent<ComponentProps> = ({
     iconSize,
     showIconOnRight = false,
     buttonStyle = ButtonStyleType.NORMAL,
-    buttonSize = ButtonSize.Normal
+    buttonSize = ButtonSize.Normal,
 }: ComponentProps): ReactElement => {
-
-
     useEffect(() => {
         // componentDidMount
         if (shortcutKey) {
@@ -138,7 +136,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                     <div>
                         <div></div>
                     </div>
-                    <span className='flex'>
+                    <span className="flex">
                         <span>
                             {icon && !showIconOnRight && (
                                 <Icon
@@ -146,16 +144,22 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     size={
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
-                                    thick={buttonSize === ButtonSize.Small ?  ThickProp.LessThick : ThickProp.Thick}
-                                
+                                    thick={
+                                        buttonSize === ButtonSize.Small
+                                            ? ThickProp.LessThick
+                                            : ThickProp.Thick
+                                    }
                                 />
                             )}
                         </span>
                         {title ? (
                             <div
                                 style={{
-                                    marginLeft: icon && !showIconOnRight ? "4px" : "0px",
-                                    marginTop: "1px"
+                                    marginLeft:
+                                        icon && !showIconOnRight
+                                            ? '4px'
+                                            : '0px',
+                                    marginTop: '1px',
                                 }}
                             >
                                 <b>{title}</b>

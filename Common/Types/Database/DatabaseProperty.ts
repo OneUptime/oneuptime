@@ -26,11 +26,15 @@ export default class DatabaseProperty {
     protected static _toDatabase(
         value: DatabaseProperty | FindOperator<DatabaseProperty>
     ): string | number | null {
-
-        if (value && (value as any)._type === 'raw' && Object.keys((value as any)._objectLiteralParameters).length > 0) {
-            let returnVal = (value as any)._objectLiteralParameters[(Object.keys((value as any)._objectLiteralParameters) as any)[0]] as any;
+        if (
+            value &&
+            (value as any)._type === 'raw' &&
+            Object.keys((value as any)._objectLiteralParameters).length > 0
+        ) {
+            const returnVal = (value as any)._objectLiteralParameters[
+                (Object.keys((value as any)._objectLiteralParameters) as any)[0]
+            ] as any;
             if (Array.isArray(returnVal) && returnVal.length > 0) {
-                
                 return returnVal[0];
             }
             return returnVal;
@@ -40,8 +44,12 @@ export default class DatabaseProperty {
 
     public static getDatabaseTransformer(): ValueTransformer {
         return {
-            to: (value: any) => { return this._toDatabase(value) },
-            from: (value: any) => { return this._fromDatabase(value) } ,
+            to: (value: any) => {
+                return this._toDatabase(value);
+            },
+            from: (value: any) => {
+                return this._fromDatabase(value);
+            },
         };
     }
 }

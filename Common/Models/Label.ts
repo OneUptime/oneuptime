@@ -30,7 +30,7 @@ import EntityName from '../Types/Database/EntityName';
 })
 @CrudApiEndpoint(new Route('/label'))
 @SlugifyColumn('name', 'slug')
-@EntityName("Label", "Labels")
+@EntityName('Label', 'Labels')
 @Entity({
     name: 'Label',
 })

@@ -12,23 +12,22 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onCreateSuccess(createBy: CreateBy<Model>): Promise<CreateBy<Model>> {
-
-      
+    protected override async onCreateSuccess(
+        createBy: CreateBy<Model>
+    ): Promise<CreateBy<Model>> {
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
             query: {
                 teamId: createBy.data.teamId!,
             },
             select: {
-                userId: true
+                userId: true,
             },
             props: {
-                isRoot: true
+                isRoot: true,
             },
             limit: LIMIT_MAX,
-            skip: 0
-        })
-
+            skip: 0,
+        });
 
         for (const member of teamMembers) {
             /// Refresh tokens.
@@ -44,8 +43,6 @@ export class Service extends DatabaseService<Model> {
         return createBy;
     }
 
-    // TODO - OnDelete and OnUpdate pending. 
-
-    
+    // TODO - OnDelete and OnUpdate pending.
 }
 export default new Service();

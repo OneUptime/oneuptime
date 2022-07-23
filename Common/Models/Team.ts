@@ -46,7 +46,7 @@ import EntityName from '../Types/Database/EntityName';
 @Entity({
     name: 'Team',
 })
-@EntityName("Team", "Teams")
+@EntityName('Team', 'Teams')
 export default class Team extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],

@@ -9,7 +9,7 @@ export interface ComponentProps {
     submitButtonStyleType?: undefined | ButtonStyleType;
     submitButtonType?: undefined | ButtonType;
     isLoading?: undefined | boolean;
-    disableSubmitButton?: undefined | boolean; 
+    disableSubmitButton?: undefined | boolean;
     error?: string | undefined;
 }
 
@@ -18,7 +18,6 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div className="modal-footer">
-
             {props.onClose ? (
                 <Button
                     buttonStyle={ButtonStyleType.NORMAL}

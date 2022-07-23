@@ -53,7 +53,7 @@ import EntityName from '../Types/Database/EntityName';
 @Entity({
     name: 'TeamPermission',
 })
-@EntityName("Team Permission", "Team Permissions")
+@EntityName('Team Permission', 'Team Permissions')
 export default class TeamPermission extends BaseModel {
     @ColumnAccessControl({
         create: [

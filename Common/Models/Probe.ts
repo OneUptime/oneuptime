@@ -26,7 +26,7 @@ import EntityName from '../Types/Database/EntityName';
 @Entity({
     name: 'Probe',
 })
-@EntityName("Probe", "Probes")
+@EntityName('Probe', 'Probes')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
     read: [Permission.ProjectMember, Permission.Public],

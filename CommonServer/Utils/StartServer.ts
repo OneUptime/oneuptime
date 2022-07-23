@@ -102,21 +102,24 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
             next: NextFunction
         ) => {
             logger.error(err);
-            
+
             if (res.headersSent) {
                 return next(err);
             }
 
             if (err instanceof Promise) {
                 err.catch((exception: Exception) => {
-                    if (StatusCode.isValidStausCode((exception as Exception).code)) {
+                    if (
+                        StatusCode.isValidStausCode(
+                            (exception as Exception).code
+                        )
+                    ) {
                         res.status((exception as Exception).code);
                         res.send({ error: (exception as Exception).message });
                     } else {
                         res.status(500);
-                        res.send({ error: "Server Error" });
+                        res.send({ error: 'Server Error' });
                     }
-                    
                 });
             } else if (err instanceof Exception) {
                 res.status((err as Exception).code);

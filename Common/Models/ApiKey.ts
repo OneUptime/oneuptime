@@ -32,7 +32,7 @@ import EntityName from '../Types/Database/EntityName';
         Permission.CanEditProjectApiKey,
     ],
 })
-@EntityName("API Key", "API Keys")
+@EntityName('API Key', 'API Keys')
 export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -216,7 +216,10 @@ export default class ApiKey extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: false })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        isDefaultValueColumn: false,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

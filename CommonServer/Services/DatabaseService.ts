@@ -20,7 +20,12 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import { DataSource, FindOperator, Repository, SelectQueryBuilder } from 'typeorm';
+import {
+    DataSource,
+    FindOperator,
+    Repository,
+    SelectQueryBuilder,
+} from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import HardDeleteBy from '../Types/Database/HardDeleteBy';
@@ -49,11 +54,11 @@ enum DatabaseRequestType {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new(): TBaseModel };
+    private entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        type: { new(): TBaseModel },
+        type: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = type;
@@ -109,12 +114,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    protected async onBeforeCreate(createBy: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
+    protected async onBeforeCreate(
+        createBy: CreateBy<TBaseModel>
+    ): Promise<CreateBy<TBaseModel>> {
         // A place holder method used for overriding.
         return Promise.resolve(createBy as CreateBy<TBaseModel>);
     }
 
-    private async _onBeforeCreate(createBy: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
+    private async _onBeforeCreate(
+        createBy: CreateBy<TBaseModel>
+    ): Promise<CreateBy<TBaseModel>> {
         // Private method that runs before create.
         const projectIdColumn = this.model.getProjectColumn();
 
@@ -283,7 +292,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
+                    createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -445,7 +454,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asFindByByPermissions(
         findBy: FindBy<TBaseModel>
     ): FindBy<TBaseModel> {
-        
         if (findBy.props.isRoot) {
             return findBy;
         }
@@ -459,13 +467,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         columns = this.getReadColumnsByPermissions(userPermissions || []);
 
-
         const excludedColumns = ['_id', 'createdAt', 'deletedAt', 'updatedAt'];
 
         // Now we need to check all columns.
 
         for (const key in findBy.query) {
-
             if (excludedColumns.includes(key)) {
                 continue;
             }
@@ -478,7 +484,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         for (const key in findBy.select) {
-
             if (excludedColumns.includes(key)) {
                 continue;
             }
@@ -498,11 +503,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !findBy.props.projectId &&
             findBy.props.userGlobalAccessPermission
         ) {
-
             (findBy.query as any)[this.model.projectColumn] = QueryHelper.in(
                 findBy.props.userGlobalAccessPermission?.projectIds
             );
-
         } else if (this.model.projectColumn) {
             throw new NotAuthorizedException(
                 'Not enough permissions to read the record'
@@ -562,7 +565,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         const excludedColumns = ['_id', 'createdAt', 'deletedAt', 'updatedAt'];
 
         for (const key in updateBy.query) {
-
             if (excludedColumns.includes(key)) {
                 continue;
             }
@@ -590,11 +592,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !updateBy.props.projectId &&
             updateBy.props.userGlobalAccessPermission
         ) {
-
-            (updateBy.query as any)[this.model.projectColumn] =  QueryHelper.in(
+            (updateBy.query as any)[this.model.projectColumn] = QueryHelper.in(
                 updateBy.props.userGlobalAccessPermission?.projectIds
             );
-
         } else if (this.model.projectColumn) {
             throw new NotAuthorizedException(
                 'Not enough permissions to read the record'
@@ -768,7 +768,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         skip,
         limit,
     }: CountBy<TBaseModel>): Promise<PositiveNumber> {
-        
         try {
             if (!skip) {
                 skip = new PositiveNumber(0);
@@ -795,25 +794,31 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     private serializeQuery(query: Query<TBaseModel>): Query<TBaseModel> {
-
         for (const key in query) {
-
-            if (query[key]
-                && (query[key] as any)._value && Array.isArray((query[key] as any)._value) && (query[key] as any)._value.length > 0) {
-                
-                let counter = 0; 
+            if (
+                query[key] &&
+                (query[key] as any)._value &&
+                Array.isArray((query[key] as any)._value) &&
+                (query[key] as any)._value.length > 0
+            ) {
+                let counter = 0;
                 for (const item of (query[key] as any)._value) {
                     if (item instanceof ObjectID) {
-                        ((query[key] as any)._value as any)[counter] = ((query[key] as any)._value as any)[counter].toString();
+                        ((query[key] as any)._value as any)[counter] = (
+                            (query[key] as any)._value as any
+                        )[counter].toString();
                     }
                     counter++;
                 }
-                
             } else if (query[key] && query[key] instanceof ObjectID) {
-                query[key] = QueryHelper.equalTo((query[key] as ObjectID).toString() as any) as any;
+                query[key] = QueryHelper.equalTo(
+                    (query[key] as ObjectID).toString() as any
+                ) as any;
             } else if (query[key] && Array.isArray(query[key])) {
-                query[key] = (QueryHelper.in(query[key] as any) as FindOperator<any>) as any;
-            } 
+                query[key] = QueryHelper.in(
+                    query[key] as any
+                ) as FindOperator<any> as any;
+            }
         }
 
         return query;
@@ -884,7 +889,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     private async _findBy(
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
-        
         try {
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
@@ -895,16 +899,19 @@ class DatabaseService<TBaseModel extends BaseModel> {
             let onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
                 findBy
             );
-            
+
             onBeforeFind = this.asFindByByPermissions(findBy);
 
             if (!(onBeforeFind.skip instanceof PositiveNumber)) {
                 onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
             }
 
-            if (!(onBeforeFind.select) || Object.keys(onBeforeFind.select).length === 0) {
+            if (
+                !onBeforeFind.select ||
+                Object.keys(onBeforeFind.select).length === 0
+            ) {
                 onBeforeFind.select = {
-                    _id!: true
+                    _id: true,
                 } as any;
             }
 
@@ -921,7 +928,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 where: onBeforeFind.query as any,
                 order: onBeforeFind.sort as any,
                 relations: onBeforeFind.populate as any,
-                select: onBeforeFind.select as any
+                select: onBeforeFind.select as any,
             });
 
             const decryptedItems: Array<TBaseModel> = [];

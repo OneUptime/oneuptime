@@ -11,9 +11,7 @@ export interface ComponentProps<T extends Object> {
     title: string;
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
-    onSuccess?: undefined | ((
-        data: T
-    ) => void);
+    onSuccess?: undefined | ((data: T) => void);
     submitButtonStyleType?: undefined | ButtonStyleType;
     formProps: BasicFormComponentProps<T>;
 }
@@ -40,9 +38,7 @@ const BasicFormModal: Function = <T extends Object>(
                     setIsLoading(isFormLoading);
                 }}
                 formRef={formRef}
-                onSuccess={(
-                    data: T
-                ) => {
+                onSuccess={(data: T) => {
                     props.onSuccess && props.onSuccess(data);
                 }}
             />

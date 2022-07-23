@@ -39,7 +39,7 @@ import {
     FiTag,
     FiRefreshCcw,
     FiFilter,
-    FiEdit2
+    FiEdit2,
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -100,7 +100,7 @@ export enum IconProp {
     Label,
     Refresh,
     Filter,
-    Edit
+    Edit,
 }
 
 export interface ComponentProps {
@@ -389,14 +389,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
                     color={color ? color.toString() : ''}
                 />
             )}
-             {icon === IconProp.Filter && (
+            {icon === IconProp.Filter && (
                 <FiFilter
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}
                 />
             )}
-             {icon === IconProp.Edit && (
+            {icon === IconProp.Edit && (
                 <FiEdit2
                     size={size}
                     strokeWidth={thick ? thick : ''}

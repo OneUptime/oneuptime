@@ -17,45 +17,56 @@ export interface ComponentProps {
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
     _props: ComponentProps
 ) => {
-
     return (
         <NavBar
             rightContent={
                 <NavBarItem
                     title="Project Settings"
                     icon={IconProp.Settings}
-                    route={RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route)}
+                    route={RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    )}
                 ></NavBarItem>
             }
         >
             <NavBarItem
                 title="Home"
                 icon={IconProp.Home}
-                route={RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route)}
+                route={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.HOME] as Route
+                )}
             ></NavBarItem>
 
             <NavBarItem
                 title="Monitors"
-                route={RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route)}
+                route={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.MONITORS] as Route
+                )}
                 icon={IconProp.Activity}
             ></NavBarItem>
 
             <NavBarItem
                 title="Incidents"
-                route={RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENTS] as Route)}
+                route={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.INCIDENTS] as Route
+                )}
                 icon={IconProp.Alert}
             ></NavBarItem>
 
             <NavBarItem
                 title="On-Call Duty"
-                route={RouteUtil.populateRouteParams(RouteMap[PageMap.ON_CALL] as Route)}
+                route={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.ON_CALL] as Route
+                )}
                 icon={IconProp.Call}
             ></NavBarItem>
 
             <NavBarItem
                 title="Status Pages"
                 icon={IconProp.CheckCircle}
-                route={RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGE] as Route)}
+                route={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.STATUS_PAGE] as Route
+                )}
             ></NavBarItem>
 
             <NavBarItem title="More" icon={IconProp.More}>

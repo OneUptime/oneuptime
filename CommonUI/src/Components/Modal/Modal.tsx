@@ -15,7 +15,7 @@ export interface ComponentProps {
     submitButtonType?: undefined | ButtonType;
     isLoading?: undefined | boolean;
     disableSubmitButton?: undefined | boolean;
-    error?: string | undefined
+    error?: string | undefined;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (

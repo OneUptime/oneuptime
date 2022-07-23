@@ -45,7 +45,7 @@ import User from './User';
 @Entity({
     name: 'TeamMember',
 })
-@EntityName("Team Member", "Team Members")
+@EntityName('Team Member', 'Team Members')
 export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [

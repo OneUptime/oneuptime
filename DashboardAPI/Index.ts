@@ -46,8 +46,6 @@ import LabelService, {
     Service as LabelServiceType,
 } from 'CommonServer/Services/LabelService';
 
-
-
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -62,10 +60,19 @@ app.use(
 );
 app.use(new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
 
-
 app.use(new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter());
-app.use(new BaseAPI<TeamMember, TeamMemberServiceType>(TeamMember, TeamMemberService).getRouter());
-app.use(new BaseAPI<TeamPermission, TeamPermissionServiceType>(TeamPermission, TeamPermissionService).getRouter());
+app.use(
+    new BaseAPI<TeamMember, TeamMemberServiceType>(
+        TeamMember,
+        TeamMemberService
+    ).getRouter()
+);
+app.use(
+    new BaseAPI<TeamPermission, TeamPermissionServiceType>(
+        TeamPermission,
+        TeamPermissionService
+    ).getRouter()
+);
 
 app.use(new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter());
 

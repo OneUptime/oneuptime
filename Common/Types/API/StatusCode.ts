@@ -25,7 +25,7 @@ export default class StatusCode {
 
     public static isValidStausCode(statusCode: number | string): boolean {
         try {
-            if (typeof statusCode === "string") {
+            if (typeof statusCode === 'string') {
                 statusCode = parseInt(statusCode);
             }
 
@@ -33,9 +33,9 @@ export default class StatusCode {
                 return true;
             }
 
-            return false; 
+            return false;
         } catch (err) {
-            return false; 
+            return false;
         }
     }
 }

@@ -28,31 +28,40 @@ export interface ComponentProps {
     noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
     showFilter?: undefined | boolean;
-    onFilterChanged?: undefined | ((filterData: Dictionary<string | boolean>) => void); 
-    onActionEvent?: ((actionType: ActionType, item: JSONObject) => void) | undefined;
+    onFilterChanged?:
+        | undefined
+        | ((filterData: Dictionary<string | boolean>) => void);
+    onActionEvent?:
+        | ((actionType: ActionType, item: JSONObject) => void)
+        | undefined;
 }
 
 const Table: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const getTablebody = (): ReactElement => {
-
         if (props.isLoading) {
             return (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <div className="row text-center" style={{
-                                marginTop: "50px",
-                                marginBottom: "50px"
-                            }}>
-                                <Loader loaderType={LoaderType.Bar} color={VeryLightGrey} size={200} />
+                            <div
+                                className="row text-center"
+                                style={{
+                                    marginTop: '50px',
+                                    marginBottom: '50px',
+                                }}
+                            >
+                                <Loader
+                                    loaderType={LoaderType.Bar}
+                                    color={VeryLightGrey}
+                                    size={200}
+                                />
                             </div>
                         </td>
                     </tr>
                 </tbody>
-            )
+            );
         }
 
         if (props.error) {
@@ -60,18 +69,33 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <p className='text-center color-light-grey' style={{
-                                marginTop: "50px",
-                                marginBottom: "50px"
-                            }}>{props.error} <br /> {props.onRefreshClick ? <span onClick={() => {
-                                if (props.onRefreshClick) {
-                                    props.onRefreshClick();
-                                }
-                            }} className="underline primary-on-hover">Refresh?</span> : <></>}</p>
+                            <p
+                                className="text-center color-light-grey"
+                                style={{
+                                    marginTop: '50px',
+                                    marginBottom: '50px',
+                                }}
+                            >
+                                {props.error} <br />{' '}
+                                {props.onRefreshClick ? (
+                                    <span
+                                        onClick={() => {
+                                            if (props.onRefreshClick) {
+                                                props.onRefreshClick();
+                                            }
+                                        }}
+                                        className="underline primary-on-hover"
+                                    >
+                                        Refresh?
+                                    </span>
+                                ) : (
+                                    <></>
+                                )}
+                            </p>
                         </td>
                     </tr>
                 </tbody>
-            )
+            );
         }
 
         if (props.data.length === 0) {
@@ -79,28 +103,49 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <p className='text-center color-light-grey' style={{
-                                marginTop: "50px",
-                                marginBottom: "50px"
-                            }}> {props.noItemsMessage ? props.noItemsMessage : `No ${props.singularLabel.toLocaleLowerCase()}`} <br /> {props.onRefreshClick ? <span onClick={() => {
-                                if (props.onRefreshClick) {
-                                    props.onRefreshClick();
-                                }
-                            }} className="underline primary-on-hover">Refresh?</span> : <></>}</p>
+                            <p
+                                className="text-center color-light-grey"
+                                style={{
+                                    marginTop: '50px',
+                                    marginBottom: '50px',
+                                }}
+                            >
+                                {' '}
+                                {props.noItemsMessage
+                                    ? props.noItemsMessage
+                                    : `No ${props.singularLabel.toLocaleLowerCase()}`}{' '}
+                                <br />{' '}
+                                {props.onRefreshClick ? (
+                                    <span
+                                        onClick={() => {
+                                            if (props.onRefreshClick) {
+                                                props.onRefreshClick();
+                                            }
+                                        }}
+                                        className="underline primary-on-hover"
+                                    >
+                                        Refresh?
+                                    </span>
+                                ) : (
+                                    <></>
+                                )}
+                            </p>
                         </td>
                     </tr>
                 </tbody>
-            )
+            );
         }
 
-        return (<TableBody
-            id={`${props.id}-body`}
-            data={props.data}
-            columns={props.columns}
-            actionButtons={props.actionButtons}
-            onActionEvent={props.onActionEvent}
-        />)
-    }
+        return (
+            <TableBody
+                id={`${props.id}-body`}
+                data={props.data}
+                columns={props.columns}
+                actionButtons={props.actionButtons}
+                onActionEvent={props.onActionEvent}
+            />
+        );
+    };
 
     return (
         <div className="table-responsive">
@@ -122,7 +167,7 @@ const Table: FunctionComponent<ComponentProps> = (
                 itemsOnPage={props.itemsOnPage}
                 onNavigateToPage={props.onNavigateToPage}
                 isLoading={props.isLoading}
-                isError={!!props.error}
+                isError={Boolean(props.error)}
             />
         </div>
     );

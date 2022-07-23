@@ -16,7 +16,11 @@ const UserProfile: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <Link to={props.route} onClick={undefined} className="dropdown-item flex">
+        <Link
+            to={props.route}
+            onClick={undefined}
+            className="dropdown-item flex"
+        >
             {props.badge ? (
                 <span className="badge bg-success float-end">
                     {props.badge}
@@ -28,9 +32,15 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                 icon={props.icon}
                 color={props.iconColor ? props.iconColor : null}
             />
-            {<div style={{
-                marginTop:"1px"
-            }}>&nbsp;&nbsp;{props.title}&nbsp;&nbsp;&nbsp;&nbsp;</div>}
+            {
+                <div
+                    style={{
+                        marginTop: '1px',
+                    }}
+                >
+                    &nbsp;&nbsp;{props.title}&nbsp;&nbsp;&nbsp;&nbsp;
+                </div>
+            }
         </Link>
     );
 };

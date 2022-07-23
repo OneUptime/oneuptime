@@ -95,7 +95,6 @@ export default class ModelAPI {
         select: Select<TBaseModel>,
         sort: Sort<TBaseModel>
     ): Promise<ListResult<TBaseModel>> {
-        
         const model: TBaseModel = new type();
         const apiPath: Route | null = model.getCrudApiPath();
         if (!apiPath) {
@@ -141,16 +140,13 @@ export default class ModelAPI {
         throw result;
     }
 
-
-    public static getCommonHeaders(): Dictionary<string>{
-        const headers: Dictionary<string> = {
-
-        };
+    public static getCommonHeaders(): Dictionary<string> {
+        const headers: Dictionary<string> = {};
 
         const project = ProjectUtil.getCurrentProject();
 
         if (project && project.id) {
-            headers["projectid"] = project.id.toString();
+            headers['projectid'] = project.id.toString();
         }
 
         return headers;
@@ -177,7 +173,6 @@ export default class ModelAPI {
                 'This model does not support get operations.'
             );
         }
-    
 
         const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
             await API.fetch<TBaseModel>(
@@ -197,7 +192,7 @@ export default class ModelAPI {
 
     public static async deleteItem<TBaseModel extends BaseModel>(
         type: { new (): TBaseModel },
-        id: ObjectID,
+        id: ObjectID
     ): Promise<void> {
         const apiPath: Route | null = new type().getCrudApiPath();
         if (!apiPath) {
@@ -215,7 +210,6 @@ export default class ModelAPI {
                 'This model does not support delete operations.'
             );
         }
-    
 
         const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
             await API.fetch<TBaseModel>(
@@ -228,7 +222,7 @@ export default class ModelAPI {
         if (result.isSuccess()) {
             return;
         }
-        
+
         throw result;
     }
 }

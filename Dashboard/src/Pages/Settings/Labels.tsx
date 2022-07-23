@@ -10,7 +10,7 @@ import Label from 'Common/Models/Label';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
-import Pill from "CommonUI/src/Components/Pill/Pill";
+import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
@@ -57,34 +57,32 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        fieldType:
-                            FormFieldSchemaType.Text,
+                        fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: "internal-service",
+                        placeholder: 'internal-service',
                         validation: {
-                            noSpaces: true
-                        }
+                            noSpaces: true,
+                        },
                     },
                     {
                         field: {
                             description: true,
                         },
                         title: 'Description',
-                        fieldType:
-                            FormFieldSchemaType.LongText,
+                        fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        placeholder: "This label is for all the internal services."
+                        placeholder:
+                            'This label is for all the internal services.',
                     },
                     {
                         field: {
                             color: true,
                         },
                         title: 'Label Color',
-                        fieldType:
-                            FormFieldSchemaType.Color,
+                        fieldType: FormFieldSchemaType.Color,
                         required: true,
-                        placeholder: "Please select color for this label."
-                    }
+                        placeholder: 'Please select color for this label.',
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -97,11 +95,16 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         type: TableColumnType.Text,
                         isFilterable: true,
                         moreFields: {
-                            color: true
+                            color: true,
                         },
                         getColumnElement: (item: JSONObject): ReactElement => {
-                            return <Pill color={item["color"] as Color} text={item["name"] as string} />
-                        }
+                            return (
+                                <Pill
+                                    color={item['color'] as Color}
+                                    text={item['name'] as string}
+                                />
+                            );
+                        },
                     },
                     {
                         field: {
@@ -109,8 +112,8 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: TableColumnType.Text,
-                        isFilterable: true
-                    }
+                        isFilterable: true,
+                    },
                 ]}
             />
         </Page>

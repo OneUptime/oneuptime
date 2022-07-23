@@ -17,7 +17,7 @@ import EntityName from '../Types/Database/EntityName';
 @Entity({
     name: 'EmailVerificationToken',
 })
-@EntityName("Email Verification Token", "Email Verification Tokens")
+@EntityName('Email Verification Token', 'Email Verification Tokens')
 @TableAccessControl({
     create: [],
     read: [],
@@ -91,7 +91,7 @@ export default class EmailVerificationToken extends BaseModel {
         type: ColumnType.ObjectID,
         nullable: false,
         unique: true,
-        
+
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public token?: ObjectID;

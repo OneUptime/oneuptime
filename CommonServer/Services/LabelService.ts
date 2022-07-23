@@ -10,20 +10,28 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onBeforeCreate(createBy: CreateBy<Model>): Promise<CreateBy<Model>> {
+    protected override async onBeforeCreate(
+        createBy: CreateBy<Model>
+    ): Promise<CreateBy<Model>> {
         let existingProjectWithSameNameCount: number = 0;
 
-        existingProjectWithSameNameCount = (await this.countBy({
-            query: {
-                _id: createBy.props.userGlobalAccessPermission?.projectIds.map((item) => item.toString()) || [],
-                name: QueryHelper.findWithSameName(createBy.data.name!),
-                projectId: createBy.props.projectId!
-            },
-            props:
-            {
-                isRoot: true
-            }
-        })).toNumber()
+        existingProjectWithSameNameCount = (
+            await this.countBy({
+                query: {
+                    _id:
+                        createBy.props.userGlobalAccessPermission?.projectIds.map(
+                            (item) => {
+                                return item.toString();
+                            }
+                        ) || [],
+                    name: QueryHelper.findWithSameName(createBy.data.name!),
+                    projectId: createBy.props.projectId!,
+                },
+                props: {
+                    isRoot: true,
+                },
+            })
+        ).toNumber();
 
         if (existingProjectWithSameNameCount > 0) {
             throw new BadDataException(

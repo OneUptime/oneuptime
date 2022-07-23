@@ -49,7 +49,7 @@ export default class AccessTokenService {
             globalPermissions: [Permission.Public, Permission.User],
         };
 
-        // if user is a part of any project then, he is the project member. 
+        // if user is a part of any project then, he is the project member.
         if (projectIds.length > 0) {
             permissionToStore.globalPermissions.push(Permission.ProjectMember);
         }

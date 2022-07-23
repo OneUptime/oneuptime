@@ -2,7 +2,8 @@ import React, { ReactElement, useRef, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import Modal from '../Modal/Modal';
 import ModelForm, {
-    ComponentProps as ModelFormComponentProps, FormType,
+    ComponentProps as ModelFormComponentProps,
+    FormType,
 } from '../Forms/ModelForm';
 import BaseModel from 'Common/Models/BaseModel';
 import ButtonType from '../Button/ButtonTypes';
@@ -20,12 +21,12 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
-    type: { new(): TBaseModel };
+    type: { new (): TBaseModel };
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
-    onSuccess?: undefined | ((
-        data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
-    ) => void);
+    onSuccess?:
+        | undefined
+        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     submitButtonStyleType?: undefined | ButtonStyleType;
     formProps: ModelFormComponentProps<TBaseModel>;
     modelIdToEdit?: ObjectID | undefined;
@@ -34,7 +35,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const ModelFromModal: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const model: TBaseModel = new props.type();
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
@@ -43,12 +43,10 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
 
     const formRef: any = useRef<FormikProps<FormikValues>>(null);
 
-    const getSelectFields = (): Select<TBaseModel> => {
-
+    const getSelectFields: Function = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
         for (const field of props.formProps.fields) {
-
-            let key: string | null = field.field
+            const key: string | null = field.field
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
@@ -58,19 +56,31 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
         }
 
         return select;
-    }
+    };
 
     useAsyncEffect(async () => {
-
-        if (props.modelIdToEdit && props.formProps.formType === FormType.Update) {
-            // get item. 
+        if (
+            props.modelIdToEdit &&
+            props.formProps.formType === FormType.Update
+        ) {
+            // get item.
             setIsLoading(true);
             setError('');
             try {
-                const item: TBaseModel | null = await ModelAPI.getItem(props.type, props.modelIdToEdit, getSelectFields());
+                const item: TBaseModel | null = await ModelAPI.getItem(
+                    props.type,
+                    props.modelIdToEdit,
+                    getSelectFields()
+                );
 
                 if (!item) {
-                    setError(`Cannot edit ${(model.singularName || 'item').toLowerCase()}. It could be because you don't have enough permissions to read or edit this ${(model.singularName || 'item').toLowerCase()}.`)
+                    setError(
+                        `Cannot edit ${(
+                            model.singularName || 'item'
+                        ).toLowerCase()}. It could be because you don't have enough permissions to read or edit this ${(
+                            model.singularName || 'item'
+                        ).toLowerCase()}.`
+                    );
                 }
 
                 setItemToEdit(item);
@@ -78,13 +88,11 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
                 try {
                     setError(
                         ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                            'error'
                         ] as string
                     );
                 } catch (e) {
-                    setError(
-                        "Server Error. Please try again"
-                    );
+                    setError('Server Error. Please try again');
                 }
             }
 
@@ -103,37 +111,45 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
             }}
             error={error}
         >
-            {!isLoading && !error ? <ModelForm<TBaseModel>
-                {...props.formProps}
-                type={props.type}
-                initialValues={itemToEdit || {}}
-                hideSubmitButton={true}
-                onLoadingChange={(isFormLoading: boolean) => {
-                    setIsFormLoading(isFormLoading);
-                }}
-                formRef={formRef}
-                
-                onSuccess={(
-                    data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
-                ) => {
-                    props.onSuccess && props.onSuccess(data);
-                }}
-            /> : <></>}
-
-            {isLoading ? <div className="row text-center" style={{
-                marginTop: "50px",
-                marginBottom: "50px"
-            }}>
-                <Loader loaderType={LoaderType.Bar} color={VeryLightGrey} size={200} />
-            </div> : <></>}
-
-            {error ? (
-                <Alert
-                    title={error}
-                    type={AlertType.DANGER}
+            {!isLoading && !error ? (
+                <ModelForm<TBaseModel>
+                    {...props.formProps}
+                    type={props.type}
+                    initialValues={itemToEdit || {}}
+                    hideSubmitButton={true}
+                    onLoadingChange={(isFormLoading: boolean) => {
+                        setIsFormLoading(isFormLoading);
+                    }}
+                    formRef={formRef}
+                    onSuccess={(
+                        data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
+                    ) => {
+                        props.onSuccess && props.onSuccess(data);
+                    }}
                 />
-            ) : <></>}
+            ) : (
+                <></>
+            )}
 
+            {isLoading ? (
+                <div
+                    className="row text-center"
+                    style={{
+                        marginTop: '50px',
+                        marginBottom: '50px',
+                    }}
+                >
+                    <Loader
+                        loaderType={LoaderType.Bar}
+                        color={VeryLightGrey}
+                        size={200}
+                    />
+                </div>
+            ) : (
+                <></>
+            )}
+
+            {error ? <Alert title={error} type={AlertType.DANGER} /> : <></>}
         </Modal>
     );
 };

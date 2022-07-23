@@ -19,9 +19,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     type: { new (): TBaseModel };
     model: TBaseModel;
     id: string;
-    onValidate?: undefined | ((
-        values: FormValues<TBaseModel>
-    ) => FormikErrors<FormValues<TBaseModel>>);
+    onValidate?:
+        | undefined
+        | ((
+              values: FormValues<TBaseModel>
+          ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -29,9 +31,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showAsColumns?: undefined | number;
     footer: ReactElement;
     onCancel?: undefined | (() => void);
-    onSuccess?: undefined | ((
-        data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
-    ) => void);
+    onSuccess?:
+        | undefined
+        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;

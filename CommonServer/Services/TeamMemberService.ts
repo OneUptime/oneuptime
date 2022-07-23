@@ -9,13 +9,14 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onCreateSuccess(createBy: CreateBy<Model>): Promise<CreateBy<Model>> {
-         /// Refresh tokens.
-         await AccessTokenService.refreshUserGlobalAccessPermission(
+    protected override async onCreateSuccess(
+        createBy: CreateBy<Model>
+    ): Promise<CreateBy<Model>> {
+        /// Refresh tokens.
+        await AccessTokenService.refreshUserGlobalAccessPermission(
             createBy.data.userId!
-         );
-        
-       
+        );
+
         await AccessTokenService.refreshUserProjectAccessPermission(
             createBy.data.userId!,
             createBy.data.projectId!
@@ -24,7 +25,6 @@ export class Service extends DatabaseService<Model> {
         return createBy;
     }
 
-    // TODO - OnDelete and OnUpdate pending. 
-
+    // TODO - OnDelete and OnUpdate pending.
 }
 export default new Service();

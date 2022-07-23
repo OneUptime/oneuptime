@@ -28,7 +28,6 @@ export default class ObjectID extends DatabaseProperty {
     protected static override toDatabase(
         value: ObjectID | FindOperator<ObjectID>
     ): string | null {
-
         if (value) {
             return value.toString();
         }

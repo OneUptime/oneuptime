@@ -12,7 +12,7 @@ export enum ToastType {
 export interface ComponentProps {
     title: string;
     description: string;
-    onClose?: undefined |(() => void);
+    onClose?: undefined | (() => void);
     type?: undefined | ToastType;
     createdAt?: undefined | Date;
 }

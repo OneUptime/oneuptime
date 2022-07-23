@@ -27,7 +27,7 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                 className="btn header-item bg-soft-light border-start border-end flex"
                 aria-expanded="false"
                 style={{
-                    alignItems: "center"
+                    alignItems: 'center',
                 }}
             >
                 <img

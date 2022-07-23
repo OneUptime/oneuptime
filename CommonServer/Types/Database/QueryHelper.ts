@@ -1,6 +1,6 @@
 import ObjectID from 'Common/Types/ObjectID';
 import { FindOperator, Raw } from 'typeorm';
-import Text from "Common/Types/Text";
+import Text from 'Common/Types/Text';
 
 export default class QueryHelper {
     public static findWithSameName(name: string): FindOperator<any> {
@@ -16,27 +16,28 @@ export default class QueryHelper {
     }
 
     public static in(values: Array<string | ObjectID>): FindOperator<any> {
-        values = values.map((value) => value.toString());
+        values = values.map((value) => {
+            return value.toString();
+        });
         const rid = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} IN (:...${rid})`
+                return `${alias} IN (:...${rid})`;
             },
             {
-                [rid]: values
+                [rid]: values,
             }
         );
     }
 
     public static equalTo(value: string): FindOperator<any> {
-        
         const rid = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `${alias} = :${rid}`
+                return `${alias} = :${rid}`;
             },
             {
-                [rid]: value.toString()
+                [rid]: value.toString(),
             }
         );
     }

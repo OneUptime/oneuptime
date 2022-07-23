@@ -9,7 +9,9 @@ export interface ComponentProps {
     id: string;
     columns: Columns;
     actionButtons?: undefined | Array<ActionButtonSchema> | undefined;
-    onActionEvent?: ((actionType: ActionType, item: JSONObject) => void) | undefined;
+    onActionEvent?:
+        | ((actionType: ActionType, item: JSONObject) => void)
+        | undefined;
 }
 
 const TableBody: FunctionComponent<ComponentProps> = (
@@ -20,7 +22,13 @@ const TableBody: FunctionComponent<ComponentProps> = (
             {props.data &&
                 props.data.map((item: JSONObject, i: number) => {
                     return (
-                        <TableRow key={i} item={item} columns={props.columns} actionButtons={props.actionButtons} onActionEvent={props.onActionEvent} />
+                        <TableRow
+                            key={i}
+                            item={item}
+                            columns={props.columns}
+                            actionButtons={props.actionButtons}
+                            onActionEvent={props.onActionEvent}
+                        />
                     );
                 })}
         </tbody>

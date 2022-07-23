@@ -11,8 +11,8 @@ enum FormFieldSchemaType {
     Email,
     PositveNumber,
     Date,
-    LongText, 
-    Color
+    LongText,
+    Color,
 }
 
 export default FormFieldSchemaType;
