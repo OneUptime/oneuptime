@@ -2,6 +2,7 @@ import Color from "Common/Types/Color";
 import React, { FunctionComponent, ReactElement, useEffect, useState } from "react";
 import { ChromePicker } from 'react-color';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
+import Input from "../../Input/Input";
 
 
 export interface ComponentProps {
@@ -12,7 +13,7 @@ export interface ComponentProps {
 
 const ColorPicker: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
 
-    const [color, setColor] = useState<string>("");
+    const [color, setColor] = useState<string>("#000000");
     const { ref, isComponentVisible, setIsComponentVisible } =
     useComponentOutsideClick(false);
 
@@ -28,7 +29,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (props: ComponentProps): 
     };
 
     return (<div>
-        <input placeholder={props.placeholder} className="form-control white-background-on-readonly" value={color} readOnly={true} type="text" onClick={() => {
+        <Input leftCircleColor={new Color(color)} placeholder={props.placeholder} className="pointer form-control white-background-on-readonly" value={color} readOnly={true} type="text" onClick={() => {
             setIsComponentVisible(!isComponentVisible);
         }} />
         {isComponentVisible ?
