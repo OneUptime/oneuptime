@@ -150,12 +150,16 @@ const Button: FunctionComponent<ComponentProps> = ({
                                 
                                 />
                             )}
-                            {title ? ' ' : ''}
                         </span>
                         {title ? (
-                            <span>
+                            <div
+                                style={{
+                                    marginLeft: icon && !showIconOnRight ? "4px" : "0px",
+                                    marginTop: "1px"
+                                }}
+                            >
                                 <b>{title}</b>
-                            </span>
+                            </div>
                         ) : (
                             <></>
                         )}

@@ -19,54 +19,61 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
 ) => {
     return (
         <UILink
-            className={`${
-                props.className ? props.className : ''
-            } primary-on-hover pointer flex ${
-                Navigation.isOnThisPage(props.link.to) ? 'active' : ''
-            }`}
+            className={`${props.className ? props.className : ''
+                } primary-on-hover justify-space-between pointer flex ${Navigation.isOnThisPage(props.link.to) ? 'active' : ''
+                }`}
             to={props.link.to}
         >
-            {props.icon ? (
-                <>
-                    <Icon icon={props.icon} thick={ThickProp.LessThick} />
-                    &nbsp;
-                </>
-            ) : (
-                <></>
-            )}
-            <span
+            <div className='flex'>
+            <div>
+                {props.icon ? (
+                    <>
+                        <Icon icon={props.icon} thick={ThickProp.LessThick} />
+                    </>
+                ) : (
+                    <></>
+                )}
+            </div>
+            <div
+                style={{
+                        marginTop: "1px",
+                    marginLeft: "4px"
+                }}
             >
-                {props.link.title}
-            </span>
-            {props.badge ? (
-                <span className="mt-1 badge bg-success float-end">
-                    {props.badge}
-                </span>
-            ) : (
-                <></>
-            )}
-            {props.showAlert ? (
-                <>
-                    <Icon
-                        className="float-end"
-                        icon={IconProp.Error}
-                        color={Red}
-                    />
-                </>
-            ) : (
-                <></>
-            )}
-            {props.showWarning ? (
-                <>
-                    <Icon
-                        className="float-end"
-                        icon={IconProp.Alert}
-                        color={Yellow}
-                    />
-                </>
-            ) : (
-                <></>
-            )}
+                {' '+props.link.title}
+                </div>
+                </div>
+            <div>
+                {props.badge ? (
+                    <span className="mt-1 badge bg-success float-end">
+                        {props.badge}
+                    </span>
+                ) : (
+                    <></>
+                )}
+                {props.showAlert ? (
+                    <>
+                        <Icon
+                            className="float-end"
+                            icon={IconProp.Error}
+                            color={Red}
+                        />
+                    </>
+                ) : (
+                    <></>
+                )}
+                {props.showWarning ? (
+                    <>
+                        <Icon
+                            className="float-end"
+                            icon={IconProp.Alert}
+                            color={Yellow}
+                        />
+                    </>
+                ) : (
+                    <></>
+                )}
+            </div>
         </UILink>
     );
 };
