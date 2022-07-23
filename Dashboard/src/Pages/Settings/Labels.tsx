@@ -9,6 +9,10 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Label from 'Common/Models/Label';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import { JSONObject } from 'Common/Types/JSON';
+import Pill from "CommonUI/src/Components/Pill/Pill";
+import Color from 'Common/Types/Color';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 const APIKeys: FunctionComponent<PageComponentProps> = (
     __props: PageComponentProps
@@ -41,9 +45,10 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 itemsOnPage={10}
                 cardProps={{
+                    icon: IconProp.Label,
                     title: 'Labels',
                     description:
-                        'Create, edit, delete your project labels here.',
+                        'Labels help you categorize resources in your project and give granular permissions to access those resources to team members.',
                 }}
                 noItemsMessage={'No labels created for this project so far.'}
                 formFields={[
@@ -90,7 +95,13 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: TableColumnType.Text,
-                        isFilterable: true
+                        isFilterable: true,
+                        moreFields: {
+                            color: true
+                        },
+                        getColumnElement: (item: JSONObject): ReactElement => {
+                            return <Pill color={item["color"] as Color} text={item["name"] as string} />
+                        }
                     },
                     {
                         field: {

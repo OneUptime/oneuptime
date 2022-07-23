@@ -1,47 +1,28 @@
-import React, { ReactElement, useEffect, useRef, useState } from 'react';
+import React, { ReactElement, useRef, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import Modal from '../Modal/Modal';
-import ModelForm, {
-    ComponentProps as ModelFormComponentProps,
-} from '../Forms/ModelForm';
-import BaseModel from 'Common/Models/BaseModel';
+import BasicForm, {
+    ComponentProps as BasicFormComponentProps,
+} from '../Forms/BasicForm';
 import ButtonType from '../Button/ButtonTypes';
-import { JSONObjectOrArray } from 'Common/Types/JSON';
 import { FormikProps, FormikValues } from 'formik';
-import ObjectID from 'Common/Types/ObjectID';
 
-export interface ComponentProps<TBaseModel extends BaseModel> {
+export interface ComponentProps<T extends Object> {
     title: string;
-    type: { new (): TBaseModel };
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
     onSuccess?: undefined | ((
-        data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
+        data: T
     ) => void);
     submitButtonStyleType?: undefined | ButtonStyleType;
-    formProps: ModelFormComponentProps<TBaseModel>;
-    modelIdToEdit?: ObjectID | undefined;
+    formProps: BasicFormComponentProps<T>;
 }
 
-const ModelFromModal: Function = <TBaseModel extends BaseModel>(
-    props: ComponentProps<TBaseModel>
+const BasicFormModal: Function = <T extends Object>(
+    props: ComponentProps<T>
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const formRef: any = useRef<FormikProps<FormikValues>>(null);
-
-    useEffect(() => { 
-        if (!props.modelIdToEdit) {
-            return; 
-        }
-
-        // get item. 
-        setIsLoading(true);
-
-        
-
-        setIsLoading(false);
-
-    }, []);
 
     return (
         <Modal
@@ -52,16 +33,15 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
                 formRef.current && formRef.current.handleSubmit();
             }}
         >
-            <ModelForm<TBaseModel>
+            <BasicForm<T>
                 {...props.formProps}
-                type={props.type}
                 hideSubmitButton={true}
                 onLoadingChange={(isFormLoading: boolean) => {
                     setIsLoading(isFormLoading);
                 }}
                 formRef={formRef}
                 onSuccess={(
-                    data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
+                    data: T
                 ) => {
                     props.onSuccess && props.onSuccess(data);
                 }}
@@ -70,4 +50,4 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
     );
 };
 
-export default ModelFromModal;
+export default BasicFormModal;

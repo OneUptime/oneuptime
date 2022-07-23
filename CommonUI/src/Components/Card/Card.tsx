@@ -1,8 +1,10 @@
 import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
+import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 
 export interface ComponentProps {
     title: string;
     description: string;
+    icon?: IconProp | undefined;
     buttons?: undefined | Array<ReactElement>;
     children?: undefined | Array<ReactElement> | ReactElement;
     cardBodyStyle?: undefined | CSSProperties
@@ -20,7 +22,7 @@ const Card: FunctionComponent<ComponentProps> = (
                             className="card-header justify-space-between"
                         >
                             <div>
-                                <h4 className="card-title">{props.title}</h4>
+                                <h4 className="card-title">{props.icon ? <span><Icon icon={props.icon} thick={ThickProp.Thick} />&nbsp;</span> : <></>}{props.title}</h4>
                                 <p className="card-title-desc">
                                     {props.description}
                                 </p>

@@ -36,7 +36,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     formFields?: undefined | Fields<TBaseModel>;
     noItemsMessage?: undefined | string;
     showRefreshButton?: undefined | boolean;
-    showFilterButton?: undefined | boolean
+    showFilterButton?: undefined | boolean;
+    
 }
 
 enum ModalType {
@@ -152,17 +153,26 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             let key: string | null = column.field
                 ? (Object.keys(column.field)[0] as string)
                 : null;
+            
+                let moreFields: Array<string> = column.moreFields
+                ? (Object.keys(column.moreFields))
+                : [];
 
             columns.push({
                 title: column.title,
                 disableSort: column.disableSort || false,
                 type: column.type,
                 key: key,
-                isFilterable: column.isFilterable
+                isFilterable: column.isFilterable,
+                getColumnElement: column.getColumnElement ? column.getColumnElement : undefined
             });
 
             if (key) {
                 (select as Dictionary<boolean>)[key] = true;
+            }
+
+            for (const moreField of moreFields) {
+                (select as Dictionary<boolean>)[moreField] = true;
             }
         }
 

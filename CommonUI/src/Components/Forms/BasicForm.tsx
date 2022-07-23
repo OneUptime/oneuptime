@@ -198,6 +198,35 @@ const BasicForm: Function = <T extends Object>(
         return null;
     };
 
+    const validateMaxValueAndMinValue: Function = (
+        content: string | number,
+        field: DataField<T>
+    ): string | null => {
+        if (field.validation) {
+
+            if (typeof content === "string") {
+                try {
+                    content = parseInt(content);
+                } catch (e) {
+                    return `${field.title || name} should be a number.`;
+                }
+            }
+
+            if (field.validation.maxValue) {
+                if (content > field.validation?.maxValue) {
+                    return `${field.title || name} should not be more than ${field.validation?.maxValue}.`;
+                }
+            }
+
+            if (field.validation.minValue) {
+                if (content < field.validation?.minValue) {
+                    return `${field.title || name} should not be less than ${field.validation?.minValue}.`;
+                }
+            }
+        }
+        return null;
+    };
+
     const validateRequired: Function = (
         content: string,
         field: DataField<T>
@@ -287,6 +316,16 @@ const BasicForm: Function = <T extends Object>(
                         );
                         if (result) {
                             errors[name] = result;
+                        }
+
+                        // check for length of content
+                        const resultMaxMinValue: string | null = validateMaxValueAndMinValue(
+                            content,
+                            field
+                        );
+                        
+                        if (resultMaxMinValue) {
+                            errors[name] = resultMaxMinValue;
                         }
                     }
                 } else if (field.required) {

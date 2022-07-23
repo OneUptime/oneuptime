@@ -25,8 +25,13 @@ const TableRow: FunctionComponent<ComponentProps> = (
                         <td key={i} style={{
                             textAlign: i === props.columns.length - 1 ? "right" : "left"
                         }}>
-                            {column.key ? (
+                            {column.key && !column.getColumnElement ? (
                                 (props.item[column.key] as string)
+                            ) : (
+                                <></>
+                            )}
+                             {column.key && column.getColumnElement ? (
+                                 column.getColumnElement(props.item)
                             ) : (
                                 <></>
                             )}
