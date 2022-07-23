@@ -32,7 +32,9 @@ const ColorPicker: FunctionComponent<ComponentProps> = (props: ComponentProps): 
             setIsComponentVisible(!isComponentVisible);
         }} />
         {isComponentVisible ?
-            <div ref={ref}>
+            <div ref={ref} style={{
+                position: "absolute"
+            }}>
                 <ChromePicker  color={color} onChange={(color) => {
                     setColor(color.hex);
                 }} onChangeComplete={color => handleChange(color.hex)} />
