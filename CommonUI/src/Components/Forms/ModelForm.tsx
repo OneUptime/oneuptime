@@ -19,26 +19,26 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     type: { new (): TBaseModel };
     model: TBaseModel;
     id: string;
-    onValidate?: (
+    onValidate?: undefined | ((
         values: FormValues<TBaseModel>
-    ) => FormikErrors<FormValues<TBaseModel>>;
+    ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
-    submitButtonText?: string;
-    title?: string;
-    description?: string;
-    showAsColumns?: number;
+    submitButtonText?: undefined | string;
+    title?: undefined | string;
+    description?: undefined | string;
+    showAsColumns?: undefined | number;
     footer: ReactElement;
-    onCancel?: () => void;
-    onSuccess?: (
+    onCancel?: undefined | (() => void);
+    onSuccess?: undefined | ((
         data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
-    ) => void;
-    cancelButtonText?: string;
-    maxPrimaryButtonWidth?: boolean;
-    apiUrl?: URL;
+    ) => void);
+    cancelButtonText?: undefined | string;
+    maxPrimaryButtonWidth?: undefined | boolean;
+    apiUrl?: undefined | URL;
     formType: FormType;
-    hideSubmitButton?: boolean;
-    formRef?: MutableRefObject<FormikProps<FormikValues>>;
-    onLoadingChange?: (isLoading: boolean) => void;
+    hideSubmitButton?: undefined | boolean;
+    formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    onLoadingChange?: undefined | ((isLoading: boolean) => void);
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
