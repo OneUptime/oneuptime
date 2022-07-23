@@ -300,7 +300,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     onClose={() => {
                         setShowModal(false);
                     }}
-                    submitButtonText={`Create ${model.singularName}`}
+                    submitButtonText={modalType === ModalType.Create ? `Create ${model.singularName}` : `Save Changes`}
                     onSuccess={(_item: TBaseModel) => {
                         setShowModal(false);
                         setCurrentPageNumber(1);
