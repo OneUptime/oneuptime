@@ -238,7 +238,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             actionsSchema.push({
                 title: "Delete",
                 icon: IconProp.Trash,
-                buttonStyleType: ButtonStyleType.DANGER,
+                buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
                 actionType: ActionType.Delete
             })
         }
@@ -320,8 +320,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             )}
 
             {showDeleteConfirmModal && <ConfirmModal
-                title={"Confirm Delete"}
-                description={`Are you sure you want to delete this ${model.singularName}?`}
+                title={`Delete ${model.singularName}`}
+                description={`Are you sure you want to delete this ${(model.singularName || "item")?.toLowerCase()}?`}
                 onClose={() => {
                     setShowDeleteConfirmModal(false);
                 }}

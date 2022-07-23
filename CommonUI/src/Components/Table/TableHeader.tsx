@@ -29,7 +29,9 @@ const TableHeader: FunctionComponent<ComponentProps> = (
 
                     const canSort = !column.disableSort && column.key;
 
-                    return <th key={i} className={`${canSort ? "pointer" : ""}`} onClick={() => {
+                    return <th key={i} className={`${canSort ? "pointer" : ""}`} style={{
+                        textAlign: i === props.columns.length - 1 ? "right" : "left"
+                    }} onClick={() => {
                         if (!column.key) {
                             return;
                         }

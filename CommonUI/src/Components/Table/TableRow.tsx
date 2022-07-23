@@ -1,6 +1,6 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Button from '../Button/Button';
+import Button, { ButtonSize } from '../Button/Button';
 import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
@@ -22,7 +22,9 @@ const TableRow: FunctionComponent<ComponentProps> = (
             {props.columns &&
                 props.columns.map((column: Column, i: number) => {
                     return (
-                        <td key={i}>
+                        <td key={i} style={{
+                            textAlign: i === props.columns.length - 1 ? "right" : "left"
+                        }}>
                             {column.key ? (
                                 (props.item[column.key] as string)
                             ) : (
@@ -33,7 +35,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                     return <span style={i > 0 ? {
                                         marginLeft: "10px"
                                     } : {}} key={i}>
-                                        <Button title={button.title} icon={button.icon} buttonStyle={button.buttonStyleType} onClick={() => {
+                                        <Button buttonSize={ButtonSize.Small} title={button.title} icon={button.icon} buttonStyle={button.buttonStyleType} onClick={() => {
                                             if (props.onActionEvent) {
                                                 props.onActionEvent(button.actionType, props.item);
                                             }

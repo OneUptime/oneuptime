@@ -6,12 +6,20 @@ import CSS from 'csstype';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 import Loader, { LoaderType } from '../Loader/Loader';
 import { White } from '../../Utils/BrandColors';
+
 export enum ButtonStyleType {
     PRIMARY,
     SECONDRY,
     OUTLINE,
     NORMAL,
     DANGER,
+    DANGER_OUTLINE
+}
+
+export enum ButtonSize {
+    Normal = "btn", 
+    Small = "btn-sm",
+    Large = "btn-lg"
 }
 
 export interface ComponentProps {
@@ -27,6 +35,7 @@ export interface ComponentProps {
     showIconOnRight?: undefined | boolean;
     iconSize?: undefined | SizeProp;
     buttonStyle?: undefined | ButtonStyleType;
+    buttonSize?:  ButtonSize | undefined
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -42,7 +51,10 @@ const Button: FunctionComponent<ComponentProps> = ({
     iconSize,
     showIconOnRight = false,
     buttonStyle = ButtonStyleType.NORMAL,
+    buttonSize = ButtonSize.Normal
 }: ComponentProps): ReactElement => {
+
+
     useEffect(() => {
         // componentDidMount
         if (shortcutKey) {
@@ -87,6 +99,10 @@ const Button: FunctionComponent<ComponentProps> = ({
         buttonStyleCssClass = 'btn-danger';
     }
 
+    if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
+        buttonStyleCssClass = 'btn-outline-danger';
+    }
+
     if (buttonStyle === ButtonStyleType.PRIMARY) {
         buttonStyleCssClass = 'btn-primary';
     }
@@ -111,7 +127,7 @@ const Button: FunctionComponent<ComponentProps> = ({
             }}
             type={type}
             disabled={disabled}
-            className={`btn ${buttonStyleCssClass} waves-effect waves-light ${
+            className={`btn ${buttonStyleCssClass} ${buttonSize} waves-effect waves-light ${
                 !title && buttonStyle === ButtonStyleType.NORMAL
                     ? 'no-border-on-hover'
                     : ''
@@ -130,7 +146,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     size={
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
-                                    thick={ThickProp.Thick}
+                                    thick={buttonSize === ButtonSize.Small ?  ThickProp.LessThick : ThickProp.Thick}
                                 
                                 />
                             )}
