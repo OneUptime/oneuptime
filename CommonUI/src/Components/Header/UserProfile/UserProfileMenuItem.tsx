@@ -28,7 +28,9 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                 icon={props.icon}
                 color={props.iconColor ? props.iconColor : null}
             />
-            {<span>&nbsp;&nbsp;{props.title}&nbsp;&nbsp;&nbsp;&nbsp;</span>}
+            {<div style={{
+                marginTop:"1px"
+            }}>&nbsp;&nbsp;{props.title}&nbsp;&nbsp;&nbsp;&nbsp;</div>}
         </Link>
     );
 };

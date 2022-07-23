@@ -26,6 +26,9 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                 aria-haspopup="true"
                 className="btn header-item bg-soft-light border-start border-end flex"
                 aria-expanded="false"
+                style={{
+                    alignItems: "center"
+                }}
             >
                 <img
                     className="rounded-circle header-profile-user"
