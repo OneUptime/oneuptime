@@ -30,7 +30,8 @@ const TableHeader: FunctionComponent<ComponentProps> = (
         <thead id={props.id}>
             <tr>
                 {props.columns.map((column: Column, i: number) => {
-                    const canSort = !column.disableSort && column.key;
+                    const canSort: boolean =
+                        !column.disableSort && Boolean(column.key);
 
                     return (
                         <th
@@ -92,7 +93,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                             <td key={i}>
                                 {column.isFilterable && (
                                     <Input
-                                        onChange={(changedValue) => {
+                                        onChange={(changedValue: string) => {
                                             if (column.key) {
                                                 filterData[column.key] =
                                                     changedValue;

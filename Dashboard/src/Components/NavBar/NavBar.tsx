@@ -8,15 +8,8 @@ import Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import Project from 'Common/Models/Project';
 
-export interface ComponentProps {
-    currentProject: Project | null;
-}
-
-const DashboardNavbar: FunctionComponent<ComponentProps> = (
-    _props: ComponentProps
-) => {
+const DashboardNavbar: FunctionComponent = () => {
     return (
         <NavBar
             rightContent={

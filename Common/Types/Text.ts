@@ -5,10 +5,10 @@ export default class Text {
         }
 
         let result: string = '';
-        const characters =
+        const characters: string =
             'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        const charactersLength = characters.length;
-        for (let i = 0; i < length; i++) {
+        const charactersLength: number = characters.length;
+        for (let i: number = 0; i < length; i++) {
             result += characters.charAt(
                 Math.floor(Math.random() * charactersLength)
             );

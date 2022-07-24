@@ -10,7 +10,6 @@ export interface ComponentProps {
     initialValue?: undefined | string;
     onClick?: undefined | (() => void);
     placeholder?: undefined | string;
-    error?: undefined | string;
     className?: undefined | string;
     onChange?: undefined | ((value: string) => void);
     value?: string | undefined;
@@ -58,7 +57,7 @@ const Input: FunctionComponent<ComponentProps> = (
                 ></div>
             )}
             <input
-                onChange={(e) => {
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setValue(e.target.value);
                     if (props.onChange) {
                         props.onChange(e.target.value);

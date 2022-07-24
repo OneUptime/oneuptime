@@ -39,7 +39,7 @@ export interface ComponentProps {
 const Table: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const getTablebody = (): ReactElement => {
+    const getTablebody: Function = (): ReactElement => {
         if (props.isLoading) {
             return (
                 <tbody>
@@ -159,16 +159,18 @@ const Table: FunctionComponent<ComponentProps> = (
                 />
                 {getTablebody()}
             </table>
-            <Pagination
-                singularLabel={props.singularLabel}
-                pluralLabel={props.pluralLabel}
-                currentPageNumber={props.currentPageNumber}
-                totalItemsCount={props.totalItemsCount}
-                itemsOnPage={props.itemsOnPage}
-                onNavigateToPage={props.onNavigateToPage}
-                isLoading={props.isLoading}
-                isError={Boolean(props.error)}
-            />
+            {!props.disablePagination && (
+                <Pagination
+                    singularLabel={props.singularLabel}
+                    pluralLabel={props.pluralLabel}
+                    currentPageNumber={props.currentPageNumber}
+                    totalItemsCount={props.totalItemsCount}
+                    itemsOnPage={props.itemsOnPage}
+                    onNavigateToPage={props.onNavigateToPage}
+                    isLoading={props.isLoading}
+                    isError={Boolean(props.error)}
+                />
+            )}
         </div>
     );
 };

@@ -1,3 +1,4 @@
+import Project from 'Common/Models/Project';
 import Route from 'Common/Types/API/Route';
 import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
@@ -59,7 +60,7 @@ const RouteMap: Dictionary<Route> = {
 export class RouteUtil {
     public static populateRouteParams(route: Route): Route {
         // populate projectid
-        const project = ProjectUtil.getCurrentProject();
+        const project: Project | null = ProjectUtil.getCurrentProject();
 
         if (project && project._id) {
             route = route.addRouteParam(RouteParams.ProjectID, project._id);

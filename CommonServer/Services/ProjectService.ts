@@ -14,6 +14,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import FindBy from '../Types/Database/FindBy';
 import { In } from 'typeorm';
 import QueryHelper from '../Types/Database/QueryHelper';
+import ObjectID from 'Common/Types/ObjectID';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -39,7 +40,7 @@ export class Service extends DatabaseService<Model> {
                     query: {
                         _id:
                             data.props.userGlobalAccessPermission?.projectIds.map(
-                                (item) => {
+                                (item: ObjectID) => {
                                     return item.toString();
                                 }
                             ) || [],

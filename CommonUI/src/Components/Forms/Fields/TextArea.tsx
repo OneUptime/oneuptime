@@ -22,7 +22,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
         }
     }, []);
 
-    const handleChange = (content: string): void => {
+    const handleChange: Function = (content: string): void => {
         setText(content);
         props.onChange(content);
     };
@@ -33,7 +33,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
                 placeholder={props.placeholder}
                 className="form-control"
                 value={text}
-                onChange={(e) => {
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                     handleChange(e.target.value);
                 }}
             />

@@ -5,7 +5,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import { ChromePicker } from 'react-color';
+import { ChromePicker, ColorResult } from 'react-color';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import Input from '../../Input/Input';
 
@@ -28,7 +28,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
         }
     }, []);
 
-    const handleChange = (color: string): void => {
+    const handleChange: Function = (color: string): void => {
         setColor(color);
         props.onChange(new Color(color));
     };
@@ -55,10 +55,10 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                 >
                     <ChromePicker
                         color={color}
-                        onChange={(color) => {
+                        onChange={(color: ColorResult) => {
                             setColor(color.hex);
                         }}
-                        onChangeComplete={(color) => {
+                        onChangeComplete={(color: ColorResult) => {
                             return handleChange(color.hex);
                         }}
                     />

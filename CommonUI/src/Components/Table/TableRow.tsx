@@ -44,42 +44,47 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             )}
                             {column.type === TableColumnType.Actions && (
                                 <div>
-                                    {props.actionButtons?.map((button, i) => {
-                                        return (
-                                            <span
-                                                style={
-                                                    i > 0
-                                                        ? {
-                                                              marginLeft:
-                                                                  '10px',
-                                                          }
-                                                        : {}
-                                                }
-                                                key={i}
-                                            >
-                                                <Button
-                                                    buttonSize={
-                                                        ButtonSize.Small
+                                    {props.actionButtons?.map(
+                                        (
+                                            button: ActionButtonSchema,
+                                            i: number
+                                        ) => {
+                                            return (
+                                                <span
+                                                    style={
+                                                        i > 0
+                                                            ? {
+                                                                  marginLeft:
+                                                                      '10px',
+                                                              }
+                                                            : {}
                                                     }
-                                                    title={button.title}
-                                                    icon={button.icon}
-                                                    buttonStyle={
-                                                        button.buttonStyleType
-                                                    }
-                                                    onClick={() => {
-                                                        if (
-                                                            props.onActionEvent
-                                                        ) {
-                                                            props.onActionEvent(
-                                                                button.actionType,
-                                                                props.item
-                                                            );
+                                                    key={i}
+                                                >
+                                                    <Button
+                                                        buttonSize={
+                                                            ButtonSize.Small
                                                         }
-                                                    }}
-                                                />
-                                            </span>
-                                        );
-                                    })}
+                                                        title={button.title}
+                                                        icon={button.icon}
+                                                        buttonStyle={
+                                                            button.buttonStyleType
+                                                        }
+                                                        onClick={() => {
+                                                            if (
+                                                                props.onActionEvent
+                                                            ) {
+                                                                props.onActionEvent(
+                                                                    button.actionType,
+                                                                    props.item
+                                                                );
+                                                            }
+                                                        }}
+                                                    />
+                                                </span>
+                                            );
+                                        }
+                                    )}
                                 </div>
                             )}
                         </td>

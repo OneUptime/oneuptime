@@ -38,22 +38,25 @@ const Card: FunctionComponent<ComponentProps> = (
                                 </p>
                             </div>
                             <div>
-                                {props.buttons?.map((button, i) => {
-                                    return (
-                                        <span
-                                            style={
-                                                i > 0
-                                                    ? {
-                                                          marginLeft: '10px',
-                                                      }
-                                                    : {}
-                                            }
-                                            key={i}
-                                        >
-                                            {button}
-                                        </span>
-                                    );
-                                })}
+                                {props.buttons?.map(
+                                    (button: ReactElement, i: number) => {
+                                        return (
+                                            <span
+                                                style={
+                                                    i > 0
+                                                        ? {
+                                                              marginLeft:
+                                                                  '10px',
+                                                          }
+                                                        : {}
+                                                }
+                                                key={i}
+                                            >
+                                                {button}
+                                            </span>
+                                        );
+                                    }
+                                )}
                             </div>
                         </div>
                         {props.children && (

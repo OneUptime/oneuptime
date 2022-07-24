@@ -114,11 +114,11 @@ const BasicForm: Function = <T extends Object>(
 
                 {field.fieldType === FormFieldSchemaType.Color && (
                     <Field name={fieldName}>
-                        {({ form }: { form: any }) => {
+                        {({ form }: any) => {
                             return (
                                 <ColorPicker
                                     onChange={(color: Color) => {
-                                        form.setFieldValue(fieldName, color);
+                                        form.setFieldValue(fieldName, color, true);
                                     }}
                                     placeholder={field.placeholder || ''}
                                 />
@@ -129,11 +129,11 @@ const BasicForm: Function = <T extends Object>(
 
                 {field.fieldType === FormFieldSchemaType.LongText && (
                     <Field name={fieldName}>
-                        {({ form }: { form: any }) => {
+                        {({ form }: any) => {
                             return (
                                 <TextArea
                                     onChange={(text: string) => {
-                                        form.setFieldValue(fieldName, text);
+                                        form.setFieldValue(fieldName, text, true);
                                     }}
                                     initialValue={''}
                                     placeholder={field.placeholder || ''}

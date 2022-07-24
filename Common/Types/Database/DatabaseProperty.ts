@@ -31,7 +31,8 @@ export default class DatabaseProperty {
             (value as any)._type === 'raw' &&
             Object.keys((value as any)._objectLiteralParameters).length > 0
         ) {
-            const returnVal = (value as any)._objectLiteralParameters[
+            const returnVal: string | number | null = (value as any)
+                ._objectLiteralParameters[
                 (Object.keys((value as any)._objectLiteralParameters) as any)[0]
             ] as any;
             if (Array.isArray(returnVal) && returnVal.length > 0) {

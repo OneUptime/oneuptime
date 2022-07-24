@@ -144,13 +144,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
 
-        const columns = [];
+        const columns: Array<TableColumn> = [];
 
         const select: Select<TBaseModel> = {
             _id: true,
         };
 
-        const slugifyColumn = props.model.getSlugifyColumn();
+        const slugifyColumn: string | null = props.model.getSlugifyColumn();
 
         if (slugifyColumn) {
             (select as Dictionary<boolean>)[slugifyColumn] = true;
@@ -195,7 +195,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         // add header buttons.
-        const headerbuttons = [];
+        const headerbuttons: Array<ReactElement> = [];
         if (props.isCreateable) {
             headerbuttons.push(
                 <Button
@@ -233,7 +233,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     title={``}
                     buttonStyle={ButtonStyleType.OUTLINE}
                     onClick={() => {
-                        const isShowFilter = showTableFilter;
+                        const isShowFilter: boolean = showTableFilter;
                         setShowTableFilter(!isShowFilter);
                     }}
                     disabled={isLoading}

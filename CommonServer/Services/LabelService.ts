@@ -4,6 +4,7 @@ import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import QueryHelper from '../Types/Database/QueryHelper';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import ObjectID from 'Common/Types/ObjectID';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -20,7 +21,7 @@ export class Service extends DatabaseService<Model> {
                 query: {
                     _id:
                         createBy.props.userGlobalAccessPermission?.projectIds.map(
-                            (item) => {
+                            (item: ObjectID) => {
                                 return item.toString();
                             }
                         ) || [],

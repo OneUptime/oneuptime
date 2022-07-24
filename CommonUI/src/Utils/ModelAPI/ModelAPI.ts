@@ -15,6 +15,7 @@ import { FormType } from '../../Components/Forms/ModelForm';
 import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
 import Sort from './Sort';
+import Project from 'Common/Models/Project';
 
 export interface ListResult<TBaseModel extends BaseModel> {
     data: Array<TBaseModel>;
@@ -143,7 +144,7 @@ export default class ModelAPI {
     public static getCommonHeaders(): Dictionary<string> {
         const headers: Dictionary<string> = {};
 
-        const project = ProjectUtil.getCurrentProject();
+        const project: Project | null = ProjectUtil.getCurrentProject();
 
         if (project && project.id) {
             headers['projectid'] = project.id.toString();

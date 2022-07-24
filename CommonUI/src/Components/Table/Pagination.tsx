@@ -30,7 +30,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
     const [minPageNumber, setMinPageNumber] = useState<number>(1);
     const [maxPageNumber, setMaxPageNumber] = useState<number>(1);
 
-    const setMinAndMaxPageNumber: (() => void) = (): void => {
+    const setMinAndMaxPageNumber: () => void = (): void => {
         setMinPageNumber(1);
         let maxPageNo: number =
             props.totalItemsCount % props.itemsOnPage === 0
@@ -104,27 +104,27 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`page-item ${isPreviousDisabled ? 'disabled' : ''
-                                }`}
+                            className={`page-item ${
+                                isPreviousDisabled ? 'disabled' : ''
+                            }`}
                             style={{ padding: '0px' }}
                         >
-                            <a href="#" className="page-link">
-                                Previous
-                            </a>
+                            <span className="page-link">Previous</span>
                         </li>
                         <li
-                            className={`page-item ${isCurrentPageButtonDisabled ? 'disabled' : ''
-                                }`}
+                            className={`page-item ${
+                                isCurrentPageButtonDisabled ? 'disabled' : ''
+                            }`}
                             style={{ padding: '0px' }}
                         >
-                            <a
+                            <span
                                 onClick={() => {
                                     setShowPaginationModel(true);
                                 }}
                                 className="pointer page-link"
                             >
                                 {props.currentPageNumber}
-                            </a>
+                            </span>
                         </li>
                         <li
                             onClick={() => {
@@ -134,11 +134,12 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`page-item ${isNextDisabled ? 'disabled' : ''
-                                }`}
+                            className={`page-item ${
+                                isNextDisabled ? 'disabled' : ''
+                            }`}
                             style={{ padding: '0px' }}
                         >
-                            <a className="pointer page-link">Next</a>
+                            <span className="pointer page-link">Next</span>
                         </li>
                     </ul>
                 </nav>

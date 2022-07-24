@@ -4,7 +4,7 @@ import Text from 'Common/Types/Text';
 
 export default class QueryHelper {
     public static findWithSameName(name: string): FindOperator<any> {
-        const rid = Text.generateRandomText(10);
+        const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
                 return `LOWER(${alias}) LIKE LOWER(:${rid})`;
@@ -16,10 +16,10 @@ export default class QueryHelper {
     }
 
     public static in(values: Array<string | ObjectID>): FindOperator<any> {
-        values = values.map((value) => {
+        values = values.map((value: string | ObjectID) => {
             return value.toString();
         });
-        const rid = Text.generateRandomText(10);
+        const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
                 return `${alias} IN (:...${rid})`;
@@ -31,7 +31,7 @@ export default class QueryHelper {
     }
 
     public static equalTo(value: string): FindOperator<any> {
-        const rid = Text.generateRandomText(10);
+        const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
                 return `${alias} = :${rid}`;

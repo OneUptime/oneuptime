@@ -125,7 +125,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy: CreateBy<TBaseModel>
     ): Promise<CreateBy<TBaseModel>> {
         // Private method that runs before create.
-        const projectIdColumn = this.model.getProjectColumn();
+        const projectIdColumn: string | null = this.model.getProjectColumn();
 
         if (projectIdColumn && createBy.props.projectId) {
             (createBy.data as any)[projectIdColumn] = createBy.props.projectId;
@@ -467,7 +467,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         columns = this.getReadColumnsByPermissions(userPermissions || []);
 
-        const excludedColumns = ['_id', 'createdAt', 'deletedAt', 'updatedAt'];
+        const excludedColumns: Array<string> = [
+            '_id',
+            'createdAt',
+            'deletedAt',
+            'updatedAt',
+        ];
 
         // Now we need to check all columns.
 
@@ -562,7 +567,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
         readColumns = this.getReadColumnsByPermissions(userPermissions || []);
 
         // Now we need to check all columns.
-        const excludedColumns = ['_id', 'createdAt', 'deletedAt', 'updatedAt'];
+        const excludedColumns: Array<string> = [
+            '_id',
+            'createdAt',
+            'deletedAt',
+            'updatedAt',
+        ];
 
         for (const key in updateBy.query) {
             if (excludedColumns.includes(key)) {
@@ -801,7 +811,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 Array.isArray((query[key] as any)._value) &&
                 (query[key] as any)._value.length > 0
             ) {
-                let counter = 0;
+                let counter: number = 0;
                 for (const item of (query[key] as any)._value) {
                     if (item instanceof ObjectID) {
                         ((query[key] as any)._value as any)[counter] = (
@@ -921,7 +931,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
 
-            debugger;
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
