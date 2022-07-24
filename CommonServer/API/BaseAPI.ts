@@ -261,6 +261,10 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
+        delete item["_id"];
+        delete item["createdAt"];
+        delete item["updatedAt"];
+
         // @ts-ignore
         await this.service.updateBy({
             query: {

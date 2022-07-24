@@ -71,12 +71,19 @@ export default class ModelAPI {
             apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
         }
 
+        const httpMethod = formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT;
+        
+        if (httpMethod === HTTPMethod.PUT) {
+            apiUrl = apiUrl.addRoute(`/${model.id?.toString()}`);    
+
+        }
+
         const result: HTTPResponse<
             JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
         > = await API.fetch<
             JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
         >(
-            formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT,
+            httpMethod,
             apiUrl,
             { data: model.toJSON() },
             this.getCommonHeaders()

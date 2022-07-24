@@ -9,6 +9,12 @@ import URL from 'Common/Types/API/URL';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import Select from '../../Utils/ModelAPI/Select';
+import Dictionary from 'Common/Types/Dictionary';
+import useAsyncEffect from 'use-async-effect';
+import ObjectID from 'Common/Types/ObjectID';
+import Loader, { LoaderType } from '../Loader/Loader';
+import { VeryLightGrey } from '../../Utils/BrandColors';
 
 export enum FormType {
     Create,
@@ -16,14 +22,14 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    type: { new (): TBaseModel };
+    type: { new(): TBaseModel };
     model: TBaseModel;
     id: string;
     onValidate?:
-        | undefined
-        | ((
-              values: FormValues<TBaseModel>
-          ) => FormikErrors<FormValues<TBaseModel>>);
+    | undefined
+    | ((
+        values: FormValues<TBaseModel>
+    ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -32,8 +38,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     onSuccess?:
-        | undefined
-        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+    | undefined
+    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -42,13 +48,80 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
     initialValues?: FormValues<TBaseModel> | undefined;
+    modelIdToEdit?: ObjectID | undefined;
+    onError?: ((error: string) => void) | undefined;
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isLoading, setLoading] = useState<boolean>(false);
+    const [isFetching, setIsFetching] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
+    const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
+
+    const getSelectFields: Function = (): Select<TBaseModel> => {
+        const select: Select<TBaseModel> = {};
+        for (const field of props.fields) {
+            const key: string | null = field.field
+                ? (Object.keys(field.field)[0] as string)
+                : null;
+
+            if (key) {
+                (select as Dictionary<boolean>)[key] = true;
+            }
+        }
+
+        return select;
+    };
+
+    useAsyncEffect(async () => {
+        if (
+            props.modelIdToEdit &&
+            props.formType === FormType.Update
+        ) {
+            // get item.
+            setLoading(true);
+            setIsFetching(true);
+            setError('');
+            try {
+                const item: TBaseModel | null = await ModelAPI.getItem(
+                    props.type,
+                    props.modelIdToEdit,
+                    getSelectFields()
+                );
+
+                if (!item) {
+                    setError(
+                        `Cannot edit ${(
+                            props.model.singularName || 'item'
+                        ).toLowerCase()}. It could be because you don't have enough permissions to read or edit this ${(
+                            props.model.singularName || 'item'
+                        ).toLowerCase()}.`
+                    );
+                }
+
+                setItemToEdit(item);
+            } catch (err) {
+                let error: string = '';
+                try {
+                    error = ((err as HTTPErrorResponse).data as JSONObject)[
+                        'error'
+                    ] as string;
+
+                } catch (e) {
+                    error = 'Server Error. Please try again';
+                }
+                setError(
+                    error
+                );
+                props.onError && props.onError(error)
+            }
+
+            setLoading(false);
+            setIsFetching(false);
+        }
+    }, []);
 
     const onSubmit: Function = async (values: JSONObject): Promise<void> => {
         // Ping an API here.
@@ -63,6 +136,18 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         >;
 
         try {
+
+            // strip data. 
+            const valuesToSend: JSONObject = {};
+
+            for (const key in getSelectFields()) {
+                (valuesToSend as any)[key] = values[key];
+            }
+
+            if (props.formType == FormType.Update) {
+                (valuesToSend as any)["_id"] = values["_id"];
+            }
+
             result = await ModelAPI.createOrUpdate<TBaseModel>(
                 props.model.fromJSON(values, props.type),
                 props.formType,
@@ -75,7 +160,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                'error'
                 ] as string
             );
         }
@@ -86,6 +171,24 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             props.onLoadingChange(false);
         }
     };
+
+    if (isFetching) {
+        return (
+            <div
+                className="row text-center"
+                style={{
+                    marginTop: '50px',
+                    marginBottom: '50px',
+                }}
+            >
+                <Loader
+                    loaderType={LoaderType.Bar}
+                    color={VeryLightGrey}
+                    size={200}
+                />
+            </div>
+        );
+    }
 
     return (
         <BasicModelForm<TBaseModel>
@@ -106,7 +209,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             error={error}
             hideSubmitButton={props.hideSubmitButton}
             formRef={props.formRef}
-            initialValues={props.initialValues}
+            initialValues={itemToEdit || props.initialValues}
         ></BasicModelForm>
     );
 };
