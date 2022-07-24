@@ -12,6 +12,7 @@
     +.breadcrumb-item {
         &::before {
             font-family: "Material Design Icons";
+            content: unset;
         }
     }
 }

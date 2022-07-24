@@ -131,8 +131,9 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
+            const list = model.fromJSONArray(result.data as JSONArray, type);
             return {
-                data: model.fromJSONArray(result.data as JSONArray, type),
+                data: list,
                 count: result.count,
                 skip: result.skip,
                 limit: result.limit,

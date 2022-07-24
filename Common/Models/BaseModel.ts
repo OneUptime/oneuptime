@@ -270,14 +270,30 @@ export default class BaseModel extends BaseEntity {
     }
 
     public toJSON(): JSONObject {
+        const json = this.toJSONObject();
+        return JSONFunctions.serialize(json);
+    }
+
+    public toJSONObject(): JSONObject {
         const json: JSONObject = {};
+
         for (const key of this.getTableColumns().columns) {
             if ((this as any)[key]) {
                 json[key] = (this as any)[key];
             }
         }
 
-        return JSONFunctions.serialize(json);
+        return json; 
+    }
+
+    public static toJSONObjectArray(list: Array<BaseModel>): JSONArray {
+        const array: JSONArray = [];
+
+        for (const item of list) {
+            array.push(item.toJSONObject());
+        }
+
+        return array;
     }
 
     public static toJSONArray(list: Array<BaseModel>): JSONArray {

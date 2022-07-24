@@ -28,7 +28,6 @@ import {
 } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import HardDeleteBy from '../Types/Database/HardDeleteBy';
 import { EncryptionSecret } from '../Config';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
@@ -844,21 +843,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return await this._deleteBy(deleteBy);
     }
 
-    public async hardDeleteBy(
-        hardDeleteBy: HardDeleteBy<TBaseModel>
-    ): Promise<number> {
-        return await this._hardDeleteBy(hardDeleteBy);
-    }
-
-    private async _hardDeleteBy(
-        hardDeleteBy: HardDeleteBy<TBaseModel>
-    ): Promise<number> {
-        return (
-            (await this.getRepository().delete(hardDeleteBy.query as any))
-                .affected || 0
-        );
-    }
-
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
             let beforeDeleteBy: DeleteBy<TBaseModel> =
@@ -871,12 +855,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data: {
                     deletedByUser: deleteBy.deletedByUser,
                 } as any,
-                props: deleteBy.props,
+                props: {
+                    isRoot: true
+                },
             });
 
             const numberOfDocsAffected: number =
                 (
-                    await this.getRepository().softDelete(
+                    await this.getRepository().delete(
                         beforeDeleteBy.query as any
                     )
                 ).affected || 0;

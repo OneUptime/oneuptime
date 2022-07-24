@@ -1,5 +1,6 @@
 import Link from 'Common/Types/Link';
 import React, { FunctionComponent, ReactElement } from 'react';
+import Icon, { IconProp } from '../Icon/Icon';
 import UILink from '../Link/Link';
 
 interface ComponentProps {
@@ -18,16 +19,18 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                         return (
                             <li
                                 key={i}
-                                className={`breadcrumb-item primary-on-hover ${
-                                    i === links.length - 1 ? 'active' : ''
-                                }`}
+                                className={`breadcrumb-item padding-0 primary-on-hover ${i === links.length - 1 ? 'active' : ''
+                                    }`}
                             >
-                                <UILink
-                                    className="primary-on-hover"
-                                    to={link.to}
-                                >
-                                    {link.title}
-                                </UILink>
+                                <div className='flex'>
+                                    <UILink
+                                        className="primary-on-hover"
+                                        to={link.to}
+                                    >
+                                        {link.title}
+                                    </UILink>
+                                    {(i !== links.length - 1) ? <Icon icon={IconProp.ChevronRight} /> : <></>}
+                                </div>
                             </li>
                         );
                     })}

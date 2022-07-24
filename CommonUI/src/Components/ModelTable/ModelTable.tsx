@@ -56,7 +56,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
     const [cardButtons, setCardButtons] = useState<Array<ReactElement>>([]);
     const model: TBaseModel = new props.type();
-    const [select, setSelect] = useState<Select<TBaseModel>>({});
     const [actionButtonSchema, setActionButtonSchema] = useState<
         Array<ActionButtonSchema>
     >([]);
@@ -82,6 +81,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setIsLaoding(true);
         try {
             await ModelAPI.deleteItem<TBaseModel>(props.type, id);
+            await fetchItems();
         } catch (err) {
             try {
                 setError(
@@ -112,7 +112,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     {},
                     props.itemsOnPage,
                     (currentPageNumber - 1) * props.itemsOnPage,
-                    select,
+                    getSelect(),
                     sortBy
                         ? {
                               [sortBy as any]: sortOrder,
@@ -137,23 +137,49 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setIsLaoding(false);
     };
 
+    const getSelect = (): Select<TBaseModel> => {
+        const selectFields: Select<TBaseModel> = {
+            _id: true,
+        };
+
+        for (const column of props.columns) {
+            const key: string | null = column.field
+                ? (Object.keys(column.field)[0] as string)
+                : null;
+
+            const moreFields: Array<string> = column.moreFields
+                ? Object.keys(column.moreFields)
+                : [];
+
+            if (key) {
+                (selectFields as Dictionary<boolean>)[key] = true;
+            }
+
+            for (const moreField of moreFields) {
+                (selectFields as Dictionary<boolean>)[moreField] = true;
+            }
+        }
+
+        return selectFields;
+    }
+
     useEffect(() => {
         fetchItems();
-    }, [currentPageNumber, sortBy, sortOrder, select]);
+    }, [currentPageNumber, sortBy, sortOrder]);
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
 
         const columns: Array<TableColumn> = [];
 
-        const select: Select<TBaseModel> = {
+        const selectFields: Select<TBaseModel> = {
             _id: true,
         };
 
         const slugifyColumn: string | null = props.model.getSlugifyColumn();
 
         if (slugifyColumn) {
-            (select as Dictionary<boolean>)[slugifyColumn] = true;
+            (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
         }
 
         for (const column of props.columns) {
@@ -177,15 +203,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             });
 
             if (key) {
-                (select as Dictionary<boolean>)[key] = true;
+                (selectFields as Dictionary<boolean>)[key] = true;
             }
 
             for (const moreField of moreFields) {
-                (select as Dictionary<boolean>)[moreField] = true;
+                (selectFields as Dictionary<boolean>)[moreField] = true;
             }
         }
 
-        setSelect(select);
 
         if (props.isDeleteable || props.isEditable) {
             columns.push({
@@ -286,7 +311,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     currentPageNumber={currentPageNumber}
                     isLoading={isLoading}
                     totalItemsCount={totalItemsCount}
-                    data={BaseModel.toJSONArray(data)}
+                    data={BaseModel.toJSONObjectArray(data)}
                     id={props.id}
                     columns={tableColumns}
                     itemsOnPage={props.itemsOnPage}
@@ -333,6 +358,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     onSuccess={(_item: TBaseModel) => {
                         setShowModal(false);
                         setCurrentPageNumber(1);
+                        fetchItems();
                     }}
                     type={props.type}
                     formProps={{
@@ -375,6 +401,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                     currentDeleteableItem['_id'].toString()
                                 )
                             );
+                            setShowDeleteConfirmModal(false);
                         }
                     }}
                     submitButtonType={ButtonStyleType.DANGER}
