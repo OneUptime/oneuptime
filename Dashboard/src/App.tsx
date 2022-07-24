@@ -92,7 +92,6 @@ const App: FunctionComponent = () => {
             projects={projects}
             error={error}
             onProjectSelected={onProjectSelected}
-            currentProject={selectedProject}
         >
             <Routes>
                 <PageRoute

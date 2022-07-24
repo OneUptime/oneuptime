@@ -118,7 +118,11 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <ColorPicker
                                     onChange={(color: Color) => {
-                                        form.setFieldValue(fieldName, color, true);
+                                        form.setFieldValue(
+                                            fieldName,
+                                            color,
+                                            true
+                                        );
                                     }}
                                     placeholder={field.placeholder || ''}
                                 />
@@ -133,7 +137,11 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <TextArea
                                     onChange={(text: string) => {
-                                        form.setFieldValue(fieldName, text, true);
+                                        form.setFieldValue(
+                                            fieldName,
+                                            text,
+                                            true
+                                        );
                                     }}
                                     initialValue={''}
                                     placeholder={field.placeholder || ''}
