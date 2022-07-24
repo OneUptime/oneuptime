@@ -37,12 +37,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                         <th
                             key={i}
                             className={`${canSort ? 'pointer' : ''}`}
-                            style={{
-                                textAlign:
-                                    i === props.columns.length - 1
-                                        ? 'right'
-                                        : 'left',
-                            }}
+                            
                             onClick={() => {
                                 if (!column.key) {
                                     return;
@@ -65,6 +60,12 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                 );
                             }}
                         >
+                            <div className='flex' style={{
+                                justifyContent:
+                                    i === props.columns.length - 1
+                                        ? 'end'
+                                        : 'start',
+                            }}>
                             {column.title}
                             {canSort &&
                                 currentSortColumn === column.key &&
@@ -82,6 +83,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                         thick={ThickProp.Thick}
                                     />
                                 )}
+                                </div>
                         </th>
                     );
                 })}

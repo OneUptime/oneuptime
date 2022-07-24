@@ -81,6 +81,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setIsLaoding(true);
         try {
             await ModelAPI.deleteItem<TBaseModel>(props.type, id);
+            if (data.length === 1 && currentPageNumber > 1) {
+                await setCurrentPageNumber(currentPageNumber - 1);
+            }
             await fetchItems();
         } catch (err) {
             try {

@@ -4,10 +4,11 @@ import Text from 'Common/Types/Text';
 
 export default class QueryHelper {
     public static findWithSameName(name: string): FindOperator<any> {
+        name = name.toLowerCase().trim();
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `LOWER(${alias}) LIKE LOWER(:${rid})`;
+                return `LOWER(${alias}) LIKE :${rid}`;
             },
             {
                 [rid]: `%${name}%`,
