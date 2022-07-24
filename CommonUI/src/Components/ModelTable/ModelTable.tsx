@@ -34,7 +34,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps: CardComponentProps;
     columns: Columns<TBaseModel>;
-    itemsOnPage: number;
+    initialItemsOnPage?: number;
     isDeleteable: boolean;
     isEditable: boolean;
     isCreateable: boolean;
@@ -76,6 +76,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         useState<JSONObject | null>(null);
     const [currentDeleteableItem, setCurrentDeleteableItem] =
         useState<JSONObject | null>(null);
+    
+    const [itemsOnPage, setItemsOnPage] = useState<number>(props.initialItemsOnPage || 10);
 
     const deleteItem: Function = async (id: ObjectID) => {
         setIsLaoding(true);
@@ -105,7 +107,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setIsLaoding(true);
 
         if (props.onFetchInit) {
-            props.onFetchInit(currentPageNumber, props.itemsOnPage);
+            props.onFetchInit(currentPageNumber, itemsOnPage);
         }
 
         try {
@@ -113,8 +115,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 await ModelAPI.getList<TBaseModel>(
                     props.type,
                     {},
-                    props.itemsOnPage,
-                    (currentPageNumber - 1) * props.itemsOnPage,
+                    itemsOnPage,
+                    (currentPageNumber - 1) * itemsOnPage,
                     getSelect(),
                     sortBy
                         ? {
@@ -217,7 +219,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         fetchItems();
-    }, [currentPageNumber, sortBy, sortOrder]);
+    }, [currentPageNumber, sortBy, sortOrder, itemsOnPage]);
 
 
     useEffect(() => {
@@ -325,10 +327,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     data={BaseModel.toJSONObjectArray(data)}
                     id={props.id}
                     columns={tableColumns}
-                    itemsOnPage={props.itemsOnPage}
+                    itemsOnPage={itemsOnPage}
                     disablePagination={props.disablePagination || false}
-                    onNavigateToPage={(pageNumber: number) => {
-                        setCurrentPageNumber(pageNumber);
+                    onNavigateToPage={async (pageNumber: number, itemsOnPage: number) => {
+                        await setCurrentPageNumber(pageNumber);
+                        await setItemsOnPage(itemsOnPage);
                     }}
                     showFilter={showTableFilter}
                     noItemsMessage={props.noItemsMessage || ''}

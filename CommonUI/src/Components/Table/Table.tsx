@@ -15,7 +15,7 @@ export interface ComponentProps {
     id: string;
     columns: Columns;
     disablePagination?: undefined | boolean;
-    onNavigateToPage: (pageNumber: number) => void;
+    onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
     currentPageNumber: number;
     totalItemsCount: number;
     itemsOnPage: number;

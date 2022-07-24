@@ -6,8 +6,10 @@ import React, {
     useState,
 } from 'react';
 
+type DropdownValue = string | number
+
 export interface DropdownOption {
-    value: string | number;
+    value: DropdownValue;
     label: string;
 }
 
@@ -17,7 +19,7 @@ export interface ComponentProps {
     onClick?: undefined | (() => void);
     placeholder?: undefined | string;
     className?: undefined | string;
-    onChange?: undefined | ((value: string | number) => void);
+    onChange?: undefined | ((value: DropdownValue) => void);
     value?: string | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -26,7 +28,7 @@ export interface ComponentProps {
 const Dropdown: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [value, setValue] = useState<string>('');
+    const [value, setValue] = useState<DropdownValue>('');
 
     useEffect(() => {
         if (props.initialValue) {
@@ -42,6 +44,16 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         setValue(props.value ? props.value : '');
     }, [props.value]);
 
+    let selectedValues: Array<DropdownOption> = props.options.filter((item) => {
+        item.value === value
+    });
+
+    let selectedValue: DropdownOption | undefined = undefined; 
+
+    if (selectedValues.length > 0) {
+        selectedValue = selectedValues[0];
+    }
+
     return (
         <div
             className={`${props.className || ''}`}
@@ -54,10 +66,15 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 onBlur={() => {
                     props.onBlur && props.onBlur();
                 }}
+                value={selectedValue}
                 onFocus={() => {
                     props.onFocus && props.onFocus()
-                }} placeholder={props.placeholder} options={props.options as any} value={value} onChange={(option: string | number | null) => {
-                    props.onChange && option && props.onChange(option);
+                }} placeholder={props.placeholder} options={props.options as any} onChange={(option: any | null) => {
+                    if (option) {
+                        const value = (option as DropdownOption).value;
+                        setValue(value);
+                        props.onChange && props.onChange((option as DropdownOption).value);
+                    }
                 }} />
         </div>
     );

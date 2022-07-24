@@ -43,7 +43,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
-                itemsOnPage={10}
                 cardProps={{
                     icon: IconProp.Label,
                     title: 'Labels',

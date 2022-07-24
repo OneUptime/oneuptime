@@ -4,20 +4,20 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import { ButtonStyleType } from '../Button/Button';
 import BasicFormModal from '../FormModal/BasicFormModal';
 import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
-import ConfirmModal from '../Modal/ConfirmModal';
+
 
 export interface PaginationNavigationItem {
     pageNumber: number;
+    itemsOnPage: number;
 }
 
 export interface ComponentProps {
     currentPageNumber: number;
     totalItemsCount: number;
     itemsOnPage: number;
-    onNavigateToPage: (pageNumber: number) => void;
+    onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
     isLoading: boolean;
     isError: boolean;
     singularLabel: string;
@@ -41,7 +41,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
             maxPageNo = 1;
         }
 
-        setMaxPageNumber(maxPageNo);
+        setMaxPageNumber(Math.ceil(maxPageNo));
     };
 
     useEffect(() => {
@@ -100,7 +100,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     !isPreviousDisabled
                                 ) {
                                     props.onNavigateToPage(
-                                        props.currentPageNumber - 1
+                                        props.currentPageNumber - 1, props.itemsOnPage
                                     );
                                 }
                             }}
@@ -130,7 +130,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                             onClick={() => {
                                 if (props.onNavigateToPage && !isNextDisabled) {
                                     props.onNavigateToPage(
-                                        props.currentPageNumber + 1
+                                        props.currentPageNumber + 1, props.itemsOnPage
                                     );
                                 }
                             }}
@@ -145,22 +145,23 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 </nav>
             </div>
 
-            {showPaginationModel && maxPageNumber !== minPageNumber && (
+            {showPaginationModel && (
                 <BasicFormModal<PaginationNavigationItem>
                     title={'Navigate to Page'}
                     onClose={() => {
                         setShowPaginationModel(false);
                     }}
                     submitButtonText={'Go to Page'}
-                    onSuccess={(item: PaginationNavigationItem) => {
+                    onSubmit={(item: PaginationNavigationItem) => {
                         if (props.onNavigateToPage && !isNextDisabled) {
-                            props.onNavigateToPage(item.pageNumber);
+                            props.onNavigateToPage(item.pageNumber, item.itemsOnPage);
                         }
                         setShowPaginationModel(false);
                     }}
                     formProps={{
                         initialValues: {
                             pageNumber: props.currentPageNumber,
+                            itemsOnPage: props.itemsOnPage
                         },
                         fields: [
                             {
@@ -178,10 +179,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                 fieldType: FormFieldSchemaType.PositveNumber,
                             },
                             {
-                                title: `${props.pluralLabel} on Page: `,
-                                description: `Enter the number of ${props.pluralLabel} you would like to see on the page:`,
+                                title: `${props.pluralLabel} on Page `,
+                                description: `Enter the number of ${props.pluralLabel.toLowerCase()} you would like to see on the page:`,
                                 field: {
-                                    pageNumber: true,
+                                    itemsOnPage: true,
                                 },
                                 placeholder: '10',
                                 required: true,
@@ -211,17 +212,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 />
             )}
 
-            {showPaginationModel && maxPageNumber === minPageNumber && (
-                <ConfirmModal
-                    title={`Navigate to Page`}
-                    description={`You cannot navigate to any other page because this table does not have more than 1 page. You don't have enough ${props.pluralLabel.toLowerCase()} in this project.`}
-                    submitButtonText={'Close'}
-                    onSubmit={() => {
-                        setShowPaginationModel(false);
-                    }}
-                    submitButtonType={ButtonStyleType.NORMAL}
-                />
-            )}
+            
         </div>
     );
 };
