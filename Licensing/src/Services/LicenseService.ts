@@ -25,7 +25,7 @@ export default {
             expiryDate: new Date(),
         };
 
-        let licenseFound: boolean = false;
+        let licenseFound = false;
 
         for (const record of records) {
             const fetchedLicense: string = record.get('License Key') as string;

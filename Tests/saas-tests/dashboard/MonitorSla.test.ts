@@ -7,11 +7,11 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
-const slaName: string = 'fxPro';
-const monitorUptime: string = '99.90';
-const component: string = 'sampleComponent';
-const monitor: string = 'sampleMonitor';
+const password = '1234567890';
+const slaName = 'fxPro';
+const monitorUptime = '99.90';
+const component = 'sampleComponent';
+const monitor = 'sampleMonitor';
 
 describe('Monitor SLA', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

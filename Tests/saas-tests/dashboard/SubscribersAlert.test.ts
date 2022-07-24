@@ -8,11 +8,11 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const componentName: string = utils.generateRandomString();
 const monitorName: string = utils.generateRandomString();
-const countryCode: string = '+1';
-const phoneNumber: string = '9173976235';
+const countryCode = '+1';
+const phoneNumber = '9173976235';
 const subscriberEmail: Email = utils.generateRandomBusinessEmail();
 
 describe('Subscribers Alert logs API', () => {

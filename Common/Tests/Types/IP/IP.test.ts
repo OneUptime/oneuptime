@@ -14,7 +14,7 @@ describe('IP()', () => {
 
     test('expects ip address to be mutable', () => {
         const ip: IP = new IP('196.223.149.8', IPType.IPv4);
-        const newIp: string = '127.0.0.1';
+        const newIp = '127.0.0.1';
         ip.ip = newIp;
         expect(ip.ip).not.toBe('196.223.149.8');
         expect(ip.ip).toBe('127.0.0.1');
@@ -22,7 +22,7 @@ describe('IP()', () => {
 
     test('expects ip address to be 127.0.0.1', () => {
         const ip: IP = new IP('196.223.149.8', IPType.IPv4);
-        const newIp: string = '127.0.0.1';
+        const newIp = '127.0.0.1';
         ip.ip = newIp;
         expect(ip.ip).toBe('127.0.0.1');
     });

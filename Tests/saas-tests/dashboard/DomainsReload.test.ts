@@ -8,7 +8,7 @@ const user: $TSFixMe = {
     password: '1234567890',
 };
 
-const customDomain: string = `${utils.generateRandomString()}.com`;
+const customDomain = `${utils.generateRandomString()}.com`;
 
 /**
  * This is a test to check:

@@ -7,7 +7,7 @@ import AuthenticationAPI from './API/AuthenticationAPI';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const APP_NAME: string = 'identity';
+const APP_NAME = 'identity';
 
 app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
 

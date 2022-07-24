@@ -218,7 +218,7 @@ describe('Components', () => {
                 return e.click();
             });
 
-            const moreBtn: string = `#more-details-${componentName}`;
+            const moreBtn = `#more-details-${componentName}`;
             await init.pageWaitForSelector(page, moreBtn, {
                 visible: true,
                 timeout: init.timeout,
@@ -227,8 +227,8 @@ describe('Components', () => {
                 return e.click();
             });
 
-            const projectSelector: string = `#cbUnnamedProject`;
-            const componentSelector: string = `#cb${componentName}`;
+            const projectSelector = `#cbUnnamedProject`;
+            const componentSelector = `#cb${componentName}`;
             await init.pageWaitForSelector(page, projectSelector, {
                 visible: true,
                 timeout: init.timeout,
@@ -303,7 +303,7 @@ describe('Components', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            const customTutorialType: string = 'monitor';
+            const customTutorialType = 'monitor';
             // Confirm that monitor box exist on component details page
 
             const componentBoxElement: $TSFixMe =

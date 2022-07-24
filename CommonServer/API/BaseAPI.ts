@@ -135,7 +135,7 @@ export default class BaseAPI<
             (req as OneUptimeRequest).userAuthorization &&
             (req as OneUptimeRequest).userAuthorization?.userId
         ) {
-            props.userId = (req as OneUptimeRequest).userAuthorization!.userId;
+            props.userId = (req as OneUptimeRequest).userAuthorization.userId;
         }
 
         if ((req as OneUptimeRequest).userGlobalAccessPermission) {
@@ -240,7 +240,7 @@ export default class BaseAPI<
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
-            body['data'] as JSONObject,
+            body['data'],
             this.entityType
         ) as TBaseModel;
 
@@ -263,7 +263,7 @@ export default class BaseAPI<
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
-            body['data'] as JSONObject,
+            body['data'],
             this.entityType
         ) as TBaseModel;
 

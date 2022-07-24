@@ -32,7 +32,7 @@ describe('Custom Tutorial With SubProjects', () => {
     test(
         'Should show indicator on how to create component, on visiting component page, it should also appear',
         async (done: $TSFixMe) => {
-            const customTutorialType: string = 'component';
+            const customTutorialType = 'component';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -68,7 +68,7 @@ describe('Custom Tutorial With SubProjects', () => {
     test(
         'Should show indicator on how to create component, and after closing, quick tip for component should appear',
         async (done: $TSFixMe) => {
-            const customTutorialType: string = 'component';
+            const customTutorialType = 'component';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -118,7 +118,7 @@ describe('Custom Tutorial With SubProjects', () => {
     test(
         'Should show indicator on how to create monitor, and after closing, it should not reapprear',
         async (done: $TSFixMe) => {
-            const customTutorialType: string = 'monitor';
+            const customTutorialType = 'monitor';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',
@@ -148,7 +148,7 @@ describe('Custom Tutorial With SubProjects', () => {
     test(
         'Should show indicator on how to invite team member, and after closing, it should not reapprear',
         async (done: $TSFixMe) => {
-            const customTutorialType: string = 'teamMember';
+            const customTutorialType = 'teamMember';
             // Navigate to home page
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: 'networkidle2',

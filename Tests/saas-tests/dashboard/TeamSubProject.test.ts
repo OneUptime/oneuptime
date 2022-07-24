@@ -8,7 +8,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 
 // Parent user credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const projectName: string = utils.generateRandomString();
 // Sub-project user credentials
 const newEmail: Email = utils.generateRandomBusinessEmail();
@@ -57,7 +57,7 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            const role: string = 'Administrator';
+            const role = 'Administrator';
 
             await init.pageWaitForSelector(page, '#teamMembers');
 
@@ -109,7 +109,7 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            const role: string = 'Owner';
+            const role = 'Owner';
 
             await init.pageWaitForSelector(page, '#teamMembers');
 
@@ -137,7 +137,7 @@ describe('Team API With SubProjects', () => {
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
-            const role: string = 'Owner';
+            const role = 'Owner';
 
             await init.pageWaitForSelector(page, '#teamMembers');
 
@@ -170,7 +170,7 @@ describe('Team API With SubProjects', () => {
             await init.pageClick(page, '#projectFilterToggle');
 
             await init.pageClick(page, `#project-${subProjectName}`);
-            const role: string = 'Member';
+            const role = 'Member';
 
             await init.pageWaitForSelector(page, '#teamMembers', {
                 visible: true,
@@ -223,7 +223,7 @@ describe('Team API With SubProjects', () => {
     test(
         'should update existing user role in parent project and all sub-projects (old role -> administrator, new role -> member)',
         async (done: $TSFixMe) => {
-            const newRole: string = 'Member';
+            const newRole = 'Member';
             const emailSelector: $TSFixMe = anotherEmail.split('@')[0];
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
@@ -309,7 +309,7 @@ describe('Team API With SubProjects', () => {
     test(
         'should not add team members without business emails',
         async (done: $TSFixMe) => {
-            const role: string = 'Member';
+            const role = 'Member';
             const nonBusinessEmail: $TSFixMe =
                 utils.generateRandomString() + '@gmail.com';
             await page.goto(utils.DASHBOARD_URL, {
@@ -361,7 +361,7 @@ describe('Team API With SubProjects', () => {
     test(
         'should assign a new owner of the project',
         async (done: $TSFixMe) => {
-            const newRole: string = 'Owner';
+            const newRole = 'Owner';
             const memberEmailSelector: $TSFixMe = anotherEmail.split('@')[0];
             const ownerEmailSelector: $TSFixMe = email.split('@')[0];
 

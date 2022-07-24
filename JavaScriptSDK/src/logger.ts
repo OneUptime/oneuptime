@@ -34,7 +34,7 @@ class Logger {
                 return 'Invalid Content Tags to be logged';
             }
         }
-        const logType: string = 'info';
+        const logType = 'info';
         // Make api request to the server to save a log with the key, id and content
         return this._makeApiRequest(data, logType, tags);
     }
@@ -50,7 +50,7 @@ class Logger {
                 return 'Invalid Content Tags to be logged';
             }
         }
-        const logType: string = 'warning';
+        const logType = 'warning';
         // Make api request to the server to save a log with the key, id and content
         return this._makeApiRequest(data, logType, tags);
     }
@@ -66,7 +66,7 @@ class Logger {
                 return 'Invalid Content Tags to be logged';
             }
         }
-        const logType: string = 'error';
+        const logType = 'error';
         // Make api request to the server to save a log with the key, id and content
         return this._makeApiRequest(data, logType, tags);
     }

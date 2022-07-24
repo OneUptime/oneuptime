@@ -7,8 +7,8 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
-const phoneNumber: string = '+19173976235';
+const password = '1234567890';
+const phoneNumber = '+19173976235';
 
 describe('Twilio Settings API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

@@ -7,7 +7,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 
 describe('Users Component (IS_SAAS_SERVICE=false)', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

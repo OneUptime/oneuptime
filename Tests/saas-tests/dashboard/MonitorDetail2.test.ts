@@ -7,7 +7,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const monitorName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
 const subscriberEmail: Email = utils.generateRandomBusinessEmail();
@@ -58,7 +58,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.subscribers-tab');
 
-            const addButtonSelector: string = '#addSubscriberButton';
+            const addButtonSelector = '#addSubscriberButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
             await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
@@ -77,7 +77,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const createdSubscriberSelector: string = '#subscriber_contact';
+            const createdSubscriberSelector = '#subscriber_contact';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
@@ -108,7 +108,7 @@ describe('Monitor Detail API', () => {
             // Click on subscribers tab
 
             await init.pageClick(page, '.subscribers-tab');
-            const addButtonSelector: string = '#addSubscriberButton';
+            const addButtonSelector = '#addSubscriberButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
 
@@ -137,7 +137,7 @@ describe('Monitor Detail API', () => {
                 });
             }
 
-            const createdSubscriberSelector: string = '#numberOfSubscribers';
+            const createdSubscriberSelector = '#numberOfSubscribers';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
@@ -211,7 +211,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const addButtonSelector: string = '#addMsTeamsButton';
+            const addButtonSelector = '#addMsTeamsButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
             await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
@@ -230,7 +230,7 @@ describe('Monitor Detail API', () => {
                 document.querySelector('input[name=incidentCreated]').click();
             });
 
-            const createdWebhookSelector: string = `#msteam_${webHookName}`;
+            const createdWebhookSelector = `#msteam_${webHookName}`;
 
             await init.page$Eval(page, '#createMsTeams', (e: $TSFixMe) => {
                 return e.click();
@@ -272,7 +272,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const existingWebhookSelector: string = `#msteam_${webHookName}`;
+            const existingWebhookSelector = `#msteam_${webHookName}`;
 
             await init.pageWaitForSelector(page, existingWebhookSelector);
 
@@ -286,7 +286,7 @@ describe('Monitor Detail API', () => {
 
             expect(existingWebhookName).toEqual(webHookName);
 
-            const editWebhookButtonSelector: string = `#edit_msteam_${webHookName}`;
+            const editWebhookButtonSelector = `#edit_msteam_${webHookName}`;
             await init.page$Eval(
                 page,
                 editWebhookButtonSelector,
@@ -336,7 +336,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const createdWebhookSelector: string = '.msteam-length';
+            const createdWebhookSelector = '.msteam-length';
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
@@ -348,7 +348,7 @@ describe('Monitor Detail API', () => {
 
             expect(countWebhooks).toEqual(1);
 
-            const deleteWebhookButtonSelector: string = `#delete_msteam_${newWebHookName}`;
+            const deleteWebhookButtonSelector = `#delete_msteam_${newWebHookName}`;
             await init.page$Eval(
                 page,
                 deleteWebhookButtonSelector,
@@ -393,7 +393,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const addButtonSelector: string = '#addMsTeamsButton';
+            const addButtonSelector = '#addMsTeamsButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
 
@@ -435,7 +435,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const createdWebhookSelector: string = '.msteam-length';
+            const createdWebhookSelector = '.msteam-length';
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 

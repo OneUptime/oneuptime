@@ -38,7 +38,7 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not delete account with single project -> multiple users -> single owner',
         async (done: $TSFixMe) => {
-            const role: string = 'Member';
+            const role = 'Member';
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -127,7 +127,7 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not delete account with multiple projects -> multiple users -> single owner',
         async (done: $TSFixMe) => {
-            const role: string = 'Member';
+            const role = 'Member';
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });
@@ -198,7 +198,7 @@ describe('Profile -> Delete Account Component test', () => {
     test(
         'Should not delete account without confirmation',
         async (done: $TSFixMe) => {
-            const role: string = 'Owner';
+            const role = 'Owner';
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],
             });

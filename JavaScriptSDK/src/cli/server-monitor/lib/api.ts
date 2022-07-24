@@ -225,7 +225,7 @@ export default function (
          * @return {(Object | number)} The ping server cron job or the error code.
          */
         start: (id: $TSFixMe = monitorId) => {
-            const url: string = `monitor/${projectId}/monitor/${
+            const url = `monitor/${projectId}/monitor/${
                 id && typeof id === 'string' ? `${id}/` : ''
             }?type=server-monitor`;
 

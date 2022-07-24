@@ -16,7 +16,7 @@ const user: $TSFixMe = require('./test-utils').user;
 user.email = utils.generateRandomBusinessEmail();
 
 let token: $TSFixMe, projectId: ObjectID, apiKey: string, monitorId: $TSFixMe;
-const badProjectId: string = 'badProjectId',
+const badProjectId = 'badProjectId',
     badApiKey: $TSFixMe = 'badApiKey';
 const invalidProjectId: string = utils.generateRandomString();
 const timeout: $TSFixMe = 5000,

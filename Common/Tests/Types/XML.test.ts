@@ -3,13 +3,13 @@ import XML from '../../Types/XML';
 
 describe('class XML', () => {
     test('new XML should return valid object if it is valid', () => {
-        const xmlString: string = '<test> <info>Test</info></test>';
+        const xmlString = '<test> <info>Test</info></test>';
         const xml: XML = new XML(xmlString);
         expect(xml.toString()).toEqual(xmlString);
         expect(xml.xml).toEqual(xmlString);
     });
     test('XML.xml should be mutable', () => {
-        const xmlNewString: string = '<new> <info>Test</info></new>';
+        const xmlNewString = '<new> <info>Test</info></new>';
         const xml: XML = new XML('<test> <info>Test</info></test>');
         xml.xml = xmlNewString;
         expect(xml.toString()).toEqual(xmlNewString);

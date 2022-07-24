@@ -11,7 +11,7 @@ import moment from 'moment';
 import { realtimeUrl } from '../Config';
 import ProjectService from './projectService';
 
-const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
+const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {

@@ -96,42 +96,42 @@ export class JSONFunctions {
         } else if (val && val instanceof Name) {
             return {
                 _type: ObjectType.Name,
-                value: (val as Name).toString(),
+                value: val.toString(),
             };
         } else if (val && val instanceof ObjectID) {
             return {
                 _type: ObjectType.ObjectID,
-                value: (val as ObjectID).toString(),
+                value: val.toString(),
             };
         } else if (val && val instanceof Phone) {
             return {
                 _type: ObjectType.Phone,
-                value: (val as Phone).toString(),
+                value: val.toString(),
             };
         } else if (val && val instanceof Email) {
             return {
                 _type: ObjectType.Email,
-                value: (val as Email).toString(),
+                value: val.toString(),
             };
         } else if (val && val instanceof Version) {
             return {
                 _type: ObjectType.Version,
-                value: (val as Version).toString(),
+                value: val.toString(),
             };
         } else if (val && val instanceof Route) {
             return {
                 _type: ObjectType.Route,
-                value: (val as Route).toString(),
+                value: val.toString(),
             };
         } else if (val && val instanceof URL) {
             return {
                 _type: ObjectType.URL,
-                value: (val as URL).toString(),
+                value: val.toString(),
             };
         } else if (val && val instanceof Color) {
             return {
                 _type: ObjectType.Color,
-                value: (val as Color).toString(),
+                value: val.toString(),
             };
         } else if (typeof val === 'object') {
             return this.serialize(val as JSONObject);

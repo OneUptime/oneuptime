@@ -9,7 +9,7 @@ import ProjectService from './projectService';
 
 import { realtimeUrl } from '../Config';
 
-const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
+const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {

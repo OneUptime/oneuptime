@@ -352,7 +352,7 @@ describe('Incident API With SubProjects', () => {
                 }
             );
 
-            const type: string = 'internal';
+            const type = 'internal';
             // Fill internal message thread form
 
             await init.pageWaitForSelector(page, `#add-${type}-message`);

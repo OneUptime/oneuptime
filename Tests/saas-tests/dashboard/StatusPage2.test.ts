@@ -7,10 +7,10 @@ import 'should';
 
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
-const componentName: string = 'hackerbay';
-const monitorName: string = 'oneuptime';
-const monitorName1: string = 'testoneuptime';
+const password = '1234567890';
+const componentName = 'hackerbay';
+const monitorName = 'oneuptime';
+const monitorName1 = 'testoneuptime';
 const customDomain: string = utils.generateRandomString();
 
 let browser: $TSFixMe, page: $TSFixMe;
@@ -294,7 +294,7 @@ describe('Status Page', () => {
     test(
         'should update a domain',
         async (done: $TSFixMe) => {
-            const finalValue: string = `status.${customDomain}.com`;
+            const finalValue = `status.${customDomain}.com`;
 
             await gotoTheFirstStatusPage(page);
 

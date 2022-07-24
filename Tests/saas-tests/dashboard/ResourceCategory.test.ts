@@ -6,12 +6,12 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const componentName: string = utils.generateRandomString();
 const secondEmail: Email = utils.generateRandomBusinessEmail();
 const teamEmail: Email = utils.generateRandomBusinessEmail();
-const newProjectName: string = 'Test';
-const resourceCategory: string = 'stat';
+const newProjectName = 'Test';
+const resourceCategory = 'stat';
 const user: $TSFixMe = {
     email,
     password,
@@ -184,7 +184,7 @@ describe('Resource Category', () => {
                 page.waitForNavigation(),
             ]);
 
-            const createdMonitorSelector: string = `#monitor-title-${utils.monitorName}`;
+            const createdMonitorSelector = `#monitor-title-${utils.monitorName}`;
             await init.pageWaitForSelector(page, createdMonitorSelector, {
                 visible: true,
                 timeout: operationTimeOut,
@@ -229,7 +229,7 @@ describe('Resource Category', () => {
 
             await init.pageClick(page, 'li#resources a');
 
-            const deleteButtonSelector: string = `button#delete_${utils.resourceCategoryName}`;
+            const deleteButtonSelector = `button#delete_${utils.resourceCategoryName}`;
 
             await init.pageWaitForSelector(page, deleteButtonSelector, {
                 visible: true,
@@ -248,8 +248,7 @@ describe('Resource Category', () => {
                 timeout: init.timeout,
             });
 
-            const resourceCategoryCounterSelector: string =
-                '#resourceCategoryCount';
+            const resourceCategoryCounterSelector = '#resourceCategoryCount';
             const resourceCategoryCount: $TSFixMe = await init.page$Eval(
                 page,
                 resourceCategoryCounterSelector,
@@ -377,7 +376,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, '#resources');
-            const editBtn: string = `#edit_${resourceCategory}`;
+            const editBtn = `#edit_${resourceCategory}`;
             await init.pageWaitForSelector(page, editBtn, {
                 visible: true,
                 timeout: init.timeout,
@@ -423,7 +422,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, '#resources');
-            const deleteBtn: string = `#delete_${resourceCategory}`;
+            const deleteBtn = `#delete_${resourceCategory}`;
             await init.pageWaitForSelector(page, deleteBtn, {
                 visible: true,
                 timeout: init.timeout,

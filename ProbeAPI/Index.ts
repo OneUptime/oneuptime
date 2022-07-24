@@ -1,7 +1,7 @@
 import { ExpressApplication } from 'CommonServer/Utils/Express';
 import App from 'CommonServer/Utils/StartServer';
 
-export const APP_NAME: string = 'data-ingestor';
+export const APP_NAME = 'data-ingestor';
 const app: ExpressApplication = App(APP_NAME);
 
 // API

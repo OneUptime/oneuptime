@@ -81,7 +81,7 @@ const Button: FunctionComponent<ComponentProps> = ({
         }
     };
 
-    let buttonStyleCssClass: string = 'no-border-on-hover';
+    let buttonStyleCssClass = 'no-border-on-hover';
 
     if (buttonStyle === ButtonStyleType.DANGER) {
         buttonStyleCssClass = 'btn-danger';

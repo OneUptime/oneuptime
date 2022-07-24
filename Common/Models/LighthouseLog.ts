@@ -17,19 +17,19 @@ export default class LighthouseLog extends BaseModel {
     public url?: URL;
 
     @Column()
-    public performance?: Number;
+    public performance?: number;
 
     @Column()
-    public accessibility?: Number;
+    public accessibility?: number;
 
     @Column()
-    public bestPractices?: Number;
+    public bestPractices?: number;
 
     @Column()
-    public seo?: Number;
+    public seo?: number;
 
     @Column()
-    public pwa?: Number;
+    public pwa?: number;
 
     @Column()
     public scanning?: boolean = undefined;

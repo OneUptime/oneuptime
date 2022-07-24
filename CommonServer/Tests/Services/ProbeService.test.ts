@@ -254,7 +254,7 @@ describe('probeService', () => {
         );
         const savedProbes: Array<Probe> = [];
 
-        for (let i: number = 0; i < 20; i++) {
+        for (let i = 0; i < 20; i++) {
             const name: string = Faker.generateName();
             const probeVersion: Version = new Version('1.0.2');
             const key: ObjectID = ObjectID.generate();
@@ -282,7 +282,7 @@ describe('probeService', () => {
             fail('Probe fetch limit breached');
         }
 
-        for (let i: number = 0; i < fetchedProbes.length; i++) {
+        for (let i = 0; i < fetchedProbes.length; i++) {
             expect(fetchedProbes[i]?._id).toEqual(savedProbes[19 - i]?._id);
             expect(fetchedProbes[i]?.name).toEqual(savedProbes[19 - i]?.name);
             expect(fetchedProbes[i]?.probeVersion?.toString()).toEqual(
@@ -303,7 +303,7 @@ describe('probeService', () => {
         );
         const savedProbes: Array<Probe> = [];
 
-        for (let i: number = 0; i < 20; i++) {
+        for (let i = 0; i < 20; i++) {
             const name: string = Faker.generateName();
             const probeVersion: Version = new Version('1.0.2');
             const key: ObjectID = ObjectID.generate();
@@ -331,7 +331,7 @@ describe('probeService', () => {
             fail('Probe fetch limit breached');
         }
 
-        for (let i: number = 0; i < fetchedProbes.length; i++) {
+        for (let i = 0; i < fetchedProbes.length; i++) {
             expect(fetchedProbes[i]?._id).toEqual(savedProbes[9 - i]?._id);
             expect(fetchedProbes[i]?.name).toEqual(savedProbes[9 - i]?.name);
             expect(fetchedProbes[i]?.probeVersion?.toString()).toEqual(

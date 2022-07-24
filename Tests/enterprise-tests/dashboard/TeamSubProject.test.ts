@@ -45,7 +45,7 @@ describe('Enterprise Team SubProject API', () => {
                 waitUntil: 'networkidle2',
             });
             await init.addSubProject(subProjectName, page);
-            const role: string = 'Member';
+            const role = 'Member';
 
             await init.pageWaitForSelector(page, '#teamMembers', {
                 visible: true,

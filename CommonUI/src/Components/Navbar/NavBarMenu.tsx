@@ -30,9 +30,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
                                 <div
                                     key={i}
                                     className={`col-lg-${Math.floor(
-                                        12 /
-                                            (children as Array<ReactElement>)
-                                                .length
+                                        12 / children.length
                                     )}`}
                                 >
                                     {child}

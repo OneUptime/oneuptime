@@ -6,9 +6,9 @@ import ObjectID from './ObjectID';
 import CryptoJS from 'crypto-js';
 
 export default class HashedString extends DatabaseProperty {
-    private isHashed: boolean = false;
+    private isHashed = false;
 
-    private _value: string = '';
+    private _value = '';
     public get value(): string {
         return this._value;
     }
@@ -16,7 +16,7 @@ export default class HashedString extends DatabaseProperty {
         this._value = v;
     }
 
-    public constructor(value: string, isValueHashed: boolean = false) {
+    public constructor(value: string, isValueHashed = false) {
         super();
         this.value = value;
         this.isHashed = isValueHashed;

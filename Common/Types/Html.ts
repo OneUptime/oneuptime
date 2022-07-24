@@ -1,5 +1,5 @@
 export default class HTML {
-    private _html: string = '';
+    private _html = '';
     public get html(): string {
         return this._html;
     }

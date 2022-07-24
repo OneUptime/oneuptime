@@ -9,7 +9,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 const email: Email = utils.generateRandomBusinessEmail();
 const priorityName: string = utils.generateRandomString();
 const newPriorityName: string = utils.generateRandomString();
-const password: string = '1234567890';
+const password = '1234567890';
 
 describe('Incident Priority API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -94,7 +94,7 @@ describe('Incident Priority API', () => {
              * Two incident priority is automatically added to a project
              * High incident priority is marked as default
              */
-            const lastRowFirstColumnIndentifier: string = `#priority_${priorityName}_2`;
+            const lastRowFirstColumnIndentifier = `#priority_${priorityName}_2`;
 
             await init.pageWaitForSelector(page, lastRowFirstColumnIndentifier);
             const content: $TSFixMe = await init.page$Eval(
@@ -140,7 +140,7 @@ describe('Incident Priority API', () => {
                     return elems[0].click();
                 }
             );
-            const editButtonLastRowIndentifier: string = `#priorityEdit_${priorityName}_2`;
+            const editButtonLastRowIndentifier = `#priorityEdit_${priorityName}_2`;
 
             await init.pageWaitForSelector(page, editButtonLastRowIndentifier);
 
@@ -171,7 +171,7 @@ describe('Incident Priority API', () => {
                     return elems[0].click();
                 }
             );
-            const lastRowIndentifier: string = `#priority_${newPriorityName}_2`;
+            const lastRowIndentifier = `#priority_${newPriorityName}_2`;
 
             await init.pageWaitForSelector(page, lastRowIndentifier);
             const content: $TSFixMe = await init.page$Eval(
@@ -217,7 +217,7 @@ describe('Incident Priority API', () => {
                     return elems[0].click();
                 }
             );
-            const incidentPrioritiesCount: string = '#incidentPrioritiesCount';
+            const incidentPrioritiesCount = '#incidentPrioritiesCount';
 
             await init.pageWaitForSelector(page, incidentPrioritiesCount);
             const incidentsCountBeforeDeletion: $TSFixMe = await init.page$Eval(
@@ -230,7 +230,7 @@ describe('Incident Priority API', () => {
             expect(incidentsCountBeforeDeletion).toEqual(
                 'Page 1 of 1 (3 Priorities)'
             );
-            const deleteButtonLastRowIndentifier: string = `#priorityDelete_${newPriorityName}_2`;
+            const deleteButtonLastRowIndentifier = `#priorityDelete_${newPriorityName}_2`;
 
             await init.pageClick(page, deleteButtonLastRowIndentifier);
 

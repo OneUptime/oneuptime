@@ -7,11 +7,11 @@ import 'should';
 
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
-const componentName: string = 'hackerbay';
-const monitorName: string = 'oneuptime';
-const monitorName1: string = 'testoneuptime';
-const customDomain: string = `${utils.generateRandomString()}.com`;
+const password = '1234567890';
+const componentName = 'hackerbay';
+const monitorName = 'oneuptime';
+const monitorName1 = 'testoneuptime';
+const customDomain = `${utils.generateRandomString()}.com`;
 
 let browser: $TSFixMe, page: $TSFixMe;
 const gotoTheFirstStatusPage: Function = async (page: $TSFixMe): void => {
@@ -118,7 +118,7 @@ describe('Status Page', () => {
     test(
         'should create custom Javascript',
         async (done: $TSFixMe) => {
-            const javascript: string = `logger.info('this is a js code');`;
+            const javascript = `logger.info('this is a js code');`;
             await gotoTheFirstStatusPage(page);
             await page.waitForNavigation({ waitUntil: 'load' });
 

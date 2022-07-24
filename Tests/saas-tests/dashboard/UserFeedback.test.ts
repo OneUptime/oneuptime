@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 
 let browser: $TSFixMe, page: $TSFixMe;
 
@@ -36,7 +36,7 @@ describe('User Feedback', () => {
     test(
         'should send feedback in project',
         async (done: $TSFixMe) => {
-            const testFeedback: string = 'test feedback';
+            const testFeedback = 'test feedback';
 
             await page.goto(utils.DASHBOARD_URL, {
                 waitUntil: ['networkidle2'],

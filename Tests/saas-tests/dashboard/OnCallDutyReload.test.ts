@@ -53,7 +53,7 @@ describe('OneUptime Page Reload', () => {
             await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) => {
                 return elem.click();
             });
-            const createScheduleBtn: string = `#btnCreateSchedule_${projectName}`;
+            const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,

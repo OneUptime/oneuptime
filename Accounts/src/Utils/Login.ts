@@ -9,10 +9,7 @@ import User from 'Common/Models/User';
 
 export default abstract class LoginUtil {
     public static login(value: JSONObject): void {
-        const user: User = User.fromJSON(
-            value['user'] as JSONObject,
-            User
-        ) as User;
+        const user: User = User.fromJSON(value['user'], User) as User;
         const token: string = value['token'] as string;
 
         UserUtil.setAccessToken(token);

@@ -90,7 +90,7 @@ export default class ProbeMiddleware {
              */
 
             if (LocalCache.hasValue('probe', probeName)) {
-                probeId = (LocalCache.getModel('probe', probeName) as Probe).id;
+                probeId = LocalCache.getModel('probe', probeName).id;
             } else {
                 const probe: Probe | null = await ProbeService.findOneBy({
                     query: {

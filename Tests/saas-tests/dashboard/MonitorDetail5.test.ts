@@ -7,7 +7,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const monitorName: string = utils.generateRandomString();
 const newMonitorName: string = utils.generateRandomString();
 const urlMonitorName: string = utils.generateRandomString();
@@ -77,8 +77,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            const createdLighthouseLogsSelector: string =
-                '.lighthouseLogsListItem';
+            const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
             await init.pageWaitForSelector(
                 page,
                 createdLighthouseLogsSelector,
@@ -137,8 +136,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const createdLighthouseLogsSelector: string =
-                '.lighthouseLogsListItem';
+            const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
 
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
@@ -185,8 +183,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const createdLighthouseLogsSelector: string =
-                '.lighthouseLogsListItem';
+            const createdLighthouseLogsSelector = '.lighthouseLogsListItem';
 
             await init.pageWaitForSelector(page, createdLighthouseLogsSelector);
 
@@ -212,7 +209,7 @@ describe('Monitor Detail API', () => {
                 page
             );
 
-            const editButtonSelector: string = `#edit_${monitorName}`;
+            const editButtonSelector = `#edit_${monitorName}`;
             await init.pageWaitForSelector(page, editButtonSelector, {
                 visible: true,
                 timeout: init.timeout,
@@ -232,7 +229,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const selector: string = `#monitor-title-${newMonitorName}`;
+            const selector = `#monitor-title-${newMonitorName}`;
 
             let spanElement: $TSFixMe = await init.pageWaitForSelector(
                 page,
@@ -260,12 +257,12 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.advanced-options-tab');
 
-            const deleteButtonSelector: string = `#delete_${newMonitorName}`;
+            const deleteButtonSelector = `#delete_${newMonitorName}`;
             await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) => {
                 return e.click();
             });
 
-            const confirmDeleteButtonSelector: string = '#deleteMonitor';
+            const confirmDeleteButtonSelector = '#deleteMonitor';
 
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector);
             await init.page$Eval(
@@ -279,7 +276,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const selector: string = `span#monitor-title-${newMonitorName}`;
+            const selector = `span#monitor-title-${newMonitorName}`;
 
             const spanElement: $TSFixMe = await init.page$(page, selector, {
                 hidden: true,

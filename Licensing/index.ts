@@ -7,7 +7,7 @@ import {
 
 import App from 'CommonServer/Utils/StartServer';
 
-export const APP_NAME: string = 'licensing';
+export const APP_NAME = 'licensing';
 const app: ExpressApplication = App(APP_NAME);
 
 import path from 'path';

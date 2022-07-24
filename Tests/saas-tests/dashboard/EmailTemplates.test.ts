@@ -7,7 +7,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 let defaultSubject: $TSFixMe;
 
 const user: $TSFixMe = {
@@ -105,7 +105,7 @@ describe('Email Templates API', () => {
                 'Subscriber Incident Created',
                 page
             );
-            const subject: string = 'Updated Subject';
+            const subject = 'Updated Subject';
 
             await init.pageWaitForSelector(page, '#name');
             await init.pageClick(page, '#name', { clickCount: 3 });

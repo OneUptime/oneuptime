@@ -182,7 +182,7 @@ const BasicForm: Function = <T extends Object>(
         field: DataField<T>
     ): string | null => {
         if (field.fieldType === FormFieldSchemaType.Email) {
-            if (!Email.isValid(content!)) {
+            if (!Email.isValid(content)) {
                 return 'Email is not valid.';
             }
         }

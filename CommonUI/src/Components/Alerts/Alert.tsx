@@ -24,7 +24,7 @@ const Alert: FunctionComponent<ComponentProps> = (
         type = props.type;
     }
 
-    let cssClass: string = 'alert-info';
+    let cssClass = 'alert-info';
 
     if (type === AlertType.DANGER) {
         cssClass = 'alert-danger';

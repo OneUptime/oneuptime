@@ -115,7 +115,7 @@ describe('Error Trackers', () => {
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
-            const title: string = `${errorTrackerName} (0)`;
+            const title = `${errorTrackerName} (0)`;
             spanElement.should.be.exactly(title);
             done();
         },
@@ -125,8 +125,8 @@ describe('Error Trackers', () => {
     test.skip(
         'Should create new resource category then redirect to error tracker page to create a error tracker under that',
         async (done: $TSFixMe) => {
-            const categoryName: string = 'Random-Category';
-            const newErrorTrackerName: string = `${errorTrackerName}-sample`;
+            const categoryName = 'Random-Category';
+            const newErrorTrackerName = `${errorTrackerName}-sample`;
             // Create a new resource category
             await init.addResourceCategory(categoryName, page);
             //Navigate to component details
@@ -248,7 +248,7 @@ describe('Error Trackers', () => {
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
-            const title: string = `${errorTrackerName} (0)`;
+            const title = `${errorTrackerName} (0)`;
             spanElement.should.be.exactly(title);
             done();
         },
@@ -526,7 +526,7 @@ describe('Error Trackers', () => {
             );
             spanElement = await spanElement.getProperty('innerText');
             spanElement = await spanElement.jsonValue();
-            const title: string = `${errorTrackerName}-new (0)`;
+            const title = `${errorTrackerName}-new (0)`;
             spanElement.should.be.exactly(title);
             done();
         },
@@ -536,7 +536,7 @@ describe('Error Trackers', () => {
     test.skip(
         'Should update category for created error tracker',
         async (done: $TSFixMe) => {
-            const categoryName: string = 'Another-Category';
+            const categoryName = 'Another-Category';
             // Create a new resource category
             await init.addResourceCategory(categoryName, page);
 
@@ -592,7 +592,7 @@ describe('Error Trackers', () => {
     test.skip(
         'Should delete category for created log container and reflect',
         async (done: $TSFixMe) => {
-            const categoryName: string = 'Another-Category';
+            const categoryName = 'Another-Category';
 
             // Confirm the error tracker has a category
             await init.navigateToErrorTrackerDetails(

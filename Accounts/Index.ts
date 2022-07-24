@@ -7,7 +7,7 @@ import Express, {
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
 
-export const APP_NAME: string = 'accounts';
+export const APP_NAME = 'accounts';
 
 App(APP_NAME);
 

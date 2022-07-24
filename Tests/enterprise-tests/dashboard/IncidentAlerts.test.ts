@@ -7,7 +7,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
@@ -32,7 +32,7 @@ describe('Schedule', () => {
         const enableCalls: $TSFixMe = true;
         const { accountSid, authToken, phoneNumber }: $TSFixMe =
             utils.twilioCredentials;
-        const alertLimit: string = '100';
+        const alertLimit = '100';
         await init.addGlobalTwilioSettings(
             enableSms,
             enableCalls,

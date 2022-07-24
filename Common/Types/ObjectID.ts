@@ -4,7 +4,7 @@ import UUID from '../Utils/UUID';
 import DatabaseProperty from './Database/DatabaseProperty';
 
 export default class ObjectID extends DatabaseProperty {
-    private _id: string = '';
+    private _id = '';
     public get id(): string {
         return this._id;
     }

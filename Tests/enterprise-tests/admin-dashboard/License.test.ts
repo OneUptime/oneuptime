@@ -8,7 +8,7 @@ import 'should';
 
 // User credentials
 const userEmail: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 
 describe('Enterprise License API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

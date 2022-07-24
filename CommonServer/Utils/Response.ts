@@ -28,16 +28,14 @@ export default class Response {
         const method: string = oneUptimeRequest.method;
         const url: URL = URL.fromString(oneUptimeRequest.url);
 
-        const header_info: string = `Response ID: ${
-            oneUptimeRequest.id
-        } -- POD NAME: ${
+        const header_info = `Response ID: ${oneUptimeRequest.id} -- POD NAME: ${
             process.env['POD_NAME'] || 'NONE'
         } -- METHOD: ${method} -- URL: ${url.toString()} -- DURATION: ${(
             requestEndedAt.getTime() -
             (oneUptimeRequest.requestStartedAt as Date).getTime()
         ).toString()}ms -- STATUS: ${oneUptimeResponse.statusCode}`;
 
-        const body_info: string = `Response ID: ${
+        const body_info = `Response ID: ${
             oneUptimeRequest.id
         } -- RESPONSE BODY: ${
             responsebody ? JSON.stringify(responsebody, null, 2) : 'EMPTY'

@@ -1,5 +1,5 @@
 import axios from 'axios';
-const BASE_URL: string = `${process.env['BACKEND_PROTOCOL']}://${process.env['ONEUPTIME_HOST']}`;
+const BASE_URL = `${process.env['BACKEND_PROTOCOL']}://${process.env['ONEUPTIME_HOST']}`;
 
 /*
  * Make api call to designated endpoints
@@ -15,7 +15,7 @@ module.exports.create = function (config: $TSFixMe): void {
             const id: $TSFixMe =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
-            const url: string = `${BASE_URL}/api/account/store/${id}`;
+            const url = `${BASE_URL}/api/account/store/${id}`;
             const data: $TSFixMe = {
                 id: id,
                 privateKeyPem: opts.keypair.privateKeyPem,
@@ -40,7 +40,7 @@ module.exports.create = function (config: $TSFixMe): void {
             const id: $TSFixMe =
                 (opts.account && opts.account.id) || opts.email || 'default';
 
-            const url: string = `${BASE_URL}/api/account/store/${id}`;
+            const url = `${BASE_URL}/api/account/store/${id}`;
             return axios({
                 url,
                 method: 'get',
@@ -62,7 +62,7 @@ module.exports.create = function (config: $TSFixMe): void {
                     (opts.certificate.kid || opts.certificate.id)) ||
                 opts.subject;
 
-            const url: string = `${BASE_URL}/api/certificate/store/${id}`;
+            const url = `${BASE_URL}/api/certificate/store/${id}`;
             const data: $TSFixMe = {
                 id: id,
                 deleted: false,
@@ -86,7 +86,7 @@ module.exports.create = function (config: $TSFixMe): void {
                     (opts.certificate.kid || opts.certificate.id)) ||
                 opts.subject;
 
-            const url: string = `${BASE_URL}/api/certificate/store/${id}`;
+            const url = `${BASE_URL}/api/certificate/store/${id}`;
             return axios({
                 url,
                 method: 'get',
@@ -102,7 +102,7 @@ module.exports.create = function (config: $TSFixMe): void {
             const id: $TSFixMe =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
-            const url: string = `${BASE_URL}/api/certificate/store/${id}`;
+            const url = `${BASE_URL}/api/certificate/store/${id}`;
             const data: $TSFixMe = {
                 id: id,
                 deleted: false,
@@ -124,7 +124,7 @@ module.exports.create = function (config: $TSFixMe): void {
             const id: $TSFixMe =
                 (opts.certificate && opts.certificate.id) || opts.subject;
 
-            const url: string = `${BASE_URL}/api/certificate/store/${id}`;
+            const url = `${BASE_URL}/api/certificate/store/${id}`;
             return axios({
                 url,
                 method: 'get',

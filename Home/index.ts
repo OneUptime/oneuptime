@@ -15,7 +15,7 @@ import productCompare, { Product } from './config/product-compare';
 import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 
-export const APP_NAME: string = 'home';
+export const APP_NAME = 'home';
 const app: ExpressApplication = Express.getExpressApp();
 
 //View engine setup

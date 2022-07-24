@@ -3,12 +3,12 @@ import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 
 export default class Version extends DatabaseProperty {
-    private _version: string = '';
+    private _version = '';
     public get version(): string {
         return this._version;
     }
     public set version(v: string) {
-        const re: RegExp =
+        const re =
             /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[a-zA-Z\d][-a-zA-Z.\d]*)?(\+[a-zA-Z\d][-a-zA-Z.\d]*)?$/i;
         const isValid: boolean = re.test(v);
         if (!isValid) {

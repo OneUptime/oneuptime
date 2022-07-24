@@ -1,3 +1,3 @@
-const LIMIT_MAX: number = 1000;
+const LIMIT_MAX = 1000;
 
 export default LIMIT_MAX;

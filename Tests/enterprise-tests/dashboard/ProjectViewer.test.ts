@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const subProjectName: string = utils.generateRandomString();
 const newProjectName: string = utils.generateRandomString();
 const statusPageName: string = utils.generateRandomString();
@@ -17,7 +17,7 @@ const user: $TSFixMe = {
     email,
     password,
 };
-const role: string = 'Viewer';
+const role = 'Viewer';
 
 let browser: $TSFixMe, page: $TSFixMe;
 

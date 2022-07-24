@@ -7,7 +7,7 @@ import init from '../../test-init';
 let page: $TSFixMe, browser: $TSFixMe;
 
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
@@ -145,7 +145,7 @@ describe('Check StatusPage up', () => {
             // Fill and submit New Component form
             await init.addComponent(componentName, page);
             // Create a Manual Monitor
-            const description: string = 'My Manual Monitor';
+            const description = 'My Manual Monitor';
             await init.addMonitor(monitorName, description, page);
             // To confirm the manual monitor is created.
             let spanElement: $TSFixMe = await init.pageWaitForSelector(

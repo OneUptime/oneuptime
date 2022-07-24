@@ -2,7 +2,7 @@ import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
 
 export default class Name extends DatabaseProperty {
-    private _title: string = '';
+    private _title = '';
     public get title(): string {
         return this._title;
     }
@@ -10,7 +10,7 @@ export default class Name extends DatabaseProperty {
         this._title = v;
     }
 
-    private _name: string = '';
+    private _name = '';
     public get name(): string {
         return this._name;
     }
