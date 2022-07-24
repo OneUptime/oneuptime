@@ -13,12 +13,13 @@ export interface ComponentProps {
     onChange: (value: Color) => void;
     initialValue?: undefined | Color;
     placeholder: string;
+    onFocus?: (() => void) | undefined;
 }
 
 const ColorPicker: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [color, setColor] = useState<string>('#000000');
+    const [color, setColor] = useState<string>('');
     const { ref, isComponentVisible, setIsComponentVisible } =
         useComponentOutsideClick(false);
 
@@ -36,7 +37,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <Input
-                leftCircleColor={new Color(color)}
+                leftCircleColor={new Color(color || '#000000')}
                 placeholder={props.placeholder}
                 className="pointer form-control white-background-on-readonly"
                 value={color}
@@ -45,6 +46,8 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                     setIsComponentVisible(!isComponentVisible);
                 }}
+                onFocus={props.onFocus || undefined}
+                
             />
             {isComponentVisible ? (
                 <div

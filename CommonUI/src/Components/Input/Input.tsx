@@ -16,6 +16,8 @@ export interface ComponentProps {
     readOnly?: boolean | undefined;
     type?: string;
     leftCircleColor?: Color | undefined;
+    onFocus?: (() => void) | undefined;
+    onBlur?: (()=>void) | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -42,6 +44,7 @@ const Input: FunctionComponent<ComponentProps> = (
             className={`flex ${props.className}`}
             onClick={() => {
                 props.onClick && props.onClick();
+                props.onFocus && props.onFocus();
             }}
         >
             {props.leftCircleColor && (
@@ -71,6 +74,11 @@ const Input: FunctionComponent<ComponentProps> = (
                 style={{
                     border: 'none',
                     padding: '0px',
+                }}
+                onBlur={() => {
+                    if (props.onBlur) {
+                        props.onBlur();
+                    }
                 }}
             />
         </div>

@@ -85,7 +85,7 @@ const BasicForm: Function = <T extends Object>(
         if (props.showAsColumns && props.showAsColumns > 2) {
             throw new BadDataException(
                 'showAsCOlumns should be <= 2. It is currently ' +
-                    props.showAsColumns
+                props.showAsColumns
             );
         }
 
@@ -117,12 +117,15 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: any) => {
                             return (
                                 <ColorPicker
-                                    onChange={(color: Color) => {
-                                        form.setFieldValue(
+                                    onChange={async (color: Color) => {
+                                        await form.setFieldValue(
                                             fieldName,
                                             color,
                                             true
                                         );
+                                    }}
+                                    onFocus={async () => {
+                                        await form.setFieldTouched(fieldName, true);
                                     }}
                                     placeholder={field.placeholder || ''}
                                 />
@@ -135,17 +138,25 @@ const BasicForm: Function = <T extends Object>(
                     <Field name={fieldName}>
                         {({ form }: any) => {
                             return (
-                                <TextArea
-                                    onChange={(text: string) => {
-                                        form.setFieldValue(
-                                            fieldName,
-                                            text,
-                                            true
-                                        );
-                                    }}
-                                    initialValue={''}
-                                    placeholder={field.placeholder || ''}
-                                />
+                                <>
+                                    <TextArea
+                                        onChange={async (text: string) => {
+
+                                            await form.setFieldValue(
+                                                fieldName,
+                                                text,
+                                                true
+                                            );
+
+                                        }}
+                                        onBlur={async () => {
+                                            await form.setFieldTouched(fieldName, true);
+                                        }}
+                                        initialValue={''}
+                                        placeholder={field.placeholder || ''}
+
+                                    />
+                                </>
                             );
                         }}
                     </Field>
@@ -164,6 +175,7 @@ const BasicForm: Function = <T extends Object>(
                             disabled={isDisabled}
                         />
                     )}
+
                 <ErrorMessage
                     className="mt-1 text-danger"
                     name={
@@ -184,17 +196,15 @@ const BasicForm: Function = <T extends Object>(
         if (field.validation) {
             if (field.validation.minLength) {
                 if (content.trim().length < field.validation?.minLength) {
-                    return `${field.title || name} cannot be less than ${
-                        field.validation.minLength
-                    } characters.`;
+                    return `${field.title || name} cannot be less than ${field.validation.minLength
+                        } characters.`;
                 }
             }
 
             if (field.validation.maxLength) {
                 if (content.trim().length > field.validation?.maxLength) {
-                    return `${field.title || name} cannot be more than ${
-                        field.validation.maxLength
-                    } characters.`;
+                    return `${field.title || name} cannot be more than ${field.validation.maxLength
+                        } characters.`;
                 }
             }
 
@@ -222,17 +232,15 @@ const BasicForm: Function = <T extends Object>(
 
             if (field.validation.maxValue) {
                 if (content > field.validation?.maxValue) {
-                    return `${field.title || name} should not be more than ${
-                        field.validation?.maxValue
-                    }.`;
+                    return `${field.title || name} should not be more than ${field.validation?.maxValue
+                        }.`;
                 }
             }
 
             if (field.validation.minValue) {
                 if (content < field.validation?.minValue) {
-                    return `${field.title || name} should not be less than ${
-                        field.validation?.minValue
-                    }.`;
+                    return `${field.title || name} should not be less than ${field.validation?.minValue
+                        }.`;
                 }
             }
         }
@@ -259,7 +267,7 @@ const BasicForm: Function = <T extends Object>(
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
             (entity[field.validation?.toMatchField] as string).trim() !==
-                content.trim()
+            content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -282,17 +290,19 @@ const BasicForm: Function = <T extends Object>(
         values: FormValues<T>
     ) => void | object | Promise<FormikErrors<FormValues<T>>>) &
         Function = (values: FormValues<T>): FormikErrors<FormValues<T>> => {
-        const errors: JSONObject = {};
-        const entries: JSONObject = { ...values } as JSONObject;
+            const errors: JSONObject = {};
+            const entries: JSONObject = { ...values } as JSONObject;
 
-        for (const field of props.fields) {
-            const name: string = field.overideFieldKey
-                ? field.overideFieldKey
-                : (Object.keys(field.field)[0] as string);
-            if (name in values) {
-                const content: string | undefined = entries[name]?.toString();
+            for (const field of props.fields) {
 
-                if (content) {
+                const name: string = field.overideFieldKey
+                    ? field.overideFieldKey
+                    : (Object.keys(field.field)[0] as string);
+
+                if (name in entries) {
+                    const content: string | undefined = entries[name]?.toString();
+
+
                     // Check Required fields.
                     const resultRequired: string | null = validateRequired(
                         content,
@@ -337,22 +347,22 @@ const BasicForm: Function = <T extends Object>(
                     if (resultMaxMinValue) {
                         errors[name] = resultMaxMinValue;
                     }
+
+                } else if (field.required) {
+                    errors[name] = `${field.title || name} is required.`;
                 }
-            } else if (field.required) {
-                errors[name] = `${field.title || name} is required.`;
             }
-        }
 
-        let customValidateResult: JSONObject = {};
+            let customValidateResult: JSONObject = {};
 
-        if (props.onValidate) {
-            customValidateResult = props.onValidate(values);
-        }
+            if (props.onValidate) {
+                customValidateResult = props.onValidate(values);
+            }
 
-        return { ...errors, ...customValidateResult } as FormikErrors<
-            FormValues<T>
-        >;
-    };
+            return { ...errors, ...customValidateResult } as FormikErrors<
+                FormValues<T>
+            >;
+        };
 
     const formRef: any = useRef<any>(null);
 
@@ -389,21 +399,19 @@ const BasicForm: Function = <T extends Object>(
 
                         <div className={`col-lg-12 flex`}>
                             <div
-                                className={`col-lg-${
-                                    12 / (props.showAsColumns || 1)
-                                } ${
-                                    (props.showAsColumns || 1) > 1
+                                className={`col-lg-${12 / (props.showAsColumns || 1)
+                                    } ${(props.showAsColumns || 1) > 1
                                         ? 'pr-10'
                                         : ''
-                                }`}
+                                    }`}
                             >
                                 {props.fields &&
                                     props.fields.map(
                                         (field: DataField<T>, i: number) => {
                                             if (
                                                 i %
-                                                    (props.showAsColumns ||
-                                                        1) ===
+                                                (props.showAsColumns ||
+                                                    1) ===
                                                 0
                                             ) {
                                                 return getFormField(
@@ -418,13 +426,11 @@ const BasicForm: Function = <T extends Object>(
                             </div>
                             {(props.showAsColumns || 1) > 1 && (
                                 <div
-                                    className={`col-lg-${
-                                        12 / (props.showAsColumns || 1)
-                                    } ${
-                                        (props.showAsColumns || 1) > 1
+                                    className={`col-lg-${12 / (props.showAsColumns || 1)
+                                        } ${(props.showAsColumns || 1) > 1
                                             ? 'pl-10'
                                             : ''
-                                    }`}
+                                        }`}
                                 >
                                     {props.fields &&
                                         props.fields.map(
@@ -434,8 +440,8 @@ const BasicForm: Function = <T extends Object>(
                                             ) => {
                                                 if (
                                                     i %
-                                                        (props.showAsColumns ||
-                                                            1) !==
+                                                    (props.showAsColumns ||
+                                                        1) !==
                                                     0
                                                 ) {
                                                     return getFormField(

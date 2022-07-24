@@ -9,6 +9,8 @@ export interface ComponentProps {
     onChange: (value: string) => void;
     initialValue: string;
     placeholder?: undefined | string;
+    onFocus?: () => void; 
+    onBlur?: () => void; 
 }
 
 const TextArea: FunctionComponent<ComponentProps> = (
@@ -34,9 +36,28 @@ const TextArea: FunctionComponent<ComponentProps> = (
                 className="form-control"
                 value={text}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                    const value: string = e.target.value; 
+
+                    if (value === '\n') {
+                        handleChange('');
+                    }
+
                     handleChange(e.target.value);
                 }}
+
+                onFocus={() => {
+                    if (props.onFocus) {
+                        props.onFocus();
+                    }
+                }}
+
+                onBlur={() => {
+                    if (props.onBlur) {
+                        props.onBlur();
+                    }
+                }}
             />
+            
         </div>
     );
 };
