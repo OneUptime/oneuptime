@@ -163,14 +163,63 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return selectFields;
     }
 
-    const setOppositeFilter = async () => {
-        const isShowFilter: boolean = showTableFilter;
-        await setShowTableFilter(!isShowFilter);
+    const setHeaderButtons = () => {
+        // add header buttons.
+        const headerbuttons: Array<CardButtonSchema> = [];
+        if (props.isCreateable) {
+            headerbuttons.push(
+                {
+                    title: `Create ${model.singularName}`,
+                    buttonStyle: ButtonStyleType.OUTLINE,
+                    onClick: () => {
+                        setModalType(ModalType.Create);
+                        setShowModal(true);
+                    },
+                    icon: IconProp.Add
+                }
+            );
+        }
+
+        if (props.showRefreshButton) {
+            headerbuttons.push(
+                {
+
+                    title: '',
+                    buttonStyle: ButtonStyleType.OUTLINE,
+                    onClick: () => {
+                        fetchItems();
+                    },
+                    disabled: isLoading,
+                    icon: IconProp.Refresh
+                }
+            );
+        }
+
+        if (props.showFilterButton) {
+            headerbuttons.push(
+                {
+                    title: '',
+                    buttonStyle: ButtonStyleType.OUTLINE,
+                    onClick: () => {
+                        setShowTableFilter(!showTableFilter)
+                    },
+                    disabled: isLoading,
+                    icon: IconProp.Filter,
+                }
+            );
+        }
+
+        setCardButtons(headerbuttons);
     }
 
     useEffect(() => {
         fetchItems();
     }, [currentPageNumber, sortBy, sortOrder]);
+
+
+    useEffect(() => {
+        setHeaderButtons();
+    }, [showTableFilter])
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
@@ -224,48 +273,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             });
         }
 
-        // add header buttons.
-        const headerbuttons: Array<CardButtonSchema> = [];
-        if (props.isCreateable) {
-            headerbuttons.push(
-                {
-                    title: `Create ${model.singularName}`,
-                    buttonStyle: ButtonStyleType.OUTLINE,
-                    onClick: () => {
-                        setModalType(ModalType.Create);
-                        setShowModal(true);
-                    },
-                    icon: IconProp.Add
-                }
-            );
-        }
 
-        if (props.showRefreshButton) {
-            headerbuttons.push(
-                {
-                    
-                    title: '',
-                    buttonStyle: ButtonStyleType.OUTLINE,
-                    onClick: () => {
-                        fetchItems();
-                    },
-                    disabled: isLoading,
-                    icon:IconProp.Refresh
-                }
-            );
-        }
-
-        if (props.showFilterButton) {
-            headerbuttons.push(
-               {
-                    title: '',
-                    buttonStyle: ButtonStyleType.OUTLINE,
-                    onClick: setOppositeFilter,
-                    disabled: isLoading,
-                    icon: IconProp.Filter,
-                }
-            );
-        }
 
         const actionsSchema: Array<ActionButtonSchema> = [];
 
@@ -289,7 +297,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         setActionButtonSchema(actionsSchema);
 
-        setCardButtons(headerbuttons);
+        setHeaderButtons();
         setColumns(columns);
     }, []);
 
