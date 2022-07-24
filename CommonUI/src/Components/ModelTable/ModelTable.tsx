@@ -4,11 +4,11 @@ import Columns from './Columns';
 import Table from '../Table/Table';
 import TableColumn from '../Table/Types/Column';
 import { JSONObject } from 'Common/Types/JSON';
-import Card, { ComponentProps as CardComponentProps } from '../Card/Card';
+import Card, { CardButtonSchema, ComponentProps as CardComponentProps } from '../Card/Card';
 import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
 import Select from '../../Utils/ModelAPI/Select';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import Button, { ButtonStyleType } from '../Button/Button';
+import { ButtonStyleType } from '../Button/Button';
 import ModelFromModal from '../ModelFormModal/ModelFormModal';
 import { IconProp } from '../Icon/Icon';
 import { FormType } from '../Forms/ModelForm';
@@ -24,14 +24,14 @@ import ConfirmModal from '../Modal/ConfirmModal';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
-    type: { new (): TBaseModel };
+    type: { new(): TBaseModel };
     id: string;
     onFetchInit?:
-        | undefined
-        | ((pageNumber: number, itemsOnPage: number) => void);
+    | undefined
+    | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-        | undefined
-        | ((data: Array<TBaseModel>, totalCount: number) => void);
+    | undefined
+    | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps: CardComponentProps;
     columns: Columns<TBaseModel>;
     itemsOnPage: number;
@@ -54,7 +54,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
-    const [cardButtons, setCardButtons] = useState<Array<ReactElement>>([]);
+    const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
     const model: TBaseModel = new props.type();
     const [actionButtonSchema, setActionButtonSchema] = useState<
         Array<ActionButtonSchema>
@@ -86,7 +86,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -115,8 +115,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                              [sortBy as any]: sortOrder,
-                          }
+                            [sortBy as any]: sortOrder,
+                        }
                         : {}
                 );
 
@@ -126,7 +126,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -161,6 +161,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         return selectFields;
+    }
+
+    const setOppositeFilter = async () => {
+        const isShowFilter: boolean = showTableFilter;
+        await setShowTableFilter(!isShowFilter);
     }
 
     useEffect(() => {
@@ -220,50 +225,45 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         // add header buttons.
-        const headerbuttons: Array<ReactElement> = [];
+        const headerbuttons: Array<CardButtonSchema> = [];
         if (props.isCreateable) {
             headerbuttons.push(
-                <Button
-                    key={1}
-                    title={`Create ${model.singularName}`}
-                    buttonStyle={ButtonStyleType.OUTLINE}
-                    onClick={() => {
+                {
+                    title: `Create ${model.singularName}`,
+                    buttonStyle: ButtonStyleType.OUTLINE,
+                    onClick: () => {
                         setModalType(ModalType.Create);
                         setShowModal(true);
-                    }}
-                    icon={IconProp.Add}
-                />
+                    },
+                    icon: IconProp.Add
+                }
             );
         }
 
         if (props.showRefreshButton) {
             headerbuttons.push(
-                <Button
-                    key={2}
-                    title={``}
-                    buttonStyle={ButtonStyleType.OUTLINE}
-                    onClick={() => {
+                {
+                    
+                    title: '',
+                    buttonStyle: ButtonStyleType.OUTLINE,
+                    onClick: () => {
                         fetchItems();
-                    }}
-                    disabled={isLoading}
-                    icon={IconProp.Refresh}
-                />
+                    },
+                    disabled: isLoading,
+                    icon:IconProp.Refresh
+                }
             );
         }
 
         if (props.showFilterButton) {
             headerbuttons.push(
-                <Button
-                    key={3}
-                    title={``}
-                    buttonStyle={ButtonStyleType.OUTLINE}
-                    onClick={() => {
-                        const isShowFilter: boolean = showTableFilter;
-                        setShowTableFilter(!isShowFilter);
-                    }}
-                    disabled={isLoading}
-                    icon={IconProp.Filter}
-                />
+               {
+                    title: '',
+                    buttonStyle: ButtonStyleType.OUTLINE,
+                    onClick: setOppositeFilter,
+                    disabled: isLoading,
+                    icon: IconProp.Filter,
+                }
             );
         }
 

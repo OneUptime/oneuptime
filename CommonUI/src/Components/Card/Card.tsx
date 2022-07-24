@@ -1,11 +1,20 @@
 import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
+import Button, { ButtonStyleType } from '../Button/Button';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+
+export interface CardButtonSchema {
+    title: string;
+    buttonStyle: ButtonStyleType;
+    onClick: () => void;
+    disabled?: boolean | undefined;
+    icon: IconProp
+}
 
 export interface ComponentProps {
     title: string;
     description: string;
     icon?: IconProp | undefined;
-    buttons?: undefined | Array<ReactElement>;
+    buttons?: undefined | Array<CardButtonSchema>;
     children?: undefined | Array<ReactElement> | ReactElement;
     cardBodyStyle?: undefined | CSSProperties;
 }
@@ -39,20 +48,31 @@ const Card: FunctionComponent<ComponentProps> = (
                             </div>
                             <div>
                                 {props.buttons?.map(
-                                    (button: ReactElement, i: number) => {
+                                    (button: CardButtonSchema, i: number) => {
                                         return (
                                             <span
                                                 style={
                                                     i > 0
                                                         ? {
-                                                              marginLeft:
-                                                                  '10px',
-                                                          }
+                                                            marginLeft:
+                                                                '10px',
+                                                        }
                                                         : {}
                                                 }
                                                 key={i}
                                             >
-                                                {button}
+                                                <Button
+                                                    key={i}
+                                                    title={button.title}
+                                                    buttonStyle={button.buttonStyle}
+                                                    onClick={() => {
+                                                        if (button.onClick) {
+                                                            button.onClick();
+                                                        }
+                                                    }}
+                                                    disabled={button.disabled}
+                                                    icon={button.icon}
+                                                />
                                             </span>
                                         );
                                     }
