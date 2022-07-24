@@ -33,7 +33,7 @@ export default class AutomationScriptRunInstance extends BaseModel {
     public deletedByUser?: User;
 
     @Column()
-    public executionTime?: Number;
+    public executionTime?: number;
 
     @Column()
     public errorDescription?: string = undefined;

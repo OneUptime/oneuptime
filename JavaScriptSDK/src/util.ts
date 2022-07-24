@@ -169,7 +169,7 @@ class Util {
         });
     }
     private _formatFileName(fileName: $TSFixMe): void {
-        const fileIndicator: string = 'file://';
+        const fileIndicator = 'file://';
         let localFileName: $TSFixMe = fileName;
         if (fileName.indexOf(fileIndicator) > -1) {
             // Check for index of file then trim the file part by skiping it and starting with the leading /

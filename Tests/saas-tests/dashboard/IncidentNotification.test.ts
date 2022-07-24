@@ -43,8 +43,8 @@ describe('Incident Created test', () => {
     it(
         'it should not show the close all button when no resolve incident',
         async () => {
-            const projectName: string = 'Project1';
-            const componentName: string = 'HomePage';
+            const projectName = 'Project1';
+            const componentName = 'HomePage';
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             // Rename project
@@ -176,8 +176,8 @@ describe('Incident Created test', () => {
     test(
         'Should not show incident popup for acknowledged incidents',
         async () => {
-            const projectName: string = 'Project1';
-            const role: string = 'Member';
+            const projectName = 'Project1';
+            const role = 'Member';
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
@@ -257,7 +257,7 @@ describe('Incident Created test', () => {
     test(
         'Should not show incident popup for resolved incidents',
         async () => {
-            const projectName: string = 'Project1';
+            const projectName = 'Project1';
 
             await init.addIncident(monitorName, 'Degraded', page, 'Low');
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
@@ -305,7 +305,7 @@ describe('Incident Created test', () => {
     test(
         'Should show the incident created pop up to other team members',
         async () => {
-            const projectName: string = 'Project1';
+            const projectName = 'Project1';
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
@@ -388,7 +388,7 @@ describe('Incident Created test', () => {
     test(
         'Should show closed incident to other team members',
         async () => {
-            const projectName: string = 'Project1';
+            const projectName = 'Project1';
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.switchProject(projectName, page);
@@ -672,7 +672,7 @@ describe('Incident Created test', () => {
     test(
         'Should show incidents of different components on the incident logs menu',
         async () => {
-            const componentName: string = 'NewComponent';
+            const componentName = 'NewComponent';
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             await init.addAdditionalComponent(componentName, page);
@@ -706,7 +706,7 @@ describe('Incident Created test', () => {
     test(
         'Should create an incident from the incident logs page and add it to the incident list',
         async () => {
-            const projectName: string = 'Project1';
+            const projectName = 'Project1';
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
 
@@ -778,7 +778,7 @@ describe('Incident Created test', () => {
     test(
         'Should close incident notification when an incident is viewed',
         async () => {
-            const projectName: string = 'Project1';
+            const projectName = 'Project1';
 
             await page.goto(utils.DASHBOARD_URL, { timeout: init.timeout });
             // Remove existing notification

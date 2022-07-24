@@ -6,7 +6,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // User credentials
-const password: string = '1234567890';
+const password = '1234567890';
 
 describe('API Monitor API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -139,7 +139,7 @@ describe('API Monitor API', () => {
                 page
             );
 
-            const editButtonSelector: string = `#edit_${testMonitorName}`;
+            const editButtonSelector = `#edit_${testMonitorName}`;
             await init.pageWaitForSelector(page, editButtonSelector, {
                 visible: true,
                 timeout: init.timeout,
@@ -485,14 +485,14 @@ describe('API Monitor API', () => {
                 testMonitorName,
                 page
             );
-            const deleteButtonSelector: string = `#delete_${testMonitorName}`;
+            const deleteButtonSelector = `#delete_${testMonitorName}`;
 
             await init.pageWaitForSelector(page, deleteButtonSelector);
             await init.page$Eval(page, deleteButtonSelector, (e: $TSFixMe) => {
                 return e.click();
             });
 
-            const confirmDeleteButtonSelector: string = '#deleteMonitor';
+            const confirmDeleteButtonSelector = '#deleteMonitor';
 
             await init.pageWaitForSelector(page, confirmDeleteButtonSelector);
 
@@ -501,7 +501,7 @@ describe('API Monitor API', () => {
                 hidden: true,
             });
 
-            const selector: string = `span#monitor-title-${testMonitorName}`;
+            const selector = `span#monitor-title-${testMonitorName}`;
             const spanElement: $TSFixMe = await init.page$(page, selector, {
                 hidden: true,
             });

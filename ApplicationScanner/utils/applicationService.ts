@@ -80,7 +80,7 @@ export default {
         let securityDir: $TSFixMe = 'application_security_dir';
 
         securityDir = createDir(securityDir);
-        const cloneDirectory: string = `${uuidv1()}security`; // Always create unique paths
+        const cloneDirectory = `${uuidv1()}security`; // Always create unique paths
         const repoPath: $TSFixMe = Path.resolve(securityDir, cloneDirectory);
         const conn: $TSFixMe = new Client();
 
@@ -223,8 +223,8 @@ export default {
         const PASS: $TSFixMe = security.gitCredential.gitPassword;
         // Format the url
         const REPO: $TSFixMe = formatUrl(security.gitRepositoryUrl);
-        const remote: string = `https://${USER}:${PASS}@${REPO}`;
-        const cloneDirectory: string = `${uuidv1()}security`; // Always create unique paths
+        const remote = `https://${USER}:${PASS}@${REPO}`;
+        const cloneDirectory = `${uuidv1()}security`; // Always create unique paths
         const repoPath: $TSFixMe = Path.resolve(securityDir, cloneDirectory);
 
         /*

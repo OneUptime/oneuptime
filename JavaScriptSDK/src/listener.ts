@@ -229,7 +229,7 @@ class OneUptimeListener {
                 url: '',
             };
             const portDetails: $TSFixMe = log.port !== '' ? `:${log.port}` : '';
-            const absoluteUrl: string = `${log.protocol}//${log.host}${portDetails}${log.path}`;
+            const absoluteUrl = `${log.protocol}//${log.host}${portDetails}${log.path}`;
             log.url = absoluteUrl;
             return log;
         }

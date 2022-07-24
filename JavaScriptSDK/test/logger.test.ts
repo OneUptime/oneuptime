@@ -5,7 +5,7 @@ chai.use(chaihttp);
 
 const expect: $TSFixMe = chai.expect;
 import { user, generateRandomBusinessEmail } from './util';
-const API_URL: string = 'http://localhost:3002/api';
+const API_URL = 'http://localhost:3002/api';
 
 const request: $TSFixMe = chai.request.agent(API_URL);
 const timeout: $TSFixMe = 5000;
@@ -109,7 +109,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const logMessage: string = 'This is a simple log';
+        const logMessage = 'This is a simple log';
         validLog.log(logMessage).then((response: $TSFixMe) => {
             expect(response.status).to.equal(200);
 
@@ -158,7 +158,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const logMessage: string = 'This is a simple log';
+        const logMessage = 'This is a simple log';
         validLog.error(logMessage).then((response: $TSFixMe) => {
             expect(response.status).to.equal(200);
 
@@ -176,7 +176,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const logMessage: string = 'This is a simple log';
+        const logMessage = 'This is a simple log';
         validLog.warning(logMessage).then((response: $TSFixMe) => {
             expect(response.status).to.equal(200);
 
@@ -194,8 +194,8 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const logMessage: string = 'This is a simple log';
-        const tag: string = 'trial';
+        const logMessage = 'This is a simple log';
+        const tag = 'trial';
 
         validLog.log(logMessage, tag).then((response: $TSFixMe) => {
             expect(response.status).to.equal(200);
@@ -220,7 +220,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const logMessage: string = 'This is a simple log';
+        const logMessage = 'This is a simple log';
         validLog.warning(logMessage).then((response: $TSFixMe) => {
             expect(response.status).to.equal(200);
 
@@ -238,7 +238,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const logMessage: string = 'This is a simple log';
+        const logMessage = 'This is a simple log';
         const tags: $TSFixMe = ['auction', 'trial', 'famous'];
 
         validLog.error(logMessage, tags).then((response: $TSFixMe) => {
@@ -265,7 +265,7 @@ describe('OneUptimeLogger', function (): void {
             applicationLog._id,
             applicationLog.key
         );
-        const logMessage: string = 'This is a simple log';
+        const logMessage = 'This is a simple log';
         const tags: $TSFixMe = { type: 'trying things' };
 
         validLog.error(logMessage, tags).then((response: $TSFixMe) => {

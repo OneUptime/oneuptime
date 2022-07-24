@@ -1,7 +1,7 @@
 import BadDataException from './Exception/BadDataException';
 
 export default class Domain {
-    private _domain: string = '';
+    private _domain = '';
     public get domain(): string {
         return this._domain;
     }

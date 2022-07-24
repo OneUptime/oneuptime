@@ -8,9 +8,9 @@ let browser: $TSFixMe, page: $TSFixMe;
 const email: Email = utils.generateRandomBusinessEmail();
 const teamEmail: Email = utils.generateRandomBusinessEmail();
 const projectOwnerMail: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
-const newProjectName: string = 'Test';
-const subProjectName: string = 'Trial';
+const password = '1234567890';
+const newProjectName = 'Test';
+const subProjectName = 'Trial';
 
 describe('Sub-Project API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -155,7 +155,7 @@ describe('Member Restriction', () => {
             });
 
             await init.pageClick(page, '#projectSettings');
-            const deleteSubProjectBtn: string = `#sub_project_delete_${subProjectName}`;
+            const deleteSubProjectBtn = `#sub_project_delete_${subProjectName}`;
             await init.pageWaitForSelector(page, deleteSubProjectBtn, {
                 visible: true,
                 timeout: init.timeout,

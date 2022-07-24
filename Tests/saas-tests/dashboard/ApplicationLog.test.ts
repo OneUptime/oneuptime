@@ -10,7 +10,7 @@ const user: $TSFixMe = {
     password: '1234567890',
 };
 const componentName: string = utils.generateRandomString();
-const applicationLogName: string = 'AppLogName';
+const applicationLogName = 'AppLogName';
 
 describe('Log Containers', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -133,8 +133,8 @@ describe('Log Containers', () => {
     test.skip(
         'Should create new resource category then redirect to application log page to create a container under that',
         async (done: $TSFixMe) => {
-            const categoryName: string = 'Random-Category';
-            const appLogName: string = 'NewAppLog';
+            const categoryName = 'Random-Category';
+            const appLogName = 'NewAppLog';
             // Create a new resource category
             await init.addResourceCategory(categoryName, page);
             //Navigate to component details

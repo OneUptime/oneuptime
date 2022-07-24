@@ -7,7 +7,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const monitorName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
 const webHookName: string = utils.generateRandomString();
@@ -56,7 +56,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const addButtonSelector: string = '#addSlackButton';
+            const addButtonSelector = '#addSlackButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
             await init.page$Eval(page, addButtonSelector, (e: $TSFixMe) => {
@@ -74,7 +74,7 @@ describe('Monitor Detail API', () => {
             });
 
             //Only the NAME is rendered as well as the ACTIONS to be performed.
-            const createdWebhookSelector: string = `#name_slack_${webHookName}`;
+            const createdWebhookSelector = `#name_slack_${webHookName}`;
 
             await init.page$Eval(page, '#createSlack', (e: $TSFixMe) => {
                 return e.click();
@@ -111,7 +111,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const existingWebhookSelector: string = `#name_slack_${webHookName}`;
+            const existingWebhookSelector = `#name_slack_${webHookName}`;
 
             await init.pageWaitForSelector(page, existingWebhookSelector);
 
@@ -125,7 +125,7 @@ describe('Monitor Detail API', () => {
 
             expect(existingWebhookName).toEqual(webHookName);
 
-            const editWebhookButtonSelector: string = `#edit_slack_${webHookName}`;
+            const editWebhookButtonSelector = `#edit_slack_${webHookName}`;
             await init.page$Eval(
                 page,
                 editWebhookButtonSelector,
@@ -177,7 +177,7 @@ describe('Monitor Detail API', () => {
             // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
-            const createdWebhookSelector: string = '.slack-list';
+            const createdWebhookSelector = '.slack-list';
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 
@@ -189,7 +189,7 @@ describe('Monitor Detail API', () => {
 
             expect(countWebhooks).toEqual(1);
 
-            const deleteWebhookButtonSelector: string = `#delete_slack_${newWebHookName}`;
+            const deleteWebhookButtonSelector = `#delete_slack_${newWebHookName}`;
             await init.page$Eval(
                 page,
                 deleteWebhookButtonSelector,
@@ -232,7 +232,7 @@ describe('Monitor Detail API', () => {
             // Click on integrations tab
 
             await init.pageClick(page, '.integrations-tab');
-            const addButtonSelector: string = '#addSlackButton';
+            const addButtonSelector = '#addSlackButton';
 
             await init.pageWaitForSelector(page, addButtonSelector);
 
@@ -276,7 +276,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '.integrations-tab');
 
-            const createdWebhookSelector: string = '.slack-list';
+            const createdWebhookSelector = '.slack-list';
 
             await init.pageWaitForSelector(page, createdWebhookSelector);
 

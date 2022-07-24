@@ -18,10 +18,10 @@ export default class Model extends BaseModel {
     public status?: string = undefined;
 
     @Column()
-    public responseTime?: Number;
+    public responseTime?: number;
 
     @Column()
-    public responseStatus?: Number;
+    public responseStatus?: number;
 
     @Column()
     public responseBody?: string = undefined;
@@ -30,33 +30,33 @@ export default class Model extends BaseModel {
     public responseHeader?: Object;
 
     @Column()
-    public cpuLoad?: Number;
+    public cpuLoad?: number;
 
     @Column()
-    public avgCpuLoad?: Number;
+    public avgCpuLoad?: number;
 
     @Column()
-    public cpuCores?: Number;
+    public cpuCores?: number;
 
     @Column()
-    public memoryUsed?: Number;
+    public memoryUsed?: number;
 
     @Column()
-    public totalMemory?: Number;
+    public totalMemory?: number;
     @Column()
-    public swapUsed?: Number;
+    public swapUsed?: number;
     @Column()
-    public storageUsed?: Number;
+    public storageUsed?: number;
     @Column()
-    public totalStorage?: Number;
+    public totalStorage?: number;
 
     @Column()
-    public storageUsage?: Number;
+    public storageUsage?: number;
     @Column()
-    public mainTemp?: Number;
+    public mainTemp?: number;
 
     @Column()
-    public maxTemp?: Number;
+    public maxTemp?: number;
 
     @Column()
     public incident?: Incident;

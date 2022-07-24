@@ -21,7 +21,7 @@ const Component: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [show, setShow] = useState<boolean>(true);
-    let typeCssClass: string = 'text-info';
+    let typeCssClass = 'text-info';
 
     if (props.type === ToastType.DANGER) {
         typeCssClass = 'text-danger';

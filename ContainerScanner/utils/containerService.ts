@@ -65,7 +65,7 @@ export default {
         const testPath: $TSFixMe = imageTags
             ? `${imagePath}:${imageTags}`
             : imagePath;
-        const outputFile: string = `${uuidv1()}result.json`;
+        const outputFile = `${uuidv1()}result.json`;
         let securityDir: $TSFixMe = 'container_security_dir';
 
         securityDir = createDir(securityDir);
@@ -79,8 +79,8 @@ export default {
 
         return new Promise((resolve: Function, reject: Function) => {
             // Use trivy open source package to audit a container
-            const scanCommand: string = `trivy image -f json -o ${outputFile} ${testPath}`;
-            const clearCommand: string = `trivy image --clear-cache ${testPath}`;
+            const scanCommand = `trivy image -f json -o ${outputFile} ${testPath}`;
+            const clearCommand = `trivy image --clear-cache ${testPath}`;
 
             const output: $TSFixMe = spawn(scanCommand, {
                 cwd: securityDir,

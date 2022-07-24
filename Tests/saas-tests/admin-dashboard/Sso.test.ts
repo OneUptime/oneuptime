@@ -6,8 +6,8 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // User credentials
-const email: string = 'masteradmin@hackerbay.io';
-const password: string = '1234567890';
+const email = 'masteradmin@hackerbay.io';
+const password = '1234567890';
 
 const moveToSsoPage: Function = async (page: $TSFixMe): void => {
     await init.pageWaitForSelector(page, '#settings');

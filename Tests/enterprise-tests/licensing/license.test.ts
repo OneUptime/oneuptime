@@ -8,8 +8,8 @@ import app from '../server';
 const request: $TSFixMe = chai.request.agent(app);
 import AirtableService from '../../../../licensing/src/services/airtableService';
 
-const tableName: string = 'License';
-const email: string = 'license@hackerbay.io';
+const tableName = 'License';
+const email = 'license@hackerbay.io';
 let validLicenseId: $TSFixMe, expiredLicenseId: $TSFixMe;
 
 describe('License API', function (): void {

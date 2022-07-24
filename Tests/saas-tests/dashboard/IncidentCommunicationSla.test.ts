@@ -7,11 +7,11 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
-const slaName: string = 'fxPro';
-const newSlaName: string = 'newFxPro';
-const duration: string = '15';
-const alertTime: string = '10';
+const password = '1234567890';
+const slaName = 'fxPro';
+const newSlaName = 'newFxPro';
+const duration = '15';
+const alertTime = '10';
 const component: string = utils.generateRandomString();
 const monitor: string = utils.generateRandomString();
 

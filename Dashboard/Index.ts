@@ -7,7 +7,7 @@ import {
     ExpressApplication,
 } from 'CommonServer/Utils/Express';
 
-export const APP_NAME: string = 'dashboard';
+export const APP_NAME = 'dashboard';
 const app: ExpressApplication = App(APP_NAME);
 
 app.use(ExpressStatic(path.join(__dirname, 'build')));

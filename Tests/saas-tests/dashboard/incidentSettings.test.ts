@@ -6,15 +6,15 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 
 const componentName: string = utils.generateRandomString();
 const monitorName: string = utils.generateRandomString();
-const newName: string = 'Another';
-const newDefaultIncidentTitle: string = 'TEST: {{monitorName}}';
-const newDefaultIncidentDescription: string = 'TEST: {{incidentType}}';
-const incidentType: string = 'offline';
-const changedTitle: string = `${monitorName} is ${incidentType}.`;
+const newName = 'Another';
+const newDefaultIncidentTitle = 'TEST: {{monitorName}}';
+const newDefaultIncidentDescription = 'TEST: {{incidentType}}';
+const incidentType = 'offline';
+const changedTitle = `${monitorName} is ${incidentType}.`;
 
 describe('Incident Settings API', () => {
     const operationTimeOut: $TSFixMe = init.timeout;
@@ -225,9 +225,9 @@ describe('Incident Settings API', () => {
              *  Await init.navigateToComponentDetails(componentName, page);
              *  Selectors refactoring
              */
-            const incidentTitleSelector: string = '#incident_title_0 > p';
+            const incidentTitleSelector = '#incident_title_0 > p';
             //Incident Description is no longer on UI
-            const incidentPrioritySelector: string = '#name_Low';
+            const incidentPrioritySelector = '#name_Low';
 
             await init.pageWaitForSelector(page, incidentTitleSelector);
             const title: $TSFixMe = await init.page$Eval(

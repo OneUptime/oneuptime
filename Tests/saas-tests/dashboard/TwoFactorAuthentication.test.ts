@@ -7,12 +7,12 @@ import speakeasy from 'speakeasy';
 import { expect } from 'chai';
 
 import 'should';
-const projectName: string = 'project';
+const projectName = 'project';
 
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 let token: $TSFixMe;
 
 const generateOtp: Function = (): void => {

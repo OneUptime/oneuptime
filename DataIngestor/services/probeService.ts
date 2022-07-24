@@ -17,7 +17,7 @@ import { v1 as uuidv1 } from 'uuid';
 import BackendAPI from '../Utils/api';
 
 import { realtimeUrl } from '../Config';
-const realtimeBaseUrl: string = `${realtimeUrl}/realtime`;
+const realtimeBaseUrl = `${realtimeUrl}/realtime`;
 
 export default {
     create: async function (data: $TSFixMe): void {
@@ -967,7 +967,7 @@ export default {
                 : false;
         let timeHours: $TSFixMe = 0;
         let timeMinutes: $TSFixMe = payload;
-        let tempReason: string = `${payload} min`;
+        let tempReason = `${payload} min`;
         if (timeMinutes > 60) {
             timeHours = Math.floor(timeMinutes / 60);
             timeMinutes = Math.floor(timeMinutes % 60);
@@ -1434,7 +1434,7 @@ const checkAnd: Function = (
                     }
                 }
             } else {
-                let tempReason: string = `${payload} min`;
+                let tempReason = `${payload} min`;
                 if (
                     con.criteria[i] &&
                     con.criteria[i].responseType &&
@@ -3726,7 +3726,7 @@ const checkOr: Function = (
                     }
                 }
             } else {
-                let tempReason: string = `${payload} min`;
+                let tempReason = `${payload} min`;
                 if (
                     con.criteria[i] &&
                     con.criteria[i].responseType &&

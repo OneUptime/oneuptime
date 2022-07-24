@@ -7,7 +7,7 @@ import init from '../../test-init';
 let page: $TSFixMe, browser: $TSFixMe;
 
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
@@ -18,7 +18,7 @@ const statusPageName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
 const monitorName: string = utils.generateRandomString();
 const subscriberEmail: Email = utils.generateRandomBusinessEmail();
-const customDomainWebsite: string = `www.${utils.generateRandomString()}.com`;
+const customDomainWebsite = `www.${utils.generateRandomString()}.com`;
 
 describe('StatusPage Advanced Options', () => {
     beforeAll(async (done: $TSFixMe) => {

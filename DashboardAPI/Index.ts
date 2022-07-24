@@ -28,7 +28,7 @@ import EmailVerificationTokenService, {
 
 const app: ExpressApplication = Express.getExpressApp();
 
-const APP_NAME: string = 'api';
+const APP_NAME = 'api';
 
 //attach api's
 app.use(new BaseAPI<User, UserServiceType>(User, UserService).getRouter());

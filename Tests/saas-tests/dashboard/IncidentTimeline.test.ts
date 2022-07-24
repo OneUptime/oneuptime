@@ -5,7 +5,7 @@ import init from '../../test-init';
 
 // Parent user credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
 const projectName: string = utils.generateRandomString();
 const projectMonitorName: string = utils.generateRandomString();
@@ -77,7 +77,7 @@ describe('Incident Timeline API', () => {
     test(
         'should create incident in project and add to message to the incident message thread',
         async (done: $TSFixMe) => {
-            const type: string = 'internal';
+            const type = 'internal';
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -175,7 +175,7 @@ describe('Incident Timeline API', () => {
     test(
         'should edit message related to incident message thread',
         async (done: $TSFixMe) => {
-            const type: string = 'internal';
+            const type = 'internal';
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
             // Navigate to monitor details
@@ -243,7 +243,7 @@ describe('Incident Timeline API', () => {
     test(
         'should used existing incident and add to message to the internal incident message thread',
         async (done: $TSFixMe) => {
-            const type: string = 'internal';
+            const type = 'internal';
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -325,7 +325,7 @@ describe('Incident Timeline API', () => {
     test(
         'should edit message related to internal incident message thread',
         async (done: $TSFixMe) => {
-            const type: string = 'internal';
+            const type = 'internal';
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -399,7 +399,7 @@ describe('Incident Timeline API', () => {
     test(
         'should delete message related to internal incident message thread',
         async (done: $TSFixMe) => {
-            const type: string = 'internal';
+            const type = 'internal';
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
@@ -450,7 +450,7 @@ describe('Incident Timeline API', () => {
         async () => {
             //
             const internalNote: string = utils.generateRandomString();
-            const type: string = 'internal';
+            const type = 'internal';
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 

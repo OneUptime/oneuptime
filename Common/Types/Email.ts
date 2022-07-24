@@ -27,7 +27,7 @@ const nonBusinessEmailDomains: Array<string> = [
 ];
 
 export default class Email extends DatabaseProperty {
-    private _email: string = '';
+    private _email = '';
     public get email(): string {
         return this._email;
     }
@@ -45,7 +45,7 @@ export default class Email extends DatabaseProperty {
     }
 
     public static isValid(value: string): boolean {
-        const re: RegExp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
+        const re = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
         const isValid: boolean = re.test(value);
         if (!isValid) {
             return false;
@@ -58,13 +58,13 @@ export default class Email extends DatabaseProperty {
     }
 
     public getEmailDomain(): Hostname {
-        return new Hostname(this.email!.split('@')[1]!);
+        return new Hostname(this.email.split('@')[1]!);
     }
 
     public isBusinessEmail(): boolean {
         const domain: string = this.getEmailDomain().hostname || '';
         if (domain) {
-            for (let i: number = 0; i < nonBusinessEmailDomains.length; i++) {
+            for (let i = 0; i < nonBusinessEmailDomains.length; i++) {
                 if (domain.includes(nonBusinessEmailDomains[i]!)) {
                     return false;
                 }

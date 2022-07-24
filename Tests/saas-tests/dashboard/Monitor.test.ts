@@ -8,7 +8,7 @@ import 'should';
 
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const componentName: string = utils.generateRandomString();
 const monitorName: string = utils.generateRandomString();
 
@@ -136,7 +136,7 @@ describe('Monitor API', () => {
 
             await init.pageWaitForSelector(page, 'input[id^=name_up]');
             await init.pageClick(page, 'input[id^=name_up]', { clickCount: 3 });
-            const upCriterionName: string = 'Monitor Online';
+            const upCriterionName = 'Monitor Online';
             await page.keyboard.type(upCriterionName);
 
             await init.pageClick(page, 'button[type=submit]');

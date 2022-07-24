@@ -6,8 +6,8 @@ import init from '../../test-init';
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const teamEmail: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
-const newProjectName: string = 'Test';
+const password = '1234567890';
+const newProjectName = 'Test';
 
 const user: $TSFixMe = {
     email,
@@ -197,7 +197,7 @@ describe('Project Settings', () => {
 
             await init.pageClick(page, '#AccountSwitcherId');
 
-            const parentContainer: string = '#accountSwitcher';
+            const parentContainer = '#accountSwitcher';
             await init.pageWaitForSelector(page, parentContainer, {
                 visible: true,
                 timeout: init.timeout,

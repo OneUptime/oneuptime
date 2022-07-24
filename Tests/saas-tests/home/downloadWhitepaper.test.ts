@@ -9,8 +9,7 @@ let page: $TSFixMe, browser: $TSFixMe;
 
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const queryString: string =
-    '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
+const queryString = '?utm_source=runningtest&good=thankyou&kill=love&ion=pure';
 let queryObj: $TSFixMe = {};
 
 describe('Download Whitepaper form', () => {

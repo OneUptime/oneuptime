@@ -2,15 +2,15 @@ import puppeteer from 'puppeteer';
 import Email from 'Common/Types/Email';
 import utils from '../../test-utils';
 import init from '../../test-init';
-const csvFile: string = `${__dirname}/MOCKS/subscribers.csv`;
-const emptyFile: string = `${__dirname}/MOCKS/emptyTemplateFile.csv`;
-const existingSubscribers: string = `${__dirname}/MOCKS/existing.csv`;
+const csvFile = `${__dirname}/MOCKS/subscribers.csv`;
+const emptyFile = `${__dirname}/MOCKS/emptyTemplateFile.csv`;
+const existingSubscribers = `${__dirname}/MOCKS/existing.csv`;
 
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const monitorName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
 
@@ -55,7 +55,7 @@ describe('Monitor Detail API', () => {
 
             await init.pageClick(page, '#react-tabs-2');
 
-            const importFileSelector: string = '#importFromCsv';
+            const importFileSelector = '#importFromCsv';
 
             await init.pageWaitForSelector(page, importFileSelector);
 
@@ -79,7 +79,7 @@ describe('Monitor Detail API', () => {
                 hidden: true,
             });
 
-            const createdSubscriberSelector: string = '.subscriber-list-item';
+            const createdSubscriberSelector = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
@@ -108,7 +108,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#react-tabs-2');
 
             await init.pageClick(page, '#react-tabs-2');
-            const importFileSelector: string = '#importFromCsv';
+            const importFileSelector = '#importFromCsv';
 
             await init.pageWaitForSelector(page, importFileSelector);
 
@@ -156,7 +156,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#react-tabs-2');
 
             await init.pageClick(page, '#react-tabs-2');
-            const importFileSelector: string = '#importFromCsv';
+            const importFileSelector = '#importFromCsv';
 
             await init.pageWaitForSelector(page, importFileSelector);
 
@@ -179,7 +179,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#importCsvButton', {
                 hidden: true,
             });
-            const createdSubscriberSelector: string = '.subscriber-list-item';
+            const createdSubscriberSelector = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 
@@ -208,7 +208,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#react-tabs-2');
 
             await init.pageClick(page, '#react-tabs-2');
-            const importFileSelector: string = '#importFromCsv';
+            const importFileSelector = '#importFromCsv';
 
             await init.pageWaitForSelector(page, importFileSelector);
 
@@ -231,7 +231,7 @@ describe('Monitor Detail API', () => {
             await init.pageWaitForSelector(page, '#importCsvButton', {
                 hidden: true,
             });
-            const createdSubscriberSelector: string = '.subscriber-list-item';
+            const createdSubscriberSelector = '.subscriber-list-item';
 
             await init.pageWaitForSelector(page, createdSubscriberSelector);
 

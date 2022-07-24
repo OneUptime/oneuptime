@@ -249,7 +249,7 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return baseModel as T;
+        return baseModel;
     }
 
     public static fromJSON<T extends BaseModel>(

@@ -4,7 +4,7 @@ import cron from 'node-cron';
 import main from './workers/main';
 import ScriptAPI from './api/script';
 
-export const APP_NAME: string = 'script';
+export const APP_NAME = 'script';
 const app: ExpressApplication = App(APP_NAME);
 
 app.use(`/${APP_NAME}`, ScriptAPI);

@@ -12,7 +12,7 @@ const _this: $TSFixMe = {
             dataIngestorVersion,
         };
     },
-    post: (url: URL, data: $TSFixMe, withBaseUrl: boolean = false) => {
+    post: (url: URL, data: $TSFixMe, withBaseUrl = false) => {
         const headers: $TSFixMe = this.getHeaders();
 
         return new Promise((resolve: Function, reject: Function) => {

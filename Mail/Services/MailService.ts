@@ -161,7 +161,7 @@ export default class MailService {
             LocalCache.setString(
                 'email-templates',
                 emailTemplateType,
-                templateData as string
+                templateData
             );
         }
 

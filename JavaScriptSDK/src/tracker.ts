@@ -164,7 +164,7 @@ class ErrorTracker {
             const string: $TSFixMe = errorEvent.message
                 ? errorEvent.message.toLowerCase()
                 : errorEvent.toLowerCase();
-            const substring: string = 'script error';
+            const substring = 'script error';
             if (string.indexOf(substring) > -1) {
                 return; // Third party error
             }

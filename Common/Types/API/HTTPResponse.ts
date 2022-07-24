@@ -9,7 +9,7 @@ import {
 export default class HTTPResponse<
     T extends JSONObjectOrArray | BaseModel | Array<BaseModel>
 > {
-    private _statusCode: number = -1;
+    private _statusCode = -1;
     public get statusCode(): number {
         return this._statusCode;
     }
@@ -33,7 +33,7 @@ export default class HTTPResponse<
         this._data = v;
     }
 
-    private _count: number = 0;
+    private _count = 0;
     public get count(): number {
         return this._count;
     }
@@ -41,7 +41,7 @@ export default class HTTPResponse<
         this._count = v;
     }
 
-    private _limit: number = 0;
+    private _limit = 0;
     public get limit(): number {
         return this._limit;
     }
@@ -49,7 +49,7 @@ export default class HTTPResponse<
         this._limit = v;
     }
 
-    private _skip: number = 0;
+    private _skip = 0;
     public get skip(): number {
         return this._skip;
     }

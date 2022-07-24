@@ -8,7 +8,7 @@ import 'should';
 
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 
 describe('Keyboard Shortcut: Admin Dashboard', () => {
     const operationTimeOut: $TSFixMe = init.timeout;

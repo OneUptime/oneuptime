@@ -5,7 +5,7 @@ import Main from './worker/main';
 
 import cron from 'node-cron';
 
-export const APP_NAME: string = 'container';
+export const APP_NAME = 'container';
 const app: ExpressApplication = App(APP_NAME);
 
 const cronContainerSecurityStartTime: $TSFixMe = Math.floor(Math.random() * 50);

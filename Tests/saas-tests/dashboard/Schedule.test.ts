@@ -7,7 +7,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 
 const user: $TSFixMe = {
     email,
@@ -40,8 +40,8 @@ describe('Schedule', () => {
     test(
         'should show pricing plan modal when enable team rotation is clicked',
         async (done: $TSFixMe) => {
-            const projectName: string = 'newproject';
-            const newScheduleName: string = 'test';
+            const projectName = 'newproject';
+            const newScheduleName = 'test';
 
             await init.addProject(page, projectName);
 
@@ -52,7 +52,7 @@ describe('Schedule', () => {
             await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) => {
                 return elem.click();
             });
-            const createScheduleBtn: string = `#btnCreateSchedule_${projectName}`;
+            const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,
@@ -185,8 +185,8 @@ describe('Schedule', () => {
     test(
         'it should navigate to the oncall schedule details page from the oncall schedule list when the view schedule button is clicked',
         async (done: $TSFixMe) => {
-            const projectName: string = 'newproject1';
-            const newScheduleName: string = 'test';
+            const projectName = 'newproject1';
+            const newScheduleName = 'test';
 
             await init.addProject(page, projectName);
 
@@ -197,7 +197,7 @@ describe('Schedule', () => {
             await init.page$Eval(page, '#onCallDuty', (elem: $TSFixMe) => {
                 return elem.click();
             });
-            const createScheduleBtn: string = `#btnCreateSchedule_${projectName}`;
+            const createScheduleBtn = `#btnCreateSchedule_${projectName}`;
             await init.pageWaitForSelector(page, createScheduleBtn, {
                 visible: true,
                 timeout: init.timeout,

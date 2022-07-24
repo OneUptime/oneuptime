@@ -40,13 +40,13 @@ const logRequest: RequestHandler = (
     const method: string = req.method;
     const url: string = req.url;
 
-    const header_info: string = `Request ID: ${
+    const header_info = `Request ID: ${
         (req as OneUptimeRequest).id
     } -- POD NAME: ${
         process.env['POD_NAME'] || 'NONE'
     } -- METHOD: ${method} -- URL: ${url.toString()}`;
 
-    const body_info: string = `Request ID: ${
+    const body_info = `Request ID: ${
         (req as OneUptimeRequest).id
     } -- Request Body: ${
         req.body ? JSON.stringify(req.body, null, 2) : 'EMPTY'
@@ -109,8 +109,8 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
 
             if (err instanceof Promise) {
                 err.catch((exception: Exception) => {
-                    res.status((exception as Exception).code);
-                    res.send({ error: (exception as Exception).message });
+                    res.status(exception.code);
+                    res.send({ error: exception.message });
                 });
             } else if (err instanceof Exception) {
                 res.status((err as Exception).code);

@@ -116,7 +116,7 @@ describe('Components', () => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
 
-            const customTutorialType: string = 'monitor';
+            const customTutorialType = 'monitor';
             // Find monitor quick tip and confirm it shows
 
             const monitorQuickTip: $TSFixMe = await init.pageWaitForSelector(
@@ -134,7 +134,7 @@ describe('Components', () => {
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            const newMonitorName: string = `another-${monitorName}`;
+            const newMonitorName = `another-${monitorName}`;
 
             await init.pageWaitForSelector(page, '#cbMonitors');
 
@@ -182,7 +182,7 @@ describe('Components', () => {
         async (done: $TSFixMe) => {
             // Navigate to Component details
             await init.navigateToComponentDetails(componentName, page);
-            const monitorDetailsBtn: string = `#more-details-${monitorName}`;
+            const monitorDetailsBtn = `#more-details-${monitorName}`;
             await init.pageWaitForSelector(page, monitorDetailsBtn, {
                 visible: true,
                 timeout: init.timeout,
@@ -191,9 +191,9 @@ describe('Components', () => {
                 return e.click();
             });
 
-            const projectSelector: string = `#cbUnnamedProject`;
-            const componentSelector: string = `#cb${componentName}`;
-            const monitorSelector: string = `#cb${monitorName}`;
+            const projectSelector = `#cbUnnamedProject`;
+            const componentSelector = `#cb${componentName}`;
+            const monitorSelector = `#cb${monitorName}`;
             await init.pageWaitForSelector(page, projectSelector, {
                 visible: true,
                 timeout: init.timeout,
@@ -333,8 +333,8 @@ describe('Components', () => {
                 timeout: init.timeout,
             });
 
-            const newComponentSelector: string = `#count_${newComponentName}`;
-            const componentSelector: string = `#count_${componentName}`;
+            const newComponentSelector = `#count_${newComponentName}`;
+            const componentSelector = `#count_${componentName}`;
 
             await init.pageWaitForSelector(page, newComponentSelector);
             const newResourceCount: $TSFixMe = await init.page$Eval(

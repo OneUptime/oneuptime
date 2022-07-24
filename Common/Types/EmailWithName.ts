@@ -15,7 +15,7 @@ export default class EmailWithName {
         }
     }
 
-    private _name: string = '';
+    private _name = '';
     public get name(): string {
         return this._name;
     }

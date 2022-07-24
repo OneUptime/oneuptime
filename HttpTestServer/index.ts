@@ -13,7 +13,7 @@ import HTTPTestServerResponse from './types/HttpTestServerResponse';
 import ResponseType from 'Common/Types/api/ResponseType';
 import Headers from 'Common/Types/API/Headers';
 
-export const APP_NAME: string = 'home';
+export const APP_NAME = 'home';
 const app: ExpressApplication = App(APP_NAME);
 
 app.set('views', path.join(__dirname, 'views'));

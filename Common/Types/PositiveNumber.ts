@@ -1,7 +1,7 @@
 import BadDataException from './Exception/BadDataException';
 
 export default class PositiveNumber {
-    private _positiveNumber: number = 0;
+    private _positiveNumber = 0;
     public get positiveNumber(): number {
         return this._positiveNumber;
     }

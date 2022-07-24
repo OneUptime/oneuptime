@@ -46,7 +46,7 @@ router.post(
 
             const data: JSONObject = req.body['data'];
 
-            const user: User = User.fromJSON(data as JSONObject, User) as User;
+            const user: User = User.fromJSON(data, User) as User;
 
             if (IsSaaSService) {
                 //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
@@ -179,7 +179,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = User.fromJSON(data as JSONObject, User) as User;
+            const user: User = User.fromJSON(data, User) as User;
 
             await user.password?.hashValue(EncryptionSecret);
 
@@ -227,7 +227,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = User.fromJSON(data as JSONObject, User) as User;
+            const user: User = User.fromJSON(data, User) as User;
             await user.password?.hashValue(EncryptionSecret);
 
             const alreadySavedUser: User | null = await UserService.findOneBy({
@@ -274,7 +274,7 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = User.fromJSON(data as JSONObject, User) as User;
+            const user: User = User.fromJSON(data, User) as User;
 
             await user.password?.hashValue(EncryptionSecret);
 

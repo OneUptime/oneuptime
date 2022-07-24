@@ -8,7 +8,7 @@ import Main from './workers/main';
 
 import cron from 'node-cron';
 
-export const APP_NAME: string = 'licensing';
+export const APP_NAME = 'licensing';
 const app: ExpressApplication = App(APP_NAME);
 
 const cronMinuteStartTime: $TSFixMe = Math.floor(Math.random() * 50);

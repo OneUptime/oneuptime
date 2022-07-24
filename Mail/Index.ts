@@ -7,7 +7,7 @@ import MailAPI from './API/Mail';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import logger from 'CommonServer/Utils/Logger';
 
-const APP_NAME: string = 'mail';
+const APP_NAME = 'mail';
 const app: ExpressApplication = Express.getExpressApp();
 
 app.use([`/${APP_NAME}/email`, '/email'], MailAPI);

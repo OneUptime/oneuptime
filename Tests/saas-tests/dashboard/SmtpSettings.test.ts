@@ -8,7 +8,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
 const name: string = utils.generateRandomString();
-const password: string = '1234567890';
+const password = '1234567890';
 const user: $TSFixMe = {
     email,
     password,
@@ -146,7 +146,7 @@ describe('Custom SMTP Settings', () => {
             });
 
             await init.pageClick(page, '#email');
-            const from: string = 'test@oneuptime.com';
+            const from = 'test@oneuptime.com';
             await init.pageWaitForSelector(page, '#from', {
                 visible: true,
                 timeout: init.timeout,

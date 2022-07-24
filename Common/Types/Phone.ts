@@ -2,7 +2,7 @@ import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
 
 export default class Phone extends DatabaseProperty {
-    private _phone: string = '';
+    private _phone = '';
     public get phone(): string {
         return this._phone;
     }

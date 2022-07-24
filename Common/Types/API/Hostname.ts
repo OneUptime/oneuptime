@@ -2,7 +2,7 @@ import BadDataException from '../Exception/BadDataException';
 import Port from '../Port';
 
 export default class Hostname {
-    private _route: string = '';
+    private _route = '';
     public get hostname(): string {
         return this._route;
     }
@@ -16,8 +16,7 @@ export default class Hostname {
     }
 
     public set hostname(v: string) {
-        const matchHostnameCharacters: RegExp =
-            /^[a-zA-Z-\d!#$&'*+,/:;=?@[\].]*$/;
+        const matchHostnameCharacters = /^[a-zA-Z-\d!#$&'*+,/:;=?@[\].]*$/;
         if (v && !matchHostnameCharacters.test(v)) {
             throw new BadDataException(`Invalid hostname: ${v}`);
         }

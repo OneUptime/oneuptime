@@ -7,7 +7,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 const operationTimeOut: $TSFixMe = init.timeout;
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 
 const moveToSsoPage: Function = async (page: $TSFixMe): void => {
     await init.pageWaitForSelector(page, '#settings', {

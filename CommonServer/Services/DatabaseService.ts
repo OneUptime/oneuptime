@@ -323,7 +323,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             throw new NotAuthorizedException(`Permissions not found.`);
         }
 
-        let isPublicAllowed: boolean = false;
+        let isPublicAllowed = false;
         let modelPermissions: Array<Permission> = [];
 
         if (type === DatabaseRequestType.Create) {
@@ -866,7 +866,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 take: onBeforeFind.limit.toNumber(),
                 where: onBeforeFind.query as any,
                 order: onBeforeFind.sort as any,
-                relations: onBeforeFind.populate as any,
+                relations: onBeforeFind.populate,
             });
 
             const decryptedItems: Array<TBaseModel> = [];

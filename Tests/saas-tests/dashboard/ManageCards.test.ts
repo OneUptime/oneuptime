@@ -6,7 +6,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, page: $TSFixMe;
 // Parent user credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const user: $TSFixMe = {
     email,
     password,

@@ -7,7 +7,7 @@ import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
 const email: Email = utils.generateRandomBusinessEmail();
-const password: string = '1234567890';
+const password = '1234567890';
 const urlMonitorName: string = utils.generateRandomString();
 const componentName: string = utils.generateRandomString();
 
