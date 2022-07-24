@@ -43,6 +43,7 @@ import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/Acces
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import QueryHelper from '../Types/Database/QueryHelper';
+import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -321,16 +322,57 @@ class DatabaseService<TBaseModel extends BaseModel> {
         data = await this.hash(data);
 
         data = this.asCreateableByPermissions(createBy);
+        createBy.data = data; 
+
+        // check uniqueColumns by: 
+        createBy = await this.checkUniqueColumnBy(createBy);
 
         try {
-            const savedData: TBaseModel = await this.getRepository().save(data);
-            createBy.data = savedData;
+            createBy.data = await this.getRepository().save(createBy.data);
             await this.onCreateSuccess(createBy);
-            return savedData;
+            return createBy.data;
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    private async checkUniqueColumnBy(createBy: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
+
+        let existingItemsWithSameNameCount: number = 0;
+
+        const uniqueColumnsBy: Dictionary<string> = getUniqueColumnsBy(createBy.data);
+
+        for (const key in uniqueColumnsBy) {
+
+            if (!uniqueColumnsBy[key]) {
+                continue;
+            }
+            debugger;
+            existingItemsWithSameNameCount = (
+                await this.countBy({
+                    query: {
+                        [key]: QueryHelper.findWithSameName((createBy.data as any)[key] ? (createBy.data as any)[key]! as string : ''),
+                        [uniqueColumnsBy[key] as any]: (createBy.data as any)[uniqueColumnsBy[key] as any],
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                })
+            ).toNumber();
+    
+            if (existingItemsWithSameNameCount > 0) {
+                throw new BadDataException(
+                    `${this.model.singularName} with the same ${key} already exists.`
+                );
+            } 
+
+            existingItemsWithSameNameCount = 0; 
+        }
+
+       
+
+        return Promise.resolve(createBy);
     }
 
     public getPermissions(
@@ -1057,3 +1099,5 @@ class DatabaseService<TBaseModel extends BaseModel> {
 }
 
 export default DatabaseService;
+
+

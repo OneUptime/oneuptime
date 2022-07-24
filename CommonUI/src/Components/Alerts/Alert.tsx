@@ -46,7 +46,7 @@ const Alert: FunctionComponent<ComponentProps> = (
         <div className="row">
             <div className="col-xl-12">
                 <div
-                    className={`alert-label-icon label-arrow alert ${cssClass} alert-dismissible fade show`}
+                    className={`alert-label-icon flex label-arrow alert ${cssClass} alert-dismissible fade show`}
                     role="alert"
                 >
                     {props.onClose && (
@@ -61,7 +61,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                             <span aria-hidden="true">×</span>
                         </button>
                     )}
-                    <span style={{ marginLeft: '-45px' }}>
+                    <span style={{ marginLeft: '-45px', height: "10px" }}>
                         {AlertType.DANGER === type && (
                             <Icon
                                 thick={ThickProp.LessThick}
@@ -92,8 +92,13 @@ const Alert: FunctionComponent<ComponentProps> = (
                         )}
                         &nbsp;&nbsp;
                     </span>
-                    <strong>{props.strongTitle}</strong>{' '}
-                    {props.title && props.strongTitle ? '-' : ''} {props.title}
+                    <div className='flex' style={{
+                            marginLeft: "5px",
+                            marginTop: "1px"
+                    }}>
+                        <div><strong>{props.strongTitle}</strong>{' '}</div>
+                        <div>{props.title && props.strongTitle ? '-' : ''} {props.title}</div>
+                    </div>
                 </div>
             </div>
         </div>
