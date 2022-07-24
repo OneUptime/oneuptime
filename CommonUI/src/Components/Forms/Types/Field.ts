@@ -9,6 +9,7 @@ export default interface Field<TEntity> {
     description?: string;
     field: SelectFormFields<TEntity>;
     placeholder?: string;
+    disabled?: boolean;
     required?: boolean;
     dropdownOptions?: Array<DropdownOption> | undefined;
     sideLink?: {

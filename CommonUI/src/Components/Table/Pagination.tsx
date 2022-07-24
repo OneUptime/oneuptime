@@ -166,10 +166,11 @@ const Pagination: FunctionComponent<ComponentProps> = (
                         fields: [
                             {
                                 title: 'Page Number',
-                                description: `You can enter page numbers from ${minPageNumber} to ${maxPageNumber}. Please enter it here:`,
+                                description: `You can enter page numbers from ${minPageNumber !== maxPageNumber ? minPageNumber +" to "+ maxPageNumber : minPageNumber}. Please enter it here:`,
                                 field: {
                                     pageNumber: true,
                                 },
+                                disabled: minPageNumber === maxPageNumber,
                                 placeholder: '1',
                                 required: true,
                                 validation: {

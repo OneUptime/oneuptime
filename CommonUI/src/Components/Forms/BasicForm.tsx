@@ -129,6 +129,7 @@ const BasicForm: Function = <T extends Object>(
                                         await form.setFieldTouched(fieldName, true);
                                     }}
                                     placeholder={field.placeholder || ''}
+                                    initialValue={props.initialValues && (props.initialValues as any)[fieldName] ? (props.initialValues as any)[fieldName] : ''}
                                 />
                             );
                         }}
@@ -152,6 +153,7 @@ const BasicForm: Function = <T extends Object>(
                                     }}
                                     options={field.dropdownOptions || []}
                                     placeholder={field.placeholder || ''}
+                                    initialValue={props.initialValues && (props.initialValues as any)[fieldName] ? (props.initialValues as any)[fieldName] : ''}
                                 />
                             );
                         }}
@@ -176,7 +178,7 @@ const BasicForm: Function = <T extends Object>(
                                         onBlur={async () => {
                                             await form.setFieldTouched(fieldName, true);
                                         }}
-                                        initialValue={''}
+                                        initialValue={props.initialValues && (props.initialValues as any)[fieldName] ? (props.initialValues as any)[fieldName] : ''}
                                         placeholder={field.placeholder || ''}
 
                                     />
@@ -189,10 +191,10 @@ const BasicForm: Function = <T extends Object>(
                 {/* Default Field */}
                 {(field.fieldType === FormFieldSchemaType.Name ||
                     field.fieldType === FormFieldSchemaType.Email ||
-                    field.fieldType === FormFieldSchemaType.Hostname || 
+                    field.fieldType === FormFieldSchemaType.Hostname ||
                     field.fieldType === FormFieldSchemaType.URL ||
                     field.fieldType === FormFieldSchemaType.Route ||
-                    field.fieldType === FormFieldSchemaType.Text || 
+                    field.fieldType === FormFieldSchemaType.Text ||
                     field.fieldType === FormFieldSchemaType.Number ||
                     field.fieldType === FormFieldSchemaType.Password ||
                     field.fieldType === FormFieldSchemaType.Date ||
@@ -205,7 +207,8 @@ const BasicForm: Function = <T extends Object>(
                             type={fieldType}
                             tabIndex={index + 1}
                             name={fieldName}
-                            disabled={isDisabled}
+                            disabled={isDisabled || field.disabled}
+                            initialValue={props.initialValues && (props.initialValues as any)[fieldName] ? (props.initialValues as any)[fieldName] : ''}
                         />
                     )}
 
