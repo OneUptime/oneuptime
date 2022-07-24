@@ -177,6 +177,35 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                 },
                                 fieldType: FormFieldSchemaType.PositveNumber,
                             },
+                            {
+                                title: `${props.pluralLabel} on Page: `,
+                                description: `Enter the number of ${props.pluralLabel} you would like to see on the page:`,
+                                field: {
+                                    pageNumber: true,
+                                },
+                                placeholder: '10',
+                                required: true,
+                                fieldType: FormFieldSchemaType.Dropdown,
+                                dropdownOptions: [
+                                    {
+                                        value: 10,
+                                        label: "10"
+                                    },
+                                    {
+                                        value: 20,
+                                        label: "20"
+                                    },
+                                    {
+                                        value: 25,
+                                        label: "25"
+                                    },
+                                    ,
+                                    {
+                                        value: 50,
+                                        label: "50"
+                                    }
+                                ]
+                            },
                         ],
                     }}
                 />

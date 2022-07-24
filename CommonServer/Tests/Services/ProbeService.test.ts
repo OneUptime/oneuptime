@@ -381,41 +381,7 @@ describe('probeService', () => {
         expect(fetchedProbe).toBeNull();
     });
 
-    test('hard delete probe by query', async () => {
-        const probeService: ProbeService = new ProbeService(
-            database.getDatabase()
-        );
-        const name: string = Faker.generateName();
-        const probeVersion: Version = new Version('1.0.2');
-        const key: ObjectID = ObjectID.generate();
-        const savedProbe: Probe = await probeService.createProbe(
-            name,
-            key,
-            probeVersion,
-            {
-                isRoot: true,
-            }
-        );
-
-        expect(savedProbe).toBeTruthy();
-
-        await probeService.hardDeleteBy({
-            query: {
-                key: key,
-            },
-            props: { isRoot: true },
-        });
-
-        const fetchedProbe: Probe | null = await probeService.findOneBy({
-            query: {
-                key: key,
-            },
-            props: { isRoot: true },
-        });
-
-        expect(fetchedProbe).toBeNull();
-    });
-
+    
     test('update probe by query', async () => {
         const probeService: ProbeService = new ProbeService(
             database.getDatabase()

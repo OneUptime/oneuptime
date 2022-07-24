@@ -22,6 +22,7 @@ import Alert, { AlertType } from '../Alerts/Alert';
 import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
 import TextArea from './Fields/TextArea';
+import Dropdown from '../Dropdown/Dropdown';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -134,6 +135,29 @@ const BasicForm: Function = <T extends Object>(
                     </Field>
                 )}
 
+                {field.fieldType === FormFieldSchemaType.Dropdown && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+                            return (
+                                <Dropdown
+                                    onChange={async (value: string | number) => {
+                                        await form.setFieldValue(
+                                            fieldName,
+                                            value,
+                                            true
+                                        );
+                                    }}
+                                    onBlur={async () => {
+                                        await form.setFieldTouched(fieldName, true);
+                                    }}
+                                    options={field.dropdownOptions || []}
+                                    placeholder={field.placeholder || ''}
+                                />
+                            );
+                        }}
+                    </Field>
+                )}
+
                 {field.fieldType === FormFieldSchemaType.LongText && (
                     <Field name={fieldName}>
                         {({ form }: any) => {
@@ -163,8 +187,17 @@ const BasicForm: Function = <T extends Object>(
                 )}
 
                 {/* Default Field */}
-                {field.fieldType !== FormFieldSchemaType.Color &&
-                    field.fieldType !== FormFieldSchemaType.LongText && (
+                {(field.fieldType === FormFieldSchemaType.Name ||
+                    field.fieldType === FormFieldSchemaType.Email ||
+                    field.fieldType === FormFieldSchemaType.Hostname || 
+                    field.fieldType === FormFieldSchemaType.URL ||
+                    field.fieldType === FormFieldSchemaType.Route ||
+                    field.fieldType === FormFieldSchemaType.Text || 
+                    field.fieldType === FormFieldSchemaType.Number ||
+                    field.fieldType === FormFieldSchemaType.Password ||
+                    field.fieldType === FormFieldSchemaType.Date ||
+                    field.fieldType === FormFieldSchemaType.PositveNumber) &&
+                    (
                         <Field
                             className="form-control"
                             autoFocus={index === 0 ? true : false}

@@ -1,11 +1,11 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Card from '../Card/Card';
+import Card, { CardButtonSchema } from '../Card/Card';
 import Table, { ComponentProps as TableComponentProps } from './Table';
 
 export interface ComponentProps {
     title: string;
     description: string;
-    headerButtons: Array<ReactElement>;
+    headerButtons: Array<CardButtonSchema>;
     tableProps: TableComponentProps;
 }
 

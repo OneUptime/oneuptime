@@ -2,6 +2,7 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import FormFieldSchemaType from './FormFieldSchemaType';
 import SelectFormFields from '../../../Types/SelectEntityField';
+import { DropdownOption } from '../../Dropdown/Dropdown';
 
 export default interface Field<TEntity> {
     title?: string;
@@ -9,6 +10,7 @@ export default interface Field<TEntity> {
     field: SelectFormFields<TEntity>;
     placeholder?: string;
     required?: boolean;
+    dropdownOptions?: Array<DropdownOption> | undefined;
     sideLink?: {
         text: string;
         url: Route | URL;
