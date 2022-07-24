@@ -999,12 +999,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async findOneById(
-        findOneById: FindOneByID
+        findOneById: FindOneByID<TBaseModel>
     ): Promise<TBaseModel | null> {
         return await this.findOneBy({
             query: {
                 _id: findOneById.id.toString() as any,
             },
+            select: findOneById.select || {},
             props: findOneById.props,
         });
     }

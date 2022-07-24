@@ -106,7 +106,7 @@ export default class ModelAPI {
 
         const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
             .addRoute(apiPath)
-            .addRoute('/get');
+            .addRoute('/get-list');
 
         if (!apiUrl) {
             throw new BadDataException(
@@ -168,7 +168,8 @@ export default class ModelAPI {
 
         const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
             .addRoute(apiPath)
-            .addRoute('/' + id.toString());
+            .addRoute('/' + id.toString())
+            .addRoute("/get-item");
 
         if (!apiUrl) {
             throw new BadDataException(
@@ -178,7 +179,7 @@ export default class ModelAPI {
 
         const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
             await API.fetch<TBaseModel>(
-                HTTPMethod.GET,
+                HTTPMethod.POST,
                 apiUrl,
                 {
                     select: JSONFunctions.serialize(select as JSONObject),

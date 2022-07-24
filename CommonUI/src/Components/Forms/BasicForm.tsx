@@ -208,7 +208,6 @@ const BasicForm: Function = <T extends Object>(
                             tabIndex={index + 1}
                             name={fieldName}
                             disabled={isDisabled || field.disabled}
-                            initialValue={props.initialValues && (props.initialValues as any)[fieldName] ? (props.initialValues as any)[fieldName] : ''}
                         />
                     )}
 
@@ -410,6 +409,7 @@ const BasicForm: Function = <T extends Object>(
                     initialValues={props.initialValues}
                     validate={validate}
                     validateOnChange={true}
+                    enableReinitialize={true}
                     validateOnBlur={true}
                     onSubmit={(
                         values: FormValues<T>,

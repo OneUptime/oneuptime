@@ -51,7 +51,7 @@ export default class BaseAPI<
 
         // List
         router.post(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/get`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/get-list`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -67,8 +67,8 @@ export default class BaseAPI<
         );
 
         // Get Item
-        router.get(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
+        router.post(
+            `/${new this.entityType().getCrudApiPath()?.toString()}/:id/get-item`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -213,8 +213,19 @@ export default class BaseAPI<
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
+
+        let select: Select<BaseModel> = {};
+
+        if (req.body) {
+           
+            select = JSONFunctions.deserialize(
+                req.body['select']
+            ) as Select<BaseModel>;
+        }
+
         const item: BaseModel | null = await this.service.findOneById({
             id: objectId,
+            select,
             props: this.getDatabaseCommonInteractionProps(req),
         });
 
