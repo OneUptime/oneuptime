@@ -264,7 +264,7 @@ export default class BaseAPI<
         delete item["createdAt"];
         delete item["updatedAt"];
 
-        // @ts-ignore
+        
         await this.service.updateBy({
             query: {
                 _id: objectIdString,
