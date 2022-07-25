@@ -144,12 +144,12 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 (valuesToSend as any)[key] = values[key];
             }
 
-            if (props.formType == FormType.Update) {
-                (valuesToSend as any)["_id"] = values["_id"];
+            if (props.formType == FormType.Update && props.modelIdToEdit) {
+                (valuesToSend as any)["_id"] = props.modelIdToEdit.toString();
             }
 
             result = await ModelAPI.createOrUpdate<TBaseModel>(
-                props.model.fromJSON(values, props.type),
+                props.model.fromJSON(valuesToSend, props.type),
                 props.formType,
                 props.apiUrl
             );

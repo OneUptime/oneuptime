@@ -74,8 +74,7 @@ export default class ModelAPI {
         const httpMethod = formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT;
         
         if (httpMethod === HTTPMethod.PUT) {
-            apiUrl = apiUrl.addRoute(`/${model.id?.toString()}`);    
-
+            apiUrl = apiUrl.addRoute(`/${model._id}`);    
         }
 
         const result: HTTPResponse<

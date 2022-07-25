@@ -18,6 +18,7 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -252,15 +253,13 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        debugger; 
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
-        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
-            body['data'] as JSONObject,
-            this.entityType
-        ) as TBaseModel;
-
+        const item: QueryDeepPartialEntity<TBaseModel> = JSONFunctions.deserialize(body['data'] as JSONObject) as QueryDeepPartialEntity<TBaseModel>;
+        
         delete item["_id"];
         delete item["createdAt"];
         delete item["updatedAt"];
