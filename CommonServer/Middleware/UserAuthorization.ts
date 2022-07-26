@@ -15,6 +15,8 @@ import {
     UserProjectAccessPermission,
 } from 'Common/Types/Permission';
 import AccessTokenService from '../Services/AccessTokenService';
+import { JSONFunctions } from 'Common/Types/JSON';
+import HashedString from 'Common/Types/HashedString';
 
 export default class UserMiddleware {
     /*
@@ -118,6 +120,31 @@ export default class UserMiddleware {
 
             oneuptimeRequest.userProjectAccessPermission =
                 userProjectAccessPermission;
+        }
+
+        // set permission hash. 
+        if (oneuptimeRequest.userGlobalAccessPermission) {
+            const globalValue: string = JSON.stringify(JSONFunctions.serialize(oneuptimeRequest.userGlobalAccessPermission));
+            const globalPermissionsHash: string = await HashedString.hashValue(globalValue, null)
+            res.set('global-permissions', globalValue);
+            res.set('global-permissions-hash',globalPermissionsHash);
+
+            if (!(req.headers && req.headers['global-permissions-hash'] && req.headers['global-permissions-hash'] === globalPermissionsHash)) {
+                res.set('project-permissions', globalValue);
+                res.set('project-permissions-hash', globalPermissionsHash);
+            }  
+        }
+
+        // set project permissions hash. 
+        if (oneuptimeRequest.userProjectAccessPermission) {
+             
+            const projectValue: string = JSON.stringify(JSONFunctions.serialize(oneuptimeRequest.userProjectAccessPermission));
+            const projectPermissionsHash: string = await HashedString.hashValue(projectValue, null)
+
+            if (!(req.headers && req.headers['project-permissions-hash'] && req.headers['project-permissions-hash'] === projectPermissionsHash)) {
+                res.set('project-permissions', projectValue);
+                res.set('project-permissions-hash', projectPermissionsHash);
+            }  
         }
 
         return next();

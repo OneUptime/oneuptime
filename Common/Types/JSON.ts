@@ -78,19 +78,19 @@ export class JSONFunctions {
             if (Array.isArray(val[key])) {
                 const arraySerialize: Array<JSONValue> = [];
                 for (const arrVal of val[key] as Array<JSONValue>) {
-                    arraySerialize.push(this._serializeValue(arrVal));
+                    arraySerialize.push(this.serializeValue(arrVal));
                 }
 
                 val[key] = arraySerialize;
             }
 
-            val[key] = this._serializeValue(val[key] as JSONValue);
+            val[key] = this.serializeValue(val[key] as JSONValue);
         }
 
         return val;
     }
 
-    private static _serializeValue(val: JSONValue): JSONValue {
+    public static serializeValue(val: JSONValue): JSONValue {
         if (!val) {
             return val;
         } else if (val && val instanceof Name) {
@@ -140,7 +140,7 @@ export class JSONFunctions {
         return val;
     }
 
-    private static _deserializeValue(val: JSONValue): JSONValue {
+    public static deserializeValue(val: JSONValue): JSONValue {
         if (!val) {
             return val;
         } else if (
@@ -251,13 +251,13 @@ export class JSONFunctions {
             if (Array.isArray(val[key])) {
                 const arraySerialize: Array<JSONValue> = [];
                 for (const arrVal of val[key] as Array<JSONValue>) {
-                    arraySerialize.push(this._deserializeValue(arrVal));
+                    arraySerialize.push(this.deserializeValue(arrVal));
                 }
 
                 val[key] = arraySerialize;
             }
 
-            val[key] = this._deserializeValue(val[key] as JSONValue);
+            val[key] = this.deserializeValue(val[key] as JSONValue);
         }
 
         return val;

@@ -9,6 +9,11 @@ import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import Navigation from '../Navigation';
+import Dictionary from 'Common/Types/Dictionary';
+import PermissionUtil from '../Permission';
+import { JSONFunctions } from 'Common/Types/JSON';
+import { UserGlobalAccessPermission, UserProjectAccessPermission } from 'Common/Types/Permission';
+import LocalStorage from '../LocalStorage';
 
 class BaseAPI extends API {
     public constructor(protocol: Protocol, hostname: Hostname, route?: Route) {
@@ -19,12 +24,49 @@ class BaseAPI extends API {
         return new BaseAPI(url.protocol, url.hostname, url.route);
     }
 
+
+
+    protected static override async onResponseSuccessHeaders(
+        headers: Dictionary<string>
+    ): Promise<Dictionary<string>> {
+
+        if (headers && headers["global-permissions"]) {
+            PermissionUtil.setGlobalPermissions(JSONFunctions.deserialize(JSON.parse(headers["global-permissions"])) as UserGlobalAccessPermission);
+        }
+
+        if (headers && headers["global-permissions-hash"]) {
+            LocalStorage.setItem("global-permissions-hash", headers["global-permissions-hash"]);
+        }
+
+        if (headers && headers["project-permissions"]) {
+            PermissionUtil.setProjectPermissions(JSONFunctions.deserialize(JSON.parse(headers["project-permissions"])) as UserProjectAccessPermission);
+        }
+
+        if (headers && headers["project-permissions-hash"]) {
+            LocalStorage.setItem("project-permissions-hash", headers["project-permissions-hash"]);
+        }
+
+        return Promise.resolve(headers);
+    }
+
+
     protected static override getHeaders(): Headers {
         let defaultHeaders: Headers = this.getDefaultHeaders();
 
         const headers: Headers = {};
         if (User.isLoggedIn()) {
             headers['Authorization'] = 'Basic ' + User.getAccessToken();
+        }
+
+        const globalPermissionsHash = LocalStorage.getItem('global-permissions-hash') as string;
+        if (globalPermissionsHash) {
+            headers['global-permissions-hash'] = globalPermissionsHash;
+        }
+
+
+        const projectPermissionsHash = LocalStorage.getItem('project-permissions-hash') as string;
+        if (globalPermissionsHash) {
+            headers['project-permissions-hash'] = projectPermissionsHash;
         }
 
         defaultHeaders = {
