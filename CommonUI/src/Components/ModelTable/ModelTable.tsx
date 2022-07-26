@@ -21,6 +21,8 @@ import ActionButtonSchema, {
 } from '../Table/Types/ActionButtonSchema';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from '../Modal/ConfirmModal';
+import { PermissionUtil as PermissionHelper } from 'Common/Types/Permission';
+import PermissionUtil from '../../Utils/Permission';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -76,7 +78,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         useState<JSONObject | null>(null);
     const [currentDeleteableItem, setCurrentDeleteableItem] =
         useState<JSONObject | null>(null);
-    
+
     const [itemsOnPage, setItemsOnPage] = useState<number>(props.initialItemsOnPage || 10);
 
     const deleteItem: Function = async (id: ObjectID) => {
@@ -171,7 +173,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const setHeaderButtons = () => {
         // add header buttons.
         const headerbuttons: Array<CardButtonSchema> = [];
-        if (props.isCreateable) {
+        const userProjectPermissions = PermissionUtil.getProjectPermissions();
+        const hasPermissionToCreate =
+            userProjectPermissions
+            && userProjectPermissions.permissions
+            && PermissionHelper.doesPermissionsIntersect(props.model.createRecordPermissions, userProjectPermissions.permissions.map((item) => item.permission));
+
+        if (props.isCreateable && hasPermissionToCreate) {
             headerbuttons.push(
                 {
                     title: `Create ${model.singularName}`,
@@ -270,19 +278,29 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
+        const userProjectPermissions = PermissionUtil.getProjectPermissions();
+        
+        const hasPermissionToDelete =
+            userProjectPermissions
+            && userProjectPermissions.permissions
+            && PermissionHelper.doesPermissionsIntersect(props.model.deleteRecordPermissions, userProjectPermissions.permissions.map((item) => item.permission));
 
-        if (props.isDeleteable || props.isEditable) {
+        const hasPermissionToUpdate =
+            userProjectPermissions
+            && userProjectPermissions.permissions
+            && PermissionHelper.doesPermissionsIntersect(props.model.updateRecordPermissions, userProjectPermissions.permissions.map((item) => item.permission));
+        
+        
+        if ((props.isDeleteable && hasPermissionToDelete) || (props.isEditable && hasPermissionToUpdate)) {
             columns.push({
                 title: 'Actions',
                 type: TableColumnType.Actions,
             });
         }
 
-
-
         const actionsSchema: Array<ActionButtonSchema> = [];
 
-        if (props.isEditable) {
+        if (props.isEditable && hasPermissionToUpdate) {
             actionsSchema.push({
                 title: 'Edit',
                 icon: IconProp.Edit,
@@ -291,7 +309,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             });
         }
 
-        if (props.isDeleteable) {
+        if (props.isDeleteable && hasPermissionToDelete) {
             actionsSchema.push({
                 title: 'Delete',
                 icon: IconProp.Trash,
