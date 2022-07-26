@@ -88,6 +88,11 @@
     justify-content: space-between;
 }
 
+.justify-center {
+    display: flex;
+    justify-content: center;
+}
+
 .pointer {
     cursor: pointer !important;
 }

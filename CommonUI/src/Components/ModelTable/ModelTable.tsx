@@ -21,8 +21,10 @@ import ActionButtonSchema, {
 } from '../Table/Types/ActionButtonSchema';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from '../Modal/ConfirmModal';
-import { PermissionHelper } from 'Common/Types/Permission';
+import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
+import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -249,6 +251,16 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
         }
 
+        let userPermissions: Array<Permission> = PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+        if (PermissionUtil.getProjectPermissions() && PermissionUtil.getProjectPermissions()?.permissions && PermissionUtil.getProjectPermissions()!.permissions.length > 0) {
+            userPermissions = userPermissions.concat(PermissionUtil.getProjectPermissions()!.permissions.map((i)=> i.permission));
+        }
+
+        userPermissions.push(Permission.Public);
+       
+        const accessControl: Dictionary<ColumnAccessControl> =
+            getColumnAccessControlForAllColumns(props.model);
+
         for (const column of props.columns) {
             const key: string | null = column.field
                 ? (Object.keys(column.field)[0] as string)
@@ -257,24 +269,62 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             const moreFields: Array<string> = column.moreFields
                 ? Object.keys(column.moreFields)
                 : [];
+            
+            // check permissions. 
+            let hasPermission: boolean = false; 
 
-            columns.push({
-                title: column.title,
-                disableSort: column.disableSort || false,
-                type: column.type,
-                key: key,
-                isFilterable: column.isFilterable,
-                getColumnElement: column.getColumnElement
-                    ? column.getColumnElement
-                    : undefined,
-            });
-
-            if (key) {
-                (selectFields as Dictionary<boolean>)[key] = true;
+            if (!key) {
+                hasPermission = true; 
             }
 
-            for (const moreField of moreFields) {
-                (selectFields as Dictionary<boolean>)[moreField] = true;
+            if (key) {
+                hasPermission = true; 
+                let fieldPermissions: Array<Permission> = [];
+                fieldPermissions = accessControl[key as string]?.read || []
+
+                if (
+                    accessControl[key]?.read &&
+                    !PermissionHelper.doesPermissionsIntersect(
+                        userPermissions,
+                        fieldPermissions
+                    )
+                ) {
+                    hasPermission = false;
+                }
+
+                for (const moreField of moreFields) {
+                    if (
+                        accessControl[moreField]?.read &&
+                        !PermissionHelper.doesPermissionsIntersect(
+                            userPermissions,
+                            fieldPermissions
+                        )
+                    ) {
+                        hasPermission = false;
+                        break; 
+                    }
+                }
+            }
+
+            if (hasPermission) {
+                columns.push({
+                    title: column.title,
+                    disableSort: column.disableSort || false,
+                    type: column.type,
+                    key: key,
+                    isFilterable: column.isFilterable,
+                    getColumnElement: column.getColumnElement
+                        ? column.getColumnElement
+                        : undefined,
+                });
+
+                if (key) {
+                    (selectFields as Dictionary<boolean>)[key] = true;
+                }
+
+                for (const moreField of moreFields) {
+                    (selectFields as Dictionary<boolean>)[moreField] = true;
+                }
             }
         }
 
@@ -444,3 +494,5 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 };
 
 export default ModelTable;
+
+

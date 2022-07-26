@@ -89,6 +89,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         if (PermissionUtil.getProjectPermissions() && PermissionUtil.getProjectPermissions()?.permissions && PermissionUtil.getProjectPermissions()!.permissions.length > 0) {
             userPermissions = userPermissions.concat(PermissionUtil.getProjectPermissions()!.permissions.map((i)=> i.permission));
         }
+
+        userPermissions.push(Permission.Public);
        
         const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(props.model);
@@ -111,7 +113,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 }
 
                 if (
-                    accessControl[key]?.create &&
+                    fieldPermissions &&
                     PermissionHelper.doesPermissionsIntersect(
                         userPermissions,
                         fieldPermissions

@@ -136,7 +136,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                     <div>
                         <div></div>
                     </div>
-                    <span className="flex">
+                    <span className="justify-center">
                         <span>
                             {icon && !showIconOnRight && (
                                 <Icon
