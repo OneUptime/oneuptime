@@ -21,7 +21,7 @@ import ActionButtonSchema, {
 } from '../Table/Types/ActionButtonSchema';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from '../Modal/ConfirmModal';
-import { PermissionUtil as PermissionHelper } from 'Common/Types/Permission';
+import { PermissionHelper } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

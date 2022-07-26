@@ -61,7 +61,7 @@ enum Permission {
     CanReadProjectResources = 'CanReadProjectResources',
 }
 
-export class PermissionUtil {
+export class PermissionHelper {
     public static doesPermissionsIntersect(
         permissions1: Array<Permission>,
         permissions2: Array<Permission>

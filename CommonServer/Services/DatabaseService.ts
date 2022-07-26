@@ -34,7 +34,7 @@ import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
 import FindOneByID from '../Types/Database/FindOneByID';
 import Permission, {
-    PermissionUtil,
+    PermissionHelper,
     UserPermission,
 } from 'Common/Types/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
@@ -454,7 +454,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         if (
             props.userProjectAccessPermission &&
-            !PermissionUtil.doesPermissionsIntersect(
+            !PermissionHelper.doesPermissionsIntersect(
                 props.userProjectAccessPermission.permissions.map(
                     (userPermission: UserPermission) => {
                         return userPermission.permission;
@@ -721,7 +721,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         for (const key in accessControl) {
             if (
                 accessControl[key]?.create &&
-                PermissionUtil.doesPermissionsIntersect(
+                PermissionHelper.doesPermissionsIntersect(
                     permissions,
                     accessControl[key]?.create || []
                 )
@@ -750,7 +750,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         for (const key in accessControl) {
             if (
                 accessControl[key]?.read &&
-                PermissionUtil.doesPermissionsIntersect(
+                PermissionHelper.doesPermissionsIntersect(
                     permissions,
                     accessControl[key]?.read || []
                 )
@@ -779,7 +779,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         for (const key in accessControl) {
             if (
                 accessControl[key]?.update &&
-                PermissionUtil.doesPermissionsIntersect(
+                PermissionHelper.doesPermissionsIntersect(
                     permissions,
                     accessControl[key]?.update || []
                 )

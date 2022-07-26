@@ -1,4 +1,4 @@
-import React, { MutableRefObject, ReactElement, useState } from 'react';
+import React, { MutableRefObject, ReactElement, useEffect, useState } from 'react';
 import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
@@ -15,6 +15,10 @@ import useAsyncEffect from 'use-async-effect';
 import ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
 import { VeryLightGrey } from '../../Utils/BrandColors';
+import Permission, { PermissionHelper } from 'Common/Types/Permission';
+import PermissionUtil from '../../Utils/Permission';
+import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 
 export enum FormType {
     Create,
@@ -55,6 +59,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const ModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
+
+
+    const [fields, setFields] = useState<Fields<TBaseModel>>([]);
     const [isLoading, setLoading] = useState<boolean>(false);
     const [isFetching, setIsFetching] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
@@ -74,6 +81,50 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
 
         return select;
     };
+
+    useEffect(() => {
+        // set fields. 
+
+        let userPermissions: Array<Permission> = PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+        if (PermissionUtil.getProjectPermissions() && PermissionUtil.getProjectPermissions()?.permissions && PermissionUtil.getProjectPermissions()!.permissions.length > 0) {
+            userPermissions = userPermissions.concat(PermissionUtil.getProjectPermissions()!.permissions.map((i)=> i.permission));
+        }
+       
+        const accessControl: Dictionary<ColumnAccessControl> =
+            getColumnAccessControlForAllColumns(props.model);
+        
+        
+        const fieldsToSet: Fields<TBaseModel> = [];
+
+        for (const field of props.fields) {
+            const keys: Array<string> = Object.keys(field.field);
+
+            if (keys.length > 0) {
+                const key: string = keys[0] as string;
+
+                let fieldPermissions: Array<Permission> = [];
+
+                if (FormType.Create === props.formType) {
+                    fieldPermissions = accessControl[key]?.create || []
+                } else {
+                    fieldPermissions = accessControl[key]?.update || []
+                }
+
+                if (
+                    accessControl[key]?.create &&
+                    PermissionHelper.doesPermissionsIntersect(
+                        userPermissions,
+                        fieldPermissions
+                    )
+                ) {
+                    fieldsToSet.push(field);
+                }
+             
+            }
+        }
+
+        setFields(fieldsToSet);
+    });
 
     useAsyncEffect(async () => {
         if (
@@ -196,7 +247,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             description={props.description}
             model={props.model}
             id={props.id}
-            fields={props.fields}
+            fields={fields}
             showAsColumns={props.showAsColumns}
             footer={props.footer}
             isLoading={isLoading}
