@@ -7,6 +7,7 @@ import Route from './API/Route';
 import URL from './API/URL';
 import Name from './Name';
 import Permission from './Permission';
+import Search from './Database/Search';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -18,6 +19,7 @@ enum ObjectType {
     Route = 'Route',
     URL = 'URL',
     Permission = 'Permission',
+    Search = 'Search'
 }
 
 export type JSONValue =
@@ -49,6 +51,10 @@ export type JSONValue =
     | Version
     | Buffer
     | Permission
+    | Array<Permission>
+    | Search
+    | Array<Search>
+    | Array<JSONValue>
     | Array<Permission>
     | Array<JSONValue>
     | null;
@@ -133,6 +139,11 @@ export class JSONFunctions {
                 _type: ObjectType.Color,
                 value: (val as Color).toString(),
             };
+        }else if (val && val instanceof Search) {
+            return {
+                _type: ObjectType.Search,
+                value: (val as Search).toString(),
+            };
         } else if (typeof val === 'object') {
             return this.serialize(val as JSONObject);
         }
@@ -215,6 +226,15 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Color
         ) {
             val = new Color((val as JSONObject)['value'] as string);
+        } else if (
+            val &&
+            typeof val === 'object' &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === 'string' &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.Search
+        ) {
+            val = new Search((val as JSONObject)['value'] as string);
         } else if (typeof val === 'object') {
             val = this.deserialize(val as JSONObject);
         }
