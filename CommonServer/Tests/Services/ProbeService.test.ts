@@ -174,6 +174,37 @@ describe('probeService', () => {
         expect(fetchedProbe).toBeNull();
     });
 
+    test('select columns should work', async () => {
+        const probeService: ProbeService = new ProbeService(
+            database.getDatabase()
+        );
+        const name: string = Faker.generateName();
+        const probeVersion: Version = new Version('1.0.2');
+        const key: ObjectID = ObjectID.generate();
+        await probeService.createProbe(name, key, probeVersion, {
+            isRoot: true,
+        });
+
+        const fetchedProbe: Probe | null = await probeService.findOneBy({
+            query: {
+                name: name,
+            },
+            select: {
+                _id: true,
+                name: true,
+            },
+            props: { isRoot: true },
+        });
+
+        expect(fetchedProbe).toBeTruthy();
+        expect(fetchedProbe!.name).toBe(name);
+        expect(fetchedProbe?._id).toBeTruthy();
+        expect(fetchedProbe?.key).toBeFalsy();
+        expect(fetchedProbe?.createdAt).toBeFalsy();
+        expect(fetchedProbe?.createdByUserId).toBeFalsy();
+        expect(fetchedProbe?.probeVersion).toBeFalsy();
+    });
+
     test('findOneBy by key', async () => {
         const probeService: ProbeService = new ProbeService(
             database.getDatabase()
