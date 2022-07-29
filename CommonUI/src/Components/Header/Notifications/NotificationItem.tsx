@@ -23,11 +23,14 @@ const NotificationItem: FunctionComponent<ComponentProps> = (
                         <p className="mb-1">{props.description}</p>
                         <p className="mb-0 flex">
                             <Icon icon={IconProp.Time} />
-                            <div style={{
-                                marginTop: "1px",
-                                marginRight: "3px"
-                            }}
-                            >{OneUptimeDate.fromNow(props.createdAt)}{' '}</div>
+                            <div
+                                style={{
+                                    marginTop: '1px',
+                                    marginRight: '3px',
+                                }}
+                            >
+                                {OneUptimeDate.fromNow(props.createdAt)}{' '}
+                            </div>
                         </p>
                     </div>
                 </div>

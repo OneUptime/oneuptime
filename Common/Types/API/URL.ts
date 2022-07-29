@@ -132,8 +132,8 @@ export default class URL extends DatabaseProperty {
         if (typeof route === Typeof.String) {
             this.route.addRoute(new Route(route.toString()));
         }
-        
-        if(route instanceof Route){
+
+        if (route instanceof Route) {
             this.route.addRoute(route);
         }
 

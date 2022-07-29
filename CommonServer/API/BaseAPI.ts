@@ -69,7 +69,9 @@ export default class BaseAPI<
 
         // Get Item
         router.post(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/:id/get-item`,
+            `/${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/:id/get-item`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -215,11 +217,9 @@ export default class BaseAPI<
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-
         let select: Select<BaseModel> = {};
 
         if (req.body) {
-           
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
@@ -254,18 +254,20 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        debugger; 
+        debugger;
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
-        const item: QueryDeepPartialEntity<TBaseModel> = JSONFunctions.deserialize(body['data'] as JSONObject) as QueryDeepPartialEntity<TBaseModel>;
-        
-        delete item["_id"];
-        delete item["createdAt"];
-        delete item["updatedAt"];
+        const item: QueryDeepPartialEntity<TBaseModel> =
+            JSONFunctions.deserialize(
+                body['data'] as JSONObject
+            ) as QueryDeepPartialEntity<TBaseModel>;
 
-        
+        delete item['_id'];
+        delete item['createdAt'];
+        delete item['updatedAt'];
+
         await this.service.updateBy({
             query: {
                 _id: objectIdString,

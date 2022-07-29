@@ -96,7 +96,10 @@ class ErrorTracker {
         return this.eventId;
     }
     public setTag(key: $TSFixMe, value: $TSFixMe): void {
-        if (!(typeof key === Typeof.String) || !(typeof value === Typeof.String)) {
+        if (
+            !(typeof key === Typeof.String) ||
+            !(typeof value === Typeof.String)
+        ) {
             return 'Invalid Tags type';
         }
         // Get the index if the key exist already

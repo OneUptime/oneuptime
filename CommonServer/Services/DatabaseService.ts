@@ -324,9 +324,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         data = await this.hash(data);
 
         data = this.asCreateableByPermissions(createBy);
-        createBy.data = data; 
+        createBy.data = data;
 
-        // check uniqueColumns by: 
+        // check uniqueColumns by:
         createBy = await this.checkUniqueColumnBy(createBy);
 
         try {
@@ -339,14 +339,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    private async checkUniqueColumnBy(createBy: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
-
+    private async checkUniqueColumnBy(
+        createBy: CreateBy<TBaseModel>
+    ): Promise<CreateBy<TBaseModel>> {
         let existingItemsWithSameNameCount: number = 0;
 
-        const uniqueColumnsBy: Dictionary<string> = getUniqueColumnsBy(createBy.data);
+        const uniqueColumnsBy: Dictionary<string> = getUniqueColumnsBy(
+            createBy.data
+        );
 
         for (const key in uniqueColumnsBy) {
-
             if (!uniqueColumnsBy[key]) {
                 continue;
             }
@@ -354,25 +356,29 @@ class DatabaseService<TBaseModel extends BaseModel> {
             existingItemsWithSameNameCount = (
                 await this.countBy({
                     query: {
-                        [key]: QueryHelper.findWithSameName((createBy.data as any)[key] ? (createBy.data as any)[key]! as string : ''),
-                        [uniqueColumnsBy[key] as any]: (createBy.data as any)[uniqueColumnsBy[key] as any],
+                        [key]: QueryHelper.findWithSameName(
+                            (createBy.data as any)[key]
+                                ? ((createBy.data as any)[key]! as string)
+                                : ''
+                        ),
+                        [uniqueColumnsBy[key] as any]: (createBy.data as any)[
+                            uniqueColumnsBy[key] as any
+                        ],
                     },
                     props: {
                         isRoot: true,
                     },
                 })
             ).toNumber();
-    
+
             if (existingItemsWithSameNameCount > 0) {
                 throw new BadDataException(
                     `${this.model.singularName} with the same ${key} already exists.`
                 );
-            } 
+            }
 
-            existingItemsWithSameNameCount = 0; 
+            existingItemsWithSameNameCount = 0;
         }
-
-       
 
         return Promise.resolve(createBy);
     }
@@ -905,16 +911,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     deletedByUser: deleteBy.deletedByUser,
                 } as any,
                 props: {
-                    isRoot: true
+                    isRoot: true,
                 },
             });
 
             const numberOfDocsAffected: number =
-                (
-                    await this.getRepository().delete(
-                        beforeDeleteBy.query as any
-                    )
-                ).affected || 0;
+                (await this.getRepository().delete(beforeDeleteBy.query as any))
+                    .affected || 0;
 
             await this.onDeleteSuccess();
 
@@ -1107,5 +1110,3 @@ class DatabaseService<TBaseModel extends BaseModel> {
 }
 
 export default DatabaseService;
-
-

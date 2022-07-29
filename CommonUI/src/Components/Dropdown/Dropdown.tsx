@@ -1,4 +1,4 @@
-import Select from 'react-select'
+import Select from 'react-select';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -6,7 +6,7 @@ import React, {
     useState,
 } from 'react';
 
-type DropdownValue = string | number
+type DropdownValue = string | number;
 
 export interface DropdownOption {
     value: DropdownValue;
@@ -44,11 +44,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         setValue(props.value ? props.value : '');
     }, [props.value]);
 
-    let selectedValues: Array<DropdownOption> = props.options.filter((item) => {
-        item.value === value
+    const selectedValues: Array<DropdownOption> = props.options.filter(item => {
+        item.value === value;
     });
 
-    let selectedValue: DropdownOption | undefined = undefined; 
+    let selectedValue: DropdownOption | undefined = undefined;
 
     if (selectedValues.length > 0) {
         selectedValue = selectedValues[0];
@@ -68,14 +68,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 }}
                 value={selectedValue}
                 onFocus={() => {
-                    props.onFocus && props.onFocus()
-                }} placeholder={props.placeholder} options={props.options as any} onChange={(option: any | null) => {
+                    props.onFocus && props.onFocus();
+                }}
+                placeholder={props.placeholder}
+                options={props.options as any}
+                onChange={(option: any | null) => {
                     if (option) {
                         const value = (option as DropdownOption).value;
                         setValue(value);
-                        props.onChange && props.onChange((option as DropdownOption).value);
+                        props.onChange &&
+                            props.onChange((option as DropdownOption).value);
                     }
-                }} />
+                }}
+            />
         </div>
     );
 };

@@ -7,7 +7,7 @@ export interface CardButtonSchema {
     buttonStyle: ButtonStyleType;
     onClick: () => void;
     disabled?: boolean | undefined;
-    icon: IconProp
+    icon: IconProp;
 }
 
 export interface ComponentProps {
@@ -54,9 +54,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                                 style={
                                                     i > 0
                                                         ? {
-                                                            marginLeft:
-                                                                '10px',
-                                                        }
+                                                              marginLeft:
+                                                                  '10px',
+                                                          }
                                                         : {}
                                                 }
                                                 key={i}
@@ -64,7 +64,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                                 <Button
                                                     key={i}
                                                     title={button.title}
-                                                    buttonStyle={button.buttonStyle}
+                                                    buttonStyle={
+                                                        button.buttonStyle
+                                                    }
                                                     onClick={() => {
                                                         if (button.onClick) {
                                                             button.onClick();

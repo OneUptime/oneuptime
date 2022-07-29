@@ -20,7 +20,7 @@ enum ObjectType {
     Route = 'Route',
     URL = 'URL',
     Permission = 'Permission',
-    Search = 'Search'
+    Search = 'Search',
 }
 
 export type JSONValue =
@@ -140,7 +140,7 @@ export class JSONFunctions {
                 _type: ObjectType.Color,
                 value: (val as Color).toString(),
             };
-        }else if (val && val instanceof Search) {
+        } else if (val && val instanceof Search) {
             return {
                 _type: ObjectType.Search,
                 value: (val as Search).toString(),

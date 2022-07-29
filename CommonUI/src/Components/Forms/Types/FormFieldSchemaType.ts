@@ -12,7 +12,7 @@ enum FormFieldSchemaType {
     Date,
     LongText,
     Color,
-    Dropdown
+    Dropdown,
 }
 
 export default FormFieldSchemaType;

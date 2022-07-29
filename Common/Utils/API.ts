@@ -215,21 +215,22 @@ export default class API {
         }
 
         try {
-            let result: AxiosResponse = await axios({
+            const result: AxiosResponse = await axios({
                 method: method,
                 url: url.toString(),
                 headers: { ...apiHeaders, ...headers },
                 data,
             });
 
-            result.headers = await this.onResponseSuccessHeaders(result.headers as Dictionary<string>);
+            result.headers = await this.onResponseSuccessHeaders(
+                result.headers as Dictionary<string>
+            );
 
             const response: HTTPResponse<T> = new HTTPResponse<T>(
                 result.status,
                 result.data
             );
 
-        
             return response;
         } catch (e) {
             const error: Error | AxiosError = e as Error | AxiosError;

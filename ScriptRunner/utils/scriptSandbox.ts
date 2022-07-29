@@ -194,7 +194,9 @@ const run: Function = async (
         parentPort.postMessage({
             type: 'log',
             payload: `[log]: ${
-                typeof log === Typeof.String ? log : JSON.stringify(log, null, 2)
+                typeof log === Typeof.String
+                    ? log
+                    : JSON.stringify(log, null, 2)
             }`,
         });
     });

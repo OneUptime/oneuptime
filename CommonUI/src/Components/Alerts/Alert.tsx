@@ -61,7 +61,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                             <span aria-hidden="true">×</span>
                         </button>
                     )}
-                    <span style={{ marginLeft: '-45px', height: "10px" }}>
+                    <span style={{ marginLeft: '-45px', height: '10px' }}>
                         {AlertType.DANGER === type && (
                             <Icon
                                 thick={ThickProp.LessThick}
@@ -92,12 +92,20 @@ const Alert: FunctionComponent<ComponentProps> = (
                         )}
                         &nbsp;&nbsp;
                     </span>
-                    <div className='flex' style={{
-                            marginLeft: "5px",
-                            marginTop: "1px"
-                    }}>
-                        <div><strong>{props.strongTitle}</strong>{' '}</div>
-                        <div>{props.title && props.strongTitle ? '-' : ''} {props.title}</div>
+                    <div
+                        className="flex"
+                        style={{
+                            marginLeft: '5px',
+                            marginTop: '1px',
+                        }}
+                    >
+                        <div>
+                            <strong>{props.strongTitle}</strong>{' '}
+                        </div>
+                        <div>
+                            {props.title && props.strongTitle ? '-' : ''}{' '}
+                            {props.title}
+                        </div>
                     </div>
                 </div>
             </div>

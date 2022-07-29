@@ -5,6 +5,6 @@ import Select from './Select';
 
 export default interface FindOneByID<TBaseModel extends BaseModel> {
     id: ObjectID;
-    select?: Select<TBaseModel>,
+    select?: Select<TBaseModel>;
     props: DatabaseCommonInteractionProps;
 }

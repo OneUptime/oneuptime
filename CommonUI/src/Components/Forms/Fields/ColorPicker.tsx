@@ -47,7 +47,6 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                     setIsComponentVisible(!isComponentVisible);
                 }}
                 onFocus={props.onFocus || undefined}
-                
             />
             {isComponentVisible ? (
                 <div

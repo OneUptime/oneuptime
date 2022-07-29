@@ -122,29 +122,56 @@ export default class UserMiddleware {
                 userProjectAccessPermission;
         }
 
-        // set permission hash. 
+        // set permission hash.
         if (oneuptimeRequest.userGlobalAccessPermission) {
-            const globalValue: string = JSON.stringify(JSONFunctions.serialize(oneuptimeRequest.userGlobalAccessPermission));
-            const globalPermissionsHash: string = await HashedString.hashValue(globalValue, null)
+            const globalValue: string = JSON.stringify(
+                JSONFunctions.serialize(
+                    oneuptimeRequest.userGlobalAccessPermission
+                )
+            );
+            const globalPermissionsHash: string = await HashedString.hashValue(
+                globalValue,
+                null
+            );
             res.set('global-permissions', globalValue);
-            res.set('global-permissions-hash',globalPermissionsHash);
+            res.set('global-permissions-hash', globalPermissionsHash);
 
-            if (!(req.headers && req.headers['global-permissions-hash'] && req.headers['global-permissions-hash'] === globalPermissionsHash)) {
+            if (
+                !(
+                    req.headers &&
+                    req.headers['global-permissions-hash'] &&
+                    req.headers['global-permissions-hash'] ===
+                        globalPermissionsHash
+                )
+            ) {
                 res.set('project-permissions', globalValue);
                 res.set('project-permissions-hash', globalPermissionsHash);
-            }  
+            }
         }
 
-        // set project permissions hash. 
+        // set project permissions hash.
         if (oneuptimeRequest.userProjectAccessPermission) {
-             
-            const projectValue: string = JSON.stringify(JSONFunctions.serialize(oneuptimeRequest.userProjectAccessPermission));
-            const projectPermissionsHash: string = await HashedString.hashValue(projectValue, null)
+            const projectValue: string = JSON.stringify(
+                JSONFunctions.serialize(
+                    oneuptimeRequest.userProjectAccessPermission
+                )
+            );
+            const projectPermissionsHash: string = await HashedString.hashValue(
+                projectValue,
+                null
+            );
 
-            if (!(req.headers && req.headers['project-permissions-hash'] && req.headers['project-permissions-hash'] === projectPermissionsHash)) {
+            if (
+                !(
+                    req.headers &&
+                    req.headers['project-permissions-hash'] &&
+                    req.headers['project-permissions-hash'] ===
+                        projectPermissionsHash
+                )
+            ) {
                 res.set('project-permissions', projectValue);
                 res.set('project-permissions-hash', projectPermissionsHash);
-            }  
+            }
         }
 
         return next();

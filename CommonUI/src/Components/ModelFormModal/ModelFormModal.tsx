@@ -11,7 +11,6 @@ import { FormikProps, FormikValues } from 'formik';
 import ObjectID from 'Common/Types/ObjectID';
 import Alert, { AlertType } from '../Alerts/Alert';
 
-
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
     type: { new (): TBaseModel };
@@ -28,11 +27,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const ModelFromModal: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-   
     const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
     const formRef: any = useRef<FormikProps<FormikValues>>(null);
     const [error, setError] = useState<string>('');
-
 
     return (
         <Modal
@@ -67,7 +64,6 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
             ) : (
                 <></>
             )}
-
 
             {error ? <Alert title={error} type={AlertType.DANGER} /> : <></>}
         </Modal>

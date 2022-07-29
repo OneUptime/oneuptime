@@ -13,7 +13,7 @@ export interface ComponentProps {
     showFilter: boolean;
     onFilterChanged?:
         | undefined
-        | ((filterData: Dictionary<string | boolean>) => void)
+        | ((filterData: Dictionary<string | boolean>) => void);
 }
 
 const TableHeader: FunctionComponent<ComponentProps> = (
@@ -22,7 +22,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
     const [currentSortColumn, setCurrentSortColumn] = useState<string>('');
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
-    // should filter on textboxes and checkboxes. 
+    // should filter on textboxes and checkboxes.
     const [filterData, setFilterData] = useState<Dictionary<string | boolean>>(
         {}
     );
@@ -38,7 +38,6 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                         <th
                             key={i}
                             className={`${canSort ? 'pointer' : ''}`}
-                            
                             onClick={() => {
                                 if (!column.key) {
                                     return;
@@ -61,30 +60,33 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                 );
                             }}
                         >
-                            <div className='flex' style={{
-                                justifyContent:
-                                    i === props.columns.length - 1
-                                        ? 'end'
-                                        : 'start',
-                            }}>
-                            {column.title}
-                            {canSort &&
-                                currentSortColumn === column.key &&
-                                sortOrder === SortOrder.Ascending && (
-                                    <Icon
-                                        icon={IconProp.ChevronUp}
-                                        thick={ThickProp.Thick}
-                                    />
-                                )}
-                            {canSort &&
-                                currentSortColumn === column.key &&
-                                sortOrder === SortOrder.Descending && (
-                                    <Icon
-                                        icon={IconProp.ChevronDown}
-                                        thick={ThickProp.Thick}
-                                    />
-                                )}
-                                </div>
+                            <div
+                                className="flex"
+                                style={{
+                                    justifyContent:
+                                        i === props.columns.length - 1
+                                            ? 'end'
+                                            : 'start',
+                                }}
+                            >
+                                {column.title}
+                                {canSort &&
+                                    currentSortColumn === column.key &&
+                                    sortOrder === SortOrder.Ascending && (
+                                        <Icon
+                                            icon={IconProp.ChevronUp}
+                                            thick={ThickProp.Thick}
+                                        />
+                                    )}
+                                {canSort &&
+                                    currentSortColumn === column.key &&
+                                    sortOrder === SortOrder.Descending && (
+                                        <Icon
+                                            icon={IconProp.ChevronDown}
+                                            thick={ThickProp.Thick}
+                                        />
+                                    )}
+                            </div>
                         </th>
                     );
                 })}

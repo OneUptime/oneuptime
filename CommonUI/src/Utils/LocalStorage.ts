@@ -7,7 +7,9 @@ export default class LocalStorage {
     public static setItem(key: string, value: JSONValue | Email | URL): void {
         if (typeof value === Typeof.Object) {
             // if of type jsonobject.
-            value = JSON.stringify(JSONFunctions.serializeValue(value as JSONValue) as JSONObject);
+            value = JSON.stringify(
+                JSONFunctions.serializeValue(value as JSONValue) as JSONObject
+            );
         }
         localStorage.setItem(key, value as string);
     }
@@ -17,7 +19,9 @@ export default class LocalStorage {
 
         try {
             if (value) {
-                return JSONFunctions.deserializeValue(JSON.parse(value?.toString()));
+                return JSONFunctions.deserializeValue(
+                    JSON.parse(value?.toString())
+                );
             }
             return value;
         } catch (err) {

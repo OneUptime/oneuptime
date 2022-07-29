@@ -46,12 +46,12 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 description="Are you sure you want to delete this project?"
                 buttons={[
                     {
-                        title: "Delete Project",
+                        title: 'Delete Project',
                         buttonStyle: ButtonStyleType.DANGER,
                         onClick: () => {
                             setShowModal(true);
                         },
-                        icon: IconProp.Trash
+                        icon: IconProp.Trash,
                     },
                 ]}
             />

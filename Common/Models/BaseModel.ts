@@ -283,7 +283,7 @@ export default class BaseModel extends BaseEntity {
             }
         }
 
-        return json; 
+        return json;
     }
 
     public static toJSONObjectArray(list: Array<BaseModel>): JSONArray {

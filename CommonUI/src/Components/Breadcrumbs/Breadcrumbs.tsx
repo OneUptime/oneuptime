@@ -19,17 +19,22 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                         return (
                             <li
                                 key={i}
-                                className={`breadcrumb-item padding-0 primary-on-hover ${i === links.length - 1 ? 'active' : ''
-                                    }`}
+                                className={`breadcrumb-item padding-0 primary-on-hover ${
+                                    i === links.length - 1 ? 'active' : ''
+                                }`}
                             >
-                                <div className='flex'>
+                                <div className="flex">
                                     <UILink
                                         className="primary-on-hover"
                                         to={link.to}
                                     >
                                         {link.title}
                                     </UILink>
-                                    {(i !== links.length - 1) ? <Icon icon={IconProp.ChevronRight} /> : <></>}
+                                    {i !== links.length - 1 ? (
+                                        <Icon icon={IconProp.ChevronRight} />
+                                    ) : (
+                                        <></>
+                                    )}
                                 </div>
                             </li>
                         );

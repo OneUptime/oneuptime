@@ -381,7 +381,6 @@ describe('probeService', () => {
         expect(fetchedProbe).toBeNull();
     });
 
-    
     test('update probe by query', async () => {
         const probeService: ProbeService = new ProbeService(
             database.getDatabase()

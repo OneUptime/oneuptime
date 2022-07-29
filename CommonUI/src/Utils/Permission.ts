@@ -1,6 +1,6 @@
 import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
-import { UserGlobalAccessPermission } from "Common/Types/Permission";
+import { UserGlobalAccessPermission } from 'Common/Types/Permission';
 import { UserProjectAccessPermission } from 'Common/Types/Permission';
 
 export default class PermissionUtil {
@@ -12,7 +12,7 @@ export default class PermissionUtil {
             'global_permissions'
         ) as JSONObject;
 
-        return (globalPermissions) as UserGlobalAccessPermission;
+        return globalPermissions as UserGlobalAccessPermission;
     }
 
     public static getProjectPermissions(): UserProjectAccessPermission | null {
@@ -23,14 +23,18 @@ export default class PermissionUtil {
             'project_permissions'
         ) as JSONObject;
 
-        return (permissions) as UserProjectAccessPermission;
+        return permissions as UserProjectAccessPermission;
     }
 
-    public static setGlobalPermissions(permissions: UserGlobalAccessPermission): void {
+    public static setGlobalPermissions(
+        permissions: UserGlobalAccessPermission
+    ): void {
         LocalStorage.setItem('global_permissions', permissions);
     }
 
-    public static setProjectPermissions(permissions: UserProjectAccessPermission): void {
+    public static setProjectPermissions(
+        permissions: UserProjectAccessPermission
+    ): void {
         LocalStorage.setItem('project_permissions', permissions);
     }
 }

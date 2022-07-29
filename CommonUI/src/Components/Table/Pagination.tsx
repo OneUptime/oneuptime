@@ -7,7 +7,6 @@ import React, {
 import BasicFormModal from '../FormModal/BasicFormModal';
 import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
 
-
 export interface PaginationNavigationItem {
     pageNumber: number;
     itemsOnPage: number;
@@ -74,7 +73,8 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     {props.totalItemsCount}{' '}
                     {props.totalItemsCount > 1
                         ? props.pluralLabel.toLowerCase()
-                        : props.singularLabel.toLowerCase()} {`in total. Showing ${props.itemsOnPage} on this page.`}
+                        : props.singularLabel.toLowerCase()}{' '}
+                    {`in total. Showing ${props.itemsOnPage} on this page.`}
                 </p>
             </div>
             <div>
@@ -100,7 +100,8 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     !isPreviousDisabled
                                 ) {
                                     props.onNavigateToPage(
-                                        props.currentPageNumber - 1, props.itemsOnPage
+                                        props.currentPageNumber - 1,
+                                        props.itemsOnPage
                                     );
                                 }
                             }}
@@ -130,7 +131,8 @@ const Pagination: FunctionComponent<ComponentProps> = (
                             onClick={() => {
                                 if (props.onNavigateToPage && !isNextDisabled) {
                                     props.onNavigateToPage(
-                                        props.currentPageNumber + 1, props.itemsOnPage
+                                        props.currentPageNumber + 1,
+                                        props.itemsOnPage
                                     );
                                 }
                             }}
@@ -154,19 +156,26 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     submitButtonText={'Go to Page'}
                     onSubmit={(item: PaginationNavigationItem) => {
                         if (props.onNavigateToPage && !isNextDisabled) {
-                            props.onNavigateToPage(item.pageNumber, item.itemsOnPage);
+                            props.onNavigateToPage(
+                                item.pageNumber,
+                                item.itemsOnPage
+                            );
                         }
                         setShowPaginationModel(false);
                     }}
                     formProps={{
                         initialValues: {
                             pageNumber: props.currentPageNumber,
-                            itemsOnPage: props.itemsOnPage
+                            itemsOnPage: props.itemsOnPage,
                         },
                         fields: [
                             {
                                 title: 'Page Number',
-                                description: `You can enter page numbers from ${minPageNumber !== maxPageNumber ? minPageNumber +" to "+ maxPageNumber : minPageNumber}. Please enter it here:`,
+                                description: `You can enter page numbers from ${
+                                    minPageNumber !== maxPageNumber
+                                        ? minPageNumber + ' to ' + maxPageNumber
+                                        : minPageNumber
+                                }. Please enter it here:`,
                                 field: {
                                     pageNumber: true,
                                 },
@@ -191,29 +200,27 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                 dropdownOptions: [
                                     {
                                         value: 10,
-                                        label: "10"
+                                        label: '10',
                                     },
                                     {
                                         value: 20,
-                                        label: "20"
+                                        label: '20',
                                     },
                                     {
                                         value: 25,
-                                        label: "25"
+                                        label: '25',
                                     },
                                     ,
                                     {
                                         value: 50,
-                                        label: "50"
-                                    }
-                                ]
+                                        label: '50',
+                                    },
+                                ],
                             },
                         ],
                     }}
                 />
             )}
-
-            
         </div>
     );
 };

@@ -61,7 +61,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         placeholder: 'internal-service',
                         validation: {
                             noSpaces: true,
-                            minLength: 2
+                            minLength: 2,
                         },
                     },
                     {

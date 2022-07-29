@@ -4,7 +4,10 @@ import Columns from './Columns';
 import Table from '../Table/Table';
 import TableColumn from '../Table/Types/Column';
 import { JSONObject } from 'Common/Types/JSON';
-import Card, { CardButtonSchema, ComponentProps as CardComponentProps } from '../Card/Card';
+import Card, {
+    CardButtonSchema,
+    ComponentProps as CardComponentProps,
+} from '../Card/Card';
 import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
 import Select from '../../Utils/ModelAPI/Select';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -31,14 +34,14 @@ import Typeof from 'Common/Types/Typeof';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
-    type: { new(): TBaseModel };
+    type: { new (): TBaseModel };
     id: string;
     onFetchInit?:
-    | undefined
-    | ((pageNumber: number, itemsOnPage: number) => void);
+        | undefined
+        | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-    | undefined
-    | ((data: Array<TBaseModel>, totalCount: number) => void);
+        | undefined
+        | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps: CardComponentProps;
     columns: Columns<TBaseModel>;
     initialItemsOnPage?: number;
@@ -85,7 +88,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [currentDeleteableItem, setCurrentDeleteableItem] =
         useState<JSONObject | null>(null);
 
-    const [itemsOnPage, setItemsOnPage] = useState<number>(props.initialItemsOnPage || 10);
+    const [itemsOnPage, setItemsOnPage] = useState<number>(
+        props.initialItemsOnPage || 10
+    );
 
     const deleteItem: Function = async (id: ObjectID) => {
         setIsLaoding(true);
@@ -99,7 +104,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
@@ -128,8 +133,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                            [sortBy as any]: sortOrder,
-                        }
+                              [sortBy as any]: sortOrder,
+                          }
                         : {}
                 );
 
@@ -139,7 +144,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
@@ -174,71 +179,68 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         return selectFields;
-    }
+    };
 
     const setHeaderButtons = () => {
         // add header buttons.
         const headerbuttons: Array<CardButtonSchema> = [];
         const userProjectPermissions = PermissionUtil.getProjectPermissions();
         const hasPermissionToCreate =
-            userProjectPermissions
-            && userProjectPermissions.permissions
-            && PermissionHelper.doesPermissionsIntersect(props.model.createRecordPermissions, userProjectPermissions.permissions.map((item) => item.permission));
+            userProjectPermissions &&
+            userProjectPermissions.permissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                props.model.createRecordPermissions,
+                userProjectPermissions.permissions.map((item) => {
+                    return item.permission;
+                })
+            );
 
         if (props.isCreateable && hasPermissionToCreate) {
-            headerbuttons.push(
-                {
-                    title: `Create ${model.singularName}`,
-                    buttonStyle: ButtonStyleType.OUTLINE,
-                    onClick: () => {
-                        setModalType(ModalType.Create);
-                        setShowModal(true);
-                    },
-                    icon: IconProp.Add
-                }
-            );
+            headerbuttons.push({
+                title: `Create ${model.singularName}`,
+                buttonStyle: ButtonStyleType.OUTLINE,
+                onClick: () => {
+                    setModalType(ModalType.Create);
+                    setShowModal(true);
+                },
+                icon: IconProp.Add,
+            });
         }
 
         if (props.showRefreshButton) {
-            headerbuttons.push(
-                {
-
-                    title: '',
-                    buttonStyle: ButtonStyleType.OUTLINE,
-                    onClick: () => {
-                        fetchItems();
-                    },
-                    disabled: isLoading,
-                    icon: IconProp.Refresh
-                }
-            );
+            headerbuttons.push({
+                title: '',
+                buttonStyle: ButtonStyleType.OUTLINE,
+                onClick: () => {
+                    fetchItems();
+                },
+                disabled: isLoading,
+                icon: IconProp.Refresh,
+            });
         }
 
         if (props.showFilterButton) {
-            headerbuttons.push(
-                {
-                    title: '',
-                    buttonStyle: ButtonStyleType.OUTLINE,
-                    onClick: () => {
-                        setShowTableFilter(!showTableFilter)
-                    },
-                    disabled: isLoading,
-                    icon: IconProp.Filter,
-                }
-            );
+            headerbuttons.push({
+                title: '',
+                buttonStyle: ButtonStyleType.OUTLINE,
+                onClick: () => {
+                    setShowTableFilter(!showTableFilter);
+                },
+                disabled: isLoading,
+                icon: IconProp.Filter,
+            });
         }
 
         setCardButtons(headerbuttons);
-    }
+    };
 
     useEffect(() => {
         fetchItems();
     }, [currentPageNumber, sortBy, sortOrder, itemsOnPage, query]);
 
-
     useEffect(() => {
         setHeaderButtons();
-    }, [showTableFilter])
+    }, [showTableFilter]);
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
@@ -255,13 +257,22 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
         }
 
-        let userPermissions: Array<Permission> = PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
-        if (PermissionUtil.getProjectPermissions() && PermissionUtil.getProjectPermissions()?.permissions && PermissionUtil.getProjectPermissions()!.permissions.length > 0) {
-            userPermissions = userPermissions.concat(PermissionUtil.getProjectPermissions()!.permissions.map((i)=> i.permission));
+        let userPermissions: Array<Permission> =
+            PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
+        if (
+            PermissionUtil.getProjectPermissions() &&
+            PermissionUtil.getProjectPermissions()?.permissions &&
+            PermissionUtil.getProjectPermissions()!.permissions.length > 0
+        ) {
+            userPermissions = userPermissions.concat(
+                PermissionUtil.getProjectPermissions()!.permissions.map((i) => {
+                    return i.permission;
+                })
+            );
         }
 
         userPermissions.push(Permission.Public);
-       
+
         const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(props.model);
 
@@ -273,18 +284,18 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             const moreFields: Array<string> = column.moreFields
                 ? Object.keys(column.moreFields)
                 : [];
-            
-            // check permissions. 
-            let hasPermission: boolean = false; 
+
+            // check permissions.
+            let hasPermission: boolean = false;
 
             if (!key) {
-                hasPermission = true; 
+                hasPermission = true;
             }
 
             if (key) {
-                hasPermission = true; 
+                hasPermission = true;
                 let fieldPermissions: Array<Permission> = [];
-                fieldPermissions = accessControl[key as string]?.read || []
+                fieldPermissions = accessControl[key as string]?.read || [];
 
                 if (
                     accessControl[key]?.read &&
@@ -305,7 +316,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         )
                     ) {
                         hasPermission = false;
-                        break; 
+                        break;
                     }
                 }
             }
@@ -333,19 +344,31 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         const userProjectPermissions = PermissionUtil.getProjectPermissions();
-        
+
         const hasPermissionToDelete =
-            userProjectPermissions
-            && userProjectPermissions.permissions
-            && PermissionHelper.doesPermissionsIntersect(props.model.deleteRecordPermissions, userProjectPermissions.permissions.map((item) => item.permission));
+            userProjectPermissions &&
+            userProjectPermissions.permissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                props.model.deleteRecordPermissions,
+                userProjectPermissions.permissions.map((item) => {
+                    return item.permission;
+                })
+            );
 
         const hasPermissionToUpdate =
-            userProjectPermissions
-            && userProjectPermissions.permissions
-            && PermissionHelper.doesPermissionsIntersect(props.model.updateRecordPermissions, userProjectPermissions.permissions.map((item) => item.permission));
-        
-        
-        if ((props.isDeleteable && hasPermissionToDelete) || (props.isEditable && hasPermissionToUpdate)) {
+            userProjectPermissions &&
+            userProjectPermissions.permissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                props.model.updateRecordPermissions,
+                userProjectPermissions.permissions.map((item) => {
+                    return item.permission;
+                })
+            );
+
+        if (
+            (props.isDeleteable && hasPermissionToDelete) ||
+            (props.isEditable && hasPermissionToUpdate)
+        ) {
             columns.push({
                 title: 'Actions',
                 type: TableColumnType.Actions,
@@ -386,18 +409,26 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 buttons={cardButtons}
             >
                 <Table
-                    onFilterChanged={(filterData: Dictionary<string | boolean>) => {
-
+                    onFilterChanged={(
+                        filterData: Dictionary<string | boolean>
+                    ) => {
                         const query: Query<TBaseModel> = {};
 
                         for (const key in filterData) {
-                            if (filterData[key] && typeof filterData[key] === Typeof.String) {
-                                query[key as keyof TBaseModel] = new Search((filterData[key] || '').toString());
+                            if (
+                                filterData[key] &&
+                                typeof filterData[key] === Typeof.String
+                            ) {
+                                query[key as keyof TBaseModel] = new Search(
+                                    (filterData[key] || '').toString()
+                                );
                             }
 
                             if (typeof filterData[key] === Typeof.Boolean) {
-                                query[key as keyof TBaseModel] = !!filterData[key];
-                            } 
+                                query[key as keyof TBaseModel] = Boolean(
+                                    filterData[key]
+                                );
+                            }
                         }
 
                         setQuery(query);
@@ -417,7 +448,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     columns={tableColumns}
                     itemsOnPage={itemsOnPage}
                     disablePagination={props.disablePagination || false}
-                    onNavigateToPage={async (pageNumber: number, itemsOnPage: number) => {
+                    onNavigateToPage={async (
+                        pageNumber: number,
+                        itemsOnPage: number
+                    ) => {
                         await setCurrentPageNumber(pageNumber);
                         await setItemsOnPage(itemsOnPage);
                     }}
@@ -514,5 +548,3 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 };
 
 export default ModelTable;
-
-

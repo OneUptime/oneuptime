@@ -17,7 +17,7 @@ export interface ComponentProps {
     type?: string;
     leftCircleColor?: Color | undefined;
     onFocus?: (() => void) | undefined;
-    onBlur?: (()=>void) | undefined;
+    onBlur?: (() => void) | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (

@@ -71,10 +71,11 @@ export default class ModelAPI {
             apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
         }
 
-        const httpMethod = formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT;
-        
+        const httpMethod =
+            formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT;
+
         if (httpMethod === HTTPMethod.PUT) {
-            apiUrl = apiUrl.addRoute(`/${model._id}`);    
+            apiUrl = apiUrl.addRoute(`/${model._id}`);
         }
 
         const result: HTTPResponse<
@@ -175,7 +176,7 @@ export default class ModelAPI {
         const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
             .addRoute(apiPath)
             .addRoute('/' + id.toString())
-            .addRoute("/get-item");
+            .addRoute('/get-item');
 
         if (!apiUrl) {
             throw new BadDataException(
