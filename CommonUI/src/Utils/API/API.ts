@@ -81,7 +81,7 @@ class BaseAPI extends API {
         const projectPermissionsHash: string = LocalStorage.getItem(
             'project-permissions-hash'
         ) as string;
-        
+
         if (projectPermissionsHash) {
             headers['project-permissions-hash'] = projectPermissionsHash;
         }

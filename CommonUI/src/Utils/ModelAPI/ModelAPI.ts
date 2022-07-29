@@ -138,8 +138,11 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            const list: Array<TBaseModel> = model.fromJSONArray(result.data as JSONArray, type);
-            
+            const list: Array<TBaseModel> = model.fromJSONArray(
+                result.data as JSONArray,
+                type
+            );
+
             return {
                 data: list,
                 count: result.count,

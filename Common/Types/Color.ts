@@ -45,8 +45,8 @@ export default class Color extends DatabaseProperty {
     }
 
     public static colorToRgb(color: Color): RGB {
-        const result: RegExpExecArray | null =
-            /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color.toString());
+        const re: RegExp = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
+        const result: RegExpExecArray | null = re.exec(color.toString());
 
         if (!result) {
             throw new BadDataException('Invalid color: ' + color.toString());

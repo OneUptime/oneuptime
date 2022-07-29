@@ -20,7 +20,7 @@ export default {
         const Log: $TSFixMe = {};
         let responseBody: $TSFixMe = '';
         if (data.resp && data.resp.body) {
-            if (typeof data.resp.body === Typeof.Object) {
+            if (typeof data.resp.body === 'object') {
                 responseBody = JSON.stringify(data.resp.body);
             } else {
                 responseBody = data.resp.body;

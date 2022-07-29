@@ -6092,7 +6092,7 @@ const formatBytes: Function = (
     let value: $TSFixMe = a;
     let decimalPlaces: $TSFixMe;
     let roundType: $TSFixMe;
-    if (typeof a === Typeof.Object) {
+    if (typeof a === 'object') {
         value = a.value;
         decimalPlaces = a.decimalPlaces;
         roundType = a.roundType;

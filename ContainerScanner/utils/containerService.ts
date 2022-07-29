@@ -117,7 +117,7 @@ export default {
                  */
                 if (
                     !auditLogs ||
-                    (typeof auditLogs === Typeof.String &&
+                    (typeof auditLogs === 'string' &&
                         !JSON.stringify(auditLogs).trim())
                 ) {
                     const error: $TSFixMe = new BadDataException(
@@ -139,7 +139,7 @@ export default {
                     return reject(error);
                 }
 
-                if (typeof auditLogs === Typeof.String) {
+                if (typeof auditLogs === 'string') {
                     auditLogs = JSON.parse(auditLogs); // Parse the stringified logs
                 }
 
