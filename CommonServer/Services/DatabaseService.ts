@@ -44,6 +44,7 @@ import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedExceptio
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import QueryHelper from '../Types/Database/QueryHelper';
 import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
+import Search from 'Common/Types/Database/Search';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -864,6 +865,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
             } else if (query[key] && query[key] instanceof ObjectID) {
                 query[key] = QueryHelper.equalTo(
                     (query[key] as ObjectID).toString() as any
+                ) as any;
+            } else if (query[key] && query[key] instanceof Search) {
+                query[key] = QueryHelper.search(
+                    (query[key] as Search).toString() as any
                 ) as any;
             } else if (query[key] && Array.isArray(query[key])) {
                 query[key] = QueryHelper.in(

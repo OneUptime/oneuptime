@@ -16,6 +16,19 @@ export default class QueryHelper {
         );
     }
 
+    public static search(name: string): FindOperator<any> {
+        name = name.toLowerCase().trim();
+        const rid: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `LOWER(${alias}) = :${rid}`;
+            },
+            {
+                [rid]: `%${name}%`,
+            }
+        );
+    }
+
     public static in(values: Array<string | ObjectID>): FindOperator<any> {
         values = values.map((value: string | ObjectID) => {
             return value.toString();
