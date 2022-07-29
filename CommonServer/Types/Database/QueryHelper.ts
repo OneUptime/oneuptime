@@ -21,7 +21,7 @@ export default class QueryHelper {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `LOWER(${alias}) = :${rid}`;
+                return `LOWER(${alias}) LIKE (:${rid})`;
             },
             {
                 [rid]: `%${name}%`,

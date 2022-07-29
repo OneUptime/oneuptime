@@ -22,6 +22,7 @@ import LocalCache from '../Infrastructure/LocalCache';
 import Exception from 'Common/Types/Exception/Exception';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusCode from 'Common/Types/API/StatusCode';
+import Typeof from 'Common/Types/Typeof';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
 const app: ExpressApplication = Express.getExpressApp();

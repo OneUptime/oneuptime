@@ -183,6 +183,7 @@ export default class BaseAPI<
             query = JSONFunctions.deserialize(
                 req.body['query']
             ) as Query<BaseModel>;
+            debugger;
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
