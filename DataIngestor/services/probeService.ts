@@ -3028,7 +3028,7 @@ const checkAnd: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'contains'
                     ) {
-                        if (body && typeof body === Typeof.String) {
+                        if (body && typeof body === 'string') {
                             if (
                                 !(
                                     con.criteria[i] &&
@@ -3068,7 +3068,7 @@ const checkAnd: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'doesNotContain'
                     ) {
-                        if (body && typeof body === Typeof.String) {
+                        if (body && typeof body === 'string') {
                             if (
                                 !(
                                     con.criteria[i] &&
@@ -5198,7 +5198,7 @@ const checkOr: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'contains'
                     ) {
-                        if (body && typeof body === Typeof.String) {
+                        if (body && typeof body === 'string') {
                             if (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
@@ -5238,7 +5238,7 @@ const checkOr: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'doesNotContain'
                     ) {
-                        if (body && typeof body === Typeof.String) {
+                        if (body && typeof body === 'string') {
                             if (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&

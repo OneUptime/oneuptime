@@ -1,7 +1,9 @@
 import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
-import { UserGlobalAccessPermission } from 'Common/Types/Permission';
-import { UserProjectAccessPermission } from 'Common/Types/Permission';
+import {
+    UserGlobalAccessPermission,
+    UserProjectAccessPermission,
+} from 'Common/Types/Permission';
 
 export default class PermissionUtil {
     public static getGlobalPermissions(): UserGlobalAccessPermission | null {

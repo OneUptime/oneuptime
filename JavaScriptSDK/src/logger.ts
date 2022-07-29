@@ -25,12 +25,12 @@ class Logger {
     public async log(data: $TSFixMe, tags = null): void {
         const type: $TSFixMe = typeof data;
 
-        if (!data || !(type === Typeof.Object || type === Typeof.String)) {
+        if (!data || !(type === 'object' || type === 'string')) {
             return 'Invalid Content to be logged';
         }
 
         if (tags) {
-            if (!(typeof tags === Typeof.String || Array.isArray(tags))) {
+            if (!(typeof tags === 'string' || Array.isArray(tags))) {
                 return 'Invalid Content Tags to be logged';
             }
         }
@@ -41,12 +41,12 @@ class Logger {
     public async warning(data: $TSFixMe, tags = null): void {
         const type: $TSFixMe = typeof data;
 
-        if (!data || !(type === Typeof.Object || type === Typeof.String)) {
+        if (!data || !(type === 'object' || type === 'string')) {
             return 'Invalid Content to be logged';
         }
 
         if (tags) {
-            if (!(typeof tags === Typeof.String || Array.isArray(tags))) {
+            if (!(typeof tags === 'string' || Array.isArray(tags))) {
                 return 'Invalid Content Tags to be logged';
             }
         }
@@ -57,12 +57,12 @@ class Logger {
     public async error(data: $TSFixMe, tags = null): void {
         const type: $TSFixMe = typeof data;
 
-        if (!data || !(type === Typeof.Object || type === Typeof.String)) {
+        if (!data || !(type === 'object' || type === 'string')) {
             return 'Invalid Content to be logged';
         }
 
         if (tags) {
-            if (!(typeof tags === Typeof.String || Array.isArray(tags))) {
+            if (!(typeof tags === 'string' || Array.isArray(tags))) {
                 return 'Invalid Content Tags to be logged';
             }
         }

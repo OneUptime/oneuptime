@@ -44,9 +44,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         setValue(props.value ? props.value : '');
     }, [props.value]);
 
-    const selectedValues: Array<DropdownOption> = props.options.filter(item => {
-        item.value === value;
-    });
+    const selectedValues: Array<DropdownOption> = props.options.filter(
+        (item: DropdownOption) => {
+            return item.value === value;
+        }
+    );
 
     let selectedValue: DropdownOption | undefined = undefined;
 
@@ -74,7 +76,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 options={props.options as any}
                 onChange={(option: any | null) => {
                     if (option) {
-                        const value = (option as DropdownOption).value;
+                        const value: DropdownValue = (option as DropdownOption)
+                            .value;
                         setValue(value);
                         props.onChange &&
                             props.onChange((option as DropdownOption).value);

@@ -194,9 +194,7 @@ const run: Function = async (
         parentPort.postMessage({
             type: 'log',
             payload: `[log]: ${
-                typeof log === Typeof.String
-                    ? log
-                    : JSON.stringify(log, null, 2)
+                typeof log === 'string' ? log : JSON.stringify(log, null, 2)
             }`,
         });
     });
@@ -205,7 +203,7 @@ const run: Function = async (
         parentPort.postMessage({
             type: 'log',
             payload: `[error]: ${
-                typeof error === Typeof.String
+                typeof error === 'string'
                     ? error
                     : JSON.stringify(error, null, 2)
             }`,
@@ -216,7 +214,7 @@ const run: Function = async (
         parentPort.postMessage({
             type: 'log',
             payload: `[warn]: $${
-                typeof error === Typeof.String
+                typeof error === 'string'
                     ? error
                     : JSON.stringify(error, null, 2)
             }`,

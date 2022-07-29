@@ -210,7 +210,6 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                         value: 25,
                                         label: '25',
                                     },
-                                    ,
                                     {
                                         value: 50,
                                         label: '50',

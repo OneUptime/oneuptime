@@ -352,7 +352,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!uniqueColumnsBy[key]) {
                 continue;
             }
-            debugger;
+
             existingItemsWithSameNameCount = (
                 await this.countBy({
                     query: {
@@ -874,7 +874,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     (query[key] as ObjectID).toString() as any
                 ) as any;
             } else if (query[key] && query[key] instanceof Search) {
-                debugger;
                 query[key] = QueryHelper.search(
                     (query[key] as Search).toString() as any
                 ) as any;

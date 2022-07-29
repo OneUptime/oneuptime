@@ -270,7 +270,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public toJSON(): JSONObject {
-        const json = this.toJSONObject();
+        const json: JSONObject = this.toJSONObject();
         return JSONFunctions.serialize(json);
     }
 

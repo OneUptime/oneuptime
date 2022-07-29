@@ -45,9 +45,8 @@ export default class Color extends DatabaseProperty {
     }
 
     public static colorToRgb(color: Color): RGB {
-        const result = (/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i).exec(
-            color.toString()
-        );
+        const result: RegExpExecArray | null =
+            /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(color.toString());
 
         if (!result) {
             throw new BadDataException('Invalid color: ' + color.toString());
@@ -61,8 +60,8 @@ export default class Color extends DatabaseProperty {
     }
 
     private static _componentToHex(c: number): string {
-        const hex = c.toString(16);
-        return hex.length == 1 ? '0' + hex : hex;
+        const hex: string = c.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
     }
 
     public static rgbToColor(rgb: RGB): Color {

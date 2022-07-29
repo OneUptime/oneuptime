@@ -71,17 +71,18 @@ class BaseAPI extends API {
             headers['Authorization'] = 'Basic ' + User.getAccessToken();
         }
 
-        const globalPermissionsHash = LocalStorage.getItem(
+        const globalPermissionsHash: string = LocalStorage.getItem(
             'global-permissions-hash'
         ) as string;
         if (globalPermissionsHash) {
             headers['global-permissions-hash'] = globalPermissionsHash;
         }
 
-        const projectPermissionsHash = LocalStorage.getItem(
+        const projectPermissionsHash: string = LocalStorage.getItem(
             'project-permissions-hash'
         ) as string;
-        if (globalPermissionsHash) {
+        
+        if (projectPermissionsHash) {
             headers['project-permissions-hash'] = projectPermissionsHash;
         }
 

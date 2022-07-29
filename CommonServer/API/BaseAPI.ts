@@ -185,7 +185,7 @@ export default class BaseAPI<
             query = JSONFunctions.deserialize(
                 req.body['query']
             ) as Query<BaseModel>;
-            debugger;
+
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
@@ -254,7 +254,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-        debugger;
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;

@@ -12,7 +12,7 @@ export default {
             monitor &&
             monitor.type &&
             monitor.agentlessConfig &&
-            typeof monitor.agentlessConfig === Typeof.Object
+            typeof monitor.agentlessConfig === 'object'
         ) {
             const {
                 host,

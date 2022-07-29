@@ -207,7 +207,7 @@ export default function (
         simulate: $TSFixMe,
         simulateData: $TSFixMe;
 
-    if (typeof config === Typeof.Object) {
+    if (typeof config === 'object') {
         projectId = config.projectId;
         apiUrl = config.apiUrl;
         apiKey = config.apiKey;
@@ -226,7 +226,7 @@ export default function (
          */
         start: (id: $TSFixMe = monitorId) => {
             const url: string = `monitor/${projectId}/monitor/${
-                id && typeof id === Typeof.String ? `${id}/` : ''
+                id && typeof id === 'string' ? `${id}/` : ''
             }?type=server-monitor`;
 
             return get(apiUrl, url, apiKey, (response: $TSFixMe) => {
@@ -234,7 +234,7 @@ export default function (
                     const data: $TSFixMe = response.data;
 
                     if (data && data !== null) {
-                        if (id && typeof id === Typeof.String) {
+                        if (id && typeof id === 'string') {
                             resolve(data._id);
                         } else if (data.data !== null && data.data.length > 0) {
                             if (data.count === 1) {
@@ -295,7 +295,7 @@ export default function (
                     }
 
                     const errorCode: $TSFixMe =
-                        typeof error === Typeof.Number ? error : 1;
+                        typeof error === 'number' ? error : 1;
                     process.exitCode = errorCode;
 
                     return error;

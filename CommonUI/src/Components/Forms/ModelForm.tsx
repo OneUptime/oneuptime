@@ -20,7 +20,10 @@ import useAsyncEffect from 'use-async-effect';
 import ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
 import { VeryLightGrey } from '../../Utils/BrandColors';
-import Permission, { PermissionHelper } from 'Common/Types/Permission';
+import Permission, {
+    PermissionHelper,
+    UserPermission,
+} from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
@@ -96,9 +99,11 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             PermissionUtil.getProjectPermissions()!.permissions.length > 0
         ) {
             userPermissions = userPermissions.concat(
-                PermissionUtil.getProjectPermissions()!.permissions.map((i) => {
-                    return i.permission;
-                })
+                PermissionUtil.getProjectPermissions()!.permissions.map(
+                    (i: UserPermission) => {
+                        return i.permission;
+                    }
+                )
             );
         }
 
@@ -200,7 +205,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 (valuesToSend as any)[key] = values[key];
             }
 
-            if (props.formType == FormType.Update && props.modelIdToEdit) {
+            if (props.formType === FormType.Update && props.modelIdToEdit) {
                 (valuesToSend as any)['_id'] = props.modelIdToEdit.toString();
             }
 

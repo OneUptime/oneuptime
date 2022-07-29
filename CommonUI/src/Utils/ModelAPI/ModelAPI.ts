@@ -71,7 +71,7 @@ export default class ModelAPI {
             apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
         }
 
-        const httpMethod =
+        const httpMethod: HTTPMethod =
             formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT;
 
         if (httpMethod === HTTPMethod.PUT) {
@@ -138,7 +138,8 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            const list = model.fromJSONArray(result.data as JSONArray, type);
+            const list: Array<TBaseModel> = model.fromJSONArray(result.data as JSONArray, type);
+            
             return {
                 data: list,
                 count: result.count,

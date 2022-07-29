@@ -24,7 +24,7 @@ import ActionButtonSchema, {
 } from '../Table/Types/ActionButtonSchema';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from '../Modal/ConfirmModal';
-import Permission, { PermissionHelper } from 'Common/Types/Permission';
+import Permission, { PermissionHelper, UserPermission, UserProjectAccessPermission } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
@@ -97,7 +97,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         try {
             await ModelAPI.deleteItem<TBaseModel>(props.type, id);
             if (data.length === 1 && currentPageNumber > 1) {
-                await setCurrentPageNumber(currentPageNumber - 1);
+                setCurrentPageNumber(currentPageNumber - 1);
             }
             await fetchItems();
         } catch (err) {
@@ -155,7 +155,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setIsLaoding(false);
     };
 
-    const getSelect = (): Select<TBaseModel> => {
+    const getSelect: Function = (): Select<TBaseModel> => {
         const selectFields: Select<TBaseModel> = {
             _id: true,
         };
@@ -181,19 +181,19 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return selectFields;
     };
 
-    const setHeaderButtons = () => {
+    const setHeaderButtons: Function = (): void => {
         // add header buttons.
         const headerbuttons: Array<CardButtonSchema> = [];
-        const userProjectPermissions = PermissionUtil.getProjectPermissions();
-        const hasPermissionToCreate =
-            userProjectPermissions &&
+        const userProjectPermissions: UserProjectAccessPermission | null = PermissionUtil.getProjectPermissions();
+        const hasPermissionToCreate: boolean  =
+            !!(userProjectPermissions &&
             userProjectPermissions.permissions &&
             PermissionHelper.doesPermissionsIntersect(
                 props.model.createRecordPermissions,
-                userProjectPermissions.permissions.map((item) => {
+                userProjectPermissions.permissions.map((item: UserPermission) => {
                     return item.permission;
                 })
-            );
+            ));
 
         if (props.isCreateable && hasPermissionToCreate) {
             headerbuttons.push({
@@ -265,7 +265,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             PermissionUtil.getProjectPermissions()!.permissions.length > 0
         ) {
             userPermissions = userPermissions.concat(
-                PermissionUtil.getProjectPermissions()!.permissions.map((i) => {
+                PermissionUtil.getProjectPermissions()!.permissions.map((i: UserPermission) => {
                     return i.permission;
                 })
             );
@@ -343,27 +343,27 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        const userProjectPermissions = PermissionUtil.getProjectPermissions();
+        const userProjectPermissions: UserProjectAccessPermission | null = PermissionUtil.getProjectPermissions();
 
         const hasPermissionToDelete =
-            userProjectPermissions &&
+            !!(userProjectPermissions &&
             userProjectPermissions.permissions &&
             PermissionHelper.doesPermissionsIntersect(
                 props.model.deleteRecordPermissions,
                 userProjectPermissions.permissions.map((item) => {
                     return item.permission;
                 })
-            );
+            ));
 
         const hasPermissionToUpdate =
-            userProjectPermissions &&
+            !!(userProjectPermissions &&
             userProjectPermissions.permissions &&
             PermissionHelper.doesPermissionsIntersect(
                 props.model.updateRecordPermissions,
                 userProjectPermissions.permissions.map((item) => {
                     return item.permission;
                 })
-            );
+            ));
 
         if (
             (props.isDeleteable && hasPermissionToDelete) ||
@@ -452,8 +452,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         pageNumber: number,
                         itemsOnPage: number
                     ) => {
-                        await setCurrentPageNumber(pageNumber);
-                        await setItemsOnPage(itemsOnPage);
+                         setCurrentPageNumber(pageNumber);
+                         setItemsOnPage(itemsOnPage);
                     }}
                     showFilter={showTableFilter}
                     noItemsMessage={props.noItemsMessage || ''}
