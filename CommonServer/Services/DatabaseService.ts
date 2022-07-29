@@ -45,6 +45,7 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import QueryHelper from '../Types/Database/QueryHelper';
 import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
 import Search from 'Common/Types/Database/Search';
+import Typeof from 'Common/Types/Typeof';
 
 enum DatabaseRequestType {
     Create = 'create',

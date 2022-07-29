@@ -26,7 +26,6 @@ import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import Query from '../../Utils/ModelAPI/Query';
-import { instanceOf } from 'prop-types';
 import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
 
@@ -234,7 +233,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         fetchItems();
-    }, [currentPageNumber, sortBy, sortOrder, itemsOnPage]);
+    }, [currentPageNumber, sortBy, sortOrder, itemsOnPage, query]);
 
 
     useEffect(() => {
@@ -400,6 +399,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                 query[key as keyof TBaseModel] = !!filterData[key];
                             } 
                         }
+
+                        setQuery(query);
                     }}
                     onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
                         setSortBy(sortBy);

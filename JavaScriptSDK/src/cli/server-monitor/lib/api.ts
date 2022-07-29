@@ -295,7 +295,7 @@ export default function (
                     }
 
                     const errorCode: $TSFixMe =
-                        typeof error === 'number' ? error : 1;
+                        typeof error === Typeof.Number ? error : 1;
                     process.exitCode = errorCode;
 
                     return error;

@@ -1,4 +1,5 @@
 import Email from './Email';
+import Typeof from './Typeof';
 
 export default class EmailWithName {
     private _email: Email = new Email('noreply@oneuptime.com');
@@ -7,7 +8,7 @@ export default class EmailWithName {
     }
     public set email(v: Email | string) {
         if (typeof v === Typeof.String) {
-            this._email = new Email(v);
+            this._email = new Email(v.toString());
         }
 
         if (v instanceof Email) {

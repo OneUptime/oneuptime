@@ -15,9 +15,9 @@ class JSONWebToken {
     ): string {
         let jsonObj: JSONObject;
 
-        if (typeof data === Typeof.String) {
+        if (typeof data === "string") {
             jsonObj = {
-                data,
+                data: data.toString(),
             };
         } else if (!(data instanceof User)) {
             jsonObj = {
