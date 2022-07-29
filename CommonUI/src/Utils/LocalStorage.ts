@@ -4,7 +4,7 @@ import { JSONFunctions, JSONValue } from 'Common/Types/JSON';
 
 export default class LocalStorage {
     public static setItem(key: string, value: JSONValue | Email | URL): void {
-        if (typeof value === 'object') {
+        if (typeof value === Typeof.Object) {
             // if of type jsonobject.
             value = JSON.stringify(JSONFunctions.serializeValue(value as JSONValue));
         }

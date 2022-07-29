@@ -224,7 +224,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                     b = r[f],
                     o = void 0,
                     c;
-                if (typeof b === 'string') c = !1;
+                if (typeof b === Typeof.String) c = !1;
                 else {
                     var i = h[f.charAt(0)];
                     if (i) (o = f.match(i[1])), (b = i[0]);
@@ -238,7 +238,7 @@ window.PR_SHOULD_USE_CONTINUATION = !0;
                     }
                     if (
                         (c = b.length >= 5 && 'lang-' === b.substring(0, 5)) &&
-                        !(o && typeof o[1] === 'string')
+                        !(o && typeof o[1] === Typeof.String)
                     )
                         (c = !1), (b = 'src');
                     c || (r[f] = b);

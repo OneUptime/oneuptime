@@ -8,6 +8,7 @@ import URL from './API/URL';
 import Name from './Name';
 import Permission from './Permission';
 import Search from './Database/Search';
+import Typeof from './Typeof';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -144,7 +145,7 @@ export class JSONFunctions {
                 _type: ObjectType.Search,
                 value: (val as Search).toString(),
             };
-        } else if (typeof val === 'object') {
+        } else if (typeof val === Typeof.Object) {
             return this.serialize(val as JSONObject);
         }
 
@@ -156,86 +157,86 @@ export class JSONFunctions {
             return val;
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Name
         ) {
             val = new Name((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.ObjectID
         ) {
             val = new ObjectID((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Phone
         ) {
             val = new Phone((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Email
         ) {
             val = new Email((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Version
         ) {
             val = new Name((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Route
         ) {
             val = new Route((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.URL
         ) {
             val = URL.fromString((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Color
         ) {
             val = new Color((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Search
         ) {
             val = new Search((val as JSONObject)['value'] as string);
-        } else if (typeof val === 'object') {
+        } else if (typeof val === Typeof.Object) {
             val = this.deserialize(val as JSONObject);
         }
 

@@ -46,7 +46,7 @@ export default class URL extends DatabaseProperty {
         super();
         if (hostname instanceof Hostname) {
             this.hostname = hostname;
-        } else if (typeof hostname === 'string') {
+        } else if (typeof hostname === Typeof.String) {
             this.hostname = Hostname.fromString(hostname);
         }
 
@@ -128,7 +128,7 @@ export default class URL extends DatabaseProperty {
     }
 
     public addRoute(route: Route | string): URL {
-        if (typeof route === 'string') {
+        if (typeof route === Typeof.String) {
             this.route.addRoute(new Route(route));
         } else {
             this.route.addRoute(route);

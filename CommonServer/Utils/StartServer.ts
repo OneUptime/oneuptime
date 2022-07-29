@@ -61,7 +61,7 @@ const setDefaultHeaders: RequestHandler = (
     res: ExpressResponse,
     next: NextFunction
 ): void => {
-    if (typeof req.body === 'string') {
+    if (typeof req.body === Typeof.String) {
         req.body = JSON.parse(req.body);
     }
     res.header('Access-Control-Allow-Credentials', 'true');

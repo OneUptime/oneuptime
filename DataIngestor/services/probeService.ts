@@ -3028,7 +3028,7 @@ const checkAnd: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'contains'
                     ) {
-                        if (body && typeof body === 'string') {
+                        if (body && typeof body === Typeof.String) {
                             if (
                                 !(
                                     con.criteria[i] &&
@@ -3068,7 +3068,7 @@ const checkAnd: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'doesNotContain'
                     ) {
-                        if (body && typeof body === 'string') {
+                        if (body && typeof body === Typeof.String) {
                             if (
                                 !(
                                     con.criteria[i] &&
@@ -5198,7 +5198,7 @@ const checkOr: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'contains'
                     ) {
-                        if (body && typeof body === 'string') {
+                        if (body && typeof body === Typeof.String) {
                             if (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
@@ -5238,7 +5238,7 @@ const checkOr: Function = (
                         con.criteria[i].filter &&
                         con.criteria[i].filter === 'doesNotContain'
                     ) {
-                        if (body && typeof body === 'string') {
+                        if (body && typeof body === Typeof.String) {
                             if (
                                 con.criteria[i] &&
                                 con.criteria[i].field1 &&
@@ -6092,7 +6092,7 @@ const formatBytes: Function = (
     let value: $TSFixMe = a;
     let decimalPlaces: $TSFixMe;
     let roundType: $TSFixMe;
-    if (typeof a === 'object') {
+    if (typeof a === Typeof.Object) {
         value = a.value;
         decimalPlaces = a.decimalPlaces;
         roundType = a.roundType;

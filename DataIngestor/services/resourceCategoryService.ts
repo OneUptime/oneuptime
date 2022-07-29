@@ -12,11 +12,11 @@ export default {
             limit = 0;
         }
 
-        if (typeof skip === 'string') {
+        if (typeof skip === Typeof.String) {
             skip = parseInt(skip);
         }
 
-        if (typeof limit === 'string') {
+        if (typeof limit === Typeof.String) {
             limit = parseInt(limit);
         }
 

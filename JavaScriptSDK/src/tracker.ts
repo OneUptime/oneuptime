@@ -96,7 +96,7 @@ class ErrorTracker {
         return this.eventId;
     }
     public setTag(key: $TSFixMe, value: $TSFixMe): void {
-        if (!(typeof key === 'string') || !(typeof value === 'string')) {
+        if (!(typeof key === Typeof.String) || !(typeof value === Typeof.String)) {
             return 'Invalid Tags type';
         }
         // Get the index if the key exist already
@@ -137,7 +137,7 @@ class ErrorTracker {
         this.extras = { ...this.extras, [key]: extra };
     }
     public setFingerprint(keys: $TSFixMe): void {
-        if (!(typeof keys === 'string') && !Array.isArray(keys)) {
+        if (!(typeof keys === Typeof.String) && !Array.isArray(keys)) {
             return 'Invalid Fingerprint Format';
         }
         this.fingerprint = keys ? (Array.isArray(keys) ? keys : [keys]) : [];

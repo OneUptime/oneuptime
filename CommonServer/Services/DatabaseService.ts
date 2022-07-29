@@ -140,7 +140,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         for (const key of data.getEncryptedColumns().columns) {
             // If data is an object.
-            if (typeof (data as any)[key] === 'object') {
+            if (typeof (data as any)[key] === Typeof.Object) {
                 const dataObj: JSONObject = (data as any)[key] as JSONObject;
 
                 for (const key in dataObj) {
@@ -185,7 +185,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         for (const key of data.getEncryptedColumns().columns) {
             // If data is an object.
-            if (typeof data.getValue(key) === 'object') {
+            if (typeof data.getValue(key) === Typeof.Object) {
                 const dataObj: JSONObject = data.getValue(key) as JSONObject;
 
                 for (const key in dataObj) {

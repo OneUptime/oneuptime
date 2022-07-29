@@ -14,7 +14,6 @@ export interface ComponentProps {
     onFilterChanged?:
         | undefined
         | ((filterData: Dictionary<string | boolean>) => void)
-        | undefined;
 }
 
 const TableHeader: FunctionComponent<ComponentProps> = (
@@ -22,6 +21,8 @@ const TableHeader: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [currentSortColumn, setCurrentSortColumn] = useState<string>('');
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
+
+    // should filter on textboxes and checkboxes. 
     const [filterData, setFilterData] = useState<Dictionary<string | boolean>>(
         {}
     );

@@ -31,7 +31,7 @@ export default class Hostname {
 
         if (port instanceof Port) {
             this.port = port;
-        } else if (typeof port === 'string') {
+        } else if (typeof port === Typeof.String) {
             this.port = new Port(port);
         } else if (typeof port === 'number') {
             this.port = new Port(port);

@@ -25,6 +25,10 @@ import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import Query from '../../Utils/ModelAPI/Query';
+import { instanceOf } from 'prop-types';
+import Search from 'Common/Types/Database/Search';
+import Typeof from 'Common/Types/Typeof';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -65,6 +69,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     >([]);
 
     const [data, setData] = useState<Array<TBaseModel>>([]);
+    const [query, setQuery] = useState<Query<TBaseModel>>({});
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
     const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
     const [isLoading, setIsLaoding] = useState<boolean>(false);
@@ -118,7 +123,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             const listResult: ListResult<TBaseModel> =
                 await ModelAPI.getList<TBaseModel>(
                     props.type,
-                    {},
+                    query,
                     itemsOnPage,
                     (currentPageNumber - 1) * itemsOnPage,
                     getSelect(),
@@ -382,6 +387,20 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 buttons={cardButtons}
             >
                 <Table
+                    onFilterChanged={(filterData: Dictionary<string | boolean>) => {
+
+                        const query: Query<TBaseModel> = {};
+
+                        for (const key in filterData) {
+                            if (filterData[key] && typeof filterData[key] === Typeof.String) {
+                                query[key as keyof TBaseModel] = new Search((filterData[key] || '').toString());
+                            }
+
+                            if (typeof filterData[key] === Typeof.Boolean) {
+                                query[key as keyof TBaseModel] = !!filterData[key];
+                            } 
+                        }
+                    }}
                     onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
                         setSortBy(sortBy);
                         setSortOrder(sortOrder);

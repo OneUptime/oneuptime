@@ -6,7 +6,7 @@ export default class EmailWithName {
         return this._email;
     }
     public set email(v: Email | string) {
-        if (typeof v === 'string') {
+        if (typeof v === Typeof.String) {
             this._email = new Email(v);
         }
 

@@ -11,7 +11,7 @@ export default class Port {
     }
 
     public constructor(port: number | string) {
-        if (typeof port === 'string') {
+        if (typeof port === Typeof.String) {
             try {
                 port = Number.parseInt(port, 10);
             } catch (error) {

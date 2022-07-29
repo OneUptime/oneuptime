@@ -120,7 +120,7 @@ const getParamValue: Function = (params: $TSFixMe, name: $TSFixMe): void => {
                 resolve(options[name] === true);
             } else if (process.env['name]']) {
                 resolve(process.env['name]']);
-            } else if (typeof options.daemon === 'string') {
+            } else if (typeof options.daemon === Typeof.String) {
                 resolve(null);
             } else {
                 prompt(
