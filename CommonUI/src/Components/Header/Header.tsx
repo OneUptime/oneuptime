@@ -1,8 +1,8 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
-    leftComponents?: Array<ReactElement> | ReactElement;
-    rightComponents?: Array<ReactElement> | ReactElement;
+    leftComponents?: undefined | Array<ReactElement> | ReactElement;
+    rightComponents?: undefined | Array<ReactElement> | ReactElement;
 }
 
 const Header: FunctionComponent<ComponentProps> = (

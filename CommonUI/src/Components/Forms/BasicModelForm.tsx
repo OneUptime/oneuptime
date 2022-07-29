@@ -9,28 +9,35 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
     id: string;
     onSubmit: (values: FormValues<TBaseModel>) => void;
-    onValidate?: (
-        values: FormValues<TBaseModel>
-    ) => FormikErrors<FormValues<TBaseModel>>;
+    onValidate?:
+        | undefined
+        | ((
+              values: FormValues<TBaseModel>
+          ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
-    submitButtonText?: string;
-    title?: string;
-    description?: string;
-    showAsColumns?: number;
+    submitButtonText?: undefined | string;
+    title?: undefined | string;
+    description?: undefined | string;
+    showAsColumns?: undefined | number;
     footer: ReactElement;
-    isLoading?: boolean;
-    onCancel?: () => void;
-    cancelButtonText?: string;
-    maxPrimaryButtonWidth?: boolean;
+    isLoading?: undefined | boolean;
+    onCancel?: undefined | (() => void);
+    cancelButtonText?: undefined | string;
+    maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
-    hideSubmitButton?: boolean;
-    formRef?: MutableRefObject<FormikProps<FormikValues>>;
+    hideSubmitButton?: undefined | boolean;
+    formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
+    initialValues?: FormValues<TBaseModel> | undefined;
 }
 
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const initialValues: FormValues<TBaseModel> = {};
+    let initialValues: FormValues<TBaseModel> = {};
+
+    if (props.initialValues) {
+        initialValues = { ...props.initialValues };
+    }
 
     const fields: Fields<TBaseModel> = [];
     // Prep

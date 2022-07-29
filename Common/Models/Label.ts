@@ -14,7 +14,9 @@ import Color from '../Types/Color';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import Permission from '../Types/Permission';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
+import UniqueColumnBy from '../Types/Database/UniqueColumnBy';
 import ProjectColumn from '../Types/Database/ProjectColumn';
+import EntityName from '../Types/Database/EntityName';
 
 @ProjectColumn('projectId')
 @TableAccessControl({
@@ -29,6 +31,7 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
 })
 @CrudApiEndpoint(new Route('/label'))
 @SlugifyColumn('name', 'slug')
+@EntityName('Label', 'Labels')
 @Entity({
     name: 'Label',
 })
@@ -73,7 +76,7 @@ export default class Label extends BaseModel {
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: true,
+        nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public projectId?: ObjectID;
@@ -93,6 +96,7 @@ export default class Label extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
+    @UniqueColumnBy('projectId')
     public name?: string = undefined;
 
     @ColumnAccessControl({

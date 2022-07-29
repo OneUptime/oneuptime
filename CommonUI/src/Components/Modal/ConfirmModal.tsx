@@ -5,10 +5,10 @@ import Modal from './Modal';
 export interface ComponentProps {
     title: string;
     description: string;
-    onClose?: () => void;
-    submitButtonText?: string;
+    onClose?: undefined | (() => void);
+    submitButtonText?: undefined | string;
     onSubmit: () => void;
-    submitButtonType?: ButtonStyleType;
+    submitButtonType?: undefined | ButtonStyleType;
 }
 
 const ConfirmModal: FunctionComponent<ComponentProps> = (

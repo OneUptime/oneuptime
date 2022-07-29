@@ -1,4 +1,5 @@
 import BadDataException from './Exception/BadDataException';
+import Typeof from './Typeof';
 
 export default class PositiveNumber {
     private _positiveNumber: number = 0;
@@ -10,8 +11,8 @@ export default class PositiveNumber {
     }
 
     public constructor(positiveNumber: number | string) {
-        if (typeof positiveNumber === 'string') {
-            positiveNumber = Number.parseInt(positiveNumber, 10);
+        if (typeof positiveNumber === Typeof.String) {
+            positiveNumber = Number.parseInt(positiveNumber.toString(), 10);
             if (isNaN(positiveNumber)) {
                 throw new BadDataException(`Invalid number: ${positiveNumber}`);
             }
@@ -21,7 +22,7 @@ export default class PositiveNumber {
             throw new BadDataException('positiveNumber cannot be less than 0');
         }
 
-        this.positiveNumber = positiveNumber;
+        this.positiveNumber = positiveNumber as number;
     }
 
     public toString(): string {

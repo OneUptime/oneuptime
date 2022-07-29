@@ -3,9 +3,9 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp, SizeProp } from './Icon';
 
 export interface ComponentProps {
-    backgroundColor?: Color;
+    backgroundColor?: undefined | Color;
     icon: IconProp;
-    iconColor?: Color;
+    iconColor?: undefined | Color;
 }
 
 const CircularIconImage: FunctionComponent<ComponentProps> = (

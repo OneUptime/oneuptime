@@ -13,7 +13,7 @@ import TableColumn, {
     getTableColumns,
     TableColumnMetadata,
 } from '../Types/Database/TableColumn';
-import { JSONArray, JSONObject } from '../Types/JSON';
+import { JSONArray, JSONFunctions, JSONObject } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 import Dictionary from '../Types/Dictionary';
 import HashedString from '../Types/HashedString';
@@ -21,7 +21,6 @@ import Email from '../Types/Email';
 import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
-import Name from '../Types/Name';
 import TableColumnType from '../Types/Database/TableColumnType';
 import Permission from '../Types/Permission';
 
@@ -67,6 +66,8 @@ export default class BaseModel extends BaseEntity {
     public labelsColumn!: string | null;
     public slugifyColumn!: string | null;
     public saveSlugToColumn!: string | null;
+    public singularName!: string | null;
+    public pluralName!: string | null;
 
     public isPermissionIf: Dictionary<JSONObject> = {};
 
@@ -191,7 +192,7 @@ export default class BaseModel extends BaseEntity {
         return this.saveSlugToColumn;
     }
 
-    public getprojectColumn(): string | null {
+    public getProjectColumn(): string | null {
         return this.projectColumn;
     }
 
@@ -217,36 +218,11 @@ export default class BaseModel extends BaseEntity {
         json: JSONObject,
         type: { new (): T }
     ): T {
+        json = JSONFunctions.deserialize(json);
         const baseModel: T = new type();
 
         for (const key of Object.keys(json)) {
-            if (
-                baseModel.getTableColumnMetadata(key) &&
-                baseModel.getTableColumnMetadata(key).type ===
-                    TableColumnType.HashedString
-            ) {
-                (baseModel as any)[key] = new HashedString(json[key] as string);
-            } else if (
-                baseModel.getTableColumnMetadata(key) &&
-                baseModel.getTableColumnMetadata(key).type ===
-                    TableColumnType.Name
-            ) {
-                (baseModel as any)[key] = new Name(json[key] as string);
-            } else if (
-                baseModel.getTableColumnMetadata(key) &&
-                baseModel.getTableColumnMetadata(key).type ===
-                    TableColumnType.Email
-            ) {
-                (baseModel as any)[key] = new Email(json[key] as string);
-            } else if (
-                baseModel.getTableColumnMetadata(key) &&
-                baseModel.getTableColumnMetadata(key).type ===
-                    TableColumnType.ObjectID
-            ) {
-                (baseModel as any)[key] = new ObjectID(json[key] as string);
-            } else {
-                (baseModel as any)[key] = json[key];
-            }
+            (baseModel as any)[key] = json[key];
         }
 
         return baseModel as T;
@@ -294,40 +270,30 @@ export default class BaseModel extends BaseEntity {
     }
 
     public toJSON(): JSONObject {
+        const json: JSONObject = this.toJSONObject();
+        return JSONFunctions.serialize(json);
+    }
+
+    public toJSONObject(): JSONObject {
         const json: JSONObject = {};
+
         for (const key of this.getTableColumns().columns) {
             if ((this as any)[key]) {
-                if (
-                    this.getTableColumnMetadata(key) &&
-                    this.getTableColumnMetadata(key).type ===
-                        TableColumnType.HashedString
-                ) {
-                    json[key] = ((this as any)[key] as HashedString).toString();
-                } else if (
-                    this.getTableColumnMetadata(key) &&
-                    this.getTableColumnMetadata(key).type ===
-                        TableColumnType.Name
-                ) {
-                    json[key] = ((this as any)[key] as Name).toString();
-                } else if (
-                    this.getTableColumnMetadata(key) &&
-                    this.getTableColumnMetadata(key).type ===
-                        TableColumnType.Email
-                ) {
-                    json[key] = ((this as any)[key] as Email).toString();
-                } else if (
-                    this.getTableColumnMetadata(key) &&
-                    this.getTableColumnMetadata(key).type ===
-                        TableColumnType.ObjectID
-                ) {
-                    json[key] = ((this as any)[key] as ObjectID).toString();
-                } else {
-                    json[key] = (this as any)[key];
-                }
+                json[key] = (this as any)[key];
             }
         }
 
         return json;
+    }
+
+    public static toJSONObjectArray(list: Array<BaseModel>): JSONArray {
+        const array: JSONArray = [];
+
+        for (const item of list) {
+            array.push(item.toJSONObject());
+        }
+
+        return array;
     }
 
     public static toJSONArray(list: Array<BaseModel>): JSONArray {

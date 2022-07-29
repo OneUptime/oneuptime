@@ -19,6 +19,10 @@ import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
 import Link from '../Link/Link';
 import Alert, { AlertType } from '../Alerts/Alert';
+import ColorPicker from './Fields/ColorPicker';
+import Color from 'Common/Types/Color';
+import TextArea from './Fields/TextArea';
+import Dropdown from '../Dropdown/Dropdown';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -30,20 +34,20 @@ export interface ComponentProps<T extends Object> {
     id: string;
     initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
-    onValidate?: (values: FormValues<T>) => JSONObject;
+    onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
     fields: Fields<T>;
-    submitButtonText?: string;
-    title?: string;
-    description?: string;
-    showAsColumns?: number;
+    submitButtonText?: undefined | string;
+    title?: undefined | string;
+    description?: undefined | string;
+    showAsColumns?: undefined | number;
     footer: ReactElement;
-    isLoading?: boolean;
-    onCancel?: (() => void) | null;
-    cancelButtonText?: string | null;
-    maxPrimaryButtonWidth?: boolean;
+    isLoading?: undefined | boolean;
+    onCancel?: undefined | (() => void) | null;
+    cancelButtonText?: undefined | string | null;
+    maxPrimaryButtonWidth?: undefined | boolean;
     error: string | null;
-    hideSubmitButton?: boolean;
-    formRef?: MutableRefObject<FormikProps<FormikValues>>;
+    hideSubmitButton?: undefined | boolean;
+    formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
 }
 
 function getFieldType(fieldType: FormFieldSchemaType): string {
@@ -54,6 +58,10 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
             return 'password';
         case FormFieldSchemaType.Date:
             return 'date';
+        case FormFieldSchemaType.LongText:
+            return 'textarea';
+        case FormFieldSchemaType.Color:
+            return 'color';
         default:
             return 'text';
     }
@@ -104,15 +112,135 @@ const BasicForm: Function = <T extends Object>(
                         )}
                 </label>
                 {field.description && <p>{field.description}</p>}
-                <Field
-                    className="form-control form-control"
-                    autoFocus={index === 0 ? true : false}
-                    placeholder={field.placeholder}
-                    type={fieldType}
-                    tabIndex={index + 1}
-                    name={fieldName}
-                    disabled={isDisabled}
-                />
+
+                {field.fieldType === FormFieldSchemaType.Color && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+                            return (
+                                <ColorPicker
+                                    onChange={async (color: Color) => {
+                                        await form.setFieldValue(
+                                            fieldName,
+                                            color,
+                                            true
+                                        );
+                                    }}
+                                    onFocus={async () => {
+                                        await form.setFieldTouched(
+                                            fieldName,
+                                            true
+                                        );
+                                    }}
+                                    placeholder={field.placeholder || ''}
+                                    initialValue={
+                                        props.initialValues &&
+                                        (props.initialValues as any)[fieldName]
+                                            ? (props.initialValues as any)[
+                                                  fieldName
+                                              ]
+                                            : ''
+                                    }
+                                />
+                            );
+                        }}
+                    </Field>
+                )}
+
+                {field.fieldType === FormFieldSchemaType.Dropdown && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+                            return (
+                                <Dropdown
+                                    onChange={async (
+                                        value: string | number
+                                    ) => {
+                                        await form.setFieldValue(
+                                            fieldName,
+                                            value,
+                                            true
+                                        );
+                                    }}
+                                    onBlur={async () => {
+                                        await form.setFieldTouched(
+                                            fieldName,
+                                            true
+                                        );
+                                    }}
+                                    options={field.dropdownOptions || []}
+                                    placeholder={field.placeholder || ''}
+                                    initialValue={
+                                        props.initialValues &&
+                                        (props.initialValues as any)[fieldName]
+                                            ? (props.initialValues as any)[
+                                                  fieldName
+                                              ]
+                                            : ''
+                                    }
+                                />
+                            );
+                        }}
+                    </Field>
+                )}
+
+                {field.fieldType === FormFieldSchemaType.LongText && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+                            return (
+                                <>
+                                    <TextArea
+                                        onChange={async (text: string) => {
+                                            await form.setFieldValue(
+                                                fieldName,
+                                                text,
+                                                true
+                                            );
+                                        }}
+                                        onBlur={async () => {
+                                            await form.setFieldTouched(
+                                                fieldName,
+                                                true
+                                            );
+                                        }}
+                                        initialValue={
+                                            props.initialValues &&
+                                            (props.initialValues as any)[
+                                                fieldName
+                                            ]
+                                                ? (props.initialValues as any)[
+                                                      fieldName
+                                                  ]
+                                                : ''
+                                        }
+                                        placeholder={field.placeholder || ''}
+                                    />
+                                </>
+                            );
+                        }}
+                    </Field>
+                )}
+
+                {/* Default Field */}
+                {(field.fieldType === FormFieldSchemaType.Name ||
+                    field.fieldType === FormFieldSchemaType.Email ||
+                    field.fieldType === FormFieldSchemaType.Hostname ||
+                    field.fieldType === FormFieldSchemaType.URL ||
+                    field.fieldType === FormFieldSchemaType.Route ||
+                    field.fieldType === FormFieldSchemaType.Text ||
+                    field.fieldType === FormFieldSchemaType.Number ||
+                    field.fieldType === FormFieldSchemaType.Password ||
+                    field.fieldType === FormFieldSchemaType.Date ||
+                    field.fieldType === FormFieldSchemaType.PositveNumber) && (
+                    <Field
+                        className="form-control"
+                        autoFocus={index === 0 ? true : false}
+                        placeholder={field.placeholder}
+                        type={fieldType}
+                        tabIndex={index + 1}
+                        name={fieldName}
+                        disabled={isDisabled || field.disabled}
+                    />
+                )}
+
                 <ErrorMessage
                     className="mt-1 text-danger"
                     name={
@@ -144,6 +272,44 @@ const BasicForm: Function = <T extends Object>(
                     return `${field.title || name} cannot be more than ${
                         field.validation.maxLength
                     } characters.`;
+                }
+            }
+
+            if (field.validation.noSpaces) {
+                if (content.trim().includes(' ')) {
+                    return `${field.title || name} should have no spaces.`;
+                }
+            }
+        }
+        return null;
+    };
+
+    const validateMaxValueAndMinValue: Function = (
+        content: string | number,
+        field: DataField<T>
+    ): string | null => {
+        if (field.validation) {
+            if (typeof content === 'string') {
+                try {
+                    content = parseInt(content);
+                } catch (e) {
+                    return `${field.title || name} should be a number.`;
+                }
+            }
+
+            if (field.validation.maxValue) {
+                if (content > field.validation?.maxValue) {
+                    return `${field.title || name} should not be more than ${
+                        field.validation?.maxValue
+                    }.`;
+                }
+            }
+
+            if (field.validation.minValue) {
+                if (content < field.validation?.minValue) {
+                    return `${field.title || name} should not be less than ${
+                        field.validation?.minValue
+                    }.`;
                 }
             }
         }
@@ -200,46 +366,50 @@ const BasicForm: Function = <T extends Object>(
             const name: string = field.overideFieldKey
                 ? field.overideFieldKey
                 : (Object.keys(field.field)[0] as string);
-            if (name in values) {
+
+            if (name in entries) {
                 const content: string | undefined = entries[name]?.toString();
 
-                if (content) {
-                    // Check Required fields.
-                    const resultRequired: string | null = validateRequired(
-                        content,
-                        field
-                    );
-                    if (resultRequired) {
-                        errors[name] = resultRequired;
-                    }
+                // Check Required fields.
+                const resultRequired: string | null = validateRequired(
+                    content,
+                    field
+                );
+                if (resultRequired) {
+                    errors[name] = resultRequired;
+                }
 
-                    // Check for valid email data.
-                    const resultValidateData: string | null = validateData(
-                        content,
-                        field
-                    );
-                    if (resultValidateData) {
-                        errors[name] = resultValidateData;
-                    }
+                // Check for valid email data.
+                const resultValidateData: string | null = validateData(
+                    content,
+                    field
+                );
+                if (resultValidateData) {
+                    errors[name] = resultValidateData;
+                }
 
-                    const resultMatch: string | null = validateMatchField(
-                        content,
-                        field,
-                        entries
-                    );
+                const resultMatch: string | null = validateMatchField(
+                    content,
+                    field,
+                    entries
+                );
 
-                    if (resultMatch) {
-                        errors[name] = resultMatch;
-                    }
+                if (resultMatch) {
+                    errors[name] = resultMatch;
+                }
 
-                    // check for length of content
-                    const result: string | null = validateLength(
-                        content,
-                        field
-                    );
-                    if (result) {
-                        errors[name] = result;
-                    }
+                // check for length of content
+                const result: string | null = validateLength(content, field);
+                if (result) {
+                    errors[name] = result;
+                }
+
+                // check for length of content
+                const resultMaxMinValue: string | null =
+                    validateMaxValueAndMinValue(content, field);
+
+                if (resultMaxMinValue) {
+                    errors[name] = resultMaxMinValue;
                 }
             } else if (field.required) {
                 errors[name] = `${field.title || name} is required.`;
@@ -267,6 +437,7 @@ const BasicForm: Function = <T extends Object>(
                     initialValues={props.initialValues}
                     validate={validate}
                     validateOnChange={true}
+                    enableReinitialize={true}
                     validateOnBlur={true}
                     onSubmit={(
                         values: FormValues<T>,

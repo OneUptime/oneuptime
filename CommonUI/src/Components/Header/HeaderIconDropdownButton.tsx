@@ -4,8 +4,8 @@ import useComponentOutsideClick from '../../Types/UseComponentOutsideClick';
 
 export interface ComponentProps {
     icon: IconProp;
-    badge?: number;
-    children?: ReactElement | Array<ReactElement>;
+    badge?: undefined | number;
+    children?: undefined | ReactElement | Array<ReactElement>;
 }
 
 const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (

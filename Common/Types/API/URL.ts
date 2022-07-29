@@ -4,6 +4,7 @@ import Hostname from './Hostname';
 import DatabaseProperty from '../Database/DatabaseProperty';
 import { FindOperator } from 'typeorm';
 import Dictionary from '../Dictionary';
+import Typeof from '../Typeof';
 
 export default class URL extends DatabaseProperty {
     private _route: Route = new Route();
@@ -46,7 +47,7 @@ export default class URL extends DatabaseProperty {
         super();
         if (hostname instanceof Hostname) {
             this.hostname = hostname;
-        } else if (typeof hostname === 'string') {
+        } else if (typeof hostname === Typeof.String) {
             this.hostname = Hostname.fromString(hostname);
         }
 
@@ -128,9 +129,11 @@ export default class URL extends DatabaseProperty {
     }
 
     public addRoute(route: Route | string): URL {
-        if (typeof route === 'string') {
-            this.route.addRoute(new Route(route));
-        } else {
+        if (typeof route === Typeof.String) {
+            this.route.addRoute(new Route(route.toString()));
+        }
+
+        if (route instanceof Route) {
             this.route.addRoute(route);
         }
 

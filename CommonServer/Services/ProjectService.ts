@@ -11,7 +11,10 @@ import TeamPermission from 'Common/Models/TeamPermission';
 import Permission from 'Common/Types/Permission';
 import TeamPermissionService from './TeamPermissionService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import AccessTokenService from './AccessTokenService';
+import FindBy from '../Types/Database/FindBy';
+import { In } from 'typeorm';
+import QueryHelper from '../Types/Database/QueryHelper';
+import ObjectID from 'Common/Types/ObjectID';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -27,14 +30,28 @@ export class Service extends DatabaseService<Model> {
 
         // check if the user has the project with the same name. If yes, reject.
 
-        const existingProjectWithSameNameCount: number =
-            await this.getQueryBuilder('Project')
-                .leftJoinAndSelect('Project.users', 'user')
-                .where('user._id = :id', { id: data.props.userId?.toString() })
-                .andWhere('LOWER(Project.name) = LOWER(:name)', {
-                    name: data.data.name,
+        let existingProjectWithSameNameCount: number = 0;
+        if (
+            data.props.userGlobalAccessPermission &&
+            data.props.userGlobalAccessPermission?.projectIds.length > 0
+        ) {
+            existingProjectWithSameNameCount = (
+                await this.countBy({
+                    query: {
+                        _id:
+                            data.props.userGlobalAccessPermission?.projectIds.map(
+                                (item: ObjectID) => {
+                                    return item.toString();
+                                }
+                            ) || [],
+                        name: QueryHelper.findWithSameName(data.data.name!),
+                    },
+                    props: {
+                        isRoot: true,
+                    },
                 })
-                .getCount();
+            ).toNumber();
+        }
 
         if (existingProjectWithSameNameCount > 0) {
             throw new BadDataException(
@@ -158,16 +175,23 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-        /// Refresh tokens.
-        await AccessTokenService.refreshUserGlobalAccessPermission(
-            createdItem.props.userId!
-        );
-        await AccessTokenService.refreshUserProjectAccessPermission(
-            createdItem.props.userId!,
-            createdItem.data.id!
-        );
-
         return Promise.resolve(createdItem);
+    }
+
+    protected override async onBeforeFind(
+        findBy: FindBy<Model>
+    ): Promise<FindBy<Model>> {
+        // if user has no project id, then he should not be able to access any project.
+        if (
+            (!findBy.props.isRoot &&
+                !findBy.props.userGlobalAccessPermission?.projectIds) ||
+            findBy.props.userGlobalAccessPermission?.projectIds.length === 0
+        ) {
+            findBy.props.isRoot = true;
+            findBy.query._id = In([]); // should not get any projects.
+        }
+
+        return findBy;
     }
 }
 export default new Service();

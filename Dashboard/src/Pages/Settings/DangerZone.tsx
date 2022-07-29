@@ -6,7 +6,7 @@ import RouteMap from '../../Utils/RouteMap';
 import Card from 'CommonUI/src/Components/Card/Card';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
@@ -45,15 +45,14 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 title="Delete Project"
                 description="Are you sure you want to delete this project?"
                 buttons={[
-                    <Button
-                        key={1}
-                        title="Delete Project"
-                        buttonStyle={ButtonStyleType.DANGER}
-                        onClick={() => {
+                    {
+                        title: 'Delete Project',
+                        buttonStyle: ButtonStyleType.DANGER,
+                        onClick: () => {
                             setShowModal(true);
-                        }}
-                        icon={IconProp.Trash}
-                    />,
+                        },
+                        icon: IconProp.Trash,
+                    },
                 ]}
             />
 

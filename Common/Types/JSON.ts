@@ -7,6 +7,8 @@ import Route from './API/Route';
 import URL from './API/URL';
 import Name from './Name';
 import Permission from './Permission';
+import Search from './Database/Search';
+import Typeof from './Typeof';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -18,6 +20,7 @@ enum ObjectType {
     Route = 'Route',
     URL = 'URL',
     Permission = 'Permission',
+    Search = 'Search',
 }
 
 export type JSONValue =
@@ -50,6 +53,10 @@ export type JSONValue =
     | Buffer
     | Permission
     | Array<Permission>
+    | Search
+    | Array<Search>
+    | Array<JSONValue>
+    | Array<Permission>
     | Array<JSONValue>
     | null;
 
@@ -78,19 +85,19 @@ export class JSONFunctions {
             if (Array.isArray(val[key])) {
                 const arraySerialize: Array<JSONValue> = [];
                 for (const arrVal of val[key] as Array<JSONValue>) {
-                    arraySerialize.push(this._serializeValue(arrVal));
+                    arraySerialize.push(this.serializeValue(arrVal));
                 }
 
                 val[key] = arraySerialize;
             }
 
-            val[key] = this._serializeValue(val[key] as JSONValue);
+            val[key] = this.serializeValue(val[key] as JSONValue);
         }
 
         return val;
     }
 
-    private static _serializeValue(val: JSONValue): JSONValue {
+    public static serializeValue(val: JSONValue): JSONValue {
         if (!val) {
             return val;
         } else if (val && val instanceof Name) {
@@ -133,89 +140,103 @@ export class JSONFunctions {
                 _type: ObjectType.Color,
                 value: (val as Color).toString(),
             };
-        } else if (typeof val === 'object') {
+        } else if (val && val instanceof Search) {
+            return {
+                _type: ObjectType.Search,
+                value: (val as Search).toString(),
+            };
+        } else if (typeof val === Typeof.Object) {
             return this.serialize(val as JSONObject);
         }
 
         return val;
     }
 
-    private static _deserializeValue(val: JSONValue): JSONValue {
+    public static deserializeValue(val: JSONValue): JSONValue {
         if (!val) {
             return val;
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Name
         ) {
             val = new Name((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.ObjectID
         ) {
             val = new ObjectID((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Phone
         ) {
             val = new Phone((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Email
         ) {
             val = new Email((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Version
         ) {
             val = new Name((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Route
         ) {
             val = new Route((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.URL
         ) {
             val = URL.fromString((val as JSONObject)['value'] as string);
         } else if (
             val &&
-            typeof val === 'object' &&
+            typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            typeof (val as JSONObject)['value'] === 'string' &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Color
         ) {
             val = new Color((val as JSONObject)['value'] as string);
-        } else if (typeof val === 'object') {
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.Search
+        ) {
+            val = new Search((val as JSONObject)['value'] as string);
+        } else if (typeof val === Typeof.Object) {
             val = this.deserialize(val as JSONObject);
         }
 
@@ -251,13 +272,13 @@ export class JSONFunctions {
             if (Array.isArray(val[key])) {
                 const arraySerialize: Array<JSONValue> = [];
                 for (const arrVal of val[key] as Array<JSONValue>) {
-                    arraySerialize.push(this._deserializeValue(arrVal));
+                    arraySerialize.push(this.deserializeValue(arrVal));
                 }
 
                 val[key] = arraySerialize;
             }
 
-            val[key] = this._deserializeValue(val[key] as JSONValue);
+            val[key] = this.deserializeValue(val[key] as JSONValue);
         }
 
         return val;

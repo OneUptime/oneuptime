@@ -11,7 +11,6 @@ export interface ComponentProps {
     projects: Array<Project>;
     error: string;
     onProjectSelected: (project: Project) => void;
-    currentProject: Project | null;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -26,7 +25,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                     onProjectSelected={props.onProjectSelected}
                 />
             }
-            navBar={<NavBar currentProject={props.currentProject} />}
+            navBar={<NavBar />}
             isLoading={props.isLoading}
             error={props.error}
         >

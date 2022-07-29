@@ -4,7 +4,7 @@ import { FindOperator, FindOptionsWhereProperty } from 'typeorm';
 
 export declare type FindWhereProperty<Property> =
     Property extends DatabaseProperty
-        ? Property | FindOperator<Property>
+        ? Property | FindOperator<Property> | Array<Property>
         : FindOptionsWhereProperty<Property>;
 /**
  * :

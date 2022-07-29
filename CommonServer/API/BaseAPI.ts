@@ -17,6 +17,8 @@ import CreateBy from '../Types/Database/CreateBy';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
+import Sort from '../Types/Database/Sort';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -50,7 +52,7 @@ export default class BaseAPI<
 
         // List
         router.post(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/get`,
+            `/${new this.entityType().getCrudApiPath()?.toString()}/get-list`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -66,8 +68,10 @@ export default class BaseAPI<
         );
 
         // Get Item
-        router.get(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
+        router.post(
+            `/${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/:id/get-item`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -175,14 +179,19 @@ export default class BaseAPI<
 
         let query: Query<BaseModel> = {};
         let select: Select<BaseModel> = {};
+        let sort: Sort<BaseModel> = {};
 
-        if (req.body && req.body['data']) {
+        if (req.body) {
             query = JSONFunctions.deserialize(
-                req.body['data']['query']
+                req.body['query']
             ) as Query<BaseModel>;
+
             select = JSONFunctions.deserialize(
-                req.body['data']['select']
+                req.body['select']
             ) as Select<BaseModel>;
+            sort = JSONFunctions.deserialize(
+                req.body['sort']
+            ) as Sort<BaseModel>;
         }
 
         const list: Array<BaseModel> = await this.service.findBy({
@@ -190,11 +199,12 @@ export default class BaseAPI<
             select,
             skip: skip,
             limit: limit,
+            sort: sort,
             props: this.getDatabaseCommonInteractionProps(req),
         });
 
         const count: PositiveNumber = await this.service.countBy({
-            query: {},
+            query,
             props: this.getDatabaseCommonInteractionProps(req),
         });
 
@@ -207,8 +217,17 @@ export default class BaseAPI<
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
+        let select: Select<BaseModel> = {};
+
+        if (req.body) {
+            select = JSONFunctions.deserialize(
+                req.body['select']
+            ) as Select<BaseModel>;
+        }
+
         const item: BaseModel | null = await this.service.findOneById({
             id: objectId,
+            select,
             props: this.getDatabaseCommonInteractionProps(req),
         });
 
@@ -239,12 +258,15 @@ export default class BaseAPI<
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
-        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
-            body['data'] as JSONObject,
-            this.entityType
-        ) as TBaseModel;
+        const item: QueryDeepPartialEntity<TBaseModel> =
+            JSONFunctions.deserialize(
+                body['data'] as JSONObject
+            ) as QueryDeepPartialEntity<TBaseModel>;
 
-        // @ts-ignore
+        delete item['_id'];
+        delete item['createdAt'];
+        delete item['updatedAt'];
+
         await this.service.updateBy({
             query: {
                 _id: objectIdString,

@@ -12,9 +12,9 @@ export enum ToastType {
 export interface ComponentProps {
     title: string;
     description: string;
-    onClose?: () => void;
-    type?: ToastType;
-    createdAt?: Date;
+    onClose?: undefined | (() => void);
+    type?: undefined | ToastType;
+    createdAt?: undefined | Date;
 }
 
 const Component: FunctionComponent<ComponentProps> = (

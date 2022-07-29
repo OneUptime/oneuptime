@@ -6,7 +6,7 @@ export interface ComponentProps {
     title: string;
     breadcrumbLinks: Array<Link>;
     children: Array<ReactElement> | ReactElement;
-    sideMenu?: ReactElement;
+    sideMenu?: undefined | ReactElement;
 }
 
 const Page: FunctionComponent<ComponentProps> = (

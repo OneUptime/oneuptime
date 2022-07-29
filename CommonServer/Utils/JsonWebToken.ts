@@ -17,7 +17,7 @@ class JSONWebToken {
 
         if (typeof data === 'string') {
             jsonObj = {
-                data,
+                data: data.toString(),
             };
         } else if (!(data instanceof User)) {
             jsonObj = {

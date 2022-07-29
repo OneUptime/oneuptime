@@ -1,5 +1,6 @@
 // Have "Project" string in the permission to make sure this permission is by Project.
 
+import { JSONObject } from './JSON';
 import ObjectID from './ObjectID';
 
 enum Permission {
@@ -60,7 +61,7 @@ enum Permission {
     CanReadProjectResources = 'CanReadProjectResources',
 }
 
-export class PermissionUtil {
+export class PermissionHelper {
     public static doesPermissionsIntersect(
         permissions1: Array<Permission>,
         permissions2: Array<Permission>
@@ -73,17 +74,17 @@ export class PermissionUtil {
     }
 }
 
-export interface UserGlobalAccessPermission {
+export interface UserGlobalAccessPermission extends JSONObject {
     projectIds: Array<ObjectID>;
     globalPermissions: Array<Permission>;
 }
 
-export interface UserPermission {
+export interface UserPermission extends JSONObject {
     permission: Permission;
     labelIds: Array<ObjectID>;
 }
 
-export interface UserProjectAccessPermission {
+export interface UserProjectAccessPermission extends JSONObject {
     projectId: ObjectID;
     permissions: Array<UserPermission>;
 }

@@ -21,7 +21,8 @@ import OneUptimeDate from 'Common/Types/Date';
 import LocalCache from '../Infrastructure/LocalCache';
 import Exception from 'Common/Types/Exception/Exception';
 import ObjectID from 'Common/Types/ObjectID';
-
+import StatusCode from 'Common/Types/API/StatusCode';
+import Typeof from 'Common/Types/Typeof';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -61,7 +62,7 @@ const setDefaultHeaders: RequestHandler = (
     res: ExpressResponse,
     next: NextFunction
 ): void => {
-    if (typeof req.body === 'string') {
+    if (typeof req.body === Typeof.String) {
         req.body = JSON.parse(req.body);
     }
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -109,8 +110,17 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
 
             if (err instanceof Promise) {
                 err.catch((exception: Exception) => {
-                    res.status((exception as Exception).code);
-                    res.send({ error: (exception as Exception).message });
+                    if (
+                        StatusCode.isValidStausCode(
+                            (exception as Exception).code
+                        )
+                    ) {
+                        res.status((exception as Exception).code);
+                        res.send({ error: (exception as Exception).message });
+                    } else {
+                        res.status(500);
+                        res.send({ error: 'Server Error' });
+                    }
                 });
             } else if (err instanceof Exception) {
                 res.status((err as Exception).code);
@@ -123,19 +133,19 @@ const init: Function = async (appName: string): Promise<ExpressApplication> => {
     );
 
     app.post('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: 'API not found' });
+        res.status(404).json({ error: '404 - Not Found.' });
     });
 
     app.put('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: 'API not found' });
+        res.status(404).json({ error: '404 - Not Found.' });
     });
 
     app.delete('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: 'API not found' });
+        res.status(404).json({ error: '404 - Not Found.' });
     });
 
     app.get('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: 'API not found' });
+        res.status(404).json({ error: '404 - Not Found.' });
     });
 
     // await OpenTelemetrySDK.start();

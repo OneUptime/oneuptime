@@ -68,6 +68,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
             />
             {showModel ? (
                 <ModelFromModal<Project>
+                    type={Project}
                     title="Create New Project"
                     onClose={() => {
                         setShowModel(false);

@@ -14,6 +14,7 @@ import TableAccessControl from '../Types/Database/AccessControl/TableAccessContr
 import Permission from '../Types/Permission';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 import ProjectColumn from '../Types/Database/ProjectColumn';
+import EntityName from '../Types/Database/EntityName';
 
 @TableAccessControl({
     create: [Permission.User],
@@ -25,6 +26,7 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
         Permission.CanUpdateProject,
     ],
 })
+@EntityName('Project', 'Projects')
 @CrudApiEndpoint(new Route('/project'))
 @SlugifyColumn('name', 'slug')
 @Entity({

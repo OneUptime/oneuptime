@@ -6,27 +6,36 @@ import CSS from 'csstype';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 import Loader, { LoaderType } from '../Loader/Loader';
 import { White } from '../../Utils/BrandColors';
+
 export enum ButtonStyleType {
     PRIMARY,
     SECONDRY,
     OUTLINE,
     NORMAL,
     DANGER,
+    DANGER_OUTLINE,
+}
+
+export enum ButtonSize {
+    Normal = 'btn',
+    Small = 'btn-sm',
+    Large = 'btn-lg',
 }
 
 export interface ComponentProps {
-    title?: string;
-    onClick?: () => void;
-    disabled?: boolean;
-    id?: string;
-    shortcutKey?: ShortcutKey;
-    type?: ButtonType;
-    isLoading?: boolean;
-    style?: CSS.Properties;
-    icon?: IconProp;
-    showIconOnRight?: boolean;
-    iconSize?: SizeProp;
-    buttonStyle?: ButtonStyleType;
+    title?: undefined | string;
+    onClick?: undefined | (() => void);
+    disabled?: undefined | boolean;
+    id?: undefined | string;
+    shortcutKey?: undefined | ShortcutKey;
+    type?: undefined | ButtonType;
+    isLoading?: undefined | boolean;
+    style?: undefined | CSS.Properties;
+    icon?: undefined | IconProp;
+    showIconOnRight?: undefined | boolean;
+    iconSize?: undefined | SizeProp;
+    buttonStyle?: undefined | ButtonStyleType;
+    buttonSize?: ButtonSize | undefined;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -42,6 +51,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     iconSize,
     showIconOnRight = false,
     buttonStyle = ButtonStyleType.NORMAL,
+    buttonSize = ButtonSize.Normal,
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -87,6 +97,10 @@ const Button: FunctionComponent<ComponentProps> = ({
         buttonStyleCssClass = 'btn-danger';
     }
 
+    if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
+        buttonStyleCssClass = 'btn-outline-danger';
+    }
+
     if (buttonStyle === ButtonStyleType.PRIMARY) {
         buttonStyleCssClass = 'btn-primary';
     }
@@ -97,7 +111,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
     if (buttonStyle === ButtonStyleType.OUTLINE) {
         buttonStyleCssClass =
-            'btn-outline-secondary background-primary-on-hover';
+            'btn-outline-secondary background-very-light-grey-on-hover';
     }
 
     return (
@@ -111,7 +125,7 @@ const Button: FunctionComponent<ComponentProps> = ({
             }}
             type={type}
             disabled={disabled}
-            className={`btn ${buttonStyleCssClass} waves-effect waves-light ${
+            className={`btn ${buttonStyleCssClass} ${buttonSize} waves-effect waves-light ${
                 !title && buttonStyle === ButtonStyleType.NORMAL
                     ? 'no-border-on-hover'
                     : ''
@@ -122,7 +136,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                     <div>
                         <div></div>
                     </div>
-                    <span>
+                    <span className="justify-center">
                         <span>
                             {icon && !showIconOnRight && (
                                 <Icon
@@ -130,15 +144,26 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     size={
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
-                                    thick={ThickProp.Thick}
+                                    thick={
+                                        buttonSize === ButtonSize.Small
+                                            ? ThickProp.LessThick
+                                            : ThickProp.Thick
+                                    }
                                 />
                             )}
-                            {title ? ' ' : ''}
                         </span>
                         {title ? (
-                            <span>
+                            <div
+                                style={{
+                                    marginLeft:
+                                        icon && !showIconOnRight
+                                            ? '4px'
+                                            : '0px',
+                                    marginTop: '1px',
+                                }}
+                            >
                                 <b>{title}</b>
-                            </span>
+                            </div>
                         ) : (
                             <></>
                         )}

@@ -11,11 +11,13 @@ import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
+import EntityName from '../Types/Database/EntityName';
 
 @CrudApiEndpoint(new Route('/email-verification-token'))
 @Entity({
     name: 'EmailVerificationToken',
 })
+@EntityName('Email Verification Token', 'Email Verification Tokens')
 @TableAccessControl({
     create: [],
     read: [],
@@ -89,7 +91,7 @@ export default class EmailVerificationToken extends BaseModel {
         type: ColumnType.ObjectID,
         nullable: false,
         unique: true,
-        length: ColumnLength.ObjectID,
+
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public token?: ObjectID;

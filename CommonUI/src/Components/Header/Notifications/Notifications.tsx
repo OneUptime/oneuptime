@@ -86,7 +86,7 @@ const Notifications: FunctionComponent<ComponentProps> = (
             </div>
             <div className="p-2 border-top d-grid">
                 <Link
-                    className="btn btn-sm btn-link font-size-14 btn-block text-center"
+                    className="btn btn-sm btn-link font-size-14 btn-block text-center flex"
                     to={new Route('/notifications')}
                 >
                     <span>View all</span>

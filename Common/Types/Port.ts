@@ -1,5 +1,6 @@
 import BadDataException from './Exception/BadDataException';
 import PositiveNumber from './PositiveNumber';
+import Typeof from './Typeof';
 
 export default class Port {
     private _port: PositiveNumber = new PositiveNumber(0);
@@ -11,9 +12,9 @@ export default class Port {
     }
 
     public constructor(port: number | string) {
-        if (typeof port === 'string') {
+        if (typeof port === Typeof.String) {
             try {
-                port = Number.parseInt(port, 10);
+                port = Number.parseInt(port.toString(), 10);
             } catch (error) {
                 throw new BadDataException(`Invalid port: ${port}`);
             }

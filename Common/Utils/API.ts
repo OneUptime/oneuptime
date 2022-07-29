@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import URL from '../Types/API/URL';
 import { JSONObject, JSONArray } from '../Types/JSON';
 import Headers from '../Types/API/Headers';
@@ -130,6 +130,12 @@ export default class API {
         return error;
     }
 
+    protected static async onResponseSuccessHeaders(
+        headers: Dictionary<string>
+    ): Promise<Dictionary<string>> {
+        return Promise.resolve(headers);
+    }
+
     public static getDefaultHeaders(): Headers {
         const defaultHeaders: Headers = {
             'Access-Control-Allow-Origin': '*',
@@ -209,15 +215,16 @@ export default class API {
         }
 
         try {
-            const result: {
-                data: JSONObject;
-                status: number;
-            } = await axios({
+            const result: AxiosResponse = await axios({
                 method: method,
                 url: url.toString(),
-                headers: apiHeaders,
+                headers: { ...apiHeaders, ...headers },
                 data,
             });
+
+            result.headers = await this.onResponseSuccessHeaders(
+                result.headers as Dictionary<string>
+            );
 
             const response: HTTPResponse<T> = new HTTPResponse<T>(
                 result.status,

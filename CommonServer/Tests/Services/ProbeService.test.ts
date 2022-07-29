@@ -71,6 +71,14 @@ describe('probeService', () => {
             query: {
                 name: savedProbe.name,
             },
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
+            },
             props: { isRoot: true },
         });
 
@@ -110,6 +118,14 @@ describe('probeService', () => {
             query: {
                 probeVersion: new Version('1.0.2'),
             },
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
+            },
             props: { isRoot: true },
         });
 
@@ -144,10 +160,49 @@ describe('probeService', () => {
             query: {
                 name: name + '-invalid',
             },
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
+            },
             props: { isRoot: true },
         });
 
         expect(fetchedProbe).toBeNull();
+    });
+
+    test('select columns should work', async () => {
+        const probeService: ProbeService = new ProbeService(
+            database.getDatabase()
+        );
+        const name: string = Faker.generateName();
+        const probeVersion: Version = new Version('1.0.2');
+        const key: ObjectID = ObjectID.generate();
+        await probeService.createProbe(name, key, probeVersion, {
+            isRoot: true,
+        });
+
+        const fetchedProbe: Probe | null = await probeService.findOneBy({
+            query: {
+                name: name,
+            },
+            select: {
+                _id: true,
+                name: true,
+            },
+            props: { isRoot: true },
+        });
+
+        expect(fetchedProbe).toBeTruthy();
+        expect(fetchedProbe!.name).toBe(name);
+        expect(fetchedProbe?._id).toBeTruthy();
+        expect(fetchedProbe?.key).toBeFalsy();
+        expect(fetchedProbe?.createdAt).toBeFalsy();
+        expect(fetchedProbe?.createdByUserId).toBeFalsy();
+        expect(fetchedProbe?.probeVersion).toBeFalsy();
     });
 
     test('findOneBy by key', async () => {
@@ -167,6 +222,14 @@ describe('probeService', () => {
         const fetchedProbe: Probe | null = await probeService.findOneBy({
             query: {
                 key: key,
+            },
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
             },
             props: { isRoot: true },
         });
@@ -217,6 +280,14 @@ describe('probeService', () => {
 
         const fetchedProbes: Array<Probe> = await probeService.findBy({
             query: {},
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
+            },
             limit: new PositiveNumber(10),
             skip: new PositiveNumber(0),
             props: { isRoot: true },
@@ -267,6 +338,14 @@ describe('probeService', () => {
 
         const fetchedProbes: Array<Probe> = await probeService.findBy({
             query: {},
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
+            },
             limit: new PositiveNumber(10),
             skip: new PositiveNumber(0),
             props: { isRoot: true },
@@ -316,6 +395,14 @@ describe('probeService', () => {
 
         const fetchedProbes: Array<Probe> = await probeService.findBy({
             query: {},
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
+            },
             limit: new PositiveNumber(10),
             skip: new PositiveNumber(10),
             props: { isRoot: true },
@@ -368,6 +455,7 @@ describe('probeService', () => {
             query: {
                 key: key,
             },
+
             props: { isRoot: true },
         });
 
@@ -375,40 +463,13 @@ describe('probeService', () => {
             query: {
                 key: key,
             },
-            props: { isRoot: true },
-        });
-
-        expect(fetchedProbe).toBeNull();
-    });
-
-    test('hard delete probe by query', async () => {
-        const probeService: ProbeService = new ProbeService(
-            database.getDatabase()
-        );
-        const name: string = Faker.generateName();
-        const probeVersion: Version = new Version('1.0.2');
-        const key: ObjectID = ObjectID.generate();
-        const savedProbe: Probe = await probeService.createProbe(
-            name,
-            key,
-            probeVersion,
-            {
-                isRoot: true,
-            }
-        );
-
-        expect(savedProbe).toBeTruthy();
-
-        await probeService.hardDeleteBy({
-            query: {
-                key: key,
-            },
-            props: { isRoot: true },
-        });
-
-        const fetchedProbe: Probe | null = await probeService.findOneBy({
-            query: {
-                key: key,
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
             },
             props: { isRoot: true },
         });
@@ -448,6 +509,14 @@ describe('probeService', () => {
         const fetchedProbe: Probe | null = await probeService.findOneBy({
             query: {
                 key: key,
+            },
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
             },
             props: { isRoot: true },
         });
@@ -488,6 +557,14 @@ describe('probeService', () => {
         const fetchedProbe: Probe | null = await probeService.findOneBy({
             query: {
                 key: key,
+            },
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
             },
             props: { isRoot: true },
         });
@@ -549,6 +626,15 @@ describe('probeService', () => {
             query: {
                 _id: updatedProbe._id,
             },
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
+                createdByUserId: true,
+            },
             props: { isRoot: true },
         });
 
@@ -588,6 +674,14 @@ describe('probeService', () => {
         const findProbe: Probe | null = await probeService.findOneBy({
             query: {
                 _id: updatedProbe._id,
+            },
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
             },
             populate: {
                 createdByUser: true,
@@ -638,6 +732,14 @@ describe('probeService', () => {
         const findProbe: Probe | null = await probeService.findOneBy({
             query: {
                 createdByUserId: user.id,
+            },
+            select: {
+                _id: true,
+                name: true,
+                version: true,
+                probeVersion: true,
+                createdAt: true,
+                key: true,
             },
             populate: {
                 createdByUser: true,

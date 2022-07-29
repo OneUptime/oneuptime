@@ -4,13 +4,15 @@ enum FormFieldSchemaType {
     Hostname,
     URL,
     Route,
-    String,
     Number,
     Password,
     Text,
     Email,
     PositveNumber,
     Date,
+    LongText,
+    Color,
+    Dropdown,
 }
 
 export default FormFieldSchemaType;

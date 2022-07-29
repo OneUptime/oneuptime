@@ -37,6 +37,9 @@ import {
     FiX,
     FiPlus,
     FiTag,
+    FiRefreshCcw,
+    FiFilter,
+    FiEdit2,
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -95,6 +98,9 @@ export enum IconProp {
     Close,
     Add,
     Label,
+    Refresh,
+    Filter,
+    Edit,
 }
 
 export interface ComponentProps {
@@ -113,7 +119,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     thick = ThickProp.Normal,
 }: ComponentProps): ReactElement => {
     return (
-        <span
+        <div
             style={{
                 cursor: 'pointer',
             }}
@@ -376,7 +382,28 @@ const Icon: FunctionComponent<ComponentProps> = ({
                     color={color ? color.toString() : ''}
                 />
             )}
-        </span>
+            {icon === IconProp.Refresh && (
+                <FiRefreshCcw
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Filter && (
+                <FiFilter
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Edit && (
+                <FiEdit2
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+        </div>
     );
 };
 

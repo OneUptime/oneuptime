@@ -20,17 +20,21 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import { DataSource, In, Repository, SelectQueryBuilder } from 'typeorm';
+import {
+    DataSource,
+    FindOperator,
+    Repository,
+    SelectQueryBuilder,
+} from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
-import SortOrder from '../Types/Database/SortOrder';
-import HardDeleteBy from '../Types/Database/HardDeleteBy';
+import SortOrder from 'Common/Types/Database/SortOrder';
 import { EncryptionSecret } from '../Config';
 import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
 import FindOneByID from '../Types/Database/FindOneByID';
 import Permission, {
-    PermissionUtil,
+    PermissionHelper,
     UserPermission,
 } from 'Common/Types/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
@@ -38,6 +42,10 @@ import Dictionary from 'Common/Types/Dictionary';
 import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import QueryHelper from '../Types/Database/QueryHelper';
+import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
+import Search from 'Common/Types/Database/Search';
+import Typeof from 'Common/Types/Typeof';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -108,11 +116,24 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    protected async onBeforeCreate({
-        data,
-    }: CreateBy<TBaseModel>): Promise<CreateBy<TBaseModel>> {
+    protected async onBeforeCreate(
+        createBy: CreateBy<TBaseModel>
+    ): Promise<CreateBy<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve({ data } as CreateBy<TBaseModel>);
+        return Promise.resolve(createBy as CreateBy<TBaseModel>);
+    }
+
+    private async _onBeforeCreate(
+        createBy: CreateBy<TBaseModel>
+    ): Promise<CreateBy<TBaseModel>> {
+        // Private method that runs before create.
+        const projectIdColumn: string | null = this.model.getProjectColumn();
+
+        if (projectIdColumn && createBy.props.projectId) {
+            (createBy.data as any)[projectIdColumn] = createBy.props.projectId;
+        }
+
+        return await this.onBeforeCreate(createBy);
     }
 
     protected encrypt(data: TBaseModel): TBaseModel {
@@ -121,7 +142,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         for (const key of data.getEncryptedColumns().columns) {
             // If data is an object.
-            if (typeof (data as any)[key] === 'object') {
+            if (typeof (data as any)[key] === Typeof.Object) {
                 const dataObj: JSONObject = (data as any)[key] as JSONObject;
 
                 for (const key in dataObj) {
@@ -166,7 +187,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         for (const key of data.getEncryptedColumns().columns) {
             // If data is an object.
-            if (typeof data.getValue(key) === 'object') {
+            if (typeof data.getValue(key) === Typeof.Object) {
                 const dataObj: JSONObject = data.getValue(key) as JSONObject;
 
                 for (const key in dataObj) {
@@ -282,7 +303,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-        let _createdBy: CreateBy<TBaseModel> = await this.onBeforeCreate(
+        let _createdBy: CreateBy<TBaseModel> = await this._onBeforeCreate(
             createBy
         );
 
@@ -303,16 +324,63 @@ class DatabaseService<TBaseModel extends BaseModel> {
         data = await this.hash(data);
 
         data = this.asCreateableByPermissions(createBy);
+        createBy.data = data;
+
+        // check uniqueColumns by:
+        createBy = await this.checkUniqueColumnBy(createBy);
 
         try {
-            const savedData: TBaseModel = await this.getRepository().save(data);
-            createBy.data = savedData;
+            createBy.data = await this.getRepository().save(createBy.data);
             await this.onCreateSuccess(createBy);
-            return savedData;
+            return createBy.data;
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    private async checkUniqueColumnBy(
+        createBy: CreateBy<TBaseModel>
+    ): Promise<CreateBy<TBaseModel>> {
+        let existingItemsWithSameNameCount: number = 0;
+
+        const uniqueColumnsBy: Dictionary<string> = getUniqueColumnsBy(
+            createBy.data
+        );
+
+        for (const key in uniqueColumnsBy) {
+            if (!uniqueColumnsBy[key]) {
+                continue;
+            }
+
+            existingItemsWithSameNameCount = (
+                await this.countBy({
+                    query: {
+                        [key]: QueryHelper.findWithSameName(
+                            (createBy.data as any)[key]
+                                ? ((createBy.data as any)[key]! as string)
+                                : ''
+                        ),
+                        [uniqueColumnsBy[key] as any]: (createBy.data as any)[
+                            uniqueColumnsBy[key] as any
+                        ],
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                })
+            ).toNumber();
+
+            if (existingItemsWithSameNameCount > 0) {
+                throw new BadDataException(
+                    `${this.model.singularName} with the same ${key} already exists.`
+                );
+            }
+
+            existingItemsWithSameNameCount = 0;
+        }
+
+        return Promise.resolve(createBy);
     }
 
     public getPermissions(
@@ -394,7 +462,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         if (
             props.userProjectAccessPermission &&
-            !PermissionUtil.doesPermissionsIntersect(
+            !PermissionHelper.doesPermissionsIntersect(
                 props.userProjectAccessPermission.permissions.map(
                     (userPermission: UserPermission) => {
                         return userPermission.permission;
@@ -448,9 +516,20 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         columns = this.getReadColumnsByPermissions(userPermissions || []);
 
+        const excludedColumns: Array<string> = [
+            '_id',
+            'createdAt',
+            'deletedAt',
+            'updatedAt',
+        ];
+
         // Now we need to check all columns.
 
         for (const key in findBy.query) {
+            if (excludedColumns.includes(key)) {
+                continue;
+            }
+
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to query on - ${key}.`
@@ -459,6 +538,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         for (const key in findBy.select) {
+            if (excludedColumns.includes(key)) {
+                continue;
+            }
+
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to select on - ${key}.`
@@ -474,19 +557,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !findBy.props.projectId &&
             findBy.props.userGlobalAccessPermission
         ) {
-            if (this.model.projectColumn === '_id') {
-                (findBy.query as any)[this.model.projectColumn] = In(
-                    findBy.props.userGlobalAccessPermission?.projectIds.map(
-                        (item: ObjectID) => {
-                            return item.toString();
-                        }
-                    )
-                );
-            } else {
-                (findBy.query as any)[this.model.projectColumn] = In(
-                    findBy.props.userGlobalAccessPermission?.projectIds
-                );
-            }
+            (findBy.query as any)[this.model.projectColumn] = QueryHelper.in(
+                findBy.props.userGlobalAccessPermission?.projectIds
+            );
         } else if (this.model.projectColumn) {
             throw new NotAuthorizedException(
                 'Not enough permissions to read the record'
@@ -543,8 +616,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
         readColumns = this.getReadColumnsByPermissions(userPermissions || []);
 
         // Now we need to check all columns.
+        const excludedColumns: Array<string> = [
+            '_id',
+            'createdAt',
+            'deletedAt',
+            'updatedAt',
+        ];
 
         for (const key in updateBy.query) {
+            if (excludedColumns.includes(key)) {
+                continue;
+            }
+
             if (!readColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `A user does not have permissions to query on - ${key}.`
@@ -568,19 +651,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !updateBy.props.projectId &&
             updateBy.props.userGlobalAccessPermission
         ) {
-            if (this.model.projectColumn === '_id') {
-                (updateBy.query as any)[this.model.projectColumn] = In(
-                    updateBy.props.userGlobalAccessPermission?.projectIds.map(
-                        (item: ObjectID) => {
-                            return item.toString();
-                        }
-                    )
-                );
-            } else {
-                (updateBy.query as any)[this.model.projectColumn] = In(
-                    updateBy.props.userGlobalAccessPermission?.projectIds
-                );
-            }
+            (updateBy.query as any)[this.model.projectColumn] = QueryHelper.in(
+                updateBy.props.userGlobalAccessPermission?.projectIds
+            );
         } else if (this.model.projectColumn) {
             throw new NotAuthorizedException(
                 'Not enough permissions to read the record'
@@ -656,7 +729,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         for (const key in accessControl) {
             if (
                 accessControl[key]?.create &&
-                PermissionUtil.doesPermissionsIntersect(
+                PermissionHelper.doesPermissionsIntersect(
                     permissions,
                     accessControl[key]?.create || []
                 )
@@ -685,7 +758,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         for (const key in accessControl) {
             if (
                 accessControl[key]?.read &&
-                PermissionUtil.doesPermissionsIntersect(
+                PermissionHelper.doesPermissionsIntersect(
                     permissions,
                     accessControl[key]?.read || []
                 )
@@ -714,7 +787,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         for (const key in accessControl) {
             if (
                 accessControl[key]?.update &&
-                PermissionUtil.doesPermissionsIntersect(
+                PermissionHelper.doesPermissionsIntersect(
                     permissions,
                     accessControl[key]?.update || []
                 )
@@ -763,6 +836,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 limit = new PositiveNumber(Infinity);
             }
 
+            query = this.serializeQuery(query);
+
             const count: number = await this.getRepository().count({
                 where: query as any,
                 skip: skip.toNumber(),
@@ -777,6 +852,41 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
+    private serializeQuery(query: Query<TBaseModel>): Query<TBaseModel> {
+        for (const key in query) {
+            if (
+                query[key] &&
+                (query[key] as any)._value &&
+                Array.isArray((query[key] as any)._value) &&
+                (query[key] as any)._value.length > 0
+            ) {
+                let counter: number = 0;
+                for (const item of (query[key] as any)._value) {
+                    if (item instanceof ObjectID) {
+                        ((query[key] as any)._value as any)[counter] = (
+                            (query[key] as any)._value as any
+                        )[counter].toString();
+                    }
+                    counter++;
+                }
+            } else if (query[key] && query[key] instanceof ObjectID) {
+                query[key] = QueryHelper.equalTo(
+                    (query[key] as ObjectID).toString() as any
+                ) as any;
+            } else if (query[key] && query[key] instanceof Search) {
+                query[key] = QueryHelper.search(
+                    (query[key] as Search).toString() as any
+                ) as any;
+            } else if (query[key] && Array.isArray(query[key])) {
+                query[key] = QueryHelper.in(
+                    query[key] as any
+                ) as FindOperator<any> as any;
+            }
+        }
+
+        return query;
+    }
+
     public async deleteOneBy(
         deleteOneBy: DeleteOneBy<TBaseModel>
     ): Promise<number> {
@@ -785,21 +895,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     public async deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         return await this._deleteBy(deleteBy);
-    }
-
-    public async hardDeleteBy(
-        hardDeleteBy: HardDeleteBy<TBaseModel>
-    ): Promise<number> {
-        return await this._hardDeleteBy(hardDeleteBy);
-    }
-
-    private async _hardDeleteBy(
-        hardDeleteBy: HardDeleteBy<TBaseModel>
-    ): Promise<number> {
-        return (
-            (await this.getRepository().delete(hardDeleteBy.query as any))
-                .affected || 0
-        );
     }
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
@@ -814,16 +909,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 data: {
                     deletedByUser: deleteBy.deletedByUser,
                 } as any,
-                props: deleteBy.props,
+                props: {
+                    isRoot: true,
+                },
             });
+
             const numberOfDocsAffected: number =
-                (
-                    await this.getRepository().softDelete(
-                        beforeDeleteBy.query as any
-                    )
-                ).affected || 0;
+                (await this.getRepository().delete(beforeDeleteBy.query as any))
+                    .affected || 0;
 
             await this.onDeleteSuccess();
+
             return numberOfDocsAffected;
         } catch (error) {
             await this.onDeleteError(error as Exception);
@@ -841,7 +937,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
         try {
-            if (!findBy.sort) {
+            if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
                     createdAt: SortOrder.Descending,
                 };
@@ -857,9 +953,20 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
             }
 
+            if (
+                !onBeforeFind.select ||
+                Object.keys(onBeforeFind.select).length === 0
+            ) {
+                onBeforeFind.select = {
+                    _id: true,
+                } as any;
+            }
+
             if (!(onBeforeFind.limit instanceof PositiveNumber)) {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
+
+            onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
 
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
@@ -867,6 +974,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 where: onBeforeFind.query as any,
                 order: onBeforeFind.sort as any,
                 relations: onBeforeFind.populate as any,
+                select: onBeforeFind.select as any,
             });
 
             const decryptedItems: Array<TBaseModel> = [];
@@ -900,12 +1008,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async findOneById(
-        findOneById: FindOneByID
+        findOneById: FindOneByID<TBaseModel>
     ): Promise<TBaseModel | null> {
         return await this.findOneBy({
             query: {
                 _id: findOneById.id.toString() as any,
             },
+            select: findOneById.select || {},
             props: findOneById.props,
         });
     }

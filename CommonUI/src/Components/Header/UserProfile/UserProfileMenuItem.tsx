@@ -6,17 +6,21 @@ import Link from '../../Link/Link';
 
 export interface ComponentProps {
     title: string;
-    badge?: number;
+    badge?: undefined | number;
     route: Route;
     icon: IconProp;
-    iconColor?: Color;
+    iconColor?: undefined | Color;
 }
 
 const UserProfile: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <Link to={props.route} className="dropdown-item">
+        <Link
+            to={props.route}
+            onClick={undefined}
+            className="dropdown-item flex"
+        >
             {props.badge ? (
                 <span className="badge bg-success float-end">
                     {props.badge}
@@ -28,7 +32,15 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                 icon={props.icon}
                 color={props.iconColor ? props.iconColor : null}
             />
-            {<span>&nbsp;&nbsp;{props.title}&nbsp;&nbsp;&nbsp;&nbsp;</span>}
+            {
+                <div
+                    style={{
+                        marginTop: '1px',
+                    }}
+                >
+                    &nbsp;&nbsp;{props.title}&nbsp;&nbsp;&nbsp;&nbsp;
+                </div>
+            }
         </Link>
     );
 };

@@ -1,4 +1,6 @@
+import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
+import { ReactElement } from 'react';
 import SelectEntityField from '../../Types/SelectEntityField';
 import { IconProp } from '../Icon/Icon';
 import TableColumnType from '../Table/Types/TableColumnType';
@@ -12,7 +14,10 @@ export interface ActionButton {
 export default interface Columns<TEntity> {
     field?: SelectEntityField<TEntity>;
     title: string;
-    disbaleSort?: boolean;
+    disableSort?: boolean;
     type: TableColumnType;
+    isFilterable: boolean;
     actionButtons?: Array<ActionButton>;
+    moreFields?: SelectEntityField<TEntity>;
+    getColumnElement?: ((item: JSONObject) => ReactElement) | undefined;
 }

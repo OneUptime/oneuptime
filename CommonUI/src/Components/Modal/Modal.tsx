@@ -8,12 +8,14 @@ import ButtonType from '../Button/ButtonTypes';
 export interface ComponentProps {
     title: string;
     children: Array<ReactElement> | ReactElement;
-    onClose?: (() => void) | undefined;
-    submitButtonText?: string;
+    onClose?: undefined | (() => void);
+    submitButtonText?: undefined | string;
     onSubmit: () => void;
-    submitButtonStyleType?: ButtonStyleType;
-    submitButtonType?: ButtonType;
-    isLoading?: boolean;
+    submitButtonStyleType?: undefined | ButtonStyleType;
+    submitButtonType?: undefined | ButtonType;
+    isLoading?: undefined | boolean;
+    disableSubmitButton?: undefined | boolean;
+    error?: string | undefined;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (
@@ -57,6 +59,8 @@ const Modal: FunctionComponent<ComponentProps> = (
                                     props.onClose ? props.onClose : undefined
                                 }
                                 isLoading={props.isLoading || false}
+                                disableSubmitButton={props.disableSubmitButton}
+                                error={props.error}
                             />
                         </div>
                     </div>

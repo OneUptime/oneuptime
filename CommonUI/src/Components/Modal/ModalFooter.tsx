@@ -3,12 +3,14 @@ import Button, { ButtonStyleType } from '../Button/Button';
 import ButtonType from '../Button/ButtonTypes';
 
 export interface ComponentProps {
-    onClose?: (() => void) | undefined;
-    submitButtonText?: string;
+    onClose?: undefined | (() => void) | undefined;
+    submitButtonText?: undefined | string;
     onSubmit: () => void;
-    submitButtonStyleType?: ButtonStyleType;
-    submitButtonType?: ButtonType;
-    isLoading?: boolean;
+    submitButtonStyleType?: undefined | ButtonStyleType;
+    submitButtonType?: undefined | ButtonType;
+    isLoading?: undefined | boolean;
+    disableSubmitButton?: undefined | boolean;
+    error?: string | undefined;
 }
 
 const ModalFooter: FunctionComponent<ComponentProps> = (
@@ -30,7 +32,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                 <></>
             )}
 
-            {props.onSubmit ? (
+            {!props.error && props.onSubmit ? (
                 <Button
                     buttonStyle={
                         props.submitButtonStyleType
@@ -45,6 +47,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                         props.onSubmit();
                     }}
+                    disabled={props.disableSubmitButton || false}
                     isLoading={props.isLoading || false}
                     type={
                         props.submitButtonType

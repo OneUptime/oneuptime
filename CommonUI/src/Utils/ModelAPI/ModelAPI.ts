@@ -12,6 +12,10 @@ import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONArray, JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import { FormType } from '../../Components/Forms/ModelForm';
+import Dictionary from 'Common/Types/Dictionary';
+import ProjectUtil from '../Project';
+import Sort from './Sort';
+import Project from 'Common/Models/Project';
 
 export interface ListResult<TBaseModel extends BaseModel> {
     data: Array<TBaseModel>;
@@ -67,14 +71,22 @@ export default class ModelAPI {
             apiUrl = URL.fromURL(DASHBOARD_API_URL).addRoute(apiPath);
         }
 
+        const httpMethod: HTTPMethod =
+            formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT;
+
+        if (httpMethod === HTTPMethod.PUT) {
+            apiUrl = apiUrl.addRoute(`/${model._id}`);
+        }
+
         const result: HTTPResponse<
             JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
         > = await API.fetch<
             JSONObject | JSONArray | TBaseModel | Array<TBaseModel>
         >(
-            formType === FormType.Create ? HTTPMethod.POST : HTTPMethod.PUT,
+            httpMethod,
             apiUrl,
-            { data: model.toJSON() }
+            { data: model.toJSON() },
+            this.getCommonHeaders()
         );
 
         if (result.isSuccess()) {
@@ -88,7 +100,8 @@ export default class ModelAPI {
         query: Query<TBaseModel>,
         limit: number,
         skip: number,
-        select: Select<TBaseModel>
+        select: Select<TBaseModel>,
+        sort: Sort<TBaseModel>
     ): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new type();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -100,7 +113,7 @@ export default class ModelAPI {
 
         const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
             .addRoute(apiPath)
-            .addRoute('/get');
+            .addRoute('/get-list');
 
         if (!apiUrl) {
             throw new BadDataException(
@@ -115,8 +128,9 @@ export default class ModelAPI {
                 {
                     query: JSONFunctions.serialize(query as JSONObject),
                     select: JSONFunctions.serialize(select as JSONObject),
+                    sort: JSONFunctions.serialize(sort as JSONObject),
                 },
-                undefined,
+                this.getCommonHeaders(),
                 {
                     limit: limit.toString(),
                     skip: skip.toString(),
@@ -124,14 +138,31 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
+            const list: Array<TBaseModel> = model.fromJSONArray(
+                result.data as JSONArray,
+                type
+            );
+
             return {
-                data: model.fromJSONArray(result.data as JSONArray, type),
+                data: list,
                 count: result.count,
                 skip: result.skip,
                 limit: result.limit,
             };
         }
         throw result;
+    }
+
+    public static getCommonHeaders(): Dictionary<string> {
+        const headers: Dictionary<string> = {};
+
+        const project: Project | null = ProjectUtil.getCurrentProject();
+
+        if (project && project.id) {
+            headers['projectid'] = project.id.toString();
+        }
+
+        return headers;
     }
 
     public static async getItem<TBaseModel extends BaseModel>(
@@ -148,7 +179,8 @@ export default class ModelAPI {
 
         const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
             .addRoute(apiPath)
-            .addRoute('/' + id.toString());
+            .addRoute('/' + id.toString())
+            .addRoute('/get-item');
 
         if (!apiUrl) {
             throw new BadDataException(
@@ -158,17 +190,53 @@ export default class ModelAPI {
 
         const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
             await API.fetch<TBaseModel>(
-                HTTPMethod.GET,
+                HTTPMethod.POST,
                 apiUrl,
                 {
                     select: JSONFunctions.serialize(select as JSONObject),
                 },
-                undefined
+                this.getCommonHeaders()
             );
 
         if (result.isSuccess()) {
             return result.data as TBaseModel;
         }
+        throw result;
+    }
+
+    public static async deleteItem<TBaseModel extends BaseModel>(
+        type: { new (): TBaseModel },
+        id: ObjectID
+    ): Promise<void> {
+        const apiPath: Route | null = new type().getCrudApiPath();
+        if (!apiPath) {
+            throw new BadDataException(
+                'This model does not support delete operations.'
+            );
+        }
+
+        const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+            .addRoute(apiPath)
+            .addRoute('/' + id.toString());
+
+        if (!apiUrl) {
+            throw new BadDataException(
+                'This model does not support delete operations.'
+            );
+        }
+
+        const result: HTTPResponse<TBaseModel> | HTTPErrorResponse =
+            await API.fetch<TBaseModel>(
+                HTTPMethod.DELETE,
+                apiUrl,
+                undefined,
+                this.getCommonHeaders()
+            );
+
+        if (result.isSuccess()) {
+            return;
+        }
+
         throw result;
     }
 }

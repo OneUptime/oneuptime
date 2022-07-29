@@ -9,9 +9,9 @@ export enum LoaderType {
 }
 
 export interface ComponentProps {
-    size?: number;
-    color?: Color;
-    loaderType?: LoaderType;
+    size?: undefined | number;
+    color?: undefined | Color;
+    loaderType?: undefined | LoaderType;
 }
 
 const Loader: FunctionComponent<ComponentProps> = ({

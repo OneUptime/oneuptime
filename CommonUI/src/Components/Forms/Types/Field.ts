@@ -2,13 +2,16 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import FormFieldSchemaType from './FormFieldSchemaType';
 import SelectFormFields from '../../../Types/SelectEntityField';
+import { DropdownOption } from '../../Dropdown/Dropdown';
 
 export default interface Field<TEntity> {
     title?: string;
     description?: string;
     field: SelectFormFields<TEntity>;
     placeholder?: string;
+    disabled?: boolean;
     required?: boolean;
+    dropdownOptions?: Array<DropdownOption> | undefined;
     sideLink?: {
         text: string;
         url: Route | URL;
@@ -18,6 +21,9 @@ export default interface Field<TEntity> {
         minLength?: number;
         maxLength?: number;
         toMatchField?: string;
+        noSpaces?: boolean;
+        minValue?: number;
+        maxValue?: number;
     };
     fieldType?: FormFieldSchemaType;
     overideFieldKey?: string;

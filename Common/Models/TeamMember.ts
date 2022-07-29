@@ -4,6 +4,7 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import ColumnType from '../Types/Database/ColumnType';
 import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
+import EntityName from '../Types/Database/EntityName';
 import ProjectColumn from '../Types/Database/ProjectColumn';
 import TableColumn from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
@@ -44,6 +45,7 @@ import User from './User';
 @Entity({
     name: 'TeamMember',
 })
+@EntityName('Team Member', 'Team Members')
 export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [

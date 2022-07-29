@@ -87,7 +87,7 @@ export default class ProjectAPIKey extends BaseModel {
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
         type: ColumnType.ObjectID,
-        length: ColumnLength.ObjectID,
+
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })

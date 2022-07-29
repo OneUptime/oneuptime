@@ -14,6 +14,7 @@ import Permission from '../Types/Permission';
 import ProjectColumn from '../Types/Database/ProjectColumn';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
+import EntityName from '../Types/Database/EntityName';
 
 @ProjectColumn('projectId')
 @CrudApiEndpoint(new Route('/api-key'))
@@ -31,6 +32,7 @@ import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessCon
         Permission.CanEditProjectApiKey,
     ],
 })
+@EntityName('API Key', 'API Keys')
 export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -214,12 +216,14 @@ export default class ApiKey extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, isDefaultValueColumn: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        isDefaultValueColumn: false,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
-        default: ObjectID.generate(),
     })
     public apiKey?: ObjectID;
 }

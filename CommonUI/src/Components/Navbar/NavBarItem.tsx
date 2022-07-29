@@ -6,9 +6,9 @@ import Link from '../Link/Link';
 
 export interface ComponentProps {
     title: string;
-    icon?: IconProp;
-    route?: Route;
-    children?: ReactElement | Array<ReactElement>;
+    icon?: undefined | IconProp;
+    route?: undefined | Route;
+    children?: undefined | ReactElement | Array<ReactElement>;
 }
 
 const NavBarItem: FunctionComponent<ComponentProps> = (
@@ -23,7 +23,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
             }`}
         >
             <Link
-                className="nav-link dropdown-toggle arrow-none"
+                className="flex nav-link dropdown-toggle arrow-none"
                 to={props.route ? props.route : null}
             >
                 {props.icon ? <Icon icon={props.icon} /> : <></>}

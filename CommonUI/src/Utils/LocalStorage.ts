@@ -1,12 +1,15 @@
 import URL from 'Common/Types/API/URL';
 import Email from 'Common/Types/Email';
-import { JSONValue } from 'Common/Types/JSON';
+import { JSONFunctions, JSONObject, JSONValue } from 'Common/Types/JSON';
+import Typeof from 'Common/Types/Typeof';
 
 export default class LocalStorage {
     public static setItem(key: string, value: JSONValue | Email | URL): void {
-        if (typeof value === 'object') {
+        if (typeof value === Typeof.Object) {
             // if of type jsonobject.
-            value = JSON.stringify(value);
+            value = JSON.stringify(
+                JSONFunctions.serializeValue(value as JSONValue) as JSONObject
+            );
         }
         localStorage.setItem(key, value as string);
     }
@@ -16,7 +19,9 @@ export default class LocalStorage {
 
         try {
             if (value) {
-                return JSON.parse(value?.toString());
+                return JSONFunctions.deserializeValue(
+                    JSON.parse(value?.toString())
+                );
             }
             return value;
         } catch (err) {

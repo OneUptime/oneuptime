@@ -1,5 +1,6 @@
 import BadDataException from '../Exception/BadDataException';
 import Port from '../Port';
+import Typeof from '../Typeof';
 
 export default class Hostname {
     private _route: string = '';
@@ -31,10 +32,10 @@ export default class Hostname {
 
         if (port instanceof Port) {
             this.port = port;
-        } else if (typeof port === 'string') {
-            this.port = new Port(port);
-        } else if (typeof port === 'number') {
-            this.port = new Port(port);
+        } else if (typeof port === Typeof.String) {
+            this.port = new Port(port as string);
+        } else if (typeof port === Typeof.Number) {
+            this.port = new Port(port as number);
         }
     }
 
