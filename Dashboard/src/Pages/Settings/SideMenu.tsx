@@ -89,7 +89,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         title: 'SSO',
                         to: new Route('/:projectSlug/home'),
                     }}
-                    icon={IconProp.Key}
+                    icon={IconProp.Lock}
                 />
                 <SideMenuItem
                     link={{

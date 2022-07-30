@@ -232,7 +232,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 title: '',
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
-                    setShowTableFilter(!showTableFilter);
+                    const newValue = !showTableFilter;
+                    if (!newValue) {
+                        setQuery({});
+                    }
+                    setShowTableFilter(newValue);
                 },
                 disabled: isLoading,
                 icon: IconProp.Filter,
