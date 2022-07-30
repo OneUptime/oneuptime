@@ -54,6 +54,45 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Terminal,
                 }
                 }
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'API Key Name',
+                        validation: {
+                            noSpaces: true,
+                            minLength: 2,
+                        },
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: true,
+                        placeholder:
+                            'API Key Description',
+                    },
+                    {
+                        field: {
+                            expiresAt: true,
+                        },
+                        title: 'Expires',
+                        fieldType: FormFieldSchemaType.Date,
+                        required: true,
+                        placeholder:
+                            'Expires at',
+                        validation: {
+                            dateShouldBeInTheFuture: true
+                        }
+                    }
+                ]}
                 modelDetailProps={
                     {
                         type: ApiKey,

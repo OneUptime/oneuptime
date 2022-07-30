@@ -214,7 +214,11 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                 </label>
                 {field.description && <p>{field.description}</p>}
 
-                <div className="form-control">
+                <div className="form-control" style={{
+                    border: "none",
+                    paddingLeft: "0px",
+                    paddingTop: "0px"
+                }}>
                     {data}
                 </div>
             </div>

@@ -49,7 +49,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(props: Componen
         if (props.isEditable && hasPermissionToEdit) {
             setCardButtons([
                 {
-                    title: `Create ${props.modelDetailProps.model.singularName}`,
+                    title: `Edit ${props.modelDetailProps.model.singularName}`,
                     buttonStyle: ButtonStyleType.OUTLINE,
                     onClick: () => {
                         setShowModal(true);
