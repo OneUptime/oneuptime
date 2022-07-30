@@ -111,8 +111,9 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: true,
                         },
-                        title: 'Labels',
-                        fieldType: FormFieldSchemaType.MultiSelectModelDropdown,
+                        title: 'Labels (Optional)',
+                        description: 'Labels on which this permissions will apply on. This is optional and an advanced feature.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Label,
                             labelField: "name",

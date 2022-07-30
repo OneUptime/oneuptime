@@ -290,7 +290,7 @@ export default class APIKeyPermission extends BaseModel {
             Permission.CanEditProjectApiKey,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.Array })
+    @TableColumn({ required: false, type: TableColumnType.Array })
     @ManyToMany(() => {
         return Label;
     })

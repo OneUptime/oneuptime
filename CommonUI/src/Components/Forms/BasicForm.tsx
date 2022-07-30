@@ -147,7 +147,7 @@ const BasicForm: Function = <T extends Object>(
                     </Field>
                 )}
 
-                {field.fieldType === FormFieldSchemaType.Dropdown && (
+                {(field.fieldType === FormFieldSchemaType.Dropdown || field.fieldType === FormFieldSchemaType.MultiSelectDropdown) && (
                     <Field name={fieldName}>
                         {({ form }: any) => {
                             return (
@@ -167,6 +167,7 @@ const BasicForm: Function = <T extends Object>(
                                             true
                                         );
                                     }}
+                                    isMultiSelect={field.fieldType === FormFieldSchemaType.MultiSelectDropdown}
                                     options={field.dropdownOptions || []}
                                     placeholder={field.placeholder || ''}
                                     initialValue={

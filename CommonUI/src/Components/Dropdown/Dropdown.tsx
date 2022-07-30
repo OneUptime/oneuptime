@@ -23,6 +23,7 @@ export interface ComponentProps {
     value?: string | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
+    isMultiSelect?: boolean;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
@@ -68,6 +69,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 onBlur={() => {
                     props.onBlur && props.onBlur();
                 }}
+                isMulti={props.isMultiSelect}
                 value={selectedValue}
                 onFocus={() => {
                     props.onFocus && props.onFocus();
