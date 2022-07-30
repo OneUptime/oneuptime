@@ -11,6 +11,8 @@ import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
+import ApiKey from 'Common/Models/ApiKey';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -43,11 +45,32 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             <CardModelDetail
                 cardProps={{
                     title: "API Key Details",
-                    description: "API Key Description", 
+                    description: "API Key Description",
                     icon: IconProp.Terminal,
                 }
                 }
-                modelDetailProps={}
+                modelDetailProps={
+                    {
+                        type: ApiKey,
+                        model: new ApiKey(),
+                        id: "model-detail-api-key",
+                        fields: [
+                            {
+                                field: {
+                                    name: true
+                                },
+                                title: "Name",
+                            },
+                            {
+                                field: {
+                                    description: true
+                                },
+                                title: "Description",
+                            },
+                        ],
+                        modelId: Navigation.getParamByName("id"),
+                    }
+                }
             />
 
             {/* API Key Permisison Table */}
