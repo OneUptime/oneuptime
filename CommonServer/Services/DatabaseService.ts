@@ -537,6 +537,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
+        debugger;
         for (const key in findBy.select) {
             if (excludedColumns.includes(key)) {
                 continue;

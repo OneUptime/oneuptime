@@ -50,7 +50,7 @@ export default class Probe extends BaseModel {
         unique: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public key?: ObjectID;
+    public key?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -63,7 +63,7 @@ export default class Probe extends BaseModel {
         type: ColumnType.Name,
         length: ColumnLength.Name,
     })
-    public name?: string = undefined;
+    public name?: string = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -76,7 +76,7 @@ export default class Probe extends BaseModel {
         type: ColumnType.Name,
         length: ColumnLength.Name,
     })
-    public description?: string = undefined;
+    public description?: string = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -89,7 +89,7 @@ export default class Probe extends BaseModel {
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
     })
-    public slug?: string = undefined;
+    public slug?: string = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -103,7 +103,7 @@ export default class Probe extends BaseModel {
         length: ColumnLength.Version,
         transformer: Version.getDatabaseTransformer(),
     })
-    public probeVersion?: Version;
+    public probeVersion?: Version = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -122,7 +122,7 @@ export default class Probe extends BaseModel {
         },
         type: ColumnType.Date,
     })
-    public lastAlive?: Date = undefined;
+    public lastAlive?: Date = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -136,7 +136,7 @@ export default class Probe extends BaseModel {
         length: ColumnLength.ShortURL,
         transformer: URL.getDatabaseTransformer(),
     })
-    public iconUrl?: URL;
+    public iconUrl?: URL = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -157,7 +157,7 @@ export default class Probe extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project;
+    public project?: Project = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -170,7 +170,7 @@ export default class Probe extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID;
+    public projectId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -191,7 +191,7 @@ export default class Probe extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -204,7 +204,7 @@ export default class Probe extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -224,7 +224,7 @@ export default class Probe extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -237,5 +237,5 @@ export default class Probe extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined; 
 }

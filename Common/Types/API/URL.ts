@@ -117,7 +117,7 @@ export default class URL extends DatabaseProperty {
 
         const hostname: Hostname = new Hostname(url.split('/')[0] || '');
 
-        let route: Route | undefined = undefined;
+        let route: Route | undefined;
 
         if (url.split('/').length > 1) {
             const paths: Array<string> = url.split('/');

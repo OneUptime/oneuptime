@@ -23,6 +23,7 @@ import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
 import TextArea from './Fields/TextArea';
 import Dropdown from '../Dropdown/Dropdown';
+import OneUptimeDate from 'Common/Types/Date';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -284,6 +285,20 @@ const BasicForm: Function = <T extends Object>(
         return null;
     };
 
+    const validateDate: Function = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
+        if (field.validation) {
+            if (field.validation.dateShouldBeInTheFuture) {
+                if (OneUptimeDate.isInThePast(content.trim())) {
+                    return `${field.title || name} should be a future date.`;
+                }
+            }
+        }
+        return null;
+    };
+
     const validateMaxValueAndMinValue: Function = (
         content: string | number,
         field: DataField<T>
@@ -402,6 +417,12 @@ const BasicForm: Function = <T extends Object>(
                 const result: string | null = validateLength(content, field);
                 if (result) {
                     errors[name] = result;
+                }
+
+                // check for date
+                const resultDate: string | null = validateDate(content, field);
+                if (resultDate) {
+                    errors[name] = resultDate;
                 }
 
                 // check for length of content

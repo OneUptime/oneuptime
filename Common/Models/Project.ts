@@ -49,7 +49,7 @@ export default class Model extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public name?: string = undefined;
+    public name?: string = undefined; 
 
     @Index()
     @ColumnAccessControl({
@@ -64,7 +64,7 @@ export default class Model extends BaseModel {
         length: ColumnLength.Slug,
         unique: true,
     })
-    public slug?: string = undefined;
+    public slug?: string = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.User],
@@ -78,7 +78,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentProviderPlanId?: string = undefined;
+    public paymentProviderPlanId?: string = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.User],
@@ -92,7 +92,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentProviderSubscriptionId?: string = undefined;
+    public paymentProviderSubscriptionId?: string = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -109,7 +109,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: 1,
     })
-    public numberOfLicensesIssued?: PositiveNumber;
+    public numberOfLicensesIssued?: PositiveNumber = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.User],
@@ -132,7 +132,7 @@ export default class Model extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -145,7 +145,7 @@ export default class Model extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -169,7 +169,7 @@ export default class Model extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -182,7 +182,7 @@ export default class Model extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -204,7 +204,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: false,
     })
-    public alertsEnabled?: boolean = undefined;
+    public alertsEnabled?: boolean = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -222,7 +222,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: 0,
     })
-    public alertAccountBalance?: number;
+    public alertAccountBalance?: number = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -240,7 +240,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: false,
     })
-    public isBlocked?: boolean = undefined;
+    public isBlocked?: boolean = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -253,7 +253,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public unpaidSubscriptionNotificationCount?: PositiveNumber;
+    public unpaidSubscriptionNotificationCount?: PositiveNumber = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -266,7 +266,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentFailedDate?: Date = undefined;
+    public paymentFailedDate?: Date = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -279,5 +279,5 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentSuccessDate?: Date = undefined;
+    public paymentSuccessDate?: Date = undefined; 
 }

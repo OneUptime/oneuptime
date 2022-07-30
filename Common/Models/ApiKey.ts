@@ -55,7 +55,7 @@ export default class ApiKey extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project;
+    public project?: Project = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -69,12 +69,12 @@ export default class ApiKey extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID;
+    public projectId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [Permission.CanEditProjectApiKey],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
     @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -83,12 +83,12 @@ export default class ApiKey extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public name?: string = undefined;
+    public name?: string = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [Permission.CanEditProjectApiKey],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -96,7 +96,7 @@ export default class ApiKey extends BaseModel {
         type: ColumnType.LongText,
         length: ColumnLength.LongText,
     })
-    public description?: string = undefined;
+    public description?: string = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -109,7 +109,7 @@ export default class ApiKey extends BaseModel {
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
     })
-    public slug?: string = undefined;
+    public slug?: string = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -132,7 +132,7 @@ export default class ApiKey extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -145,7 +145,7 @@ export default class ApiKey extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -169,7 +169,7 @@ export default class ApiKey extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -182,25 +182,24 @@ export default class ApiKey extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [Permission.CanEditProjectApiKey],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
-    @TableColumn({ title: 'Expires At', type: TableColumnType.Date })
+    @TableColumn({ title: 'Expires At', type: TableColumnType.Date, required: true })
     @Column({
-        type: ColumnType.ObjectID,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
+        type: ColumnType.Date,
+        nullable: false,
     })
-    public expiresAt?: Date = undefined;
+    public expiresAt?: Date = undefined; 
 
     @ColumnAccessControl({
         create: [],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
     @Index()
     @TableColumn({
@@ -212,5 +211,5 @@ export default class ApiKey extends BaseModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public apiKey?: ObjectID;
+    public apiKey?: ObjectID = undefined; 
 }

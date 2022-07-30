@@ -343,14 +343,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             if (hasPermission) {
                 columns.push({
-                    title: column.title,
-                    disableSort: column.disableSort || false,
-                    type: column.type,
-                    key: key,
-                    isFilterable: column.isFilterable,
-                    getColumnElement: column.getColumnElement
-                        ? column.getColumnElement
-                        : undefined,
+                    ...column, 
+                    key
                 });
 
                 if (key) {
@@ -420,7 +414,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         if (props.isViewable && hasPermissionToView) {
             actionsSchema.push({
                 title: 'View',
-                buttonStyleType: ButtonStyleType.NORMAL,
+                buttonStyleType: ButtonStyleType.OUTLINE,
                 actionType: ActionType.View,
             });
         }

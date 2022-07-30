@@ -117,7 +117,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         }
 
         setFields(fieldsToSet);
-    });
+    }, []);
 
 
     const fetchItem = async () => {

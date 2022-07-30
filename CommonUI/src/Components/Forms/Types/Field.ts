@@ -3,6 +3,7 @@ import URL from 'Common/Types/API/URL';
 import FormFieldSchemaType from './FormFieldSchemaType';
 import SelectFormFields from '../../../Types/SelectEntityField';
 import { DropdownOption } from '../../Dropdown/Dropdown';
+import BaseModel from 'Common/Models/BaseModel';
 
 export default interface Field<TEntity> {
     title?: string;
@@ -12,6 +13,11 @@ export default interface Field<TEntity> {
     disabled?: boolean;
     required?: boolean;
     dropdownOptions?: Array<DropdownOption> | undefined;
+    dropdownModal?: {
+        type: { new(): BaseModel }, 
+        labelField: string; 
+        valueField: string;
+    },
     sideLink?: {
         text: string;
         url: Route | URL;
@@ -24,6 +30,7 @@ export default interface Field<TEntity> {
         noSpaces?: boolean;
         minValue?: number;
         maxValue?: number;
+        dateShouldBeInTheFuture?: boolean;
     };
     fieldType?: FormFieldSchemaType;
     overideFieldKey?: string;

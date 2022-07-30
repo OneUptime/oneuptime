@@ -19,6 +19,7 @@ import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -173,7 +174,7 @@ export default class BaseAPI<
             ? new PositiveNumber(req.query['limit'] as string)
             : new PositiveNumber(10);
 
-        if (limit.toNumber() > 50) {
+        if (limit.toNumber() > LIMIT_PER_PROJECT) {
             throw new BadRequestException('Limit should be less than 50');
         }
 

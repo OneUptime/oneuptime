@@ -50,7 +50,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         }
     );
 
-    let selectedValue: DropdownOption | undefined = undefined;
+    let selectedValue: DropdownOption | undefined;
 
     if (selectedValues.length > 0) {
         selectedValue = selectedValues[0];

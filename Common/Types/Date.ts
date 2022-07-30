@@ -129,6 +129,33 @@ export default class OneUptimeDate {
     }
 
     public static getCurrentDateAsFormattedString(): string {
-        return moment().format('MMMM Do YYYY, HH:MM:SS');
+        return this.getDateAsFormattedString(new Date());
+    }
+
+    public static getDateAsFormattedString(date: string | Date, onlyShowDate?: boolean): string {
+        let formatstring = 'MMMM Do YYYY, HH:MM:SS';
+
+        if (onlyShowDate) {
+            formatstring = 'MMMM Do YYYY';
+        }
+
+        return moment(date).format(formatstring);
+    }
+
+    public static getDateAsLocalFormattedString(date: string | Date, onlyShowDate?: boolean): string {
+        let formatstring = 'MMMM Do YYYY, HH:MM:SS';
+
+        if (onlyShowDate) {
+            formatstring = 'MMMM Do YYYY';
+        }
+        return moment(date).local().format(formatstring);
+    }
+
+    public static isInThePast(date: string | Date): boolean {
+        return moment(date).isBefore(new Date());
+    }
+
+    public static isInTheFuture(date: string | Date): boolean {
+        return moment(date).isAfter(new Date());
     }
 }

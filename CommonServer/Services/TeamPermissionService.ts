@@ -4,7 +4,7 @@ import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import AccessTokenService from './AccessTokenService';
 import TeamMemberService from './TeamMemberService';
-import LIMIT_MAX from '../Types/Database/LimitMax';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import TeamMember from 'Common/Models/TeamMember';
 
 export class Service extends DatabaseService<Model> {

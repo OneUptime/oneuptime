@@ -86,7 +86,7 @@ export default class APIKeyPermission extends BaseModel {
         }
     )
     @JoinColumn({ name: 'apiKeyId' })
-    public apiKey?: ApiKey;
+    public apiKey?: ApiKey  = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -117,7 +117,7 @@ export default class APIKeyPermission extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project;
+    public project?: Project = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -139,7 +139,7 @@ export default class APIKeyPermission extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID;
+    public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -161,7 +161,7 @@ export default class APIKeyPermission extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public apiKeyId?: ObjectID;
+    public apiKeyId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -188,7 +188,7 @@ export default class APIKeyPermission extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -205,7 +205,7 @@ export default class APIKeyPermission extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -233,7 +233,7 @@ export default class APIKeyPermission extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -246,7 +246,7 @@ export default class APIKeyPermission extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -295,5 +295,5 @@ export default class APIKeyPermission extends BaseModel {
         return Label;
     })
     @JoinTable()
-    public labels?: Array<Label>;
+    public labels?: Array<Label> = undefined;
 }

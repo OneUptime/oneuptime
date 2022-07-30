@@ -13,6 +13,8 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 import ApiKey from 'Common/Models/ApiKey';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import PermissionUtil from 'CommonUI/src/Utils/Permission';
+import Label from 'Common/Models/Label';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -45,7 +47,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             <CardModelDetail
                 cardProps={{
                     title: "API Key Details",
-                    description: "API Key Description",
+                    description: "Here's more details on this API Key.",
                     icon: IconProp.Terminal,
                 }
                 }
@@ -95,24 +97,30 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         field: {
                             permission: true,
                         },
-                        title: 'Name',
-                        fieldType: FormFieldSchemaType.Text,
+                        title: 'Permission',
+                        fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
-                        placeholder: 'API Key Name',
+                        placeholder: 'Permission',
                         validation: {
                             noSpaces: true,
                             minLength: 2,
                         },
+                        dropdownOptions: PermissionUtil.projectPermissionsAsDropdownOptions()
                     },
                     {
                         field: {
-                            description: true,
+                            labels: true,
                         },
-                        title: 'Description',
-                        fieldType: FormFieldSchemaType.LongText,
-                        required: true,
+                        title: 'Labels',
+                        fieldType: FormFieldSchemaType.MultiSelectModelDropdown,
+                        dropdownModal: {
+                            type: Label,
+                            labelField: "name",
+                            valueField: "_id"
+                        },
+                        required: false,
                         placeholder:
-                            'API Key Description',
+                            'Labels',
                     }
                 ]}
                 showRefreshButton={true}

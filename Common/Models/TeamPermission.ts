@@ -84,7 +84,7 @@ export default class TeamPermission extends BaseModel {
         }
     )
     @JoinColumn({ name: 'teamId' })
-    public team?: Team;
+    public team?: Team = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -115,7 +115,7 @@ export default class TeamPermission extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project;
+    public project?: Project = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -137,7 +137,7 @@ export default class TeamPermission extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID;
+    public projectId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -159,7 +159,7 @@ export default class TeamPermission extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public teamId?: ObjectID;
+    public teamId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -186,7 +186,7 @@ export default class TeamPermission extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -203,7 +203,7 @@ export default class TeamPermission extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -231,7 +231,7 @@ export default class TeamPermission extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -244,7 +244,7 @@ export default class TeamPermission extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -270,7 +270,7 @@ export default class TeamPermission extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public permission?: Permission = undefined;
+    public permission?: Permission = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -295,5 +295,5 @@ export default class TeamPermission extends BaseModel {
         return Label;
     })
     @JoinTable()
-    public labels?: Array<Label>;
+    public labels?: Array<Label> = undefined; 
 }

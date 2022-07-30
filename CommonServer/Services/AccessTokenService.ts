@@ -10,7 +10,7 @@ import Permission, {
 } from 'Common/Types/Permission';
 import TeamPermission from 'Common/Models/TeamPermission';
 import TeamPermissionService from './TeamPermissionService';
-import LIMIT_MAX from '../Types/Database/LimitMax';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Label from 'Common/Models/Label';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 

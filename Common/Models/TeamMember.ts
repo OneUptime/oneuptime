@@ -76,7 +76,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'teamId' })
-    public team?: Team;
+    public team?: Team = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -98,7 +98,7 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public teamId?: ObjectID;
+    public teamId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -129,7 +129,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project;
+    public project?: Project = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -151,7 +151,7 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID;
+    public projectId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -182,7 +182,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'userId' })
-    public user?: User;
+    public user?: User = undefined; 
 
     @ColumnAccessControl({
         create: [
@@ -203,7 +203,7 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public userId?: ObjectID;
+    public userId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -226,7 +226,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -239,7 +239,7 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -263,7 +263,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -276,5 +276,5 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined; 
 }

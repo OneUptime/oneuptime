@@ -1,9 +1,12 @@
 import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
 import {
+    PermissionHelper,
+    PermissionProps,
     UserGlobalAccessPermission,
     UserProjectAccessPermission,
 } from 'Common/Types/Permission';
+import { DropdownOption } from '../Components/Dropdown/Dropdown';
 
 export default class PermissionUtil {
     public static getGlobalPermissions(): UserGlobalAccessPermission | null {
@@ -26,6 +29,18 @@ export default class PermissionUtil {
         ) as JSONObject;
 
         return permissions as UserProjectAccessPermission;
+    }
+
+    public static projectPermissionsAsDropdownOptions(): Array<DropdownOption> {
+        const permissions: Array<PermissionProps> = PermissionHelper.getProjectPermissionProps();
+
+        return permissions.map((permissionProp) => {
+            return {
+                value: permissionProp.permission,
+                label: permissionProp.title,
+            }
+        })
+
     }
 
     public static setGlobalPermissions(

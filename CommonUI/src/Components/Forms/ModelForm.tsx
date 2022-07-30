@@ -12,7 +12,7 @@ import BasicModelForm from './BasicModelForm';
 import { JSONArray, JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Select from '../../Utils/ModelAPI/Select';
 import Dictionary from 'Common/Types/Dictionary';
@@ -27,6 +27,8 @@ import Permission, {
 import PermissionUtil from '../../Utils/Permission';
 import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 
 export enum FormType {
     Create,
@@ -34,14 +36,14 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    type: { new (): TBaseModel };
+    type: { new(): TBaseModel };
     model: TBaseModel;
     id: string;
     onValidate?:
-        | undefined
-        | ((
-              values: FormValues<TBaseModel>
-          ) => FormikErrors<FormValues<TBaseModel>>);
+    | undefined
+    | ((
+        values: FormValues<TBaseModel>
+    ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -50,8 +52,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     onSuccess?:
-        | undefined
-        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+    | undefined
+    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -70,6 +72,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
     const [fields, setFields] = useState<Fields<TBaseModel>>([]);
     const [isLoading, setLoading] = useState<boolean>(false);
     const [isFetching, setIsFetching] = useState<boolean>(false);
+    const [isFetchingDropdownOptions, setIsFetchingDropdownOptions] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
 
@@ -88,9 +91,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         return select;
     };
 
-    useEffect(() => {
-        // set fields.
 
+    const setFormFields = async () => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -112,7 +114,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         const accessControl: Dictionary<ColumnAccessControl> =
             getColumnAccessControlForAllColumns(props.model);
 
-        const fieldsToSet: Fields<TBaseModel> = [];
+        let fieldsToSet: Fields<TBaseModel> = [];
 
         for (const field of props.fields) {
             const keys: Array<string> = Object.keys(field.field);
@@ -140,8 +142,98 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             }
         }
 
+
+        fieldsToSet = await fetchDropdownOptions(fieldsToSet);
+
         setFields(fieldsToSet);
+    }
+
+    useEffect(() => {
+        // set fields.
+        setFormFields();
     }, []);
+
+    const fetchItem = async () => {
+
+        if (!props.modelIdToEdit || props.formType !== FormType.Update) {
+            throw new BadDataException("Model ID to update not found.");
+        }
+
+        const item: TBaseModel | null = await ModelAPI.getItem(
+            props.type,
+            props.modelIdToEdit,
+            getSelectFields()
+        );
+
+        if (!item) {
+            setError(
+                `Cannot edit ${(
+                    props.model.singularName || 'item'
+                ).toLowerCase()}. It could be because you don't have enough permissions to read or edit this ${(
+                    props.model.singularName || 'item'
+                ).toLowerCase()}.`
+            );
+        }
+
+        setItemToEdit(item);
+    }
+
+
+    const fetchDropdownOptions = async (fields: Fields<TBaseModel>): Promise<Fields<TBaseModel>> => {
+
+        setIsFetchingDropdownOptions(true);
+
+        try {
+
+            for (const field of fields) {
+
+                if (field.dropdownModal && field.dropdownModal.type) {
+                    const listResult: ListResult<BaseModel> =
+                        await ModelAPI.getList<BaseModel>(
+                            field.dropdownModal.type,
+                            {},
+                            LIMIT_PER_PROJECT,
+                            1,
+                            {
+                                [field.dropdownModal.labelField]: true,
+                                [field.dropdownModal.valueField]: true,
+                            },
+                            {}
+                        );
+
+                    if (listResult.data && listResult.data.length > 0) {
+                        field.dropdownOptions = listResult.data.map((item: BaseModel) => {
+                            if (!field.dropdownModal) {
+                                throw new BadDataException("Dropdown Modal value mot found");
+                            }
+
+                            return {
+                                label: ((item as any)[field.dropdownModal?.labelField]).toString(),
+                                value: (item as any)[field.dropdownModal?.valueField].toString()
+                            }
+                        })
+                    } else {
+                        field.dropdownOptions = [];
+                    }
+                }
+            }
+
+            setIsFetchingDropdownOptions(false);
+
+        } catch (err) {
+            try {
+                setError(
+                    ((err as HTTPErrorResponse).data as JSONObject)[
+                    'error'
+                    ] as string
+                );
+            } catch (e) {
+                setError('Server Error. Please try again');
+            }
+        }
+
+        return fields;
+    };
 
     useAsyncEffect(async () => {
         if (props.modelIdToEdit && props.formType === FormType.Update) {
@@ -150,23 +242,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             setIsFetching(true);
             setError('');
             try {
-                const item: TBaseModel | null = await ModelAPI.getItem(
-                    props.type,
-                    props.modelIdToEdit,
-                    getSelectFields()
-                );
-
-                if (!item) {
-                    setError(
-                        `Cannot edit ${(
-                            props.model.singularName || 'item'
-                        ).toLowerCase()}. It could be because you don't have enough permissions to read or edit this ${(
-                            props.model.singularName || 'item'
-                        ).toLowerCase()}.`
-                    );
-                }
-
-                setItemToEdit(item);
+                await fetchItem();
             } catch (err) {
                 let error: string = '';
                 try {
@@ -221,7 +297,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                'error'
                 ] as string
             );
         }
@@ -233,7 +309,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         }
     };
 
-    if (isFetching) {
+    if (isFetching || isFetchingDropdownOptions) {
         return (
             <div
                 className="row text-center"

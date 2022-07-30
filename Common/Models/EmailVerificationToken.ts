@@ -47,7 +47,7 @@ export default class EmailVerificationToken extends BaseModel {
         }
     )
     @JoinColumn({ name: 'userId' })
-    public user?: User;
+    public user?: User = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -60,7 +60,7 @@ export default class EmailVerificationToken extends BaseModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public userId?: ObjectID;
+    public userId?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -74,7 +74,7 @@ export default class EmailVerificationToken extends BaseModel {
         nullable: false,
         transformer: Email.getDatabaseTransformer(),
     })
-    public email?: Email = undefined;
+    public email?: Email = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -94,7 +94,7 @@ export default class EmailVerificationToken extends BaseModel {
 
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public token?: ObjectID;
+    public token?: ObjectID = undefined; 
 
     @ColumnAccessControl({
         create: [],
@@ -106,5 +106,5 @@ export default class EmailVerificationToken extends BaseModel {
         nullable: false,
         type: ColumnType.Date,
     })
-    public expires?: Date = undefined;
+    public expires?: Date = undefined; 
 }

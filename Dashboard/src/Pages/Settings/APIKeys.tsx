@@ -71,6 +71,19 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder:
                             'API Key Description',
+                    },
+                    {
+                        field: {
+                            expiresAt: true,
+                        },
+                        title: 'Expires',
+                        fieldType: FormFieldSchemaType.Date,
+                        required: true,
+                        placeholder:
+                            'Expires at',
+                        validation: {
+                            dateShouldBeInTheFuture: true
+                        }
                     }
                 ]}
                 showRefreshButton={true}
@@ -92,6 +105,17 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: TableColumnType.Text,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            expiresAt: true,
+                        },
+                        title: 'Expires',
+                        type: TableColumnType.Date,
+                        isFilterable: true,
+                        options: {
+                            onlyShowDate: true
+                        }
                     },
                 ]}
             />
