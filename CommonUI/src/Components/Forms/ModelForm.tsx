@@ -141,7 +141,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         }
 
         setFields(fieldsToSet);
-    });
+    }, []);
 
     useAsyncEffect(async () => {
         if (props.modelIdToEdit && props.formType === FormType.Update) {
