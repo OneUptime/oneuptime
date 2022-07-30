@@ -35,6 +35,9 @@ import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/Acces
 import Query from '../../Utils/ModelAPI/Query';
 import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
+import Navigation from '../../Utils/Navigation';
+import Route from 'Common/Types/API/Route';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -57,6 +60,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     noItemsMessage?: undefined | string;
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
+    isViewable?: undefined | boolean;
+    currentPageRoute?: undefined | Route; 
 }
 
 enum ModalType {
@@ -214,6 +219,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 icon: IconProp.Add,
             });
         }
+
 
         if (props.showRefreshButton) {
             headerbuttons.push({
@@ -386,6 +392,19 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 )
         );
 
+        const hasPermissionToView: boolean = Boolean(
+            userProjectPermissions &&
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    props.model.readRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
+                )
+        );
+
         if (
             (props.isDeleteable && hasPermissionToDelete) ||
             (props.isEditable && hasPermissionToUpdate)
@@ -398,10 +417,17 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         const actionsSchema: Array<ActionButtonSchema> = [];
 
+        if (props.isViewable && hasPermissionToView) {
+            actionsSchema.push({
+                title: 'View',
+                buttonStyleType: ButtonStyleType.NORMAL,
+                actionType: ActionType.View,
+            });
+        }
+
         if (props.isEditable && hasPermissionToUpdate) {
             actionsSchema.push({
                 title: 'Edit',
-                icon: IconProp.Edit,
                 buttonStyleType: ButtonStyleType.NORMAL,
                 actionType: ActionType.Edit,
             });
@@ -415,6 +441,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 actionType: ActionType.Delete,
             });
         }
+
+        
 
         setActionButtonSchema(actionsSchema);
 
@@ -492,6 +520,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         if (key === ActionType.Delete) {
                             setShowDeleteConfirmModal(true);
                             setCurrentDeleteableItem(item);
+                        }
+
+                        if (key === ActionType.View) {
+                            if (!props.currentPageRoute) {
+                                throw new BadDataException("Please populate curentPageRoute in ModelTable");
+                            }
+                            Navigation.navigate(props.currentPageRoute.addRoute("/" + item["_id"]));
                         }
                     }}
                 />

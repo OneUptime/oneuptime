@@ -80,7 +80,9 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 <SideMenuItem
                     link={{
                         title: 'API Keys',
-                        to: RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                        ),
                     }}
                     icon={IconProp.Terminal}
                 />

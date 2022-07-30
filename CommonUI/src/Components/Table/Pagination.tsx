@@ -72,8 +72,8 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 >
                     {props.totalItemsCount}{' '}
                     {props.totalItemsCount > 1
-                        ? props.pluralLabel.toLowerCase()
-                        : props.singularLabel.toLowerCase()}{' '}
+                        ? props.pluralLabel
+                        : props.singularLabel}{' '}
                     {`in total. Showing ${props.itemsOnPage} on this page.`}
                 </p>
             </div>

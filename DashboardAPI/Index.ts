@@ -46,6 +46,17 @@ import LabelService, {
     Service as LabelServiceType,
 } from 'CommonServer/Services/LabelService';
 
+import ApiKey from 'Common/Models/ApiKey';
+import ApiKeyService, {
+    Service as ApiKeyServiceType,
+} from 'CommonServer/Services/ApiKeyService';
+
+import ApiKeyPermission from 'Common/Models/ApiKey';
+import ApiKeyPermissionService, {
+    Service as ApiKeyPermissionServiceType,
+} from 'CommonServer/Services/ApiKeyPermissionService';
+
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -61,6 +72,7 @@ app.use(
 app.use(new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
 
 app.use(new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter());
+
 app.use(
     new BaseAPI<TeamMember, TeamMemberServiceType>(
         TeamMember,
@@ -71,6 +83,19 @@ app.use(
     new BaseAPI<TeamPermission, TeamPermissionServiceType>(
         TeamPermission,
         TeamPermissionService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<ApiKey, ApiKeyServiceType>(
+        ApiKey,
+        ApiKeyService
+    ).getRouter()
+);
+app.use(
+    new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
+        ApiKeyPermission,
+        ApiKeyPermissionService
     ).getRouter()
 );
 

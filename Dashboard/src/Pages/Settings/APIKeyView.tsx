@@ -6,15 +6,12 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Label from 'Common/Models/Label';
+import ApiKeyPermission from 'Common/Models/ApiKeyPermission';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { JSONObject } from 'Common/Types/JSON';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
-const APIKeys: FunctionComponent<PageComponentProps> = (
+const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
@@ -30,36 +27,36 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.SETTINGS] as Route,
                 },
                 {
-                    title: 'Labels',
-                    to: RouteMap[PageMap.SETTINGS_LABELS] as Route,
+                    title: 'API Keys',
+                    to: RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <ModelTable<Label>
-                type={Label}
-                model={new Label()}
-                id="labels-table"
+            <ModelTable<ApiKeyPermission>
+                type={ApiKeyPermission}
+                model={new ApiKeyPermission()}
+                id="api-key-permission-table"
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
+                isViewable={false}
                 cardProps={{
-                    icon: IconProp.Label,
-                    title: 'Labels',
+                    icon: IconProp.Terminal,
+                    title: 'Permissions',
                     description:
-                        'Labels help you categorize resources in your project and give granular permissions to access those resources to team members.',
+                        'Add different permisisons to API keys to make it more granular.',
                 }}
-                noItemsMessage={'No labels created for this project so far.'}
-                currentPageRoute={props.pageRoute}
+                noItemsMessage={'No permisisons created for this API Key so far.'}
                 formFields={[
                     {
                         field: {
-                            name: true,
+                            permission: true,
                         },
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'internal-service',
+                        placeholder: 'API Key Name',
                         validation: {
                             noSpaces: true,
                             minLength: 2,
@@ -73,20 +70,12 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder:
-                            'This label is for all the internal services.',
-                    },
-                    {
-                        field: {
-                            color: true,
-                        },
-                        title: 'Label Color',
-                        fieldType: FormFieldSchemaType.Color,
-                        required: true,
-                        placeholder: 'Please select color for this label.',
-                    },
+                            'API Key Description',
+                    }
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
+                currentPageRoute={props.pageRoute}
                 columns={[
                     {
                         field: {
@@ -95,17 +84,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: TableColumnType.Text,
                         isFilterable: true,
-                        moreFields: {
-                            color: true,
-                        },
-                        getColumnElement: (item: JSONObject): ReactElement => {
-                            return (
-                                <Pill
-                                    color={item['color'] as Color}
-                                    text={item['name'] as string}
-                                />
-                            );
-                        },
                     },
                     {
                         field: {
@@ -121,4 +99,4 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default APIKeys;
+export default APIKeyView;

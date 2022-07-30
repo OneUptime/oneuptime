@@ -5,15 +5,14 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import ProjectAPIKey from 'Common/Models/ProjectAPIKey';
+import ApiKey from 'Common/Models/ApiKey';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 const APIKeys: FunctionComponent<PageComponentProps> = (
-    __props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
@@ -25,55 +24,74 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'Settings',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteMap[PageMap.SETTINGS] as Route,
                 },
                 {
                     title: 'API Keys',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <ModelTable<ProjectAPIKey>
-                model={new ProjectAPIKey()}
+            <ModelTable<ApiKey>
+                type={ApiKey}
+                model={new ApiKey()}
+                id="api-keys-table"
+                isDeleteable={false}
+                isEditable={true}
+                isCreateable={true}
+                isViewable={true}
                 cardProps={{
-                    title: 'Manage API Keys',
+                    icon: IconProp.Terminal,
+                    title: 'API Keys',
                     description:
-                        'Create, edit, delete your project API Keys here.',
-                    headerButtons: [
-                        <Button
-                            key={1}
-                            title="Create API Key"
-                            buttonStyle={ButtonStyleType.OUTLINE}
-                            onClick={() => {
-                                Navigation.navigate(
-                                    RouteMap[
-                                        PageMap.SETTINGS_CREATE_APIKEY
-                                    ] as Route
-                                );
-                            }}
-                            icon={IconProp.Add}
-                        />,
-                    ],
+                        'All you can do on the dashboard can be done via the API. Use OneUptime API to automated repetitive work or integrate with other platforms you have.',
                 }}
+                noItemsMessage={'No API Keys created for this project so far.'}
+                formFields={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'API Key Name',
+                        validation: {
+                            noSpaces: true,
+                            minLength: 2,
+                        },
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: true,
+                        placeholder:
+                            'API Key Description',
+                    }
+                ]}
+                showRefreshButton={true}
+                showFilterButton={true}
+                currentPageRoute={props.pageRoute}
                 columns={[
                     {
                         field: {
                             name: true,
                         },
-                        title: 'API Key Name',
+                        title: 'Name',
                         type: TableColumnType.Text,
+                        isFilterable: true,
                     },
                     {
                         field: {
-                            expires: true,
+                            description: true,
                         },
-                        title: 'Expires',
-                        type: TableColumnType.Date,
-                    },
-                    {
-                        title: 'Actions',
-                        type: TableColumnType.Actions,
+                        title: 'Description',
+                        type: TableColumnType.Text,
+                        isFilterable: true,
                     },
                 ]}
             />

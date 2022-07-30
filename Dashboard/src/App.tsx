@@ -23,7 +23,7 @@ import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 import Settings from './Pages/Settings/Settings';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
 import SettingsApiKeys from './Pages/Settings/APIKeys';
-import SettingsCreateAPIKey from './Pages/Settings/CreateAPIKey';
+import SettingsApiKeyView from './Pages/Settings/APiKeyView';
 import SettingLabels from './Pages/Settings/Labels';
 
 // Import CSS
@@ -78,7 +78,7 @@ const App: FunctionComponent = () => {
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                'error'
                 ] as string
             );
         }
@@ -187,11 +187,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_CREATE_APIKEY]?.toString()}
+                    path={RouteMap[PageMap.SETTINGS_APIKEY_VIEW]?.toString()}
                     element={
-                        <SettingsCreateAPIKey
+                        <SettingsApiKeyView
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                                RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
                             }
                             currentProject={selectedProject}
                         />
