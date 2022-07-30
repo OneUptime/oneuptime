@@ -10,6 +10,7 @@ import ApiKeyPermission from 'Common/Models/ApiKeyPermission';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -30,9 +31,27 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     title: 'API Keys',
                     to: RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
                 },
+                {
+                    title: 'View API Key',
+                    to: RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route,
+                },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
+
+            {/* API Key View  */}
+            <CardModelDetail
+                cardProps={{
+                    title: "API Key Details",
+                    description: "API Key Description", 
+                    icon: IconProp.Terminal,
+                }
+                }
+                modelDetailProps={}
+            />
+
+            {/* API Key Permisison Table */}
+
             <ModelTable<ApiKeyPermission>
                 type={ApiKeyPermission}
                 model={new ApiKeyPermission()}
@@ -42,8 +61,8 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 isCreateable={true}
                 isViewable={false}
                 cardProps={{
-                    icon: IconProp.Terminal,
-                    title: 'Permissions',
+                    icon: IconProp.Lock,
+                    title: 'API Key Permissions',
                     description:
                         'Add different permisisons to API keys to make it more granular.',
                 }}
@@ -79,17 +98,17 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
-                            name: true,
+                            permission: true,
                         },
-                        title: 'Name',
+                        title: 'Permission',
                         type: TableColumnType.Text,
                         isFilterable: true,
                     },
                     {
                         field: {
-                            description: true,
+                            labels: true,
                         },
-                        title: 'Description',
+                        title: 'Labels',
                         type: TableColumnType.Text,
                         isFilterable: true,
                     },

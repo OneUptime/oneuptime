@@ -52,7 +52,7 @@ import EntityName from '../Types/Database/EntityName';
 @Entity({
     name: 'ApiKeyPermission',
 })
-@EntityName('API Key Permission', 'API Key Permissions')
+@EntityName('Permission', 'Permissions')
 export default class APIKeyPermission extends BaseModel {
     @ColumnAccessControl({
         create: [
@@ -65,7 +65,10 @@ export default class APIKeyPermission extends BaseModel {
             Permission.CanReadProjectApiKey,
             Permission.ProjectMember,
         ],
-        update: [],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditProjectApiKeyPermissions,
+        ],
     })
     @TableColumn({
         manyToOneRelationColumn: 'apiKeyId',

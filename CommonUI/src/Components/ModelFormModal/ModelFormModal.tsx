@@ -1,4 +1,4 @@
-import React, { ReactElement, useRef, useState } from 'react';
+import React, { ReactElement, RefObject, useRef, useState } from 'react';
 import { ButtonStyleType } from '../Button/Button';
 import Modal from '../Modal/Modal';
 import ModelForm, {
@@ -28,7 +28,7 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
-    const formRef: any = useRef<FormikProps<FormikValues>>(null);
+    const formRef: RefObject<FormikProps<FormikValues>> = useRef<FormikProps<FormikValues>>(null);
     const [error, setError] = useState<string>('');
 
     return (

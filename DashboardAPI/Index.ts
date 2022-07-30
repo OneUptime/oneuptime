@@ -51,7 +51,7 @@ import ApiKeyService, {
     Service as ApiKeyServiceType,
 } from 'CommonServer/Services/ApiKeyService';
 
-import ApiKeyPermission from 'Common/Models/ApiKey';
+import ApiKeyPermission from 'Common/Models/ApiKeyPermission';
 import ApiKeyPermissionService, {
     Service as ApiKeyPermissionServiceType,
 } from 'CommonServer/Services/ApiKeyPermissionService';
