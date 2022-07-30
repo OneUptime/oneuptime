@@ -22,6 +22,8 @@ import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessC
 import Field from './Field';
 import Link from '../Link/Link';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import OneUptimeDate from 'Common/Types/Date';
+import FieldType from './FieldType';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     type: { new(): TBaseModel };
@@ -183,11 +185,14 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
             throw new BadDataException("Item not found");
         }
 
-        const itemJsonObject: JSONObject = item.toJSONObject();
         let data: string = '';
 
-        if (itemJsonObject[fieldKey]) {
-            data = itemJsonObject[fieldKey]?.toString() || '';
+        if ((item as any)[fieldKey]) {
+            data = (item as any)[fieldKey]?.toString() || '';
+        }
+
+        if (field.fieldType === FieldType.Date) {
+            data = OneUptimeDate.getDateAsLocalFormattedString(data, true);
         }
 
         return (

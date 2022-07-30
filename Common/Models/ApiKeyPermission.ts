@@ -24,6 +24,7 @@ import ProjectColumn from '../Types/Database/ProjectColumn';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 import EntityName from '../Types/Database/EntityName';
+import UniqueColumnBy from '../Types/Database/UniqueColumnBy';
 
 @TableAccessControl({
     create: [
@@ -266,6 +267,7 @@ export default class APIKeyPermission extends BaseModel {
         ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @UniqueColumnBy('apiKeyId')
     @Column({
         nullable: false,
         type: ColumnType.ShortText,

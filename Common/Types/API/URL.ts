@@ -153,6 +153,16 @@ export default class URL extends DatabaseProperty {
         return this;
     }
 
+    public getLastRoute(): Route | null {
+        const paths: Array<string> = this.route.toString().split("/");
+
+        if (paths.length > 0) {
+            return new Route("/" + paths[paths.length - 1]);
+        }
+
+        return null;
+    }
+
     protected static override toDatabase(
         value: URL | FindOperator<URL>
     ): string | null {

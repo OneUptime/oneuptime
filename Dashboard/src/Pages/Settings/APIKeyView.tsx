@@ -15,6 +15,9 @@ import ApiKey from 'Common/Models/ApiKey';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
 import Label from 'Common/Models/Label';
+import { JSONObject } from 'Common/Types/JSON';
+import Permission, { PermissionHelper } from 'Common/Types/Permission';
+import FieldType from 'CommonUI/src/Components/ModelDetail/FieldType';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -69,8 +72,15 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                                 },
                                 title: "Description",
                             },
+                            {
+                                field: {
+                                    expiresAt: true
+                                },
+                                title: "Expires",
+                                fieldType: FieldType.Date
+                            },
                         ],
-                        modelId: Navigation.getParamByName("id"),
+                        modelId: Navigation.getLastParam(),
                     }
                 }
             />
@@ -135,6 +145,11 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Permission',
                         type: TableColumnType.Text,
                         isFilterable: true,
+                        getColumnElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <p>{PermissionHelper.getTitle(item["permission"] as Permission)}</p>
+                            );
+                        },
                     },
                     {
                         field: {
@@ -143,6 +158,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: TableColumnType.Text,
                         isFilterable: true,
+                        
                     },
                 ]}
             />

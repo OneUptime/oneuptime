@@ -102,6 +102,18 @@ export class PermissionHelper {
         return permissionProps[0].description;
     }
 
+    public static getTitle(permission: Permission): string {
+        const permissionProps: Array<PermissionProps> = this.getAllPermissionProps().filter((item: PermissionProps) => {
+            return item.permission === permission
+        });
+
+        if (!permissionProps[0]) {
+            throw new BadDataException(`${permission} does not have permission props`);
+        }
+
+        return permissionProps[0].title;
+    }
+
     public static getAllPermissionProps(): Array<PermissionProps> {
 
         const permissions: Array<PermissionProps> = [
