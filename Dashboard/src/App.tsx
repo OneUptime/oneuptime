@@ -23,7 +23,7 @@ import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 import Settings from './Pages/Settings/Settings';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
 import SettingsApiKeys from './Pages/Settings/APIKeys';
-import SettingsApiKeyView from './Pages/Settings/APiKeyView';
+import SettingsApiKeyView from './Pages/Settings/Abc';
 import SettingLabels from './Pages/Settings/Labels';
 
 // Import CSS
