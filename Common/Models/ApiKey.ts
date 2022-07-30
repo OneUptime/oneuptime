@@ -187,19 +187,6 @@ export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [Permission.CanEditProjectApiKeyPermissions],
-    })
-    @TableColumn({ title: 'Permissions', type: TableColumnType.Array })
-    @Column({
-        type: ColumnType.Array,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public permissions?: Array<Permission> = undefined;
-
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [Permission.CanEditProjectApiKey],
     })
     @TableColumn({ title: 'Expires At', type: TableColumnType.Date })
