@@ -44,8 +44,9 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_APIKEYS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/api-keys`
     ),
-    [PageMap.SETTINGS_CREATE_APIKEY]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/api-keys/create`
+
+    [PageMap.SETTINGS_APIKEY_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/api-keys/${RouteParams.ModelID}`
     ),
 
     // labels.
