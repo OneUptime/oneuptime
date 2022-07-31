@@ -1,4 +1,4 @@
-import React, { MutableRefObject, ReactElement, useRef } from 'react';
+import React, { MutableRefObject, ReactElement, useEffect, useRef, useState } from 'react';
 import {
     ErrorMessage,
     Field,
@@ -76,6 +76,8 @@ const BasicForm: Function = <T extends Object>(
         index: number,
         isDisabled: boolean
     ): ReactElement => {
+
+
         const fieldType: string = field.fieldType
             ? getFieldType(field.fieldType)
             : 'text';
@@ -451,12 +453,29 @@ const BasicForm: Function = <T extends Object>(
 
     const formRef: any = useRef<any>(null);
 
+    const [initialValues, setInitalValues] = useState<FormValues<T>>({});
+
+
+    useEffect(() => {
+        const values = { ...props.initialValues };
+        for (const field of props.fields) {
+            const fieldName: string = field.overideFieldKey
+            ? field.overideFieldKey
+                : (Object.keys(field.field)[0] as string);
+            
+            if (field.fieldType === FormFieldSchemaType.Date &&  (values as any)[fieldName]) {
+                (values as any)[fieldName] = OneUptimeDate.asDateForDatabaseQuery((values as any)[fieldName]);
+            }
+        }
+        setInitalValues(values);
+    }, [props.initialValues])
+
     return (
         <div className="row">
             <div className="col-lg-12">
                 <Formik
                     innerRef={props.formRef ? props.formRef : formRef}
-                    initialValues={props.initialValues}
+                    initialValues={initialValues}
                     validate={validate}
                     validateOnChange={true}
                     enableReinitialize={true}
