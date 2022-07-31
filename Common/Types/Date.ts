@@ -158,4 +158,14 @@ export default class OneUptimeDate {
     public static isInTheFuture(date: string | Date): boolean {
         return moment(date).isAfter(new Date());
     }
+
+
+    public static fromString(date: string): Date {
+        return moment(date).toDate();
+    }
+
+    public static asDateForDatabaseQuery(date: string | Date): string {
+        let formatstring = 'YYYY-MM-DD';
+        return moment(date).local().format(formatstring);
+    }
 }

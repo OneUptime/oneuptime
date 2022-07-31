@@ -9,6 +9,7 @@ import { VeryLightGrey } from '../../Utils/BrandColors';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Dictionary from 'Common/Types/Dictionary';
 import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
+import Search from 'Common/Types/Database/Search';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -30,7 +31,7 @@ export interface ComponentProps {
     showFilter?: undefined | boolean;
     onFilterChanged?:
         | undefined
-        | ((filterData: Dictionary<string | boolean>) => void);
+        | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
     onActionEvent?:
         | ((actionType: ActionType, item: JSONObject) => void)
         | undefined;

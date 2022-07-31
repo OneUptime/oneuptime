@@ -453,7 +453,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             >
                 <Table
                     onFilterChanged={(
-                        filterData: Dictionary<string | boolean>
+                        filterData: Dictionary<string | boolean | Search | Date>
                     ) => {
                         const query: Query<TBaseModel> = {};
 
@@ -462,15 +462,21 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                 filterData[key] &&
                                 typeof filterData[key] === Typeof.String
                             ) {
-                                query[key as keyof TBaseModel] = new Search(
-                                    (filterData[key] || '').toString()
-                                );
+                                query[key as keyof TBaseModel] = (filterData[key] || '').toString()
                             }
 
                             if (typeof filterData[key] === Typeof.Boolean) {
                                 query[key as keyof TBaseModel] = Boolean(
                                     filterData[key]
                                 );
+                            }
+
+                            if (filterData[key] instanceof Date) {
+                                query[key as keyof TBaseModel] = filterData[key];
+                            }
+
+                            if (filterData[key] instanceof Search) {
+                                query[key as keyof TBaseModel] = filterData[key];
                             }
                         }
 
