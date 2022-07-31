@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
@@ -29,6 +29,10 @@ const TableHeader: FunctionComponent<ComponentProps> = (
     const [filterData, setFilterData] = useState<Dictionary<string | boolean | Search | Date>>(
         {}
     );
+
+    useEffect(() => {
+        setFilterData({});
+    }, [props.showFilter])
 
     return (
         <thead id={props.id}>
@@ -103,6 +107,11 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                     <Input
                                         onChange={(changedValue: string | Date) => {
                                             if (column.key) {
+
+                                                if (!changedValue) {
+                                                    delete filterData[column.key];
+                                                }
+
                                                 if (changedValue && column.type === TableColumnType.Date) {
                                                     filterData[column.key] = OneUptimeDate.asDateForDatabaseQuery(changedValue as string);
                                                 }
