@@ -18,6 +18,8 @@ import Label from 'Common/Models/Label';
 import { JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import FieldType from 'CommonUI/src/Components/ModelDetail/FieldType';
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import ObjectID from 'Common/Types/ObjectID';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -150,10 +152,6 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
                         placeholder: 'Permission',
-                        validation: {
-                            noSpaces: true,
-                            minLength: 2,
-                        },
                         dropdownOptions: PermissionUtil.projectPermissionsAsDropdownOptions()
                     },
                     {
@@ -197,10 +195,17 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: TableColumnType.Text,
                         isFilterable: true,
-                        
+
                     },
                 ]}
             />
+
+
+            <ModelDelete
+                type={ApiKey}
+                modelId={new ObjectID(Navigation.getLastParam()?.toString() || '')}
+            />
+
         </Page>
     );
 };

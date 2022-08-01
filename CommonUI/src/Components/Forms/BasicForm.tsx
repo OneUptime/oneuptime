@@ -136,9 +136,9 @@ const BasicForm: Function = <T extends Object>(
                                     }}
                                     placeholder={field.placeholder || ''}
                                     initialValue={
-                                        props.initialValues &&
-                                        (props.initialValues as any)[fieldName]
-                                            ? (props.initialValues as any)[
+                                        initialValues &&
+                                        (initialValues as any)[fieldName]
+                                            ? (initialValues as any)[
                                                   fieldName
                                               ]
                                             : ''
@@ -174,8 +174,8 @@ const BasicForm: Function = <T extends Object>(
                                     placeholder={field.placeholder || ''}
                                     initialValue={
                                         props.initialValues &&
-                                        (props.initialValues as any)[fieldName]
-                                            ? (props.initialValues as any)[
+                                        (initialValues as any)[fieldName]
+                                            ? (initialValues as any)[
                                                   fieldName
                                               ]
                                             : ''
@@ -206,11 +206,11 @@ const BasicForm: Function = <T extends Object>(
                                             );
                                         }}
                                         initialValue={
-                                            props.initialValues &&
-                                            (props.initialValues as any)[
+                                            initialValues &&
+                                            (initialValues as any)[
                                                 fieldName
                                             ]
-                                                ? (props.initialValues as any)[
+                                                ? (initialValues as any)[
                                                       fieldName
                                                   ]
                                                 : ''
@@ -465,6 +465,12 @@ const BasicForm: Function = <T extends Object>(
             
             if (field.fieldType === FormFieldSchemaType.Date &&  (values as any)[fieldName]) {
                 (values as any)[fieldName] = OneUptimeDate.asDateForDatabaseQuery((values as any)[fieldName]);
+            }
+
+            if (field.fieldType === FormFieldSchemaType.Dropdown &&  (values as any)[fieldName]) {
+                (values as any)[fieldName] = field.dropdownOptions?.filter((option) => { 
+                    return option.value === ((values as any)[fieldName]);
+                })[0]; 
             }
         }
         setInitalValues(values);

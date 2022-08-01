@@ -13,7 +13,12 @@ export default class Route {
         this._route = v;
     }
 
-    public constructor(route?: string) {
+    public constructor(route?: string | Route) {
+
+        if (route && route instanceof Route) {
+            route = route.toString();
+        }
+
         if (route) {
             this.route = route;
         }

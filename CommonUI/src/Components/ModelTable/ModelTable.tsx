@@ -83,7 +83,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [query, setQuery] = useState<Query<TBaseModel>>({});
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
     const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
-    const [isLoading, setIsLaoding] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [showModel, setShowModal] = useState<boolean>(false);
     const [showTableFilter, setShowTableFilter] = useState<boolean>(false);
@@ -102,7 +102,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     );
 
     const deleteItem: Function = async (id: ObjectID) => {
-        setIsLaoding(true);
+        setIsLoading(true);
         try {
             await ModelAPI.deleteItem<TBaseModel>(props.type, id);
             if (data.length === 1 && currentPageNumber > 1) {
@@ -121,12 +121,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        setIsLaoding(false);
+        setIsLoading(false);
     };
 
     const fetchItems: Function = async () => {
         setError('');
-        setIsLaoding(true);
+        setIsLoading(true);
 
         if (props.onFetchInit) {
             props.onFetchInit(currentPageNumber, itemsOnPage);
@@ -161,7 +161,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        setIsLaoding(false);
+        setIsLoading(false);
     };
 
     const getSelect: Function = (): Select<TBaseModel> => {
@@ -526,7 +526,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             if (!props.currentPageRoute) {
                                 throw new BadDataException("Please populate curentPageRoute in ModelTable");
                             }
-                            Navigation.navigate(props.currentPageRoute.addRoute("/" + item["_id"]));
+                            Navigation.navigate(new Route(props.currentPageRoute.toString()).addRoute("/" + item["_id"]));
                         }
                     }}
                 />
