@@ -42,6 +42,7 @@ export default class ApiKey extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
+        modelType: Project
     })
     @ManyToOne(
         (_type: string) => {
@@ -119,6 +120,7 @@ export default class ApiKey extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
+        modelType: User
     })
     @ManyToOne(
         (_type: string) => {

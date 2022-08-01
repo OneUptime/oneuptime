@@ -269,6 +269,11 @@ export default class BaseModel extends BaseEntity {
         return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
     }
 
+    public isEntityColumn(columnName: string): boolean {
+        const tableColumnType: TableColumnMetadata = getTableColumn(this, columnName);
+        return Boolean(tableColumnType.type === TableColumnType.Entity || tableColumnType.type === TableColumnType.EntityArray);
+    }
+
     public toJSON(): JSONObject {
         const json: JSONObject = this.toJSONObject();
         return JSONFunctions.serialize(json);

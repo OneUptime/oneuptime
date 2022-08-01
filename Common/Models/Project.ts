@@ -119,6 +119,7 @@ export default class Model extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
+        modelType: User
     })
     @ManyToOne(
         (_type: string) => {

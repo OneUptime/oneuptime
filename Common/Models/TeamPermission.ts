@@ -71,6 +71,7 @@ export default class TeamPermission extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'teamId',
         type: TableColumnType.Entity,
+        modelType: Team
     })
     @ManyToOne(
         (_type: string) => {
@@ -102,6 +103,7 @@ export default class TeamPermission extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
+        modelType: Project
     })
     @ManyToOne(
         (_type: string) => {
@@ -173,6 +175,7 @@ export default class TeamPermission extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
+        modelType: User
     })
     @ManyToOne(
         (_type: string) => {

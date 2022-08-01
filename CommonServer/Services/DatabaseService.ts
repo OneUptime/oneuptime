@@ -46,6 +46,9 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
 import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
+import TableColumns from 'Common/Types/Database/Columns';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -302,6 +305,45 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return createBy;
     }
 
+    private serializeCreate(data: TBaseModel | QueryDeepPartialEntity<TBaseModel>): TBaseModel | QueryDeepPartialEntity<TBaseModel> {
+        const columns: TableColumns = this.model.getTableColumns();
+
+        for (const columnName of columns.columns) {
+            if (this.model.isEntityColumn(columnName)) {
+                const tableColumnMetadata = this.model.getTableColumnMetadata(columnName);
+
+                if (data && tableColumnMetadata.modelType && (data as any)[columnName] && tableColumnMetadata.type === TableColumnType.Entity && (typeof (data as any)[columnName] === "string" || (data as any)[columnName] instanceof ObjectID)) {
+                    (data as any)[columnName] = new tableColumnMetadata.modelType();
+                    (data as any)[columnName]._id = (data as any)[columnName].toString();
+                }
+
+                if (data
+                    && Array.isArray((data as any)[columnName])
+                    && (data as any)[columnName].length > 0 
+                    && tableColumnMetadata.modelType
+                    && (data as any)[columnName]
+                    && tableColumnMetadata.type === TableColumnType.EntityArray
+                ) {
+
+                    const itemsArray: Array<BaseModel> = [];
+                    for (const item of (data as any)[columnName]) {
+                        if (typeof (data as any)[columnName] === "string" || (data as any)[columnName] instanceof ObjectID) {
+                            const basemodelItem = new tableColumnMetadata.modelType();
+                            basemodelItem._id = (data as any)[columnName].toString();
+                            itemsArray.push(basemodelItem);
+                        } else {
+                            itemsArray.push(item);
+                        }
+                    }
+                    (data as any)[columnName] = itemsArray;
+                }
+
+            }
+        }
+
+        return data;
+    }
+
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
         let _createdBy: CreateBy<TBaseModel> = await this._onBeforeCreate(
             createBy
@@ -328,6 +370,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         // check uniqueColumns by:
         createBy = await this.checkUniqueColumnBy(createBy);
+
+        // serialize. 
+
+        createBy.data = (await this.serializeCreate(createBy.data) as TBaseModel);
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
@@ -1027,11 +1073,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
+            debugger;
             const numberOfDocsAffected: number =
                 (
                     await this.getRepository().update(
-                        beforeUpdateBy.query as any,
-                        beforeUpdateBy.data
+                        this.serializeQuery(beforeUpdateBy.query as any) as any,
+                        this.serializeCreate(beforeUpdateBy.data) as QueryDeepPartialEntity<TBaseModel>
                     )
                 ).affected || 0;
 

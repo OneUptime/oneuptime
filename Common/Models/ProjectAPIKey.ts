@@ -12,7 +12,7 @@ import TableColumnType from '../Types/Database/TableColumnType';
     name: 'ProjectAPIKey',
 })
 export default class ProjectAPIKey extends BaseModel {
-    @TableColumn({ type: TableColumnType.Entity })
+    @TableColumn({ type: TableColumnType.Entity, modelType: Project })
     @ManyToOne(
         (_type: string) => {
             return Project;
@@ -36,7 +36,7 @@ export default class ProjectAPIKey extends BaseModel {
     })
     public projectId?: ObjectID;
 
-    @TableColumn({ type: TableColumnType.Entity })
+    @TableColumn({ type: TableColumnType.Entity, modelType: User })
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -60,7 +60,7 @@ export default class ProjectAPIKey extends BaseModel {
     })
     public deletedByUserId?: ObjectID;
 
-    @TableColumn({ type: TableColumnType.Entity })
+    @TableColumn({ type: TableColumnType.Entity, modelType: User })
     @ManyToOne(
         (_type: string) => {
             return User;

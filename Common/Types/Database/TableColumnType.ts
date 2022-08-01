@@ -24,6 +24,7 @@ enum ColumnType {
     Number,
     BigNumber,
     Entity,
+    EntityArray
 }
 
 export default ColumnType;

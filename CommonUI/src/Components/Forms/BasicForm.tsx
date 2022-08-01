@@ -22,7 +22,7 @@ import Alert, { AlertType } from '../Alerts/Alert';
 import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
 import TextArea from './Fields/TextArea';
-import Dropdown from '../Dropdown/Dropdown';
+import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
 import OneUptimeDate from 'Common/Types/Date';
 
 export const DefaultValidateFunction: Function = (
@@ -155,7 +155,7 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <Dropdown
                                     onChange={async (
-                                        value: string | number
+                                        value: DropdownValue | Array<DropdownValue>
                                     ) => {
                                         await form.setFieldValue(
                                             fieldName,

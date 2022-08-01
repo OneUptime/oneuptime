@@ -143,7 +143,7 @@ export default class Probe extends BaseModel {
         read: [Permission.ProjectMember, Permission.Public],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.Entity, required: false })
+    @TableColumn({ type: TableColumnType.Entity, required: false, modelType: Project })
     @ManyToOne(
         (_type: string) => {
             return Project;
@@ -177,7 +177,7 @@ export default class Probe extends BaseModel {
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.Entity })
+    @TableColumn({ type: TableColumnType.Entity, modelType: User })
     @ManyToOne(
         (_type: string) => {
             return User;
