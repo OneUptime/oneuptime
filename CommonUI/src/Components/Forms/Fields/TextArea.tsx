@@ -22,7 +22,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
         if (props.initialValue) {
             setText(props.initialValue.toString());
         }
-    }, []);
+    }, [props.initialValue]);
 
     const handleChange: Function = (content: string): void => {
         setText(content);
