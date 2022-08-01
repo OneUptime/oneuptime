@@ -50,6 +50,10 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                     return;
                                 }
 
+                                if (!canSort) {
+                                    return;
+                                }
+
                                 if (currentSortColumn === column.key) {
                                     setSortOrder(
                                         sortOrder === SortOrder.Ascending

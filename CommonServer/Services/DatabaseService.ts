@@ -49,6 +49,7 @@ import Typeof from 'Common/Types/Typeof';
 import TableColumns from 'Common/Types/Database/Columns';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -1083,18 +1084,46 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
+
+            debugger; 
+
+            const query: Query<TBaseModel> = this.serializeQuery(beforeUpdateBy.query);
+            const data: QueryDeepPartialEntity<TBaseModel> = this.serializeCreate(beforeUpdateBy.data) as QueryDeepPartialEntity<TBaseModel>;
             
-            const numberOfDocsAffected: number =
-                (
-                    await this.getRepository().update(
-                        this.serializeQuery(beforeUpdateBy.query as any) as any,
-                        this.serializeCreate(beforeUpdateBy.data) as QueryDeepPartialEntity<TBaseModel>
-                    )
-                ).affected || 0;
+
+            const items: Array<TBaseModel> = await this._findBy({
+                query, 
+                skip: 0, 
+                limit: LIMIT_MAX, 
+                populate: {},
+                select: {},
+                props: beforeUpdateBy.props
+            })
+
+
+            for (let item of items) {
+                item = {
+                    ...item, 
+                    ...data
+                }
+
+                await this.getRepository().save(item);
+            }
+
+            // Cant Update relations. 
+            // https://github.com/typeorm/typeorm/issues/2821
+
+            // const numberOfDocsAffected: number =
+            //     (
+            //         await this.getRepository().update(
+            //             query as any,
+            //             data
+            //         )
+            //     ).affected || 0;
 
             await this.onUpdateSuccess();
 
-            return numberOfDocsAffected;
+            return items.length;
         } catch (error) {
             await this.onUpdateError(error as Exception);
             throw this.getException(error as Exception);
