@@ -1071,6 +1071,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 _id: findOneById.id.toString() as any,
             },
             select: findOneById.select || {},
+            populate: findOneById.populate || {},
             props: findOneById.props,
         });
     }

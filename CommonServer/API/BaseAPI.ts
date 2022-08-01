@@ -204,7 +204,6 @@ export default class BaseAPI<
             ) as Sort<BaseModel>;
         }
         
-        debugger;
         const list: Array<BaseModel> = await this.service.findBy({
             query,
             select,
@@ -230,16 +229,24 @@ export default class BaseAPI<
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
         let select: Select<BaseModel> = {};
+        let populate: Populate<BaseModel> = {};
 
         if (req.body) {
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
+
+            if (req.body['populate']) {
+                populate = JSONFunctions.deserialize(
+                    req.body['populate']
+                ) as Populate<BaseModel>;
+            }
         }
 
         const item: BaseModel | null = await this.service.findOneById({
             id: objectId,
             select,
+            populate,
             props: this.getDatabaseCommonInteractionProps(req),
         });
 

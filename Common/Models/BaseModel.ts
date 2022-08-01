@@ -13,7 +13,7 @@ import TableColumn, {
     getTableColumns,
     TableColumnMetadata,
 } from '../Types/Database/TableColumn';
-import { JSONArray, JSONFunctions, JSONObject } from '../Types/JSON';
+import { JSONArray, JSONFunctions, JSONObject, JSONValue } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 import Dictionary from '../Types/Dictionary';
 import HashedString from '../Types/HashedString';
@@ -267,6 +267,20 @@ export default class BaseModel extends BaseEntity {
 
     public isDefaultValueColumn(columnName: string): boolean {
         return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
+    }
+
+    public getColumnValue(columnName: string): JSONValue | null {
+        if (getTableColumn(this, columnName) && (this as any)[columnName]) {
+            return (this as any)[columnName] as JSONValue;
+        }
+
+        return null;
+    }
+
+    public setColumnValue(columnName: string, value: JSONValue): void {
+        if (getTableColumn(this, columnName)) {
+            return (this as any)[columnName] = value as any;
+        }
     }
 
     public isEntityColumn(columnName: string): boolean {

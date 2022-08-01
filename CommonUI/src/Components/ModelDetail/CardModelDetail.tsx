@@ -85,7 +85,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(props: Componen
                             setShowModal(false);
                             setRefresher(!refresher);
                         }}
-                        type={FormType.Update}
+                        type={props.modelDetailProps.type}
                         formProps={{
                             model: props.modelDetailProps.model,
                             id: `edit-${props.modelDetailProps.model.singularName?.toLowerCase()}-from`,

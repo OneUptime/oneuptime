@@ -228,6 +228,9 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             <ModelDelete
                 type={ApiKey}
                 modelId={new ObjectID(Navigation.getLastParam()?.toString() || '')}
+                onDeleteSuccess={() => {
+                    Navigation.navigate(RouteMap[PageMap.SETTINGS_APIKEYS] as Route);
+                }}
             />
 
         </Page>

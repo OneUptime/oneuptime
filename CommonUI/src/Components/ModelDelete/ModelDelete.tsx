@@ -12,6 +12,7 @@ import ConfirmModal from '../Modal/ConfirmModal';
 export interface ComponentProps<TBaseModel extends BaseModel> {
     type: { new(): TBaseModel }
     modelId: ObjectID;
+    onDeleteSuccess: () => void; 
 }
 
 const ModelDelete: Function = <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>): ReactElement => {
@@ -26,6 +27,7 @@ const ModelDelete: Function = <TBaseModel extends BaseModel>(props: ComponentPro
         setIsLoading(true);
         try {
             await ModelAPI.deleteItem<TBaseModel>(props.type, props.modelId);
+            props.onDeleteSuccess && props.onDeleteSuccess();
         } catch (err) {
 
             try {

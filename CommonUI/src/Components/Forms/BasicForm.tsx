@@ -173,7 +173,7 @@ const BasicForm: Function = <T extends Object>(
                                     options={field.dropdownOptions || []}
                                     placeholder={field.placeholder || ''}
                                     initialValue={
-                                        props.initialValues &&
+                                        initialValues &&
                                         (initialValues as any)[fieldName]
                                             ? (initialValues as any)[
                                                   fieldName
@@ -471,6 +471,12 @@ const BasicForm: Function = <T extends Object>(
                 (values as any)[fieldName] = field.dropdownOptions?.filter((option) => { 
                     return option.value === ((values as any)[fieldName]);
                 })[0]; 
+            }
+
+            if (field.fieldType === FormFieldSchemaType.MultiSelectDropdown &&  (values as any)[fieldName]) {
+                (values as any)[fieldName] = field.dropdownOptions?.filter((option) => { 
+                    return ((values as any)[fieldName]).includes(option.value);
+                }); 
             }
         }
         setInitalValues(values);

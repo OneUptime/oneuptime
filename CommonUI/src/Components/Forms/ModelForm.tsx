@@ -29,6 +29,7 @@ import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/Acces
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Populate from '../../Utils/ModelAPI/Populate';
 
 export enum FormType {
     Create,
@@ -89,6 +90,25 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         }
 
         return select;
+    };
+
+
+    const getPopulate: Function = (): Populate<TBaseModel> => {
+        const populate: Populate<TBaseModel> = {
+
+        };
+
+        for (const field of props.fields) {
+            const key: string | null = field.field
+                ? (Object.keys(field.field)[0] as string)
+                : null;
+
+            if (key && props.model.isEntityColumn(key)) {
+                (populate as JSONObject)[key] = true;
+            }
+        }
+
+        return populate;
     };
 
 
@@ -162,7 +182,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         const item: TBaseModel | null = await ModelAPI.getItem(
             props.type,
             props.modelIdToEdit,
-            getSelectFields()
+            getSelectFields(),
+            getPopulate()
         );
 
         if (!item) {
@@ -174,6 +195,39 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 ).toLowerCase()}.`
             );
         }
+
+        const populate = getPopulate();
+
+        
+
+        for (const key in populate) {
+            if (item) {
+                if (Array.isArray((item as any)[key])) {
+                    const idArray: Array<string> = []
+                        let isModelArray = false; 
+                    for (const itemInArray of (item as any)[key] as any) {
+                        
+                        if (typeof (itemInArray as any) === "object") {
+                            if (((itemInArray as any) as JSONObject)["_id"]) {
+                                isModelArray = true;
+                                idArray.push(((itemInArray as any) as JSONObject)["_id"] as string);
+                            }
+                        }
+
+                    }
+
+                    if (isModelArray) {
+                        (item as any)[key] = idArray;
+                    }
+                }
+                if (typeof (item as any)[key] === "object") {
+                    if (((item as any)[key] as JSONObject)["_id"]) {
+                        (item as any)[key]  = ((item as any)[key] as JSONObject)["_id"] as string;
+                    }
+                }
+            }
+        }
+
 
         setItemToEdit(item);
     }

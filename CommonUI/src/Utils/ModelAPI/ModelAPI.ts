@@ -171,7 +171,8 @@ export default class ModelAPI {
     public static async getItem<TBaseModel extends BaseModel>(
         type: { new (): TBaseModel },
         id: ObjectID,
-        select: Select<TBaseModel>
+        select: Select<TBaseModel>,
+        populate?: Populate<TBaseModel>
     ): Promise<TBaseModel | null> {
         const apiPath: Route | null = new type().getCrudApiPath();
         if (!apiPath) {
@@ -197,6 +198,7 @@ export default class ModelAPI {
                 apiUrl,
                 {
                     select: JSONFunctions.serialize(select as JSONObject),
+                    populate: populate? JSONFunctions.serialize(populate as JSONObject) : null
                 },
                 this.getCommonHeaders()
             );
