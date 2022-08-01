@@ -327,9 +327,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                     const itemsArray: Array<BaseModel> = [];
                     for (const item of (data as any)[columnName]) {
-                        if (typeof (data as any)[columnName] === "string" || (data as any)[columnName] instanceof ObjectID) {
+                        if (typeof item === "string" || item instanceof ObjectID) {
                             const basemodelItem = new tableColumnMetadata.modelType();
-                            basemodelItem._id = (data as any)[columnName].toString();
+                            basemodelItem._id = item.toString();
                             itemsArray.push(basemodelItem);
                         } else {
                             itemsArray.push(item);
@@ -372,9 +372,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy = await this.checkUniqueColumnBy(createBy);
 
         // serialize. 
-
+        debugger; 
         createBy.data = (await this.serializeCreate(createBy.data) as TBaseModel);
 
+        
         try {
             createBy.data = await this.getRepository().save(createBy.data);
             await this.onCreateSuccess(createBy);
@@ -583,7 +584,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        debugger;
+        
         for (const key in findBy.select) {
             if (excludedColumns.includes(key)) {
                 continue;
@@ -1073,7 +1074,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
-            debugger;
+            
             const numberOfDocsAffected: number =
                 (
                     await this.getRepository().update(
