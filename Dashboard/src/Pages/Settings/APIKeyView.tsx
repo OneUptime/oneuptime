@@ -20,6 +20,8 @@ import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import FieldType from 'CommonUI/src/Components/ModelDetail/FieldType';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import Color from 'Common/Types/Color';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -194,8 +196,30 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: TableColumnType.Text,
-                        isFilterable: true,
+                        getColumnElement: (item: JSONObject): ReactElement => {
+                            const returnElements = [];
+                            if (item["labels"] && Array.isArray(item["labels"])) {
+                                let counter = 0;
+                                for (const label of item["labels"])
+                                    if (label && (label as JSONObject)['color'] && (label as JSONObject)['name']) {
+                                        returnElements.push(
+                                            <Pill
+                                                key={counter}
+                                                color={(label as JSONObject)['color'] as Color}
+                                                text={(label as JSONObject)['name'] as string}
+                                                style={{
+                                                    marginRight: "5px"
+                                                }}
+                                            />
+                                        );
 
+                                        counter++;
+                                    }
+                            }
+
+                            return <>{returnElements}</>;
+
+                        },
                     },
                 ]}
             />

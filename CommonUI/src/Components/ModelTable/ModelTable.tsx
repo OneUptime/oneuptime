@@ -38,17 +38,18 @@ import Typeof from 'Common/Types/Typeof';
 import Navigation from '../../Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Populate from '../../Utils/ModelAPI/Populate';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
-    type: { new (): TBaseModel };
+    type: { new(): TBaseModel };
     id: string;
     onFetchInit?:
-        | undefined
-        | ((pageNumber: number, itemsOnPage: number) => void);
+    | undefined
+    | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-        | undefined
-        | ((data: Array<TBaseModel>, totalCount: number) => void);
+    | undefined
+    | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps: CardComponentProps;
     columns: Columns<TBaseModel>;
     initialItemsOnPage?: number;
@@ -61,7 +62,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
     isViewable?: undefined | boolean;
-    currentPageRoute?: undefined | Route; 
+    currentPageRoute?: undefined | Route;
 }
 
 enum ModalType {
@@ -113,7 +114,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -142,9 +143,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                              [sortBy as any]: sortOrder,
-                          }
-                        : {}
+                            [sortBy as any]: sortOrder,
+                        }
+                        : {},
+                    getPopulate()
                 );
 
             setTotalItemsCount(listResult.count);
@@ -153,7 +155,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -170,9 +172,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         };
 
         for (const column of props.columns) {
+
+
             const key: string | null = column.field
                 ? (Object.keys(column.field)[0] as string)
                 : null;
+
+
 
             const moreFields: Array<string> = column.moreFields
                 ? Object.keys(column.moreFields)
@@ -185,9 +191,28 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             for (const moreField of moreFields) {
                 (selectFields as Dictionary<boolean>)[moreField] = true;
             }
+
         }
 
         return selectFields;
+    };
+
+    const getPopulate: Function = (): Populate<TBaseModel> => {
+        const populate: Populate<TBaseModel> = {
+
+        };
+
+        for (const column of props.columns) {
+            const key: string | null = column.field
+                ? (Object.keys(column.field)[0] as string)
+                : null;
+
+            if (key && props.model.isEntityColumn(key)) {
+                (populate as JSONObject)[key] = true;
+            }
+        }
+
+        return populate;
     };
 
     const setHeaderButtons: Function = (): void => {
@@ -197,15 +222,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             PermissionUtil.getProjectPermissions();
         const hasPermissionToCreate: boolean = Boolean(
             userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    props.model.createRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
-                    )
+            userProjectPermissions.permissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                props.model.createRecordPermissions,
+                userProjectPermissions.permissions.map(
+                    (item: UserPermission) => {
+                        return item.permission;
+                    }
                 )
+            )
         );
 
         if (props.isCreateable && hasPermissionToCreate) {
@@ -259,6 +284,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     useEffect(() => {
         setHeaderButtons();
     }, [showTableFilter]);
+
+
+    const shouldDisableSort: Function = (columnName: string): boolean => {
+        return props.model.isEntityColumn(columnName);
+    }
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
@@ -343,7 +373,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             if (hasPermission) {
                 columns.push({
-                    ...column, 
+                    ...column,
+                    disableSort: column.disableSort || shouldDisableSort(key),
                     key
                 });
 
@@ -362,41 +393,41 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         const hasPermissionToDelete: boolean = Boolean(
             userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    props.model.deleteRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
-                    )
+            userProjectPermissions.permissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                props.model.deleteRecordPermissions,
+                userProjectPermissions.permissions.map(
+                    (item: UserPermission) => {
+                        return item.permission;
+                    }
                 )
+            )
         );
 
         const hasPermissionToUpdate: boolean = Boolean(
             userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    props.model.updateRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
-                    )
+            userProjectPermissions.permissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                props.model.updateRecordPermissions,
+                userProjectPermissions.permissions.map(
+                    (item: UserPermission) => {
+                        return item.permission;
+                    }
                 )
+            )
         );
 
         const hasPermissionToView: boolean = Boolean(
             userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    props.model.readRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
-                    )
+            userProjectPermissions.permissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                props.model.readRecordPermissions,
+                userProjectPermissions.permissions.map(
+                    (item: UserPermission) => {
+                        return item.permission;
+                    }
                 )
+            )
         );
 
         if (
@@ -436,7 +467,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             });
         }
 
-        
+
 
         setActionButtonSchema(actionsSchema);
 

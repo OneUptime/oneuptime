@@ -63,17 +63,10 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             <SideMenuSection title="Team">
                 <SideMenuItem
                     link={{
-                        title: 'Team Members',
+                        title: 'Teams and Members',
                         to: new Route('/:projectSlug/home'),
                     }}
                     icon={IconProp.User}
-                />
-                <SideMenuItem
-                    link={{
-                        title: 'User Groups',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.Team}
                 />
             </SideMenuSection>
             <SideMenuSection title="Advanced">

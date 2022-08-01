@@ -298,7 +298,7 @@ export default class APIKeyPermission extends BaseModel {
     @TableColumn({ required: false, type: TableColumnType.EntityArray, modelType: Label })
     @ManyToMany(() => {
         return Label;
-    })
+    }, {eager: true})
     @JoinTable()
     public labels?: Array<Label> = undefined;
 }

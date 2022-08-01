@@ -20,6 +20,7 @@ import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import Populate from '../Types/Database/Populate';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -180,6 +181,7 @@ export default class BaseAPI<
 
         let query: Query<BaseModel> = {};
         let select: Select<BaseModel> = {};
+        let populate: Populate<BaseModel> = {};
         let sort: Sort<BaseModel> = {};
 
         if (req.body) {
@@ -190,17 +192,26 @@ export default class BaseAPI<
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
+
+            if (req.body['populate']) {
+                populate = JSONFunctions.deserialize(
+                    req.body['populate']
+                ) as Populate<BaseModel>;
+            }
+            
             sort = JSONFunctions.deserialize(
                 req.body['sort']
             ) as Sort<BaseModel>;
         }
         
+        debugger;
         const list: Array<BaseModel> = await this.service.findBy({
             query,
             select,
             skip: skip,
             limit: limit,
             sort: sort,
+            populate,
             props: this.getDatabaseCommonInteractionProps(req),
         });
 

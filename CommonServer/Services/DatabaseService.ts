@@ -1006,8 +1006,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 Object.keys(onBeforeFind.select).length === 0
             ) {
                 onBeforeFind.select = {
-                    _id: true,
+                   
                 } as any;
+            }
+
+            if (!(onBeforeFind.select as any)["_id"]) {
+                (onBeforeFind.select as any)["_id"] = true; 
+            }
+
+            if (!(onBeforeFind.select as any)["createdAt"]) {
+                (onBeforeFind.select as any)["createdAt"] = true; 
             }
 
             if (!(onBeforeFind.limit instanceof PositiveNumber)) {

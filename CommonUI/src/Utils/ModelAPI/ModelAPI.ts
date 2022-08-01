@@ -16,6 +16,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
 import Sort from './Sort';
 import Project from 'Common/Models/Project';
+import Populate from './Populate';
 
 export interface ListResult<TBaseModel extends BaseModel> {
     data: Array<TBaseModel>;
@@ -101,7 +102,8 @@ export default class ModelAPI {
         limit: number,
         skip: number,
         select: Select<TBaseModel>,
-        sort: Sort<TBaseModel>
+        sort: Sort<TBaseModel>,
+        populate?: Populate<TBaseModel>
     ): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new type();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -129,6 +131,7 @@ export default class ModelAPI {
                     query: JSONFunctions.serialize(query as JSONObject),
                     select: JSONFunctions.serialize(select as JSONObject),
                     sort: JSONFunctions.serialize(sort as JSONObject),
+                    populate: populate ? JSONFunctions.serialize(populate as JSONObject) : null
                 },
                 this.getCommonHeaders(),
                 {
