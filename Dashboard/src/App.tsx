@@ -20,7 +20,7 @@ import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 // Settings Pages
-import Settings from './Pages/Settings/Settings';
+import ProjectSettings from './Pages/Settings/ProjectSettings';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
 import SettingsApiKeys from './Pages/Settings/APIKeys';
 import SettingsApiKeyView from './Pages/Settings/APIKeyView';
@@ -155,7 +155,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={RouteMap[PageMap.SETTINGS]?.toString()}
                     element={
-                        <Settings
+                        <ProjectSettings
                             pageRoute={RouteMap[PageMap.SETTINGS] as Route}
                             currentProject={selectedProject}
                         />
