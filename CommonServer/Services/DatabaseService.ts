@@ -60,11 +60,11 @@ enum DatabaseRequestType {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    private entityType!: { new(): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        type: { new (): TBaseModel },
+        type: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = type;
@@ -110,8 +110,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
     protected checkRequiredFields(data: TBaseModel): void {
         // Check required fields.
 
+        debugger; 
         for (const requiredField of data.getRequiredColumns().columns) {
-            if (
+            if (typeof (data as any)[requiredField] === Typeof.Boolean) {
+                if (!(data as any)[requiredField] && (data as any)[requiredField] !== false &&
+                    !data.isDefaultValueColumn(requiredField)) {
+                    throw new BadDataException(`${requiredField} is required`);
+                }
+            }
+            else if (
                 !(data as any)[requiredField] &&
                 !data.isDefaultValueColumn(requiredField)
             ) {
@@ -298,7 +305,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                    createBy.data.getSlugifyColumn() as string
+                createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -320,7 +327,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                 if (data
                     && Array.isArray((data as any)[columnName])
-                    && (data as any)[columnName].length > 0 
+                    && (data as any)[columnName].length > 0
                     && tableColumnMetadata.modelType
                     && (data as any)[columnName]
                     && tableColumnMetadata.type === TableColumnType.EntityArray
@@ -373,10 +380,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy = await this.checkUniqueColumnBy(createBy);
 
         // serialize. 
-        debugger; 
+        debugger;
         createBy.data = (await this.serializeCreate(createBy.data) as TBaseModel);
 
-        
+
         try {
             createBy.data = await this.getRepository().save(createBy.data);
             await this.onCreateSuccess(createBy);
@@ -585,7 +592,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        
+
         for (const key in findBy.select) {
             if (excludedColumns.includes(key)) {
                 continue;
@@ -1007,16 +1014,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 Object.keys(onBeforeFind.select).length === 0
             ) {
                 onBeforeFind.select = {
-                   
+
                 } as any;
             }
 
             if (!(onBeforeFind.select as any)["_id"]) {
-                (onBeforeFind.select as any)["_id"] = true; 
+                (onBeforeFind.select as any)["_id"] = true;
             }
 
             if (!(onBeforeFind.select as any)["createdAt"]) {
-                (onBeforeFind.select as any)["createdAt"] = true; 
+                (onBeforeFind.select as any)["createdAt"] = true;
             }
 
             if (!(onBeforeFind.limit instanceof PositiveNumber)) {
@@ -1085,16 +1092,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
             beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
 
-            debugger; 
+            debugger;
 
             const query: Query<TBaseModel> = this.serializeQuery(beforeUpdateBy.query);
             const data: QueryDeepPartialEntity<TBaseModel> = this.serializeCreate(beforeUpdateBy.data) as QueryDeepPartialEntity<TBaseModel>;
-            
+
 
             const items: Array<TBaseModel> = await this._findBy({
-                query, 
-                skip: 0, 
-                limit: LIMIT_MAX, 
+                query,
+                skip: 0,
+                limit: LIMIT_MAX,
                 populate: {},
                 select: {},
                 props: beforeUpdateBy.props
@@ -1103,7 +1110,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             for (let item of items) {
                 item = {
-                    ...item, 
+                    ...item,
                     ...data
                 }
 

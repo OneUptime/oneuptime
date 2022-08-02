@@ -106,12 +106,11 @@ export default class MailService {
             await ProjectSmtpConfigService.findOneBy({
                 query: {
                     project: new Project(projectId),
-                    enabled: true,
                 },
                 select: {
-                    useranme: true,
+                    username: true,
                     password: true,
-                    host: true,
+                    hostname: true,
                     port: true,
                     fromName: true,
                     fromEmail: true,
@@ -124,9 +123,9 @@ export default class MailService {
 
         if (projectSmtp) {
             return {
-                username: projectSmtp.useranme!,
+                username: projectSmtp.username!,
                 password: projectSmtp.password!,
-                host: projectSmtp.host!,
+                host: projectSmtp.hostname!,
                 port: projectSmtp.port!,
                 fromName: projectSmtp.fromName! || 'OneUptime',
                 fromEmail: projectSmtp.fromEmail!,

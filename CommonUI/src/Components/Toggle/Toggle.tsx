@@ -34,7 +34,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <ReactToggle
-                defaultChecked={isChecked}
+                checked={isChecked}
                 onChange={(e: React.ChangeEvent<HTMLElement>) => {
                     if (props.onFocus) {
                         props.onFocus();
@@ -42,7 +42,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
                     if (props.onBlur) {
                         props.onBlur();
                     }
-                    handleChange((e.target as any).isChecked as boolean);
+                    handleChange((e.target as any).checked as boolean);
                 }} />
         </div>
     );

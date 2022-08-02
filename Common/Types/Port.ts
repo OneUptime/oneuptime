@@ -35,10 +35,11 @@ export default class Port extends DatabaseProperty {
     public static override toDatabase(
         value: Port | FindOperator<Port>
     ): number | null {
+        
         if (value instanceof Port) {
             return value.toNumber();
-        } else if(value){
-            return ((value) as any).toNumber();
+        } else if (typeof value === "string") {
+            return parseInt(value)
         }
 
         return null;

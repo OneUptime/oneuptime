@@ -297,7 +297,9 @@ export default class BaseModel extends BaseEntity {
         const json: JSONObject = {};
 
         for (const key of this.getTableColumns().columns) {
-            if ((this as any)[key]) {
+            if (typeof (this as any)[key] === "boolean") {
+                json[key] = (this as any)[key];
+            }else if ((this as any)[key]) {
                 json[key] = (this as any)[key];
             }
         }

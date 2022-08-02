@@ -86,8 +86,8 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         field: {
                             port: true,
                         },
-                        title: 'Hostname',
-                        fieldType: FormFieldSchemaType.Number,
+                        title: 'Port',
+                        fieldType: FormFieldSchemaType.Port,
                         required: true,
                         placeholder:
                             '587',

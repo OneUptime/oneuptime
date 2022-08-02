@@ -70,7 +70,7 @@ export default class Hostname extends DatabaseProperty {
             return value.toString();
         }
 
-        return null;
+        return value;
     }
 
     public static override fromDatabase(_value: string): Hostname | null {

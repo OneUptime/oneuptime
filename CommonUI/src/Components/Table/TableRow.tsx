@@ -36,7 +36,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             {column.key && !column.getColumnElement ? (
                                 column.type === TableColumnType.Date ? (props.item[column.key] ? OneUptimeDate.getDateAsLocalFormattedString(props.item[column.key] as string, column.options?.onlyShowDate || false) : '') :
                                     (column.type === TableColumnType.Boolean ? (props.item[column.key] ? "Yes" : "No") :
-                                        props.item[column.key] as string)
+                                        props.item[column.key]?.toString() as string)
                             ) : (
                                 <></>
                             )}

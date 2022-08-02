@@ -25,6 +25,11 @@ import TextArea from './Fields/TextArea';
 import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
 import OneUptimeDate from 'Common/Types/Date';
 import Toggle from '../Toggle/Toggle';
+import Port from 'Common/Types/Port';
+import Hostname from 'Common/Types/API/Hostname';
+import Route from 'Common/Types/API/Route';
+import Exception from 'Common/Types/Exception/Exception';
+
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -58,6 +63,8 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
             return 'email';
         case FormFieldSchemaType.Password:
             return 'password';
+        case FormFieldSchemaType.Number:
+            return 'number';
         case FormFieldSchemaType.Date:
             return 'date';
         case FormFieldSchemaType.LongText:
@@ -251,7 +258,7 @@ const BasicForm: Function = <T extends Object>(
                                                 ? (initialValues as any)[
                                                 fieldName
                                                 ]
-                                                : ''
+                                                : false
                                         }
                                     />
                                 </>
@@ -271,6 +278,7 @@ const BasicForm: Function = <T extends Object>(
                     field.fieldType === FormFieldSchemaType.Number ||
                     field.fieldType === FormFieldSchemaType.Password ||
                     field.fieldType === FormFieldSchemaType.Date ||
+                    field.fieldType === FormFieldSchemaType.Port ||
                     field.fieldType === FormFieldSchemaType.PositveNumber) && (
                         <Field
                             className="form-control"
@@ -404,6 +412,44 @@ const BasicForm: Function = <T extends Object>(
                 return 'Email is not valid.';
             }
         }
+
+        if (field.fieldType === FormFieldSchemaType.Port) {
+
+            try {
+                new Port(content);
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Hostname) {
+
+            try {
+                new Hostname(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+
+        }
+
+
+        if (field.fieldType === FormFieldSchemaType.Route) {
+
+            try {
+                new Route(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+
+        }
+
         return null;
     };
 
@@ -469,6 +515,9 @@ const BasicForm: Function = <T extends Object>(
                     if (resultMaxMinValue) {
                         errors[name] = resultMaxMinValue;
                     }
+
+
+
                 } else if (field.required) {
                     errors[name] = `${field.title || name} is required.`;
                 }
@@ -530,6 +579,21 @@ const BasicForm: Function = <T extends Object>(
                         values: FormValues<T>,
                         { setSubmitting }: { setSubmitting: Function }
                     ) => {
+
+
+                        // check for any boolean values and if they dont exist in values - mark them as false. 
+
+                        for (const field of props.fields) {
+                            if (field.fieldType === FormFieldSchemaType.Checkbox) {
+                                const fieldName: string = field.overideFieldKey
+                                    ? field.overideFieldKey
+                                    : (Object.keys(field.field)[0] as string);
+                                if (!(values as any)[fieldName]) {
+                                    (values as any)[fieldName] = false;
+                                }
+                            }
+                        }
+
                         props.onSubmit(values);
                         setSubmitting(false);
                     }}
