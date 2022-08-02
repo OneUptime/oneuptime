@@ -69,6 +69,13 @@ enum Permission {
     CanEditProjectResources = 'CanEditProjectResources',
     CanDeleteProjectResources = 'CanDeleteProjectResources',
     CanReadProjectResources = 'CanReadProjectResources',
+
+
+    // Project SMTP Config (Team Permission)
+    CanCreateProjectSMTPConfig = 'CanCreateProjectSMTPConfig',
+    CanEditProjectSMTPConfig = 'CanEditProjectSMTPConfig',
+    CanDeleteProjectSMTPConfig = 'CanDeleteProjectSMTPConfig',
+    CanReadProjectSMTPConfig = 'CanReadProjectSMTPConfig',
 }
 
 export class PermissionHelper {
@@ -230,6 +237,32 @@ export class PermissionHelper {
                 permission: Permission.CanReadProjectLabel,
                 title: 'Can Read Label',
                 description: 'A user assigned this permission  can read labels of this project.',
+                isAssignableToProject: true
+            },
+
+
+            {
+                permission: Permission.CanCreateProjectSMTPConfig,
+                title: 'Can Create SMTP Config',
+                description: 'A user assigned this permission can create SMTP configs this this project.',
+                isAssignableToProject: true
+            },
+            {
+                permission: Permission.CanDeleteProjectSMTPConfig,
+                title: 'Can Delete SMTP Config',
+                description: 'A user assigned this permission  can delete SMTP configs of this project.',
+                isAssignableToProject: true
+            },
+            {
+                permission: Permission.CanEditProjectSMTPConfig,
+                title: 'Can Edit SMTP Config',
+                description: 'A user assigned this permission can edit SMTP configs of this project.',
+                isAssignableToProject: true
+            },
+            {
+                permission: Permission.CanReadProjectSMTPConfig,
+                title: 'Can Read SMTP Config',
+                description: 'A user assigned this permission  can read SMTP configs of this project.',
                 isAssignableToProject: true
             },
 

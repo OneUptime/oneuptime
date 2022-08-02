@@ -15,6 +15,11 @@ import ApiKeyPermission from './ApiKeyPermission';
 //Labels.
 import Label from './Label';
 
+
+// Project SMTP Config. 
+
+import ProjectSmtpConfig from './ProjectSmtpConfig';
+
 export default [
     User,
     Probe,
@@ -25,5 +30,6 @@ export default [
     TeamPermission,
     ApiKey,
     Label,
-    ApiKeyPermission
+    ApiKeyPermission,
+    ProjectSmtpConfig
 ];

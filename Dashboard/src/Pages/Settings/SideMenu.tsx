@@ -89,7 +89,9 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 <SideMenuItem
                     link={{
                         title: 'Custom SMTP',
-                        to: new Route('/:projectSlug/home'),
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
+                        ),
                     }}
                     icon={IconProp.Email}
                 />

@@ -1,8 +1,10 @@
+import { FindOperator } from 'typeorm/find-options/FindOperator';
+import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 import PositiveNumber from './PositiveNumber';
 import Typeof from './Typeof';
 
-export default class Port {
+export default class Port extends DatabaseProperty {
     private _port: PositiveNumber = new PositiveNumber(0);
     public get port(): PositiveNumber {
         return this._port;
@@ -12,6 +14,7 @@ export default class Port {
     }
 
     public constructor(port: number | string) {
+        super();
         if (typeof port === Typeof.String) {
             try {
                 port = Number.parseInt(port.toString(), 10);
@@ -29,7 +32,27 @@ export default class Port {
         }
     }
 
-    public toString(): string {
+    public static override toDatabase(
+        value: Port | FindOperator<Port>
+    ): number | null {
+        if (value instanceof Port) {
+            return value.toNumber();
+        } else if(value){
+            return ((value) as any).toNumber();
+        }
+
+        return null;
+    }
+
+    public static override fromDatabase(_value: string | number): Port | null {
+        if (_value) {
+            return new Port(_value);
+        }
+
+        return null;
+    }
+
+    public override toString(): string {
         return this.port.toString();
     }
 

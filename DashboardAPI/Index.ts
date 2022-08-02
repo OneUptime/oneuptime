@@ -46,6 +46,11 @@ import LabelService, {
     Service as LabelServiceType,
 } from 'CommonServer/Services/LabelService';
 
+import ProjectSmtpConfig from 'Common/Models/ProjectSmtpConfig';
+import ProjectSmtpConfigService, {
+    Service as ProjectSMTPConfigServiceType,
+} from 'CommonServer/Services/ProjectSmtpConfigService';
+
 import ApiKey from 'Common/Models/ApiKey';
 import ApiKeyService, {
     Service as ApiKeyServiceType,
@@ -55,6 +60,7 @@ import ApiKeyPermission from 'Common/Models/ApiKeyPermission';
 import ApiKeyPermissionService, {
     Service as ApiKeyPermissionServiceType,
 } from 'CommonServer/Services/ApiKeyPermissionService';
+
 
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -105,6 +111,13 @@ app.use(
     new BaseAPI<EmailVerificationToken, EmailVerificationTokenServiceType>(
         EmailVerificationToken,
         EmailVerificationTokenService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<ProjectSmtpConfig, ProjectSMTPConfigServiceType>(
+        ProjectSmtpConfig,
+        ProjectSmtpConfigService
     ).getRouter()
 );
 

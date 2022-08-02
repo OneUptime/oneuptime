@@ -31,7 +31,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             title={'Project Settings'}
             breadcrumbLinks={[
                 {
-                    title: 'Project Name',
+                    title: 'Project',
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {

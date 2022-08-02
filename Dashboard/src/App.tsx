@@ -25,6 +25,7 @@ import SettingsDangerZone from './Pages/Settings/DangerZone';
 import SettingsApiKeys from './Pages/Settings/APIKeys';
 import SettingsApiKeyView from './Pages/Settings/APIKeyView';
 import SettingLabels from './Pages/Settings/Labels';
+import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -168,6 +169,18 @@ const App: FunctionComponent = () => {
                         <SettingsDangerZone
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_CUSTOM_SMTP]?.toString()}
+                    element={
+                        <SettingCustomSMTP
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
                             }
                             currentProject={selectedProject}
                         />

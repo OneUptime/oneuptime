@@ -126,7 +126,6 @@ export default class Label extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
-    @Index()
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
         nullable: true,

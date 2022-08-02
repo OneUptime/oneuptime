@@ -14,7 +14,7 @@ const Home: FunctionComponent<PageComponentProps> = (
             title={'Home'}
             breadcrumbLinks={[
                 {
-                    title: 'Project Name',
+                    title: 'Project',
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {

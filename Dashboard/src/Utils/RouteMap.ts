@@ -49,6 +49,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/api-keys/${RouteParams.ModelID}`
     ),
 
+    [PageMap.SETTINGS_CUSTOM_SMTP]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/custom-smtp`
+    ),
+
     // labels.
     [PageMap.SETTINGS_LABELS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/labels`
