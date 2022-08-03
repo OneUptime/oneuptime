@@ -42,14 +42,14 @@ import Populate from '../../Utils/ModelAPI/Populate';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
-    type: { new(): TBaseModel };
+    type: { new (): TBaseModel };
     id: string;
     onFetchInit?:
-    | undefined
-    | ((pageNumber: number, itemsOnPage: number) => void);
+        | undefined
+        | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-    | undefined
-    | ((data: Array<TBaseModel>, totalCount: number) => void);
+        | undefined
+        | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps: CardComponentProps;
     columns: Columns<TBaseModel>;
     initialItemsOnPage?: number;
@@ -114,7 +114,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
@@ -143,8 +143,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                            [sortBy as any]: sortOrder,
-                        }
+                              [sortBy as any]: sortOrder,
+                          }
                         : {},
                     getPopulate()
                 );
@@ -155,7 +155,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
@@ -172,13 +172,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         };
 
         for (const column of props.columns) {
-
-
             const key: string | null = column.field
                 ? (Object.keys(column.field)[0] as string)
                 : null;
-
-
 
             const moreFields: Array<string> = column.moreFields
                 ? Object.keys(column.moreFields)
@@ -191,16 +187,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             for (const moreField of moreFields) {
                 (selectFields as Dictionary<boolean>)[moreField] = true;
             }
-
         }
 
         return selectFields;
     };
 
     const getPopulate: Function = (): Populate<TBaseModel> => {
-        const populate: Populate<TBaseModel> = {
-
-        };
+        const populate: Populate<TBaseModel> = {};
 
         for (const column of props.columns) {
             const key: string | null = column.field
@@ -222,15 +215,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             PermissionUtil.getProjectPermissions();
         const hasPermissionToCreate: boolean = Boolean(
             userProjectPermissions &&
-            userProjectPermissions.permissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                props.model.createRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    props.model.createRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
                 )
-            )
         );
 
         if (props.isCreateable && hasPermissionToCreate) {
@@ -244,7 +237,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 icon: IconProp.Add,
             });
         }
-
 
         if (props.showRefreshButton) {
             headerbuttons.push({
@@ -285,10 +277,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setHeaderButtons();
     }, [showTableFilter]);
 
-
     const shouldDisableSort: Function = (columnName: string): boolean => {
         return props.model.isEntityColumn(columnName);
-    }
+    };
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
@@ -375,7 +366,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 columns.push({
                     ...column,
                     disableSort: column.disableSort || shouldDisableSort(key),
-                    key
+                    key,
                 });
 
                 if (key) {
@@ -393,41 +384,41 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         const hasPermissionToDelete: boolean = Boolean(
             userProjectPermissions &&
-            userProjectPermissions.permissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                props.model.deleteRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    props.model.deleteRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
                 )
-            )
         );
 
         const hasPermissionToUpdate: boolean = Boolean(
             userProjectPermissions &&
-            userProjectPermissions.permissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                props.model.updateRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    props.model.updateRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
                 )
-            )
         );
 
         const hasPermissionToView: boolean = Boolean(
             userProjectPermissions &&
-            userProjectPermissions.permissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                props.model.readRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    props.model.readRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
                 )
-            )
         );
 
         if (
@@ -467,8 +458,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             });
         }
 
-
-
         setActionButtonSchema(actionsSchema);
 
         setHeaderButtons();
@@ -493,7 +482,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                 filterData[key] &&
                                 typeof filterData[key] === Typeof.String
                             ) {
-                                query[key as keyof TBaseModel] = (filterData[key] || '').toString()
+                                query[key as keyof TBaseModel] = (
+                                    filterData[key] || ''
+                                ).toString();
                             }
 
                             if (typeof filterData[key] === Typeof.Boolean) {
@@ -503,11 +494,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             }
 
                             if (filterData[key] instanceof Date) {
-                                query[key as keyof TBaseModel] = filterData[key];
+                                query[key as keyof TBaseModel] =
+                                    filterData[key];
                             }
 
                             if (filterData[key] instanceof Search) {
-                                query[key as keyof TBaseModel] = filterData[key];
+                                query[key as keyof TBaseModel] =
+                                    filterData[key];
                             }
                         }
 
@@ -555,9 +548,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
                         if (key === ActionType.View) {
                             if (!props.currentPageRoute) {
-                                throw new BadDataException("Please populate curentPageRoute in ModelTable");
+                                throw new BadDataException(
+                                    'Please populate curentPageRoute in ModelTable'
+                                );
                             }
-                            Navigation.navigate(new Route(props.currentPageRoute.toString()).addRoute("/" + item["_id"]));
+                            Navigation.navigate(
+                                new Route(
+                                    props.currentPageRoute.toString()
+                                ).addRoute('/' + item['_id'])
+                            );
                         }
                     }}
                 />

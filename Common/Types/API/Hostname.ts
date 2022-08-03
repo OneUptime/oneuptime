@@ -62,7 +62,6 @@ export default class Hostname extends DatabaseProperty {
         return new Hostname(hostname);
     }
 
-
     public static override toDatabase(
         value: Hostname | FindOperator<Hostname>
     ): string | null {

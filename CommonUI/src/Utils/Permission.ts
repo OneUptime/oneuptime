@@ -32,15 +32,15 @@ export default class PermissionUtil {
     }
 
     public static projectPermissionsAsDropdownOptions(): Array<DropdownOption> {
-        const permissions: Array<PermissionProps> = PermissionHelper.getProjectPermissionProps();
+        const permissions: Array<PermissionProps> =
+            PermissionHelper.getProjectPermissionProps();
 
         return permissions.map((permissionProp) => {
             return {
                 value: permissionProp.permission,
                 label: permissionProp.title,
-            }
-        })
-
+            };
+        });
     }
 
     public static setGlobalPermissions(

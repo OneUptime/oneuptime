@@ -154,10 +154,10 @@ export default class URL extends DatabaseProperty {
     }
 
     public getLastRoute(): Route | null {
-        const paths: Array<string> = this.route.toString().split("/");
+        const paths: Array<string> = this.route.toString().split('/');
 
         if (paths.length > 0) {
-            return new Route("/" + paths[paths.length - 1]);
+            return new Route('/' + paths[paths.length - 1]);
         }
 
         return null;

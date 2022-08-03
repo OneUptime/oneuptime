@@ -69,8 +69,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        placeholder:
-                            'API Key Description',
+                        placeholder: 'API Key Description',
                     },
                     {
                         field: {
@@ -79,12 +78,11 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         title: 'Expires',
                         fieldType: FormFieldSchemaType.Date,
                         required: true,
-                        placeholder:
-                            'Expires at',
+                        placeholder: 'Expires at',
                         validation: {
-                            dateShouldBeInTheFuture: true
-                        }
-                    }
+                            dateShouldBeInTheFuture: true,
+                        },
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -114,8 +112,8 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         type: TableColumnType.Date,
                         isFilterable: true,
                         options: {
-                            onlyShowDate: true
-                        }
+                            onlyShowDate: true,
+                        },
                     },
                 ]}
             />

@@ -11,8 +11,8 @@ export interface ComponentProps {
     item: JSONObject;
     columns: Columns;
     onActionEvent?:
-    | ((actionType: ActionType, item: JSONObject) => void)
-    | undefined;
+        | ((actionType: ActionType, item: JSONObject) => void)
+        | undefined;
     actionButtons?: Array<ActionButtonSchema> | undefined;
 }
 
@@ -34,9 +34,27 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             }}
                         >
                             {column.key && !column.getColumnElement ? (
-                                column.type === TableColumnType.Date ? (props.item[column.key] ? OneUptimeDate.getDateAsLocalFormattedString(props.item[column.key] as string, column.options?.onlyShowDate || false) : '') :
-                                    (column.type === TableColumnType.Boolean ? (props.item[column.key] ? "Yes" : "No") :
-                                        props.item[column.key]?.toString() as string)
+                                column.type === TableColumnType.Date ? (
+                                    props.item[column.key] ? (
+                                        OneUptimeDate.getDateAsLocalFormattedString(
+                                            props.item[column.key] as string,
+                                            column.options?.onlyShowDate ||
+                                                false
+                                        )
+                                    ) : (
+                                        ''
+                                    )
+                                ) : column.type === TableColumnType.Boolean ? (
+                                    props.item[column.key] ? (
+                                        'Yes'
+                                    ) : (
+                                        'No'
+                                    )
+                                ) : (
+                                    (props.item[
+                                        column.key
+                                    ]?.toString() as string)
+                                )
                             ) : (
                                 <></>
                             )}
@@ -58,9 +76,9 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                     style={
                                                         i > 0
                                                             ? {
-                                                                marginLeft:
-                                                                    '10px',
-                                                            }
+                                                                  marginLeft:
+                                                                      '10px',
+                                                              }
                                                             : {}
                                                     }
                                                     key={i}

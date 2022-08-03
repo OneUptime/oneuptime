@@ -46,7 +46,9 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                     description:
                         'If you need OneUptime to send emails through your SMTP Server, please enter the server details here.',
                 }}
-                noItemsMessage={'No SMTP Server Configs created for this project so far.'}
+                noItemsMessage={
+                    'No SMTP Server Configs created for this project so far.'
+                }
                 formFields={[
                     {
                         field: {
@@ -55,7 +57,8 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        description: 'Friendly name for this config so you remember what this is about.',
+                        description:
+                            'Friendly name for this config so you remember what this is about.',
                         placeholder: 'Company SMTP Server',
                         validation: {
                             noSpaces: true,
@@ -69,7 +72,8 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        description: 'Friendly description for this config so you remember what this is about.',
+                        description:
+                            'Friendly description for this config so you remember what this is about.',
                         placeholder: 'Company SMTP server hosted on AWS',
                     },
                     {
@@ -79,8 +83,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Hostname',
                         fieldType: FormFieldSchemaType.Hostname,
                         required: true,
-                        placeholder:
-                            'smtp.server.com',
+                        placeholder: 'smtp.server.com',
                     },
                     {
                         field: {
@@ -89,8 +92,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Port',
                         fieldType: FormFieldSchemaType.Port,
                         required: true,
-                        placeholder:
-                            '587',
+                        placeholder: '587',
                     },
                     {
                         field: {
@@ -107,8 +109,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Username',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder:
-                            'emailuser',
+                        placeholder: 'emailuser',
                     },
                     {
                         field: {
@@ -117,8 +118,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Password',
                         fieldType: FormFieldSchemaType.Password,
                         required: true,
-                        placeholder:
-                            'Password',
+                        placeholder: 'Password',
                     },
                     {
                         field: {
@@ -127,9 +127,9 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Email From',
                         fieldType: FormFieldSchemaType.Email,
                         required: true,
-                        description: 'This is the display email your team and customers see, when they recieve emails from OneUptime.',
-                        placeholder:
-                            'email@company.com',
+                        description:
+                            'This is the display email your team and customers see, when they recieve emails from OneUptime.',
+                        placeholder: 'email@company.com',
                     },
                     {
                         field: {
@@ -138,11 +138,10 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'From Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        description: 'This is the display name your team and customers see, when they recieve emails from OneUptime.',
-                        placeholder:
-                            'Company, Inc.',
+                        description:
+                            'This is the display name your team and customers see, when they recieve emails from OneUptime.',
+                        placeholder: 'Company, Inc.',
                     },
-
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -171,7 +170,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                         title: 'Server Host',
                         type: TableColumnType.Text,
                         isFilterable: true,
-                    }
+                    },
                 ]}
             />
         </Page>

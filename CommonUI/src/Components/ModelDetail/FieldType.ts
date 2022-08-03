@@ -11,7 +11,7 @@ enum FieldType {
     Date,
     LongText,
     Color,
-    Port, 
+    Port,
 }
 
 export default FieldType;

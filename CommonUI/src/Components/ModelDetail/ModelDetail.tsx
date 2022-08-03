@@ -1,8 +1,4 @@
-import React, {
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import React, { ReactElement, useEffect, useState } from 'react';
 import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
@@ -26,7 +22,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import FieldType from './FieldType';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    type: { new(): TBaseModel };
+    type: { new (): TBaseModel };
     model: TBaseModel;
     id: string;
     fields: Array<Field<TBaseModel>>;
@@ -37,19 +33,17 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
     modelId: ObjectID;
     onError?: ((error: string) => void) | undefined;
-    onItemLoaded?: ((item: TBaseModel) => void | undefined);
+    onItemLoaded?: (item: TBaseModel) => void | undefined;
     refresher?: undefined | boolean;
 }
 
 const ModelDetail: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const [fields, setFields] = useState<Array<Field<TBaseModel>>>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [item, setItem] = useState<TBaseModel | null>(null);
-
 
     useEffect(() => {
         fetchItem();
@@ -121,7 +115,6 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         setFields(fieldsToSet);
     }, []);
 
-
     const fetchItem = async () => {
         // get item.
         setIsLoading(true);
@@ -161,28 +154,27 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
             props.onError && props.onError(error);
         }
         setIsLoading(false);
-    }
-
+    };
 
     useEffect(() => {
-        fetchItem()
-
+        fetchItem();
     }, []);
 
-
-    const getField: Function = (field: Field<TBaseModel>, index: number): ReactElement => {
-
+    const getField: Function = (
+        field: Field<TBaseModel>,
+        index: number
+    ): ReactElement => {
         const fieldKeys: Array<string> = Object.keys(field.field);
         let fieldKey: string | null = null;
 
         if (fieldKeys.length > 0 && fieldKeys[0]) {
             fieldKey = fieldKeys[0];
         } else {
-            throw new BadDataException("Field Key not found");
+            throw new BadDataException('Field Key not found');
         }
 
         if (!item) {
-            throw new BadDataException("Item not found");
+            throw new BadDataException('Item not found');
         }
 
         let data: string = '';
@@ -214,17 +206,19 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                 </label>
                 {field.description && <p>{field.description}</p>}
 
-                <div className="form-control" style={{
-                    border: "none",
-                    paddingLeft: "0px",
-                    paddingTop: "0px"
-                }}>
+                <div
+                    className="form-control"
+                    style={{
+                        border: 'none',
+                        paddingLeft: '0px',
+                        paddingTop: '0px',
+                    }}
+                >
                     {data}
                 </div>
             </div>
-        )
+        );
     };
-
 
     if (isLoading) {
         return (
@@ -244,10 +238,8 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         );
     }
 
-
     if (error) {
         return (
-
             <p
                 className="text-center color-light-grey"
                 style={{
@@ -256,7 +248,6 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                 }}
             >
                 {error} <br />{' '}
-
                 <span
                     onClick={() => {
                         fetchItem();
@@ -265,17 +256,17 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                 >
                     Refresh?
                 </span>
-
             </p>
-
         );
     }
 
     return (
         <>
-            {fields && fields.length > 0 && fields.map((field: Field<TBaseModel>, i: number) => {
-                return getField(field, i);
-            })}
+            {fields &&
+                fields.length > 0 &&
+                fields.map((field: Field<TBaseModel>, i: number) => {
+                    return getField(field, i);
+                })}
         </>
     );
 };

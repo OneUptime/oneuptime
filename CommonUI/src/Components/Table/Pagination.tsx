@@ -70,12 +70,15 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     style={{ padding: '17px', margin: '0px' }}
                     className="color-light-grey"
                 >
-                    {!props.isLoading && <span>{props.totalItemsCount}{' '}
-                        {props.totalItemsCount > 1
-                            ? props.pluralLabel
-                            : props.singularLabel}{' '}
-                        {`in total. Showing ${props.itemsOnPage} on this page.`}
-                    </span>}
+                    {!props.isLoading && (
+                        <span>
+                            {props.totalItemsCount}{' '}
+                            {props.totalItemsCount > 1
+                                ? props.pluralLabel
+                                : props.singularLabel}{' '}
+                            {`in total. Showing ${props.itemsOnPage} on this page.`}
+                        </span>
+                    )}
                 </p>
             </div>
             <div>

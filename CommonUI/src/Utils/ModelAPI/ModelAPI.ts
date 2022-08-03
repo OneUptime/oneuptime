@@ -131,7 +131,9 @@ export default class ModelAPI {
                     query: JSONFunctions.serialize(query as JSONObject),
                     select: JSONFunctions.serialize(select as JSONObject),
                     sort: JSONFunctions.serialize(sort as JSONObject),
-                    populate: populate ? JSONFunctions.serialize(populate as JSONObject) : null
+                    populate: populate
+                        ? JSONFunctions.serialize(populate as JSONObject)
+                        : null,
                 },
                 this.getCommonHeaders(),
                 {
@@ -198,7 +200,9 @@ export default class ModelAPI {
                 apiUrl,
                 {
                     select: JSONFunctions.serialize(select as JSONObject),
-                    populate: populate? JSONFunctions.serialize(populate as JSONObject) : null
+                    populate: populate
+                        ? JSONFunctions.serialize(populate as JSONObject)
+                        : null,
                 },
                 this.getCommonHeaders()
             );

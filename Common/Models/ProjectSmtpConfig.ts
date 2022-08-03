@@ -24,10 +24,7 @@ import UniqueColumnBy from '../Types/Database/UniqueColumnBy';
 @ProjectColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadProjectSMTPConfig,
-    ],
+    read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectSMTPConfig],
     update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
 })
@@ -38,9 +35,11 @@ import UniqueColumnBy from '../Types/Database/UniqueColumnBy';
     name: 'ProjectSMTPConfig',
 })
 export default class ProjectSmtpConfig extends BaseModel {
-
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -51,7 +50,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
-        modelType: Project
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -65,10 +64,13 @@ export default class ProjectSmtpConfig extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project = undefined; 
+    public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -83,10 +85,13 @@ export default class ProjectSmtpConfig extends BaseModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID = undefined; 
+    public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -101,7 +106,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         length: ColumnLength.ShortText,
     })
     @UniqueColumnBy('projectId')
-    public name?: string = undefined; 
+    public name?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -118,10 +123,13 @@ export default class ProjectSmtpConfig extends BaseModel {
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
     })
-    public slug?: string = undefined; 
+    public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -135,10 +143,13 @@ export default class ProjectSmtpConfig extends BaseModel {
         type: ColumnType.LongText,
         length: ColumnLength.LongText,
     })
-    public description?: string = undefined; 
+    public description?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -149,7 +160,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
-        modelType: Project
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -163,10 +174,13 @@ export default class ProjectSmtpConfig extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User = undefined; 
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -180,7 +194,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID = undefined; 
+    public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -208,7 +222,7 @@ export default class ProjectSmtpConfig extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User = undefined; 
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -225,13 +239,13 @@ export default class ProjectSmtpConfig extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID = undefined; 
-
-
-
+    public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -245,10 +259,13 @@ export default class ProjectSmtpConfig extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public username?: string = undefined; 
+    public username?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -262,10 +279,13 @@ export default class ProjectSmtpConfig extends BaseModel {
         type: ColumnType.Password,
         length: ColumnLength.Password,
     })
-    public password?: string = undefined; 
+    public password?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -278,12 +298,15 @@ export default class ProjectSmtpConfig extends BaseModel {
         nullable: false,
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
-        transformer: Hostname.getDatabaseTransformer()
+        transformer: Hostname.getDatabaseTransformer(),
     })
-    public hostname?: Hostname = undefined; 
+    public hostname?: Hostname = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -295,12 +318,15 @@ export default class ProjectSmtpConfig extends BaseModel {
     @Column({
         nullable: false,
         type: ColumnType.Number,
-        transformer: Port.getDatabaseTransformer()
+        transformer: Port.getDatabaseTransformer(),
     })
-    public port?: Port = undefined; 
+    public port?: Port = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -313,12 +339,15 @@ export default class ProjectSmtpConfig extends BaseModel {
         nullable: false,
         type: ColumnType.Email,
         length: ColumnLength.Email,
-        transformer: Email.getDatabaseTransformer()
+        transformer: Email.getDatabaseTransformer(),
     })
-    public fromEmail?: Email = undefined; 
+    public fromEmail?: Email = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -332,11 +361,13 @@ export default class ProjectSmtpConfig extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public fromName?: string = undefined; 
-
+    public fromName?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectSMTPConfig,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectSMTPConfig,
@@ -348,7 +379,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     @Column({
         nullable: false,
         type: ColumnType.Boolean,
-        default: true
+        default: true,
     })
     public secure?: boolean = undefined;
 }

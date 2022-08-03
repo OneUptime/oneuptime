@@ -1,8 +1,15 @@
-import { PermissionHelper, UserPermission, UserProjectAccessPermission } from 'Common/Types/Permission';
+import {
+    PermissionHelper,
+    UserPermission,
+    UserProjectAccessPermission,
+} from 'Common/Types/Permission';
 import React, { ReactElement, useEffect, useState } from 'react';
 import PermissionUtil from '../../Utils/Permission';
-import Card, { CardButtonSchema, ComponentProps as CardProps } from "../Card/Card";
-import { ComponentProps as ModeDetailProps } from "./ModelDetail";
+import Card, {
+    CardButtonSchema,
+    ComponentProps as CardProps,
+} from '../Card/Card';
+import { ComponentProps as ModeDetailProps } from './ModelDetail';
 import ModelDetail from './ModelDetail';
 import BaseModel from 'Common/Models/BaseModel';
 import { ButtonStyleType } from '../Button/Button';
@@ -18,15 +25,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     formFields?: undefined | Fields<TBaseModel>;
 }
 
-const CardModelDetail: Function = <TBaseModel extends BaseModel>(props: ComponentProps<TBaseModel>): ReactElement => {
-
-
+const CardModelDetail: Function = <TBaseModel extends BaseModel>(
+    props: ComponentProps<TBaseModel>
+): ReactElement => {
     const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
     const [showModel, setShowModal] = useState<boolean>(false);
     const [item, setItem] = useState<TBaseModel | null>(null);
     const [refresher, setRefresher] = useState<boolean>(false);
-    
-
 
     useEffect(() => {
         const userProjectPermissions: UserProjectAccessPermission | null =
@@ -34,17 +39,16 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(props: Componen
 
         const hasPermissionToEdit: boolean = Boolean(
             userProjectPermissions &&
-            userProjectPermissions.permissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                props.modelDetailProps.model.updateRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    props.modelDetailProps.model.updateRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
                 )
-            )
         );
-
 
         if (props.isEditable && hasPermissionToEdit) {
             setCardButtons([
@@ -55,53 +59,49 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(props: Componen
                         setShowModal(true);
                     },
                     icon: IconProp.Edit,
-                }
-            ])
+                },
+            ]);
         }
-
-    }, [])
+    }, []);
 
     return (
         <>
             <Card {...props.cardProps} buttons={cardButtons}>
-                <ModelDetail refresher={refresher} {...props.modelDetailProps} onItemLoaded={(item: TBaseModel) => {
-                    setItem(item);
-                }} />
-            </Card >
+                <ModelDetail
+                    refresher={refresher}
+                    {...props.modelDetailProps}
+                    onItemLoaded={(item: TBaseModel) => {
+                        setItem(item);
+                    }}
+                />
+            </Card>
 
-            {
-                showModel ? (
-                    <ModelFromModal<TBaseModel>
-                        title={
-                            `Edit ${props.modelDetailProps.model.singularName}`
-                        }
-                        onClose={() => {
-                            setShowModal(false);
-                        }}
-                        submitButtonText={
-                            `Save Changes`
-                        }
-                        onSuccess={(_item: TBaseModel) => {
-                            setShowModal(false);
-                            setRefresher(!refresher);
-                        }}
-                        type={props.modelDetailProps.type}
-                        formProps={{
-                            model: props.modelDetailProps.model,
-                            id: `edit-${props.modelDetailProps.model.singularName?.toLowerCase()}-from`,
-                            fields: props.formFields || [],
-                            formType: FormType.Update,
-                            type: props.modelDetailProps.type
-                        }}
-                        modelIdToEdit={
-                            item?._id
-                        }
-                    />
-                ) : (
-                    <></>
-                )
-            }</>
-    )
+            {showModel ? (
+                <ModelFromModal<TBaseModel>
+                    title={`Edit ${props.modelDetailProps.model.singularName}`}
+                    onClose={() => {
+                        setShowModal(false);
+                    }}
+                    submitButtonText={`Save Changes`}
+                    onSuccess={(_item: TBaseModel) => {
+                        setShowModal(false);
+                        setRefresher(!refresher);
+                    }}
+                    type={props.modelDetailProps.type}
+                    formProps={{
+                        model: props.modelDetailProps.model,
+                        id: `edit-${props.modelDetailProps.model.singularName?.toLowerCase()}-from`,
+                        fields: props.formFields || [],
+                        formType: FormType.Update,
+                        type: props.modelDetailProps.type,
+                    }}
+                    modelIdToEdit={item?._id}
+                />
+            ) : (
+                <></>
+            )}
+        </>
+    );
 };
 
 export default CardModelDetail;

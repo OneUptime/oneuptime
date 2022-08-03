@@ -48,7 +48,7 @@ class User extends BaseModel {
         unique: false,
         transformer: Name.getDatabaseTransformer(),
     })
-    public name?: Name = undefined; 
+    public name?: Name = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],
@@ -69,7 +69,7 @@ class User extends BaseModel {
         nullable: false,
         transformer: Email.getDatabaseTransformer(),
     })
-    public email?: Email = undefined; 
+    public email?: Email = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -85,7 +85,7 @@ class User extends BaseModel {
         nullable: true,
         transformer: Email.getDatabaseTransformer(),
     })
-    public newUnverifiedTemporaryEmail?: string = undefined; 
+    public newUnverifiedTemporaryEmail?: string = undefined;
 
     @Index()
     @ColumnAccessControl({
@@ -100,7 +100,7 @@ class User extends BaseModel {
         length: ColumnLength.Slug,
         unique: true,
     })
-    public slug?: string = undefined; 
+    public slug?: string = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],
@@ -120,7 +120,7 @@ class User extends BaseModel {
         nullable: true,
         transformer: HashedString.getDatabaseTransformer(),
     })
-    public password?: HashedString = undefined; 
+    public password?: HashedString = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -133,7 +133,7 @@ class User extends BaseModel {
         type: ColumnType.Boolean,
         default: false,
     })
-    public isEmailVerified?: boolean = undefined; 
+    public isEmailVerified?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],
@@ -148,7 +148,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public companyName?: string = undefined; 
+    public companyName?: string = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],
@@ -163,7 +163,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public jobRole?: JobRole = undefined; 
+    public jobRole?: JobRole = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],
@@ -178,7 +178,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public companySize?: CompanySize = undefined; 
+    public companySize?: CompanySize = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],
@@ -193,7 +193,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public referral?: string = undefined; 
+    public referral?: string = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],
@@ -209,7 +209,7 @@ class User extends BaseModel {
         unique: false,
         transformer: Phone.getDatabaseTransformer(),
     })
-    public companyPhoneNumber?: Phone = undefined; 
+    public companyPhoneNumber?: Phone = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -225,7 +225,7 @@ class User extends BaseModel {
         unique: false,
         transformer: URL.getDatabaseTransformer(),
     })
-    public profilePicImageUrl?: URL = undefined; 
+    public profilePicImageUrl?: URL = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -244,7 +244,7 @@ class User extends BaseModel {
         nullable: false,
         unique: false,
     })
-    public twoFactorAuthEnabled?: boolean = undefined; 
+    public twoFactorAuthEnabled?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -259,7 +259,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public twoFactorSecretCode?: string = undefined; 
+    public twoFactorSecretCode?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -275,7 +275,7 @@ class User extends BaseModel {
         unique: false,
         transformer: URL.getDatabaseTransformer(),
     })
-    public twoFactorAuthUrl?: URL = undefined; 
+    public twoFactorAuthUrl?: URL = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -289,7 +289,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public backupCodes?: Array<string> = undefined; 
+    public backupCodes?: Array<string> = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -304,7 +304,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public jwtRefreshToken?: string = undefined; 
+    public jwtRefreshToken?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -319,7 +319,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentProviderCustomerId?: string = undefined; 
+    public paymentProviderCustomerId?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -334,7 +334,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public resetPasswordToken?: string = undefined; 
+    public resetPasswordToken?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -348,7 +348,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public resetPasswordExpires?: Date = undefined; 
+    public resetPasswordExpires?: Date = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -363,7 +363,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public timezone?: Timezone = undefined; 
+    public timezone?: Timezone = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -377,7 +377,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public lastActive?: Date = undefined; 
+    public lastActive?: Date = undefined;
 
     @ColumnAccessControl({
         create: [Permission.Public],
@@ -392,7 +392,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public promotionName?: string = undefined; 
+    public promotionName?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -411,7 +411,7 @@ class User extends BaseModel {
         unique: false,
         default: false,
     })
-    public isDisabled?: boolean = undefined; 
+    public isDisabled?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -425,7 +425,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public paymentFailedDate?: Date = undefined; 
+    public paymentFailedDate?: Date = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -444,7 +444,7 @@ class User extends BaseModel {
         unique: false,
         default: false,
     })
-    public isMasterAdmin?: boolean = undefined; 
+    public isMasterAdmin?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -463,7 +463,7 @@ class User extends BaseModel {
         unique: false,
         default: false,
     })
-    public isBlocked?: boolean = undefined; 
+    public isBlocked?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -478,7 +478,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public alertPhoneNumber?: Phone = undefined; 
+    public alertPhoneNumber?: Phone = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -493,7 +493,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public alertPhoneVerificationCode?: string = undefined; 
+    public alertPhoneVerificationCode?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -507,7 +507,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public alertPhoneVerificationCodeRequestTime?: Date = undefined; 
+    public alertPhoneVerificationCodeRequestTime?: Date = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -522,7 +522,7 @@ class User extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public tempAlertPhoneNumber?: Phone = undefined; 
+    public tempAlertPhoneNumber?: Phone = undefined;
 }
 
 export default User;

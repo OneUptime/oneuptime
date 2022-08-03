@@ -14,7 +14,7 @@ export interface ComponentProps {
     onChange?: undefined | ((value: string) => void);
     value?: string | undefined;
     readOnly?: boolean | undefined;
-    type?: "text" | "number" | "date";
+    type?: 'text' | 'number' | 'date';
     leftCircleColor?: Color | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;

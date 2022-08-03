@@ -1,6 +1,6 @@
 enum RouteParams {
     ProjectID = ':projectId',
-    ModelID = ':id'
+    ModelID = ':id',
 }
 
 export default RouteParams;

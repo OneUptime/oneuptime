@@ -29,14 +29,13 @@ const Settings: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-             {/* API Key View  */}
-             <CardModelDetail
+            {/* API Key View  */}
+            <CardModelDetail
                 cardProps={{
-                    title: "Project Details",
+                    title: 'Project Details',
                     description: "Here's more details on this Project.",
                     icon: IconProp.Folder,
-                }
-                }
+                }}
                 isEditable={true}
                 formFields={[
                     {
@@ -51,24 +50,22 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             noSpaces: true,
                             minLength: 2,
                         },
-                    }
+                    },
                 ]}
-                modelDetailProps={
-                    {
-                        type: Project,
-                        model: new Project(),
-                        id: "model-detail-project",
-                        fields: [
-                            {
-                                field: {
-                                    name: true
-                                },
-                                title: "Project Name",
-                            }
-                        ],
-                        modelId: props.currentProject?._id,
-                    }
-                }
+                modelDetailProps={{
+                    type: Project,
+                    model: new Project(),
+                    id: 'model-detail-project',
+                    fields: [
+                        {
+                            field: {
+                                name: true,
+                            },
+                            title: 'Project Name',
+                        },
+                    ],
+                    modelId: props.currentProject?._id,
+                }}
             />
         </Page>
     );

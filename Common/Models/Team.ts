@@ -1,10 +1,4 @@
-import {
-    Column,
-    Entity,
-    Index,
-    JoinColumn,
-    ManyToOne,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -57,7 +51,7 @@ export default class Team extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
-        modelType: Project
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -71,7 +65,7 @@ export default class Team extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project = undefined; 
+    public project?: Project = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -89,7 +83,7 @@ export default class Team extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID = undefined; 
+    public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -107,7 +101,7 @@ export default class Team extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public name?: string = undefined; 
+    public name?: string = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -124,7 +118,7 @@ export default class Team extends BaseModel {
         type: ColumnType.LongText,
         length: ColumnLength.LongText,
     })
-    public description?: string = undefined; 
+    public description?: string = undefined;
 
     @Index()
     @ColumnAccessControl({
@@ -143,7 +137,7 @@ export default class Team extends BaseModel {
         length: ColumnLength.Slug,
         unique: true,
     })
-    public slug?: string = undefined; 
+    public slug?: string = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -157,7 +151,7 @@ export default class Team extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
-        modelType: Project
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -171,7 +165,7 @@ export default class Team extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User = undefined; 
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -188,7 +182,7 @@ export default class Team extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID = undefined; 
+    public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -212,7 +206,7 @@ export default class Team extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User = undefined; 
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -225,7 +219,7 @@ export default class Team extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID = undefined; 
+    public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -241,7 +235,7 @@ export default class Team extends BaseModel {
         type: ColumnType.Boolean,
         default: true,
     })
-    public isPermissionsEditable?: boolean = undefined; 
+    public isPermissionsEditable?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -257,5 +251,5 @@ export default class Team extends BaseModel {
         type: ColumnType.Boolean,
         default: true,
     })
-    public isTeamDeleteable?: boolean = undefined; 
+    public isTeamDeleteable?: boolean = undefined;
 }

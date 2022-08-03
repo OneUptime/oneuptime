@@ -5,7 +5,7 @@ enum TableColumnType {
     Boolean,
     Actions,
     Date,
-    Number
+    Number,
 }
 
 export default TableColumnType;

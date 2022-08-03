@@ -14,7 +14,6 @@ export default class Route {
     }
 
     public constructor(route?: string | Route) {
-
         if (route && route instanceof Route) {
             route = route.toString();
         }
@@ -25,8 +24,7 @@ export default class Route {
     }
 
     public addRoute(route: Route | string): Route {
-        
-        if (typeof route === "string") {
+        if (typeof route === 'string') {
             route = new Route(route);
         }
 

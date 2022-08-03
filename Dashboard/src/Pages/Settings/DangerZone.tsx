@@ -6,14 +6,13 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
-import ModelDelete from "CommonUI/src/Components/ModelDelete/ModelDelete";
-import Project from "Common/Models/Project";
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import Project from 'Common/Models/Project';
 import ObjectID from 'Common/Types/ObjectID';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-
     return (
         <Page
             title={'Project Settings'}

@@ -42,7 +42,7 @@ export default class ApiKey extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
-        modelType: Project
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -56,7 +56,7 @@ export default class ApiKey extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project = undefined; 
+    public project?: Project = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -70,7 +70,7 @@ export default class ApiKey extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID = undefined; 
+    public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -84,7 +84,7 @@ export default class ApiKey extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public name?: string = undefined; 
+    public name?: string = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -97,7 +97,7 @@ export default class ApiKey extends BaseModel {
         type: ColumnType.LongText,
         length: ColumnLength.LongText,
     })
-    public description?: string = undefined; 
+    public description?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -110,7 +110,7 @@ export default class ApiKey extends BaseModel {
         type: ColumnType.Slug,
         length: ColumnLength.Slug,
     })
-    public slug?: string = undefined; 
+    public slug?: string = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -120,7 +120,7 @@ export default class ApiKey extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
-        modelType: User
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {
@@ -134,7 +134,7 @@ export default class ApiKey extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User = undefined; 
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -147,7 +147,7 @@ export default class ApiKey extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID = undefined; 
+    public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -171,7 +171,7 @@ export default class ApiKey extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User = undefined; 
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -184,19 +184,23 @@ export default class ApiKey extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID = undefined; 
+    public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
-    @TableColumn({ title: 'Expires At', type: TableColumnType.Date, required: true })
+    @TableColumn({
+        title: 'Expires At',
+        type: TableColumnType.Date,
+        required: true,
+    })
     @Column({
         type: ColumnType.Date,
         nullable: false,
     })
-    public expiresAt?: Date = undefined; 
+    public expiresAt?: Date = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -213,5 +217,5 @@ export default class ApiKey extends BaseModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public apiKey?: ObjectID = undefined; 
+    public apiKey?: ObjectID = undefined;
 }

@@ -74,7 +74,7 @@ export default class APIKeyPermission extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'apiKeyId',
         type: TableColumnType.Entity,
-        modelType: ApiKey
+        modelType: ApiKey,
     })
     @ManyToOne(
         (_type: string) => {
@@ -88,7 +88,7 @@ export default class APIKeyPermission extends BaseModel {
         }
     )
     @JoinColumn({ name: 'apiKeyId' })
-    public apiKey?: ApiKey  = undefined;
+    public apiKey?: ApiKey = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -106,7 +106,7 @@ export default class APIKeyPermission extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
-        modelType: Project
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -178,7 +178,7 @@ export default class APIKeyPermission extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
-        modelType: User
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {
@@ -295,10 +295,17 @@ export default class APIKeyPermission extends BaseModel {
             Permission.CanEditProjectApiKey,
         ],
     })
-    @TableColumn({ required: false, type: TableColumnType.EntityArray, modelType: Label })
-    @ManyToMany(() => {
-        return Label;
-    }, {eager: true})
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
+    })
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: true }
+    )
     @JoinTable()
     public labels?: Array<Label> = undefined;
 }

@@ -68,9 +68,8 @@ const Teams: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        placeholder:
-                            'Team Description',
-                    }
+                        placeholder: 'Team Description',
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -91,7 +90,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: TableColumnType.Text,
                         isFilterable: true,
-                    }
+                    },
                 ]}
             />
         </Page>

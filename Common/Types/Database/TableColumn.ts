@@ -17,7 +17,7 @@ export interface TableColumnMetadata {
     encrypted?: boolean;
     manyToOneRelationColumn?: string;
     type: TableColumnType;
-    modelType?: { new (): BaseModel }
+    modelType?: { new (): BaseModel };
 }
 
 export default (props: TableColumnMetadata): ReflectionMetadataType => {

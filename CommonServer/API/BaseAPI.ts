@@ -19,7 +19,7 @@ import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../Types/Database/Populate';
 
 export default class BaseAPI<
@@ -198,14 +198,14 @@ export default class BaseAPI<
                     req.body['populate']
                 ) as Populate<BaseModel>;
             }
-            
+
             sort = JSONFunctions.deserialize(
                 req.body['sort']
             ) as Sort<BaseModel>;
         }
 
         debugger;
-        
+
         const list: Array<BaseModel> = await this.service.findBy({
             query,
             select,

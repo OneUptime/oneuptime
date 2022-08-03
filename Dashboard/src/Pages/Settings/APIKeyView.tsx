@@ -10,7 +10,7 @@ import ApiKeyPermission from 'Common/Models/ApiKeyPermission';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import ApiKey from 'Common/Models/ApiKey';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
@@ -49,15 +49,13 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
             {/* API Key View  */}
             <CardModelDetail
                 cardProps={{
-                    title: "API Key Details",
+                    title: 'API Key Details',
                     description: "Here's more details on this API Key.",
                     icon: IconProp.Terminal,
-                }
-                }
+                }}
                 isEditable={true}
                 formFields={[
                     {
@@ -80,8 +78,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        placeholder:
-                            'API Key Description',
+                        placeholder: 'API Key Description',
                     },
                     {
                         field: {
@@ -90,42 +87,39 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Expires',
                         fieldType: FormFieldSchemaType.Date,
                         required: true,
-                        placeholder:
-                            'Expires at',
+                        placeholder: 'Expires at',
                         validation: {
-                            dateShouldBeInTheFuture: true
-                        }
-                    }
+                            dateShouldBeInTheFuture: true,
+                        },
+                    },
                 ]}
-                modelDetailProps={
-                    {
-                        type: ApiKey,
-                        model: new ApiKey(),
-                        id: "model-detail-api-key",
-                        fields: [
-                            {
-                                field: {
-                                    name: true
-                                },
-                                title: "Name",
+                modelDetailProps={{
+                    type: ApiKey,
+                    model: new ApiKey(),
+                    id: 'model-detail-api-key',
+                    fields: [
+                        {
+                            field: {
+                                name: true,
                             },
-                            {
-                                field: {
-                                    description: true
-                                },
-                                title: "Description",
+                            title: 'Name',
+                        },
+                        {
+                            field: {
+                                description: true,
                             },
-                            {
-                                field: {
-                                    expiresAt: true
-                                },
-                                title: "Expires",
-                                fieldType: FieldType.Date
+                            title: 'Description',
+                        },
+                        {
+                            field: {
+                                expiresAt: true,
                             },
-                        ],
-                        modelId: Navigation.getLastParam(),
-                    }
-                }
+                            title: 'Expires',
+                            fieldType: FieldType.Date,
+                        },
+                    ],
+                    modelId: Navigation.getLastParam(),
+                }}
             />
 
             {/* API Key Permisison Table */}
@@ -144,7 +138,9 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     description:
                         'Add different permisisons to API keys to make it more granular.',
                 }}
-                noItemsMessage={'No permisisons created for this API Key so far.'}
+                noItemsMessage={
+                    'No permisisons created for this API Key so far.'
+                }
                 formFields={[
                     {
                         field: {
@@ -154,24 +150,25 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
                         placeholder: 'Permission',
-                        dropdownOptions: PermissionUtil.projectPermissionsAsDropdownOptions()
+                        dropdownOptions:
+                            PermissionUtil.projectPermissionsAsDropdownOptions(),
                     },
                     {
                         field: {
                             labels: true,
                         },
                         title: 'Labels (Optional)',
-                        description: 'Labels on which this permissions will apply on. This is optional and an advanced feature.',
+                        description:
+                            'Labels on which this permissions will apply on. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Label,
-                            labelField: "name",
-                            valueField: "_id"
+                            labelField: 'name',
+                            valueField: '_id',
                         },
                         required: false,
-                        placeholder:
-                            'Labels',
-                    }
+                        placeholder: 'Labels',
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -186,7 +183,11 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
-                                <p>{PermissionHelper.getTitle(item["permission"] as Permission)}</p>
+                                <p>
+                                    {PermissionHelper.getTitle(
+                                        item['permission'] as Permission
+                                    )}
+                                </p>
                             );
                         },
                     },
@@ -198,41 +199,58 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         type: TableColumnType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             const returnElements = [];
-                            if (item["labels"] && Array.isArray(item["labels"])) {
+                            if (
+                                item['labels'] &&
+                                Array.isArray(item['labels'])
+                            ) {
                                 let counter = 0;
-                                for (const label of item["labels"])
-                                    if (label && (label as JSONObject)['color'] && (label as JSONObject)['name']) {
+                                for (const label of item['labels']) {
+                                    if (
+                                        label &&
+                                        (label as JSONObject)['color'] &&
+                                        (label as JSONObject)['name']
+                                    ) {
                                         returnElements.push(
                                             <Pill
                                                 key={counter}
-                                                color={(label as JSONObject)['color'] as Color}
-                                                text={(label as JSONObject)['name'] as string}
+                                                color={
+                                                    (label as JSONObject)[
+                                                        'color'
+                                                    ] as Color
+                                                }
+                                                text={
+                                                    (label as JSONObject)[
+                                                        'name'
+                                                    ] as string
+                                                }
                                                 style={{
-                                                    marginRight: "5px"
+                                                    marginRight: '5px',
                                                 }}
                                             />
                                         );
 
                                         counter++;
                                     }
+                                }
                             }
 
                             return <>{returnElements}</>;
-
                         },
                     },
                 ]}
             />
 
-
             <ModelDelete
                 type={ApiKey}
-                modelId={new ObjectID(Navigation.getLastParam()?.toString() || '')}
+                modelId={
+                    new ObjectID(Navigation.getLastParam()?.toString() || '')
+                }
                 onDeleteSuccess={() => {
-                    Navigation.navigate(RouteMap[PageMap.SETTINGS_APIKEYS] as Route);
+                    Navigation.navigate(
+                        RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                    );
                 }}
             />
-
         </Page>
     );
 };

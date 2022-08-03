@@ -28,7 +28,7 @@ import PermissionUtil from '../../Utils/Permission';
 import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../../Utils/ModelAPI/Populate';
 
 export enum FormType {
@@ -37,14 +37,14 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    type: { new(): TBaseModel };
+    type: { new (): TBaseModel };
     model: TBaseModel;
     id: string;
     onValidate?:
-    | undefined
-    | ((
-        values: FormValues<TBaseModel>
-    ) => FormikErrors<FormValues<TBaseModel>>);
+        | undefined
+        | ((
+              values: FormValues<TBaseModel>
+          ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -53,8 +53,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     onSuccess?:
-    | undefined
-    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+        | undefined
+        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -73,7 +73,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
     const [fields, setFields] = useState<Fields<TBaseModel>>([]);
     const [isLoading, setLoading] = useState<boolean>(false);
     const [isFetching, setIsFetching] = useState<boolean>(false);
-    const [isFetchingDropdownOptions, setIsFetchingDropdownOptions] = useState<boolean>(false);
+    const [isFetchingDropdownOptions, setIsFetchingDropdownOptions] =
+        useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
 
@@ -92,11 +93,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         return select;
     };
 
-
     const getPopulate: Function = (): Populate<TBaseModel> => {
-        const populate: Populate<TBaseModel> = {
-
-        };
+        const populate: Populate<TBaseModel> = {};
 
         for (const field of props.fields) {
             const key: string | null = field.field
@@ -110,7 +108,6 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
 
         return populate;
     };
-
 
     const setFormFields = async () => {
         let userPermissions: Array<Permission> =
@@ -162,11 +159,10 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-
         fieldsToSet = await fetchDropdownOptions(fieldsToSet);
 
         setFields(fieldsToSet);
-    }
+    };
 
     useEffect(() => {
         // set fields.
@@ -174,9 +170,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
     }, []);
 
     const fetchItem = async () => {
-
         if (!props.modelIdToEdit || props.formType !== FormType.Update) {
-            throw new BadDataException("Model ID to update not found.");
+            throw new BadDataException('Model ID to update not found.');
         }
 
         const item: TBaseModel | null = await ModelAPI.getItem(
@@ -198,49 +193,48 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
 
         const populate = getPopulate();
 
-        
-
         for (const key in populate) {
             if (item) {
                 if (Array.isArray((item as any)[key])) {
-                    const idArray: Array<string> = []
-                        let isModelArray = false; 
+                    const idArray: Array<string> = [];
+                    let isModelArray = false;
                     for (const itemInArray of (item as any)[key] as any) {
-                        
-                        if (typeof (itemInArray as any) === "object") {
-                            if (((itemInArray as any) as JSONObject)["_id"]) {
+                        if (typeof (itemInArray as any) === 'object') {
+                            if ((itemInArray as any as JSONObject)['_id']) {
                                 isModelArray = true;
-                                idArray.push(((itemInArray as any) as JSONObject)["_id"] as string);
+                                idArray.push(
+                                    (itemInArray as any as JSONObject)[
+                                        '_id'
+                                    ] as string
+                                );
                             }
                         }
-
                     }
 
                     if (isModelArray) {
                         (item as any)[key] = idArray;
                     }
                 }
-                if (typeof (item as any)[key] === "object") {
-                    if (((item as any)[key] as JSONObject)["_id"]) {
-                        (item as any)[key]  = ((item as any)[key] as JSONObject)["_id"] as string;
+                if (typeof (item as any)[key] === 'object') {
+                    if (((item as any)[key] as JSONObject)['_id']) {
+                        (item as any)[key] = ((item as any)[key] as JSONObject)[
+                            '_id'
+                        ] as string;
                     }
                 }
             }
         }
 
-
         setItemToEdit(item);
-    }
+    };
 
-
-    const fetchDropdownOptions = async (fields: Fields<TBaseModel>): Promise<Fields<TBaseModel>> => {
-
+    const fetchDropdownOptions = async (
+        fields: Fields<TBaseModel>
+    ): Promise<Fields<TBaseModel>> => {
         setIsFetchingDropdownOptions(true);
 
         try {
-
             for (const field of fields) {
-
                 if (field.dropdownModal && field.dropdownModal.type) {
                     const listResult: ListResult<BaseModel> =
                         await ModelAPI.getList<BaseModel>(
@@ -256,16 +250,24 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                         );
 
                     if (listResult.data && listResult.data.length > 0) {
-                        field.dropdownOptions = listResult.data.map((item: BaseModel) => {
-                            if (!field.dropdownModal) {
-                                throw new BadDataException("Dropdown Modal value mot found");
-                            }
+                        field.dropdownOptions = listResult.data.map(
+                            (item: BaseModel) => {
+                                if (!field.dropdownModal) {
+                                    throw new BadDataException(
+                                        'Dropdown Modal value mot found'
+                                    );
+                                }
 
-                            return {
-                                label: ((item as any)[field.dropdownModal?.labelField]).toString(),
-                                value: (item as any)[field.dropdownModal?.valueField].toString()
+                                return {
+                                    label: (item as any)[
+                                        field.dropdownModal?.labelField
+                                    ].toString(),
+                                    value: (item as any)[
+                                        field.dropdownModal?.valueField
+                                    ].toString(),
+                                };
                             }
-                        })
+                        );
                     } else {
                         field.dropdownOptions = [];
                     }
@@ -273,12 +275,11 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             }
 
             setIsFetchingDropdownOptions(false);
-
         } catch (err) {
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
@@ -351,7 +352,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                'error'
+                    'error'
                 ] as string
             );
         }

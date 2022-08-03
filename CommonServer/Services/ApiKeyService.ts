@@ -9,7 +9,9 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onBeforeCreate(createBy: CreateBy<Model>): Promise<CreateBy<Model>> {
+    protected override async onBeforeCreate(
+        createBy: CreateBy<Model>
+    ): Promise<CreateBy<Model>> {
         createBy.data.apiKey = ObjectID.generate();
         return createBy;
     }

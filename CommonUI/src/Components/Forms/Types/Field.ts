@@ -14,10 +14,10 @@ export default interface Field<TEntity> {
     required?: boolean;
     dropdownOptions?: Array<DropdownOption> | undefined;
     dropdownModal?: {
-        type: { new(): BaseModel }, 
-        labelField: string; 
+        type: { new (): BaseModel };
+        labelField: string;
         valueField: string;
-    },
+    };
     sideLink?: {
         text: string;
         url: Route | URL;

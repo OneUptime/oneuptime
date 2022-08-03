@@ -61,8 +61,6 @@ import ApiKeyPermissionService, {
     Service as ApiKeyPermissionServiceType,
 } from 'CommonServer/Services/ApiKeyPermissionService';
 
-
-
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -93,10 +91,7 @@ app.use(
 );
 
 app.use(
-    new BaseAPI<ApiKey, ApiKeyServiceType>(
-        ApiKey,
-        ApiKeyService
-    ).getRouter()
+    new BaseAPI<ApiKey, ApiKeyServiceType>(ApiKey, ApiKeyService).getRouter()
 );
 app.use(
     new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(

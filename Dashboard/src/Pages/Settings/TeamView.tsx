@@ -9,7 +9,7 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import CardModelDetail from "CommonUI/src/Components/ModelDetail/CardModelDetail";
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Team from 'Common/Models/Team';
 import TeamMember from 'Common/Models/TeamMember';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -49,15 +49,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
             {/* API Key View  */}
             <CardModelDetail
                 cardProps={{
-                    title: "Team Details",
+                    title: 'Team Details',
                     description: "Here's more details on this team.",
                     icon: IconProp.User,
-                }
-                }
+                }}
                 isEditable={true}
                 formFields={[
                     {
@@ -80,35 +78,30 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        placeholder:
-                            'Team Description',
+                        placeholder: 'Team Description',
                     },
                 ]}
-                modelDetailProps={
-                    {
-                        type: Team,
-                        model: new Team(),
-                        id: "model-detail-team",
-                        fields: [
-                            {
-                                field: {
-                                    name: true
-                                },
-                                title: "Name",
+                modelDetailProps={{
+                    type: Team,
+                    model: new Team(),
+                    id: 'model-detail-team',
+                    fields: [
+                        {
+                            field: {
+                                name: true,
                             },
-                            {
-                                field: {
-                                    description: true
-                                },
-                                title: "Description",
-                            }
-                        ],
-                        modelId: Navigation.getLastParam(),
-                    }
-                }
+                            title: 'Name',
+                        },
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: 'Description',
+                        },
+                    ],
+                    modelId: Navigation.getLastParam(),
+                }}
             />
-
-
 
             {/* Team Members Table */}
 
@@ -133,12 +126,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             user: true,
                         },
                         title: 'User Email',
-                        description: 'Please enter the email of the user you would like to invite.',
+                        description:
+                            'Please enter the email of the user you would like to invite.',
                         fieldType: FormFieldSchemaType.Email,
                         required: false,
-                        placeholder:
-                            'member@company.com',
-                    }
+                        placeholder: 'member@company.com',
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -151,21 +144,25 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'User',
                         type: TableColumnType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
-
-                            if (item["user"]) {
-                                if (item["user"] && (item["user"] as JSONObject)['name'] && (item["user"] as JSONObject)['name']) {
-                                    return <p>item["user"] as JSONObject)['name']</p>;
+                            if (item['user']) {
+                                if (
+                                    item['user'] &&
+                                    (item['user'] as JSONObject)['name'] &&
+                                    (item['user'] as JSONObject)['name']
+                                ) {
+                                    return (
+                                        <p>
+                                            item["user"] as JSONObject)['name']
+                                        </p>
+                                    );
                                 }
                             }
 
                             return <></>;
-
                         },
                     },
                 ]}
             />
-
-
 
             {/* Team Permisison Table */}
 
@@ -193,24 +190,25 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
                         placeholder: 'Permission',
-                        dropdownOptions: PermissionUtil.projectPermissionsAsDropdownOptions()
+                        dropdownOptions:
+                            PermissionUtil.projectPermissionsAsDropdownOptions(),
                     },
                     {
                         field: {
                             labels: true,
                         },
                         title: 'Labels (Optional)',
-                        description: 'Labels on which this permissions will apply on. This is optional and an advanced feature.',
+                        description:
+                            'Labels on which this permissions will apply on. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Label,
-                            labelField: "name",
-                            valueField: "_id"
+                            labelField: 'name',
+                            valueField: '_id',
                         },
                         required: false,
-                        placeholder:
-                            'Labels',
-                    }
+                        placeholder: 'Labels',
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -225,7 +223,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
-                                <p>{PermissionHelper.getTitle(item["permission"] as Permission)}</p>
+                                <p>
+                                    {PermissionHelper.getTitle(
+                                        item['permission'] as Permission
+                                    )}
+                                </p>
                             );
                         },
                     },
@@ -237,41 +239,58 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         type: TableColumnType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             const returnElements = [];
-                            if (item["labels"] && Array.isArray(item["labels"])) {
+                            if (
+                                item['labels'] &&
+                                Array.isArray(item['labels'])
+                            ) {
                                 let counter = 0;
-                                for (const label of item["labels"])
-                                    if (label && (label as JSONObject)['color'] && (label as JSONObject)['name']) {
+                                for (const label of item['labels']) {
+                                    if (
+                                        label &&
+                                        (label as JSONObject)['color'] &&
+                                        (label as JSONObject)['name']
+                                    ) {
                                         returnElements.push(
                                             <Pill
                                                 key={counter}
-                                                color={(label as JSONObject)['color'] as Color}
-                                                text={(label as JSONObject)['name'] as string}
+                                                color={
+                                                    (label as JSONObject)[
+                                                        'color'
+                                                    ] as Color
+                                                }
+                                                text={
+                                                    (label as JSONObject)[
+                                                        'name'
+                                                    ] as string
+                                                }
                                                 style={{
-                                                    marginRight: "5px"
+                                                    marginRight: '5px',
                                                 }}
                                             />
                                         );
 
                                         counter++;
                                     }
+                                }
                             }
 
                             return <>{returnElements}</>;
-
                         },
                     },
                 ]}
             />
 
-
             <ModelDelete
                 type={Team}
-                modelId={new ObjectID(Navigation.getLastParam()?.toString() || '')}
+                modelId={
+                    new ObjectID(Navigation.getLastParam()?.toString() || '')
+                }
                 onDeleteSuccess={() => {
-                    Navigation.navigate(RouteMap[PageMap.SETTINGS_TEAMS] as Route);
+                    Navigation.navigate(
+                        RouteMap[PageMap.SETTINGS_TEAMS] as Route
+                    );
                 }}
             />
-
         </Page>
     );
 };

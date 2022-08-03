@@ -279,13 +279,19 @@ export default class BaseModel extends BaseEntity {
 
     public setColumnValue(columnName: string, value: JSONValue): void {
         if (getTableColumn(this, columnName)) {
-            return (this as any)[columnName] = value as any;
+            return ((this as any)[columnName] = value as any);
         }
     }
 
     public isEntityColumn(columnName: string): boolean {
-        const tableColumnType: TableColumnMetadata = getTableColumn(this, columnName);
-        return Boolean(tableColumnType.type === TableColumnType.Entity || tableColumnType.type === TableColumnType.EntityArray);
+        const tableColumnType: TableColumnMetadata = getTableColumn(
+            this,
+            columnName
+        );
+        return Boolean(
+            tableColumnType.type === TableColumnType.Entity ||
+                tableColumnType.type === TableColumnType.EntityArray
+        );
     }
 
     public toJSON(): JSONObject {
@@ -297,9 +303,9 @@ export default class BaseModel extends BaseEntity {
         const json: JSONObject = {};
 
         for (const key of this.getTableColumns().columns) {
-            if (typeof (this as any)[key] === "boolean") {
+            if (typeof (this as any)[key] === 'boolean') {
                 json[key] = (this as any)[key];
-            }else if ((this as any)[key]) {
+            } else if ((this as any)[key]) {
                 json[key] = (this as any)[key];
             }
         }

@@ -81,7 +81,7 @@ const App: FunctionComponent = () => {
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                'error'
+                    'error'
                 ] as string
             );
         }

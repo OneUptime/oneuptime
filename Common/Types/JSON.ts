@@ -24,7 +24,7 @@ enum ObjectType {
     Permission = 'Permission',
     Search = 'Search',
     Port = 'Port',
-    Hostname = 'Hostname'
+    Hostname = 'Hostname',
 }
 
 export type JSONValue =
@@ -133,12 +133,12 @@ export class JSONFunctions {
                 _type: ObjectType.Port,
                 value: (val as Port).toString(),
             };
-        }else if (val && val instanceof Hostname) {
+        } else if (val && val instanceof Hostname) {
             return {
                 _type: ObjectType.Hostname,
                 value: (val as Hostname).toString(),
             };
-        }else if (val && val instanceof Version) {
+        } else if (val && val instanceof Version) {
             return {
                 _type: ObjectType.Version,
                 value: (val as Version).toString(),
@@ -245,7 +245,7 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Port
         ) {
             val = new Port((val as JSONObject)['value'] as string);
-        }else if (
+        } else if (
             val &&
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
@@ -254,7 +254,7 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Hostname
         ) {
             val = new Hostname((val as JSONObject)['value'] as string);
-        }  else if (
+        } else if (
             val &&
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&

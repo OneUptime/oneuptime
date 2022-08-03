@@ -4,8 +4,8 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import "react-toggle/style.css"
-import ReactToggle from 'react-toggle'
+import 'react-toggle/style.css';
+import ReactToggle from 'react-toggle';
 
 export interface ComponentProps {
     onChange: (value: boolean) => void;
@@ -43,7 +43,8 @@ const Toggle: FunctionComponent<ComponentProps> = (
                         props.onBlur();
                     }
                     handleChange((e.target as any).checked as boolean);
-                }} />
+                }}
+            />
         </div>
     );
 };

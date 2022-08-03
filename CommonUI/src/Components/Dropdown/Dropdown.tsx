@@ -19,7 +19,9 @@ export interface ComponentProps {
     onClick?: undefined | (() => void);
     placeholder?: undefined | string;
     className?: undefined | string;
-    onChange?: undefined | ((value: DropdownValue | Array<DropdownValue>) => void);
+    onChange?:
+        | undefined
+        | ((value: DropdownValue | Array<DropdownValue>) => void);
     value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -29,8 +31,12 @@ export interface ComponentProps {
 const Dropdown: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [value, setValue] = useState<DropdownOption | Array<DropdownOption> | null>(null);
-    const [selectedValue, setSelectedValue] = useState<DropdownOption | Array<DropdownOption> | null>(null);
+    const [value, setValue] = useState<
+        DropdownOption | Array<DropdownOption> | null
+    >(null);
+    const [selectedValue, setSelectedValue] = useState<
+        DropdownOption | Array<DropdownOption> | null
+    >(null);
 
     useEffect(() => {
         if (props.initialValue) {
@@ -58,13 +64,13 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         const selectedValues: Array<DropdownOption> = props.options.filter(
             (item: DropdownOption) => {
                 if (Array.isArray(value)) {
-                    return value.map((v) => {
-                        return v.value
-                    }).includes(item.value);
-                } else {
-                    return item.value === value?.value;
+                    return value
+                        .map(v => {
+                            return v.value;
+                        })
+                        .includes(item.value);
                 }
-
+                return item.value === value?.value;
             }
         );
 
@@ -78,17 +84,19 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         if (value) {
             if (Array.isArray(value)) {
                 props.onChange &&
-                    props.onChange((value as Array<DropdownOption>).map((i: DropdownOption) => {
-                        return i.value;
-                    }));
+                    props.onChange(
+                        (value as Array<DropdownOption>).map(
+                            (i: DropdownOption) => {
+                                return i.value;
+                            }
+                        )
+                    );
             } else {
                 props.onChange &&
                     props.onChange((value as DropdownOption).value);
             }
         }
-
     }, [value]);
-
 
     return (
         <div
@@ -112,13 +120,13 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 onChange={(option: any | null) => {
                     if (option) {
                         if (props.isMultiSelect) {
-                            const value: Array<DropdownOption> = (option as Array<DropdownOption>)
+                            const value: Array<DropdownOption> =
+                                option as Array<DropdownOption>;
                             setValue(value);
-
                         } else {
-                            const value: DropdownOption = (option as DropdownOption)
+                            const value: DropdownOption =
+                                option as DropdownOption;
                             setValue(value);
-
                         }
                     }
                 }}

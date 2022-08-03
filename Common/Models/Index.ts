@@ -15,8 +15,7 @@ import ApiKeyPermission from './ApiKeyPermission';
 //Labels.
 import Label from './Label';
 
-
-// Project SMTP Config. 
+// Project SMTP Config.
 
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 
@@ -31,5 +30,5 @@ export default [
     ApiKey,
     Label,
     ApiKeyPermission,
-    ProjectSmtpConfig
+    ProjectSmtpConfig,
 ];

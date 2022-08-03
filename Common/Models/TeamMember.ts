@@ -63,7 +63,7 @@ export default class TeamMember extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'teamId',
         type: TableColumnType.Entity,
-        modelType: Team
+        modelType: Team,
     })
     @ManyToOne(
         (_type: string) => {
@@ -77,7 +77,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'teamId' })
-    public team?: Team = undefined; 
+    public team?: Team = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -99,7 +99,7 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public teamId?: ObjectID = undefined; 
+    public teamId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -117,7 +117,7 @@ export default class TeamMember extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
-        modelType: Project
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -131,7 +131,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project = undefined; 
+    public project?: Project = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -153,7 +153,7 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID = undefined; 
+    public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -171,7 +171,7 @@ export default class TeamMember extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'userId',
         type: TableColumnType.Entity,
-        modelType: User
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {
@@ -185,7 +185,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'userId' })
-    public user?: User = undefined; 
+    public user?: User = undefined;
 
     @ColumnAccessControl({
         create: [
@@ -206,7 +206,7 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public userId?: ObjectID = undefined; 
+    public userId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -216,7 +216,7 @@ export default class TeamMember extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
-        modelType: User
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {
@@ -230,7 +230,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User = undefined; 
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -243,7 +243,7 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID = undefined; 
+    public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -267,7 +267,7 @@ export default class TeamMember extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User = undefined; 
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -280,5 +280,5 @@ export default class TeamMember extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID = undefined; 
+    public deletedByUserId?: ObjectID = undefined;
 }
