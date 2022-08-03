@@ -1,12 +1,4 @@
-import {
-    Column,
-    Entity,
-    Index,
-    JoinColumn,
-    JoinTable,
-    ManyToMany,
-    ManyToOne,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from './BaseModel';
 import User from './User';
 import Project from './Project';
@@ -18,7 +10,6 @@ import TableColumn from '../Types/Database/TableColumn';
 import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
-import TeamPermission from './TeamPermission';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import Permission from '../Types/Permission';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
@@ -60,6 +51,7 @@ export default class Team extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -73,7 +65,7 @@ export default class Team extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project;
+    public project?: Project = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -91,7 +83,7 @@ export default class Team extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID;
+    public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -159,6 +151,7 @@ export default class Team extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -172,7 +165,7 @@ export default class Team extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],
@@ -189,7 +182,7 @@ export default class Team extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -213,7 +206,7 @@ export default class Team extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -226,13 +219,7 @@ export default class Team extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
-
-    @ManyToMany(() => {
-        return TeamPermission;
-    })
-    @JoinTable()
-    public permissions?: Array<TeamPermission> = undefined;
+    public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],

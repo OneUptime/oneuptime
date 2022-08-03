@@ -50,7 +50,7 @@ export default class Probe extends BaseModel {
         unique: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public key?: ObjectID;
+    public key?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -103,7 +103,7 @@ export default class Probe extends BaseModel {
         length: ColumnLength.Version,
         transformer: Version.getDatabaseTransformer(),
     })
-    public probeVersion?: Version;
+    public probeVersion?: Version = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -136,14 +136,18 @@ export default class Probe extends BaseModel {
         length: ColumnLength.ShortURL,
         transformer: URL.getDatabaseTransformer(),
     })
-    public iconUrl?: URL;
+    public iconUrl?: URL = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
         read: [Permission.ProjectMember, Permission.Public],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.Entity, required: false })
+    @TableColumn({
+        type: TableColumnType.Entity,
+        required: false,
+        modelType: Project,
+    })
     @ManyToOne(
         (_type: string) => {
             return Project;
@@ -157,7 +161,7 @@ export default class Probe extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project;
+    public project?: Project = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -170,14 +174,14 @@ export default class Probe extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID;
+    public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
         read: [],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.Entity })
+    @TableColumn({ type: TableColumnType.Entity, modelType: User })
     @ManyToOne(
         (_type: string) => {
             return User;
@@ -191,7 +195,7 @@ export default class Probe extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -204,7 +208,7 @@ export default class Probe extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -224,7 +228,7 @@ export default class Probe extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
@@ -237,5 +241,5 @@ export default class Probe extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined;
 }

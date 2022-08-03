@@ -13,7 +13,7 @@ import TableColumn, {
     getTableColumns,
     TableColumnMetadata,
 } from '../Types/Database/TableColumn';
-import { JSONArray, JSONFunctions, JSONObject } from '../Types/JSON';
+import { JSONArray, JSONFunctions, JSONObject, JSONValue } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 import Dictionary from '../Types/Dictionary';
 import HashedString from '../Types/HashedString';
@@ -269,6 +269,31 @@ export default class BaseModel extends BaseEntity {
         return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
     }
 
+    public getColumnValue(columnName: string): JSONValue | null {
+        if (getTableColumn(this, columnName) && (this as any)[columnName]) {
+            return (this as any)[columnName] as JSONValue;
+        }
+
+        return null;
+    }
+
+    public setColumnValue(columnName: string, value: JSONValue): void {
+        if (getTableColumn(this, columnName)) {
+            return ((this as any)[columnName] = value as any);
+        }
+    }
+
+    public isEntityColumn(columnName: string): boolean {
+        const tableColumnType: TableColumnMetadata = getTableColumn(
+            this,
+            columnName
+        );
+        return Boolean(
+            tableColumnType.type === TableColumnType.Entity ||
+                tableColumnType.type === TableColumnType.EntityArray
+        );
+    }
+
     public toJSON(): JSONObject {
         const json: JSONObject = this.toJSONObject();
         return JSONFunctions.serialize(json);
@@ -278,7 +303,9 @@ export default class BaseModel extends BaseEntity {
         const json: JSONObject = {};
 
         for (const key of this.getTableColumns().columns) {
-            if ((this as any)[key]) {
+            if (typeof (this as any)[key] === 'boolean') {
+                json[key] = (this as any)[key];
+            } else if ((this as any)[key]) {
                 json[key] = (this as any)[key];
             }
         }

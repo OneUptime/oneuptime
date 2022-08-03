@@ -1,4 +1,10 @@
-import React, { MutableRefObject, ReactElement, useRef } from 'react';
+import React, {
+    MutableRefObject,
+    ReactElement,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
 import {
     ErrorMessage,
     Field,
@@ -22,7 +28,13 @@ import Alert, { AlertType } from '../Alerts/Alert';
 import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
 import TextArea from './Fields/TextArea';
-import Dropdown from '../Dropdown/Dropdown';
+import Dropdown, { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
+import OneUptimeDate from 'Common/Types/Date';
+import Toggle from '../Toggle/Toggle';
+import Port from 'Common/Types/Port';
+import Hostname from 'Common/Types/API/Hostname';
+import Route from 'Common/Types/API/Route';
+import Exception from 'Common/Types/Exception/Exception';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -56,6 +68,8 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
             return 'email';
         case FormFieldSchemaType.Password:
             return 'password';
+        case FormFieldSchemaType.Number:
+            return 'number';
         case FormFieldSchemaType.Date:
             return 'date';
         case FormFieldSchemaType.LongText:
@@ -133,11 +147,9 @@ const BasicForm: Function = <T extends Object>(
                                     }}
                                     placeholder={field.placeholder || ''}
                                     initialValue={
-                                        props.initialValues &&
-                                        (props.initialValues as any)[fieldName]
-                                            ? (props.initialValues as any)[
-                                                  fieldName
-                                              ]
+                                        initialValues &&
+                                        (initialValues as any)[fieldName]
+                                            ? (initialValues as any)[fieldName]
                                             : ''
                                     }
                                 />
@@ -146,13 +158,17 @@ const BasicForm: Function = <T extends Object>(
                     </Field>
                 )}
 
-                {field.fieldType === FormFieldSchemaType.Dropdown && (
+                {(field.fieldType === FormFieldSchemaType.Dropdown ||
+                    field.fieldType ===
+                        FormFieldSchemaType.MultiSelectDropdown) && (
                     <Field name={fieldName}>
                         {({ form }: any) => {
                             return (
                                 <Dropdown
                                     onChange={async (
-                                        value: string | number
+                                        value:
+                                            | DropdownValue
+                                            | Array<DropdownValue>
                                     ) => {
                                         await form.setFieldValue(
                                             fieldName,
@@ -166,14 +182,16 @@ const BasicForm: Function = <T extends Object>(
                                             true
                                         );
                                     }}
+                                    isMultiSelect={
+                                        field.fieldType ===
+                                        FormFieldSchemaType.MultiSelectDropdown
+                                    }
                                     options={field.dropdownOptions || []}
                                     placeholder={field.placeholder || ''}
                                     initialValue={
-                                        props.initialValues &&
-                                        (props.initialValues as any)[fieldName]
-                                            ? (props.initialValues as any)[
-                                                  fieldName
-                                              ]
+                                        initialValues &&
+                                        (initialValues as any)[fieldName]
+                                            ? (initialValues as any)[fieldName]
                                             : ''
                                     }
                                 />
@@ -202,16 +220,48 @@ const BasicForm: Function = <T extends Object>(
                                             );
                                         }}
                                         initialValue={
-                                            props.initialValues &&
-                                            (props.initialValues as any)[
-                                                fieldName
-                                            ]
-                                                ? (props.initialValues as any)[
+                                            initialValues &&
+                                            (initialValues as any)[fieldName]
+                                                ? (initialValues as any)[
                                                       fieldName
                                                   ]
                                                 : ''
                                         }
                                         placeholder={field.placeholder || ''}
+                                    />
+                                </>
+                            );
+                        }}
+                    </Field>
+                )}
+
+                {field.fieldType === FormFieldSchemaType.Checkbox && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+                            return (
+                                <>
+                                    <Toggle
+                                        onChange={async (text: boolean) => {
+                                            await form.setFieldValue(
+                                                fieldName,
+                                                text,
+                                                true
+                                            );
+                                        }}
+                                        onBlur={async () => {
+                                            await form.setFieldTouched(
+                                                fieldName,
+                                                true
+                                            );
+                                        }}
+                                        initialValue={
+                                            initialValues &&
+                                            (initialValues as any)[fieldName]
+                                                ? (initialValues as any)[
+                                                      fieldName
+                                                  ]
+                                                : false
+                                        }
                                     />
                                 </>
                             );
@@ -229,6 +279,7 @@ const BasicForm: Function = <T extends Object>(
                     field.fieldType === FormFieldSchemaType.Number ||
                     field.fieldType === FormFieldSchemaType.Password ||
                     field.fieldType === FormFieldSchemaType.Date ||
+                    field.fieldType === FormFieldSchemaType.Port ||
                     field.fieldType === FormFieldSchemaType.PositveNumber) && (
                     <Field
                         className="form-control"
@@ -278,6 +329,20 @@ const BasicForm: Function = <T extends Object>(
             if (field.validation.noSpaces) {
                 if (content.trim().includes(' ')) {
                     return `${field.title || name} should have no spaces.`;
+                }
+            }
+        }
+        return null;
+    };
+
+    const validateDate: Function = (
+        content: string,
+        field: DataField<T>
+    ): string | null => {
+        if (field.validation) {
+            if (field.validation.dateShouldBeInTheFuture) {
+                if (OneUptimeDate.isInThePast(content.trim())) {
+                    return `${field.title || name} should be a future date.`;
                 }
             }
         }
@@ -352,6 +417,37 @@ const BasicForm: Function = <T extends Object>(
                 return 'Email is not valid.';
             }
         }
+
+        if (field.fieldType === FormFieldSchemaType.Port) {
+            try {
+                new Port(content);
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Hostname) {
+            try {
+                new Hostname(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Route) {
+            try {
+                new Route(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
         return null;
     };
 
@@ -404,6 +500,12 @@ const BasicForm: Function = <T extends Object>(
                     errors[name] = result;
                 }
 
+                // check for date
+                const resultDate: string | null = validateDate(content, field);
+                if (resultDate) {
+                    errors[name] = resultDate;
+                }
+
                 // check for length of content
                 const resultMaxMinValue: string | null =
                     validateMaxValueAndMinValue(content, field);
@@ -429,12 +531,58 @@ const BasicForm: Function = <T extends Object>(
 
     const formRef: any = useRef<any>(null);
 
+    const [initialValues, setInitalValues] = useState<FormValues<T>>({});
+
+    useEffect(() => {
+        const values: FormValues<T> = { ...props.initialValues };
+        for (const field of props.fields) {
+            const fieldName: string = field.overideFieldKey
+                ? field.overideFieldKey
+                : (Object.keys(field.field)[0] as string);
+
+            if (
+                field.fieldType === FormFieldSchemaType.Date &&
+                (values as any)[fieldName]
+            ) {
+                (values as any)[fieldName] =
+                    OneUptimeDate.asDateForDatabaseQuery(
+                        (values as any)[fieldName]
+                    );
+            }
+
+            if (
+                field.fieldType === FormFieldSchemaType.Dropdown &&
+                (values as any)[fieldName]
+            ) {
+                (values as any)[fieldName] = field.dropdownOptions?.filter(
+                    (option: DropdownOption) => {
+                        return option.value === (values as any)[fieldName];
+                    }
+                )[0];
+            }
+
+            if (
+                field.fieldType === FormFieldSchemaType.MultiSelectDropdown &&
+                (values as any)[fieldName]
+            ) {
+                (values as any)[fieldName] = field.dropdownOptions?.filter(
+                    (option: DropdownOption) => {
+                        return (values as any)[fieldName].includes(
+                            option.value
+                        );
+                    }
+                );
+            }
+        }
+        setInitalValues(values);
+    }, [props.initialValues]);
+
     return (
         <div className="row">
             <div className="col-lg-12">
                 <Formik
                     innerRef={props.formRef ? props.formRef : formRef}
-                    initialValues={props.initialValues}
+                    initialValues={initialValues}
                     validate={validate}
                     validateOnChange={true}
                     enableReinitialize={true}
@@ -443,6 +591,21 @@ const BasicForm: Function = <T extends Object>(
                         values: FormValues<T>,
                         { setSubmitting }: { setSubmitting: Function }
                     ) => {
+                        // check for any boolean values and if they dont exist in values - mark them as false.
+
+                        for (const field of props.fields) {
+                            if (
+                                field.fieldType === FormFieldSchemaType.Checkbox
+                            ) {
+                                const fieldName: string = field.overideFieldKey
+                                    ? field.overideFieldKey
+                                    : (Object.keys(field.field)[0] as string);
+                                if (!(values as any)[fieldName]) {
+                                    (values as any)[fieldName] = false;
+                                }
+                            }
+                        }
+
                         props.onSubmit(values);
                         setSubmitting(false);
                     }}

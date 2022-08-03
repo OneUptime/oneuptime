@@ -15,14 +15,14 @@ import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 const APIKeys: FunctionComponent<PageComponentProps> = (
-    __props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
             title={'Project Settings'}
             breadcrumbLinks={[
                 {
-                    title: 'Project Name',
+                    title: 'Project',
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {
@@ -50,6 +50,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         'Labels help you categorize resources in your project and give granular permissions to access those resources to team members.',
                 }}
                 noItemsMessage={'No labels created for this project so far.'}
+                currentPageRoute={props.pageRoute}
                 formFields={[
                     {
                         field: {

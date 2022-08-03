@@ -15,4 +15,8 @@ export default class Exception extends Error {
         super(message);
         this.code = code;
     }
+
+    public getMessage(): string {
+        return this.message;
+    }
 }

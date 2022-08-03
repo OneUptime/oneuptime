@@ -14,7 +14,7 @@ export interface ComponentProps {
     onChange?: undefined | ((value: string) => void);
     value?: string | undefined;
     readOnly?: boolean | undefined;
-    type?: string;
+    type?: 'text' | 'number' | 'date';
     leftCircleColor?: Color | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -70,7 +70,7 @@ const Input: FunctionComponent<ComponentProps> = (
                 readOnly={props.readOnly || false}
                 type={props.type || 'text'}
                 placeholder={props.placeholder}
-                className="pointer form-control white-background-on-readonly"
+                className="form-control white-background-on-readonly"
                 style={{
                     border: 'none',
                     padding: '0px',

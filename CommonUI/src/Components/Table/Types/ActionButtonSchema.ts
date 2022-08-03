@@ -9,7 +9,7 @@ export enum ActionType {
 
 interface ActionButtonSchema {
     title: string;
-    icon: IconProp;
+    icon?: undefined | IconProp;
     buttonStyleType: ButtonStyleType;
     actionType: ActionType;
 }

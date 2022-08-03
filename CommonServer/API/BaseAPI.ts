@@ -19,6 +19,8 @@ import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import Populate from '../Types/Database/Populate';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -173,12 +175,13 @@ export default class BaseAPI<
             ? new PositiveNumber(req.query['limit'] as string)
             : new PositiveNumber(10);
 
-        if (limit.toNumber() > 50) {
+        if (limit.toNumber() > LIMIT_PER_PROJECT) {
             throw new BadRequestException('Limit should be less than 50');
         }
 
         let query: Query<BaseModel> = {};
         let select: Select<BaseModel> = {};
+        let populate: Populate<BaseModel> = {};
         let sort: Sort<BaseModel> = {};
 
         if (req.body) {
@@ -189,6 +192,13 @@ export default class BaseAPI<
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
+
+            if (req.body['populate']) {
+                populate = JSONFunctions.deserialize(
+                    req.body['populate']
+                ) as Populate<BaseModel>;
+            }
+
             sort = JSONFunctions.deserialize(
                 req.body['sort']
             ) as Sort<BaseModel>;
@@ -200,6 +210,7 @@ export default class BaseAPI<
             skip: skip,
             limit: limit,
             sort: sort,
+            populate,
             props: this.getDatabaseCommonInteractionProps(req),
         });
 
@@ -218,16 +229,24 @@ export default class BaseAPI<
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
         let select: Select<BaseModel> = {};
+        let populate: Populate<BaseModel> = {};
 
         if (req.body) {
             select = JSONFunctions.deserialize(
                 req.body['select']
             ) as Select<BaseModel>;
+
+            if (req.body['populate']) {
+                populate = JSONFunctions.deserialize(
+                    req.body['populate']
+                ) as Populate<BaseModel>;
+            }
         }
 
         const item: BaseModel | null = await this.service.findOneById({
             id: objectId,
             select,
+            populate,
             props: this.getDatabaseCommonInteractionProps(req),
         });
 

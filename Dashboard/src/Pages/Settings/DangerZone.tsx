@@ -1,27 +1,24 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
-import Card from 'CommonUI/src/Components/Card/Card';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+import Project from 'Common/Models/Project';
+import ObjectID from 'Common/Types/ObjectID';
 
 const Settings: FunctionComponent<PageComponentProps> = (
-    __props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
-    const [showModal, setShowModal] = useState<boolean>(false);
-
     return (
         <Page
             title={'Project Settings'}
             breadcrumbLinks={[
                 {
-                    title: 'Project Name',
+                    title: 'Project',
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {
@@ -41,37 +38,10 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 title="Deleting your project will delete it permanently and there is no way to recover. "
             />
 
-            <Card
-                title="Delete Project"
-                description="Are you sure you want to delete this project?"
-                buttons={[
-                    {
-                        title: 'Delete Project',
-                        buttonStyle: ButtonStyleType.DANGER,
-                        onClick: () => {
-                            setShowModal(true);
-                        },
-                        icon: IconProp.Trash,
-                    },
-                ]}
+            <ModelDelete
+                type={Project}
+                modelId={new ObjectID(props.currentProject?._id || '')}
             />
-
-            {showModal ? (
-                <ConfirmModal
-                    description="Are you sure you want to delete this project?"
-                    title={'Delete Project'}
-                    onSubmit={() => {
-                        setShowModal(false);
-                    }}
-                    onClose={() => {
-                        setShowModal(false);
-                    }}
-                    submitButtonText="DELETE PROJECT"
-                    submitButtonType={ButtonStyleType.DANGER}
-                />
-            ) : (
-                <></>
-            )}
         </Page>
     );
 };

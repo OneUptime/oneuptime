@@ -13,6 +13,9 @@ enum FormFieldSchemaType {
     LongText,
     Color,
     Dropdown,
+    MultiSelectDropdown,
+    Checkbox,
+    Port,
 }
 
 export default FormFieldSchemaType;

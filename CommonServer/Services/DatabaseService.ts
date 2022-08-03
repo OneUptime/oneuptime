@@ -46,6 +46,10 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
 import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -107,7 +111,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // Check required fields.
 
         for (const requiredField of data.getRequiredColumns().columns) {
-            if (
+            if (typeof (data as any)[requiredField] === Typeof.Boolean) {
+                if (
+                    !(data as any)[requiredField] &&
+                    (data as any)[requiredField] !== false &&
+                    !data.isDefaultValueColumn(requiredField)
+                ) {
+                    throw new BadDataException(`${requiredField} is required`);
+                }
+            } else if (
                 !(data as any)[requiredField] &&
                 !data.isDefaultValueColumn(requiredField)
             ) {
@@ -302,6 +314,61 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return createBy;
     }
 
+    private serializeCreate(
+        data: TBaseModel | QueryDeepPartialEntity<TBaseModel>
+    ): TBaseModel | QueryDeepPartialEntity<TBaseModel> {
+        const columns: Columns = this.model.getTableColumns();
+
+        for (const columnName of columns.columns) {
+            if (this.model.isEntityColumn(columnName)) {
+                const tableColumnMetadata: TableColumnMetadata =
+                    this.model.getTableColumnMetadata(columnName);
+
+                if (
+                    data &&
+                    tableColumnMetadata.modelType &&
+                    (data as any)[columnName] &&
+                    tableColumnMetadata.type === TableColumnType.Entity &&
+                    (typeof (data as any)[columnName] === 'string' ||
+                        (data as any)[columnName] instanceof ObjectID)
+                ) {
+                    (data as any)[columnName] =
+                        new tableColumnMetadata.modelType();
+                    (data as any)[columnName]._id = (data as any)[
+                        columnName
+                    ].toString();
+                }
+
+                if (
+                    data &&
+                    Array.isArray((data as any)[columnName]) &&
+                    (data as any)[columnName].length > 0 &&
+                    tableColumnMetadata.modelType &&
+                    (data as any)[columnName] &&
+                    tableColumnMetadata.type === TableColumnType.EntityArray
+                ) {
+                    const itemsArray: Array<BaseModel> = [];
+                    for (const item of (data as any)[columnName]) {
+                        if (
+                            typeof item === 'string' ||
+                            item instanceof ObjectID
+                        ) {
+                            const basemodelItem: BaseModel =
+                                new tableColumnMetadata.modelType();
+                            basemodelItem._id = item.toString();
+                            itemsArray.push(basemodelItem);
+                        } else {
+                            itemsArray.push(item);
+                        }
+                    }
+                    (data as any)[columnName] = itemsArray;
+                }
+            }
+        }
+
+        return data;
+    }
+
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
         let _createdBy: CreateBy<TBaseModel> = await this._onBeforeCreate(
             createBy
@@ -328,6 +395,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         // check uniqueColumns by:
         createBy = await this.checkUniqueColumnBy(createBy);
+
+        // serialize.
+        createBy.data = this.serializeCreate(createBy.data) as TBaseModel;
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
@@ -957,9 +1027,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 !onBeforeFind.select ||
                 Object.keys(onBeforeFind.select).length === 0
             ) {
-                onBeforeFind.select = {
-                    _id: true,
-                } as any;
+                onBeforeFind.select = {} as any;
+            }
+
+            if (!(onBeforeFind.select as any)['_id']) {
+                (onBeforeFind.select as any)['_id'] = true;
+            }
+
+            if (!(onBeforeFind.select as any)['createdAt']) {
+                (onBeforeFind.select as any)['createdAt'] = true;
             }
 
             if (!(onBeforeFind.limit instanceof PositiveNumber)) {
@@ -1015,6 +1091,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 _id: findOneById.id.toString() as any,
             },
             select: findOneById.select || {},
+            populate: findOneById.populate || {},
             props: findOneById.props,
         });
     }
@@ -1026,17 +1103,46 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
-            const numberOfDocsAffected: number =
-                (
-                    await this.getRepository().update(
-                        beforeUpdateBy.query as any,
-                        beforeUpdateBy.data
-                    )
-                ).affected || 0;
+            const query: Query<TBaseModel> = this.serializeQuery(
+                beforeUpdateBy.query
+            );
+            const data: QueryDeepPartialEntity<TBaseModel> =
+                this.serializeCreate(
+                    beforeUpdateBy.data
+                ) as QueryDeepPartialEntity<TBaseModel>;
+
+            const items: Array<TBaseModel> = await this._findBy({
+                query,
+                skip: 0,
+                limit: LIMIT_MAX,
+                populate: {},
+                select: {},
+                props: beforeUpdateBy.props,
+            });
+
+            for (let item of items) {
+                item = {
+                    ...item,
+                    ...data,
+                };
+
+                await this.getRepository().save(item);
+            }
+
+            // Cant Update relations.
+            // https://github.com/typeorm/typeorm/issues/2821
+
+            // const numberOfDocsAffected: number =
+            //     (
+            //         await this.getRepository().update(
+            //             query as any,
+            //             data
+            //         )
+            //     ).affected || 0;
 
             await this.onUpdateSuccess();
 
-            return numberOfDocsAffected;
+            return items.length;
         } catch (error) {
             await this.onUpdateError(error as Exception);
             throw this.getException(error as Exception);

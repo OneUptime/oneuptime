@@ -10,9 +10,14 @@ import TeamPermission from './TeamPermission';
 
 // API Keys
 import ApiKey from './ApiKey';
+import ApiKeyPermission from './ApiKeyPermission';
 
 //Labels.
 import Label from './Label';
+
+// Project SMTP Config.
+
+import ProjectSmtpConfig from './ProjectSmtpConfig';
 
 export default [
     User,
@@ -24,4 +29,6 @@ export default [
     TeamPermission,
     ApiKey,
     Label,
+    ApiKeyPermission,
+    ProjectSmtpConfig,
 ];

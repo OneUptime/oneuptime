@@ -109,7 +109,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: 1,
     })
-    public numberOfLicensesIssued?: PositiveNumber;
+    public numberOfLicensesIssued?: PositiveNumber = undefined;
 
     @ColumnAccessControl({
         create: [Permission.User],
@@ -119,6 +119,7 @@ export default class Model extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {
@@ -132,7 +133,7 @@ export default class Model extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -145,7 +146,7 @@ export default class Model extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -169,7 +170,7 @@ export default class Model extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -182,7 +183,7 @@ export default class Model extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -222,7 +223,7 @@ export default class Model extends BaseModel {
         unique: false,
         default: 0,
     })
-    public alertAccountBalance?: number;
+    public alertAccountBalance?: number = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -253,7 +254,7 @@ export default class Model extends BaseModel {
         nullable: true,
         unique: false,
     })
-    public unpaidSubscriptionNotificationCount?: PositiveNumber;
+    public unpaidSubscriptionNotificationCount?: PositiveNumber = undefined;
 
     @ColumnAccessControl({
         create: [],

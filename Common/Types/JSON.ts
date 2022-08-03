@@ -9,6 +9,8 @@ import Name from './Name';
 import Permission from './Permission';
 import Search from './Database/Search';
 import Typeof from './Typeof';
+import Port from './Port';
+import Hostname from './API/Hostname';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -21,6 +23,8 @@ enum ObjectType {
     URL = 'URL',
     Permission = 'Permission',
     Search = 'Search',
+    Port = 'Port',
+    Hostname = 'Hostname',
 }
 
 export type JSONValue =
@@ -55,6 +59,10 @@ export type JSONValue =
     | Array<Permission>
     | Search
     | Array<Search>
+    | Port
+    | Array<Port>
+    | Hostname
+    | Array<Hostname>
     | Array<JSONValue>
     | Array<Permission>
     | Array<JSONValue>
@@ -119,6 +127,16 @@ export class JSONFunctions {
             return {
                 _type: ObjectType.Email,
                 value: (val as Email).toString(),
+            };
+        } else if (val && val instanceof Port) {
+            return {
+                _type: ObjectType.Port,
+                value: (val as Port).toString(),
+            };
+        } else if (val && val instanceof Hostname) {
+            return {
+                _type: ObjectType.Hostname,
+                value: (val as Hostname).toString(),
             };
         } else if (val && val instanceof Version) {
             return {
@@ -218,6 +236,24 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.URL
         ) {
             val = URL.fromString((val as JSONObject)['value'] as string);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.Port
+        ) {
+            val = new Port((val as JSONObject)['value'] as string);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.Hostname
+        ) {
+            val = new Hostname((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&

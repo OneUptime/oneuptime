@@ -48,6 +48,7 @@ export default class Label extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -61,7 +62,7 @@ export default class Label extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project;
+    public project?: Project = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
@@ -79,7 +80,7 @@ export default class Label extends BaseModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID;
+    public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
@@ -125,7 +126,6 @@ export default class Label extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
-    @Index()
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
         nullable: true,
@@ -146,6 +146,7 @@ export default class Label extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -159,7 +160,7 @@ export default class Label extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
@@ -176,7 +177,7 @@ export default class Label extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -204,7 +205,7 @@ export default class Label extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -221,7 +222,7 @@ export default class Label extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],

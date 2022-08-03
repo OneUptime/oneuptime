@@ -12,6 +12,7 @@ type FormFieldType =
     | ObjectID
     | Hostname
     | Email
+    | Date
     | Name
     | Route
     | URL;

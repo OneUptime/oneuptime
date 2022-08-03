@@ -8,6 +8,7 @@ export interface CardButtonSchema {
     onClick: () => void;
     disabled?: boolean | undefined;
     icon: IconProp;
+    isLoading?: undefined | boolean;
 }
 
 export interface ComponentProps {

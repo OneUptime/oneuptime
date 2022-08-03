@@ -20,11 +20,14 @@ import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 import { ACCOUNTS_URL } from 'CommonUI/src/Config';
 // Settings Pages
-import Settings from './Pages/Settings/Settings';
+import ProjectSettings from './Pages/Settings/ProjectSettings';
 import SettingsDangerZone from './Pages/Settings/DangerZone';
 import SettingsApiKeys from './Pages/Settings/APIKeys';
-import SettingsCreateAPIKey from './Pages/Settings/CreateAPIKey';
+import SettingsApiKeyView from './Pages/Settings/APIKeyView';
 import SettingLabels from './Pages/Settings/Labels';
+import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
+import SettingsTeams from './Pages/Settings/Teams';
+import SettingsTeamView from './Pages/Settings/TeamView';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -155,7 +158,7 @@ const App: FunctionComponent = () => {
                 <PageRoute
                     path={RouteMap[PageMap.SETTINGS]?.toString()}
                     element={
-                        <Settings
+                        <ProjectSettings
                             pageRoute={RouteMap[PageMap.SETTINGS] as Route}
                             currentProject={selectedProject}
                         />
@@ -175,6 +178,18 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_CUSTOM_SMTP]?.toString()}
+                    element={
+                        <SettingCustomSMTP
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
                     path={RouteMap[PageMap.SETTINGS_APIKEYS]?.toString()}
                     element={
                         <SettingsApiKeys
@@ -187,11 +202,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_CREATE_APIKEY]?.toString()}
+                    path={RouteMap[PageMap.SETTINGS_APIKEY_VIEW]?.toString()}
                     element={
-                        <SettingsCreateAPIKey
+                        <SettingsApiKeyView
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                                RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
                             }
                             currentProject={selectedProject}
                         />
@@ -204,6 +219,30 @@ const App: FunctionComponent = () => {
                         <SettingLabels
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_LABELS] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_TEAMS]?.toString()}
+                    element={
+                        <SettingsTeams
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_TEAMS] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_TEAM_VIEW]?.toString()}
+                    element={
+                        <SettingsTeamView
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
                             }
                             currentProject={selectedProject}
                         />

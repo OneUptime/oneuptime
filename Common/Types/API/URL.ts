@@ -117,7 +117,7 @@ export default class URL extends DatabaseProperty {
 
         const hostname: Hostname = new Hostname(url.split('/')[0] || '');
 
-        let route: Route | undefined = undefined;
+        let route: Route | undefined;
 
         if (url.split('/').length > 1) {
             const paths: Array<string> = url.split('/');
@@ -151,6 +151,16 @@ export default class URL extends DatabaseProperty {
             ...params,
         };
         return this;
+    }
+
+    public getLastRoute(): Route | null {
+        const paths: Array<string> = this.route.toString().split('/');
+
+        if (paths.length > 0) {
+            return new Route('/' + paths[paths.length - 1]);
+        }
+
+        return null;
     }
 
     protected static override toDatabase(

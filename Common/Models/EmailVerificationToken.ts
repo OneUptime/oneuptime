@@ -34,6 +34,7 @@ export default class EmailVerificationToken extends BaseModel {
         manyToOneRelationColumn: 'userId',
         required: true,
         type: TableColumnType.Entity,
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {
@@ -47,7 +48,7 @@ export default class EmailVerificationToken extends BaseModel {
         }
     )
     @JoinColumn({ name: 'userId' })
-    public user?: User;
+    public user?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -60,7 +61,7 @@ export default class EmailVerificationToken extends BaseModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public userId?: ObjectID;
+    public userId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -94,7 +95,7 @@ export default class EmailVerificationToken extends BaseModel {
 
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public token?: ObjectID;
+    public token?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],

@@ -9,4 +9,9 @@ export default interface Column {
     isFilterable?: boolean;
     key?: string | null; //can be null because actions column does not have a key.
     getColumnElement?: ((item: JSONObject) => ReactElement) | undefined;
+    options?:
+        | {
+              onlyShowDate?: boolean | undefined;
+          }
+        | undefined;
 }

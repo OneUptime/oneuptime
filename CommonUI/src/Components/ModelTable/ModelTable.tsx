@@ -35,6 +35,10 @@ import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/Acces
 import Query from '../../Utils/ModelAPI/Query';
 import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
+import Navigation from '../../Utils/Navigation';
+import Route from 'Common/Types/API/Route';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import Populate from '../../Utils/ModelAPI/Populate';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -57,6 +61,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     noItemsMessage?: undefined | string;
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
+    isViewable?: undefined | boolean;
+    currentPageRoute?: undefined | Route;
 }
 
 enum ModalType {
@@ -78,7 +84,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [query, setQuery] = useState<Query<TBaseModel>>({});
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
     const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
-    const [isLoading, setIsLaoding] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [showModel, setShowModal] = useState<boolean>(false);
     const [showTableFilter, setShowTableFilter] = useState<boolean>(false);
@@ -97,7 +103,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     );
 
     const deleteItem: Function = async (id: ObjectID) => {
-        setIsLaoding(true);
+        setIsLoading(true);
         try {
             await ModelAPI.deleteItem<TBaseModel>(props.type, id);
             if (data.length === 1 && currentPageNumber > 1) {
@@ -116,12 +122,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        setIsLaoding(false);
+        setIsLoading(false);
     };
 
     const fetchItems: Function = async () => {
         setError('');
-        setIsLaoding(true);
+        setIsLoading(true);
 
         if (props.onFetchInit) {
             props.onFetchInit(currentPageNumber, itemsOnPage);
@@ -139,7 +145,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         ? {
                               [sortBy as any]: sortOrder,
                           }
-                        : {}
+                        : {},
+                    getPopulate()
                 );
 
             setTotalItemsCount(listResult.count);
@@ -156,7 +163,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        setIsLaoding(false);
+        setIsLoading(false);
     };
 
     const getSelect: Function = (): Select<TBaseModel> => {
@@ -183,6 +190,22 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         return selectFields;
+    };
+
+    const getPopulate: Function = (): Populate<TBaseModel> => {
+        const populate: Populate<TBaseModel> = {};
+
+        for (const column of props.columns) {
+            const key: string | null = column.field
+                ? (Object.keys(column.field)[0] as string)
+                : null;
+
+            if (key && props.model.isEntityColumn(key)) {
+                (populate as JSONObject)[key] = true;
+            }
+        }
+
+        return populate;
     };
 
     const setHeaderButtons: Function = (): void => {
@@ -232,7 +255,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 title: '',
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
-                    setShowTableFilter(!showTableFilter);
+                    const newValue: boolean = !showTableFilter;
+                    if (!newValue) {
+                        setQuery({});
+                    }
+                    setShowTableFilter(newValue);
                 },
                 disabled: isLoading,
                 icon: IconProp.Filter,
@@ -249,6 +276,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     useEffect(() => {
         setHeaderButtons();
     }, [showTableFilter]);
+
+    const shouldDisableSort: Function = (columnName: string): boolean => {
+        return props.model.isEntityColumn(columnName);
+    };
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
@@ -333,14 +364,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             if (hasPermission) {
                 columns.push({
-                    title: column.title,
-                    disableSort: column.disableSort || false,
-                    type: column.type,
-                    key: key,
-                    isFilterable: column.isFilterable,
-                    getColumnElement: column.getColumnElement
-                        ? column.getColumnElement
-                        : undefined,
+                    ...column,
+                    disableSort: column.disableSort || shouldDisableSort(key),
+                    key,
                 });
 
                 if (key) {
@@ -382,6 +408,19 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 )
         );
 
+        const hasPermissionToView: boolean = Boolean(
+            userProjectPermissions &&
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    props.model.readRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
+                )
+        );
+
         if (
             (props.isDeleteable && hasPermissionToDelete) ||
             (props.isEditable && hasPermissionToUpdate)
@@ -394,10 +433,17 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         const actionsSchema: Array<ActionButtonSchema> = [];
 
+        if (props.isViewable && hasPermissionToView) {
+            actionsSchema.push({
+                title: 'View',
+                buttonStyleType: ButtonStyleType.OUTLINE,
+                actionType: ActionType.View,
+            });
+        }
+
         if (props.isEditable && hasPermissionToUpdate) {
             actionsSchema.push({
                 title: 'Edit',
-                icon: IconProp.Edit,
                 buttonStyleType: ButtonStyleType.NORMAL,
                 actionType: ActionType.Edit,
             });
@@ -427,7 +473,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             >
                 <Table
                     onFilterChanged={(
-                        filterData: Dictionary<string | boolean>
+                        filterData: Dictionary<string | boolean | Search | Date>
                     ) => {
                         const query: Query<TBaseModel> = {};
 
@@ -436,15 +482,25 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                 filterData[key] &&
                                 typeof filterData[key] === Typeof.String
                             ) {
-                                query[key as keyof TBaseModel] = new Search(
-                                    (filterData[key] || '').toString()
-                                );
+                                query[key as keyof TBaseModel] = (
+                                    filterData[key] || ''
+                                ).toString();
                             }
 
                             if (typeof filterData[key] === Typeof.Boolean) {
                                 query[key as keyof TBaseModel] = Boolean(
                                     filterData[key]
                                 );
+                            }
+
+                            if (filterData[key] instanceof Date) {
+                                query[key as keyof TBaseModel] =
+                                    filterData[key];
+                            }
+
+                            if (filterData[key] instanceof Search) {
+                                query[key as keyof TBaseModel] =
+                                    filterData[key];
                             }
                         }
 
@@ -488,6 +544,19 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         if (key === ActionType.Delete) {
                             setShowDeleteConfirmModal(true);
                             setCurrentDeleteableItem(item);
+                        }
+
+                        if (key === ActionType.View) {
+                            if (!props.currentPageRoute) {
+                                throw new BadDataException(
+                                    'Please populate curentPageRoute in ModelTable'
+                                );
+                            }
+                            Navigation.navigate(
+                                new Route(
+                                    props.currentPageRoute.toString()
+                                ).addRoute('/' + item['_id'])
+                            );
                         }
                     }}
                 />

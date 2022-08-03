@@ -63,24 +63,21 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             <SideMenuSection title="Team">
                 <SideMenuItem
                     link={{
-                        title: 'Team Members',
-                        to: new Route('/:projectSlug/home'),
+                        title: 'Teams and Members',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_TEAMS] as Route
+                        ),
                     }}
                     icon={IconProp.User}
-                />
-                <SideMenuItem
-                    link={{
-                        title: 'User Groups',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.Team}
                 />
             </SideMenuSection>
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
                         title: 'API Keys',
-                        to: RouteMap[PageMap.SETTINGS_APIKEYS] as Route,
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                        ),
                     }}
                     icon={IconProp.Terminal}
                 />
@@ -89,12 +86,14 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         title: 'SSO',
                         to: new Route('/:projectSlug/home'),
                     }}
-                    icon={IconProp.Key}
+                    icon={IconProp.Lock}
                 />
                 <SideMenuItem
                     link={{
                         title: 'Custom SMTP',
-                        to: new Route('/:projectSlug/home'),
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
+                        ),
                     }}
                     icon={IconProp.Email}
                 />

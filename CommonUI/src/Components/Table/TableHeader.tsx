@@ -1,10 +1,18 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Dictionary from 'Common/Types/Dictionary';
 import Input from '../Input/Input';
+import TableColumnType from './Types/TableColumnType';
+import Search from 'Common/Types/Database/Search';
+import OneUptimeDate from 'Common/Types/Date';
 
 export interface ComponentProps {
     columns: Columns;
@@ -13,7 +21,7 @@ export interface ComponentProps {
     showFilter: boolean;
     onFilterChanged?:
         | undefined
-        | ((filterData: Dictionary<string | boolean>) => void);
+        | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
 }
 
 const TableHeader: FunctionComponent<ComponentProps> = (
@@ -23,9 +31,13 @@ const TableHeader: FunctionComponent<ComponentProps> = (
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
     // should filter on textboxes and checkboxes.
-    const [filterData, setFilterData] = useState<Dictionary<string | boolean>>(
-        {}
-    );
+    const [filterData, setFilterData] = useState<
+        Dictionary<string | boolean | Search | Date>
+    >({});
+
+    useEffect(() => {
+        setFilterData({});
+    }, [props.showFilter]);
 
     return (
         <thead id={props.id}>
@@ -40,6 +52,10 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                             className={`${canSort ? 'pointer' : ''}`}
                             onClick={() => {
                                 if (!column.key) {
+                                    return;
+                                }
+
+                                if (!canSort) {
                                     return;
                                 }
 
@@ -98,11 +114,40 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                             <td key={i}>
                                 {column.isFilterable && (
                                     <Input
-                                        onChange={(changedValue: string) => {
+                                        onChange={(
+                                            changedValue: string | Date
+                                        ) => {
                                             if (column.key) {
-                                                filterData[column.key] =
-                                                    changedValue;
+                                                if (!changedValue) {
+                                                    delete filterData[
+                                                        column.key
+                                                    ];
+                                                }
+
+                                                if (
+                                                    changedValue &&
+                                                    column.type ===
+                                                        TableColumnType.Date
+                                                ) {
+                                                    filterData[column.key] =
+                                                        OneUptimeDate.asDateForDatabaseQuery(
+                                                            changedValue as string
+                                                        );
+                                                }
+
+                                                if (
+                                                    changedValue &&
+                                                    column.type ===
+                                                        TableColumnType.Text
+                                                ) {
+                                                    filterData[column.key] =
+                                                        new Search(
+                                                            changedValue as string
+                                                        );
+                                                }
+
                                                 setFilterData(filterData);
+
                                                 if (props.onFilterChanged) {
                                                     props.onFilterChanged(
                                                         filterData
@@ -115,6 +160,11 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                         ).toString()}
                                         placeholder={`Filter by ${column.title}`}
                                         className={'form-control'}
+                                        type={
+                                            column.type === TableColumnType.Date
+                                                ? 'date'
+                                                : 'text'
+                                        }
                                     />
                                 )}
                             </td>

@@ -42,6 +42,7 @@ export default class ApiKey extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'projectId',
         type: TableColumnType.Entity,
+        modelType: Project,
     })
     @ManyToOne(
         (_type: string) => {
@@ -55,7 +56,7 @@ export default class ApiKey extends BaseModel {
         }
     )
     @JoinColumn({ name: 'projectId' })
-    public project?: Project;
+    public project?: Project = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -69,12 +70,12 @@ export default class ApiKey extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public projectId?: ObjectID;
+    public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [Permission.CanEditProjectApiKey],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
     @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -88,7 +89,7 @@ export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [Permission.CanEditProjectApiKey],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -119,6 +120,7 @@ export default class ApiKey extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {
@@ -132,7 +134,7 @@ export default class ApiKey extends BaseModel {
         }
     )
     @JoinColumn({ name: 'createdByUserId' })
-    public createdByUser?: User;
+    public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
@@ -145,7 +147,7 @@ export default class ApiKey extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public createdByUserId?: ObjectID;
+    public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -169,7 +171,7 @@ export default class ApiKey extends BaseModel {
         }
     )
     @JoinColumn({ name: 'deletedByUserId' })
-    public deletedByUser?: User;
+    public deletedByUser?: User = undefined;
 
     @ColumnAccessControl({
         create: [],
@@ -182,38 +184,28 @@ export default class ApiKey extends BaseModel {
         nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public deletedByUserId?: ObjectID;
+    public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [Permission.CanEditProjectApiKeyPermissions],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
-    @TableColumn({ title: 'Permissions', type: TableColumnType.Array })
+    @TableColumn({
+        title: 'Expires At',
+        type: TableColumnType.Date,
+        required: true,
+    })
     @Column({
-        type: ColumnType.Array,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public permissions?: Array<Permission> = undefined;
-
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [Permission.CanEditProjectApiKey],
-    })
-    @TableColumn({ title: 'Expires At', type: TableColumnType.Date })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: true,
-        transformer: ObjectID.getDatabaseTransformer(),
+        type: ColumnType.Date,
+        nullable: false,
     })
     public expiresAt?: Date = undefined;
 
     @ColumnAccessControl({
         create: [],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
-        update: [],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
     @Index()
     @TableColumn({
@@ -225,5 +217,5 @@ export default class ApiKey extends BaseModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public apiKey?: ObjectID;
+    public apiKey?: ObjectID = undefined;
 }

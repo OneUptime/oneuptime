@@ -6,7 +6,7 @@ import React, {
     useState,
 } from 'react';
 
-type DropdownValue = string | number;
+export type DropdownValue = string | number;
 
 export interface DropdownOption {
     value: DropdownValue;
@@ -15,20 +15,28 @@ export interface DropdownOption {
 
 export interface ComponentProps {
     options: Array<DropdownOption>;
-    initialValue?: undefined | string;
+    initialValue?: undefined | DropdownOption;
     onClick?: undefined | (() => void);
     placeholder?: undefined | string;
     className?: undefined | string;
-    onChange?: undefined | ((value: DropdownValue) => void);
-    value?: string | undefined;
+    onChange?:
+        | undefined
+        | ((value: DropdownValue | Array<DropdownValue>) => void);
+    value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
+    isMultiSelect?: boolean;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [value, setValue] = useState<DropdownValue>('');
+    const [value, setValue] = useState<
+        DropdownOption | Array<DropdownOption> | null
+    >(null);
+    const [selectedValue, setSelectedValue] = useState<
+        DropdownOption | Array<DropdownOption> | null
+    >(null);
 
     useEffect(() => {
         if (props.initialValue) {
@@ -41,20 +49,54 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }, []);
 
     useEffect(() => {
-        setValue(props.value ? props.value : '');
+        if (props.value) {
+            setValue(props.value ? props.value : null);
+        }
     }, [props.value]);
 
-    const selectedValues: Array<DropdownOption> = props.options.filter(
-        (item: DropdownOption) => {
-            return item.value === value;
+    useEffect(() => {
+        if (props.initialValue) {
+            setValue(props.initialValue ? props.initialValue : null);
         }
-    );
+    }, [props.initialValue]);
 
-    let selectedValue: DropdownOption | undefined = undefined;
+    useEffect(() => {
+        const selectedValues: Array<DropdownOption> = props.options.filter(
+            (item: DropdownOption) => {
+                if (Array.isArray(value)) {
+                    return value
+                        .map((v: DropdownOption) => {
+                            return v.value;
+                        })
+                        .includes(item.value);
+                }
+                return item.value === value?.value;
+            }
+        );
 
-    if (selectedValues.length > 0) {
-        selectedValue = selectedValues[0];
-    }
+        let selectedValue: DropdownOption | null = null;
+
+        if (selectedValues.length > 0 && !props.isMultiSelect) {
+            selectedValue = selectedValues[0] || null;
+        }
+
+        setSelectedValue(props.isMultiSelect ? selectedValues : selectedValue);
+        if (value) {
+            if (Array.isArray(value)) {
+                props.onChange &&
+                    props.onChange(
+                        (value as Array<DropdownOption>).map(
+                            (i: DropdownOption) => {
+                                return i.value;
+                            }
+                        )
+                    );
+            } else {
+                props.onChange &&
+                    props.onChange((value as DropdownOption).value);
+            }
+        }
+    }, [value]);
 
     return (
         <div
@@ -68,6 +110,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 onBlur={() => {
                     props.onBlur && props.onBlur();
                 }}
+                isMulti={props.isMultiSelect}
                 value={selectedValue}
                 onFocus={() => {
                     props.onFocus && props.onFocus();
@@ -76,11 +119,15 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 options={props.options as any}
                 onChange={(option: any | null) => {
                     if (option) {
-                        const value: DropdownValue = (option as DropdownOption)
-                            .value;
-                        setValue(value);
-                        props.onChange &&
-                            props.onChange((option as DropdownOption).value);
+                        if (props.isMultiSelect) {
+                            const value: Array<DropdownOption> =
+                                option as Array<DropdownOption>;
+                            setValue(value);
+                        } else {
+                            const value: DropdownOption =
+                                option as DropdownOption;
+                            setValue(value);
+                        }
                     }
                 }}
             />

@@ -1,8 +1,10 @@
+import { FindOperator } from 'typeorm';
+import DatabaseProperty from '../Database/DatabaseProperty';
 import BadDataException from '../Exception/BadDataException';
 import Port from '../Port';
 import Typeof from '../Typeof';
 
-export default class Hostname {
+export default class Hostname extends DatabaseProperty {
     private _route: string = '';
     public get hostname(): string {
         return this._route;
@@ -26,6 +28,7 @@ export default class Hostname {
     }
 
     public constructor(hostname: string, port?: Port | string | number) {
+        super();
         if (hostname) {
             this.hostname = hostname;
         }
@@ -39,7 +42,7 @@ export default class Hostname {
         }
     }
 
-    public toString(): string {
+    public override toString(): string {
         let hostame: string = this.hostname;
 
         if (this.port) {
@@ -57,5 +60,23 @@ export default class Hostname {
             );
         }
         return new Hostname(hostname);
+    }
+
+    public static override toDatabase(
+        value: Hostname | FindOperator<Hostname>
+    ): string | null {
+        if (value) {
+            return value.toString();
+        }
+
+        return value;
+    }
+
+    public static override fromDatabase(_value: string): Hostname | null {
+        if (_value) {
+            return new Hostname(_value);
+        }
+
+        return null;
     }
 }

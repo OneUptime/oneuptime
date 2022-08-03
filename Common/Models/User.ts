@@ -275,7 +275,7 @@ class User extends BaseModel {
         unique: false,
         transformer: URL.getDatabaseTransformer(),
     })
-    public twoFactorAuthUrl?: URL;
+    public twoFactorAuthUrl?: URL = undefined;
 
     @ColumnAccessControl({
         create: [],

@@ -13,13 +13,21 @@ export default class Route {
         this._route = v;
     }
 
-    public constructor(route?: string) {
+    public constructor(route?: string | Route) {
+        if (route && route instanceof Route) {
+            route = route.toString();
+        }
+
         if (route) {
             this.route = route;
         }
     }
 
-    public addRoute(route: Route): Route {
+    public addRoute(route: Route | string): Route {
+        if (typeof route === 'string') {
+            route = new Route(route);
+        }
+
         let routeToBeAdded: string = route.toString();
         if (this.route.endsWith('/') && routeToBeAdded.trim().startsWith('/')) {
             routeToBeAdded = routeToBeAdded.trim().substring(1); // remove leading  "/" from route

@@ -1,5 +1,5 @@
 import Color, { RGB } from 'Common/Types/Color';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
 import { Black } from '../../Utils/BrandColors';
 
 export enum PillSize {
@@ -13,6 +13,7 @@ export interface ComponentProps {
     text: string;
     color: Color;
     size?: PillSize | undefined;
+    style?: CSSProperties;
 }
 
 const Pill: FunctionComponent<ComponentProps> = (
@@ -24,6 +25,7 @@ const Pill: FunctionComponent<ComponentProps> = (
             className="rounded-pill badge"
             style={{
                 // https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
+
                 color:
                     rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114 > 186
                         ? '#000000'
@@ -32,6 +34,7 @@ const Pill: FunctionComponent<ComponentProps> = (
                     ? props.color.toString()
                     : Black.toString(),
                 fontSize: props.size ? props.size.toString() : PillSize.Normal,
+                ...props.style,
             }}
         >
             {' '}
