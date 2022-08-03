@@ -131,6 +131,12 @@ export class PermissionHelper {
                 isAssignableToProject: true
             },
             {
+                permission: Permission.ProjectMember,
+                title: 'Project Member',
+                description: 'Member of this project. Can view most resources unless restricted.',
+                isAssignableToProject: true
+            },
+            {
                 permission: Permission.ProjectAdmin,
                 title: 'Project Admin',
                 description: 'Owner of this project, manages billing, inviting other admins to this project, and can delete this project.',

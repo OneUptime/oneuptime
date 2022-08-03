@@ -64,7 +64,9 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 <SideMenuItem
                     link={{
                         title: 'Teams and Members',
-                        to: new Route('/:projectSlug/home'),
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_TEAMS] as Route
+                        ),
                     }}
                     icon={IconProp.User}
                 />

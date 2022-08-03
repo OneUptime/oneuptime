@@ -53,6 +53,14 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/custom-smtp`
     ),
 
+    [PageMap.SETTINGS_TEAMS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/teams`
+    ),
+
+    [PageMap.SETTINGS_TEAM_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/teams/${RouteParams.ModelID}`
+    ),
+
     // labels.
     [PageMap.SETTINGS_LABELS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/labels`

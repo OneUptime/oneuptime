@@ -3,8 +3,6 @@ import {
     Entity,
     Index,
     JoinColumn,
-    JoinTable,
-    ManyToMany,
     ManyToOne,
 } from 'typeorm';
 import BaseModel from './BaseModel';
@@ -18,7 +16,6 @@ import TableColumn from '../Types/Database/TableColumn';
 import ColumnType from '../Types/Database/ColumnType';
 import ObjectID from '../Types/ObjectID';
 import ColumnLength from '../Types/Database/ColumnLength';
-import TeamPermission from './TeamPermission';
 import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
 import Permission from '../Types/Permission';
 import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
@@ -229,12 +226,6 @@ export default class Team extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined; 
-
-    @ManyToMany(() => {
-        return TeamPermission;
-    })
-    @JoinTable()
-    public permissions?: Array<TeamPermission> = undefined; 
 
     @ColumnAccessControl({
         create: [],

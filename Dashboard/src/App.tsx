@@ -26,6 +26,8 @@ import SettingsApiKeys from './Pages/Settings/APIKeys';
 import SettingsApiKeyView from './Pages/Settings/APIKeyView';
 import SettingLabels from './Pages/Settings/Labels';
 import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
+import SettingsTeams from './Pages/Settings/Teams';
+import SettingsTeamView from './Pages/Settings/TeamView';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -217,6 +219,30 @@ const App: FunctionComponent = () => {
                         <SettingLabels
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_LABELS] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_TEAMS]?.toString()}
+                    element={
+                        <SettingsTeams
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_TEAMS] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_TEAM_VIEW]?.toString()}
+                    element={
+                        <SettingsTeamView
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
                             }
                             currentProject={selectedProject}
                         />
