@@ -1,25 +1,25 @@
 import { Column, Entity, Index } from 'typeorm';
-import BaseModel from './BaseModel';
-import ColumnType from '../Types/Database/ColumnType';
-import ColumnLength from '../Types/Database/ColumnLength';
-import SlugifyColumn from '../Types/Database/SlugifyColumn';
-import Phone from '../Types/Phone';
-import Email from '../Types/Email';
-import Name from '../Types/Name';
-import URL from '../Types/API/URL';
-import Timezone from '../Types/Timezone';
-import CompanySize from '../Types/Company/CompanySize';
-import JobRole from '../Types/Company/JobRole';
-import HashedString from '../Types/HashedString';
-import TableColumn from '../Types/Database/TableColumn';
-import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
-import Route from '../Types/API/Route';
-import TableColumnType from '../Types/Database/TableColumnType';
-import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
-import Permission from '../Types/Permission';
-import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
-import UserColumn from '../Types/Database/UserColumn';
-import EntityName from '../Types/Database/EntityName';
+import BaseModel from 'Common/Models/BaseModel';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
+import Phone from 'Common/Types/Phone';
+import Email from 'Common/Types/Email';
+import Name from 'Common/Types/Name';
+import URL from 'Common/Types/API/URL';
+import Timezone from 'Common/Types/Timezone';
+import CompanySize from 'Common/Types/Company/CompanySize';
+import JobRole from 'Common/Types/Company/JobRole';
+import HashedString from 'Common/Types/HashedString';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import Route from 'Common/Types/API/Route';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import Permission from 'Common/Types/Permission';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import UserColumn from 'Common/Types/Database/UserColumn';
+import EntityName from 'Common/Types/Database/EntityName';
 
 @TableAccessControl({
     create: [Permission.Public],

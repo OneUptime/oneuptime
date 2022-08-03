@@ -1,9 +1,9 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Project from './Project';
-import SmsTemplateType from '../Types/SMS/SmsTemplateType';
+import SmsTemplateType from 'Common/Types/SMS/SmsTemplateType';
 
 @Entity({
     name: 'SmsTemplate',

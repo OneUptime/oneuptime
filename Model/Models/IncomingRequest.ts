@@ -1,10 +1,10 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import Project from './Project';
 import IncidentPriority from './IncidentPriority';
-import IncomingRequestCustomFields from '../Types/IncomingRequest/IncomingRequestCustomFields';
-import Filter from '../Types/Filter/Filter';
+import IncomingRequestCustomFields from 'Common/Types/IncomingRequest/IncomingRequestCustomFields';
+import Filter from 'Common/Types/Filter/Filter';
 @Entity({
     name: 'UserAlerts',
 })

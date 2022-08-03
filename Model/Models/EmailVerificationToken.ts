@@ -1,17 +1,17 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import ColumnType from '../Types/Database/ColumnType';
-import ObjectID from '../Types/ObjectID';
-import BaseModel from './BaseModel';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import ObjectID from 'Common/Types/ObjectID';
+import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
-import ColumnLength from '../Types/Database/ColumnLength';
-import Email from '../Types/Email';
-import TableColumn from '../Types/Database/TableColumn';
-import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
-import Route from '../Types/API/Route';
-import TableColumnType from '../Types/Database/TableColumnType';
-import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
-import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
-import EntityName from '../Types/Database/EntityName';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import Email from 'Common/Types/Email';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import Route from 'Common/Types/API/Route';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import EntityName from 'Common/Types/Database/EntityName';
 
 @CrudApiEndpoint(new Route('/email-verification-token'))
 @Entity({

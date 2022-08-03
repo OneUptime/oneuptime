@@ -1,9 +1,9 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Project from './Project';
-import EmailTemplateType from '../Types/Email/EmailTemplateType';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 
 @Entity({
     name: 'EmailTemplate',

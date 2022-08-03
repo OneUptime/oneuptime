@@ -1,7 +1,7 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
-import OperationResult from '../Types/Operation/OperationResult';
+import OperationResult from 'Common/Types/Operation/OperationResult';
 import AutomatedScript from './AutomatedScript';
 
 @Entity({

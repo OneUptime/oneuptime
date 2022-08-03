@@ -1,5 +1,5 @@
 import { Column, Entity, Index } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Announcement from './Announcement';

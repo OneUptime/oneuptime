@@ -1,20 +1,20 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
-import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
-import SlugifyColumn from '../Types/Database/SlugifyColumn';
-import Route from '../Types/API/Route';
-import TableColumnType from '../Types/Database/TableColumnType';
-import TableColumn from '../Types/Database/TableColumn';
-import ColumnType from '../Types/Database/ColumnType';
-import ObjectID from '../Types/ObjectID';
-import ColumnLength from '../Types/Database/ColumnLength';
-import Permission from '../Types/Permission';
-import ProjectColumn from '../Types/Database/ProjectColumn';
-import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
-import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
-import EntityName from '../Types/Database/EntityName';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
+import Route from 'Common/Types/API/Route';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import ObjectID from 'Common/Types/ObjectID';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import Permission from 'Common/Types/Permission';
+import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import EntityName from 'Common/Types/Database/EntityName';
 
 @ProjectColumn('projectId')
 @CrudApiEndpoint(new Route('/api-key'))

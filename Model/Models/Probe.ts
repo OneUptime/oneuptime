@@ -1,23 +1,23 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
-import BaseModel from './BaseModel';
-import ColumnLength from '../Types/Database/ColumnLength';
-import ColumnType from '../Types/Database/ColumnType';
+import BaseModel from 'Common/Models/BaseModel';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import ColumnType from 'Common/Types/Database/ColumnType';
 import Project from './Project';
-import ObjectID from '../Types/ObjectID';
-import Version from '../Types/Version';
-import SlugifyColumn from '../Types/Database/SlugifyColumn';
-import URL from '../Types/API/URL';
+import ObjectID from 'Common/Types/ObjectID';
+import Version from 'Common/Types/Version';
+import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
+import URL from 'Common/Types/API/URL';
 import User from './User';
-import TableColumn from '../Types/Database/TableColumn';
-import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
-import Route from '../Types/API/Route';
-import TableColumnType from '../Types/Database/TableColumnType';
-import ProjectColumn from '../Types/Database/ProjectColumn';
-import Permission from '../Types/Permission';
-import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
-import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
-import IsPermissionsIf from '../Types/Database/IsPermissionsIf';
-import EntityName from '../Types/Database/EntityName';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import Route from 'Common/Types/API/Route';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import Permission from 'Common/Types/Permission';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import IsPermissionsIf from 'Common/Types/Database/IsPermissionsIf';
+import EntityName from 'Common/Types/Database/EntityName';
 
 @IsPermissionsIf(Permission.Public, 'projectId', null)
 @ProjectColumn('projectId')

@@ -1,11 +1,11 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
-import Email from '../Types/Email';
-import EmailTemplateType from '../Types/Email/EmailTemplateType';
-import OperationResult from '../Types/Operation/OperationResult';
-import Hostname from '../Types/API/Hostname';
+import Email from 'Common/Types/Email';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import OperationResult from 'Common/Types/Operation/OperationResult';
+import Hostname from 'Common/Types/API/Hostname';
 
 @Entity({
     name: 'EmailLog',

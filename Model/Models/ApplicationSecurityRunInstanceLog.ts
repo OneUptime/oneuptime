@@ -1,8 +1,8 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import ApplicationSecurityRunInstance from './ApplicationSecurityRunInstance';
-import SecuritySeverity from '../Types/SecuritySeverity';
+import SecuritySeverity from 'Common/Types/SecuritySeverity';
 
 @Entity({
     name: 'ApplicationSecurityRunInstanceLog',

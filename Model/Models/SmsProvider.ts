@@ -1,9 +1,9 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Project from './Project';
-import { JSONObject } from '../Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
 
 export enum SMSProviderType {
     Twilio = 'twilio',

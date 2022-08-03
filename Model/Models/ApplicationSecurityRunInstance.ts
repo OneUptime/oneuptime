@@ -1,5 +1,5 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import Component from './Component';
 import ApplicationSecurity from './ApplicationSecurity';

@@ -1,10 +1,10 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Project from './Project';
 import IncomingRequest from './IncomingRequest';
-import IncidentCustomFields from '../Types/Incident/IncidentCustomFields';
+import IncidentCustomFields from 'Common/Types/Incident/IncidentCustomFields';
 import ResourceStatus from './ResourceStatus';
 import IncidentPriority from './IncidentPriority';
 

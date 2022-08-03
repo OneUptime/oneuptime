@@ -1,10 +1,10 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import ApplicationLogContainer from './ApplicationLogContainer';
-import ApplicationLogType from '../Types/ApplicationLog/ApplicationLogType';
-import Tags from '../Types/Tags';
+import ApplicationLogType from 'Common/Types/ApplicationLog/ApplicationLogType';
+import Tags from 'Common/Types/Tags';
 @Entity({
     name: 'UserAlerts',
 })

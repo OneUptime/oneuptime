@@ -1,11 +1,11 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Project from './Project';
 import IncomingCallRouting from './IncomingCallRouting';
 import OnCallDutySchedule from './OnCallDutySchedule';
-import OperationStatus from '../Types/Operation/OperationStatus';
+import OperationStatus from 'Common/Types/Operation/OperationStatus';
 @Entity({
     name: 'UserAlerts',
 })

@@ -4,10 +4,18 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "compile": "tsc"
   },
   "dependencies": {
-    "Common": "file:../Common"
+    "Common": "file:../Common",
+    "typeorm": "^0.3.7"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.4.1",
+    "@types/node": "^17.0.22",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.1.4"
   },
   "author": "",
   "license": "ISC"

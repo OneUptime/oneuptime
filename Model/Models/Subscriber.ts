@@ -1,12 +1,12 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Project from './Project';
 import StatusPage from './StatusPage';
 import Monitor from './Monitor';
-import AlertType from '../Types/Alerts/AlertType';
-import HTTPMethod from '../Types/API/HTTPMethod';
+import AlertType from 'Common/Types/Alerts/AlertType';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
 
 @Entity({
     name: 'UserAlerts',

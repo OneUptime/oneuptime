@@ -1,6 +1,6 @@
 import { Column, Entity } from 'typeorm';
-import { JSONObject } from '../Types/JSON';
-import BaseModel from './BaseModel';
+import { JSONObject } from 'Common/Types/JSON';
+import BaseModel from 'Common/Models/BaseModel';
 
 @Entity({
     name: 'GlobalConfig',

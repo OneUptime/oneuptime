@@ -1,13 +1,13 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Project from './Project';
 import Subscriber from './Subscriber';
 import Incident from './Incident';
-import AlertType from '../Types/Alerts/AlertType';
-import AlertEventType from '../Types/Alerts/AlertEventType';
-import OperationResult from '../Types/Operation/OperationResult';
+import AlertType from 'Common/Types/Alerts/AlertType';
+import AlertEventType from 'Common/Types/Alerts/AlertEventType';
+import OperationResult from 'Common/Types/Operation/OperationResult';
 
 @Entity({
     name: 'UserAlerts',

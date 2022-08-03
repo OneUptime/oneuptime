@@ -1,9 +1,9 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import ScheduledEvent from './ScheduledEvent';
-import ScheduledEventState from '../Types/ScheduledEvent/ScheduledEventState';
+import ScheduledEventState from 'Common/Types/ScheduledEvent/ScheduledEventState';
 
 export enum ScheduledEventNote {
     Investogation = 'Investigation',

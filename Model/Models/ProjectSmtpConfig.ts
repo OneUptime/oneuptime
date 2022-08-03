@@ -1,25 +1,25 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Project from './Project';
-import Hostname from '../Types/API/Hostname';
-import Email from '../Types/Email';
-import Port from '../Types/Port';
-import Permission from '../Types/Permission';
-import ProjectColumn from '../Types/Database/ProjectColumn';
-import TableAccessControl from '../Types/Database/AccessControl/TableAccessControl';
-import CrudApiEndpoint from '../Types/Database/CrudApiEndpoint';
-import Route from '../Types/API/Route';
-import SlugifyColumn from '../Types/Database/SlugifyColumn';
-import EntityName from '../Types/Database/EntityName';
-import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
-import TableColumn from '../Types/Database/TableColumn';
-import TableColumnType from '../Types/Database/TableColumnType';
-import ColumnType from '../Types/Database/ColumnType';
-import ObjectID from '../Types/ObjectID';
-import ColumnLength from '../Types/Database/ColumnLength';
-import UniqueColumnBy from '../Types/Database/UniqueColumnBy';
+import Hostname from 'Common/Types/API/Hostname';
+import Email from 'Common/Types/Email';
+import Port from 'Common/Types/Port';
+import Permission from 'Common/Types/Permission';
+import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import Route from 'Common/Types/API/Route';
+import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
+import EntityName from 'Common/Types/Database/EntityName';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import ObjectID from 'Common/Types/ObjectID';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 
 @ProjectColumn('projectId')
 @TableAccessControl({

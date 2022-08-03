@@ -1,5 +1,5 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import Monitor from './Monitor';
 import Integration from './Integration';

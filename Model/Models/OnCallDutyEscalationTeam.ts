@@ -1,5 +1,5 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import OnCallDutyEscalation from './OnCallDutyEscalation';
 import Team from './Team';

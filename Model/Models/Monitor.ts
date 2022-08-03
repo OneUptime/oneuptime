@@ -1,5 +1,5 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 import User from './User';
 import Project from './Project';
@@ -7,12 +7,12 @@ import IncidentCommunicationSla from './IncidentCommunicationSla';
 import MonitorSla from './MonitorSla';
 import ResourceStatus from './ResourceStatus';
 import Probe from './Probe';
-import MonitorCustomFields from '../Types/Monitor/MonitorCustomFields';
-import MonitorCriteriaInstance from '../Types/Monitor/MonitorCriteriaInstance';
-import HTTPMethod from '../Types/API/HTTPMethod';
-import MonitorCriteria from '../Types/Monitor/MonitorCriteria';
+import MonitorCustomFields from 'Common/Types/Monitor/MonitorCustomFields';
+import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
+import HTTPMethod from 'Common/Types/API/HTTPMethod';
+import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
 import Component from './Component';
-import MonitorType from '../Types/Monitor/MonitorType';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 @Entity({
     name: 'UserAlerts',
