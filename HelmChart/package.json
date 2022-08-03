@@ -18,6 +18,7 @@
     "dependencies": {
         "CommonServer": "file:../CommonServer",
 "Common": "file:../Common",
+"Model": "file:../Model",
         "chai": "^4.3.6",
         "chai-http": "^4.3.0",
         "cors": "^2.8.5",

@@ -1,4 +1,4 @@
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import React, { ReactElement, useEffect, useState } from 'react';
 import Columns from './Columns';
 import Table from '../Table/Table';

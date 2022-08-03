@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken';
 import { EncryptionSecret } from '../Config';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Name from 'Common/Types/Name';
-import User from 'Common/Models/User';
+import User from 'Model/Models/User';
 
 class JSONWebToken {
     public static sign(

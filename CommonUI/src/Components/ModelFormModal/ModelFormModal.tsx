@@ -4,7 +4,7 @@ import Modal from '../Modal/Modal';
 import ModelForm, {
     ComponentProps as ModelFormComponentProps,
 } from '../Forms/ModelForm';
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import ButtonType from '../Button/ButtonTypes';
 import { JSONObjectOrArray } from 'Common/Types/JSON';
 import { FormikProps, FormikValues } from 'formik';

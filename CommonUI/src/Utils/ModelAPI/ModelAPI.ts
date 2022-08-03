@@ -1,4 +1,4 @@
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
 import Query from './Query';
 import Select from './Select';
@@ -15,7 +15,7 @@ import { FormType } from '../../Components/Forms/ModelForm';
 import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
 import Sort from './Sort';
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import Populate from './Populate';
 
 export interface ListResult<TBaseModel extends BaseModel> {

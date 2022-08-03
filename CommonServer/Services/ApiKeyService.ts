@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Common/Models/ApiKey';
+import Model from 'Model/Models/ApiKey';
 import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import ObjectID from 'Common/Types/ObjectID';

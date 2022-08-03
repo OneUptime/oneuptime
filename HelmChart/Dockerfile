@@ -26,6 +26,15 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
+# Install Model
+RUN mkdir /usr/src/Model
+WORKDIR /usr/src/Model
+COPY ./Model/package*.json /usr/src/Model/
+RUN npm install
+COPY ./Model /usr/src/Model
+RUN npm run compile
+
+
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app

@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Common/Models/OnCallDutyScheduleStatus';
+import Model from 'Model/Models/OnCallDutyScheduleStatus';
 import DatabaseService from './DatabaseService';
 
 export class Service extends DatabaseService<Model> {

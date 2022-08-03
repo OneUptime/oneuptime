@@ -1,4 +1,4 @@
-import Label from 'Common/Models/Label';
+import Label from 'Model/Models/Label';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Black } from 'CommonUI/src/Utils/BrandColors';
 import React, { FunctionComponent, ReactElement } from 'react';

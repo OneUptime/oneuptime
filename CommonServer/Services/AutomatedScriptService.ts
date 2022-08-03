@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Common/Models/AutomatedScript';
+import Model from 'Model/Models/AutomatedScript';
 import DatabaseService from './DatabaseService';
 
 export class Service extends DatabaseService<Model> {

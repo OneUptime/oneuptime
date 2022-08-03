@@ -19,6 +19,7 @@
     "dependencies": {
         "CommonServer": "file:../CommonServer",
 "Common": "file:../Common",
+"Model": "file:../Model",
         "body-parser": "^1.19.2",
         "cross-env": "^7.0.3",
         "dotenv": "^16.0.0",

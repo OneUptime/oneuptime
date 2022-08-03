@@ -1,6 +1,6 @@
 import ObjectID from 'Common/Types/ObjectID';
 import TeamMemberService from './TeamMemberService';
-import TeamMember from 'Common/Models/TeamMember';
+import TeamMember from 'Model/Models/TeamMember';
 import GlobalCache from '../Infrastructure/GlobalCache';
 import { JSONObject } from 'Common/Types/JSON';
 import Permission, {
@@ -8,10 +8,10 @@ import Permission, {
     UserPermission,
     UserProjectAccessPermission,
 } from 'Common/Types/Permission';
-import TeamPermission from 'Common/Models/TeamPermission';
+import TeamPermission from 'Model/Models/TeamPermission';
 import TeamPermissionService from './TeamPermissionService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import Label from 'Common/Models/Label';
+import Label from 'Model/Models/Label';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 
 enum PermissionNamespace {

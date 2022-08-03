@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import User from 'Common/Models/User';
+import User from 'Model/Models/User';
 import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';

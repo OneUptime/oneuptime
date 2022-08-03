@@ -3,7 +3,7 @@ import URL from 'Common/Types/API/URL';
 import FormFieldSchemaType from './FormFieldSchemaType';
 import SelectFormFields from '../../../Types/SelectEntityField';
 import { DropdownOption } from '../../Dropdown/Dropdown';
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 
 export default interface Field<TEntity> {
     title?: string;

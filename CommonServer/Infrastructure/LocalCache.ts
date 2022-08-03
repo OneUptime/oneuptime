@@ -1,4 +1,4 @@
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import Dictionary from 'Common/Types/Dictionary';
 import { JSONValue } from 'Common/Types/JSON';
 

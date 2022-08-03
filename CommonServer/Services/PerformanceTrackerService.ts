@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Common/Models/PerformanceTracker';
+import Model from 'Model/Models/PerformanceTracker';
 import DatabaseService from './DatabaseService';
 
 export class Service extends DatabaseService<Model> {

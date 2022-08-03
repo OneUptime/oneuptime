@@ -1,4 +1,4 @@
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';

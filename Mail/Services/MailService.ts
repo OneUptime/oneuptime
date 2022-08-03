@@ -19,11 +19,11 @@ import Dictionary from 'Common/Types/Dictionary';
 import OperationResult from 'Common/Types/Operation/OperationResult';
 import Hostname from 'Common/Types/API/Hostname';
 import Exception from 'Common/Types/Exception/Exception';
-import GlobalConfig from 'Common/Models/GlobalConfig';
+import GlobalConfig from 'Model/Models/GlobalConfig';
 import Port from 'Common/Types/Port';
-import ProjectSmtpConfig from 'Common/Models/ProjectSmtpConfig';
-import EmailLog from 'Common/Models/EmailLog';
-import Project from 'Common/Models/Project';
+import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
+import EmailLog from 'Model/Models/EmailLog';
+import Project from 'Model/Models/Project';
 
 export default class MailService {
     private static async getGlobalSmtpSettings(): Promise<MailServer> {

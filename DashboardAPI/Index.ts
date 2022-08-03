@@ -6,57 +6,57 @@ import logger from 'CommonServer/Utils/Logger';
 import BaseAPI from 'CommonServer/API/BaseAPI';
 import App from 'CommonServer/Utils/StartServer';
 
-import User from 'Common/Models/User';
+import User from 'Model/Models/User';
 import UserService, {
     Service as UserServiceType,
 } from 'CommonServer/Services/UserService';
 
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import ProjectService, {
     Service as ProjectServiceType,
 } from 'CommonServer/Services/ProjectService';
 
-import Probe from 'Common/Models/Probe';
+import Probe from 'Model/Models/Probe';
 import ProbeService, {
     Service as ProbeServiceType,
 } from 'CommonServer/Services/ProbeService';
 
-import EmailVerificationToken from 'Common/Models/EmailVerificationToken';
+import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
 import EmailVerificationTokenService, {
     Service as EmailVerificationTokenServiceType,
 } from 'CommonServer/Services/EmailVerificationTokenService';
 
-import Team from 'Common/Models/Team';
+import Team from 'Model/Models/Team';
 import TeamService, {
     Service as TeamServiceType,
 } from 'CommonServer/Services/TeamService';
 
-import TeamMember from 'Common/Models/TeamMember';
+import TeamMember from 'Model/Models/TeamMember';
 import TeamMemberService, {
     Service as TeamMemberServiceType,
 } from 'CommonServer/Services/TeamMemberService';
 
-import TeamPermission from 'Common/Models/TeamPermission';
+import TeamPermission from 'Model/Models/TeamPermission';
 import TeamPermissionService, {
     Service as TeamPermissionServiceType,
 } from 'CommonServer/Services/TeamPermissionService';
 
-import Label from 'Common/Models/Label';
+import Label from 'Model/Models/Label';
 import LabelService, {
     Service as LabelServiceType,
 } from 'CommonServer/Services/LabelService';
 
-import ProjectSmtpConfig from 'Common/Models/ProjectSmtpConfig';
+import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
 import ProjectSmtpConfigService, {
     Service as ProjectSMTPConfigServiceType,
 } from 'CommonServer/Services/ProjectSmtpConfigService';
 
-import ApiKey from 'Common/Models/ApiKey';
+import ApiKey from 'Model/Models/ApiKey';
 import ApiKeyService, {
     Service as ApiKeyServiceType,
 } from 'CommonServer/Services/ApiKeyService';
 
-import ApiKeyPermission from 'Common/Models/ApiKeyPermission';
+import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
 import ApiKeyPermissionService, {
     Service as ApiKeyPermissionServiceType,
 } from 'CommonServer/Services/ApiKeyPermissionService';

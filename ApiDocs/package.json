@@ -19,6 +19,7 @@
         "chai-http": "^4.3.0",
         "CommonServer": "file:../CommonServer",
         "Common": "file:../Common",
+"Model": "file:../Model",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
         "ejs": "^3.1.6",

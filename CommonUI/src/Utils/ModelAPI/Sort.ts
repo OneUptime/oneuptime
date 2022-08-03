@@ -1,4 +1,4 @@
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import SortOrder from 'Common/Types/Database/SortOrder';
 
 type Query<TBaseModel extends BaseModel> = {

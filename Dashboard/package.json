@@ -4,6 +4,7 @@
     "private": true,
     "dependencies": {
         "Common": "file:../Common",
+        "Model": "file:../Model",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
         "react": "^18.1.0",

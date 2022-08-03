@@ -1,6 +1,6 @@
 import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 
 export default class ProjectUtil {
     public static getCurrentProject(): Project | null {

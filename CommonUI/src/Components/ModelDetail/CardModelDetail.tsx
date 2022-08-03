@@ -10,7 +10,7 @@ import Card, {
     ComponentProps as CardProps,
 } from '../Card/Card';
 import ModelDetail, { ComponentProps as ModeDetailProps } from './ModelDetail';
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import { ButtonStyleType } from '../Button/Button';
 import { IconProp } from '../Icon/Icon';
 import ModelFromModal from '../ModelFormModal/ModelFormModal';

@@ -3,7 +3,7 @@ import React, { FunctionComponent, ReactElement, useState } from 'react';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import CircularIconImage from '../../Icon/CircularIconImage';
 import Icon, { IconProp } from '../../Icon/Icon';
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import ProjectPickerMenu from './ProjectPickerMenu';
 import ProjectPickerMenuItem from './ProjectPickerMenuItem';
 import CreateNewProjectButton from './CreateNewProjectButton';

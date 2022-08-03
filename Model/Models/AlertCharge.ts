@@ -1,5 +1,5 @@
 import { Column, Entity } from 'typeorm';
-import BaseModel from './BaseModel';
+import BaseModel from '../../Model/Models/BaseModel';
 
 import Incident from './Incident';
 import SubscriberAlert from './SubscriberAlert';

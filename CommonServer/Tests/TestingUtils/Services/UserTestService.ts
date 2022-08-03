@@ -1,4 +1,4 @@
-import User from 'Common/Models/User';
+import User from 'Model/Models/User';
 import Faker from 'Common/Tests/TestingUtils/Faker';
 import CompanySize from 'Common/Types/Company/CompanySize';
 import JobRole from 'Common/Types/Company/JobRole';

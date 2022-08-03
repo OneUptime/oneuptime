@@ -1,4 +1,4 @@
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';

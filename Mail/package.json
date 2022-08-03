@@ -16,6 +16,7 @@
         "@types/nodemailer": "^6.4.4",
         "@types/nodemailer-express-handlebars": "^4.0.2",
         "Common": "file:../Common",
+"Model": "file:../Model",
         "CommonServer": "file:../CommonServer",
         "ejs": "^3.1.8",
         "handlebars": "^4.7.7",

@@ -5,7 +5,7 @@ import React, {
     useState,
 } from 'react';
 import { FormikErrors, FormikProps, FormikValues } from 'formik';
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import BasicModelForm from './BasicModelForm';

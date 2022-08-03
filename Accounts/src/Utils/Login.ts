@@ -5,7 +5,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Name from 'Common/Types/Name';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import { JSONObject } from 'Common/Types/JSON';
-import User from 'Common/Models/User';
+import User from 'Model/Models/User';
 
 export default abstract class LoginUtil {
     public static login(value: JSONObject): void {

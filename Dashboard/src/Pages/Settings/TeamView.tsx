@@ -10,16 +10,16 @@ import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import Team from 'Common/Models/Team';
-import TeamMember from 'Common/Models/TeamMember';
+import Team from 'Model/Models/Team';
+import TeamMember from 'Model/Models/TeamMember';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
-import Label from 'Common/Models/Label';
+import Label from 'Model/Models/Label';
 import { JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import TeamPermission from 'Common/Models/TeamPermission';
+import TeamPermission from 'Model/Models/TeamPermission';
 import LabelElement from '../../Components/Label/Label';
 
 const TeamView: FunctionComponent<PageComponentProps> = (

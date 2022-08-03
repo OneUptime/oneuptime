@@ -1,4 +1,4 @@
-import BaseModel from 'Common/Models/BaseModel';
+import BaseModel from 'Model/Models/BaseModel';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import FindOneBy from './FindOneBy';
 
