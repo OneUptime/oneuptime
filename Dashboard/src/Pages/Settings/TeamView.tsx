@@ -252,7 +252,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                         (label as JSONObject)['name']
                                     ) {
                                         returnElements.push(
-                                            <LabelElement key={counter} label={new Label().fromJSON(label as JSONObject, Label)} />
+                                            <LabelElement
+                                                key={counter}
+                                                label={new Label().fromJSON(
+                                                    label as JSONObject,
+                                                    Label
+                                                )}
+                                            />
                                         );
 
                                         counter++;

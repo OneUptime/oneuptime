@@ -253,7 +253,6 @@ export default class Team extends BaseModel {
     })
     public isTeamDeleteable?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [

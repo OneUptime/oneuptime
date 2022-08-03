@@ -11,50 +11,59 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected  override async onBeforeUpdate(updateBy: UpdateBy<Model>): Promise<UpdateBy<Model>> {
-
-        // get teams by query. 
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<Model>
+    ): Promise<UpdateBy<Model>> {
+        // get teams by query.
 
         const teams: Array<Model> = await this.findBy({
             query: updateBy.query,
             limit: LIMIT_MAX,
             skip: 0,
             select: {
-                name: true
+                name: true,
             },
             populate: {},
-            props: updateBy.props
-        })
-
+            props: updateBy.props,
+        });
 
         for (const team of teams) {
             if (!team.isTeamEditable) {
-                throw new BadDataException(`${team.name || 'This'} team cannot be updated because its a critical team for this project.`);
+                throw new BadDataException(
+                    `${
+                        team.name || 'This'
+                    } team cannot be updated because its a critical team for this project.`
+                );
             }
         }
-        
+
         return updateBy;
     }
 
-    protected override async  onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<DeleteBy<Model>> {
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<DeleteBy<Model>> {
         const teams: Array<Model> = await this.findBy({
             query: deleteBy.query,
             limit: LIMIT_MAX,
             skip: 0,
             select: {
-                name: true
+                name: true,
             },
             populate: {},
-            props: deleteBy.props
-        })
-
+            props: deleteBy.props,
+        });
 
         for (const team of teams) {
             if (!team.isTeamDeleteable) {
-                throw new BadDataException(`${team.name || 'This'} team cannot be deleted its a critical team for this project.`);
+                throw new BadDataException(
+                    `${
+                        team.name || 'This'
+                    } team cannot be deleted its a critical team for this project.`
+                );
             }
         }
-        
+
         return deleteBy;
     }
 }
