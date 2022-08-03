@@ -252,4 +252,21 @@ export default class Team extends BaseModel {
         default: true,
     })
     public isTeamDeleteable?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanEditProjectTeam,
+            Permission.CanEditProjectTeamPermissions,
+        ],
+        update: [],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public isTeamEditable?: boolean = undefined;
 }

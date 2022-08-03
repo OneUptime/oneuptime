@@ -20,8 +20,7 @@ import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import FieldType from 'CommonUI/src/Components/ModelDetail/FieldType';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
+import LabelElement from '../../Components/Label/Label';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -211,22 +210,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                                         (label as JSONObject)['name']
                                     ) {
                                         returnElements.push(
-                                            <Pill
-                                                key={counter}
-                                                color={
-                                                    (label as JSONObject)[
-                                                        'color'
-                                                    ] as Color
-                                                }
-                                                text={
-                                                    (label as JSONObject)[
-                                                        'name'
-                                                    ] as string
-                                                }
-                                                style={{
-                                                    marginRight: '5px',
-                                                }}
-                                            />
+                                            <LabelElement key={counter} label={new Label().fromJSON(label as JSONObject, Label)} />
                                         );
 
                                         counter++;

@@ -80,6 +80,7 @@ export class Service extends DatabaseService<Model> {
         ownerTeam.projectId = createdItem.data.id!;
         ownerTeam.name = 'Owners';
         ownerTeam.isPermissionsEditable = false;
+        ownerTeam.isTeamEditable = false;
         ownerTeam.isTeamDeleteable = false;
         ownerTeam.description =
             'This team is for project owners. Adding team members to this team will give them root level permissions.';
@@ -125,6 +126,7 @@ export class Service extends DatabaseService<Model> {
         adminTeam.name = 'Admin';
         adminTeam.isPermissionsEditable = false;
         adminTeam.isTeamDeleteable = false;
+        adminTeam.isTeamEditable = false;
         adminTeam.description =
             'This team is for project admins. Admins can invite members to any team and create project resources.';
 
@@ -150,9 +152,9 @@ export class Service extends DatabaseService<Model> {
         // Members Team.
         const memberTeam: Team = new Team();
         memberTeam.projectId = createdItem.data.id!;
-        memberTeam.isPermissionsEditable = false;
+        memberTeam.isPermissionsEditable = true;
         memberTeam.name = 'Members';
-        memberTeam.isTeamDeleteable = false;
+        memberTeam.isTeamDeleteable = true;
         memberTeam.description =
             'This team is for project members. Members can interact with any project resources like monitors, incidents, etc.';
 

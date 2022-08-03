@@ -19,9 +19,8 @@ import { JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
 import TeamPermission from 'Common/Models/TeamPermission';
+import LabelElement from '../../Components/Label/Label';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -253,22 +252,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                         (label as JSONObject)['name']
                                     ) {
                                         returnElements.push(
-                                            <Pill
-                                                key={counter}
-                                                color={
-                                                    (label as JSONObject)[
-                                                        'color'
-                                                    ] as Color
-                                                }
-                                                text={
-                                                    (label as JSONObject)[
-                                                        'name'
-                                                    ] as string
-                                                }
-                                                style={{
-                                                    marginRight: '5px',
-                                                }}
-                                            />
+                                            <LabelElement key={counter} label={new Label().fromJSON(label as JSONObject, Label)} />
                                         );
 
                                         counter++;

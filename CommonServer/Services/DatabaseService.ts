@@ -1044,6 +1044,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
 
+           
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
