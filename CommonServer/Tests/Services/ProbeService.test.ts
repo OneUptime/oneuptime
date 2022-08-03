@@ -200,7 +200,7 @@ describe('probeService', () => {
         expect(fetchedProbe!.name).toBe(name);
         expect(fetchedProbe?._id).toBeTruthy();
         expect(fetchedProbe?.key).toBeFalsy();
-        expect(fetchedProbe?.createdAt).toBeFalsy();
+        expect(fetchedProbe?.createdAt).toBeTruthy(); // this is the default column and it should be always truthy
         expect(fetchedProbe?.createdByUserId).toBeFalsy();
         expect(fetchedProbe?.probeVersion).toBeFalsy();
     });
