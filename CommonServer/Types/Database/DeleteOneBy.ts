@@ -1,5 +1,5 @@
 import Query from './Query';
-import BaseModel from 'Model/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import User from 'Model/Models/User';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 

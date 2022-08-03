@@ -1,4 +1,4 @@
-import BaseModel from 'Model/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
 import { FindOperator, FindOptionsWhereProperty } from 'typeorm';
 

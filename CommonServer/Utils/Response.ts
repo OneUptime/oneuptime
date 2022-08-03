@@ -12,7 +12,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import URL from 'Common/Types/API/URL';
-import BaseModel from 'Model/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import EmptyResponse from 'Common/Types/API/EmptyResponse';
 
 export default class Response {

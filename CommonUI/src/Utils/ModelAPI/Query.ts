@@ -1,4 +1,4 @@
-import BaseModel from 'Model/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import Search from 'Common/Types/Database/Search';
 import { JSONValue } from 'Common/Types/JSON';
 

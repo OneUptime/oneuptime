@@ -1,4 +1,4 @@
-import BaseModel from 'Model/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 
 type Populate<TBaseModel extends BaseModel> = {
     [P in keyof TBaseModel]?: boolean;

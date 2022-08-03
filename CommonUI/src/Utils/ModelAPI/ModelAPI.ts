@@ -1,4 +1,4 @@
-import BaseModel from 'Model/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
 import Query from './Query';
 import Select from './Select';

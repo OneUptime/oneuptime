@@ -1,5 +1,5 @@
 import React, { ReactElement, useEffect, useState } from 'react';
-import BaseModel from 'Model/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';

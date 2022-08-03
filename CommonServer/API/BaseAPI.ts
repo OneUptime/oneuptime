@@ -1,4 +1,4 @@
-import BaseModel from 'Model/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import DatabaseService from '../Services/DatabaseService';
 import Express, {
     ExpressRequest,

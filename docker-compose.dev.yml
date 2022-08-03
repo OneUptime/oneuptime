@@ -53,11 +53,13 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
             - ./CommonServer:/usr/src/CommonServer
             - ./CommonUI:/usr/src/CommonUI
             - /usr/src/Common/node_modules/
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     saml:
         image: kenchan0130/simplesamlphp
@@ -101,11 +103,13 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
             - ./CommonServer:/usr/src/CommonServer
             - ./CommonUI:/usr/src/CommonUI
             - /usr/src/Common/node_modules/
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     dashboard:
         ports:
@@ -124,15 +128,15 @@ services:
             - accounts
         volumes:
             - ./Dashboard:/usr/src/app
-            # Use node modules of the container and not host system.
-            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
             - ./CommonServer:/usr/src/CommonServer
             - ./CommonUI:/usr/src/CommonUI
             - /usr/src/Common/node_modules/
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     # data-ingestor:
     #     ports:
@@ -157,11 +161,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+    #         - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+    #         - /usr/src/Model/node_modules/
 
     # realtime:
     #     ports:
@@ -182,11 +188,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+    #         - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+    #         - /usr/src/Model/node_modules/
             
     # helmchart:
     #     ports:
@@ -206,11 +214,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+    #         - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+    #         - /usr/src/Model/node_modules/
 
             
     # probe-api:
@@ -232,11 +242,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+    #         - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+    #         - /usr/src/Model/node_modules/
 
     # # There can only be one probe in developer docker compose.
     # probe:
@@ -260,11 +272,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+    #        - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     # api-docs:
     #     ports:
@@ -284,11 +298,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+    #        - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
    
     # script-runner:
@@ -310,11 +326,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+    #         - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     dashboard-api:
         ports:
@@ -343,11 +361,13 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
             - ./CommonServer:/usr/src/CommonServer
             - ./CommonUI:/usr/src/CommonUI
             - /usr/src/Common/node_modules/
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     identity:
         ports:
@@ -376,11 +396,13 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
             - ./CommonServer:/usr/src/CommonServer
             - ./CommonUI:/usr/src/CommonUI
             - /usr/src/Common/node_modules/
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
     
     # alert:
     #     ports:
@@ -404,11 +426,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+    #         - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+    #         - /usr/src/Model/node_modules/
     
     # integration:
     #     ports:
@@ -432,11 +456,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     home:
         ports:
@@ -457,11 +483,13 @@ services:
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
             - ./CommonServer:/usr/src/CommonServer
             - ./CommonUI:/usr/src/CommonUI
             - /usr/src/Common/node_modules/
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     # status-page:
     #     ports:
@@ -481,11 +509,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     # admin-dashboard:
     #     ports:
@@ -505,11 +535,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     # http-test-server:
     #     ports:
@@ -530,11 +562,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     # licensing:
     #     ports:
@@ -555,11 +589,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
             
     # application-scanner:
     #     ports:
@@ -580,11 +616,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
             
     # container-scanner:
     #     ports:
@@ -605,11 +643,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
             
     # lighthouse-runner:
     #     ports:
@@ -630,11 +670,13 @@ services:
     #         # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
     #         - /usr/src/app/node_modules/
     #         - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
     #         - ./CommonServer:/usr/src/CommonServer
     #         - ./CommonUI:/usr/src/CommonUI
     #         - /usr/src/Common/node_modules/
     #         - /usr/src/CommonUI/node_modules/
     #         - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
     nginx:
         depends_on:
             - identity

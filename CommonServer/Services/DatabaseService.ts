@@ -16,7 +16,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import SearchResult from '../Types/Database/SearchResult';
 import Encryption from '../Utils/Encryption';
 import { JSONObject } from 'Common/Types/JSON';
-import BaseModel from 'Model/Models/BaseModel';
+import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
