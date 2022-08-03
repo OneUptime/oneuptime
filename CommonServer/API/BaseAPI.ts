@@ -204,8 +204,6 @@ export default class BaseAPI<
             ) as Sort<BaseModel>;
         }
 
-        debugger;
-
         const list: Array<BaseModel> = await this.service.findBy({
             query,
             select,

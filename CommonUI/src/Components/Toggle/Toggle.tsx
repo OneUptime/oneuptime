@@ -10,7 +10,6 @@ import ReactToggle from 'react-toggle';
 export interface ComponentProps {
     onChange: (value: boolean) => void;
     initialValue: boolean;
-    placeholder?: undefined | string;
     onFocus?: () => void;
     onBlur?: () => void;
 }

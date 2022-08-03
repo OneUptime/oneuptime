@@ -18,7 +18,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const ModelDelete: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const model = new props.type();
+    const model: TBaseModel = new props.type();
     const [showModal, setShowModal] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');

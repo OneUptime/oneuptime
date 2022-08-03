@@ -65,7 +65,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             (item: DropdownOption) => {
                 if (Array.isArray(value)) {
                     return value
-                        .map(v => {
+                        .map((v: DropdownOption) => {
                             return v.value;
                         })
                         .includes(item.value);

@@ -255,7 +255,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 title: '',
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
-                    const newValue = !showTableFilter;
+                    const newValue: boolean = !showTableFilter;
                     if (!newValue) {
                         setQuery({});
                     }

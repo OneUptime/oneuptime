@@ -28,7 +28,7 @@ import Alert, { AlertType } from '../Alerts/Alert';
 import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
 import TextArea from './Fields/TextArea';
-import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
+import Dropdown, { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
 import OneUptimeDate from 'Common/Types/Date';
 import Toggle from '../Toggle/Toggle';
 import Port from 'Common/Types/Port';
@@ -534,7 +534,7 @@ const BasicForm: Function = <T extends Object>(
     const [initialValues, setInitalValues] = useState<FormValues<T>>({});
 
     useEffect(() => {
-        const values = { ...props.initialValues };
+        const values: FormValues<T> = { ...props.initialValues };
         for (const field of props.fields) {
             const fieldName: string = field.overideFieldKey
                 ? field.overideFieldKey
@@ -555,7 +555,7 @@ const BasicForm: Function = <T extends Object>(
                 (values as any)[fieldName]
             ) {
                 (values as any)[fieldName] = field.dropdownOptions?.filter(
-                    (option) => {
+                    (option: DropdownOption) => {
                         return option.value === (values as any)[fieldName];
                     }
                 )[0];
@@ -566,7 +566,7 @@ const BasicForm: Function = <T extends Object>(
                 (values as any)[fieldName]
             ) {
                 (values as any)[fieldName] = field.dropdownOptions?.filter(
-                    (option) => {
+                    (option: DropdownOption) => {
                         return (values as any)[fieldName].includes(
                             option.value
                         );

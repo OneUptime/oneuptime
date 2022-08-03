@@ -35,7 +35,7 @@ export default class PermissionUtil {
         const permissions: Array<PermissionProps> =
             PermissionHelper.getProjectPermissionProps();
 
-        return permissions.map((permissionProp) => {
+        return permissions.map((permissionProp: PermissionProps) => {
             return {
                 value: permissionProp.permission,
                 label: permissionProp.title,

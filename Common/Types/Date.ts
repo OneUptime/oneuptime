@@ -136,7 +136,7 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-        let formatstring = 'MMMM Do YYYY, HH:MM:SS';
+        let formatstring: string = 'MMMM Do YYYY, HH:MM:SS';
 
         if (onlyShowDate) {
             formatstring = 'MMMM Do YYYY';
@@ -149,7 +149,7 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-        let formatstring = 'MMMM Do YYYY, HH:MM:SS';
+        let formatstring: string = 'MMMM Do YYYY, HH:MM:SS';
 
         if (onlyShowDate) {
             formatstring = 'MMMM Do YYYY';
@@ -170,7 +170,7 @@ export default class OneUptimeDate {
     }
 
     public static asDateForDatabaseQuery(date: string | Date): string {
-        const formatstring = 'YYYY-MM-DD';
+        const formatstring: string = 'YYYY-MM-DD';
         return moment(date).local().format(formatstring);
     }
 }

@@ -46,10 +46,10 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
 import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
-import TableColumns from 'Common/Types/Database/Columns';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -110,7 +110,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     protected checkRequiredFields(data: TBaseModel): void {
         // Check required fields.
 
-        debugger;
         for (const requiredField of data.getRequiredColumns().columns) {
             if (typeof (data as any)[requiredField] === Typeof.Boolean) {
                 if (
@@ -318,11 +317,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
     private serializeCreate(
         data: TBaseModel | QueryDeepPartialEntity<TBaseModel>
     ): TBaseModel | QueryDeepPartialEntity<TBaseModel> {
-        const columns: TableColumns = this.model.getTableColumns();
+        const columns: Columns = this.model.getTableColumns();
 
         for (const columnName of columns.columns) {
             if (this.model.isEntityColumn(columnName)) {
-                const tableColumnMetadata =
+                const tableColumnMetadata: TableColumnMetadata =
                     this.model.getTableColumnMetadata(columnName);
 
                 if (
@@ -354,7 +353,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                             typeof item === 'string' ||
                             item instanceof ObjectID
                         ) {
-                            const basemodelItem =
+                            const basemodelItem: BaseModel =
                                 new tableColumnMetadata.modelType();
                             basemodelItem._id = item.toString();
                             itemsArray.push(basemodelItem);
@@ -398,10 +397,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy = await this.checkUniqueColumnBy(createBy);
 
         // serialize.
-        debugger;
-        createBy.data = (await this.serializeCreate(
-            createBy.data
-        )) as TBaseModel;
+        createBy.data = this.serializeCreate(createBy.data) as TBaseModel;
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
@@ -1106,8 +1102,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 await this.onBeforeUpdate(updateBy);
 
             beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
-
-            debugger;
 
             const query: Query<TBaseModel> = this.serializeQuery(
                 beforeUpdateBy.query

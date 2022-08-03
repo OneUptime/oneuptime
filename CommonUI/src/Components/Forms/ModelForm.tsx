@@ -109,7 +109,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         return populate;
     };
 
-    const setFormFields = async () => {
+    const setFormFields: Function = async (): Promise<void> => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -169,7 +169,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         setFormFields();
     }, []);
 
-    const fetchItem = async () => {
+    const fetchItem: Function = async (): Promise<void> => {
         if (!props.modelIdToEdit || props.formType !== FormType.Update) {
             throw new BadDataException('Model ID to update not found.');
         }
@@ -191,13 +191,13 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             );
         }
 
-        const populate = getPopulate();
+        const populate: Populate<TBaseModel> = getPopulate();
 
         for (const key in populate) {
             if (item) {
                 if (Array.isArray((item as any)[key])) {
                     const idArray: Array<string> = [];
-                    let isModelArray = false;
+                    let isModelArray: boolean = false;
                     for (const itemInArray of (item as any)[key] as any) {
                         if (typeof (itemInArray as any) === 'object') {
                             if ((itemInArray as any as JSONObject)['_id']) {
@@ -228,7 +228,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         setItemToEdit(item);
     };
 
-    const fetchDropdownOptions = async (
+    const fetchDropdownOptions: Function = async (
         fields: Fields<TBaseModel>
     ): Promise<Fields<TBaseModel>> => {
         setIsFetchingDropdownOptions(true);

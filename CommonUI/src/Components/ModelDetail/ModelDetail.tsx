@@ -26,10 +26,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
     id: string;
     fields: Array<Field<TBaseModel>>;
-    title?: undefined | string;
-    description?: undefined | string;
-    showAsColumns?: undefined | number;
-    footer: ReactElement;
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
     modelId: ObjectID;
     onError?: ((error: string) => void) | undefined;
@@ -115,9 +111,10 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         setFields(fieldsToSet);
     }, []);
 
-    const fetchItem = async () => {
+    const fetchItem: Function = async (): Promise<void> => {
         // get item.
         setIsLoading(true);
+        props.onLoadingChange && props.onLoadingChange(true);
         setError('');
         try {
             const item: TBaseModel | null = await ModelAPI.getItem(
@@ -154,6 +151,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
             props.onError && props.onError(error);
         }
         setIsLoading(false);
+        props.onLoadingChange && props.onLoadingChange(false);
     };
 
     useEffect(() => {
@@ -261,13 +259,13 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     }
 
     return (
-        <>
+        <div id={props.id}>
             {fields &&
                 fields.length > 0 &&
                 fields.map((field: Field<TBaseModel>, i: number) => {
                     return getField(field, i);
                 })}
-        </>
+        </div>
     );
 };
 

@@ -152,7 +152,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                 ) {
                                     return (
                                         <p>
-                                            item["user"] as JSONObject)['name']
+                                            {((item['user'] as JSONObject)[
+                                                'name'
+                                            ] as string) || ''}
                                         </p>
                                     );
                                 }
@@ -238,12 +240,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: TableColumnType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
-                            const returnElements = [];
+                            const returnElements: Array<ReactElement> = [];
                             if (
                                 item['labels'] &&
                                 Array.isArray(item['labels'])
                             ) {
-                                let counter = 0;
+                                let counter: number = 0;
                                 for (const label of item['labels']) {
                                     if (
                                         label &&
