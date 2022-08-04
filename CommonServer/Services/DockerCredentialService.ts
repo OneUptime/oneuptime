@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Common/Models/DockerCredential';
+import Model from 'Model/Models/DockerCredential';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DatabaseService from './DatabaseService';
 import API from 'Common/Utils/API';

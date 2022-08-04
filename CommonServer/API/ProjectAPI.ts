@@ -1,4 +1,4 @@
-import User from 'Common/Models/User';
+import User from 'Model/Models/User';
 import UserService, {
     Service as UserServiceType,
 } from '../Services/UserService';

@@ -16,5 +16,6 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           check-latest: true
-      - run: cd Common && npm install && npm run test
+      - run: cd Common && npm install
+      - run: cd Model && npm install && npm run test
   

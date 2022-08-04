@@ -1,4 +1,4 @@
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import Route from 'Common/Types/API/Route';
 import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';

@@ -27,7 +27,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
         if (props.initialValue) {
             setColor(props.initialValue.toString());
         }
-    }, []);
+    }, [props.initialValue]);
 
     const handleChange: Function = (color: string): void => {
         setColor(color);

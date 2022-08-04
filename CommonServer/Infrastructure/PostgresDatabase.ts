@@ -8,7 +8,7 @@ import {
     Env,
 } from '../Config';
 
-import Entities from 'Common/Models/Index';
+import Entities from 'Model/Models/Index';
 import AppEnvironment from 'Common/Types/AppEnvironment';
 import DatabaseType from 'Common/Types/DatabaseType';
 import Faker from 'Common/Tests/TestingUtils/Faker';

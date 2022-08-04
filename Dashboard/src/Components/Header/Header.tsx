@@ -7,7 +7,7 @@ import ProjectPicker from './ProjectPicker';
 // import ObjectID from 'Common/Types/ObjectID';
 
 import Header from 'CommonUI/src/Components/Header/Header';
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 
 export interface ComponentProps {
     projects: Array<Project>;

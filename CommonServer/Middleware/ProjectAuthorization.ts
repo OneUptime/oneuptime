@@ -8,7 +8,7 @@ import {
     OneUptimeRequest,
 } from '../Utils/Express';
 
-import ApiKey from 'Common/Models/ApiKey';
+import ApiKey from 'Model/Models/ApiKey';
 import { LessThan } from 'typeorm';
 import OneUptimeDate from 'Common/Types/Date';
 import UserType from 'Common/Types/UserType';

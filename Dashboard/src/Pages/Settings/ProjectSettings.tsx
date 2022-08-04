@@ -1,4 +1,4 @@
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';

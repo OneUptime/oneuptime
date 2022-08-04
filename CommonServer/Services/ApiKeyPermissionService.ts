@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Common/Models/ApiKeyPermission';
+import Model from 'Model/Models/ApiKeyPermission';
 import DatabaseService from './DatabaseService';
 
 export class Service extends DatabaseService<Model> {

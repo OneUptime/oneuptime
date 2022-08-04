@@ -4,6 +4,7 @@
     "private": true,
     "dependencies": {
         "Common": "file:../Common",
+"Model": "file:../Model",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
         "crypto-js": "^4.1.1",

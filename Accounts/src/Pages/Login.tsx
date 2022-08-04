@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from 'react';
-import User from 'Common/Models/User';
+import User from 'Model/Models/User';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';

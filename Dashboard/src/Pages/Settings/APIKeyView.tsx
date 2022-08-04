@@ -6,22 +6,21 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import ApiKeyPermission from 'Common/Models/ApiKeyPermission';
+import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import ApiKey from 'Common/Models/ApiKey';
+import ApiKey from 'Model/Models/ApiKey';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
-import Label from 'Common/Models/Label';
+import Label from 'Model/Models/Label';
 import { JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import FieldType from 'CommonUI/src/Components/ModelDetail/FieldType';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
+import LabelElement from '../../Components/Label/Label';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -211,21 +210,12 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                                         (label as JSONObject)['name']
                                     ) {
                                         returnElements.push(
-                                            <Pill
+                                            <LabelElement
                                                 key={counter}
-                                                color={
-                                                    (label as JSONObject)[
-                                                        'color'
-                                                    ] as Color
-                                                }
-                                                text={
-                                                    (label as JSONObject)[
-                                                        'name'
-                                                    ] as string
-                                                }
-                                                style={{
-                                                    marginRight: '5px',
-                                                }}
+                                                label={new Label().fromJSON(
+                                                    label as JSONObject,
+                                                    Label
+                                                )}
                                             />
                                         );
 

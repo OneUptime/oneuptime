@@ -12,7 +12,7 @@ import {
 import { ClusterKey as CLUSTER_KEY } from '../Config';
 import ObjectID from 'Common/Types/ObjectID';
 import LocalCache from '../Infrastructure/LocalCache';
-import Probe from 'Common/Models/Probe';
+import Probe from 'Model/Models/Probe';
 
 export default class ProbeMiddleware {
     public static async isAuthorizedProbeMiddleware(

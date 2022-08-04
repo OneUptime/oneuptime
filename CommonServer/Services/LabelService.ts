@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Common/Models/Label';
+import Model from 'Model/Models/Label';
 import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import QueryHelper from '../Types/Database/QueryHelper';

@@ -15,11 +15,11 @@ import Express, {
 } from 'CommonServer/Utils/Express';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import { JSONObject } from 'Common/Types/JSON';
-import User from 'Common/Models/User';
+import User from 'Model/Models/User';
 import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
 import UserService from 'CommonServer/Services/UserService';
 import ObjectID from 'Common/Types/ObjectID';
-import EmailVerificationToken from 'Common/Models/EmailVerificationToken';
+import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';

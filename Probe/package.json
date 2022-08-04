@@ -28,6 +28,7 @@
         "axios": "^0.26.1",
         "chrome-launcher": "^0.15.0",
         "Common": "file:../Common",
+"Model": "file:../Model",
         "CommonServer": "file:../CommonServer",
         "dotenv": "^16.0.0",
         "get-ssl-certificate": "^2.3.3",

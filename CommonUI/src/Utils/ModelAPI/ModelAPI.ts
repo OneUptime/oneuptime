@@ -15,7 +15,7 @@ import { FormType } from '../../Components/Forms/ModelForm';
 import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
 import Sort from './Sort';
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import Populate from './Populate';
 
 export interface ListResult<TBaseModel extends BaseModel> {

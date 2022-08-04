@@ -1,4 +1,4 @@
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import Route from 'Common/Types/API/Route';
 import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from 'CommonUI/src/Utils/Project';

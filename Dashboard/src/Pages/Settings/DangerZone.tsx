@@ -7,7 +7,7 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import ObjectID from 'Common/Types/ObjectID';
 
 const Settings: FunctionComponent<PageComponentProps> = (

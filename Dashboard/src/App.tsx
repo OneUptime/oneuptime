@@ -34,7 +34,7 @@ import 'CommonUI/src/Styles/theme.scss';
 import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONObject } from 'Common/Types/JSON';
 

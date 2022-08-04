@@ -1,11 +1,11 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Common/Models/TeamPermission';
+import Model from 'Model/Models/TeamPermission';
 import DatabaseService from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import AccessTokenService from './AccessTokenService';
 import TeamMemberService from './TeamMemberService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import TeamMember from 'Common/Models/TeamMember';
+import TeamMember from 'Model/Models/TeamMember';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

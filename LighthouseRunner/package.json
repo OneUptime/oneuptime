@@ -18,6 +18,7 @@
         "chrome-launcher": "^0.15.0",
         "CommonServer": "file:../CommonServer",
 "Common": "file:../Common",
+"Model": "file:../Model",
         "cors": "^2.8.5",
         "dotenv": "^16.0.0",
         "express": "^4.17.3",

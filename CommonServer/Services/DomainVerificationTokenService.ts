@@ -1,5 +1,5 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Common/Models/DomainVerificationToken';
+import Model from 'Model/Models/DomainVerificationToken';
 import DatabaseService from './DatabaseService';
 
 export class Service extends DatabaseService<Model> {

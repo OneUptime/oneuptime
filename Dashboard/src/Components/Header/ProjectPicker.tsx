@@ -6,7 +6,7 @@ import React, {
 } from 'react';
 import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import Project from 'Common/Models/Project';
+import Project from 'Model/Models/Project';
 import ModelFromModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
