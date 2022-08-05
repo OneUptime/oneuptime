@@ -21,13 +21,15 @@ import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import TeamPermission from 'Model/Models/TeamPermission';
 import LabelElement from '../../Components/Label/Label';
+import UserElement from '../../Components/User/User';
+import User from 'Model/Models/User';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
 
     const modelId: ObjectID = new ObjectID(Navigation.getLastParam()?.toString().substring(1) || '')
-    
+
     return (
         <Page
             title={'Project Settings'}
@@ -115,9 +117,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 isViewable={false}
-                query={ 
+                query={
                     {
-                        teamId:  modelId
+                        teamId: modelId
                     }
                 }
                 onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
@@ -162,11 +164,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                     (item['user'] as JSONObject)['name']
                                 ) {
                                     return (
-                                        <p>
-                                            {((item['user'] as JSONObject)[
-                                                'name'
-                                            ]?.toString() as string) || ''}
-                                        </p>
+                                        <UserElement
+                                            user={new User().fromJSON(
+                                                item['user'] as JSONObject,
+                                                User
+                                            )}
+                                        />
                                     );
                                 }
                             }
@@ -187,9 +190,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 isViewable={false}
-                query={ 
+                query={
                     {
-                        teamId:  modelId
+                        teamId: modelId
                     }
                 }
                 onBeforeCreate={(item: TeamPermission): Promise<TeamPermission> => {
