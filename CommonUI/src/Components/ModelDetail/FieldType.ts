@@ -12,6 +12,7 @@ enum FieldType {
     LongText,
     Color,
     Port,
+    HiddenText
 }
 
 export default FieldType;

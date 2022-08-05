@@ -40,6 +40,7 @@ import {
     FiRefreshCcw,
     FiFilter,
     FiEdit2,
+    FiEyeOff
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -101,6 +102,7 @@ export enum IconProp {
     Refresh,
     Filter,
     Edit,
+    Hide
 }
 
 export interface ComponentProps {
@@ -109,6 +111,7 @@ export interface ComponentProps {
     className?: string;
     color?: Color | null;
     thick?: ThickProp;
+    onClick?: (() => void) | undefined;
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({
@@ -117,6 +120,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     className,
     color,
     thick = ThickProp.Normal,
+    onClick
 }: ComponentProps): ReactElement => {
     return (
         <div
@@ -124,6 +128,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 cursor: 'pointer',
             }}
             className={className ? className : ''}
+            onClick={() => {
+                onClick && onClick();
+            }}
         >
             {icon === IconProp.Home && (
                 <FiHome
@@ -398,6 +405,13 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.Edit && (
                 <FiEdit2
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Hide && (
+                <FiEyeOff
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

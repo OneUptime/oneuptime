@@ -94,7 +94,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         validation: {
                             dateShouldBeInTheFuture: true,
                         },
-                    },
+                    }
                 ]}
                 modelDetailProps={{
                     type: ApiKey,
@@ -119,6 +119,13 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Expires',
                             fieldType: FieldType.Date,
+                        },
+                        {
+                            field: {
+                                apiKey: true,
+                            },
+                            title: 'API Key',
+                            fieldType: FieldType.HiddenText,
                         },
                     ],
                     modelId: modelId,
