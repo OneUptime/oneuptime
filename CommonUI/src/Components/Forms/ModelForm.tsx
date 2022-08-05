@@ -65,6 +65,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     initialValues?: FormValues<TBaseModel> | undefined;
     modelIdToEdit?: ObjectID | undefined;
     onError?: ((error: string) => void) | undefined;
+    onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
@@ -340,8 +341,14 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 (valuesToSend as any)['_id'] = props.modelIdToEdit.toString();
             }
 
+            let tBaseModel: TBaseModel = props.model.fromJSON(valuesToSend, props.type);
+
+            if (props.onBeforeCreate && props.formType === FormType.Create) {
+                tBaseModel = await props.onBeforeCreate(tBaseModel);
+            }
+
             result = await ModelAPI.createOrUpdate<TBaseModel>(
-                props.model.fromJSON(valuesToSend, props.type),
+                tBaseModel,
                 props.formType,
                 props.apiUrl
             );

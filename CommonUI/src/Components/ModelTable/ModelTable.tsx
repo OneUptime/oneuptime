@@ -63,6 +63,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showFilterButton?: undefined | boolean;
     isViewable?: undefined | boolean;
     currentPageRoute?: undefined | Route;
+    query?: Query<TBaseModel>;
+    onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
 }
 
 enum ModalType {
@@ -137,7 +139,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             const listResult: ListResult<TBaseModel> =
                 await ModelAPI.getList<TBaseModel>(
                     props.type,
-                    query,
+                    {
+                        ...query,
+                        ...props.query
+                    },
                     itemsOnPage,
                     (currentPageNumber - 1) * itemsOnPage,
                     getSelect(),
@@ -582,6 +587,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         setCurrentPageNumber(1);
                         fetchItems();
                     }}
+                    onBeforeCreate={props.onBeforeCreate}
                     type={props.type}
                     formProps={{
                         model: model,
