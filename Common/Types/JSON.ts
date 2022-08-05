@@ -12,6 +12,7 @@ import Typeof from './Typeof';
 import Port from './Port';
 import Hostname from './API/Hostname';
 import HashedString from './HashedString';
+import DatabaseProperty from './Database/DatabaseProperty';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -189,6 +190,8 @@ export class JSONFunctions {
 
     public static deserializeValue(val: JSONValue): JSONValue {
         if (!val) {
+            return val;
+        } else if (val instanceof DatabaseProperty) { 
             return val;
         } else if (
             val &&
