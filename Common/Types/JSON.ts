@@ -104,9 +104,11 @@ export class JSONFunctions {
                 }
 
                 newVal[key] = arraySerialize;
+            } else {
+                newVal[key] = this.serializeValue(val[key] as JSONValue);
             }
 
-            newVal[key] = this.serializeValue(val[key] as JSONValue);
+           
         }
 
         return newVal;
@@ -117,7 +119,8 @@ export class JSONFunctions {
 
         if (!val) {
             return val;
-        } else if (val && val instanceof Name) {
+        }
+        else if (val && val instanceof Name) {
             return {
                 _type: ObjectType.Name,
                 value: (val as Name).toString(),
@@ -142,12 +145,12 @@ export class JSONFunctions {
                 _type: ObjectType.Port,
                 value: (val as Port).toString(),
             };
-        }else if (val && val instanceof HashedString) {
+        } else if (val && val instanceof HashedString) {
             return {
                 _type: ObjectType.HashedString,
                 value: (val as HashedString).toString(),
             };
-        }  else if (val && val instanceof Hostname) {
+        } else if (val && val instanceof Hostname) {
             return {
                 _type: ObjectType.Hostname,
                 value: (val as Hostname).toString(),
@@ -323,6 +326,7 @@ export class JSONFunctions {
     }
 
     public static deserialize(val: JSONObject): JSONObject {
+        const newVal: JSONObject = {};
         for (const key in val) {
             if (!val[key]) {
                 continue;
@@ -334,13 +338,13 @@ export class JSONFunctions {
                     arraySerialize.push(this.deserializeValue(arrVal));
                 }
 
-                val[key] = arraySerialize;
+                newVal[key] = arraySerialize;
+            } else {
+                newVal[key] = this.deserializeValue(val[key] as JSONValue);
             }
-
-            val[key] = this.deserializeValue(val[key] as JSONValue);
         }
 
-        return val;
+        return newVal;
     }
 }
 
