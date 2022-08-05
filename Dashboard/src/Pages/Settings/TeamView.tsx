@@ -25,6 +25,9 @@ import LabelElement from '../../Components/Label/Label';
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
+
+    const modelId: ObjectID = new ObjectID(Navigation.getLastParam()?.toString().substring(1) || '')
+    
     return (
         <Page
             title={'Project Settings'}
@@ -112,6 +115,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 isViewable={false}
+                query={ 
+                    {
+                        teamId:  modelId
+                    }
+                }
+                onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
+                    item.teamId = modelId;
+                    return Promise.resolve(item);
+                }}
                 cardProps={{
                     icon: IconProp.User,
                     title: 'Team Members',
@@ -153,7 +165,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                         <p>
                                             {((item['user'] as JSONObject)[
                                                 'name'
-                                            ] as string) || ''}
+                                            ]?.toString() as string) || ''}
                                         </p>
                                     );
                                 }
@@ -175,6 +187,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 isViewable={false}
+                query={ 
+                    {
+                        teamId:  modelId
+                    }
+                }
+                onBeforeCreate={(item: TeamPermission): Promise<TeamPermission> => {
+                    item.teamId = modelId;
+                    return Promise.resolve(item);
+                }}
                 cardProps={{
                     icon: IconProp.Lock,
                     title: 'Team Permissions',

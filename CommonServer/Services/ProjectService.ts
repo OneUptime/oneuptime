@@ -139,7 +139,7 @@ export class Service extends DatabaseService<Model> {
 
         const adminPermissions: TeamPermission = new TeamPermission();
         adminPermissions.permission = Permission.ProjectAdmin;
-        adminPermissions.teamId = ownerTeam.id!;
+        adminPermissions.teamId = adminTeam.id!;
         adminPermissions.projectId = createdItem.data.id!;
 
         await TeamPermissionService.create({
@@ -167,7 +167,7 @@ export class Service extends DatabaseService<Model> {
 
         const memberPermissions: TeamPermission = new TeamPermission();
         memberPermissions.permission = Permission.ProjectMember;
-        memberPermissions.teamId = ownerTeam.id!;
+        memberPermissions.teamId = memberTeam.id!;
         memberPermissions.projectId = createdItem.data.id!;
 
         await TeamPermissionService.create({
