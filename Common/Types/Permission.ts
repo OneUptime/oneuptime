@@ -69,6 +69,18 @@ enum Permission {
     CanDeleteProjectResources = 'CanDeleteProjectResources',
     CanReadProjectResources = 'CanReadProjectResources',
 
+     // Resource Permissions (Team Permission)
+     CanCreateProjectStatusPage = 'CanCreateProjectStatusPage',
+     CanEditProjectStatusPage = 'CanEditProjectStatusPage',
+     CanDeleteProjectStatusPage = 'CanDeleteProjectStatusPage',
+    CanReadProjectStatusPage = 'CanReadProjectStatusPage',
+     
+     // Resource Permissions (Team Permission)
+     CanCreateProjectOnCallDuty = 'CanCreateProjectOnCallDuty',
+     CanEditProjectOnCallDuty = 'CanEditProjectOnCallDuty',
+     CanDeleteProjectOnCallDuty = 'CanDeleteProjectOnCallDuty',
+     CanReadProjectOnCallDuty = 'CanReadProjectOnCallDuty',
+
     // Project SMTP Config (Team Permission)
     CanCreateProjectSMTPConfig = 'CanCreateProjectSMTPConfig',
     CanEditProjectSMTPConfig = 'CanEditProjectSMTPConfig',
@@ -378,6 +390,67 @@ export class PermissionHelper {
                     'A user assigned this permission  can read resources of this project.',
                 isAssignableToProject: true,
             },
+
+            {
+                permission: Permission.CanCreateProjectOnCallDuty,
+                title: 'Can Create On-Call Duty',
+                description:
+                    'A user assigned this permission can create on-call duty this this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectOnCallDuty,
+                title: 'Can Delete On-Call Duty',
+                description:
+                    'A user assigned this permission  can delete on-call duty of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectOnCallDuty,
+                title: 'Can Edit On-Call Duty',
+                description:
+                    'A user assigned this permission can edit on-call duty of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectOnCallDuty,
+                title: 'Can Read On-Call Duty',
+                description:
+                    'A user assigned this permission  can read on-call duty of this project.',
+                isAssignableToProject: true,
+            },
+
+
+
+            {
+                permission: Permission.CanCreateProjectStatusPage,
+                title: 'Can Create Status Page',
+                description:
+                    'A user assigned this permission can create status pages this this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectStatusPage,
+                title: 'Can Delete Status Page',
+                description:
+                    'A user assigned this permission  can delete status pages of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectStatusPage,
+                title: 'Can Edit Status Page',
+                description:
+                    'A user assigned this permission can edit status pages of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectStatusPage,
+                title: 'Can Read Status Page',
+                description:
+                    'A user assigned this permission  can read status pages of this project.',
+                isAssignableToProject: true,
+            },
+
 
             {
                 permission: Permission.CanCreateProjectProbe,
