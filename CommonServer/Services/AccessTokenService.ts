@@ -74,14 +74,6 @@ export default class AccessTokenService {
             return null;
         }
 
-        if (!json['projectIds']) {
-            json['projectIds'] = [];
-        }
-
-        if (!Array.isArray(json['globalPermissions'])) {
-            json['globalPermissions'] = [];
-        }
-
         const accessPermission: UserGlobalAccessPermission = json as UserGlobalAccessPermission;
 
         return accessPermission;
