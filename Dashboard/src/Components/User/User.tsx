@@ -9,11 +9,19 @@ const UserElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <p>
-            {((props.user.toJSONObject())[
-                'name'
-            ]?.toString() as string) || ''}
-        </p>
+        <div>
+            <div>
+                {((props.user.toJSONObject())[
+                    'name'
+                ]?.toString() as string) || ''}
+            </div>
+
+            <div>
+                {((props.user.toJSONObject())[
+                    'email'
+                ]?.toString() as string) || ''}
+            </div>
+        </div>
     );
 };
 

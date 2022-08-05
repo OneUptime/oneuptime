@@ -120,8 +120,10 @@ export default class UserMiddleware {
                     );
             }
 
-            oneuptimeRequest.userProjectAccessPermission =
-                userProjectAccessPermission;
+            if (userProjectAccessPermission) {
+                oneuptimeRequest.userProjectAccessPermission =
+                    userProjectAccessPermission;
+            }
         }
 
         // set permission hash.
@@ -155,6 +157,7 @@ export default class UserMiddleware {
 
         // set project permissions hash.
         if (oneuptimeRequest.userProjectAccessPermission) {
+            
             const projectValue: string = JSON.stringify(
                 JSONFunctions.serialize(
                     oneuptimeRequest.userProjectAccessPermission

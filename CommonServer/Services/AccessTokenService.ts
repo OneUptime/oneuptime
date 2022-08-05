@@ -12,7 +12,6 @@ import TeamPermission from 'Model/Models/TeamPermission';
 import TeamPermissionService from './TeamPermissionService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Label from 'Model/Models/Label';
-import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 
 enum PermissionNamespace {
     GlobalPermission = 'global-permissions',
@@ -82,7 +81,7 @@ export default class AccessTokenService {
     public static async refreshUserProjectAccessPermission(
         userId: ObjectID,
         projectId: ObjectID
-    ): Promise<UserProjectAccessPermission> {
+    ): Promise<UserProjectAccessPermission | null> {
         // query for all projects user belongs to.
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
             query: {
@@ -107,9 +106,7 @@ export default class AccessTokenService {
         );
 
         if (teamIds.length === 0) {
-            throw new NotAuthorizedException(
-                'User is not authorized to access this project'
-            );
+            return null;
         }
 
         // get team permissions.

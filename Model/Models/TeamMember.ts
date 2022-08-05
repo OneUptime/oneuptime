@@ -179,7 +179,7 @@ export default class TeamMember extends BaseModel {
         },
         {
             eager: false,
-            nullable: true,
+            nullable: false,
             onDelete: 'CASCADE',
             orphanedRowAction: 'nullify',
         }
@@ -200,10 +200,10 @@ export default class TeamMember extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: true,
+        nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public userId?: ObjectID = undefined;

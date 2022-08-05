@@ -165,20 +165,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         type: TableColumnType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             if (item['user']) {
-                                if (
-                                    item['user'] &&
-                                    (item['user'] as JSONObject)['name'] &&
-                                    (item['user'] as JSONObject)['name']
-                                ) {
-                                    return (
-                                        <UserElement
-                                            user={new User().fromJSON(
-                                                item['user'] as JSONObject,
-                                                User
-                                            )}
-                                        />
-                                    );
-                                }
+                                return (
+                                    <UserElement
+                                        user={new User().fromJSON(
+                                            item['user'] as JSONObject,
+                                            User
+                                        )}
+                                    />
+                                );
                             }
 
                             return <></>;
@@ -190,7 +184,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Invitation Accepted',
                         type: TableColumnType.Boolean,
-                        
+
                     }
                 ]}
             />
@@ -285,23 +279,19 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             ) {
                                 let counter: number = 0;
                                 for (const label of item['labels']) {
-                                    if (
-                                        label &&
-                                        (label as JSONObject)['color'] &&
-                                        (label as JSONObject)['name']
-                                    ) {
-                                        returnElements.push(
-                                            <LabelElement
-                                                key={counter}
-                                                label={new Label().fromJSON(
-                                                    label as JSONObject,
-                                                    Label
-                                                )}
-                                            />
-                                        );
 
-                                        counter++;
-                                    }
+                                    returnElements.push(
+                                        <LabelElement
+                                            key={counter}
+                                            label={new Label().fromJSON(
+                                                label as JSONObject,
+                                                Label
+                                            )}
+                                        />
+                                    );
+
+                                    counter++;
+
                                 }
                             }
 

@@ -88,6 +88,17 @@ export class PermissionHelper {
         );
     }
 
+    public static getIntersectingPermissions(
+        permissions1: Array<Permission>,
+        permissions2: Array<Permission>
+    ): Array<Permission> {
+        return (
+            permissions1.filter((value: Permission) => {
+                return permissions2.includes(value);
+            })
+        );
+    }
+
     public static getProjectPermissionProps(): Array<PermissionProps> {
         return this.getAllPermissionProps().filter((item: PermissionProps) => {
             return item.isAssignableToProject;

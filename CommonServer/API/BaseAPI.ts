@@ -204,9 +204,9 @@ export default class BaseAPI<
                 req.body['sort']
             ) as Sort<BaseModel>;
         }
-        debugger; 
+         
         const databaseProps: DatabaseCommonInteractionProps = this.getDatabaseCommonInteractionProps(req);
-
+        debugger; 
         const list: Array<BaseModel> = await this.service.findBy({
             query,
             select,
@@ -262,6 +262,7 @@ export default class BaseAPI<
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
+        debugger;
         await this.service.deleteBy({
             query: {
                 _id: objectId.toString(),

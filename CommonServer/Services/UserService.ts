@@ -16,6 +16,9 @@ export class Service extends DatabaseService<Model> {
             query: {
                 email: email
             },
+            select: {
+                _id: true
+            },
             props: props
         }); 
     }

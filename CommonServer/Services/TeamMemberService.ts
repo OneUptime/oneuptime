@@ -31,7 +31,7 @@ export class Service extends DatabaseService<Model> {
                 })
             }
 
-            createBy.data.user = user; 
+            createBy.data.userId = user.id!; 
         }
 
         return createBy;
@@ -40,6 +40,7 @@ export class Service extends DatabaseService<Model> {
     protected override async onCreateSuccess(
         createBy: CreateBy<Model>
     ): Promise<CreateBy<Model>> {
+        
         /// Refresh tokens.
         await AccessTokenService.refreshUserGlobalAccessPermission(
             createBy.data.userId!

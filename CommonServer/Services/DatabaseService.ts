@@ -583,6 +583,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             DatabaseRequestType.Read
         );
 
+        const intersectingPermissions = PermissionHelper.getIntersectingPermissions(userPermissions.map((i) => i.permission), this.model.readRecordPermissions);
+
         columns = this.getReadColumnsByPermissions(userPermissions || []);
 
         const excludedColumns: Array<string> = [
@@ -635,7 +637,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
         }
 
-        if (this.model.userColumn && findBy.props.userId) {
+        if (this.model.userColumn && findBy.props.userId && intersectingPermissions.length === 0 && this.model.readRecordPermissions.includes(Permission.CurrentUser)) {
             (findBy.query as any)[this.model.userColumn] = findBy.props.userId;
         }
 
@@ -766,14 +768,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
             return deleteBy;
         }
 
-        this.getPermissions(deleteBy.props, DatabaseRequestType.Delete);
-
+        const userPermissions: Array<UserPermission> = this.getPermissions(deleteBy.props, DatabaseRequestType.Delete);
+        const intersectingPermissions = PermissionHelper.getIntersectingPermissions(userPermissions.map((i) => i.permission), this.model.deleteRecordPermissions);
+        
         if (this.model.projectColumn && deleteBy.props.projectId) {
             (deleteBy.query as any)[this.model.projectColumn] =
                 deleteBy.props.projectId;
         }
 
-        if (this.model.userColumn) {
+        if (this.model.userColumn && intersectingPermissions.length === 0 && this.model.deleteRecordPermissions.includes(Permission.CurrentUser)) {
             (deleteBy.query as any)[this.model.userColumn] =
                 deleteBy.props.userId;
         }
@@ -976,7 +979,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             await this._updateBy({
                 query: deleteBy.query,
                 data: {
-                    deletedByUser: deleteBy.deletedByUser,
+                    deletedByUserId: deleteBy.props.userId,
                 } as any,
                 props: {
                     isRoot: true,
