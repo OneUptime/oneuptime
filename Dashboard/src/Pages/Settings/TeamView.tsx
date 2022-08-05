@@ -92,6 +92,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
+                                _id: true,
+                            },
+                            title: 'Team ID',
+                        },
+                        {
+                            field: {
                                 name: true,
                             },
                             title: 'Name',
@@ -114,7 +120,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 model={new TeamMember()}
                 id="table-team-member"
                 isDeleteable={true}
-                isEditable={true}
+                createVerb={'Invite'}
                 isCreateable={true}
                 isViewable={false}
                 query={
@@ -140,10 +146,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User Email',
                         description:
-                            'Please enter the email of the user you would like to invite.',
+                            'Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to this team.',
                         fieldType: FormFieldSchemaType.Email,
                         required: false,
                         placeholder: 'member@company.com',
+                        overideFieldKey: 'email'
                     },
                 ]}
                 showRefreshButton={true}

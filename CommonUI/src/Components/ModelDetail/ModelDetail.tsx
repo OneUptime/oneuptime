@@ -13,7 +13,6 @@ import Permission, {
     UserPermission,
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
-import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Field from './Field';
 import Link from '../Link/Link';
@@ -82,7 +81,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         userPermissions.push(Permission.Public);
 
         const accessControl: Dictionary<ColumnAccessControl> =
-            getColumnAccessControlForAllColumns(props.model);
+            props.model.getColumnAccessControlForAllColumns();
 
         const fieldsToSet: Array<Field<TBaseModel>> = [];
 

@@ -39,7 +39,6 @@ import Permission, {
 } from 'Common/Types/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Dictionary from 'Common/Types/Dictionary';
-import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import QueryHelper from '../Types/Database/QueryHelper';
@@ -792,7 +791,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         );
 
         const accessControl: Dictionary<ColumnAccessControl> =
-            getColumnAccessControlForAllColumns(this.model);
+            this.model.getColumnAccessControlForAllColumns();
 
         const columns: Array<string> = [];
 
@@ -815,7 +814,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         userPermissions: Array<UserPermission>
     ): Columns {
         const accessControl: Dictionary<ColumnAccessControl> =
-            getColumnAccessControlForAllColumns(this.model);
+            this.model.getColumnAccessControlForAllColumns();
 
         const columns: Array<string> = [];
 
@@ -844,7 +843,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         userPermissions: Array<UserPermission>
     ): Columns {
         const accessControl: Dictionary<ColumnAccessControl> =
-            getColumnAccessControlForAllColumns(this.model);
+        this.model.getColumnAccessControlForAllColumns();
 
         const columns: Array<string> = [];
 

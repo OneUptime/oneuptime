@@ -55,7 +55,8 @@ export default class ModelAPI {
     public static async createOrUpdate<TBaseModel extends BaseModel>(
         model: TBaseModel,
         formType: FormType,
-        apiUrlOverride?: URL
+        apiUrlOverride?: URL,
+        miscDataProps?: JSONObject
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
@@ -86,7 +87,10 @@ export default class ModelAPI {
         >(
             httpMethod,
             apiUrl,
-            { data: model.toJSON() },
+            {
+                data: model.toJSON(),
+                miscDataProps: miscDataProps || {}
+            },
             this.getCommonHeaders()
         );
 

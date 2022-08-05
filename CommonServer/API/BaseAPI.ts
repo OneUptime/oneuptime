@@ -308,8 +308,11 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
+        const miscDataProps: JSONObject = JSONFunctions.deserialize(body['miscDataProps'] as JSONObject);
+        
         const createBy: CreateBy<TBaseModel> = {
             data: item,
+            miscDataProps: miscDataProps,
             props: this.getDatabaseCommonInteractionProps(req),
         };
 
