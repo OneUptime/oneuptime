@@ -40,7 +40,7 @@ import {
     FiRefreshCcw,
     FiFilter,
     FiEdit2,
-    FiEyeOff
+    FiEyeOff,
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -102,7 +102,10 @@ export enum IconProp {
     Refresh,
     Filter,
     Edit,
-    Hide
+    Hide,
+    Check,
+    True,
+    False, 
 }
 
 export interface ComponentProps {
@@ -412,6 +415,27 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.Hide && (
                 <FiEyeOff
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.Check && (
+                <FiCheck
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.True && (
+                <FiCheck
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.False && (
+                <FiX
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

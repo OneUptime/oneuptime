@@ -11,6 +11,7 @@ import Search from './Database/Search';
 import Typeof from './Typeof';
 import Port from './Port';
 import Hostname from './API/Hostname';
+import HashedString from './HashedString';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -25,6 +26,7 @@ enum ObjectType {
     Search = 'Search',
     Port = 'Port',
     Hostname = 'Hostname',
+    HashedString = 'HashedString'
 }
 
 export type JSONValue =
@@ -61,6 +63,8 @@ export type JSONValue =
     | Array<Search>
     | Port
     | Array<Port>
+    | HashedString
+    | Array<HashedString>
     | Hostname
     | Array<Hostname>
     | Array<JSONValue>
@@ -85,6 +89,9 @@ export class JSONFunctions {
 
     // this funciton serializes JSON with Common Objects to JSON that can be stringified.
     public static serialize(val: JSONObject): JSONObject {
+
+        const newVal: JSONValue = {};
+
         for (const key in val) {
             if (!val[key]) {
                 continue;
@@ -96,16 +103,18 @@ export class JSONFunctions {
                     arraySerialize.push(this.serializeValue(arrVal));
                 }
 
-                val[key] = arraySerialize;
+                newVal[key] = arraySerialize;
             }
 
-            val[key] = this.serializeValue(val[key] as JSONValue);
+            newVal[key] = this.serializeValue(val[key] as JSONValue);
         }
 
-        return val;
+        return newVal;
     }
 
     public static serializeValue(val: JSONValue): JSONValue {
+
+
         if (!val) {
             return val;
         } else if (val && val instanceof Name) {
@@ -133,7 +142,12 @@ export class JSONFunctions {
                 _type: ObjectType.Port,
                 value: (val as Port).toString(),
             };
-        } else if (val && val instanceof Hostname) {
+        }else if (val && val instanceof HashedString) {
+            return {
+                _type: ObjectType.HashedString,
+                value: (val as HashedString).toString(),
+            };
+        }  else if (val && val instanceof Hostname) {
             return {
                 _type: ObjectType.Hostname,
                 value: (val as Hostname).toString(),
@@ -254,6 +268,15 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Hostname
         ) {
             val = new Hostname((val as JSONObject)['value'] as string);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.HashedString
+        ) {
+            val = new HashedString((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&

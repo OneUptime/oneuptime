@@ -12,10 +12,12 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-
     protected override async onBeforeCreate(createBy: CreateBy<Model>): Promise<CreateBy<Model>> {
 
-        debugger;
+        if (!createBy.data.hasAcceptedInvitation) {
+            createBy.data.hasAcceptedInvitation = false; 
+        }
+
         if (createBy.miscDataProps && createBy.miscDataProps["email"]) {
             const email: Email = new Email(createBy.miscDataProps["email"] as string);
             

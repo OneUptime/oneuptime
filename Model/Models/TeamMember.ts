@@ -281,4 +281,61 @@ export default class TeamMember extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectTeam,
+            Permission.CanInviteProjectTeamMembers,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectTeam,
+            Permission.ProjectMember,
+        ],
+        update: [
+            Permission.CurrentUser
+        ],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public hasAcceptedInvitation?: boolean = undefined;
+
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectTeam,
+            Permission.CanInviteProjectTeamMembers,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectTeam,
+            Permission.ProjectMember,
+        ],
+        update: [
+            Permission.CurrentUser
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Date,
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false
+    })
+    public invitationAcceptedAt?: Date = undefined;
 }

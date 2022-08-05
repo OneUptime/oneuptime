@@ -184,6 +184,7 @@ export default class BaseAPI<
         let populate: Populate<BaseModel> = {};
         let sort: Sort<BaseModel> = {};
 
+
         if (req.body) {
             query = JSONFunctions.deserialize(
                 req.body['query']
@@ -203,6 +204,8 @@ export default class BaseAPI<
                 req.body['sort']
             ) as Sort<BaseModel>;
         }
+        debugger; 
+        const databaseProps: DatabaseCommonInteractionProps = this.getDatabaseCommonInteractionProps(req);
 
         const list: Array<BaseModel> = await this.service.findBy({
             query,
@@ -211,12 +214,12 @@ export default class BaseAPI<
             limit: limit,
             sort: sort,
             populate,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: databaseProps,
         });
 
         const count: PositiveNumber = await this.service.countBy({
             query,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: databaseProps,
         });
 
         return Response.sendListResponse(req, res, list, count);

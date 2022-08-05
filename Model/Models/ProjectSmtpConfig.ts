@@ -261,6 +261,7 @@ export default class ProjectSmtpConfig extends BaseModel {
     })
     public username?: string = undefined;
 
+    
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

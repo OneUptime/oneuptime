@@ -27,9 +27,11 @@ export default class AccessTokenService {
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
             query: {
                 userId: userId,
+                hasAcceptedInvitation: true
             },
             select: {
                 projectId: true,
+                
             },
             limit: LIMIT_MAX,
             skip: 0,
@@ -54,12 +56,7 @@ export default class AccessTokenService {
             permissionToStore.globalPermissions.push(Permission.ProjectMember);
         }
 
-        await GlobalCache.setJSON('user', userId.toString(), {
-            projectIds: permissionToStore.projectIds.map((item: ObjectID) => {
-                return item.toString();
-            }),
-            globalPermissions: permissionToStore.globalPermissions,
-        });
+        await GlobalCache.setJSON('user', userId.toString(), permissionToStore);
 
         return permissionToStore;
     }
@@ -67,6 +64,7 @@ export default class AccessTokenService {
     public static async getUserGlobalAccessPermission(
         userId: ObjectID
     ): Promise<UserGlobalAccessPermission | null> {
+         
         const json: JSONObject | null = await GlobalCache.getJSON(
             'user',
             userId.toString()
@@ -84,15 +82,7 @@ export default class AccessTokenService {
             json['globalPermissions'] = [];
         }
 
-        const accessPermission: UserGlobalAccessPermission = {
-            projectIds: (json['projectIds'] as Array<string>).map(
-                (item: string) => {
-                    return new ObjectID(item);
-                }
-            ),
-            globalPermissions: (json['globalPermissions'] ||
-                []) as Array<Permission>,
-        };
+        const accessPermission: UserGlobalAccessPermission = json as UserGlobalAccessPermission;
 
         return accessPermission;
     }
@@ -106,6 +96,7 @@ export default class AccessTokenService {
             query: {
                 userId: userId,
                 projectId: projectId,
+                hasAcceptedInvitation: true
             },
             select: {
                 teamId: true,
@@ -169,17 +160,7 @@ export default class AccessTokenService {
         await GlobalCache.setJSON(
             PermissionNamespace.ProjectPermission,
             userId.toString() + projectId.toString(),
-            {
-                projectIds: projectId,
-                permissions: userPermissions.map((item: UserPermission) => {
-                    return {
-                        permission: item.permission,
-                        labelIds: item.labelIds.map((i: ObjectID) => {
-                            return i.toString();
-                        }),
-                    };
-                }),
-            }
+            permission
         );
 
         return permission;
@@ -189,44 +170,12 @@ export default class AccessTokenService {
         userId: ObjectID,
         projectId: ObjectID
     ): Promise<UserProjectAccessPermission | null> {
-        const json: JSONObject | null = await GlobalCache.getJSON(
+        
+        const json: UserProjectAccessPermission | null = await GlobalCache.getJSON(
             PermissionNamespace.ProjectPermission,
             userId.toString() + projectId.toString()
-        );
+        ) as UserProjectAccessPermission;
 
-        if (!json) {
-            return null;
-        }
-
-        if (!json['projectId']) {
-            return null;
-        }
-
-        if (!Array.isArray(json['permissions'])) {
-            json['permissions'] = [];
-        }
-
-        const userPermissions: Array<UserPermission> = [];
-
-        for (const permission of json['permissions'] as Array<JSONObject>) {
-            if (!permission['permission']) {
-                continue;
-            }
-            userPermissions.push({
-                permission: permission['permission'] as string as Permission,
-                labelIds: (permission['labelIds'] as Array<string>).map(
-                    (item: string) => {
-                        return new ObjectID(item);
-                    }
-                ),
-            });
-        }
-
-        const accessPermission: UserProjectAccessPermission = {
-            projectId: new ObjectID(json['projectId'] as string),
-            permissions: userPermissions,
-        };
-
-        return accessPermission;
+        return json;
     }
 }

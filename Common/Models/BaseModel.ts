@@ -241,7 +241,10 @@ export default class BaseModel extends BaseEntity {
         const baseModel: T = new type();
 
         for (const key of Object.keys(json)) {
-            (baseModel as any)[key] = json[key];
+            if (baseModel.getTableColumnMetadata(key)) {
+                (baseModel as any)[key] = json[key];
+            }
+            
         }
 
         return baseModel as T;

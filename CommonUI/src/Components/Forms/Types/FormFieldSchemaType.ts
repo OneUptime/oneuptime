@@ -16,6 +16,7 @@ enum FormFieldSchemaType {
     MultiSelectDropdown,
     Checkbox,
     Port,
+    EncryptedText
 }
 
 export default FormFieldSchemaType;

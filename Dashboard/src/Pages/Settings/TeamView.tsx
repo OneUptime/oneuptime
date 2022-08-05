@@ -184,6 +184,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             return <></>;
                         },
                     },
+                    {
+                        field: {
+                            hasAcceptedInvitation: true,
+                        },
+                        title: 'Invitation Accepted',
+                        type: TableColumnType.Boolean,
+                        
+                    }
                 ]}
             />
 

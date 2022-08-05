@@ -49,9 +49,10 @@ export default class UserMiddleware {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
+        debugger;
         const projectId: ObjectID | null = ProjectMiddleware.getProjectId(req);
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-
+        
         if (projectId) {
             oneuptimeRequest.projectId = projectId;
 
@@ -92,6 +93,7 @@ export default class UserMiddleware {
                 oneuptimeRequest.userAuthorization.userId
             );
 
+        
         if (!userGlobalAccessPermission) {
             userGlobalAccessPermission =
                 await AccessTokenService.refreshUserGlobalAccessPermission(

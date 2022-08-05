@@ -116,7 +116,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             password: true,
                         },
                         title: 'Password',
-                        fieldType: FormFieldSchemaType.Password,
+                        fieldType: FormFieldSchemaType.EncryptedText,
                         required: true,
                         placeholder: 'Password',
                     },
