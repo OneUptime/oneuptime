@@ -29,14 +29,11 @@ import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
 import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
 
-
 // On Call Duty
-import OnCallDutyPage from "./Pages/OnCallDuty/OnCallDuties";
-
+import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
 
 // Monitors
-import MonitorPage from "./Pages/Monitor/Monitors";
-
+import MonitorPage from './Pages/Monitor/Monitors';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -90,7 +87,7 @@ const App: FunctionComponent = () => {
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                'error'
+                    'error'
                 ] as string
             );
         }
@@ -147,7 +144,6 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
-
 
                 <PageRoute
                     path={RouteMap[PageMap.INCIDENTS]?.toString()}
@@ -264,7 +260,6 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-
                 {/* On Call Duty */}
 
                 <PageRoute
@@ -278,7 +273,6 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
-
 
                 {/* Misc Routes */}
                 <PageRoute

@@ -41,7 +41,9 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of on-call-duty schedules for this project.',
                 }}
-                noItemsMessage={'No on-call-duty created for this project so far.'}
+                noItemsMessage={
+                    'No on-call-duty created for this project so far.'
+                }
                 formFields={[
                     {
                         field: {
@@ -64,7 +66,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
-                    }
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -85,7 +87,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: TableColumnType.Text,
                         isFilterable: true,
-                    }
+                    },
                 ]}
             />
         </Page>

@@ -41,7 +41,9 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of status page for this project.',
                 }}
-                noItemsMessage={'No status pages created for this project so far.'}
+                noItemsMessage={
+                    'No status pages created for this project so far.'
+                }
                 formFields={[
                     {
                         field: {
@@ -64,7 +66,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
-                    }
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -85,7 +87,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: TableColumnType.Text,
                         isFilterable: true,
-                    }
+                    },
                 ]}
             />
         </Page>

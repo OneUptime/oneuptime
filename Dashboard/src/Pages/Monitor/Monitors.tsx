@@ -38,8 +38,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     icon: IconProp.Activity,
                     title: 'Monitors',
-                    description:
-                        'Here is a list of monitors for this project.',
+                    description: 'Here is a list of monitors for this project.',
                 }}
                 noItemsMessage={'No monitors created for this project so far.'}
                 formFields={[
@@ -64,7 +63,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
-                    }
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -85,7 +84,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: TableColumnType.Text,
                         isFilterable: true,
-                    }
+                    },
                 ]}
             />
         </Page>

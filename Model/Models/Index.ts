@@ -41,5 +41,5 @@ export default [
     ProjectSmtpConfig,
     StatusPage,
     OnCallDuty,
-    Monitor
+    Monitor,
 ];

@@ -35,10 +35,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 @EntityName('Monitor', 'Monitors')
 export default class Monitor extends BaseModel {
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectMonitor,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
@@ -66,10 +63,7 @@ export default class Monitor extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectMonitor,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
@@ -87,10 +81,7 @@ export default class Monitor extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectMonitor,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
@@ -108,10 +99,7 @@ export default class Monitor extends BaseModel {
     public name?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectMonitor,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
@@ -129,10 +117,7 @@ export default class Monitor extends BaseModel {
 
     @Index()
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectMonitor,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
@@ -150,10 +135,7 @@ export default class Monitor extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectMonitor,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
@@ -181,10 +163,7 @@ export default class Monitor extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectMonitor,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,

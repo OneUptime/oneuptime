@@ -131,7 +131,6 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     new BaseAPI<Monitor, MonitorServiceType>(
         Monitor,
@@ -152,7 +151,6 @@ app.use(
         OnCallDutyService
     ).getRouter()
 );
-
 
 const init: Function = async (): Promise<void> => {
     try {
