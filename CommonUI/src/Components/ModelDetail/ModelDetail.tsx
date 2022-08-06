@@ -13,13 +13,13 @@ import Permission, {
     UserPermission,
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
-import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Field from './Field';
 import Link from '../Link/Link';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import OneUptimeDate from 'Common/Types/Date';
 import FieldType from './FieldType';
+import HiddenText from '../HiddenText/HiddenText';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     type: { new (): TBaseModel };
@@ -82,7 +82,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         userPermissions.push(Permission.Public);
 
         const accessControl: Dictionary<ColumnAccessControl> =
-            getColumnAccessControlForAllColumns(props.model);
+            props.model.getColumnAccessControlForAllColumns();
 
         const fieldsToSet: Array<Field<TBaseModel>> = [];
 
@@ -175,14 +175,26 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
             throw new BadDataException('Item not found');
         }
 
-        let data: string = '';
+        let data: string | ReactElement = '';
 
         if ((item as any)[fieldKey]) {
             data = (item as any)[fieldKey]?.toString() || '';
         }
 
         if (field.fieldType === FieldType.Date) {
-            data = OneUptimeDate.getDateAsLocalFormattedString(data, true);
+            data = OneUptimeDate.getDateAsLocalFormattedString(
+                data as string,
+                true
+            );
+        }
+
+        if (field.fieldType === FieldType.HiddenText) {
+            data = (
+                <HiddenText
+                    isCopyable={field.opts?.isCopyable || false}
+                    text={data as string}
+                />
+            );
         }
 
         return (

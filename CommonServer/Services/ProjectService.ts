@@ -15,6 +15,7 @@ import FindBy from '../Types/Database/FindBy';
 import { In } from 'typeorm';
 import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
+import OneUptimeDate from 'Common/Types/Date';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -97,6 +98,8 @@ export class Service extends DatabaseService<Model> {
         let ownerTeamMember: TeamMember = new TeamMember();
         ownerTeamMember.projectId = createdItem.data.id!;
         ownerTeamMember.userId = createdItem.props.userId!;
+        ownerTeamMember.hasAcceptedInvitation = true;
+        ownerTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
         ownerTeamMember.teamId = ownerTeam.id!;
 
         ownerTeamMember = await TeamMemberService.create({
@@ -139,7 +142,7 @@ export class Service extends DatabaseService<Model> {
 
         const adminPermissions: TeamPermission = new TeamPermission();
         adminPermissions.permission = Permission.ProjectAdmin;
-        adminPermissions.teamId = ownerTeam.id!;
+        adminPermissions.teamId = adminTeam.id!;
         adminPermissions.projectId = createdItem.data.id!;
 
         await TeamPermissionService.create({
@@ -167,7 +170,7 @@ export class Service extends DatabaseService<Model> {
 
         const memberPermissions: TeamPermission = new TeamPermission();
         memberPermissions.permission = Permission.ProjectMember;
-        memberPermissions.teamId = ownerTeam.id!;
+        memberPermissions.teamId = memberTeam.id!;
         memberPermissions.projectId = createdItem.data.id!;
 
         await TeamPermissionService.create({

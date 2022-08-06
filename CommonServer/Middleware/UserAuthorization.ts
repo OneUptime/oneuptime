@@ -15,7 +15,7 @@ import {
     UserProjectAccessPermission,
 } from 'Common/Types/Permission';
 import AccessTokenService from '../Services/AccessTokenService';
-import { JSONFunctions } from 'Common/Types/JSON';
+import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import HashedString from 'Common/Types/HashedString';
 
 export default class UserMiddleware {
@@ -118,17 +118,19 @@ export default class UserMiddleware {
                     );
             }
 
-            oneuptimeRequest.userProjectAccessPermission =
-                userProjectAccessPermission;
+            if (userProjectAccessPermission) {
+                oneuptimeRequest.userProjectAccessPermission =
+                    userProjectAccessPermission;
+            }
         }
 
         // set permission hash.
+
         if (oneuptimeRequest.userGlobalAccessPermission) {
-            const globalValue: string = JSON.stringify(
-                JSONFunctions.serialize(
-                    oneuptimeRequest.userGlobalAccessPermission
-                )
+            const serializedValue: JSONObject = JSONFunctions.serialize(
+                oneuptimeRequest.userGlobalAccessPermission
             );
+            const globalValue: string = JSON.stringify(serializedValue);
             const globalPermissionsHash: string = await HashedString.hashValue(
                 globalValue,
                 null

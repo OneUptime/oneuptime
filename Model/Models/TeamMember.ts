@@ -147,10 +147,10 @@ export default class TeamMember extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: true,
+        nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public projectId?: ObjectID = undefined;
@@ -179,7 +179,7 @@ export default class TeamMember extends BaseModel {
         },
         {
             eager: false,
-            nullable: true,
+            nullable: false,
             onDelete: 'CASCADE',
             orphanedRowAction: 'nullify',
         }
@@ -200,10 +200,10 @@ export default class TeamMember extends BaseModel {
         ],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: true,
+        nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public userId?: ObjectID = undefined;
@@ -281,4 +281,54 @@ export default class TeamMember extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectTeam,
+            Permission.CanInviteProjectTeamMembers,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectTeam,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.CurrentUser],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public hasAcceptedInvitation?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectTeam,
+            Permission.CanInviteProjectTeamMembers,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectTeam,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.CurrentUser],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.Date,
+    })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public invitationAcceptedAt?: Date = undefined;
 }

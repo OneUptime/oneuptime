@@ -25,6 +25,10 @@ import LabelElement from '../../Components/Label/Label';
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
+    const modelId: ObjectID = new ObjectID(
+        Navigation.getLastParam()?.toString().substring(1) || ''
+    );
+
     return (
         <Page
             title={'Project Settings'}
@@ -116,8 +120,18 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             title: 'Expires',
                             fieldType: FieldType.Date,
                         },
+                        {
+                            field: {
+                                apiKey: true,
+                            },
+                            title: 'API Key',
+                            fieldType: FieldType.HiddenText,
+                            opts: {
+                                isCopyable: true,
+                            },
+                        },
                     ],
-                    modelId: Navigation.getLastParam(),
+                    modelId: modelId,
                 }}
             />
 
@@ -128,6 +142,15 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 model={new ApiKeyPermission()}
                 id="api-key-permission-table"
                 isDeleteable={true}
+                query={{
+                    apiKeyId: modelId,
+                }}
+                onBeforeCreate={(
+                    item: ApiKeyPermission
+                ): Promise<ApiKeyPermission> => {
+                    item.apiKeyId = modelId;
+                    return Promise.resolve(item);
+                }}
                 isEditable={true}
                 isCreateable={true}
                 isViewable={false}
@@ -232,9 +255,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
 
             <ModelDelete
                 type={ApiKey}
-                modelId={
-                    new ObjectID(Navigation.getLastParam()?.toString() || '')
-                }
+                modelId={modelId}
                 onDeleteSuccess={() => {
                     Navigation.navigate(
                         RouteMap[PageMap.SETTINGS_APIKEYS] as Route

@@ -35,6 +35,7 @@ import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import Exception from 'Common/Types/Exception/Exception';
+import HashedString from 'Common/Types/HashedString';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -67,6 +68,8 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
         case FormFieldSchemaType.Email:
             return 'email';
         case FormFieldSchemaType.Password:
+            return 'password';
+        case FormFieldSchemaType.EncryptedText:
             return 'password';
         case FormFieldSchemaType.Number:
             return 'number';
@@ -278,6 +281,7 @@ const BasicForm: Function = <T extends Object>(
                     field.fieldType === FormFieldSchemaType.Text ||
                     field.fieldType === FormFieldSchemaType.Number ||
                     field.fieldType === FormFieldSchemaType.Password ||
+                    field.fieldType === FormFieldSchemaType.EncryptedText ||
                     field.fieldType === FormFieldSchemaType.Date ||
                     field.fieldType === FormFieldSchemaType.Port ||
                     field.fieldType === FormFieldSchemaType.PositveNumber) && (
@@ -602,6 +606,21 @@ const BasicForm: Function = <T extends Object>(
                                     : (Object.keys(field.field)[0] as string);
                                 if (!(values as any)[fieldName]) {
                                     (values as any)[fieldName] = false;
+                                }
+                            }
+
+                            if (
+                                field.fieldType === FormFieldSchemaType.Password
+                            ) {
+                                const fieldName: string = field.overideFieldKey
+                                    ? field.overideFieldKey
+                                    : (Object.keys(field.field)[0] as string);
+                                if ((values as any)[fieldName]) {
+                                    (values as any)[fieldName] =
+                                        new HashedString(
+                                            (values as any)[fieldName],
+                                            false
+                                        );
                                 }
                             }
                         }

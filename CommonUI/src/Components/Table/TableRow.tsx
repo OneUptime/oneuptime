@@ -2,6 +2,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonSize } from '../Button/Button';
+import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
@@ -46,9 +47,15 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                     )
                                 ) : column.type === TableColumnType.Boolean ? (
                                     props.item[column.key] ? (
-                                        'Yes'
+                                        <Icon
+                                            icon={IconProp.True}
+                                            thick={ThickProp.Thick}
+                                        />
                                     ) : (
-                                        'No'
+                                        <Icon
+                                            icon={IconProp.False}
+                                            thick={ThickProp.Thick}
+                                        />
                                     )
                                 ) : (
                                     (props.item[

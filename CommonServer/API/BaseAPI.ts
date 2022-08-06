@@ -204,6 +204,9 @@ export default class BaseAPI<
             ) as Sort<BaseModel>;
         }
 
+        const databaseProps: DatabaseCommonInteractionProps =
+            this.getDatabaseCommonInteractionProps(req);
+
         const list: Array<BaseModel> = await this.service.findBy({
             query,
             select,
@@ -211,12 +214,12 @@ export default class BaseAPI<
             limit: limit,
             sort: sort,
             populate,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: databaseProps,
         });
 
         const count: PositiveNumber = await this.service.countBy({
             query,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: databaseProps,
         });
 
         return Response.sendListResponse(req, res, list, count);
@@ -308,8 +311,13 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
+        const miscDataProps: JSONObject = JSONFunctions.deserialize(
+            body['miscDataProps'] as JSONObject
+        );
+
         const createBy: CreateBy<TBaseModel> = {
             data: item,
+            miscDataProps: miscDataProps,
             props: this.getDatabaseCommonInteractionProps(req),
         };
 
