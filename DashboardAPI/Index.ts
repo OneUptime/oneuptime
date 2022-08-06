@@ -61,6 +61,21 @@ import ApiKeyPermissionService, {
     Service as ApiKeyPermissionServiceType,
 } from 'CommonServer/Services/ApiKeyPermissionService';
 
+import Monitor from 'Model/Models/Monitor';
+import MonitorService, {
+    Service as MonitorServiceType,
+} from 'CommonServer/Services/MonitorService';
+
+import StatusPage from 'Model/Models/StatusPage';
+import StatusPageService, {
+    Service as StatusPageServiceType,
+} from 'CommonServer/Services/StatusPageService';
+
+import OnCallDuty from 'Model/Models/OnCallDuty';
+import OnCallDutyService, {
+    Service as OnCallDutyServiceType,
+} from 'CommonServer/Services/OnCallDutyService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -115,6 +130,29 @@ app.use(
         ProjectSmtpConfigService
     ).getRouter()
 );
+
+
+app.use(
+    new BaseAPI<Monitor, MonitorServiceType>(
+        Monitor,
+        MonitorService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<StatusPage, StatusPageServiceType>(
+        StatusPage,
+        StatusPageService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<OnCallDuty, OnCallDutyServiceType>(
+        OnCallDuty,
+        OnCallDutyService
+    ).getRouter()
+);
+
 
 const init: Function = async (): Promise<void> => {
     try {

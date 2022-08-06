@@ -29,6 +29,15 @@ import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
 import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
 
+
+// On Call Duty
+import OnCallDutyPage from "./Pages/OnCallDuty/OnCallDuties";
+
+
+// Monitors
+import MonitorPage from "./Pages/Monitor/Monitors";
+
+
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
 import User from 'CommonUI/src/Utils/User';
@@ -81,7 +90,7 @@ const App: FunctionComponent = () => {
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                'error'
                 ] as string
             );
         }
@@ -115,15 +124,19 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
+
+                {/* Monitors */}
                 <PageRoute
                     path={RouteMap[PageMap.MONITORS]?.toString()}
                     element={
-                        <Init
+                        <MonitorPage
                             pageRoute={RouteMap[PageMap.MONITORS] as Route}
                             currentProject={selectedProject}
                         />
                     }
                 />
+
+                {/* Status Pages */}
 
                 <PageRoute
                     path={RouteMap[PageMap.STATUS_PAGE]?.toString()}
@@ -134,6 +147,8 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
+
+
                 <PageRoute
                     path={RouteMap[PageMap.INCIDENTS]?.toString()}
                     element={
@@ -248,6 +263,22 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
+
+
+                {/* On Call Duty */}
+
+                <PageRoute
+                    path={RouteMap[PageMap.ON_CALL_DUTY]?.toString()}
+                    element={
+                        <OnCallDutyPage
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
 
                 {/* Misc Routes */}
                 <PageRoute

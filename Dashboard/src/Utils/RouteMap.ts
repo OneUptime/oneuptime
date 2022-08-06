@@ -22,8 +22,8 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.AUTOMATION_SCRIPTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/automation-scripts/`
     ),
-    [PageMap.ON_CALL]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/on-call/`
+    [PageMap.ON_CALL_DUTY]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty/`
     ),
     [PageMap.REPORTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/reports/`

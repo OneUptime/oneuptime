@@ -27,12 +27,12 @@ import EntityName from 'Common/Types/Database/EntityName';
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectStatusPage],
     update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
 })
-@CrudApiEndpoint(new Route('/team'))
+@CrudApiEndpoint(new Route('/status-page'))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'StatusPage',
 })
-@EntityName('StatusPage', 'StatusPages')
+@EntityName('Status Page', 'Status Pages')
 export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [

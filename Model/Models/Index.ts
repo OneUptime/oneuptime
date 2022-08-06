@@ -18,8 +18,11 @@ import Label from './Label';
 // Status Page
 import StatusPage from './StatusPage';
 
-// Status Page
+// On Call Duty
 import OnCallDuty from './OnCallDuty';
+
+// Monitors
+import Monitor from './Monitor';
 
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
@@ -38,4 +41,5 @@ export default [
     ProjectSmtpConfig,
     StatusPage,
     OnCallDuty,
+    Monitor
 ];
