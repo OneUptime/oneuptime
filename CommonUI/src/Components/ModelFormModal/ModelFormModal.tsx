@@ -22,7 +22,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     submitButtonStyleType?: undefined | ButtonStyleType;
     formProps: ModelFormComponentProps<TBaseModel>;
     modelIdToEdit?: ObjectID | undefined;
-    onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined
+    onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
 }
 
 const ModelFromModal: Function = <TBaseModel extends BaseModel>(

@@ -69,17 +69,17 @@ enum Permission {
     CanDeleteProjectResources = 'CanDeleteProjectResources',
     CanReadProjectResources = 'CanReadProjectResources',
 
-     // Resource Permissions (Team Permission)
-     CanCreateProjectStatusPage = 'CanCreateProjectStatusPage',
-     CanEditProjectStatusPage = 'CanEditProjectStatusPage',
-     CanDeleteProjectStatusPage = 'CanDeleteProjectStatusPage',
+    // Resource Permissions (Team Permission)
+    CanCreateProjectStatusPage = 'CanCreateProjectStatusPage',
+    CanEditProjectStatusPage = 'CanEditProjectStatusPage',
+    CanDeleteProjectStatusPage = 'CanDeleteProjectStatusPage',
     CanReadProjectStatusPage = 'CanReadProjectStatusPage',
-     
-     // Resource Permissions (Team Permission)
-     CanCreateProjectOnCallDuty = 'CanCreateProjectOnCallDuty',
-     CanEditProjectOnCallDuty = 'CanEditProjectOnCallDuty',
-     CanDeleteProjectOnCallDuty = 'CanDeleteProjectOnCallDuty',
-     CanReadProjectOnCallDuty = 'CanReadProjectOnCallDuty',
+
+    // Resource Permissions (Team Permission)
+    CanCreateProjectOnCallDuty = 'CanCreateProjectOnCallDuty',
+    CanEditProjectOnCallDuty = 'CanEditProjectOnCallDuty',
+    CanDeleteProjectOnCallDuty = 'CanDeleteProjectOnCallDuty',
+    CanReadProjectOnCallDuty = 'CanReadProjectOnCallDuty',
 
     // Project SMTP Config (Team Permission)
     CanCreateProjectSMTPConfig = 'CanCreateProjectSMTPConfig',
@@ -104,11 +104,9 @@ export class PermissionHelper {
         permissions1: Array<Permission>,
         permissions2: Array<Permission>
     ): Array<Permission> {
-        return (
-            permissions1.filter((value: Permission) => {
-                return permissions2.includes(value);
-            })
-        );
+        return permissions1.filter((value: Permission) => {
+            return permissions2.includes(value);
+        });
     }
 
     public static getProjectPermissionProps(): Array<PermissionProps> {
@@ -420,8 +418,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
-
             {
                 permission: Permission.CanCreateProjectStatusPage,
                 title: 'Can Create Status Page',
@@ -450,7 +446,6 @@ export class PermissionHelper {
                     'A user assigned this permission  can read status pages of this project.',
                 isAssignableToProject: true,
             },
-
 
             {
                 permission: Permission.CanCreateProjectProbe,

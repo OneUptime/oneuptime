@@ -275,7 +275,7 @@ router.post(
             const data: JSONObject = req.body['data'];
 
             const user: User = User.fromJSON(data as JSONObject, User) as User;
-             
+
             await user.password?.hashValue(EncryptionSecret);
 
             const alreadySavedUser: User | null = await UserService.findOneBy({

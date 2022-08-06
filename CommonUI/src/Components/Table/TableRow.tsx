@@ -47,9 +47,15 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                     )
                                 ) : column.type === TableColumnType.Boolean ? (
                                     props.item[column.key] ? (
-                                            <Icon icon={IconProp.True} thick={ThickProp.Thick} />
+                                        <Icon
+                                            icon={IconProp.True}
+                                            thick={ThickProp.Thick}
+                                        />
                                     ) : (
-                                        <Icon icon={IconProp.False} thick={ThickProp.Thick} />
+                                        <Icon
+                                            icon={IconProp.False}
+                                            thick={ThickProp.Thick}
+                                        />
                                     )
                                 ) : (
                                     (props.item[

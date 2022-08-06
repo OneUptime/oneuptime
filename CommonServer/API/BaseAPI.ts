@@ -184,7 +184,6 @@ export default class BaseAPI<
         let populate: Populate<BaseModel> = {};
         let sort: Sort<BaseModel> = {};
 
-
         if (req.body) {
             query = JSONFunctions.deserialize(
                 req.body['query']
@@ -204,9 +203,10 @@ export default class BaseAPI<
                 req.body['sort']
             ) as Sort<BaseModel>;
         }
-         
-        const databaseProps: DatabaseCommonInteractionProps = this.getDatabaseCommonInteractionProps(req);
-        debugger; 
+
+        const databaseProps: DatabaseCommonInteractionProps =
+            this.getDatabaseCommonInteractionProps(req);
+
         const list: Array<BaseModel> = await this.service.findBy({
             query,
             select,
@@ -262,7 +262,6 @@ export default class BaseAPI<
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
-        debugger;
         await this.service.deleteBy({
             query: {
                 _id: objectId.toString(),
@@ -312,8 +311,10 @@ export default class BaseAPI<
             this.entityType
         ) as TBaseModel;
 
-        const miscDataProps: JSONObject = JSONFunctions.deserialize(body['miscDataProps'] as JSONObject);
-        
+        const miscDataProps: JSONObject = JSONFunctions.deserialize(
+            body['miscDataProps'] as JSONObject
+        );
+
         const createBy: CreateBy<TBaseModel> = {
             data: item,
             miscDataProps: miscDataProps,

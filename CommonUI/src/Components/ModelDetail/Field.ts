@@ -14,4 +14,9 @@ export default interface Field<TBaseModel extends BaseModel> {
         url: Route | URL;
         openLinkInNewTab?: boolean;
     };
+    opts?:
+        | {
+              isCopyable?: boolean | undefined;
+          }
+        | undefined;
 }

@@ -132,18 +132,23 @@ export default class BaseModel extends BaseEntity {
         return dictionary[columnName] as TableColumnMetadata;
     }
 
-    public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl>{
-        const dictionary: Dictionary<ColumnAccessControl> = getColumnAccessControlForAllColumns(this);
-        
-        const defaultColumns = ['_id', 'createdAt', 'deletedAt', 'updatedAt'];
+    public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
+        const dictionary: Dictionary<ColumnAccessControl> =
+            getColumnAccessControlForAllColumns(this);
 
+        const defaultColumns: Array<string> = [
+            '_id',
+            'createdAt',
+            'deletedAt',
+            'updatedAt',
+        ];
 
         for (const key of defaultColumns) {
             dictionary[key] = {
                 read: this.readRecordPermissions,
                 create: this.createRecordPermissions,
-                update: this.updateRecordPermissions
-            }
+                update: this.updateRecordPermissions,
+            };
         }
 
         return dictionary;
@@ -244,7 +249,6 @@ export default class BaseModel extends BaseEntity {
             if (baseModel.getTableColumnMetadata(key)) {
                 (baseModel as any)[key] = json[key];
             }
-            
         }
 
         return baseModel as T;

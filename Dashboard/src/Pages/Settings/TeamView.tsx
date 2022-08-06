@@ -27,8 +27,9 @@ import User from 'Model/Models/User';
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-
-    const modelId: ObjectID = new ObjectID(Navigation.getLastParam()?.toString().substring(1) || '')
+    const modelId: ObjectID = new ObjectID(
+        Navigation.getLastParam()?.toString().substring(1) || ''
+    );
 
     return (
         <Page
@@ -123,11 +124,9 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 createVerb={'Invite'}
                 isCreateable={true}
                 isViewable={false}
-                query={
-                    {
-                        teamId: modelId
-                    }
-                }
+                query={{
+                    teamId: modelId,
+                }}
                 onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
                     item.teamId = modelId;
                     return Promise.resolve(item);
@@ -150,7 +149,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Email,
                         required: false,
                         placeholder: 'member@company.com',
-                        overideFieldKey: 'email'
+                        overideFieldKey: 'email',
                     },
                 ]}
                 showRefreshButton={true}
@@ -184,8 +183,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Invitation Accepted',
                         type: TableColumnType.Boolean,
-
-                    }
+                    },
                 ]}
             />
 
@@ -199,12 +197,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 isViewable={false}
-                query={
-                    {
-                        teamId: modelId
-                    }
-                }
-                onBeforeCreate={(item: TeamPermission): Promise<TeamPermission> => {
+                query={{
+                    teamId: modelId,
+                }}
+                onBeforeCreate={(
+                    item: TeamPermission
+                ): Promise<TeamPermission> => {
                     item.teamId = modelId;
                     return Promise.resolve(item);
                 }}
@@ -279,7 +277,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             ) {
                                 let counter: number = 0;
                                 for (const label of item['labels']) {
-
                                     returnElements.push(
                                         <LabelElement
                                             key={counter}
@@ -291,7 +288,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                                     );
 
                                     counter++;
-
                                 }
                             }
 

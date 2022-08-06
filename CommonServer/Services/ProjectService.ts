@@ -98,8 +98,8 @@ export class Service extends DatabaseService<Model> {
         let ownerTeamMember: TeamMember = new TeamMember();
         ownerTeamMember.projectId = createdItem.data.id!;
         ownerTeamMember.userId = createdItem.props.userId!;
-        ownerTeamMember.hasAcceptedInvitation = true; 
-        ownerTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate(); 
+        ownerTeamMember.hasAcceptedInvitation = true;
+        ownerTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
         ownerTeamMember.teamId = ownerTeam.id!;
 
         ownerTeamMember = await TeamMemberService.create({

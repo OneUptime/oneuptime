@@ -27,7 +27,7 @@ enum ObjectType {
     Search = 'Search',
     Port = 'Port',
     Hostname = 'Hostname',
-    HashedString = 'HashedString'
+    HashedString = 'HashedString',
 }
 
 export type JSONValue =
@@ -90,7 +90,6 @@ export class JSONFunctions {
 
     // this funciton serializes JSON with Common Objects to JSON that can be stringified.
     public static serialize(val: JSONObject): JSONObject {
-
         const newVal: JSONValue = {};
 
         for (const key in val) {
@@ -108,20 +107,15 @@ export class JSONFunctions {
             } else {
                 newVal[key] = this.serializeValue(val[key] as JSONValue);
             }
-
-           
         }
 
         return newVal;
     }
 
     public static serializeValue(val: JSONValue): JSONValue {
-
-
         if (!val) {
             return val;
-        }
-        else if (val && val instanceof Name) {
+        } else if (val && val instanceof Name) {
             return {
                 _type: ObjectType.Name,
                 value: (val as Name).toString(),
@@ -191,7 +185,7 @@ export class JSONFunctions {
     public static deserializeValue(val: JSONValue): JSONValue {
         if (!val) {
             return val;
-        } else if (val instanceof DatabaseProperty) { 
+        } else if (val instanceof DatabaseProperty) {
             return val;
         } else if (
             val &&

@@ -64,7 +64,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     currentPageRoute?: undefined | Route;
     query?: Query<TBaseModel>;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
-    createVerb?: string; 
+    createVerb?: string;
 }
 
 enum ModalType {
@@ -141,7 +141,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     props.type,
                     {
                         ...query,
-                        ...props.query
+                        ...props.query,
                     },
                     itemsOnPage,
                     (currentPageNumber - 1) * itemsOnPage,
@@ -571,7 +571,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFromModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${model.singularName}`
+                            ? `${props.createVerb || 'Create'} New ${
+                                  model.singularName
+                              }`
                             : `Edit ${model.singularName}`
                     }
                     onClose={() => {
@@ -579,7 +581,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${model.singularName}`
+                            ? `${props.createVerb || 'Create'} ${
+                                  model.singularName
+                              }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {

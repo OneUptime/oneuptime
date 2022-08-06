@@ -147,7 +147,7 @@ export default class TeamMember extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID , required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -282,7 +282,6 @@ export default class TeamMember extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -294,9 +293,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanReadProjectTeam,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.CurrentUser
-        ],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -311,8 +308,6 @@ export default class TeamMember extends BaseModel {
     })
     public hasAcceptedInvitation?: boolean = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -324,9 +319,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanReadProjectTeam,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.CurrentUser
-        ],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({
         required: false,
@@ -335,7 +328,7 @@ export default class TeamMember extends BaseModel {
     @Column({
         type: ColumnType.Date,
         nullable: true,
-        unique: false
+        unique: false,
     })
     public invitationAcceptedAt?: Date = undefined;
 }

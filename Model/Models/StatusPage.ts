@@ -25,10 +25,7 @@ import EntityName from 'Common/Types/Database/EntityName';
         Permission.ProjectMember,
     ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectStatusPage],
-    update: [
-        Permission.ProjectOwner,
-        Permission.CanEditProjectStatusPage,
-    ],
+    update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
 })
 @CrudApiEndpoint(new Route('/team'))
 @SlugifyColumn('name', 'slug')
@@ -38,7 +35,10 @@ import EntityName from 'Common/Types/Database/EntityName';
 @EntityName('StatusPage', 'StatusPages')
 export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
@@ -66,7 +66,10 @@ export default class StatusPage extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
@@ -75,7 +78,7 @@ export default class StatusPage extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID , required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -84,7 +87,10 @@ export default class StatusPage extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
@@ -102,7 +108,10 @@ export default class StatusPage extends BaseModel {
     public name?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
@@ -120,7 +129,10 @@ export default class StatusPage extends BaseModel {
 
     @Index()
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
@@ -138,7 +150,10 @@ export default class StatusPage extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
@@ -166,7 +181,10 @@ export default class StatusPage extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,

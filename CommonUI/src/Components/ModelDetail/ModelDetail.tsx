@@ -182,11 +182,19 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         }
 
         if (field.fieldType === FieldType.Date) {
-            data = OneUptimeDate.getDateAsLocalFormattedString(data as string, true);
+            data = OneUptimeDate.getDateAsLocalFormattedString(
+                data as string,
+                true
+            );
         }
 
         if (field.fieldType === FieldType.HiddenText) {
-            data = (<HiddenText text={data as string}/>) 
+            data = (
+                <HiddenText
+                    isCopyable={field.opts?.isCopyable || false}
+                    text={data as string}
+                />
+            );
         }
 
         return (
@@ -207,7 +215,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                         )}
                 </label>
                 {field.description && <p>{field.description}</p>}
-                            
+
                 <div
                     className="form-control"
                     style={{

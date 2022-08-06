@@ -26,11 +26,10 @@ export default class AccessTokenService {
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
             query: {
                 userId: userId,
-                hasAcceptedInvitation: true
+                hasAcceptedInvitation: true,
             },
             select: {
                 projectId: true,
-                
             },
             limit: LIMIT_MAX,
             skip: 0,
@@ -63,7 +62,6 @@ export default class AccessTokenService {
     public static async getUserGlobalAccessPermission(
         userId: ObjectID
     ): Promise<UserGlobalAccessPermission | null> {
-         
         const json: JSONObject | null = await GlobalCache.getJSON(
             'user',
             userId.toString()
@@ -73,7 +71,8 @@ export default class AccessTokenService {
             return null;
         }
 
-        const accessPermission: UserGlobalAccessPermission = json as UserGlobalAccessPermission;
+        const accessPermission: UserGlobalAccessPermission =
+            json as UserGlobalAccessPermission;
 
         return accessPermission;
     }
@@ -87,7 +86,7 @@ export default class AccessTokenService {
             query: {
                 userId: userId,
                 projectId: projectId,
-                hasAcceptedInvitation: true
+                hasAcceptedInvitation: true,
             },
             select: {
                 teamId: true,
@@ -159,11 +158,11 @@ export default class AccessTokenService {
         userId: ObjectID,
         projectId: ObjectID
     ): Promise<UserProjectAccessPermission | null> {
-        
-        const json: UserProjectAccessPermission | null = await GlobalCache.getJSON(
-            PermissionNamespace.ProjectPermission,
-            userId.toString() + projectId.toString()
-        ) as UserProjectAccessPermission;
+        const json: UserProjectAccessPermission | null =
+            (await GlobalCache.getJSON(
+                PermissionNamespace.ProjectPermission,
+                userId.toString() + projectId.toString()
+            )) as UserProjectAccessPermission;
 
         return json;
     }

@@ -1,4 +1,3 @@
-
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Icon, { IconProp } from '../Icon/Icon';
 
@@ -14,29 +13,55 @@ const HiddenText: FunctionComponent<ComponentProps> = (
     const [copiedToClipboard, setCopyToClipboard] = useState<boolean>(false);
 
     if (!showText) {
-        return <p className='pointer underline' onClick={() => {
-            setShowText(true);
-        }}>
-            Click here to reveal
-        </p>
+        return (
+            <p
+                className="pointer underline"
+                onClick={() => {
+                    setShowText(true);
+                }}
+            >
+                Click here to reveal
+            </p>
+        );
     }
 
-    return (<div>
-        <div className='flex'>
-            <div style={{
-                marginRight: "5px"
-            }}>{props.text}</div> <Icon icon={IconProp.Hide} className='pointer' onClick={() => {
-                setShowText(false);
-                setCopyToClipboard(false);
-            }}/>
-        </div>
+    return (
         <div>
-            <span className='pointer underline' onClick={() => {
-                navigator.clipboard.writeText(props.text)
-                setCopyToClipboard(true);
-            }}> {copiedToClipboard ? 'Copied to clipboard' : 'Copy to Clipboard'} </span>
+            <div className="flex">
+                <div
+                    style={{
+                        marginRight: '5px',
+                    }}
+                >
+                    {props.text}
+                </div>{' '}
+                <Icon
+                    icon={IconProp.Hide}
+                    className="pointer"
+                    onClick={() => {
+                        setShowText(false);
+                        setCopyToClipboard(false);
+                    }}
+                />
+            </div>
+            {props.isCopyable && (
+                <div>
+                    <span
+                        className="pointer underline"
+                        onClick={async () => {
+                            await navigator.clipboard.writeText(props.text);
+                            setCopyToClipboard(true);
+                        }}
+                    >
+                        {' '}
+                        {copiedToClipboard
+                            ? 'Copied to clipboard'
+                            : 'Copy to Clipboard'}{' '}
+                    </span>
+                </div>
+            )}
         </div>
-    </div>) 
+    );
 };
 
 export default HiddenText;

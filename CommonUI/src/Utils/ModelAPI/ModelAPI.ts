@@ -89,7 +89,7 @@ export default class ModelAPI {
             apiUrl,
             {
                 data: model.toJSON(),
-                miscDataProps: miscDataProps || {}
+                miscDataProps: miscDataProps || {},
             },
             this.getCommonHeaders()
         );

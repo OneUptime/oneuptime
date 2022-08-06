@@ -616,7 +616,11 @@ const BasicForm: Function = <T extends Object>(
                                     ? field.overideFieldKey
                                     : (Object.keys(field.field)[0] as string);
                                 if ((values as any)[fieldName]) {
-                                    (values as any)[fieldName] = new HashedString((values as any)[fieldName], false)
+                                    (values as any)[fieldName] =
+                                        new HashedString(
+                                            (values as any)[fieldName],
+                                            false
+                                        );
                                 }
                             }
                         }

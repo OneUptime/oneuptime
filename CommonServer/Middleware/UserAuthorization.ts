@@ -49,10 +49,9 @@ export default class UserMiddleware {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-        
         const projectId: ObjectID | null = ProjectMiddleware.getProjectId(req);
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
-        
+
         if (projectId) {
             oneuptimeRequest.projectId = projectId;
 
@@ -93,7 +92,6 @@ export default class UserMiddleware {
                 oneuptimeRequest.userAuthorization.userId
             );
 
-        
         if (!userGlobalAccessPermission) {
             userGlobalAccessPermission =
                 await AccessTokenService.refreshUserGlobalAccessPermission(
@@ -127,14 +125,12 @@ export default class UserMiddleware {
         }
 
         // set permission hash.
-        
+
         if (oneuptimeRequest.userGlobalAccessPermission) {
             const serializedValue: JSONObject = JSONFunctions.serialize(
                 oneuptimeRequest.userGlobalAccessPermission
             );
-            const globalValue: string = JSON.stringify(
-                serializedValue
-            );
+            const globalValue: string = JSON.stringify(serializedValue);
             const globalPermissionsHash: string = await HashedString.hashValue(
                 globalValue,
                 null
@@ -157,7 +153,6 @@ export default class UserMiddleware {
 
         // set project permissions hash.
         if (oneuptimeRequest.userProjectAccessPermission) {
-            
             const projectValue: string = JSON.stringify(
                 JSONFunctions.serialize(
                     oneuptimeRequest.userProjectAccessPermission

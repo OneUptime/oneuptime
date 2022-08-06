@@ -37,6 +37,5 @@ export default [
     ApiKeyPermission,
     ProjectSmtpConfig,
     StatusPage,
-    OnCallDuty
-
+    OnCallDuty,
 ];

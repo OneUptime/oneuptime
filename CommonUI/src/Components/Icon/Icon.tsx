@@ -105,7 +105,7 @@ export enum IconProp {
     Hide,
     Check,
     True,
-    False, 
+    False,
 }
 
 export interface ComponentProps {
@@ -123,7 +123,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     className,
     color,
     thick = ThickProp.Normal,
-    onClick
+    onClick,
 }: ComponentProps): ReactElement => {
     return (
         <div

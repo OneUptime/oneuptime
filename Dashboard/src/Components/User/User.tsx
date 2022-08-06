@@ -11,15 +11,13 @@ const UserElement: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <div>
-                {((props.user.toJSONObject())[
-                    'name'
-                ]?.toString() as string) || ''}
+                {(props.user.toJSONObject()['name']?.toString() as string) ||
+                    ''}
             </div>
 
             <div>
-                {((props.user.toJSONObject())[
-                    'email'
-                ]?.toString() as string) || ''}
+                {(props.user.toJSONObject()['email']?.toString() as string) ||
+                    ''}
             </div>
         </div>
     );

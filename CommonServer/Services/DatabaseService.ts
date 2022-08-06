@@ -583,7 +583,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
             DatabaseRequestType.Read
         );
 
-        const intersectingPermissions = PermissionHelper.getIntersectingPermissions(userPermissions.map((i) => i.permission), this.model.readRecordPermissions);
+        const intersectingPermissions: Array<Permission> =
+            PermissionHelper.getIntersectingPermissions(
+                userPermissions.map((i: UserPermission) => {
+                    return i.permission;
+                }),
+                this.model.readRecordPermissions
+            );
 
         columns = this.getReadColumnsByPermissions(userPermissions || []);
 
@@ -637,7 +643,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
         }
 
-        if (this.model.userColumn && findBy.props.userId && intersectingPermissions.length === 0 && this.model.readRecordPermissions.includes(Permission.CurrentUser)) {
+        if (
+            this.model.userColumn &&
+            findBy.props.userId &&
+            intersectingPermissions.length === 0 &&
+            this.model.readRecordPermissions.includes(Permission.CurrentUser)
+        ) {
             (findBy.query as any)[this.model.userColumn] = findBy.props.userId;
         }
 
@@ -768,15 +779,28 @@ class DatabaseService<TBaseModel extends BaseModel> {
             return deleteBy;
         }
 
-        const userPermissions: Array<UserPermission> = this.getPermissions(deleteBy.props, DatabaseRequestType.Delete);
-        const intersectingPermissions = PermissionHelper.getIntersectingPermissions(userPermissions.map((i) => i.permission), this.model.deleteRecordPermissions);
-        
+        const userPermissions: Array<UserPermission> = this.getPermissions(
+            deleteBy.props,
+            DatabaseRequestType.Delete
+        );
+        const intersectingPermissions: Array<Permission> =
+            PermissionHelper.getIntersectingPermissions(
+                userPermissions.map((i: UserPermission) => {
+                    return i.permission;
+                }),
+                this.model.deleteRecordPermissions
+            );
+
         if (this.model.projectColumn && deleteBy.props.projectId) {
             (deleteBy.query as any)[this.model.projectColumn] =
                 deleteBy.props.projectId;
         }
 
-        if (this.model.userColumn && intersectingPermissions.length === 0 && this.model.deleteRecordPermissions.includes(Permission.CurrentUser)) {
+        if (
+            this.model.userColumn &&
+            intersectingPermissions.length === 0 &&
+            this.model.deleteRecordPermissions.includes(Permission.CurrentUser)
+        ) {
             (deleteBy.query as any)[this.model.userColumn] =
                 deleteBy.props.userId;
         }
@@ -846,7 +870,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         userPermissions: Array<UserPermission>
     ): Columns {
         const accessControl: Dictionary<ColumnAccessControl> =
-        this.model.getColumnAccessControlForAllColumns();
+            this.model.getColumnAccessControlForAllColumns();
 
         const columns: Array<string> = [];
 

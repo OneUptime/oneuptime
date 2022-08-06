@@ -22,7 +22,7 @@ export class Service extends DatabaseService<Model> {
             skip: 0,
             select: {
                 name: true,
-                isTeamEditable: true
+                isTeamEditable: true,
             },
             populate: {},
             props: updateBy.props,
@@ -50,7 +50,7 @@ export class Service extends DatabaseService<Model> {
             skip: 0,
             select: {
                 name: true,
-                isTeamDeleteable: true
+                isTeamDeleteable: true,
             },
             populate: {},
             props: deleteBy.props,
