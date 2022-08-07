@@ -49,7 +49,7 @@ const DashboardNavbar: FunctionComponent = () => {
             <NavBarItem
                 title="On-Call Duty"
                 route={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.ON_CALL] as Route
+                    RouteMap[PageMap.ON_CALL_DUTY] as Route
                 )}
                 icon={IconProp.Call}
             ></NavBarItem>

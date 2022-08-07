@@ -18,30 +18,27 @@ import EntityName from 'Common/Types/Database/EntityName';
 
 @ProjectColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateProjectOnCallDuty],
+    create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
     read: [
         Permission.ProjectOwner,
-        Permission.CanReadProjectOnCallDuty,
+        Permission.CanReadProjectMonitor,
         Permission.ProjectMember,
     ],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectOnCallDuty],
-    update: [Permission.ProjectOwner, Permission.CanEditProjectOnCallDuty],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectMonitor],
+    update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
 })
-@CrudApiEndpoint(new Route('/on-call-duty'))
+@CrudApiEndpoint(new Route('/monitor'))
 @SlugifyColumn('name', 'slug')
 @Entity({
-    name: 'OnCallDuty',
+    name: 'Monitor',
 })
-@EntityName('On Call Duty', 'On Call Duties')
-export default class OnCallDuty extends BaseModel {
+@EntityName('Monitor', 'Monitors')
+export default class Monitor extends BaseModel {
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],
@@ -66,13 +63,10 @@ export default class OnCallDuty extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],
@@ -87,16 +81,13 @@ export default class OnCallDuty extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectOnCallDuty],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @Index()
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -108,16 +99,13 @@ export default class OnCallDuty extends BaseModel {
     public name?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectOnCallDuty],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -129,13 +117,10 @@ export default class OnCallDuty extends BaseModel {
 
     @Index()
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],
@@ -150,13 +135,10 @@ export default class OnCallDuty extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],
@@ -181,13 +163,10 @@ export default class OnCallDuty extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectOnCallDuty,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectOnCallDuty,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],

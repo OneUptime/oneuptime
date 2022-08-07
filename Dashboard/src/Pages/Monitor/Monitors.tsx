@@ -5,45 +5,42 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import StatusPage from 'Model/Models/StatusPage';
+import Monitor from 'Model/Models/Monitor';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
-const StatusPages: FunctionComponent<PageComponentProps> = (
+const MonitorPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
-            title={'Status Pages'}
+            title={'Monitors'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {
-                    title: 'Status Page',
-                    to: RouteMap[PageMap.STATUS_PAGE] as Route,
+                    title: 'Monitors',
+                    to: RouteMap[PageMap.MONITORS] as Route,
                 },
             ]}
         >
-            <ModelTable<StatusPage>
-                type={StatusPage}
-                model={new StatusPage()}
-                id="status-page-table"
+            <ModelTable<Monitor>
+                type={Monitor}
+                model={new Monitor()}
+                id="Monitors-table"
                 isDeleteable={false}
                 isEditable={true}
                 isCreateable={true}
                 isViewable={true}
                 cardProps={{
-                    icon: IconProp.CheckCircle,
-                    title: 'Status Pages',
-                    description:
-                        'Here is a list of status page for this project.',
+                    icon: IconProp.Activity,
+                    title: 'Monitors',
+                    description: 'Here is a list of monitors for this project.',
                 }}
-                noItemsMessage={
-                    'No status pages created for this project so far.'
-                }
+                noItemsMessage={'No monitors created for this project so far.'}
                 formFields={[
                     {
                         field: {
@@ -52,7 +49,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Status Page Name',
+                        placeholder: 'Monitor Name',
                         validation: {
                             noSpaces: true,
                             minLength: 2,
@@ -94,4 +91,4 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default StatusPages;
+export default MonitorPage;

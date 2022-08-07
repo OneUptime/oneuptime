@@ -64,10 +64,10 @@ enum Permission {
     CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
 
     // Resource Permissions (Team Permission)
-    CanCreateProjectResources = 'CanCreateProjectResources',
-    CanEditProjectResources = 'CanEditProjectResources',
-    CanDeleteProjectResources = 'CanDeleteProjectResources',
-    CanReadProjectResources = 'CanReadProjectResources',
+    CanCreateProjectMonitor = 'CanCreateProjectMonitor',
+    CanEditProjectMonitor = 'CanEditProjectMonitor',
+    CanDeleteProjectMonitor = 'CanDeleteProjectMonitor',
+    CanReadProjectMonitor = 'CanReadProjectMonitor',
 
     // Resource Permissions (Team Permission)
     CanCreateProjectStatusPage = 'CanCreateProjectStatusPage',
@@ -361,31 +361,31 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectResources,
-                title: 'Can Create Resources',
+                permission: Permission.CanCreateProjectMonitor,
+                title: 'Can Create Monitor',
                 description:
-                    'A user assigned this permission can create resources this this project.',
+                    'A user assigned this permission can create monitor this this project.',
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CanDeleteProjectResources,
-                title: 'Can Delete Resources',
+                permission: Permission.CanDeleteProjectMonitor,
+                title: 'Can Delete Monitor',
                 description:
-                    'A user assigned this permission  can delete resources of this project.',
+                    'A user assigned this permission  can delete monitor of this project.',
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CanEditProjectResources,
-                title: 'Can Edit Resources',
+                permission: Permission.CanEditProjectMonitor,
+                title: 'Can Edit Monitor',
                 description:
-                    'A user assigned this permission can edit resources of this project.',
+                    'A user assigned this permission can edit monitor of this project.',
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CanReadProjectResources,
-                title: 'Can Read Resources',
+                permission: Permission.CanReadProjectMonitor,
+                title: 'Can Read Monitor',
                 description:
-                    'A user assigned this permission  can read resources of this project.',
+                    'A user assigned this permission  can read monitor of this project.',
                 isAssignableToProject: true,
             },
 
