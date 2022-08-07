@@ -28,8 +28,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ModelTable<StatusPage>
-                type={StatusPage}
-                model={new StatusPage()}
+                modelType={StatusPage}
                 id="status-page-table"
                 isDeleteable={false}
                 isEditable={true}

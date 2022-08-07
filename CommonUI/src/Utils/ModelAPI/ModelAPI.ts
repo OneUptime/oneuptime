@@ -101,7 +101,7 @@ export default class ModelAPI {
     }
 
     public static async getList<TBaseModel extends BaseModel>(
-        type: { new (): TBaseModel },
+        modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
         limit: number,
         skip: number,
@@ -109,7 +109,7 @@ export default class ModelAPI {
         sort: Sort<TBaseModel>,
         populate?: Populate<TBaseModel>
     ): Promise<ListResult<TBaseModel>> {
-        const model: TBaseModel = new type();
+        const model: TBaseModel = new modelType();
         const apiPath: Route | null = model.getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
@@ -149,7 +149,7 @@ export default class ModelAPI {
         if (result.isSuccess()) {
             const list: Array<TBaseModel> = model.fromJSONArray(
                 result.data as JSONArray,
-                type
+                modelType
             );
 
             return {
@@ -159,6 +159,49 @@ export default class ModelAPI {
                 limit: result.limit,
             };
         }
+        throw result;
+    }
+
+
+
+    public static async count<TBaseModel extends BaseModel>(
+        modelType: { new (): TBaseModel },
+        query: Query<TBaseModel>
+    ): Promise<number> {
+        const model: TBaseModel = new modelType();
+        const apiPath: Route | null = model.getCrudApiPath();
+        if (!apiPath) {
+            throw new BadDataException(
+                'This model does not support list operations.'
+            );
+        }
+
+        const apiUrl: URL = URL.fromURL(DASHBOARD_API_URL)
+            .addRoute(apiPath)
+            .addRoute('/count');
+
+        if (!apiUrl) {
+            throw new BadDataException(
+                'This model does not support count operations.'
+            );
+        }
+
+        const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
+            await API.fetch<JSONArray>(
+                HTTPMethod.POST,
+                apiUrl,
+                {
+                    query: JSONFunctions.serialize(query as JSONObject)
+                },
+                this.getCommonHeaders()
+            );
+
+        if (result.isSuccess()) {
+            const count: number = result.count;
+
+            return count;
+        }
+
         throw result;
     }
 
@@ -175,12 +218,12 @@ export default class ModelAPI {
     }
 
     public static async getItem<TBaseModel extends BaseModel>(
-        type: { new (): TBaseModel },
+        modelType: { new (): TBaseModel },
         id: ObjectID,
         select: Select<TBaseModel>,
         populate?: Populate<TBaseModel>
     ): Promise<TBaseModel | null> {
-        const apiPath: Route | null = new type().getCrudApiPath();
+        const apiPath: Route | null = new modelType().getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
                 'This model does not support get operations.'
@@ -218,10 +261,10 @@ export default class ModelAPI {
     }
 
     public static async deleteItem<TBaseModel extends BaseModel>(
-        type: { new (): TBaseModel },
+        modelType: { new (): TBaseModel },
         id: ObjectID
     ): Promise<void> {
-        const apiPath: Route | null = new type().getCrudApiPath();
+        const apiPath: Route | null = new modelType().getCrudApiPath();
         if (!apiPath) {
             throw new BadDataException(
                 'This model does not support delete operations.'

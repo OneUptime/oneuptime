@@ -28,8 +28,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ModelTable<OnCallDuty>
-                type={OnCallDuty}
-                model={new OnCallDuty()}
+                modelType={OnCallDuty}
                 id="on-call-duty-table"
                 isDeleteable={false}
                 isEditable={true}

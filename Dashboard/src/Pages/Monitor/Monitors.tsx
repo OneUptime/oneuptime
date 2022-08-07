@@ -28,8 +28,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ModelTable<Monitor>
-                type={Monitor}
-                model={new Monitor()}
+                modelType={Monitor}
                 id="Monitors-table"
                 isDeleteable={false}
                 isEditable={true}

@@ -13,6 +13,7 @@ export interface ComponentProps {
     title?: undefined | string;
     onClose?: undefined | (() => void);
     type?: undefined | AlertType;
+    onClick?:(() => void) | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -48,6 +49,9 @@ const Alert: FunctionComponent<ComponentProps> = (
                 <div
                     className={`alert-label-icon flex label-arrow alert ${cssClass} alert-dismissible fade show`}
                     role="alert"
+                    onClick={() => {
+                        props.onClick && props.onClick();
+                    }}
                 >
                     {props.onClose && (
                         <button

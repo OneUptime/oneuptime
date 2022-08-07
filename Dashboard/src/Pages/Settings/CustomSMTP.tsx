@@ -34,8 +34,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             <ModelTable<ProjectSmtpConfig>
-                type={ProjectSmtpConfig}
-                model={new ProjectSmtpConfig()}
+                modelType={ProjectSmtpConfig}
                 id="smtp-table"
                 isDeleteable={true}
                 isEditable={true}

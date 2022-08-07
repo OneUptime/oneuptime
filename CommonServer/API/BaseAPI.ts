@@ -69,6 +69,23 @@ export default class BaseAPI<
             }
         );
 
+        // count
+        router.post(
+            `/${new this.entityType().getCrudApiPath()?.toString()}/count`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.count(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
         // Get Item
         router.post(
             `/${new this.entityType()
@@ -223,6 +240,31 @@ export default class BaseAPI<
         });
 
         return Response.sendListResponse(req, res, list, count);
+    }
+
+    public async count(
+        req: ExpressRequest,
+        res: ExpressResponse
+    ): Promise<void> {
+       
+
+        let query: Query<BaseModel> = {};
+
+        if (req.body) {
+            query = JSONFunctions.deserialize(
+                req.body['query']
+            ) as Query<BaseModel>;
+        }
+
+        const databaseProps: DatabaseCommonInteractionProps =
+            this.getDatabaseCommonInteractionProps(req);
+        
+        const count: PositiveNumber = await this.service.countBy({
+            query,
+            props: databaseProps,
+        });
+
+        return Response.sendItemResponse(req, res, { count: count.toNumber() });
     }
 
     public async getItem(

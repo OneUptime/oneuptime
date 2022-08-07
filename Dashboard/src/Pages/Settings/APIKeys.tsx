@@ -34,8 +34,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             <ModelTable<ApiKey>
-                type={ApiKey}
-                model={new ApiKey()}
+                modelType={ApiKey}
                 id="api-keys-table"
                 isDeleteable={false}
                 isEditable={true}

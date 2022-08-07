@@ -36,8 +36,7 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    type: { new (): TBaseModel };
-    model: TBaseModel;
+    modelType: { new (): TBaseModel };
     id: string;
     onValidate?:
         | undefined
@@ -77,6 +76,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
+    const model = new props.modelType();
 
     const getSelectFields: Function = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
@@ -101,7 +101,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
-            if (key && props.model.isEntityColumn(key)) {
+            if (key && model.isEntityColumn(key)) {
                 (populate as JSONObject)[key] = true;
             }
         }
@@ -129,7 +129,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         userPermissions.push(Permission.Public);
 
         const accessControl: Dictionary<ColumnAccessControl> =
-            props.model.getColumnAccessControlForAllColumns();
+            model.getColumnAccessControlForAllColumns();
 
         let fieldsToSet: Fields<TBaseModel> = [];
 
@@ -175,7 +175,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         }
 
         const item: TBaseModel | null = await ModelAPI.getItem(
-            props.type,
+            props.modelType,
             props.modelIdToEdit,
             getSelectFields(),
             getPopulate()
@@ -184,9 +184,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         if (!item) {
             setError(
                 `Cannot edit ${(
-                    props.model.singularName || 'item'
+                    model.singularName || 'item'
                 ).toLowerCase()}. It could be because you don't have enough permissions to read or edit this ${(
-                    props.model.singularName || 'item'
+                    model.singularName || 'item'
                 ).toLowerCase()}.`
             );
         }
@@ -360,9 +360,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 delete valuesToSend[key];
             }
 
-            let tBaseModel: TBaseModel = props.model.fromJSON(
+            let tBaseModel: TBaseModel = model.fromJSON(
                 valuesToSend,
-                props.type
+                props.modelType
             );
 
             if (props.onBeforeCreate && props.formType === FormType.Create) {
@@ -416,7 +416,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         <BasicModelForm<TBaseModel>
             title={props.title}
             description={props.description}
-            model={props.model}
+            model={model}
             id={props.id}
             fields={fields}
             showAsColumns={props.showAsColumns}

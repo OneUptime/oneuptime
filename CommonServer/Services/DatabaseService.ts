@@ -63,11 +63,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
     private model!: TBaseModel;
 
     public constructor(
-        type: { new (): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
-        this.entityType = type;
-        this.model = new type();
+        this.entityType = modelType;
+        this.model = new modelType();
 
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;

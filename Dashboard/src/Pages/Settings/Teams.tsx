@@ -34,8 +34,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             <ModelTable<Team>
-                type={Team}
-                model={new Team()}
+                modelType={Team}
                 id="teams-table"
                 isDeleteable={false}
                 isEditable={true}

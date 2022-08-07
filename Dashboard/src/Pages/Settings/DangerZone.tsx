@@ -39,7 +39,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
             />
 
             <ModelDelete
-                type={Project}
+                modelType={Project}
                 modelId={new ObjectID(props.currentProject?._id || '')}
             />
         </Page>

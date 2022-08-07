@@ -138,8 +138,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             {/* API Key Permisison Table */}
 
             <ModelTable<ApiKeyPermission>
-                type={ApiKeyPermission}
-                model={new ApiKeyPermission()}
+                modelType={ApiKeyPermission}
                 id="api-key-permission-table"
                 isDeleteable={true}
                 query={{
@@ -254,7 +253,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             />
 
             <ModelDelete
-                type={ApiKey}
+                modelType={ApiKey}
                 modelId={modelId}
                 onDeleteSuccess={() => {
                     Navigation.navigate(

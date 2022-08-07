@@ -22,8 +22,7 @@ import FieldType from './FieldType';
 import HiddenText from '../HiddenText/HiddenText';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    type: { new (): TBaseModel };
-    model: TBaseModel;
+    modelType: { new (): TBaseModel };
     id: string;
     fields: Array<Field<TBaseModel>>;
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
@@ -40,6 +39,8 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [item, setItem] = useState<TBaseModel | null>(null);
+
+    const model = new props.modelType();
 
     useEffect(() => {
         fetchItem();
@@ -82,7 +83,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         userPermissions.push(Permission.Public);
 
         const accessControl: Dictionary<ColumnAccessControl> =
-            props.model.getColumnAccessControlForAllColumns();
+        model.getColumnAccessControlForAllColumns();
 
         const fieldsToSet: Array<Field<TBaseModel>> = [];
 
@@ -118,7 +119,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         setError('');
         try {
             const item: TBaseModel | null = await ModelAPI.getItem(
-                props.type,
+                props.modelType,
                 props.modelId,
                 getSelectFields()
             );
@@ -126,9 +127,9 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
             if (!item) {
                 setError(
                     `Cannot load ${(
-                        props.model.singularName || 'item'
+                        model.singularName || 'item'
                     ).toLowerCase()}. It could be because you don't have enough permissions to read this ${(
-                        props.model.singularName || 'item'
+                        model.singularName || 'item'
                     ).toLowerCase()}.`
                 );
             }

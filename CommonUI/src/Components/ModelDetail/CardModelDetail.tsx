@@ -31,6 +31,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
     const [showModel, setShowModal] = useState<boolean>(false);
     const [item, setItem] = useState<TBaseModel | null>(null);
     const [refresher, setRefresher] = useState<boolean>(false);
+    const model = new props.modelDetailProps.modelType();
 
     useEffect(() => {
         const userProjectPermissions: UserProjectAccessPermission | null =
@@ -40,7 +41,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
             userProjectPermissions &&
                 userProjectPermissions.permissions &&
                 PermissionHelper.doesPermissionsIntersect(
-                    props.modelDetailProps.model.updateRecordPermissions,
+                    model.updateRecordPermissions,
                     userProjectPermissions.permissions.map(
                         (item: UserPermission) => {
                             return item.permission;
@@ -52,7 +53,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
         if (props.isEditable && hasPermissionToEdit) {
             setCardButtons([
                 {
-                    title: `Edit ${props.modelDetailProps.model.singularName}`,
+                    title: `Edit ${model.singularName}`,
                     buttonStyle: ButtonStyleType.OUTLINE,
                     onClick: () => {
                         setShowModal(true);
@@ -77,7 +78,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
 
             {showModel ? (
                 <ModelFromModal<TBaseModel>
-                    title={`Edit ${props.modelDetailProps.model.singularName}`}
+                    title={`Edit ${model.singularName}`}
                     onClose={() => {
                         setShowModal(false);
                     }}
@@ -86,13 +87,12 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
                         setShowModal(false);
                         setRefresher(!refresher);
                     }}
-                    type={props.modelDetailProps.type}
+                    modelType={props.modelDetailProps.modelType}
                     formProps={{
-                        model: props.modelDetailProps.model,
-                        id: `edit-${props.modelDetailProps.model.singularName?.toLowerCase()}-from`,
+                        id: `edit-${model.singularName?.toLowerCase()}-from`,
                         fields: props.formFields || [],
                         formType: FormType.Update,
-                        type: props.modelDetailProps.type,
+                        modelType: props.modelDetailProps.modelType,
                     }}
                     modelIdToEdit={item?._id}
                 />

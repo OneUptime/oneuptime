@@ -10,7 +10,7 @@ import { IconProp } from '../Icon/Icon';
 import ConfirmModal from '../Modal/ConfirmModal';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    type: { new (): TBaseModel };
+    modelType: { new (): TBaseModel };
     modelId: ObjectID;
     onDeleteSuccess: () => void;
 }
@@ -18,7 +18,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const ModelDelete: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-    const model: TBaseModel = new props.type();
+    const model: TBaseModel = new props.modelType();
     const [showModal, setShowModal] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
@@ -27,7 +27,7 @@ const ModelDelete: Function = <TBaseModel extends BaseModel>(
     const deleteItem: Function = async () => {
         setIsLoading(true);
         try {
-            await ModelAPI.deleteItem<TBaseModel>(props.type, props.modelId);
+            await ModelAPI.deleteItem<TBaseModel>(props.modelType, props.modelId);
             props.onDeleteSuccess && props.onDeleteSuccess();
         } catch (err) {
             try {

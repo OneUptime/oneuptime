@@ -117,8 +117,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             {/* Team Members Table */}
 
             <ModelTable<TeamMember>
-                type={TeamMember}
-                model={new TeamMember()}
+                modelType={TeamMember}
                 id="table-team-member"
                 isDeleteable={true}
                 createVerb={'Invite'}
@@ -190,8 +189,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             {/* Team Permisison Table */}
 
             <ModelTable<TeamPermission>
-                type={TeamPermission}
-                model={new TeamPermission()}
+                modelType={TeamPermission}
                 id="table-team-permission"
                 isDeleteable={true}
                 isEditable={true}
@@ -298,7 +296,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             />
 
             <ModelDelete
-                type={Team}
+                modelType={Team}
                 modelId={
                     new ObjectID(Navigation.getLastParam()?.toString() || '')
                 }

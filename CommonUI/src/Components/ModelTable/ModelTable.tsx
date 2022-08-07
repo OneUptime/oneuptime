@@ -40,8 +40,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Populate from '../../Utils/ModelAPI/Populate';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    model: TBaseModel;
-    type: { new (): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     onFetchInit?:
         | undefined
@@ -77,7 +76,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 ): ReactElement => {
     const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
     const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
-    const model: TBaseModel = new props.type();
+    const model: TBaseModel = new props.modelType();
     const [actionButtonSchema, setActionButtonSchema] = useState<
         Array<ActionButtonSchema>
     >([]);
@@ -107,7 +106,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const deleteItem: Function = async (id: ObjectID) => {
         setIsLoading(true);
         try {
-            await ModelAPI.deleteItem<TBaseModel>(props.type, id);
+            await ModelAPI.deleteItem<TBaseModel>(props.modelType, id);
             if (data.length === 1 && currentPageNumber > 1) {
                 setCurrentPageNumber(currentPageNumber - 1);
             }
@@ -138,7 +137,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         try {
             const listResult: ListResult<TBaseModel> =
                 await ModelAPI.getList<TBaseModel>(
-                    props.type,
+                    props.modelType,
                     {
                         ...query,
                         ...props.query,
@@ -205,7 +204,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(column.field)[0] as string)
                 : null;
 
-            if (key && props.model.isEntityColumn(key)) {
+            if (key && model.isEntityColumn(key)) {
                 (populate as JSONObject)[key] = true;
             }
         }
@@ -222,7 +221,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             userProjectPermissions &&
                 userProjectPermissions.permissions &&
                 PermissionHelper.doesPermissionsIntersect(
-                    props.model.createRecordPermissions,
+                    model.createRecordPermissions,
                     userProjectPermissions.permissions.map(
                         (item: UserPermission) => {
                             return item.permission;
@@ -283,7 +282,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     }, [showTableFilter]);
 
     const shouldDisableSort: Function = (columnName: string): boolean => {
-        return props.model.isEntityColumn(columnName);
+        return model.isEntityColumn(columnName);
     };
 
     useEffect(() => {
@@ -295,7 +294,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             _id: true,
         };
 
-        const slugifyColumn: string | null = props.model.getSlugifyColumn();
+        const slugifyColumn: string | null = model.getSlugifyColumn();
 
         if (slugifyColumn) {
             (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
@@ -320,7 +319,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         userPermissions.push(Permission.Public);
 
         const accessControl: Dictionary<ColumnAccessControl> =
-            props.model.getColumnAccessControlForAllColumns();
+            model.getColumnAccessControlForAllColumns();
 
         for (const column of props.columns) {
             const key: string | null = column.field
@@ -391,7 +390,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             userProjectPermissions &&
                 userProjectPermissions.permissions &&
                 PermissionHelper.doesPermissionsIntersect(
-                    props.model.deleteRecordPermissions,
+                    model.deleteRecordPermissions,
                     userProjectPermissions.permissions.map(
                         (item: UserPermission) => {
                             return item.permission;
@@ -404,7 +403,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             userProjectPermissions &&
                 userProjectPermissions.permissions &&
                 PermissionHelper.doesPermissionsIntersect(
-                    props.model.updateRecordPermissions,
+                    model.updateRecordPermissions,
                     userProjectPermissions.permissions.map(
                         (item: UserPermission) => {
                             return item.permission;
@@ -417,7 +416,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             userProjectPermissions &&
                 userProjectPermissions.permissions &&
                 PermissionHelper.doesPermissionsIntersect(
-                    props.model.readRecordPermissions,
+                    model.readRecordPermissions,
                     userProjectPermissions.permissions.map(
                         (item: UserPermission) => {
                             return item.permission;
@@ -592,16 +591,16 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         fetchItems();
                     }}
                     onBeforeCreate={props.onBeforeCreate}
-                    type={props.type}
+                    type={props.modelType}
                     formProps={{
                         model: model,
-                        id: `create-${props.type.name}-from`,
+                        id: `create-${props.modelType.name}-from`,
                         fields: props.formFields || [],
                         formType:
                             modalType === ModalType.Create
                                 ? FormType.Create
                                 : FormType.Update,
-                        type: props.type,
+                        type: props.modelType,
                     }}
                     modelIdToEdit={
                         currentEditableItem
