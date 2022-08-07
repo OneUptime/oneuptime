@@ -216,7 +216,7 @@ export default class BaseModel extends BaseEntity {
         return this.saveSlugToColumn;
     }
 
-    public getProjectColumn(): string | null {
+    public getTenantColumn(): string | null {
         return this.projectColumn;
     }
 

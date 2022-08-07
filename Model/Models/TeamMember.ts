@@ -5,7 +5,7 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import ColumnType from 'Common/Types/Database/ColumnType';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import EntityName from 'Common/Types/Database/EntityName';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import UserColumn from 'Common/Types/Database/UserColumn';
@@ -39,8 +39,9 @@ import User from './User';
         Permission.CanEditProjectTeam,
     ],
 })
+@isMultiTenantQueryAllowed(true)
 @UserColumn('userId')
-@ProjectColumn('projectId')
+@TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/team-member'))
 @Entity({
     name: 'TeamMember',

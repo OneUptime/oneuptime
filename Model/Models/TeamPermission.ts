@@ -20,7 +20,7 @@ import Permission from 'Common/Types/Permission';
 import Label from './Label';
 import Team from './Team';
 import Project from './Project';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import EntityName from 'Common/Types/Database/EntityName';
@@ -48,7 +48,7 @@ import EntityName from 'Common/Types/Database/EntityName';
         Permission.CanEditProjectTeam,
     ],
 })
-@ProjectColumn('projectId')
+@TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/team-permission'))
 @Entity({
     name: 'TeamPermission',

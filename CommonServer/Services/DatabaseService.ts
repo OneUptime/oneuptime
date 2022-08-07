@@ -138,7 +138,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy: CreateBy<TBaseModel>
     ): Promise<CreateBy<TBaseModel>> {
         // Private method that runs before create.
-        const projectIdColumn: string | null = this.model.getProjectColumn();
+        const projectIdColumn: string | null = this.model.getTenantColumn();
 
         if (projectIdColumn && createBy.props.projectId) {
             (createBy.data as any)[projectIdColumn] = createBy.props.projectId;

@@ -11,12 +11,12 @@ import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import Permission from 'Common/Types/Permission';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import EntityName from 'Common/Types/Database/EntityName';
 
-@ProjectColumn('projectId')
+@TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/api-key'))
 @SlugifyColumn('name', 'slug')
 @Entity({

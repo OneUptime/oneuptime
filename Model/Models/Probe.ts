@@ -12,7 +12,7 @@ import TableColumn from 'Common/Types/Database/TableColumn';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
 import Permission from 'Common/Types/Permission';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
@@ -20,7 +20,7 @@ import IsPermissionsIf from 'Common/Types/Database/IsPermissionsIf';
 import EntityName from 'Common/Types/Database/EntityName';
 
 @IsPermissionsIf(Permission.Public, 'projectId', null)
-@ProjectColumn('projectId')
+@TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/probe'))
 @SlugifyColumn('name', 'slug')
 @Entity({
