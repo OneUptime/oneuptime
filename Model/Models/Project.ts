@@ -1,5 +1,5 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import BaseModel from 'Common/Models/BaseModel';
+import TenantModel from 'Common/Models/TenantModel';
 import User from './User';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -33,7 +33,7 @@ import EntityName from 'Common/Types/Database/EntityName';
     name: 'Project',
 })
 @TenantColumn('_id')
-export default class Model extends BaseModel {
+export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.User],
         read: [Permission.ProjectMember],

@@ -1,5 +1,5 @@
 import { Column, Entity, Index } from 'typeorm';
-import BaseModel from 'Common/Models/BaseModel';
+import UserModel from 'Common/Models/UserModel';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
@@ -34,7 +34,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 })
 @EntityName('User', 'Users')
 @UserColumn('_id')
-class User extends BaseModel {
+class User extends UserModel {
     @ColumnAccessControl({
         create: [Permission.Public],
         read: [Permission.CurrentUser, Permission.ProjectMember],
