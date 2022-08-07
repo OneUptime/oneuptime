@@ -288,15 +288,21 @@ export default class TeamPermission extends BaseModel {
         ],
         update: [
             Permission.ProjectOwner,
-            Permission.CanInviteProjectTeamMembers,
             Permission.CanEditProjectTeamPermissions,
             Permission.CanEditProjectTeam,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.Array })
-    @ManyToMany(() => {
-        return Label;
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
     })
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: true }
+    )
     @JoinTable()
     public labels?: Array<Label> = undefined;
 }
