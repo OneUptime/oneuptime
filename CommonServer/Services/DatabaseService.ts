@@ -59,11 +59,11 @@ enum DatabaseRequestType {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    private entityType!: { new(): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -305,7 +305,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                    createBy.data.getSlugifyColumn() as string
+                createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -626,7 +626,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        if (this.model.projectColumn && findBy.props.projectId) {
+        if (this.model.projectColumn && findBy.props.projectId && !(findBy.props.isMultiTenantQuery)) {
             (findBy.query as any)[this.model.projectColumn] =
                 findBy.props.projectId;
         } else if (
@@ -671,6 +671,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         this.model.isPermissionIf[permission] as any
                     )[columnName];
                 }
+            }
+        }
+
+
+        if (findBy.props.isMultiTenantQuery) {
+            const columnName: string | null = this.model.getMultiTenantQueryAllowedByColumn();
+            
+            if (columnName && !(findBy.query as any)[columnName]) {
+                throw new BadDataException(`${columnName} is reuqired for a multitenant query.`)
             }
         }
 
@@ -922,6 +931,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         query,
         skip,
         limit,
+        props
     }: CountBy<TBaseModel>): Promise<PositiveNumber> {
         try {
             if (!skip) {
@@ -932,13 +942,31 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 limit = new PositiveNumber(Infinity);
             }
 
-            query = this.serializeQuery(query);
+            if (!(skip instanceof PositiveNumber)) {
+                skip = new PositiveNumber(skip);
+            }
+
+            if (!(limit instanceof PositiveNumber)) {
+                limit = new PositiveNumber(limit);
+            }
+
+            let findBy: FindBy<TBaseModel> = {
+                query,
+                skip,
+                limit,
+                props
+            }
+
+            findBy = this.asFindByByPermissions(findBy);
+
+            findBy.query = this.serializeQuery(query);
 
             const count: number = await this.getRepository().count({
-                where: query as any,
-                skip: skip.toNumber(),
-                take: limit.toNumber(),
+                where: findBy.query as any,
+                skip: (findBy.skip as PositiveNumber).toNumber(),
+                take: (findBy.limit as PositiveNumber).toNumber(),
             });
+
             let countPositive: PositiveNumber = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
             return countPositive;

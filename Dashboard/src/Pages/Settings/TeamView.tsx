@@ -15,14 +15,14 @@ import TeamMember from 'Model/Models/TeamMember';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
 import Label from 'Model/Models/Label';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import TeamPermission from 'Model/Models/TeamPermission';
-import LabelElement from '../../Components/Label/Label';
 import UserElement from '../../Components/User/User';
 import User from 'Model/Models/User';
+import LabelsElement from '../../Components/Label/Labels';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -87,8 +87,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 modelDetailProps={{
-                    type: Team,
-                    model: new Team(),
+                    modelType: Team,
                     id: 'model-detail-team',
                     fields: [
                         {
@@ -268,28 +267,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: TableColumnType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
-                            const returnElements: Array<ReactElement> = [];
-                            if (
-                                item['labels'] &&
-                                Array.isArray(item['labels'])
-                            ) {
-                                let counter: number = 0;
-                                for (const label of item['labels']) {
-                                    returnElements.push(
-                                        <LabelElement
-                                            key={counter}
-                                            label={new Label().fromJSON(
-                                                label as JSONObject,
-                                                Label
-                                            )}
-                                        />
-                                    );
-
-                                    counter++;
-                                }
-                            }
-
-                            return <>{returnElements}</>;
+                            return (<LabelsElement labels={Label.fromJSON(item["labels"] as JSONArray || [], Label) as Array<Label>} />);                          
                         },
                     },
                 ]}

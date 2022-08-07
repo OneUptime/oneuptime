@@ -152,6 +152,7 @@ export default class BaseAPI<
             userProjectAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
+            isMultiTenantQuery: undefined
         };
 
         if (
@@ -175,6 +176,11 @@ export default class BaseAPI<
 
         if ((req as OneUptimeRequest).projectId) {
             props.projectId = (req as OneUptimeRequest).projectId || undefined;
+        }
+
+
+        if (req.headers["isMultiTenantQuery"]) {
+            props.isMultiTenantQuery = true; 
         }
 
         return props;

@@ -35,6 +35,9 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
         >
             <ModelTable<ApiKey>
                 modelType={ApiKey}
+                query={{
+                    projectId: props.currentProject?._id,
+                }}
                 id="api-keys-table"
                 isDeleteable={false}
                 isEditable={true}

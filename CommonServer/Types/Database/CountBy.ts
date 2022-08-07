@@ -5,7 +5,7 @@ import Query from './Query';
 
 export default interface CountBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
-    skip?: PositiveNumber;
-    limit?: PositiveNumber;
+    skip?: PositiveNumber | number;
+    limit?: PositiveNumber | number;
     props: DatabaseCommonInteractionProps;
 }

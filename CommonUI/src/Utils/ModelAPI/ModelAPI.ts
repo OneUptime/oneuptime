@@ -1,6 +1,6 @@
 import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
-import Query from './Query';
+import Query, { QueryOptions } from './Query';
 import Select from './Select';
 import API from '../../Utils/API/API';
 import Route from 'Common/Types/API/Route';
@@ -107,7 +107,8 @@ export default class ModelAPI {
         skip: number,
         select: Select<TBaseModel>,
         sort: Sort<TBaseModel>,
-        populate?: Populate<TBaseModel>
+        populate?: Populate<TBaseModel>,
+        queryOptions?: QueryOptions,
     ): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -127,6 +128,11 @@ export default class ModelAPI {
             );
         }
 
+        const headers: Dictionary<string> = this.getCommonHeaders();
+        if (queryOptions && queryOptions.isMultiTenantQuery) {
+            headers["isMultiTenantQuery"] = "true";
+        }
+
         const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
             await API.fetch<JSONArray>(
                 HTTPMethod.POST,
@@ -139,7 +145,7 @@ export default class ModelAPI {
                         ? JSONFunctions.serialize(populate as JSONObject)
                         : null,
                 },
-                this.getCommonHeaders(),
+                headers,
                 {
                     limit: limit.toString(),
                     skip: skip.toString(),
@@ -166,7 +172,8 @@ export default class ModelAPI {
 
     public static async count<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
-        query: Query<TBaseModel>
+        query: Query<TBaseModel>,
+        queryOptions?: QueryOptions | undefined,
     ): Promise<number> {
         const model: TBaseModel = new modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -186,6 +193,11 @@ export default class ModelAPI {
             );
         }
 
+        const headers: Dictionary<string> = this.getCommonHeaders();
+        if (queryOptions && queryOptions.isMultiTenantQuery) {
+            headers["isMultiTenantQuery"] = "true";
+        }
+
         const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
             await API.fetch<JSONArray>(
                 HTTPMethod.POST,
@@ -193,7 +205,7 @@ export default class ModelAPI {
                 {
                     query: JSONFunctions.serialize(query as JSONObject)
                 },
-                this.getCommonHeaders()
+                headers
             );
 
         if (result.isSuccess()) {

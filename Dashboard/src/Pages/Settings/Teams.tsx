@@ -47,6 +47,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
                         'Here is a list of all the teams in this project.',
                 }}
                 noItemsMessage={'No teams created for this project so far.'}
+                query={{
+                    projectId: props.currentProject?._id,
+                }}
                 formFields={[
                     {
                         field: {

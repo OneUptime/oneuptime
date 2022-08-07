@@ -1,7 +1,7 @@
 import React, { ReactElement, useEffect, useState } from 'react';
 import Alert, { AlertType } from '../Alerts/Alert';
 import BaseModel from 'Common/Models/BaseModel';
-import Query from '../../Utils/ModelAPI/Query';
+import Query, { QueryOptions } from '../../Utils/ModelAPI/Query';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONObject } from 'Common/Types/JSON';
@@ -12,8 +12,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     singularName: string;
     pluralName: string;
     query: Query<TBaseModel>;
+    queryOptions?: QueryOptions | undefined;
     onCountFetchInit?: (() => void) | undefined;
-    onClick?:(() => void) | undefined;
+    onClick?: (() => void) | undefined;
 }
 
 const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
@@ -37,6 +38,7 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
                 await ModelAPI.count<TBaseModel>(
                     props.modelType,
                     props.query,
+                    props.queryOptions
                 );
 
             setCount(count);

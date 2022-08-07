@@ -15,12 +15,12 @@ import ApiKey from 'Model/Models/ApiKey';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
 import Label from 'Model/Models/Label';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import FieldType from 'CommonUI/src/Components/ModelDetail/FieldType';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import LabelElement from '../../Components/Label/Label';
+import LabelsElement from '../../Components/Label/Labels';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -97,8 +97,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 modelDetailProps={{
-                    type: ApiKey,
-                    model: new ApiKey(),
+                    modelType: ApiKey,
                     id: 'model-detail-api-key',
                     fields: [
                         {
@@ -219,34 +218,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: TableColumnType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
-                            const returnElements: Array<ReactElement> = [];
-                            if (
-                                item['labels'] &&
-                                Array.isArray(item['labels'])
-                            ) {
-                                let counter: number = 0;
-                                for (const label of item['labels']) {
-                                    if (
-                                        label &&
-                                        (label as JSONObject)['color'] &&
-                                        (label as JSONObject)['name']
-                                    ) {
-                                        returnElements.push(
-                                            <LabelElement
-                                                key={counter}
-                                                label={new Label().fromJSON(
-                                                    label as JSONObject,
-                                                    Label
-                                                )}
-                                            />
-                                        );
-
-                                        counter++;
-                                    }
-                                }
-                            }
-
-                            return <>{returnElements}</>;
+                            return (<LabelsElement labels={Label.fromJSON(item["labels"] as JSONArray || [], Label) as Array<Label>} />);                          
                         },
                     },
                 ]}

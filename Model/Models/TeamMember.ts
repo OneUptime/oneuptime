@@ -3,6 +3,7 @@ import Route from 'Common/Types/API/Route';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnType from 'Common/Types/Database/ColumnType';
+import MultiTenentQueryAllowedBy from 'Common/Types/Database/MultiTenentQueryAllowedBy';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import EntityName from 'Common/Types/Database/EntityName';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
@@ -39,7 +40,7 @@ import User from './User';
         Permission.CanEditProjectTeam,
     ],
 })
-@isMultiTenantQueryAllowed(true)
+@MultiTenentQueryAllowedBy("userId")
 @UserColumn('userId')
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/team-member'))
