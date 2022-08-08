@@ -142,6 +142,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 query={{
                     apiKeyId: modelId,
+                    projectId: props.currentProject?._id
                 }}
                 onBeforeCreate={(
                     item: ApiKeyPermission

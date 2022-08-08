@@ -124,6 +124,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     teamId: modelId,
+                    projectId: props.currentProject?._id
                 }}
                 onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
                     item.teamId = modelId;
@@ -196,6 +197,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     teamId: modelId,
+                    projectId: props.currentProject?._id
                 }}
                 onBeforeCreate={(
                     item: TeamPermission
