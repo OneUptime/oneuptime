@@ -25,7 +25,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
 }
 
-const ModelFromModal: Function = <TBaseModel extends BaseModel>(
+const ModelFormModal: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
@@ -73,4 +73,4 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
     );
 };
 
-export default ModelFromModal;
+export default ModelFormModal;

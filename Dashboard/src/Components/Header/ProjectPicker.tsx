@@ -7,7 +7,7 @@ import React, {
 import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Project from 'Model/Models/Project';
-import ModelFromModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
+import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
@@ -67,8 +67,8 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                 }}
             />
             {showModel ? (
-                <ModelFromModal<Project>
-                    type={Project}
+                <ModelFormModal<Project>
+                    modelType={Project}
                     title="Create New Project"
                     onClose={() => {
                         setShowModel(false);

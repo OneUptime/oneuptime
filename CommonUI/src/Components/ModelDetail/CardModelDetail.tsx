@@ -13,7 +13,7 @@ import ModelDetail, { ComponentProps as ModeDetailProps } from './ModelDetail';
 import BaseModel from 'Common/Models/BaseModel';
 import { ButtonStyleType } from '../Button/Button';
 import { IconProp } from '../Icon/Icon';
-import ModelFromModal from '../ModelFormModal/ModelFormModal';
+import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
 
@@ -77,7 +77,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
             </Card>
 
             {showModel ? (
-                <ModelFromModal<TBaseModel>
+                <ModelFormModal<TBaseModel>
                     title={`Edit ${model.singularName}`}
                     onClose={() => {
                         setShowModal(false);

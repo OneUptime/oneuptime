@@ -12,7 +12,7 @@ import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
 import Select from '../../Utils/ModelAPI/Select';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { ButtonStyleType } from '../Button/Button';
-import ModelFromModal from '../ModelFormModal/ModelFormModal';
+import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { IconProp } from '../Icon/Icon';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
@@ -567,7 +567,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             </Card>
 
             {showModel ? (
-                <ModelFromModal<TBaseModel>
+                <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
                             ? `${props.createVerb || 'Create'} New ${
@@ -591,7 +591,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         fetchItems();
                     }}
                     onBeforeCreate={props.onBeforeCreate}
-                    type={props.modelType}
+                    modelType={props.modelType}
                     formProps={{
                         model: model,
                         id: `create-${props.modelType.name}-from`,
