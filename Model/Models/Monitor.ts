@@ -1,113 +1,218 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
-
 import User from './User';
 import Project from './Project';
-import IncidentCommunicationSla from './IncidentCommunicationSla';
-import MonitorSla from './MonitorSla';
-import ResourceStatus from './ResourceStatus';
-import Probe from './Probe';
-import MonitorCustomFields from 'Common/Types/Monitor/MonitorCustomFields';
-import MonitorCriteriaInstance from 'Common/Types/Monitor/MonitorCriteriaInstance';
-import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import MonitorCriteria from 'Common/Types/Monitor/MonitorCriteria';
-import Component from './Component';
-import MonitorType from 'Common/Types/Monitor/MonitorType';
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
+import Route from 'Common/Types/API/Route';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import ObjectID from 'Common/Types/ObjectID';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import Permission from 'Common/Types/Permission';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import EntityName from 'Common/Types/Database/EntityName';
 
-@Entity({
-    name: 'UserAlerts',
+@ProjectColumn('projectId')
+@TableAccessControl({
+    create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+    read: [
+        Permission.ProjectOwner,
+        Permission.CanReadProjectMonitor,
+        Permission.ProjectMember,
+    ],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectMonitor],
+    update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
 })
-export default class Model extends BaseModel {
-    @Column()
-    public project?: Project; //Which project this monitor belongs to.
+@CrudApiEndpoint(new Route('/monitor'))
+@SlugifyColumn('name', 'slug')
+@Entity({
+    name: 'Monitor',
+})
+@EntityName('Monitor', 'Monitors')
+export default class Monitor extends BaseModel {
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'projectId',
+        type: TableColumnType.Entity,
+        modelType: Project,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Project;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'projectId' })
+    public project?: Project = undefined;
 
-    @Column()
-    public component?: Component;
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public projectId?: ObjectID = undefined;
 
-    @Column()
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
+    })
+    @Index()
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
     public name?: string = undefined;
 
-    @Column()
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
+    })
+    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @Column({
+        nullable: true,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+    })
+    public description?: string = undefined;
+
+    @Index()
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @Column({
+        nullable: false,
+        type: ColumnType.Slug,
+        length: ColumnLength.Slug,
+        unique: true,
+    })
     public slug?: string = undefined;
 
-    @Column()
-    public config?: Object;
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'createdByUserId',
+        type: TableColumnType.Entity,
+        modelType: Project,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'createdByUserId' })
+    public createdByUser?: User = undefined;
 
-    @Column()
-    public createdByUser?: User; //user.
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public createdByUserId?: ObjectID = undefined;
 
-    @Column()
-    public type?: MonitorType;
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'deletedByUserId',
+        type: TableColumnType.ObjectID,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            cascade: false,
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'deletedByUserId' })
+    public deletedByUser?: User = undefined;
 
-    @Column()
-    public agentlessConfig?: string = undefined;
-
-    @Column()
-    public kubernetesConfig?: string = undefined;
-
-    @Column()
-    public kubernetesNamespace?: string = undefined;
-
-    @Column()
-    public lastPingTime?: Date = undefined;
-
-    @Column()
-    public updateTime?: Date = undefined;
-
-    @Column()
-    public criteria?: MonitorCriteria;
-
-    @Column()
-    public lastMatchedCriterion?: MonitorCriteriaInstance;
-
-    @Column()
-    public method?: HTTPMethod;
-
-    @Column()
-    public bodyType?: string = undefined;
-
-    @Column()
-    public formData?: FormData;
-
-    @Column()
-    public text?: string = undefined;
-
-    @Column()
-    public headers?: Headers;
-
-    @Column()
-    public disabled?: boolean = undefined;
-
-    @Column()
-    public deletedByUser?: User;
-
-    @Column()
-    public scriptRunStatus?: string = undefined;
-
-    @Column()
-    public scriptRunBy?: Probe;
-
-    @Column()
-    public lighthouseScannedAt?: Date = undefined;
-
-    @Column()
-    public lighthouseScanStatus?: string = undefined;
-
-    @Column()
-    public siteUrls?: Array<string>;
-
-    @Column()
-    public incidentCommunicationSla?: IncidentCommunicationSla;
-
-    @Column()
-    public monitorSla?: MonitorSla;
-
-    @Column()
-    public customFields?: MonitorCustomFields;
-
-    @Column()
-    public disableMonitoring?: boolean = undefined;
-
-    @Column()
-    public monitorStatus?: ResourceStatus;
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectMember],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public deletedByUserId?: ObjectID = undefined;
 }

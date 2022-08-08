@@ -21,10 +21,16 @@ import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import TeamPermission from 'Model/Models/TeamPermission';
 import LabelElement from '../../Components/Label/Label';
+import UserElement from '../../Components/User/User';
+import User from 'Model/Models/User';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
+    const modelId: ObjectID = new ObjectID(
+        Navigation.getLastParam()?.toString().substring(1) || ''
+    );
+
     return (
         <Page
             title={'Project Settings'}
@@ -87,6 +93,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
+                                _id: true,
+                            },
+                            title: 'Team ID',
+                        },
+                        {
+                            field: {
                                 name: true,
                             },
                             title: 'Name',
@@ -109,9 +121,16 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 model={new TeamMember()}
                 id="table-team-member"
                 isDeleteable={true}
-                isEditable={true}
+                createVerb={'Invite'}
                 isCreateable={true}
                 isViewable={false}
+                query={{
+                    teamId: modelId,
+                }}
+                onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
+                    item.teamId = modelId;
+                    return Promise.resolve(item);
+                }}
                 cardProps={{
                     icon: IconProp.User,
                     title: 'Team Members',
@@ -126,10 +145,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User Email',
                         description:
-                            'Please enter the email of the user you would like to invite.',
+                            'Please enter the email of the user you would like to invite. We will send them an email to let them know they have been invited to this team.',
                         fieldType: FormFieldSchemaType.Email,
                         required: false,
                         placeholder: 'member@company.com',
+                        overideFieldKey: 'email',
                     },
                 ]}
                 showRefreshButton={true}
@@ -144,23 +164,25 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         type: TableColumnType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             if (item['user']) {
-                                if (
-                                    item['user'] &&
-                                    (item['user'] as JSONObject)['name'] &&
-                                    (item['user'] as JSONObject)['name']
-                                ) {
-                                    return (
-                                        <p>
-                                            {((item['user'] as JSONObject)[
-                                                'name'
-                                            ] as string) || ''}
-                                        </p>
-                                    );
-                                }
+                                return (
+                                    <UserElement
+                                        user={new User().fromJSON(
+                                            item['user'] as JSONObject,
+                                            User
+                                        )}
+                                    />
+                                );
                             }
 
                             return <></>;
                         },
+                    },
+                    {
+                        field: {
+                            hasAcceptedInvitation: true,
+                        },
+                        title: 'Invitation Accepted',
+                        type: TableColumnType.Boolean,
                     },
                 ]}
             />
@@ -175,6 +197,15 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 isViewable={false}
+                query={{
+                    teamId: modelId,
+                }}
+                onBeforeCreate={(
+                    item: TeamPermission
+                ): Promise<TeamPermission> => {
+                    item.teamId = modelId;
+                    return Promise.resolve(item);
+                }}
                 cardProps={{
                     icon: IconProp.Lock,
                     title: 'Team Permissions',
@@ -246,23 +277,17 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             ) {
                                 let counter: number = 0;
                                 for (const label of item['labels']) {
-                                    if (
-                                        label &&
-                                        (label as JSONObject)['color'] &&
-                                        (label as JSONObject)['name']
-                                    ) {
-                                        returnElements.push(
-                                            <LabelElement
-                                                key={counter}
-                                                label={new Label().fromJSON(
-                                                    label as JSONObject,
-                                                    Label
-                                                )}
-                                            />
-                                        );
+                                    returnElements.push(
+                                        <LabelElement
+                                            key={counter}
+                                            label={new Label().fromJSON(
+                                                label as JSONObject,
+                                                Label
+                                            )}
+                                        />
+                                    );
 
-                                        counter++;
-                                    }
+                                    counter++;
                                 }
                             }
 

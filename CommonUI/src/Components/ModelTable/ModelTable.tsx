@@ -31,7 +31,6 @@ import Permission, {
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
-import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import Query from '../../Utils/ModelAPI/Query';
 import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
@@ -63,6 +62,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showFilterButton?: undefined | boolean;
     isViewable?: undefined | boolean;
     currentPageRoute?: undefined | Route;
+    query?: Query<TBaseModel>;
+    onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    createVerb?: string;
 }
 
 enum ModalType {
@@ -137,7 +139,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             const listResult: ListResult<TBaseModel> =
                 await ModelAPI.getList<TBaseModel>(
                     props.type,
-                    query,
+                    {
+                        ...query,
+                        ...props.query,
+                    },
                     itemsOnPage,
                     (currentPageNumber - 1) * itemsOnPage,
                     getSelect(),
@@ -228,7 +233,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         if (props.isCreateable && hasPermissionToCreate) {
             headerbuttons.push({
-                title: `Create ${model.singularName}`,
+                title: `${props.createVerb || 'Create'} ${model.singularName}`,
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
                     setModalType(ModalType.Create);
@@ -315,7 +320,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         userPermissions.push(Permission.Public);
 
         const accessControl: Dictionary<ColumnAccessControl> =
-            getColumnAccessControlForAllColumns(props.model);
+            props.model.getColumnAccessControlForAllColumns();
 
         for (const column of props.columns) {
             const key: string | null = column.field
@@ -566,7 +571,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFromModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `Create New ${model.singularName}`
+                            ? `${props.createVerb || 'Create'} New ${
+                                  model.singularName
+                              }`
                             : `Edit ${model.singularName}`
                     }
                     onClose={() => {
@@ -574,7 +581,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `Create ${model.singularName}`
+                            ? `${props.createVerb || 'Create'} ${
+                                  model.singularName
+                              }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {
@@ -582,6 +591,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         setCurrentPageNumber(1);
                         fetchItems();
                     }}
+                    onBeforeCreate={props.onBeforeCreate}
                     type={props.type}
                     formProps={{
                         model: model,

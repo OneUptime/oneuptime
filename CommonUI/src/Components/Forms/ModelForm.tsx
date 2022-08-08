@@ -25,7 +25,6 @@ import Permission, {
     UserPermission,
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
-import { getColumnAccessControlForAllColumns } from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -65,6 +64,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     initialValues?: FormValues<TBaseModel> | undefined;
     modelIdToEdit?: ObjectID | undefined;
     onError?: ((error: string) => void) | undefined;
+    onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
@@ -129,7 +129,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         userPermissions.push(Permission.Public);
 
         const accessControl: Dictionary<ColumnAccessControl> =
-            getColumnAccessControlForAllColumns(props.model);
+            props.model.getColumnAccessControlForAllColumns();
 
         let fieldsToSet: Fields<TBaseModel> = [];
 
@@ -316,6 +316,19 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         }
     }, []);
 
+    const getmiscDataProps: Function = (values: JSONObject): JSONObject => {
+        const result: JSONObject = {};
+
+        for (const field of fields) {
+            if (field.overideFieldKey && values[field.overideFieldKey]) {
+                result[field.overideFieldKey] =
+                    values[field.overideFieldKey] || null;
+            }
+        }
+
+        return result;
+    };
+
     const onSubmit: Function = async (values: JSONObject): Promise<void> => {
         // Ping an API here.
         setError('');
@@ -340,10 +353,27 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 (valuesToSend as any)['_id'] = props.modelIdToEdit.toString();
             }
 
+            const miscDataProps: JSONObject = getmiscDataProps(values);
+
+            // remove those props from valuesToSend
+            for (const key in miscDataProps) {
+                delete valuesToSend[key];
+            }
+
+            let tBaseModel: TBaseModel = props.model.fromJSON(
+                valuesToSend,
+                props.type
+            );
+
+            if (props.onBeforeCreate && props.formType === FormType.Create) {
+                tBaseModel = await props.onBeforeCreate(tBaseModel);
+            }
+
             result = await ModelAPI.createOrUpdate<TBaseModel>(
-                props.model.fromJSON(valuesToSend, props.type),
+                tBaseModel,
                 props.formType,
-                props.apiUrl
+                props.apiUrl,
+                miscDataProps
             );
 
             if (props.onSuccess) {

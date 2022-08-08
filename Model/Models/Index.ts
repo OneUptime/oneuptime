@@ -15,8 +15,16 @@ import ApiKeyPermission from './ApiKeyPermission';
 //Labels.
 import Label from './Label';
 
-// Project SMTP Config.
+// Status Page
+import StatusPage from './StatusPage';
 
+// On Call Duty
+import OnCallDuty from './OnCallDuty';
+
+// Monitors
+import Monitor from './Monitor';
+
+// Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 
 export default [
@@ -31,4 +39,7 @@ export default [
     Label,
     ApiKeyPermission,
     ProjectSmtpConfig,
+    StatusPage,
+    OnCallDuty,
+    Monitor,
 ];

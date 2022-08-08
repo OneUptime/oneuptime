@@ -1,139 +1,239 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
-
 import User from './User';
 import Project from './Project';
-@Entity({
-    name: 'UserAlerts',
+import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
+import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
+import Route from 'Common/Types/API/Route';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import TableColumn from 'Common/Types/Database/TableColumn';
+import ColumnType from 'Common/Types/Database/ColumnType';
+import ObjectID from 'Common/Types/ObjectID';
+import ColumnLength from 'Common/Types/Database/ColumnLength';
+import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import Permission from 'Common/Types/Permission';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import EntityName from 'Common/Types/Database/EntityName';
+
+@ProjectColumn('projectId')
+@TableAccessControl({
+    create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
+    read: [
+        Permission.ProjectOwner,
+        Permission.CanReadProjectStatusPage,
+        Permission.ProjectMember,
+    ],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectStatusPage],
+    update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
 })
-export default class Model extends BaseModel {
-    @Column()
-    public project?: Project;
+@CrudApiEndpoint(new Route('/status-page'))
+@SlugifyColumn('name', 'slug')
+@Entity({
+    name: 'StatusPage',
+})
+@EntityName('Status Page', 'Status Pages')
+export default class StatusPage extends BaseModel {
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'projectId',
+        type: TableColumnType.Entity,
+        modelType: Project,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return Project;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'projectId' })
+    public project?: Project = undefined;
 
-    @Column()
-    public slug?: string = undefined;
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public projectId?: ObjectID = undefined;
 
-    @Column()
-    public title?: string = undefined;
-
-    @Column()
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @Index()
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
     public name?: string = undefined;
 
-    @Column()
-    public isPrivate?: boolean = undefined;
-
-    @Column()
-    public isSubscriberEnabled?: boolean = undefined;
-
-    @Column()
-    public isGroupedByMonitorCategory?: boolean = undefined;
-
-    @Column()
-    public showScheduledEvents?: boolean = undefined;
-    // Show incident to the top of status page
-
-    @Column()
-    public moveIncidentToTheTop?: boolean = undefined;
-    // Show or hide the probe bar
-
-    @Column()
-    public hideProbeBar?: boolean = undefined;
-    // Show or hide uptime (%) on the status page
-
-    @Column()
-    public hideUptime?: boolean = undefined;
-
-    @Column()
-    public multipleNotificationTypes?: boolean = undefined;
-    // Show or hide resolved incident on the status page
-
-    @Column()
-    public hideResolvedIncident?: boolean = undefined;
-
-    @Column()
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @Column({
+        nullable: true,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+    })
     public description?: string = undefined;
 
-    @Column()
-    public copyright?: string = undefined;
+    @Index()
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @Column({
+        nullable: false,
+        type: ColumnType.Slug,
+        length: ColumnLength.Slug,
+        unique: true,
+    })
+    public slug?: string = undefined;
 
-    @Column()
-    public faviconPath?: string = undefined;
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'createdByUserId',
+        type: TableColumnType.Entity,
+        modelType: Project,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'createdByUserId' })
+    public createdByUser?: User = undefined;
 
-    @Column()
-    public logoPath?: string = undefined;
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public createdByUserId?: ObjectID = undefined;
 
-    @Column()
-    public bannerPath?: string = undefined;
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'deletedByUserId',
+        type: TableColumnType.ObjectID,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return User;
+        },
+        {
+            cascade: false,
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'deletedByUserId' })
+    public deletedByUser?: User = undefined;
 
-    @Column()
-    public colors?: Object;
-
-    @Column()
-    public layout?: Object;
-
-    @Column()
-    public headerHTML?: string = undefined;
-
-    @Column()
-    public footerHTML?: string = undefined;
-
-    @Column()
-    public customCSS?: string = undefined;
-
-    @Column()
-    public customJS?: string = undefined;
-
-    @Column()
-    public statusBubble?: string = undefined;
-
-    @Column()
-    public embeddedCss?: string = undefined;
-
-    @Column()
-    public enableRSSFeed?: boolean = undefined;
-
-    @Column()
-    public emailNotification?: boolean = undefined;
-
-    @Column()
-    public smsNotification?: boolean = undefined;
-
-    @Column()
-    public webhookNotification?: boolean = undefined;
-
-    @Column()
-    public selectIndividualMonitors?: boolean = undefined;
-
-    @Column()
-    public enableIpWhitelist?: boolean = undefined;
-
-    @Column()
-    public incidentHistoryDays?: number;
-
-    @Column()
-    public scheduleHistoryDays?: number;
-
-    @Column()
-    public announcementLogsHistory?: number;
-
-    @Column()
-    public onlineText?: string = undefined;
-
-    @Column()
-    public offlineText?: string = undefined;
-
-    @Column()
-    public degradedText?: string = undefined;
-
-    @Column()
-    public twitterHandle?: string = undefined;
-
-    @Column()
-    public enableMultipleLanguage?: boolean = undefined;
-
-    @Column()
-    public deletedByUser?: User;
-
-    @Column()
-    public theme?: string = undefined;
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectMember],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public deletedByUserId?: ObjectID = undefined;
 }

@@ -64,10 +64,22 @@ enum Permission {
     CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
 
     // Resource Permissions (Team Permission)
-    CanCreateProjectResources = 'CanCreateProjectResources',
-    CanEditProjectResources = 'CanEditProjectResources',
-    CanDeleteProjectResources = 'CanDeleteProjectResources',
-    CanReadProjectResources = 'CanReadProjectResources',
+    CanCreateProjectMonitor = 'CanCreateProjectMonitor',
+    CanEditProjectMonitor = 'CanEditProjectMonitor',
+    CanDeleteProjectMonitor = 'CanDeleteProjectMonitor',
+    CanReadProjectMonitor = 'CanReadProjectMonitor',
+
+    // Resource Permissions (Team Permission)
+    CanCreateProjectStatusPage = 'CanCreateProjectStatusPage',
+    CanEditProjectStatusPage = 'CanEditProjectStatusPage',
+    CanDeleteProjectStatusPage = 'CanDeleteProjectStatusPage',
+    CanReadProjectStatusPage = 'CanReadProjectStatusPage',
+
+    // Resource Permissions (Team Permission)
+    CanCreateProjectOnCallDuty = 'CanCreateProjectOnCallDuty',
+    CanEditProjectOnCallDuty = 'CanEditProjectOnCallDuty',
+    CanDeleteProjectOnCallDuty = 'CanDeleteProjectOnCallDuty',
+    CanReadProjectOnCallDuty = 'CanReadProjectOnCallDuty',
 
     // Project SMTP Config (Team Permission)
     CanCreateProjectSMTPConfig = 'CanCreateProjectSMTPConfig',
@@ -86,6 +98,15 @@ export class PermissionHelper {
                 return permissions2.includes(value);
             }).length > 0
         );
+    }
+
+    public static getIntersectingPermissions(
+        permissions1: Array<Permission>,
+        permissions2: Array<Permission>
+    ): Array<Permission> {
+        return permissions1.filter((value: Permission) => {
+            return permissions2.includes(value);
+        });
     }
 
     public static getProjectPermissionProps(): Array<PermissionProps> {
@@ -340,31 +361,89 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateProjectResources,
-                title: 'Can Create Resources',
+                permission: Permission.CanCreateProjectMonitor,
+                title: 'Can Create Monitor',
                 description:
-                    'A user assigned this permission can create resources this this project.',
+                    'A user assigned this permission can create monitor this this project.',
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CanDeleteProjectResources,
-                title: 'Can Delete Resources',
+                permission: Permission.CanDeleteProjectMonitor,
+                title: 'Can Delete Monitor',
                 description:
-                    'A user assigned this permission  can delete resources of this project.',
+                    'A user assigned this permission  can delete monitor of this project.',
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CanEditProjectResources,
-                title: 'Can Edit Resources',
+                permission: Permission.CanEditProjectMonitor,
+                title: 'Can Edit Monitor',
                 description:
-                    'A user assigned this permission can edit resources of this project.',
+                    'A user assigned this permission can edit monitor of this project.',
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CanReadProjectResources,
-                title: 'Can Read Resources',
+                permission: Permission.CanReadProjectMonitor,
+                title: 'Can Read Monitor',
                 description:
-                    'A user assigned this permission  can read resources of this project.',
+                    'A user assigned this permission  can read monitor of this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateProjectOnCallDuty,
+                title: 'Can Create On-Call Duty',
+                description:
+                    'A user assigned this permission can create on-call duty this this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectOnCallDuty,
+                title: 'Can Delete On-Call Duty',
+                description:
+                    'A user assigned this permission  can delete on-call duty of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectOnCallDuty,
+                title: 'Can Edit On-Call Duty',
+                description:
+                    'A user assigned this permission can edit on-call duty of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectOnCallDuty,
+                title: 'Can Read On-Call Duty',
+                description:
+                    'A user assigned this permission  can read on-call duty of this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateProjectStatusPage,
+                title: 'Can Create Status Page',
+                description:
+                    'A user assigned this permission can create status pages this this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectStatusPage,
+                title: 'Can Delete Status Page',
+                description:
+                    'A user assigned this permission  can delete status pages of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectStatusPage,
+                title: 'Can Edit Status Page',
+                description:
+                    'A user assigned this permission can edit status pages of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectStatusPage,
+                title: 'Can Read Status Page',
+                description:
+                    'A user assigned this permission  can read status pages of this project.',
                 isAssignableToProject: true,
             },
 

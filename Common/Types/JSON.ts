@@ -11,6 +11,8 @@ import Search from './Database/Search';
 import Typeof from './Typeof';
 import Port from './Port';
 import Hostname from './API/Hostname';
+import HashedString from './HashedString';
+import DatabaseProperty from './Database/DatabaseProperty';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -25,6 +27,7 @@ enum ObjectType {
     Search = 'Search',
     Port = 'Port',
     Hostname = 'Hostname',
+    HashedString = 'HashedString',
 }
 
 export type JSONValue =
@@ -61,6 +64,8 @@ export type JSONValue =
     | Array<Search>
     | Port
     | Array<Port>
+    | HashedString
+    | Array<HashedString>
     | Hostname
     | Array<Hostname>
     | Array<JSONValue>
@@ -85,6 +90,8 @@ export class JSONFunctions {
 
     // this funciton serializes JSON with Common Objects to JSON that can be stringified.
     public static serialize(val: JSONObject): JSONObject {
+        const newVal: JSONValue = {};
+
         for (const key in val) {
             if (!val[key]) {
                 continue;
@@ -96,13 +103,13 @@ export class JSONFunctions {
                     arraySerialize.push(this.serializeValue(arrVal));
                 }
 
-                val[key] = arraySerialize;
+                newVal[key] = arraySerialize;
+            } else {
+                newVal[key] = this.serializeValue(val[key] as JSONValue);
             }
-
-            val[key] = this.serializeValue(val[key] as JSONValue);
         }
 
-        return val;
+        return newVal;
     }
 
     public static serializeValue(val: JSONValue): JSONValue {
@@ -132,6 +139,11 @@ export class JSONFunctions {
             return {
                 _type: ObjectType.Port,
                 value: (val as Port).toString(),
+            };
+        } else if (val && val instanceof HashedString) {
+            return {
+                _type: ObjectType.HashedString,
+                value: (val as HashedString).toString(),
             };
         } else if (val && val instanceof Hostname) {
             return {
@@ -172,6 +184,8 @@ export class JSONFunctions {
 
     public static deserializeValue(val: JSONValue): JSONValue {
         if (!val) {
+            return val;
+        } else if (val instanceof DatabaseProperty) {
             return val;
         } else if (
             val &&
@@ -260,6 +274,15 @@ export class JSONFunctions {
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
             typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.HashedString
+        ) {
+            val = new HashedString((val as JSONObject)['value'] as string);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Color
         ) {
             val = new Color((val as JSONObject)['value'] as string);
@@ -300,6 +323,7 @@ export class JSONFunctions {
     }
 
     public static deserialize(val: JSONObject): JSONObject {
+        const newVal: JSONObject = {};
         for (const key in val) {
             if (!val[key]) {
                 continue;
@@ -311,13 +335,13 @@ export class JSONFunctions {
                     arraySerialize.push(this.deserializeValue(arrVal));
                 }
 
-                val[key] = arraySerialize;
+                newVal[key] = arraySerialize;
+            } else {
+                newVal[key] = this.deserializeValue(val[key] as JSONValue);
             }
-
-            val[key] = this.deserializeValue(val[key] as JSONValue);
         }
 
-        return val;
+        return newVal;
     }
 }
 

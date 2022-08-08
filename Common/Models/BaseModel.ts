@@ -23,6 +23,8 @@ import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
 import Permission from '../Types/Permission';
+import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
+import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 
 export type DbTypes =
     | string
@@ -130,6 +132,28 @@ export default class BaseModel extends BaseEntity {
         return dictionary[columnName] as TableColumnMetadata;
     }
 
+    public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
+        const dictionary: Dictionary<ColumnAccessControl> =
+            getColumnAccessControlForAllColumns(this);
+
+        const defaultColumns: Array<string> = [
+            '_id',
+            'createdAt',
+            'deletedAt',
+            'updatedAt',
+        ];
+
+        for (const key of defaultColumns) {
+            dictionary[key] = {
+                read: this.readRecordPermissions,
+                create: this.createRecordPermissions,
+                update: this.updateRecordPermissions,
+            };
+        }
+
+        return dictionary;
+    }
+
     public hasValue(columnName: string): boolean {
         return Boolean((this as any)[columnName]);
     }
@@ -222,7 +246,9 @@ export default class BaseModel extends BaseEntity {
         const baseModel: T = new type();
 
         for (const key of Object.keys(json)) {
-            (baseModel as any)[key] = json[key];
+            if (baseModel.getTableColumnMetadata(key)) {
+                (baseModel as any)[key] = json[key];
+            }
         }
 
         return baseModel as T;
