@@ -23,6 +23,7 @@ import TeamPermission from 'Model/Models/TeamPermission';
 import UserElement from '../../Components/User/User';
 import User from 'Model/Models/User';
 import LabelsElement from '../../Components/Label/Labels';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -127,7 +128,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     projectId: props.currentProject?._id
                 }}
                 onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException("Project ID cannot be null");
+                    }
                     item.teamId = modelId;
+                    item.projectId = props.currentProject.id
                     return Promise.resolve(item);
                 }}
                 cardProps={{
@@ -202,7 +207,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: TeamPermission
                 ): Promise<TeamPermission> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException("Project ID cannot be null");
+                    }
                     item.teamId = modelId;
+                    item.projectId = props.currentProject.id
                     return Promise.resolve(item);
                 }}
                 cardProps={{

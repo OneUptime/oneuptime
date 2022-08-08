@@ -10,12 +10,12 @@ const UserElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div>
-            <div>
+            <div className='bold'>
                 {(props.user.toJSONObject()['name']?.toString() as string) ||
-                    ''}
+                    'User not signed up so far'}
             </div>
 
-            <div>
+            <div className='color-light-grey'>
                 {(props.user.toJSONObject()['email']?.toString() as string) ||
                     ''}
             </div>

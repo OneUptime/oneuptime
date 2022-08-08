@@ -21,6 +21,7 @@ import FieldType from 'CommonUI/src/Components/ModelDetail/FieldType';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../Components/Label/Labels';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -147,7 +148,13 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: ApiKeyPermission
                 ): Promise<ApiKeyPermission> => {
+                    
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException("Project ID cannot be null");
+                    }
+
                     item.apiKeyId = modelId;
+                    item.projectId = props.currentProject.id
                     return Promise.resolve(item);
                 }}
                 isEditable={true}
