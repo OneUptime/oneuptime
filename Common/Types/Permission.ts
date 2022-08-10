@@ -63,6 +63,19 @@ enum Permission {
     CanDeleteProjectLabel = 'CanDeleteProjectLabel',
     CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
 
+
+    // MonitorStatus Permissions (Owner + Admin Permission by default)
+    CanCreateProjectMonitorStatus = 'CanCreateProjectMonitorStatus',
+    CanEditProjectMonitorStatus = 'CanEditProjectMonitorStatus',
+    CanReadProjectMonitorStatus = 'CanReadProjectMonitorStatus',
+    CanDeleteProjectMonitorStatus = 'CanDeleteProjectMonitorStatus',
+
+    // IncidentState Permissions (Owner + Admin Permission by default)
+    CanCreateProjectIncidentState = 'CanCreateProjectIncidentState',
+    CanEditProjectIncidentState = 'CanEditProjectIncidentState',
+    CanReadProjectIncidentState = 'CanReadProjectIncidentState',
+    CanDeleteProjectIncidentState = 'CanDeleteProjectIncidentState',
+
     // Resource Permissions (Team Permission)
     CanCreateProjectMonitor = 'CanCreateProjectMonitor',
     CanEditProjectMonitor = 'CanEditProjectMonitor',
@@ -287,6 +300,67 @@ export class PermissionHelper {
                     'A user assigned this permission  can read labels of this project.',
                 isAssignableToProject: true,
             },
+
+
+            {
+                permission: Permission.CanCreateProjectMonitorStatus,
+                title: 'Can Create Monitor Status',
+                description:
+                    'A user assigned this permission can create monitor statuses this this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectMonitorStatus,
+                title: 'Can Delete Monitor Status',
+                description:
+                    'A user assigned this permission  can delete monitor statuses of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectMonitorStatus,
+                title: 'Can Edit Monitor Status',
+                description:
+                    'A user assigned this permission can edit monitor statuses of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectMonitorStatus,
+                title: 'Can Read Monitor Status',
+                description:
+                    'A user assigned this permission  can read monitor statuses of this project.',
+                isAssignableToProject: true,
+            },
+
+
+            {
+                permission: Permission.CanCreateProjectIncidentState,
+                title: 'Can Create Incident State',
+                description:
+                    'A user assigned this permission can create incident state in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectIncidentState,
+                title: 'Can Delete Incident State',
+                description:
+                    'A user assigned this permission  can delete incident state in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectIncidentState,
+                title: 'Can Edit Incident State',
+                description:
+                    'A user assigned this permission can edit incident state in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectIncidentState,
+                title: 'Can Read Incident State',
+                description:
+                    'A user assigned this permission  can read incident state in this project.',
+                isAssignableToProject: true,
+            },
+
 
             {
                 permission: Permission.CanCreateProjectSMTPConfig,

@@ -76,6 +76,17 @@ import OnCallDutyService, {
     Service as OnCallDutyServiceType,
 } from 'CommonServer/Services/OnCallDutyService';
 
+
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import MonitorStatusService, {
+    Service as MonitorStatusServiceType,
+} from 'CommonServer/Services/MonitorStatusService';
+
+import IncidentState from 'Model/Models/IncidentState';
+import IncidentStateStatusService, {
+    Service as IncidentStateStatusServiceType,
+} from 'CommonServer/Services/IncidentStateService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -98,10 +109,25 @@ app.use(
         TeamMemberService
     ).getRouter()
 );
+
 app.use(
     new BaseAPI<TeamPermission, TeamPermissionServiceType>(
         TeamPermission,
         TeamPermissionService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<MonitorStatus, MonitorStatusServiceType>(
+        MonitorStatus,
+        MonitorStatusService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<IncidentState, IncidentStateStatusServiceType>(
+        IncidentState,
+        IncidentStateStatusService
     ).getRouter()
 );
 

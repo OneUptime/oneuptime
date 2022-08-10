@@ -53,6 +53,14 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/custom-smtp`
     ),
 
+    [PageMap.SETTINGS_MONITORS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/monitors`
+    ),
+
+    [PageMap.SETTINGS_INCIDENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/incidents`
+    ),
+
     [PageMap.SETTINGS_TEAMS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/teams`
     ),
@@ -64,7 +72,7 @@ const RouteMap: Dictionary<Route> = {
     // labels.
     [PageMap.SETTINGS_LABELS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/labels`
-    ),
+    ), 
 
     // logout.
     [PageMap.LOGOUT]: new Route(`/dashboard/logout`),

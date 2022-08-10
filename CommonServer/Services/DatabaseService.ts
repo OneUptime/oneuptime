@@ -960,7 +960,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             findBy = this.asFindByByPermissions(findBy);
 
             findBy.query = this.serializeQuery(query);
-
+            
             const count: number = await this.getRepository().count({
                 where: findBy.query as any,
                 skip: (findBy.skip as PositiveNumber).toNumber(),

@@ -14,12 +14,8 @@ import Permission, {
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
-import Field from './Field';
-import Link from '../Link/Link';
-import BadDataException from 'Common/Types/Exception/BadDataException';
-import OneUptimeDate from 'Common/Types/Date';
-import FieldType from './FieldType';
-import HiddenText from '../HiddenText/HiddenText';
+import Field from '../Detail/Field';
+import Detail from '../Detail/Detail';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -159,78 +155,6 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         fetchItem();
     }, []);
 
-    const getField: Function = (
-        field: Field<TBaseModel>,
-        index: number
-    ): ReactElement => {
-        const fieldKeys: Array<string> = Object.keys(field.field);
-        let fieldKey: string | null = null;
-
-        if (fieldKeys.length > 0 && fieldKeys[0]) {
-            fieldKey = fieldKeys[0];
-        } else {
-            throw new BadDataException('Field Key not found');
-        }
-
-        if (!item) {
-            throw new BadDataException('Item not found');
-        }
-
-        let data: string | ReactElement = '';
-
-        if ((item as any)[fieldKey]) {
-            data = (item as any)[fieldKey]?.toString() || '';
-        }
-
-        if (field.fieldType === FieldType.Date) {
-            data = OneUptimeDate.getDateAsLocalFormattedString(
-                data as string,
-                true
-            );
-        }
-
-        if (field.fieldType === FieldType.HiddenText) {
-            data = (
-                <HiddenText
-                    isCopyable={field.opts?.isCopyable || false}
-                    text={data as string}
-                />
-            );
-        }
-
-        return (
-            <div className="mb-3" key={index}>
-                <label className="form-Label form-label justify-space-between width-max">
-                    <span>{field.title}</span>
-                    {field.sideLink &&
-                        field.sideLink?.text &&
-                        field.sideLink?.url && (
-                            <span>
-                                <Link
-                                    to={field.sideLink?.url}
-                                    className="underline-on-hover"
-                                >
-                                    {field.sideLink?.text}
-                                </Link>
-                            </span>
-                        )}
-                </label>
-                {field.description && <p>{field.description}</p>}
-
-                <div
-                    className="form-control"
-                    style={{
-                        border: 'none',
-                        paddingLeft: '0px',
-                        paddingTop: '0px',
-                    }}
-                >
-                    {data}
-                </div>
-            </div>
-        );
-    };
-
     if (isLoading) {
         return (
             <div
@@ -272,13 +196,10 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     }
 
     return (
-        <div id={props.id}>
-            {fields &&
-                fields.length > 0 &&
-                fields.map((field: Field<TBaseModel>, i: number) => {
-                    return getField(field, i);
-                })}
-        </div>
+        <Detail
+            item={item}
+            fields={fields}
+        />
     );
 };
 

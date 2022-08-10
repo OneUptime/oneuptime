@@ -17,7 +17,7 @@ import PermissionUtil from 'CommonUI/src/Utils/Permission';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
-import FieldType from 'CommonUI/src/Components/ModelDetail/FieldType';
+import FieldType from 'CommonUI/src/Components/Detail/FieldType';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../Components/Label/Labels';

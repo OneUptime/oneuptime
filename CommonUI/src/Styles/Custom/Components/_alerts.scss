@@ -44,10 +44,21 @@
   }
 }
 
+.alert{
+  height: 38px;
+  padding-top: 8px;
+}
+
 .alert-danger {
   --bs-alert-color: white;
   --bs-alert-bg: #fd625e;
   --bs-alert-border-color: #fd625e;
+}
+
+.alert-info {
+  --bs-alert-color: white;
+  --bs-alert-bg: #3574a7;
+  --bs-alert-border-color: #3574a7;
 }
 
 // Alert border left example

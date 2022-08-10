@@ -14,7 +14,7 @@ import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
-const Labels: FunctionComponent<PageComponentProps> = (
+const IncidentState: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
@@ -38,9 +38,6 @@ const Labels: FunctionComponent<PageComponentProps> = (
         >
             <ModelTable<Label>
                 modelType={Label}
-                query={{
-                    projectId: props.currentProject?._id,
-                }}
                 id="labels-table"
                 isDeleteable={true}
                 isEditable={true}
@@ -123,4 +120,4 @@ const Labels: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default Labels;
+export default IncidentState;

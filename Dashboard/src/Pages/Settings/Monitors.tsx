@@ -6,15 +6,16 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Label from 'Model/Models/Label';
+import MonitorStatus from 'Model/Models/MonitorStatus';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
-const Labels: FunctionComponent<PageComponentProps> = (
+const Monitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
@@ -30,29 +31,40 @@ const Labels: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.SETTINGS] as Route,
                 },
                 {
-                    title: 'Labels',
-                    to: RouteMap[PageMap.SETTINGS_LABELS] as Route,
+                    title: 'Monitors',
+                    to: RouteMap[PageMap.SETTINGS_MONITORS] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <ModelTable<Label>
-                modelType={Label}
+            <ModelTable<MonitorStatus>
+                modelType={MonitorStatus}
                 query={{
                     projectId: props.currentProject?._id,
                 }}
-                id="labels-table"
+                id="monitor-status-table"
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Label,
-                    title: 'Labels',
+                    icon: IconProp.Activity,
+                    title: 'Monitor Status',
                     description:
-                        'Labels help you categorize resources in your project and give granular permissions to access those resources to team members.',
+                        'Define different status types (eg: Operational, Degraded, Down) here.',
                 }}
-                noItemsMessage={'No labels created for this project so far.'}
+                noItemsMessage={'No monitor status created for this project so far.'}
                 currentPageRoute={props.pageRoute}
+                onBeforeCreate={(
+                    item: MonitorStatus
+                ): Promise<MonitorStatus> => {
+                    
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException("Project ID cannot be null");
+                    }
+
+                    item.projectId = props.currentProject.id
+                    return Promise.resolve(item);
+                }}
                 formFields={[
                     {
                         field: {
@@ -61,7 +73,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'internal-service',
+                        placeholder: 'Operational',
                         validation: {
                             noSpaces: true,
                             minLength: 2,
@@ -75,16 +87,16 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder:
-                            'This label is for all the internal services.',
+                            'Monitors are up and operating normally.',
                     },
                     {
                         field: {
                             color: true,
                         },
-                        title: 'Label Color',
+                        title: 'Monitor Status Color',
                         fieldType: FormFieldSchemaType.Color,
                         required: true,
-                        placeholder: 'Please select color for this label.',
+                        placeholder: 'Please select color for this monitor status.',
                     },
                 ]}
                 showRefreshButton={true}
@@ -123,4 +135,4 @@ const Labels: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default Labels;
+export default Monitors;

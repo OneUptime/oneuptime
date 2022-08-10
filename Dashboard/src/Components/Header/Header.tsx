@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import SearchBox from 'CommonUI/src/Components/Header/SearchBox';
 import Notifications from './Notifications';
 import Help from './Help';
@@ -21,43 +21,58 @@ export interface ComponentProps {
 const DashboardHeader: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const [showProjectInvitationModal, setShowProjectInvitationModal] = useState<boolean>(false);
+
     return (
-        <Header
-            leftComponents={
-                <>
-                    <ProjectPicker
-                        projects={props.projects}
-                        onProjectSelected={props.onProjectSelected}
-                    />
-                    <SearchBox key={2} onChange={(_value: string) => { }} />
-                    <CounterModelAlert<TeamMember>
-                        alertType={AlertType.INFO}
-                        modelType={TeamMember}
-                        query={
-                            {
-                                userId: User.getUserId(),
-                                hasAcceptedInvitation: false
-                            }
-                        }
-                        singularName="Project Invitation"
-                        pluralName="Project Invitations"
-                        queryOptions={
-                            {
-                                isMultiTenantQuery: true
-                            }
-                        }
-                        
-                    />
-                </>
-            }
-            rightComponents={
-                <>
-                    <Notifications />
-                    <Help />
-                    <UserProfile />
-                </>
-            }
-        />
+        <>
+            <Header
+                leftComponents={
+                    <>
+                        <ProjectPicker
+                            projects={props.projects}
+                            onProjectSelected={props.onProjectSelected}
+                        />
+                        <SearchBox key={2} onChange={(_value: string) => { }} />
+                        <div style={{
+                            marginLeft: "15px",
+                            marginTop: "15px"
+                        }}>
+                            <CounterModelAlert<TeamMember>
+                                alertType={AlertType.INFO}
+                                modelType={TeamMember}
+                                query={
+                                    {
+                                        userId: User.getUserId(),
+                                        hasAcceptedInvitation: false
+                                    }
+                                }
+                                singularName="Project Invitation"
+                                pluralName="Project Invitations"
+                                queryOptions={
+                                    {
+                                        isMultiTenantQuery: true
+                                    }
+                                }
+                                onClick={() => {
+                                    setShowProjectInvitationModal(true);
+                                }}
+
+                            />
+                        </div>
+                    </>
+                }
+                rightComponents={
+                    <>
+                        <Notifications />
+                        <Help />
+                        <UserProfile />
+                    </>
+                }
+            />
+
+            {showProjectInvitationModal && <></>}
+        </>
     );
 };
 

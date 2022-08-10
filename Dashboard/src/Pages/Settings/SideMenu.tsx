@@ -60,6 +60,26 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.SMS}
                 />
             </SideMenuSection>
+            <SideMenuSection title="Resource Settings">
+                <SideMenuItem
+                    link={{
+                        title: 'Monitors',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_MONITORS] as Route
+                        ),
+                    }}
+                    icon={IconProp.Activity}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Incidents',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_INCIDENTS] as Route
+                        ),
+                    }}
+                    icon={IconProp.Alert}
+                />
+            </SideMenuSection>
             <SideMenuSection title="Team">
                 <SideMenuItem
                     link={{

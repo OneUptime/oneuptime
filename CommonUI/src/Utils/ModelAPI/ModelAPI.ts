@@ -195,11 +195,11 @@ export default class ModelAPI {
 
         const headers: Dictionary<string> = this.getCommonHeaders();
         if (queryOptions && queryOptions.isMultiTenantQuery) {
-            headers["isMultiTenantQuery"] = "true";
+            headers["is-multi-tenant-query"] = "true";
         }
 
-        const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
-            await API.fetch<JSONArray>(
+        const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
+            await API.fetch<JSONObject>(
                 HTTPMethod.POST,
                 apiUrl,
                 {
@@ -209,7 +209,7 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            const count: number = result.count;
+            const count: number = result.data["count"] as number;
 
             return count;
         }

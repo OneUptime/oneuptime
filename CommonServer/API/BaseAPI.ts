@@ -179,7 +179,7 @@ export default class BaseAPI<
         }
 
 
-        if (req.headers["isMultiTenantQuery"]) {
+        if (req.headers["is-multi-tenant-query"]) {
             props.isMultiTenantQuery = true; 
         }
 
