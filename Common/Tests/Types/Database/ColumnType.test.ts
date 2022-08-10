@@ -38,7 +38,7 @@ describe('enum ColumnType', () => {
     });
 
     test('ColumnType.ObjectID', () => {
-        expect(ColumnType.ObjectID).toEqual('varchar');
+        expect(ColumnType.ObjectID).toEqual('uuid');
     });
 
     test('ColumnType.ShortURL', () => {

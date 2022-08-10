@@ -14,7 +14,7 @@ describe('enum ColumnLength', () => {
     });
 
     test('ColumnLength.Color', () => {
-        expect(ColumnLength.Color).toEqual(6);
+        expect(ColumnLength.Color).toEqual(7);
     });
 
     test('ColumnLength.Name', () => {
@@ -31,10 +31,6 @@ describe('enum ColumnLength', () => {
 
     test('ColumnLength.Password', () => {
         expect(ColumnLength.Password).toEqual(500);
-    });
-
-    test('ColumnLength.ObjectID', () => {
-        expect(ColumnLength.ObjectID).toEqual(50);
     });
 
     test('ColumnLength.ShortURL', () => {
