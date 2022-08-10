@@ -16,13 +16,13 @@ import UserType from 'Common/Types/UserType';
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
         let projectId: ObjectID | null = null;
-        if (req.params && req.params['projectId']) {
-            projectId = new ObjectID(req.params['projectId']);
-        } else if (req.query && req.query['projectId']) {
-            projectId = new ObjectID(req.query['projectId'] as string);
-        } else if (req.headers && req.headers['projectid']) {
+        if (req.params && req.params['tenantid']) {
+            projectId = new ObjectID(req.params['tenantid']);
+        } else if (req.query && req.query['tenantid']) {
+            projectId = new ObjectID(req.query['tenantid'] as string);
+        } else if (req.headers && req.headers['tenantid']) {
             // Header keys are automatically transformed to lowercase
-            projectId = new ObjectID(req.headers['projectid'] as string);
+            projectId = new ObjectID(req.headers['tenantid'] as string);
         } else if (req.body && req.body.projectId) {
             projectId = new ObjectID(req.body.projectId as string);
         }
@@ -57,10 +57,10 @@ export default class ProjectMiddleware {
         _res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-        const projectId: ObjectID | null = this.getProjectId(req);
+        const tenantId: ObjectID | null = this.getProjectId(req);
         const apiKey: ObjectID | null = this.getApiKey(req);
 
-        if (!projectId) {
+        if (!tenantId) {
             throw new BadDataException('ProjectID not found in the request');
         }
 
@@ -70,7 +70,7 @@ export default class ProjectMiddleware {
 
         const apiKeyModel: ApiKey | null = await ApiKeyService.findOneBy({
             query: {
-                projectId: projectId,
+                projectId: tenantId,
                 apiKey: apiKey,
                 expiresAt: LessThan(OneUptimeDate.getCurrentDate()),
             },
@@ -82,7 +82,7 @@ export default class ProjectMiddleware {
             // TODO: Add API key permissions.
             // (req as OneUptimeRequest).permissions =
             //     apiKeyModel.permissions || [];
-            (req as OneUptimeRequest).projectId = projectId;
+            (req as OneUptimeRequest).tenantId = tenantId;
             return next();
         }
 

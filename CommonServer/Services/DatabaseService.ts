@@ -140,8 +140,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // Private method that runs before create.
         const projectIdColumn: string | null = this.model.getTenantColumn();
 
-        if (projectIdColumn && createBy.props.projectId) {
-            (createBy.data as any)[projectIdColumn] = createBy.props.projectId;
+        if (projectIdColumn && createBy.props.tenantId) {
+            (createBy.data as any)[projectIdColumn] = createBy.props.tenantId;
         }
 
         return await this.onBeforeCreate(createBy);
@@ -373,9 +373,20 @@ class DatabaseService<TBaseModel extends BaseModel> {
             createBy
         );
 
+        debugger;
+
         _createdBy = this.generateSlug(_createdBy);
 
         let data: TBaseModel = _createdBy.data;
+
+        // add tenantId if present. 
+        const tenantColumnName = data.getTenantColumn();
+
+        debugger; 
+
+        if (tenantColumnName && _createdBy.props.tenantId) {
+            data.setColumnValue(tenantColumnName, _createdBy.props.tenantId)
+        }
 
         this.checkRequiredFields(data);
 
@@ -511,7 +522,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         let userPermissions: Array<UserPermission> = [];
 
-        if (!props.projectId && props.userGlobalAccessPermission) {
+        if (!props.tenantId && props.userGlobalAccessPermission) {
             /// take gloabl permissions.
             userPermissions =
                 props.userGlobalAccessPermission.globalPermissions.map(
@@ -522,7 +533,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         };
                     }
                 );
-        } else if (props.projectId && props.userProjectAccessPermission) {
+        } else if (props.tenantId && props.userProjectAccessPermission) {
             /// take project based permissions because this is a project request.
             userPermissions = props.userProjectAccessPermission.permissions;
         } else {
@@ -626,18 +637,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        if (this.model.projectColumn && findBy.props.projectId && !(findBy.props.isMultiTenantQuery)) {
-            (findBy.query as any)[this.model.projectColumn] =
-                findBy.props.projectId;
+
+        const tenantColumn = this.model.getTenantColumn();
+
+
+        if (tenantColumn && findBy.props.tenantId && !(findBy.props.isMultiTenantQuery)) {
+            (findBy.query as any)[tenantColumn] =
+                findBy.props.tenantId;
         } else if (
-            this.model.projectColumn &&
-            !findBy.props.projectId &&
+            tenantColumn &&
+            !findBy.props.tenantId &&
             findBy.props.userGlobalAccessPermission
         ) {
-            (findBy.query as any)[this.model.projectColumn] = QueryHelper.in(
+            (findBy.query as any)[tenantColumn] = QueryHelper.in(
                 findBy.props.userGlobalAccessPermission?.projectIds
             );
-        } else if (this.model.projectColumn) {
+        } else if (tenantColumn) {
             throw new NotAuthorizedException(
                 'Not enough permissions to read the record'
             );
@@ -734,18 +749,21 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        if (this.model.projectColumn && updateBy.props.projectId) {
-            (updateBy.query as any)[this.model.projectColumn] =
-                updateBy.props.projectId;
+
+        const tenantColumn = this.model.getTenantColumn();
+
+        if (tenantColumn && updateBy.props.tenantId) {
+            (updateBy.query as any)[tenantColumn] =
+                updateBy.props.tenantId;
         } else if (
-            this.model.projectColumn &&
-            !updateBy.props.projectId &&
+            tenantColumn &&
+            !updateBy.props.tenantId &&
             updateBy.props.userGlobalAccessPermission
         ) {
-            (updateBy.query as any)[this.model.projectColumn] = QueryHelper.in(
+            (updateBy.query as any)[tenantColumn] = QueryHelper.in(
                 updateBy.props.userGlobalAccessPermission?.projectIds
             );
-        } else if (this.model.projectColumn) {
+        } else if (tenantColumn) {
             throw new NotAuthorizedException(
                 'Not enough permissions to read the record'
             );
@@ -799,10 +817,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 }),
                 this.model.deleteRecordPermissions
             );
-
-        if (this.model.projectColumn && deleteBy.props.projectId) {
-            (deleteBy.query as any)[this.model.projectColumn] =
-                deleteBy.props.projectId;
+        const tenantColumn = this.model.getTenantColumn();
+        if (tenantColumn && deleteBy.props.tenantId) {
+            (deleteBy.query as any)[tenantColumn] =
+                deleteBy.props.tenantId;
         }
 
         if (
@@ -1269,3 +1287,4 @@ class DatabaseService<TBaseModel extends BaseModel> {
 }
 
 export default DatabaseService;
+

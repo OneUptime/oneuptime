@@ -33,7 +33,7 @@ export interface OneUptimeRequest extends express.Request {
     requestEndedAt?: Date;
     userType?: UserType;
     userAuthorization?: JSONWebTokenData;
-    projectId?: ObjectID;
+    tenantId?: ObjectID;
     userGlobalAccessPermission?: UserGlobalAccessPermission;
     userProjectAccessPermission?: UserProjectAccessPermission;
 }

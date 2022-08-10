@@ -13,7 +13,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import BadDataException from 'Common/Types/Exception/BadDataException';
+
 
 const Monitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -54,17 +54,17 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 }}
                 noItemsMessage={'No monitor status created for this project so far.'}
                 currentPageRoute={props.pageRoute}
-                onBeforeCreate={(
-                    item: MonitorStatus
-                ): Promise<MonitorStatus> => {
+                // onBeforeCreate={(
+                //     item: MonitorStatus
+                // ): Promise<MonitorStatus> => {
                     
-                    if (!props.currentProject || !props.currentProject.id) {
-                        throw new BadDataException("Project ID cannot be null");
-                    }
+                //     if (!props.currentProject || !props.currentProject.id) {
+                //         throw new BadDataException("Project ID cannot be null");
+                //     }
 
-                    item.projectId = props.currentProject.id
-                    return Promise.resolve(item);
-                }}
+                //     item.projectId = props.currentProject.id
+                //     return Promise.resolve(item);
+                // }}
                 formFields={[
                     {
                         field: {

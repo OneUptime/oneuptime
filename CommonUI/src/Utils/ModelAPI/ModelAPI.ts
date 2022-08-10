@@ -223,7 +223,7 @@ export default class ModelAPI {
         const project: Project | null = ProjectUtil.getCurrentProject();
 
         if (project && project.id) {
-            headers['projectid'] = project.id.toString();
+            headers['tenantid'] = project.id.toString();
         }
 
         return headers;

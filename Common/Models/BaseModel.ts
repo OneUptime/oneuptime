@@ -77,7 +77,7 @@ export default class BaseModel extends BaseEntity {
 
     public crudApiPath!: Route | null;
     // If this resource is by projectId, which column does projectId belong to?
-    public projectColumn!: string | null;
+    public tenantColumn!: string | null;
 
     public constructor(id?: ObjectID) {
         super();
@@ -223,7 +223,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getTenantColumn(): string | null {
-        return this.projectColumn;
+        return this.tenantColumn;
     }
 
     public getuserColumn(): string | null {

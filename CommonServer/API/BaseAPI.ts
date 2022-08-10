@@ -147,7 +147,7 @@ export default class BaseAPI<
         req: ExpressRequest
     ): DatabaseCommonInteractionProps {
         const props: DatabaseCommonInteractionProps = {
-            projectId: undefined,
+            tenantId: undefined,
             userGlobalAccessPermission: undefined,
             userProjectAccessPermission: undefined,
             userId: undefined,
@@ -174,8 +174,8 @@ export default class BaseAPI<
             ).userProjectAccessPermission;
         }
 
-        if ((req as OneUptimeRequest).projectId) {
-            props.projectId = (req as OneUptimeRequest).projectId || undefined;
+        if ((req as OneUptimeRequest).tenantId) {
+            props.tenantId = (req as OneUptimeRequest).tenantId || undefined;
         }
 
 

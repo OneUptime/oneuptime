@@ -26,7 +26,7 @@ export class Service extends DatabaseService<Model> {
                             }
                         ) || [],
                     name: QueryHelper.findWithSameName(createBy.data.name!),
-                    projectId: createBy.props.projectId!,
+                    projectId: createBy.props.tenantId!,
                 },
                 props: {
                     isRoot: true,
