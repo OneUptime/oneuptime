@@ -1,4 +1,4 @@
-import Color from 'Common/Types/Color';
+import Color from './Color';
 
 export const Blue: Color = new Color('#7a7fdc');
 export const Black: Color = new Color('#000000');

@@ -16,6 +16,9 @@ import { In } from 'typeorm';
 import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import { Yellow, Green, Red } from "Common/Types/BrandColors";
+import MonitorStatusService from './MonitorStatusService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -74,7 +77,64 @@ export class Service extends DatabaseService<Model> {
     protected override async onCreateSuccess(
         createdItem: CreateBy<Model>
     ): Promise<CreateBy<Model>> {
-        // add a team member.
+       
+        // add default teams. 
+        createdItem = await this.addDefaultProjectTeams(createdItem);
+
+
+
+        return Promise.resolve(createdItem);
+    }
+
+    public async addDefaultMonitorStatus(createdItem: CreateBy<Model>): Promise<CreateBy<Model>> { 
+
+
+        let operationalStatus: MonitorStatus = new MonitorStatus();
+        operationalStatus.name = "Operational";
+        operationalStatus.description = "Monitor operating normally";
+        operationalStatus.projectId = createdItem.data.id!;
+        operationalStatus.color = Green;
+
+        operationalStatus = await MonitorStatusService.create({
+            data: operationalStatus,
+            props: {
+                isRoot: true,
+            },
+        });
+
+
+        let degradedStatus: MonitorStatus = new MonitorStatus();
+        degradedStatus.name = "Degraded";
+        degradedStatus.description = "Monitor is operating at reduced performance.";
+        degradedStatus.projectId = createdItem.data.id!;
+        degradedStatus.color = Yellow;
+
+        degradedStatus = await MonitorStatusService.create({
+            data: degradedStatus,
+            props: {
+                isRoot: true,
+            },
+        });
+
+
+        let downStatus: MonitorStatus = new MonitorStatus();
+        downStatus.name = "Offline";
+        downStatus.description = "Monitor is offline.";
+        downStatus.projectId = createdItem.data.id!;
+        downStatus.color = Red;
+
+        downStatus = await MonitorStatusService.create({
+            data: downStatus,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        return createdItem;
+    }
+
+    public async addDefaultProjectTeams(createdItem: CreateBy<Model>) : Promise<CreateBy<Model>> {
+         // add a team member.
 
         // Owner Team.
         let ownerTeam: Team = new Team();
@@ -180,7 +240,7 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-        return Promise.resolve(createdItem);
+        return createdItem;
     }
 
     protected override async onBeforeFind(
