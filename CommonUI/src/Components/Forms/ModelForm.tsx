@@ -76,7 +76,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [itemToEdit, setItemToEdit] = useState<TBaseModel | null>(null);
-    const model = new props.modelType();
+    const model: TBaseModel = new props.modelType();
 
     const getSelectFields: Function = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};

@@ -10,12 +10,12 @@ import HiddenText from '../HiddenText/HiddenText';
 export interface ComponentProps<TBaseModel extends BaseModel> {
     item: TBaseModel;
     fields: Array<Field<TBaseModel>>;
+    id?: string | undefined;
 }
 
 const Detail: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const getField: Function = (
         field: Field<TBaseModel>,
         index: number
@@ -56,7 +56,7 @@ const Detail: Function = <TBaseModel extends BaseModel>(
         }
 
         return (
-            <div className="mb-3" key={index}>
+            <div className="mb-3" key={index} id={props.id}>
                 <label className="form-Label form-label justify-space-between width-max">
                     <span>{field.title}</span>
                     {field.sideLink &&
@@ -88,7 +88,6 @@ const Detail: Function = <TBaseModel extends BaseModel>(
         );
     };
 
-    
     return (
         <div>
             {props.fields &&

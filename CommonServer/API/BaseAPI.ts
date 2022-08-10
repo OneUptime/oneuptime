@@ -152,7 +152,7 @@ export default class BaseAPI<
             userProjectAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
-            isMultiTenantQuery: undefined
+            isMultiTenantQuery: undefined,
         };
 
         if (
@@ -178,9 +178,8 @@ export default class BaseAPI<
             props.tenantId = (req as OneUptimeRequest).tenantId || undefined;
         }
 
-
-        if (req.headers["is-multi-tenant-query"]) {
-            props.isMultiTenantQuery = true; 
+        if (req.headers['is-multi-tenant-query']) {
+            props.isMultiTenantQuery = true;
         }
 
         return props;
@@ -252,8 +251,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-       
-
         let query: Query<BaseModel> = {};
 
         if (req.body) {
@@ -264,7 +261,7 @@ export default class BaseAPI<
 
         const databaseProps: DatabaseCommonInteractionProps =
             this.getDatabaseCommonInteractionProps(req);
-        
+
         const count: PositiveNumber = await this.service.countBy({
             query,
             props: databaseProps,

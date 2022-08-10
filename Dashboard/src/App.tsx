@@ -190,8 +190,7 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-
-<PageRoute
+                <PageRoute
                     path={RouteMap[PageMap.SETTINGS_MONITORS]?.toString()}
                     element={
                         <SettingsMonitors
@@ -203,7 +202,7 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-<PageRoute
+                <PageRoute
                     path={RouteMap[PageMap.SETTINGS_INCIDENTS]?.toString()}
                     element={
                         <SettingsIncidents

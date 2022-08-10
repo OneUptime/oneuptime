@@ -72,7 +72,7 @@ const RouteMap: Dictionary<Route> = {
     // labels.
     [PageMap.SETTINGS_LABELS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/labels`
-    ), 
+    ),
 
     // logout.
     [PageMap.LOGOUT]: new Route(`/dashboard/logout`),

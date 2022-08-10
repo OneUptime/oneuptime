@@ -27,7 +27,10 @@ const ModelDelete: Function = <TBaseModel extends BaseModel>(
     const deleteItem: Function = async () => {
         setIsLoading(true);
         try {
-            await ModelAPI.deleteItem<TBaseModel>(props.modelType, props.modelId);
+            await ModelAPI.deleteItem<TBaseModel>(
+                props.modelType,
+                props.modelId
+            );
             props.onDeleteSuccess && props.onDeleteSuccess();
         } catch (err) {
             try {

@@ -9,16 +9,17 @@ export interface ComponentProps {
 const LabelsElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     if (!props.labels || props.labels.length === 0) {
-        return <p>No labels attached.</p>
+        return <p>No labels attached.</p>;
     }
 
-    return (<div>
-        {props.labels.map((label, i) => {
-            return <LabelElement label={label} key={i} />
-        })}
-    </div>)
+    return (
+        <div>
+            {props.labels.map((label: Label, i: number) => {
+                return <LabelElement label={label} key={i} />;
+            })}
+        </div>
+    );
 };
 
 export default LabelsElement;

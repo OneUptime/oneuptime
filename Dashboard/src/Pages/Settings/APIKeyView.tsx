@@ -143,18 +143,17 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 query={{
                     apiKeyId: modelId,
-                    projectId: props.currentProject?._id
+                    projectId: props.currentProject?._id,
                 }}
                 onBeforeCreate={(
                     item: ApiKeyPermission
                 ): Promise<ApiKeyPermission> => {
-                    
                     if (!props.currentProject || !props.currentProject.id) {
-                        throw new BadDataException("Project ID cannot be null");
+                        throw new BadDataException('Project ID cannot be null');
                     }
 
                     item.apiKeyId = modelId;
-                    item.projectId = props.currentProject.id
+                    item.projectId = props.currentProject.id;
                     return Promise.resolve(item);
                 }}
                 isEditable={true}
@@ -226,7 +225,16 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Labels',
                         type: TableColumnType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
-                            return (<LabelsElement labels={Label.fromJSON(item["labels"] as JSONArray || [], Label) as Array<Label>} />);                          
+                            return (
+                                <LabelsElement
+                                    labels={
+                                        Label.fromJSON(
+                                            (item['labels'] as JSONArray) || [],
+                                            Label
+                                        ) as Array<Label>
+                                    }
+                                />
+                            );
                         },
                     },
                 ]}

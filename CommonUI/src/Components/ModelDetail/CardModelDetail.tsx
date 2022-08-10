@@ -31,7 +31,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
     const [showModel, setShowModal] = useState<boolean>(false);
     const [item, setItem] = useState<TBaseModel | null>(null);
     const [refresher, setRefresher] = useState<boolean>(false);
-    const model = new props.modelDetailProps.modelType();
+    const model: TBaseModel = new props.modelDetailProps.modelType();
 
     useEffect(() => {
         const userProjectPermissions: UserProjectAccessPermission | null =

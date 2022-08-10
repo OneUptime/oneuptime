@@ -13,7 +13,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const Monitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -52,19 +52,20 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                     description:
                         'Define different status types (eg: Operational, Degraded, Down) here.',
                 }}
-                noItemsMessage={'No monitor status created for this project so far.'}
+                noItemsMessage={
+                    'No monitor status created for this project so far.'
+                }
                 currentPageRoute={props.pageRoute}
-                // onBeforeCreate={(
-                //     item: MonitorStatus
-                // ): Promise<MonitorStatus> => {
-                    
-                //     if (!props.currentProject || !props.currentProject.id) {
-                //         throw new BadDataException("Project ID cannot be null");
-                //     }
+                onBeforeCreate={(
+                    item: MonitorStatus
+                ): Promise<MonitorStatus> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
 
-                //     item.projectId = props.currentProject.id
-                //     return Promise.resolve(item);
-                // }}
+                    item.projectId = props.currentProject.id;
+                    return Promise.resolve(item);
+                }}
                 formFields={[
                     {
                         field: {
@@ -86,8 +87,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
-                        placeholder:
-                            'Monitors are up and operating normally.',
+                        placeholder: 'Monitors are up and operating normally.',
                     },
                     {
                         field: {
@@ -96,7 +96,8 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         title: 'Monitor Status Color',
                         fieldType: FormFieldSchemaType.Color,
                         required: true,
-                        placeholder: 'Please select color for this monitor status.',
+                        placeholder:
+                            'Please select color for this monitor status.',
                     },
                 ]}
                 showRefreshButton={true}

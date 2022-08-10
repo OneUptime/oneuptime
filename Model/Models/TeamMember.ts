@@ -40,7 +40,7 @@ import User from './User';
         Permission.CanEditProjectTeam,
     ],
 })
-@MultiTenentQueryAllowedBy("userId")
+@MultiTenentQueryAllowedBy('userId')
 @UserColumn('userId')
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/team-member'))

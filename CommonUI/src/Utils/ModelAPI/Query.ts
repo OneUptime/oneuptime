@@ -7,7 +7,7 @@ type Query<TBaseModel extends BaseModel> = {
 };
 
 export interface QueryOptions {
-    isMultiTenantQuery?: boolean | undefined
+    isMultiTenantQuery?: boolean | undefined;
 }
 
 export default Query;

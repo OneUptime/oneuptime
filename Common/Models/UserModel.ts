@@ -1,8 +1,8 @@
-import ObjectID from "../Types/ObjectID";
-import BaseModel from "./BaseModel";
+import ObjectID from '../Types/ObjectID';
+import BaseModel from './BaseModel';
 
-export default class UserModel extends BaseModel{
-    constructor(id?: ObjectID) {
+export default class UserModel extends BaseModel {
+    public constructor(id?: ObjectID) {
         super(id);
     }
 }

@@ -76,7 +76,6 @@ import OnCallDutyService, {
     Service as OnCallDutyServiceType,
 } from 'CommonServer/Services/OnCallDutyService';
 
-
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService, {
     Service as MonitorStatusServiceType,

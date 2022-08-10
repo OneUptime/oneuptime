@@ -108,7 +108,7 @@ export default class ModelAPI {
         select: Select<TBaseModel>,
         sort: Sort<TBaseModel>,
         populate?: Populate<TBaseModel>,
-        queryOptions?: QueryOptions,
+        queryOptions?: QueryOptions
     ): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -130,7 +130,7 @@ export default class ModelAPI {
 
         const headers: Dictionary<string> = this.getCommonHeaders();
         if (queryOptions && queryOptions.isMultiTenantQuery) {
-            headers["isMultiTenantQuery"] = "true";
+            headers['isMultiTenantQuery'] = 'true';
         }
 
         const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
@@ -168,12 +168,10 @@ export default class ModelAPI {
         throw result;
     }
 
-
-
     public static async count<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
-        queryOptions?: QueryOptions | undefined,
+        queryOptions?: QueryOptions | undefined
     ): Promise<number> {
         const model: TBaseModel = new modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -195,7 +193,7 @@ export default class ModelAPI {
 
         const headers: Dictionary<string> = this.getCommonHeaders();
         if (queryOptions && queryOptions.isMultiTenantQuery) {
-            headers["is-multi-tenant-query"] = "true";
+            headers['is-multi-tenant-query'] = 'true';
         }
 
         const result: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -203,13 +201,13 @@ export default class ModelAPI {
                 HTTPMethod.POST,
                 apiUrl,
                 {
-                    query: JSONFunctions.serialize(query as JSONObject)
+                    query: JSONFunctions.serialize(query as JSONObject),
                 },
                 headers
             );
 
         if (result.isSuccess()) {
-            const count: number = result.data["count"] as number;
+            const count: number = result.data['count'] as number;
 
             return count;
         }

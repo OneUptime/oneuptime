@@ -63,7 +63,6 @@ enum Permission {
     CanDeleteProjectLabel = 'CanDeleteProjectLabel',
     CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
 
-
     // MonitorStatus Permissions (Owner + Admin Permission by default)
     CanCreateProjectMonitorStatus = 'CanCreateProjectMonitorStatus',
     CanEditProjectMonitorStatus = 'CanEditProjectMonitorStatus',
@@ -301,7 +300,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
             {
                 permission: Permission.CanCreateProjectMonitorStatus,
                 title: 'Can Create Monitor Status',
@@ -331,7 +329,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
             {
                 permission: Permission.CanCreateProjectIncidentState,
                 title: 'Can Create Incident State',
@@ -360,7 +357,6 @@ export class PermissionHelper {
                     'A user assigned this permission  can read incident state in this project.',
                 isAssignableToProject: true,
             },
-
 
             {
                 permission: Permission.CanCreateProjectSMTPConfig,

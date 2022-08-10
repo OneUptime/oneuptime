@@ -59,11 +59,11 @@ enum DatabaseRequestType {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new(): TBaseModel };
+    private entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -305,7 +305,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
+                    createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -373,19 +373,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
             createBy
         );
 
-        debugger;
-
         _createdBy = this.generateSlug(_createdBy);
 
         let data: TBaseModel = _createdBy.data;
 
-        // add tenantId if present. 
-        const tenantColumnName = data.getTenantColumn();
-
-        debugger; 
+        // add tenantId if present.
+        const tenantColumnName: string | null = data.getTenantColumn();
 
         if (tenantColumnName && _createdBy.props.tenantId) {
-            data.setColumnValue(tenantColumnName, _createdBy.props.tenantId)
+            data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
         }
 
         this.checkRequiredFields(data);
@@ -637,13 +633,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
+        const tenantColumn: string | null = this.model.getTenantColumn();
 
-        const tenantColumn = this.model.getTenantColumn();
-
-
-        if (tenantColumn && findBy.props.tenantId && !(findBy.props.isMultiTenantQuery)) {
-            (findBy.query as any)[tenantColumn] =
-                findBy.props.tenantId;
+        if (
+            tenantColumn &&
+            findBy.props.tenantId &&
+            !findBy.props.isMultiTenantQuery
+        ) {
+            (findBy.query as any)[tenantColumn] = findBy.props.tenantId;
         } else if (
             tenantColumn &&
             !findBy.props.tenantId &&
@@ -689,12 +686,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-
         if (findBy.props.isMultiTenantQuery) {
-            const columnName: string | null = this.model.getMultiTenantQueryAllowedByColumn();
-            
+            const columnName: string | null =
+                this.model.getMultiTenantQueryAllowedByColumn();
+
             if (columnName && !(findBy.query as any)[columnName]) {
-                throw new BadDataException(`${columnName} is reuqired for a multitenant query.`)
+                throw new BadDataException(
+                    `${columnName} is reuqired for a multitenant query.`
+                );
             }
         }
 
@@ -749,12 +748,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-
-        const tenantColumn = this.model.getTenantColumn();
+        const tenantColumn: string | null = this.model.getTenantColumn();
 
         if (tenantColumn && updateBy.props.tenantId) {
-            (updateBy.query as any)[tenantColumn] =
-                updateBy.props.tenantId;
+            (updateBy.query as any)[tenantColumn] = updateBy.props.tenantId;
         } else if (
             tenantColumn &&
             !updateBy.props.tenantId &&
@@ -817,10 +814,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 }),
                 this.model.deleteRecordPermissions
             );
-        const tenantColumn = this.model.getTenantColumn();
+        const tenantColumn: string | null = this.model.getTenantColumn();
         if (tenantColumn && deleteBy.props.tenantId) {
-            (deleteBy.query as any)[tenantColumn] =
-                deleteBy.props.tenantId;
+            (deleteBy.query as any)[tenantColumn] = deleteBy.props.tenantId;
         }
 
         if (
@@ -936,9 +932,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     columnsToKeep.columns.length > 0 &&
                     columnsToKeep.columns.includes(key)
                 ) &&
-                columns.hasColumn(key)
+                columns.hasColumn(key) &&
+                (this as any)[key]
             ) {
-                (this as any)[key] = undefined;
+                throw new BadDataException(
+                    `User is not allowed to create on ${key} column of ${this.model.singularName}`
+                );
             }
         }
 
@@ -949,7 +948,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         query,
         skip,
         limit,
-        props
+        props,
     }: CountBy<TBaseModel>): Promise<PositiveNumber> {
         try {
             if (!skip) {
@@ -972,13 +971,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query,
                 skip,
                 limit,
-                props
-            }
+                props,
+            };
 
             findBy = this.asFindByByPermissions(findBy);
 
             findBy.query = this.serializeQuery(query);
-            
+
             const count: number = await this.getRepository().count({
                 where: findBy.query as any,
                 skip: (findBy.skip as PositiveNumber).toNumber(),
@@ -1287,4 +1286,3 @@ class DatabaseService<TBaseModel extends BaseModel> {
 }
 
 export default DatabaseService;
-

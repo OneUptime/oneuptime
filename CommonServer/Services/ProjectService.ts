@@ -17,7 +17,7 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import { Yellow, Green, Red } from "Common/Types/BrandColors";
+import { Yellow, Green, Red } from 'Common/Types/BrandColors';
 import MonitorStatusService from './MonitorStatusService';
 
 export class Service extends DatabaseService<Model> {
@@ -77,21 +77,18 @@ export class Service extends DatabaseService<Model> {
     protected override async onCreateSuccess(
         createdItem: CreateBy<Model>
     ): Promise<CreateBy<Model>> {
-       
-        // add default teams. 
+        // add default teams.
         createdItem = await this.addDefaultProjectTeams(createdItem);
-
-
 
         return Promise.resolve(createdItem);
     }
 
-    public async addDefaultMonitorStatus(createdItem: CreateBy<Model>): Promise<CreateBy<Model>> { 
-
-
+    public async addDefaultMonitorStatus(
+        createdItem: CreateBy<Model>
+    ): Promise<CreateBy<Model>> {
         let operationalStatus: MonitorStatus = new MonitorStatus();
-        operationalStatus.name = "Operational";
-        operationalStatus.description = "Monitor operating normally";
+        operationalStatus.name = 'Operational';
+        operationalStatus.description = 'Monitor operating normally';
         operationalStatus.projectId = createdItem.data.id!;
         operationalStatus.color = Green;
 
@@ -102,10 +99,10 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-
         let degradedStatus: MonitorStatus = new MonitorStatus();
-        degradedStatus.name = "Degraded";
-        degradedStatus.description = "Monitor is operating at reduced performance.";
+        degradedStatus.name = 'Degraded';
+        degradedStatus.description =
+            'Monitor is operating at reduced performance.';
         degradedStatus.projectId = createdItem.data.id!;
         degradedStatus.color = Yellow;
 
@@ -116,10 +113,9 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-
         let downStatus: MonitorStatus = new MonitorStatus();
-        downStatus.name = "Offline";
-        downStatus.description = "Monitor is offline.";
+        downStatus.name = 'Offline';
+        downStatus.description = 'Monitor is offline.';
         downStatus.projectId = createdItem.data.id!;
         downStatus.color = Red;
 
@@ -133,8 +129,10 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-    public async addDefaultProjectTeams(createdItem: CreateBy<Model>) : Promise<CreateBy<Model>> {
-         // add a team member.
+    public async addDefaultProjectTeams(
+        createdItem: CreateBy<Model>
+    ): Promise<CreateBy<Model>> {
+        // add a team member.
 
         // Owner Team.
         let ownerTeam: Team = new Team();

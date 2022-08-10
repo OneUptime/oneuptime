@@ -24,7 +24,7 @@ enum PageMap {
     SETTINGS_TEAMS = 'SETTINGS_TEAMS',
     SETTINGS_TEAM_VIEW = 'SETTINGS_TEAM_VIEW',
 
-    // Resource settings. 
+    // Resource settings.
     SETTINGS_INCIDENTS = 'SETTINGS_INCIDENTS',
     SETTINGS_MONITORS = 'SETTINGS_MONITORS',
 

@@ -7,8 +7,8 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONObject } from 'Common/Types/JSON';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    alertType: AlertType,
-    modelType: { new(): TBaseModel },
+    alertType: AlertType;
+    modelType: { new (): TBaseModel };
     singularName: string;
     pluralName: string;
     query: Query<TBaseModel>;
@@ -20,7 +20,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [count, setCount] = useState<number>(0);
@@ -34,19 +33,18 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
         }
 
         try {
-            const count: number =
-                await ModelAPI.count<TBaseModel>(
-                    props.modelType,
-                    props.query,
-                    props.queryOptions
-                );
+            const count: number = await ModelAPI.count<TBaseModel>(
+                props.modelType,
+                props.query,
+                props.queryOptions
+            );
 
             setCount(count);
         } catch (err) {
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
@@ -61,25 +59,27 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
         setIsLoading(true);
         fetchCount();
         setIsLoading(false);
-    }, [])
+    }, []);
 
     if (error) {
-        return <></>
+        return <></>;
     }
 
     if (isLoading) {
-        return <></>
+        return <></>;
     }
 
     if (count === 0) {
-        return <></>
+        return <></>;
     }
 
     return (
         <Alert
             onClick={props.onClick}
             type={props.alertType}
-            title={`${count} ${count > 1 ? props.pluralName : props.singularName}`}
+            title={`${count} ${
+                count > 1 ? props.pluralName : props.singularName
+            }`}
         />
     );
 };

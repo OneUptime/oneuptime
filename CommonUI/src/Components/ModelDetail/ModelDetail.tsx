@@ -36,7 +36,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
     const [item, setItem] = useState<TBaseModel | null>(null);
 
-    const model = new props.modelType();
+    const model: TBaseModel = new props.modelType();
 
     useEffect(() => {
         fetchItem();
@@ -79,7 +79,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         userPermissions.push(Permission.Public);
 
         const accessControl: Dictionary<ColumnAccessControl> =
-        model.getColumnAccessControlForAllColumns();
+            model.getColumnAccessControlForAllColumns();
 
         const fieldsToSet: Array<Field<TBaseModel>> = [];
 
@@ -195,12 +195,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         );
     }
 
-    return (
-        <Detail
-            item={item}
-            fields={fields}
-        />
-    );
+    return <Detail id={props.id} item={item} fields={fields} />;
 };
 
 export default ModelDetail;

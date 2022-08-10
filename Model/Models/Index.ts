@@ -45,5 +45,5 @@ export default [
     OnCallDuty,
     Monitor,
     MonitorStatus,
-    IncidentState
+    IncidentState,
 ];
