@@ -5,7 +5,7 @@ import TableHeader from './TableHeader';
 import Columns from './Types/Columns';
 import Pagination from './Pagination';
 import Loader, { LoaderType } from '../Loader/Loader';
-import { VeryLightGrey } from '../../Utils/BrandColors';
+import { VeryLightGrey } from 'Common/Types/BrandColors';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Dictionary from 'Common/Types/Dictionary';
 import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';

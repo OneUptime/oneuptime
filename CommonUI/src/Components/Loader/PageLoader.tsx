@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Loader, { LoaderType } from './Loader';
-import { Black } from '../../Utils/BrandColors';
+import { Black } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     isVisible: boolean;

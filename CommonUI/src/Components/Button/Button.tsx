@@ -5,7 +5,7 @@ import ButtonType from './ButtonTypes';
 import CSS from 'csstype';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 import Loader, { LoaderType } from '../Loader/Loader';
-import { White } from '../../Utils/BrandColors';
+import { White } from 'Common/Types/BrandColors';
 
 export enum ButtonStyleType {
     PRIMARY,

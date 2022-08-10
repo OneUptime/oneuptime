@@ -7,7 +7,7 @@ import Select from '../../Utils/ModelAPI/Select';
 import Dictionary from 'Common/Types/Dictionary';
 import ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
-import { VeryLightGrey } from '../../Utils/BrandColors';
+import { VeryLightGrey } from 'Common/Types/BrandColors';
 import Permission, {
     PermissionHelper,
     UserPermission,

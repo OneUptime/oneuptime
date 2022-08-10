@@ -19,7 +19,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import useAsyncEffect from 'use-async-effect';
 import ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
-import { VeryLightGrey } from '../../Utils/BrandColors';
+import { VeryLightGrey } from 'Common/Types/BrandColors';
 import Permission, {
     PermissionHelper,
     UserPermission,
