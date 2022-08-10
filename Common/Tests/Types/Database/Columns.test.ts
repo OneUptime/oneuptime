@@ -11,14 +11,12 @@ describe('class Columns', () => {
 
     test('it should add column', () => {
         const cols: Array<string> = ['col1', 'col2'];
-        const columns = new Columns(cols);
-        columns.addColumn('col3');
-        expect(columns.columns).toContain('col3');
+        new Columns(cols).addColumn('col3');
+        expect(new Columns(cols).columns).toContain('col3');
     });
 
     test('it should return true if column is inckuded', () => {
         const cols: Array<string> = ['col1', 'col2'];
-        const columns = new Columns(cols);
-        expect(columns.hasColumn('col2')).toBeTruthy();
+        expect(new Columns(cols).hasColumn('col2')).toBeTruthy();
     });
 });
