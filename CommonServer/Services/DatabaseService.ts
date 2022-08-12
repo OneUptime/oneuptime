@@ -472,32 +472,24 @@ class DatabaseService<TBaseModel extends BaseModel> {
         let modelPermissions: Array<Permission> = [];
 
         if (type === DatabaseRequestType.Create) {
-            isPublicAllowed = this.model.createRecordPermissions.includes(
-                Permission.Public
-            );
             modelPermissions = this.model.createRecordPermissions;
         }
 
         if (type === DatabaseRequestType.Update) {
-            isPublicAllowed = this.model.updateRecordPermissions.includes(
-                Permission.Public
-            );
             modelPermissions = this.model.updateRecordPermissions;
         }
 
         if (type === DatabaseRequestType.Delete) {
-            isPublicAllowed = this.model.deleteRecordPermissions.includes(
-                Permission.Public
-            );
             modelPermissions = this.model.deleteRecordPermissions;
         }
 
         if (type === DatabaseRequestType.Read) {
-            isPublicAllowed = this.model.readRecordPermissions.includes(
-                Permission.Public
-            );
             modelPermissions = this.model.readRecordPermissions;
         }
+
+        isPublicAllowed = modelPermissions.includes(
+            Permission.Public
+        );
 
         if (!isPublicAllowed && !props.userId) {
             // this means the record is not publicly createable and the user is not logged in.
@@ -536,7 +528,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         } else {
             throw new NotAuthorizedException(`Permissions not found.`);
         }
-       
+        debugger;
         if (
             props.tenantId && 
             props.userProjectAccessPermission &&

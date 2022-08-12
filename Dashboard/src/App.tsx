@@ -67,6 +67,7 @@ const App: FunctionComponent = () => {
         project: Project
     ): void => {
         setSelectedProject(project);
+        Navigation.navigate(new Route("/dashboard/" + project._id));
     };
 
     useAsyncEffect(async () => {
