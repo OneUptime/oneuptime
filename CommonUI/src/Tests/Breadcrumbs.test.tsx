@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { describe, test, expect } from '@jest/globals';
 import Route from 'Common/Types/API/Route';
-import renderer, { ReactTestRenderer, ReactTestInstance} from 'react-test-renderer';
+import renderer, {
+    ReactTestRenderer,
+    ReactTestInstance,
+} from 'react-test-renderer';
 import Breadcrumbs from '../Components/Breadcrumbs/Breadcrumbs';
 import Link from 'Common/Types/Link';
 
