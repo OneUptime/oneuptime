@@ -463,6 +463,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         props: DatabaseCommonInteractionProps,
         type: DatabaseRequestType
     ): Array<UserPermission> {
+
         if (!props.userGlobalAccessPermission) {
             throw new NotAuthorizedException(`Permissions not found.`);
         }
@@ -535,8 +536,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         } else {
             throw new NotAuthorizedException(`Permissions not found.`);
         }
-
+       
         if (
+            props.tenantId && 
             props.userProjectAccessPermission &&
             !PermissionHelper.doesPermissionsIntersect(
                 props.userProjectAccessPermission.permissions.map(
@@ -548,7 +550,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                `A user does not have permissions to ${type} record of type ${this.entityType.name}.`
+                `A user does not have permissions to ${type} record of type ${this.model.singularName}.`
             );
         }
 
@@ -635,6 +637,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         const tenantColumn: string | null = this.model.getTenantColumn();
 
+
+
+        // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query. 
         if (
             tenantColumn &&
             findBy.props.tenantId &&
@@ -648,10 +653,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         ) {
             (findBy.query as any)[tenantColumn] = QueryHelper.in(
                 findBy.props.userGlobalAccessPermission?.projectIds
-            );
-        } else if (tenantColumn) {
-            throw new NotAuthorizedException(
-                'Not enough permissions to read the record'
             );
         }
 
@@ -974,6 +975,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 props,
             };
 
+            debugger; 
             findBy = this.asFindByByPermissions(findBy);
 
             findBy.query = this.serializeQuery(query);

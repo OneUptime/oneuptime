@@ -82,6 +82,9 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         setShowModel(false);
                     }}
                     formProps={{
+                        saveRequestOptions: {
+                            doNotIncludeTenantIdHeader: true // because this is a tenant request, we do not have to incclude the header in the reqeuest
+                        },
                         model: new Project(),
                         id: 'create-project-from',
                         fields: [

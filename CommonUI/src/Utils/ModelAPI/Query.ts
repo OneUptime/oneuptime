@@ -6,8 +6,4 @@ type Query<TBaseModel extends BaseModel> = {
     [P in keyof TBaseModel]?: JSONValue | Search;
 };
 
-export interface QueryOptions {
-    isMultiTenantQuery?: boolean | undefined;
-}
-
 export default Query;

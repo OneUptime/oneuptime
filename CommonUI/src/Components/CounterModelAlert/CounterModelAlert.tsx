@@ -1,8 +1,8 @@
 import React, { ReactElement, useEffect, useState } from 'react';
 import Alert, { AlertType } from '../Alerts/Alert';
 import BaseModel from 'Common/Models/BaseModel';
-import Query, { QueryOptions } from '../../Utils/ModelAPI/Query';
-import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import Query from '../../Utils/ModelAPI/Query';
+import ModelAPI, { RequestOptions} from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONObject } from 'Common/Types/JSON';
 
@@ -12,7 +12,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     singularName: string;
     pluralName: string;
     query: Query<TBaseModel>;
-    queryOptions?: QueryOptions | undefined;
+    queryOptions?: RequestOptions | undefined;
     onCountFetchInit?: (() => void) | undefined;
     onClick?: (() => void) | undefined;
 }

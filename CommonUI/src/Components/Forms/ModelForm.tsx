@@ -12,7 +12,7 @@ import BasicModelForm from './BasicModelForm';
 import { JSONArray, JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
 import URL from 'Common/Types/API/URL';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI, { ListResult, RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Select from '../../Utils/ModelAPI/Select';
 import Dictionary from 'Common/Types/Dictionary';
@@ -64,6 +64,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     modelIdToEdit?: ObjectID | undefined;
     onError?: ((error: string) => void) | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    saveRequestOptions?: RequestOptions | undefined
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
@@ -373,7 +374,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 tBaseModel,
                 props.formType,
                 props.apiUrl,
-                miscDataProps
+                miscDataProps,
+                props.saveRequestOptions
             );
 
             if (props.onSuccess) {

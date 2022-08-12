@@ -1,6 +1,6 @@
 import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
-import Query, { QueryOptions } from './Query';
+import Query from './Query';
 import Select from './Select';
 import API from '../../Utils/API/API';
 import Route from 'Common/Types/API/Route';
@@ -25,17 +25,26 @@ export interface ListResult<TBaseModel extends BaseModel> {
     limit: number;
 }
 
+
+export interface RequestOptions {
+    isMultiTenantQuery?: boolean | undefined;
+    doNotIncludeTenantIdHeader?: boolean | undefined
+}
+
 export default class ModelAPI {
     public static async create<TBaseModel extends BaseModel>(
         model: TBaseModel,
-        apiUrlOverride?: URL
+        apiUrlOverride?: URL,
+        requestOptions?: RequestOptions | undefined
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
         return await ModelAPI.createOrUpdate(
             model,
             FormType.Create,
-            apiUrlOverride
+            apiUrlOverride,
+            {},
+            requestOptions
         );
     }
 
@@ -56,7 +65,8 @@ export default class ModelAPI {
         model: TBaseModel,
         formType: FormType,
         apiUrlOverride?: URL,
-        miscDataProps?: JSONObject
+        miscDataProps?: JSONObject,
+        requestOptions?: RequestOptions | undefined
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
@@ -91,7 +101,7 @@ export default class ModelAPI {
                 data: model.toJSON(),
                 miscDataProps: miscDataProps || {},
             },
-            this.getCommonHeaders()
+            this.getCommonHeaders(requestOptions)
         );
 
         if (result.isSuccess()) {
@@ -108,7 +118,7 @@ export default class ModelAPI {
         select: Select<TBaseModel>,
         sort: Sort<TBaseModel>,
         populate?: Populate<TBaseModel>,
-        queryOptions?: QueryOptions
+        queryOptions?: RequestOptions
     ): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -171,7 +181,7 @@ export default class ModelAPI {
     public static async count<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
-        queryOptions?: QueryOptions | undefined
+        queryOptions?: RequestOptions | undefined
     ): Promise<number> {
         const model: TBaseModel = new modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -215,13 +225,15 @@ export default class ModelAPI {
         throw result;
     }
 
-    public static getCommonHeaders(): Dictionary<string> {
+    public static getCommonHeaders(requestOptions?: RequestOptions): Dictionary<string> {
         const headers: Dictionary<string> = {};
 
-        const project: Project | null = ProjectUtil.getCurrentProject();
+        if (!requestOptions || !requestOptions.doNotIncludeTenantIdHeader) {
+            const project: Project | null = ProjectUtil.getCurrentProject();
 
-        if (project && project.id) {
-            headers['tenantid'] = project.id.toString();
+            if (project && project.id) {
+                headers['tenantid'] = project.id.toString();
+            }
         }
 
         return headers;
