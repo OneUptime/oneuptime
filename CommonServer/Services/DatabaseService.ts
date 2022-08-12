@@ -528,7 +528,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         } else {
             throw new NotAuthorizedException(`Permissions not found.`);
         }
-        debugger;
+        
         if (
             props.tenantId && 
             props.userProjectAccessPermission &&
@@ -630,8 +630,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         const tenantColumn: string | null = this.model.getTenantColumn();
 
 
-        if (findBy.props.isMultiTenantQuery && !this.model.canQeuryMultiTenant()) {
-            throw new BadDataException("Multi Tenant Query not allowed on this model");
+        if (findBy.props.isMultiTenantQuery && !this.model.canQueryMultiTenant()) {
+            throw new BadDataException("isMultiTenantQuery not allowed on this model");
         }
 
 
@@ -960,7 +960,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 props,
             };
 
-            debugger; 
+             
             findBy = this.asFindByByPermissions(findBy);
 
             findBy.query = this.serializeQuery(query);
