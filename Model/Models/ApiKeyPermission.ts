@@ -23,7 +23,7 @@ import Project from './Project';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 
 @TableAccessControl({
@@ -53,7 +53,7 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 @Entity({
     name: 'ApiKeyPermission',
 })
-@EntityName('Permission', 'Permissions')
+@SingularPluralName('Permission', 'Permissions')
 export default class APIKeyPermission extends BaseModel {
     @ColumnAccessControl({
         create: [

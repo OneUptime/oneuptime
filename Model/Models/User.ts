@@ -19,7 +19,7 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import UserColumn from 'Common/Types/Database/UserColumn';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TableAccessControl({
     create: [Permission.Public],
@@ -32,7 +32,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 @Entity({
     name: 'User',
 })
-@EntityName('User', 'Users')
+@SingularPluralName('User', 'Users')
 @UserColumn('_id')
 class User extends UserModel {
     @ColumnAccessControl({

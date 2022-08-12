@@ -14,7 +14,7 @@ import Permission from 'Common/Types/Permission';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/api-key'))
@@ -32,7 +32,7 @@ import EntityName from 'Common/Types/Database/EntityName';
         Permission.CanEditProjectApiKey,
     ],
 })
-@EntityName('API Key', 'API Keys')
+@SingularPluralName('API Key', 'API Keys')
 export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],

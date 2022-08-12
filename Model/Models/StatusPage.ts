@@ -14,7 +14,7 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -32,7 +32,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 @Entity({
     name: 'StatusPage',
 })
-@EntityName('Status Page', 'Status Pages')
+@SingularPluralName('Status Page', 'Status Pages')
 export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [

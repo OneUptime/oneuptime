@@ -14,7 +14,7 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -37,7 +37,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 @Entity({
     name: 'Team',
 })
-@EntityName('Team', 'Teams')
+@SingularPluralName('Team', 'Teams')
 export default class Team extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectTeam],

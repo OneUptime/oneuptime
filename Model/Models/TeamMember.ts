@@ -3,9 +3,9 @@ import Route from 'Common/Types/API/Route';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnType from 'Common/Types/Database/ColumnType';
-import MultiTenentQueryAllowedBy from 'Common/Types/Database/MultiTenentQueryAllowedBy';
+import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
@@ -40,14 +40,15 @@ import User from './User';
         Permission.CanEditProjectTeam,
     ],
 })
-@MultiTenentQueryAllowedBy('userId')
+
+@MultiTenentQueryAllowed(true)
 @UserColumn('userId')
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/team-member'))
 @Entity({
     name: 'TeamMember',
 })
-@EntityName('Team Member', 'Team Members')
+@SingularPluralName('Team Member', 'Team Members')
 export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [

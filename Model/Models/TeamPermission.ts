@@ -23,7 +23,7 @@ import Project from './Project';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TableAccessControl({
     create: [
@@ -53,7 +53,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 @Entity({
     name: 'TeamPermission',
 })
-@EntityName('Team Permission', 'Team Permissions')
+@SingularPluralName('Team Permission', 'Team Permissions')
 export default class TeamPermission extends BaseModel {
     @ColumnAccessControl({
         create: [

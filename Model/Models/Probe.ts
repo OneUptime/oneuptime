@@ -17,7 +17,7 @@ import Permission from 'Common/Types/Permission';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import IsPermissionsIf from 'Common/Types/Database/IsPermissionsIf';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @IsPermissionsIf(Permission.Public, 'projectId', null)
 @TenantColumn('projectId')
@@ -26,7 +26,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 @Entity({
     name: 'Probe',
 })
-@EntityName('Probe', 'Probes')
+@SingularPluralName('Probe', 'Probes')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
     read: [Permission.ProjectMember, Permission.Public],

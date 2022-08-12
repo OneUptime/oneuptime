@@ -16,7 +16,7 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -31,7 +31,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 })
 @CrudApiEndpoint(new Route('/label'))
 @SlugifyColumn('name', 'slug')
-@EntityName('Label', 'Labels')
+@SingularPluralName('Label', 'Labels')
 @Entity({
     name: 'Label',
 })

@@ -14,8 +14,10 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
+@MultiTenentQueryAllowed(true)
 @TableAccessControl({
     create: [Permission.User],
     read: [Permission.ProjectMember, Permission.ProjectOwner, Permission.ProjectAdmin],
@@ -26,7 +28,7 @@ import EntityName from 'Common/Types/Database/EntityName';
         Permission.CanUpdateProject,
     ],
 })
-@EntityName('Project', 'Projects')
+@SingularPluralName('Project', 'Projects')
 @CrudApiEndpoint(new Route('/project'))
 @SlugifyColumn('name', 'slug')
 @Entity({

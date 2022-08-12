@@ -630,6 +630,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         const tenantColumn: string | null = this.model.getTenantColumn();
 
 
+        if (findBy.props.isMultiTenantQuery && !this.model.canQeuryMultiTenant()) {
+            throw new BadDataException("Multi Tenant Query not allowed on this model");
+        }
+
 
         // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query. 
         if (
@@ -676,17 +680,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         this.model.isPermissionIf[permission] as any
                     )[columnName];
                 }
-            }
-        }
-
-        if (findBy.props.isMultiTenantQuery) {
-            const columnName: string | null =
-                this.model.getMultiTenantQueryAllowedByColumn();
-
-            if (columnName && !(findBy.query as any)[columnName]) {
-                throw new BadDataException(
-                    `${columnName} is reuqired for a multitenant query.`
-                );
             }
         }
 
