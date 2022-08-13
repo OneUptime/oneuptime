@@ -13,6 +13,7 @@ export interface ActionButton {
 
 export default interface Columns<TEntity> {
     field?: SelectEntityField<TEntity>;
+    selectedProperty?: string;
     title: string;
     disableSort?: boolean;
     type: FieldType;

@@ -54,15 +54,10 @@ const List: FunctionComponent<ComponentProps> = (
 
         if (props.data.length === 0) {
             return (
-                <tbody>
-                    <tr>
-                        <td colSpan={props.columns.length}>
-                            <ErrorMessage error={props.noItemsMessage
-                                    ? props.noItemsMessage
-                                    : `No ${props.singularLabel.toLocaleLowerCase()}`} onRefreshClick={props.onRefreshClick}  />
-                        </td>
-                    </tr>
-                </tbody>
+                <ErrorMessage error={props.noItemsMessage
+                    ? props.noItemsMessage
+                    : `No ${props.singularLabel.toLocaleLowerCase()}`} onRefreshClick={props.onRefreshClick} />
+
             );
         }
 

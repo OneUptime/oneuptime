@@ -7,6 +7,7 @@ import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import FieldType from '../Types/FieldType';
+import _ from 'lodash';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -58,9 +59,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         />
                                     )
                                 ) : (
-                                    (props.item[
-                                        column.key
-                                    ]?.toString() as string)
+                                    _.get(props.item, column.key, '')?.toString() || ''
                                 )
                             ) : (
                                 <></>

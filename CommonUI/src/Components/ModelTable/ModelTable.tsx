@@ -65,7 +65,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
-    showAsList?: boolean | undefined
+    showAsList?: boolean | undefined;
+    singularName?: string | undefined;
+    pluralName?: string | undefined;
 }
 
 enum ModalType {
@@ -234,7 +236,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         if (props.isCreateable && hasPermissionToCreate) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${model.singularName}`,
+                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName}`,
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
                     setModalType(ModalType.Create);
@@ -372,7 +374,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 columns.push({
                     ...column,
                     disableSort: column.disableSort || shouldDisableSort(key),
-                    key,
+                    key: column.selectedProperty ? key+"."+column.selectedProperty: key,
                 });
 
                 if (key) {
@@ -511,8 +513,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 setSortBy(sortBy);
                 setSortOrder(sortOrder);
             }}
-            singularLabel={model.singularName || 'Item'}
-            pluralLabel={model.pluralName || 'Items'}
+            singularLabel={props.singularName || model.singularName || 'Item'}
+            pluralLabel={props.pluralName || model.pluralName || 'Items'}
             error={error}
             currentPageNumber={currentPageNumber}
             isLoading={isLoading}
@@ -603,8 +605,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 setSortBy(sortBy);
                 setSortOrder(sortOrder);
             }}
-            singularLabel={model.singularName || 'Item'}
-            pluralLabel={model.pluralName || 'Items'}
+            singularLabel={props.singularName || model.singularName || 'Item'}
+            pluralLabel={props.pluralName || model.pluralName || 'Items'}
             error={error}
             currentPageNumber={currentPageNumber}
             isLoading={isLoading}
@@ -696,9 +698,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     title={
                         modalType === ModalType.Create
                             ? `${props.createVerb || 'Create'} New ${
-                                  model.singularName
+                                  props.singularName || model.singularName
                               }`
-                            : `Edit ${model.singularName}`
+                            : `Edit ${props.singularName || model.singularName}`
                     }
                     onClose={() => {
                         setShowModal(false);
@@ -706,7 +708,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     submitButtonText={
                         modalType === ModalType.Create
                             ? `${props.createVerb || 'Create'} ${
-                                  model.singularName
+                                  props.singularName || model.singularName
                               }`
                             : `Save Changes`
                     }
@@ -739,9 +741,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             {showDeleteConfirmModal && (
                 <ConfirmModal
-                    title={`Delete ${model.singularName}`}
+                    title={`Delete ${props.singularName || model.singularName}`}
                     description={`Are you sure you want to delete this ${(
-                        model.singularName || 'item'
+                        props.singularName || model.singularName || 'item'
                     )?.toLowerCase()}?`}
                     onClose={() => {
                         setShowDeleteConfirmModal(false);

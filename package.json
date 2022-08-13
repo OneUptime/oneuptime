@@ -5,6 +5,7 @@
     "main": "index.ts",
     "type": "module",
     "dependencies": {
+        "@types/lodash": "^4.14.182",
         "eslint-plugin-progress": "^0.0.1"
     },
     "devDependencies": {

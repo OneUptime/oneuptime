@@ -6,6 +6,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import FieldType from '../Types/FieldType';
 import HiddenText from '../HiddenText/HiddenText';
 import { JSONObject } from 'Common/Types/JSON';
+import _ from 'lodash';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -28,8 +29,8 @@ const Detail: Function = (
 
         let data: string | ReactElement = '';
 
-        if ((props.item as any)[fieldKey]) {
-            data = (props.item as any)[fieldKey]?.toString() || '';
+        if (_.get(props.item, fieldKey)) {
+            data = _.get(props.item, fieldKey, '')?.toString() || '';
         }
 
         if (field.fieldType === FieldType.Date) {

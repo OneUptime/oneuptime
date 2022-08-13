@@ -14,7 +14,6 @@ import TeamMember from 'Model/Models/TeamMember';
 import User from 'CommonUI/src/Utils/User';
 
 import FullPageModal from "CommonUI/src/Components/FullPageModal/FullPageModal";
-import TeamPermission from 'Model/Models/TeamPermission';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -78,9 +77,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             {showProjectInvitationModal && <FullPageModal onClose={() => {
                 setShowProjectInvitationModal(false);
             }}>
-                <ModelTable<TeamPermission>
-                    modelType={TeamPermission}
-                    id="team-permission-table"
+                <ModelTable<TeamMember>
+                    modelType={TeamMember}
+                    id="team-member-table"
                     isDeleteable={true}
                     query={{
                         userId: User.getUserId(),
@@ -91,29 +90,32 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     isViewable={false}
                     cardProps={{
                         icon: IconProp.User,
-                        title: 'Project Invitations',
+                        title: 'Pending Invitations',
                         description:
                             'Here is a list of projects and teams you have been invited to.',
                     }}
                     noItemsMessage={
-                        'No proejct or team invitations for you so far.'
+                        'No project or team invitations for you so far.'
                     }
-                    showAsList={true}
+                    singularName="Project Invitation"
+                    pluralName="Project Invitations"
                     columns={[
                         {
                             field: {
-                                projectId: true,
+                                project: true,
                             },
-                            title: 'Project',
+                            title: 'Project Invited to',
                             type: FieldType.Text,
                             isFilterable: true,
+                            selectedProperty: "name"
                         },
                         {
                             field: {
-                                teamId: true,
+                                team: true,
                             },
-                            title: 'Team',
+                            title: 'Team Invited to',
                             type: FieldType.Text,
+                            selectedProperty: "name"
                         },
                     ]}
                 />

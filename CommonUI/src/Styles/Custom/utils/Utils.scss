@@ -211,3 +211,25 @@
 .vertical-center{
     margin-top: 20%;
 }
+
+.padding-15{
+    padding: 15px;
+}
+
+
+
+
+// Lists 
+
+.list-item{
+    border-style: solid;
+    border-width: 2px;
+    border-color: $color-very-light-grey;
+    border-top: 0px;
+    border-right: 0px;
+    border-left: 0px;
+}
+
+.modal-dialog{
+    opacity: 1;
+}

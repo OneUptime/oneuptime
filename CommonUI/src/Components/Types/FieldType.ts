@@ -14,7 +14,8 @@ enum FieldType {
     Port,
     HiddenText,
     Actions,
-    Boolean
+    Boolean,
+    Entity
 }
 
 export default FieldType;
