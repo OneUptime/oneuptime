@@ -25,6 +25,6 @@ export default class Faker {
     }
 
     public static generatePhone(): Phone {
-        return new Phone(faker.phone.phoneNumber());
+        return new Phone(faker.phone.phoneNumberFormat());
     }
 }
