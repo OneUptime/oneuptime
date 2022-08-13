@@ -48,7 +48,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onFetchSuccess?:
         | undefined
         | ((data: Array<TBaseModel>, totalCount: number) => void);
-    cardProps: CardComponentProps;
+    cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     initialItemsOnPage?: number;
     isDeleteable: boolean;
@@ -469,103 +469,110 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setColumns(columns);
     }, []);
 
+
+    const getTable = (): ReactElement => {
+        return (<Table
+            onFilterChanged={(
+                filterData: Dictionary<string | boolean | Search | Date>
+            ) => {
+                const query: Query<TBaseModel> = {};
+
+                for (const key in filterData) {
+                    if (
+                        filterData[key] &&
+                        typeof filterData[key] === Typeof.String
+                    ) {
+                        query[key as keyof TBaseModel] = (
+                            filterData[key] || ''
+                        ).toString();
+                    }
+
+                    if (typeof filterData[key] === Typeof.Boolean) {
+                        query[key as keyof TBaseModel] = Boolean(
+                            filterData[key]
+                        );
+                    }
+
+                    if (filterData[key] instanceof Date) {
+                        query[key as keyof TBaseModel] =
+                            filterData[key];
+                    }
+
+                    if (filterData[key] instanceof Search) {
+                        query[key as keyof TBaseModel] =
+                            filterData[key];
+                    }
+                }
+
+                setQuery(query);
+            }}
+            onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
+                setSortBy(sortBy);
+                setSortOrder(sortOrder);
+            }}
+            singularLabel={model.singularName || 'Item'}
+            pluralLabel={model.pluralName || 'Items'}
+            error={error}
+            currentPageNumber={currentPageNumber}
+            isLoading={isLoading}
+            totalItemsCount={totalItemsCount}
+            data={BaseModel.toJSONObjectArray(data)}
+            id={props.id}
+            columns={tableColumns}
+            itemsOnPage={itemsOnPage}
+            disablePagination={props.disablePagination || false}
+            onNavigateToPage={async (
+                pageNumber: number,
+                itemsOnPage: number
+            ) => {
+                setCurrentPageNumber(pageNumber);
+                setItemsOnPage(itemsOnPage);
+            }}
+            showFilter={showTableFilter}
+            noItemsMessage={props.noItemsMessage || ''}
+            onRefreshClick={() => {
+                fetchItems();
+            }}
+            actionButtons={actionButtonSchema}
+            onActionEvent={(key: ActionType, item: JSONObject) => {
+                if (key === ActionType.Edit) {
+                    setModalType(ModalType.Edit);
+                    setShowModal(true);
+                    setCurrentEditableItem(item);
+                }
+
+                if (key === ActionType.Delete) {
+                    setShowDeleteConfirmModal(true);
+                    setCurrentDeleteableItem(item);
+                }
+
+                if (key === ActionType.View) {
+                    if (!props.currentPageRoute) {
+                        throw new BadDataException(
+                            'Please populate curentPageRoute in ModelTable'
+                        );
+                    }
+                    Navigation.navigate(
+                        new Route(
+                            props.currentPageRoute.toString()
+                        ).addRoute('/' + item['_id'])
+                    );
+                }
+            }}
+        />)
+    }
+
     return (
         <>
-            <Card
+            {props.cardProps && <Card
                 {...props.cardProps}
                 cardBodyStyle={{ padding: '0px' }}
                 buttons={cardButtons}
             >
-                <Table
-                    onFilterChanged={(
-                        filterData: Dictionary<string | boolean | Search | Date>
-                    ) => {
-                        const query: Query<TBaseModel> = {};
-
-                        for (const key in filterData) {
-                            if (
-                                filterData[key] &&
-                                typeof filterData[key] === Typeof.String
-                            ) {
-                                query[key as keyof TBaseModel] = (
-                                    filterData[key] || ''
-                                ).toString();
-                            }
-
-                            if (typeof filterData[key] === Typeof.Boolean) {
-                                query[key as keyof TBaseModel] = Boolean(
-                                    filterData[key]
-                                );
-                            }
-
-                            if (filterData[key] instanceof Date) {
-                                query[key as keyof TBaseModel] =
-                                    filterData[key];
-                            }
-
-                            if (filterData[key] instanceof Search) {
-                                query[key as keyof TBaseModel] =
-                                    filterData[key];
-                            }
-                        }
-
-                        setQuery(query);
-                    }}
-                    onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
-                        setSortBy(sortBy);
-                        setSortOrder(sortOrder);
-                    }}
-                    singularLabel={model.singularName || 'Item'}
-                    pluralLabel={model.pluralName || 'Items'}
-                    error={error}
-                    currentPageNumber={currentPageNumber}
-                    isLoading={isLoading}
-                    totalItemsCount={totalItemsCount}
-                    data={BaseModel.toJSONObjectArray(data)}
-                    id={props.id}
-                    columns={tableColumns}
-                    itemsOnPage={itemsOnPage}
-                    disablePagination={props.disablePagination || false}
-                    onNavigateToPage={async (
-                        pageNumber: number,
-                        itemsOnPage: number
-                    ) => {
-                        setCurrentPageNumber(pageNumber);
-                        setItemsOnPage(itemsOnPage);
-                    }}
-                    showFilter={showTableFilter}
-                    noItemsMessage={props.noItemsMessage || ''}
-                    onRefreshClick={() => {
-                        fetchItems();
-                    }}
-                    actionButtons={actionButtonSchema}
-                    onActionEvent={(key: ActionType, item: JSONObject) => {
-                        if (key === ActionType.Edit) {
-                            setModalType(ModalType.Edit);
-                            setShowModal(true);
-                            setCurrentEditableItem(item);
-                        }
-
-                        if (key === ActionType.Delete) {
-                            setShowDeleteConfirmModal(true);
-                            setCurrentDeleteableItem(item);
-                        }
-
-                        if (key === ActionType.View) {
-                            if (!props.currentPageRoute) {
-                                throw new BadDataException(
-                                    'Please populate curentPageRoute in ModelTable'
-                                );
-                            }
-                            Navigation.navigate(
-                                new Route(
-                                    props.currentPageRoute.toString()
-                                ).addRoute('/' + item['_id'])
-                            );
-                        }
-                    }}
-                />
-            </Card>
+                {getTable()}
+            </Card>}
+            
+            {!props.cardProps && getTable()}
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>
