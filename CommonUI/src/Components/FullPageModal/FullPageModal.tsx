@@ -14,9 +14,13 @@ const FullPageModal: FunctionComponent<ComponentProps> = (
             <div className='margin-50 align-right' onClick={() => {
                 props.onClose && props.onClose();
             }}>
-                <Icon icon={IconProp.Close} size={SizeProp.ExtraLarge} thick={ThickProp.Thick} />
+                <Icon
+                    icon={IconProp.Close}
+                    size={SizeProp.ExtraLarge}
+                    thick={ThickProp.Thick}
+                />
             </div>
-            {props.children}
+            <div className='margin-50'>{props.children}</div>
        </div>
     );
 };

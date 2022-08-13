@@ -9,6 +9,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     isLoading: boolean;
     projects: Array<Project>;
+    selectedProject: Project | null;
     error: string;
     onProjectSelected: (project: Project) => void;
 }
@@ -21,6 +22,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             footer={<Footer />}
             header={
                 <Header
+                    selectedProject={props.selectedProject}
                     projects={props.projects}
                     onProjectSelected={props.onProjectSelected}
                 />

@@ -1,7 +1,5 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
-import TableBody from './TableBody';
-import TableHeader from './TableHeader';
 import Columns from './Types/Columns';
 import Pagination from './Pagination';
 import SortOrder from 'Common/Types/Database/SortOrder';
@@ -10,6 +8,7 @@ import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
 import Search from 'Common/Types/Database/Search';
 import ErrorMessage from './ErrorMessage';
 import TableLoader from './Loader';
+import ListBody from './ListBody';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -68,7 +67,7 @@ const List: FunctionComponent<ComponentProps> = (
         }
 
         return (
-            <TableBody
+            <ListBody
                 id={`${props.id}-body`}
                 data={props.data}
                 columns={props.columns}

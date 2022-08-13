@@ -38,6 +38,7 @@ import Navigation from '../../Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Populate from '../../Utils/ModelAPI/Populate';
+import List from '../Table/List';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -562,8 +563,116 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         />)
     }
 
-    return (
-        <>
+    const getList = (): ReactElement => {
+        return (<List
+            onFilterChanged={(
+                filterData: Dictionary<string | boolean | Search | Date>
+            ) => {
+                const query: Query<TBaseModel> = {};
+
+                for (const key in filterData) {
+                    if (
+                        filterData[key] &&
+                        typeof filterData[key] === Typeof.String
+                    ) {
+                        query[key as keyof TBaseModel] = (
+                            filterData[key] || ''
+                        ).toString();
+                    }
+
+                    if (typeof filterData[key] === Typeof.Boolean) {
+                        query[key as keyof TBaseModel] = Boolean(
+                            filterData[key]
+                        );
+                    }
+
+                    if (filterData[key] instanceof Date) {
+                        query[key as keyof TBaseModel] =
+                            filterData[key];
+                    }
+
+                    if (filterData[key] instanceof Search) {
+                        query[key as keyof TBaseModel] =
+                            filterData[key];
+                    }
+                }
+
+                setQuery(query);
+            }}
+            onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
+                setSortBy(sortBy);
+                setSortOrder(sortOrder);
+            }}
+            singularLabel={model.singularName || 'Item'}
+            pluralLabel={model.pluralName || 'Items'}
+            error={error}
+            currentPageNumber={currentPageNumber}
+            isLoading={isLoading}
+            totalItemsCount={totalItemsCount}
+            data={BaseModel.toJSONObjectArray(data)}
+            id={props.id}
+            columns={tableColumns}
+            itemsOnPage={itemsOnPage}
+            disablePagination={props.disablePagination || false}
+            onNavigateToPage={async (
+                pageNumber: number,
+                itemsOnPage: number
+            ) => {
+                setCurrentPageNumber(pageNumber);
+                setItemsOnPage(itemsOnPage);
+            }}
+            showFilter={showTableFilter}
+            noItemsMessage={props.noItemsMessage || ''}
+            onRefreshClick={() => {
+                fetchItems();
+            }}
+            actionButtons={actionButtonSchema}
+            onActionEvent={(key: ActionType, item: JSONObject) => {
+                if (key === ActionType.Edit) {
+                    setModalType(ModalType.Edit);
+                    setShowModal(true);
+                    setCurrentEditableItem(item);
+                }
+
+                if (key === ActionType.Delete) {
+                    setShowDeleteConfirmModal(true);
+                    setCurrentDeleteableItem(item);
+                }
+
+                if (key === ActionType.View) {
+                    if (!props.currentPageRoute) {
+                        throw new BadDataException(
+                            'Please populate curentPageRoute in ModelTable'
+                        );
+                    }
+                    Navigation.navigate(
+                        new Route(
+                            props.currentPageRoute.toString()
+                        ).addRoute('/' + item['_id'])
+                    );
+                }
+            }}
+        />)
+    }
+    
+    const getCardComponent = (): ReactElement => {
+
+        if (props.showAsList) {
+            return <div>
+            {props.cardProps && <Card
+                {...props.cardProps}
+                cardBodyStyle={{ padding: '0px' }}
+                buttons={cardButtons}
+            >
+                {getList()}
+            </Card>}
+
+            {!props.cardProps && getList()}
+        </div>
+        }
+
+
+        return <div>
             {props.cardProps && <Card
                 {...props.cardProps}
                 cardBodyStyle={{ padding: '0px' }}
@@ -571,8 +680,16 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             >
                 {getTable()}
             </Card>}
-            
+
             {!props.cardProps && getTable()}
+        </div>
+    }
+
+    return (
+        <>
+            
+            
+           {getCardComponent()}
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>

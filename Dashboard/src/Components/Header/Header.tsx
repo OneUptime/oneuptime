@@ -14,8 +14,13 @@ import TeamMember from 'Model/Models/TeamMember';
 import User from 'CommonUI/src/Utils/User';
 
 import FullPageModal from "CommonUI/src/Components/FullPageModal/FullPageModal";
+import TeamPermission from 'Model/Models/TeamPermission';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
 export interface ComponentProps {
+    selectedProject: Project | null;
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
 }
@@ -35,7 +40,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
                         />
-                        <SearchBox key={2} onChange={(_value: string) => {}} />
+                        <SearchBox key={2} onChange={(_value: string) => { }} />
                         <div
                             style={{
                                 marginLeft: '15px',
@@ -71,11 +76,47 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             />
 
             {showProjectInvitationModal && <FullPageModal onClose={() => {
-                 setShowProjectInvitationModal(false);
+                setShowProjectInvitationModal(false);
             }}>
-                <div>
-                    
-                </div>
+                <ModelTable<TeamPermission>
+                    modelType={TeamPermission}
+                    id="team-permission-table"
+                    isDeleteable={true}
+                    query={{
+                        userId: User.getUserId(),
+                        hasAcceptedInvitation: false,
+                    }}
+                    isEditable={false}
+                    isCreateable={false}
+                    isViewable={false}
+                    cardProps={{
+                        icon: IconProp.User,
+                        title: 'Project Invitations',
+                        description:
+                            'Here is a list of projects and teams you have been invited to.',
+                    }}
+                    noItemsMessage={
+                        'No proejct or team invitations for you so far.'
+                    }
+                    showAsList={true}
+                    columns={[
+                        {
+                            field: {
+                                projectId: true,
+                            },
+                            title: 'Project',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                teamId: true,
+                            },
+                            title: 'Team',
+                            type: FieldType.Text,
+                        },
+                    ]}
+                />
             </FullPageModal>}
         </>
     );

@@ -14,7 +14,7 @@ export interface ComponentProps {
         | undefined;
 }
 
-const TableBody: FunctionComponent<ComponentProps> = (
+const ListBody: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
@@ -35,4 +35,4 @@ const TableBody: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default TableBody;
+export default ListBody;
