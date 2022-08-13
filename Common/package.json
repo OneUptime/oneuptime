@@ -5,6 +5,8 @@
     "main": "index.js",
     "scripts": {
         "test": "jest",
+        "test-port": "jest Tests/Types/Port.test.ts",
+        "test-phone": "jest Tests/Types/Phone.test.ts",
         "compile": "tsc"
     },
     "author": "",

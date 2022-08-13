@@ -1,5 +1,6 @@
 import { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
+import BadDataException from './Exception/BadDataException';
 
 export default class Phone extends DatabaseProperty {
     private _phone: string = '';
@@ -16,6 +17,11 @@ export default class Phone extends DatabaseProperty {
          *     throw new BadDataException('Phone is not in valid format.');
          * }
          */
+        const re: RegExp = /^\+(?:[0-9] ?){6,14}[0-9]$/; // regex for international phone numbers format based on (ITU-T E.123)
+        const isValid: boolean = re.test(v);
+         if (!isValid) {
+              throw new BadDataException('Phone is not in valid format.');
+          }
         this._phone = v;
     }
 
