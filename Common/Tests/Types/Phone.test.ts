@@ -18,7 +18,6 @@ describe('Testing Class Phone', () => {
         expect(() => {
             new Phone('2519259$74121');
         }).toThrowError(BadDataException);
-        
     });
 
     test('try to mutating Phone.phone with invalid value should throw an BadDataExcepection', () => {
@@ -33,5 +32,4 @@ describe('Testing Class Phone', () => {
             value.phone = 'hgjuit879';
         }).toThrowError(BadDataException);
     });
-    
 });
