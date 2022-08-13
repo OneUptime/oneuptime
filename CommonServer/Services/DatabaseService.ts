@@ -959,8 +959,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 limit,
                 props,
             };
-
-             
+            
             findBy = this.asFindByByPermissions(findBy);
 
             findBy.query = this.serializeQuery(query);

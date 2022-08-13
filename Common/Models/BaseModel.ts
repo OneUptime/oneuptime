@@ -73,7 +73,7 @@ export default class BaseModel extends BaseEntity {
 
     public isPermissionIf: Dictionary<JSONObject> = {};
 
-    public isMultiTenantQueryAllowed: boolean = false;
+    public isMultiTenantQueryAllowed!: boolean | null;
 
     public crudApiPath!: Route | null;
     // If this resource is by projectId, which column does projectId belong to?
@@ -128,8 +128,8 @@ export default class BaseModel extends BaseEntity {
         return new Columns(Object.keys(getTableColumns(this)));
     }
 
-    public canQueryMultiTenant(): boolean | null {
-        return this.isMultiTenantQueryAllowed;
+    public canQueryMultiTenant(): boolean {
+        return !!this.isMultiTenantQueryAllowed;
     }
 
     public getTableColumnMetadata(columnName: string): TableColumnMetadata {

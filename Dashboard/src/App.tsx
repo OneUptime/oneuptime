@@ -84,7 +84,11 @@ const App: FunctionComponent = () => {
                     name: true,
                     _id: true,
                 },
-                {}
+                {},
+                {},
+                {
+                    doNotIncludeTenantIdHeader: true
+                }
             );
             setProjects(result.data);
         } catch (err) {

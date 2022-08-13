@@ -118,7 +118,7 @@ export default class ModelAPI {
         select: Select<TBaseModel>,
         sort: Sort<TBaseModel>,
         populate?: Populate<TBaseModel>,
-        queryOptions?: RequestOptions
+        requestOptions?: RequestOptions
     ): Promise<ListResult<TBaseModel>> {
         const model: TBaseModel = new modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -138,8 +138,8 @@ export default class ModelAPI {
             );
         }
 
-        const headers: Dictionary<string> = this.getCommonHeaders();
-        if (queryOptions && queryOptions.isMultiTenantQuery) {
+        const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
+        if (requestOptions && requestOptions.isMultiTenantQuery) {
             headers['isMultiTenantQuery'] = 'true';
         }
 
@@ -181,7 +181,7 @@ export default class ModelAPI {
     public static async count<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
-        queryOptions?: RequestOptions | undefined
+        requestOptions?: RequestOptions | undefined
     ): Promise<number> {
         const model: TBaseModel = new modelType();
         const apiPath: Route | null = model.getCrudApiPath();
@@ -201,8 +201,8 @@ export default class ModelAPI {
             );
         }
 
-        const headers: Dictionary<string> = this.getCommonHeaders();
-        if (queryOptions && queryOptions.isMultiTenantQuery) {
+        const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
+        if (requestOptions && requestOptions.isMultiTenantQuery) {
             headers['is-multi-tenant-query'] = 'true';
         }
 
@@ -243,7 +243,8 @@ export default class ModelAPI {
         modelType: { new (): TBaseModel },
         id: ObjectID,
         select: Select<TBaseModel>,
-        populate?: Populate<TBaseModel>
+        populate?: Populate<TBaseModel>,
+        requestOptions?: RequestOptions | undefined
     ): Promise<TBaseModel | null> {
         const apiPath: Route | null = new modelType().getCrudApiPath();
         if (!apiPath) {
@@ -273,7 +274,7 @@ export default class ModelAPI {
                         ? JSONFunctions.serialize(populate as JSONObject)
                         : null,
                 },
-                this.getCommonHeaders()
+                this.getCommonHeaders(requestOptions)
             );
 
         if (result.isSuccess()) {
@@ -284,7 +285,8 @@ export default class ModelAPI {
 
     public static async deleteItem<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
-        id: ObjectID
+        id: ObjectID,
+        requestOptions?: RequestOptions | undefined
     ): Promise<void> {
         const apiPath: Route | null = new modelType().getCrudApiPath();
         if (!apiPath) {
@@ -308,7 +310,7 @@ export default class ModelAPI {
                 HTTPMethod.DELETE,
                 apiUrl,
                 undefined,
-                this.getCommonHeaders()
+                this.getCommonHeaders(requestOptions)
             );
 
         if (result.isSuccess()) {
