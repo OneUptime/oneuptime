@@ -25,10 +25,8 @@ export interface ListResult<TBaseModel extends BaseModel> {
     limit: number;
 }
 
-
 export interface RequestOptions {
-    isMultiTenantQuery?: boolean | undefined;
-    doNotIncludeTenantIdHeader?: boolean | undefined
+    isMultiTenantRequest?: boolean | undefined;
 }
 
 export default class ModelAPI {
@@ -138,9 +136,10 @@ export default class ModelAPI {
             );
         }
 
-        const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
-        if (requestOptions && requestOptions.isMultiTenantQuery) {
-            headers['isMultiTenantQuery'] = 'true';
+        const headers: Dictionary<string> =
+            this.getCommonHeaders(requestOptions);
+        if (requestOptions && requestOptions.isMultiTenantRequest) {
+            headers['isMultiTenantRequest'] = 'true';
         }
 
         const result: HTTPResponse<JSONArray> | HTTPErrorResponse =
@@ -201,8 +200,9 @@ export default class ModelAPI {
             );
         }
 
-        const headers: Dictionary<string> = this.getCommonHeaders(requestOptions);
-        if (requestOptions && requestOptions.isMultiTenantQuery) {
+        const headers: Dictionary<string> =
+            this.getCommonHeaders(requestOptions);
+        if (requestOptions && requestOptions.isMultiTenantRequest) {
             headers['is-multi-tenant-query'] = 'true';
         }
 
@@ -225,10 +225,12 @@ export default class ModelAPI {
         throw result;
     }
 
-    public static getCommonHeaders(requestOptions?: RequestOptions): Dictionary<string> {
+    public static getCommonHeaders(
+        requestOptions?: RequestOptions
+    ): Dictionary<string> {
         const headers: Dictionary<string> = {};
 
-        if (!requestOptions || !requestOptions.doNotIncludeTenantIdHeader) {
+        if (!requestOptions || !requestOptions.isMultiTenantRequest) {
             const project: Project | null = ProjectUtil.getCurrentProject();
 
             if (project && project.id) {

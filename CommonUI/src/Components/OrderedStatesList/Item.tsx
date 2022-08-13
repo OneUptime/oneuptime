@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ListItem {
     id: string;
-    text: string
+    text: string;
 }
 
 export interface ComponentProps {
@@ -15,19 +15,36 @@ export interface ComponentProps {
 const Item: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return (<div onClick={() => {
-        props.onClick && props.onClick(props.item);
-    }}>
-        <div>{props.item.text}</div>
-        <div>
-            {props.onEditClick && <div onClick={() => {
-                props.onEditClick && props.onEditClick(props.item)
-            }}>Edit</div>}
-            {props.onDeleteClick && <div onClick={() => {
-                props.onDeleteClick && props.onDeleteClick(props.item)
-            }}>Delete</div>}
+    return (
+        <div
+            onClick={() => {
+                props.onClick && props.onClick(props.item);
+            }}
+        >
+            <div>{props.item.text}</div>
+            <div>
+                {props.onEditClick && (
+                    <div
+                        onClick={() => {
+                            props.onEditClick && props.onEditClick(props.item);
+                        }}
+                    >
+                        Edit
+                    </div>
+                )}
+                {props.onDeleteClick && (
+                    <div
+                        onClick={() => {
+                            props.onDeleteClick &&
+                                props.onDeleteClick(props.item);
+                        }}
+                    >
+                        Delete
+                    </div>
+                )}
+            </div>
         </div>
-    </div>)
+    );
 };
 
 export default Item;

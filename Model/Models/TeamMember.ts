@@ -40,7 +40,6 @@ import User from './User';
         Permission.CanEditProjectTeam,
     ],
 })
-
 @MultiTenentQueryAllowed(true)
 @UserColumn('userId')
 @TenantColumn('projectId')

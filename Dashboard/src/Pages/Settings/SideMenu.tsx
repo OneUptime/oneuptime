@@ -129,7 +129,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 <SideMenuItem
                     link={{
                         title: 'Danger Zone',
-                        to:  RouteUtil.populateRouteParams(
+                        to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
                         ),
                     }}

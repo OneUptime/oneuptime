@@ -43,7 +43,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 modelType={Project}
                 modelId={new ObjectID(props.currentProject?._id || '')}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(new Route("/dashboard"));
+                    Navigation.navigate(new Route('/dashboard'));
                 }}
             />
         </Page>

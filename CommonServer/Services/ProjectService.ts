@@ -80,7 +80,7 @@ export class Service extends DatabaseService<Model> {
         // add default teams.
         createdItem = await this.addDefaultProjectTeams(createdItem);
         createdItem = await this.addDefaultMonitorStatus(createdItem);
-        
+
         return Promise.resolve(createdItem);
     }
 

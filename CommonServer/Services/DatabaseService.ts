@@ -463,7 +463,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         props: DatabaseCommonInteractionProps,
         type: DatabaseRequestType
     ): Array<UserPermission> {
-
         if (!props.userGlobalAccessPermission) {
             throw new NotAuthorizedException(`Permissions not found.`);
         }
@@ -487,9 +486,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             modelPermissions = this.model.readRecordPermissions;
         }
 
-        isPublicAllowed = modelPermissions.includes(
-            Permission.Public
-        );
+        isPublicAllowed = modelPermissions.includes(Permission.Public);
 
         if (!isPublicAllowed && !props.userId) {
             // this means the record is not publicly createable and the user is not logged in.
@@ -528,9 +525,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         } else {
             throw new NotAuthorizedException(`Permissions not found.`);
         }
-        
+
         if (
-            props.tenantId && 
+            props.tenantId &&
             props.userProjectAccessPermission &&
             !PermissionHelper.doesPermissionsIntersect(
                 props.userProjectAccessPermission.permissions.map(
@@ -629,17 +626,20 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         const tenantColumn: string | null = this.model.getTenantColumn();
 
-
-        if (findBy.props.isMultiTenantQuery && !this.model.canQueryMultiTenant()) {
-            throw new BadDataException("isMultiTenantQuery not allowed on this model");
+        if (
+            findBy.props.isMultiTenantRequest &&
+            !this.model.canQueryMultiTenant()
+        ) {
+            throw new BadDataException(
+                'isMultiTenantRequest not allowed on this model'
+            );
         }
 
-
-        // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query. 
+        // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
         if (
             tenantColumn &&
             findBy.props.tenantId &&
-            !findBy.props.isMultiTenantQuery
+            !findBy.props.isMultiTenantRequest
         ) {
             (findBy.query as any)[tenantColumn] = findBy.props.tenantId;
         } else if (
@@ -959,7 +959,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 limit,
                 props,
             };
-            
+
             findBy = this.asFindByByPermissions(findBy);
 
             findBy.query = this.serializeQuery(query);

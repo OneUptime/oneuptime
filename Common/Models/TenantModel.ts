@@ -6,7 +6,7 @@ export default class TenantModel extends BaseModel {
         super(id);
     }
 
-    public override isTenantModel(): boolean{
-        return true
+    public override isTenantModel(): boolean {
+        return true;
     }
 }

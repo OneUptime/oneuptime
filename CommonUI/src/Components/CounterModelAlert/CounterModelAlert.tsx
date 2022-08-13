@@ -2,7 +2,7 @@ import React, { ReactElement, useEffect, useState } from 'react';
 import Alert, { AlertType } from '../Alerts/Alert';
 import BaseModel from 'Common/Models/BaseModel';
 import Query from '../../Utils/ModelAPI/Query';
-import ModelAPI, { RequestOptions} from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONObject } from 'Common/Types/JSON';
 

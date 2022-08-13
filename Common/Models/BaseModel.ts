@@ -73,7 +73,7 @@ export default class BaseModel extends BaseEntity {
 
     public isPermissionIf: Dictionary<JSONObject> = {};
 
-    public isMultiTenantQueryAllowed!: boolean | null;
+    public isMultiTenantRequestAllowed!: boolean | null;
 
     public crudApiPath!: Route | null;
     // If this resource is by projectId, which column does projectId belong to?
@@ -129,7 +129,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public canQueryMultiTenant(): boolean {
-        return !!this.isMultiTenantQueryAllowed;
+        return Boolean(this.isMultiTenantRequestAllowed);
     }
 
     public getTableColumnMetadata(columnName: string): TableColumnMetadata {
@@ -246,7 +246,7 @@ export default class BaseModel extends BaseEntity {
 
     private static _fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new(): T }
+        type: { new (): T }
     ): T {
         json = JSONFunctions.deserialize(json);
         const baseModel: T = new type();
@@ -262,7 +262,7 @@ export default class BaseModel extends BaseEntity {
 
     public static fromJSON<T extends BaseModel>(
         json: JSONObject | JSONArray,
-        type: { new(): T }
+        type: { new (): T }
     ): T | Array<T> {
         if (Array.isArray(json)) {
             const arr: Array<T> = [];
@@ -279,14 +279,14 @@ export default class BaseModel extends BaseEntity {
 
     public fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new(): T }
+        type: { new (): T }
     ): T {
         return BaseModel._fromJSON<T>(json, type);
     }
 
     public fromJSONArray<T extends BaseModel>(
         json: Array<JSONObject>,
-        type: { new(): T }
+        type: { new (): T }
     ): Array<T> {
         const arr: Array<T> = [];
 
@@ -322,7 +322,7 @@ export default class BaseModel extends BaseEntity {
         );
         return Boolean(
             tableColumnType.type === TableColumnType.Entity ||
-            tableColumnType.type === TableColumnType.EntityArray
+                tableColumnType.type === TableColumnType.EntityArray
         );
     }
 

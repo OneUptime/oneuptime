@@ -152,7 +152,7 @@ export default class BaseAPI<
             userProjectAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
-            isMultiTenantQuery: undefined,
+            isMultiTenantRequest: undefined,
         };
 
         if (
@@ -179,7 +179,7 @@ export default class BaseAPI<
         }
 
         if (req.headers['is-multi-tenant-query']) {
-            props.isMultiTenantQuery = true;
+            props.isMultiTenantRequest = true;
         }
 
         return props;
