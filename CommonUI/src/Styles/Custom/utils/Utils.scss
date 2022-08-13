@@ -29,6 +29,12 @@
     font-weight: bold;
 }
 
+.small-circle{
+    height: 20px;
+    width: 20px;
+    border-radius: 20px;
+}
+
 .primary-on-hover {
     cursor: pointer;
 
@@ -72,6 +78,10 @@
 .margin-10{
    margin: 10px
 }
+
+.margin-5{
+    margin: 5px
+ }
 
 .margin-15{
     margin: 15px

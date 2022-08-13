@@ -10,7 +10,7 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
+import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -115,7 +115,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         },
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
-                                <Pill
+                                <StatusBubble
                                     color={item['color'] as Color}
                                     text={item['name'] as string}
                                 />
