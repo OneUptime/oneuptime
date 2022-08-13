@@ -5,6 +5,8 @@ describe('Testing Class Phone', () => {
     test('Should create a phone if the phone is valid phone number', () => {
         expect(new Phone('+251912974103').toString()).toEqual('+251912974103');
         expect(new Phone('961-770-7727').phone).toEqual('961-770-7727');
+        expect(new Phone('943-627-0355').phone).toEqual('943-627-0355');
+        expect(new Phone('282.652.3201').phone).toEqual('282.652.3201');
     });
 
     test('Phone.phone should be mutatable', () => {

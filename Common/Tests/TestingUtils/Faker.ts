@@ -1,6 +1,5 @@
 import { faker } from '@faker-js/faker';
 import Email from '../../Types/Email';
-import BadDataException from '../../Types/Exception/BadDataException';
 import Name from '../../Types/Name';
 import Phone from '../../Types/Phone';
 
@@ -26,11 +25,6 @@ export default class Faker {
     }
 
     public static generatePhone(): Phone {
-        try {
-            const newPhone: Phone = new Phone(faker.phone.phoneNumber());
-            return newPhone;
-        } catch (error) {
-            throw new BadDataException('Phone number generted is not valid');
-        }
+        return new Phone(faker.phone.phoneNumberFormat());
     }
 }
