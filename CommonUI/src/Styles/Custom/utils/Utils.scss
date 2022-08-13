@@ -83,11 +83,25 @@
     margin: 5px
  }
 
+
+ .margin-50{
+    margin: 50px
+ }
+
+
 .margin-15{
     margin: 15px
  }
  
-
+.full-page-modal{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    background-color: white;
+}
 
 .light-grey-on-hover {
     cursor: pointer;
@@ -139,6 +153,9 @@
     display: flex !important;
 }
 
+.align-right{
+    text-align: right;
+}
 
 .padding-0{
     padding: 0px !important;

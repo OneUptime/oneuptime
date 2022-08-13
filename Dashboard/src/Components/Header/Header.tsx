@@ -13,6 +13,8 @@ import { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import TeamMember from 'Model/Models/TeamMember';
 import User from 'CommonUI/src/Utils/User';
 
+import FullPageModal from "CommonUI/src/Components/FullPageModal/FullPageModal";
+
 export interface ComponentProps {
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
@@ -68,7 +70,13 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 }
             />
 
-            {showProjectInvitationModal && <></>}
+            {showProjectInvitationModal && <FullPageModal onClose={() => {
+                 setShowProjectInvitationModal(false);
+            }}>
+                <div>
+                    
+                </div>
+            </FullPageModal>}
         </>
     );
 };
