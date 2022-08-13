@@ -6,7 +6,7 @@ import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
-import TableColumnType from './Types/TableColumnType';
+import FieldType from '../Types/FieldType';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -35,7 +35,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             }}
                         >
                             {column.key && !column.getColumnElement ? (
-                                column.type === TableColumnType.Date ? (
+                                column.type === FieldType.Date ? (
                                     props.item[column.key] ? (
                                         OneUptimeDate.getDateAsLocalFormattedString(
                                             props.item[column.key] as string,
@@ -45,7 +45,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                     ) : (
                                         ''
                                     )
-                                ) : column.type === TableColumnType.Boolean ? (
+                                ) : column.type === FieldType.Boolean ? (
                                     props.item[column.key] ? (
                                         <Icon
                                             icon={IconProp.True}
@@ -71,7 +71,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             ) : (
                                 <></>
                             )}
-                            {column.type === TableColumnType.Actions && (
+                            {column.type === FieldType.Actions && (
                                 <div>
                                     {props.actionButtons?.map(
                                         (

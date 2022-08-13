@@ -7,7 +7,6 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
@@ -17,7 +16,7 @@ import PermissionUtil from 'CommonUI/src/Utils/Permission';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
-import FieldType from 'CommonUI/src/Components/Detail/FieldType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../Components/Label/Labels';
@@ -206,7 +205,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             permission: true,
                         },
                         title: 'Permission',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
@@ -223,7 +222,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             labels: true,
                         },
                         title: 'Labels',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

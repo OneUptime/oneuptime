@@ -1,13 +1,11 @@
-import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import Select from '../../Utils/ModelAPI/Select';
-import FieldType from './FieldType';
+import FieldType from '../Types/FieldType';
 
-export default interface Field<TBaseModel extends BaseModel> {
+export default interface Field {
     title?: string;
     description?: string;
-    field: Select<TBaseModel>;
+    key: string;
     fieldType?: FieldType;
     sideLink?: {
         text: string;

@@ -17,7 +17,7 @@ import { IconProp } from '../Icon/Icon';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import TableColumnType from '../Table/Types/TableColumnType';
+import FieldType from '../Types/FieldType';
 import Dictionary from 'Common/Types/Dictionary';
 import ActionButtonSchema, {
     ActionType,
@@ -64,6 +64,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
+    showAsList?: boolean | undefined
 }
 
 enum ModalType {
@@ -431,7 +432,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         ) {
             columns.push({
                 title: 'Actions',
-                type: TableColumnType.Actions,
+                type: FieldType.Actions,
             });
         }
 

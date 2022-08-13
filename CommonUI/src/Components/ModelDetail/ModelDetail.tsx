@@ -14,7 +14,7 @@ import Permission, {
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
-import Field from '../Detail/Field';
+import Field from './Field';
 import Detail from '../Detail/Detail';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
@@ -100,6 +100,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                         fieldPermissions
                     )
                 ) {
+                    field.key = key;
                     fieldsToSet.push(field);
                 }
             }

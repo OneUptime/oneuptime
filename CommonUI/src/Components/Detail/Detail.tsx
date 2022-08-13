@@ -1,33 +1,26 @@
 import React, { ReactElement } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
 import Field from './Field';
 import Link from '../Link/Link';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import OneUptimeDate from 'Common/Types/Date';
-import FieldType from './FieldType';
+import FieldType from '../Types/FieldType';
 import HiddenText from '../HiddenText/HiddenText';
+import { JSONObject } from 'Common/Types/JSON';
 
-export interface ComponentProps<TBaseModel extends BaseModel> {
-    item: TBaseModel;
-    fields: Array<Field<TBaseModel>>;
+export interface ComponentProps {
+    item: JSONObject;
+    fields: Array<Field>;
     id?: string | undefined;
 }
 
-const Detail: Function = <TBaseModel extends BaseModel>(
-    props: ComponentProps<TBaseModel>
+const Detail: Function = (
+    props: ComponentProps
 ): ReactElement => {
     const getField: Function = (
-        field: Field<TBaseModel>,
+        field: Field,
         index: number
     ): ReactElement => {
-        const fieldKeys: Array<string> = Object.keys(field.field);
-        let fieldKey: string | null = null;
-
-        if (fieldKeys.length > 0 && fieldKeys[0]) {
-            fieldKey = fieldKeys[0];
-        } else {
-            throw new BadDataException('Field Key not found');
-        }
+        const fieldKey = field.key;
 
         if (!props.item) {
             throw new BadDataException('Item not found');
@@ -92,7 +85,7 @@ const Detail: Function = <TBaseModel extends BaseModel>(
         <div>
             {props.fields &&
                 props.fields.length > 0 &&
-                props.fields.map((field: Field<TBaseModel>, i: number) => {
+                props.fields.map((field: Field, i: number) => {
                     return getField(field, i);
                 })}
         </div>

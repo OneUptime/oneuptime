@@ -1,11 +1,12 @@
 import { JSONObject } from 'Common/Types/JSON';
 import { ReactElement } from 'react';
-import TableColumnType from './TableColumnType';
+import FieldType from '../../Types/FieldType';
 
 export default interface Column {
     title: string;
+    description?: string | undefined;
     disableSort?: boolean;
-    type: TableColumnType;
+    type: FieldType;
     isFilterable?: boolean;
     key?: string | null; //can be null because actions column does not have a key.
     getColumnElement?: ((item: JSONObject) => ReactElement) | undefined;

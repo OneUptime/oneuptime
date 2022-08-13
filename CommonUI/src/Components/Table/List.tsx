@@ -37,31 +37,19 @@ export interface ComponentProps {
     | undefined;
 }
 
-const Table: FunctionComponent<ComponentProps> = (
+const List: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const getTablebody: Function = (): ReactElement => {
+    const getListbody: Function = (): ReactElement => {
         if (props.isLoading) {
             return (
-                <tbody>
-                    <tr>
-                        <td colSpan={props.columns.length}>
-                            <TableLoader />
-                        </td>
-                    </tr>
-                </tbody>
+                <TableLoader />
             );
         }
 
         if (props.error) {
             return (
-                <tbody>
-                    <tr>
-                        <td colSpan={props.columns.length}>
-                            <ErrorMessage error={props.error} onRefreshClick={props.onRefreshClick} />
-                        </td>
-                    </tr>
-                </tbody>
+                <ErrorMessage error={props.error} onRefreshClick={props.onRefreshClick} />
             );
         }
 
@@ -70,7 +58,7 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                        <ErrorMessage error={props.noItemsMessage
+                            <ErrorMessage error={props.noItemsMessage
                                     ? props.noItemsMessage
                                     : `No ${props.singularLabel.toLocaleLowerCase()}`} onRefreshClick={props.onRefreshClick}  />
                         </td>
@@ -92,16 +80,7 @@ const Table: FunctionComponent<ComponentProps> = (
 
     return (
         <div className="table-responsive">
-            <table className="table mb-0 table">
-                <TableHeader
-                    id={`${props.id}-header`}
-                    columns={props.columns}
-                    onSortChanged={props.onSortChanged}
-                    showFilter={props.showFilter || false}
-                    onFilterChanged={props.onFilterChanged || undefined}
-                />
-                {getTablebody()}
-            </table>
+            {getListbody()}
             {!props.disablePagination && (
                 <Pagination
                     singularLabel={props.singularLabel}
@@ -118,4 +97,4 @@ const Table: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default Table;
+export default List;

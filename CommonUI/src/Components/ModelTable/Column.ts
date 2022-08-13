@@ -3,7 +3,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import { ReactElement } from 'react';
 import SelectEntityField from '../../Types/SelectEntityField';
 import { IconProp } from '../Icon/Icon';
-import TableColumnType from '../Table/Types/TableColumnType';
+import FieldType from '../Types/FieldType';
 
 export interface ActionButton {
     buttonText: string;
@@ -15,7 +15,7 @@ export default interface Columns<TEntity> {
     field?: SelectEntityField<TEntity>;
     title: string;
     disableSort?: boolean;
-    type: TableColumnType;
+    type: FieldType;
     isFilterable: boolean;
     actionButtons?: Array<ActionButton>;
     moreFields?: SelectEntityField<TEntity>;

@@ -13,6 +13,8 @@ enum FieldType {
     Color,
     Port,
     HiddenText,
+    Actions,
+    Boolean
 }
 
 export default FieldType;
