@@ -7,7 +7,7 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
 import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
@@ -108,7 +108,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                         moreFields: {
                             color: true,
@@ -127,7 +127,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                 ]}

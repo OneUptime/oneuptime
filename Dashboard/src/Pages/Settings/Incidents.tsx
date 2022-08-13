@@ -7,7 +7,7 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Label from 'Model/Models/Label';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
@@ -92,7 +92,7 @@ const IncidentState: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                         moreFields: {
                             color: true,
@@ -111,7 +111,7 @@ const IncidentState: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                 ]}

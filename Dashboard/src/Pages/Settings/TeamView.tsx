@@ -6,7 +6,7 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
@@ -165,7 +165,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             user: true,
                         },
                         title: 'User',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             if (item['user']) {
                                 return (
@@ -186,7 +186,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             hasAcceptedInvitation: true,
                         },
                         title: 'Invitation Accepted',
-                        type: TableColumnType.Boolean,
+                        type: FieldType.Boolean,
                     },
                 ]}
             />
@@ -259,7 +259,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             permission: true,
                         },
                         title: 'Permission',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
@@ -276,7 +276,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             labels: true,
                         },
                         title: 'Labels',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

@@ -7,7 +7,7 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ApiKey from 'Model/Models/ApiKey';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
@@ -95,7 +95,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                     {
@@ -103,7 +103,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                     {
@@ -111,7 +111,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                             expiresAt: true,
                         },
                         title: 'Expires',
-                        type: TableColumnType.Date,
+                        type: FieldType.Date,
                         isFilterable: true,
                         options: {
                             onlyShowDate: true,
