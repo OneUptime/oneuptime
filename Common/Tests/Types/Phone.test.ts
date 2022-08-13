@@ -4,7 +4,7 @@ import Phone from '../../Types/Phone';
 describe('Testing Class Phone', () => {
     test('Should create a phone if the phone is valid phone number', () => {
         expect(new Phone('+251912974103').toString()).toEqual('+251912974103');
-        expect(new Phone('+1202 588 6500').phone).toEqual('+1202 588 6500');
+        expect(new Phone('961-770-7727').phone).toEqual('961-770-7727');
     });
 
     test('Phone.phone should be mutatable', () => {
@@ -16,7 +16,7 @@ describe('Testing Class Phone', () => {
 
     test('Creating phone number with invalid format should throw BadDataException', () => {
         expect(() => {
-            new Phone('2519259$74121');
+            new Phone('25192599879079074121');
         }).toThrowError(BadDataException);
     });
 
