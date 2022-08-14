@@ -209,7 +209,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 : null;
 
             if (key && model.isEntityColumn(key)) {
-                (populate as JSONObject)[key] = true;
+                (populate as JSONObject)[key] = (column.field as any)[key];
             }
         }
 

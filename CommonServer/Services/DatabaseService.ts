@@ -683,6 +683,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
+        // TODO: Check Populate Permissions as well.
+
         return findBy;
     }
 
@@ -1076,10 +1078,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             onBeforeFind = this.asFindByByPermissions(findBy);
 
-            if (!(onBeforeFind.skip instanceof PositiveNumber)) {
-                onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
-            }
-
             if (
                 !onBeforeFind.select ||
                 Object.keys(onBeforeFind.select).length === 0
@@ -1095,11 +1093,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (onBeforeFind.select as any)['createdAt'] = true;
             }
 
+            onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
+            onBeforeFind = this.serializePopulate(onBeforeFind);
+
+            if (!(onBeforeFind.skip instanceof PositiveNumber)) {
+                onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
+            }
+
             if (!(onBeforeFind.limit instanceof PositiveNumber)) {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
-
-            onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
 
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
@@ -1123,6 +1126,21 @@ class DatabaseService<TBaseModel extends BaseModel> {
             await this.onFindError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    private serializePopulate(onBeforeFind: FindBy<TBaseModel>): FindBy<TBaseModel> {
+
+        for (const key in onBeforeFind.populate) {
+            if (typeof onBeforeFind.populate[key] === Typeof.Object) {
+                // for (const selectKey in onBeforeFind.populate[key]) {
+                //     (onBeforeFind.select as any)[`${key}.${selectKey}`] = true;
+                // }
+                (onBeforeFind.select as any)[key] = (onBeforeFind.populate as any)[key];
+                (onBeforeFind.populate as any)[key] = true; 
+            }
+        }
+
+        return onBeforeFind;
     }
 
     public async findOneBy(
