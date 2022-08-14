@@ -8,6 +8,7 @@ import React, {
 import {
     ErrorMessage,
     Field,
+    FieldProps,
     Form,
     Formik,
     FormikErrors,
@@ -291,23 +292,20 @@ const BasicForm: Function = <T extends Object>(
                         name={fieldName}
                         disabled={isDisabled || field.disabled}
                     >
-                        {({ form }: any) => {
+                        {({ form }: FieldProps) => {
                             return (
                                 <Input
                                     className="form-control"
                                     type={fieldType as 'text'}
-                                    onChange={async (text: string) => {
-                                        await form.setFieldValue(
+                                    onChange={(text: string) => {
+                                        form.setFieldValue(
                                             fieldName,
                                             text,
                                             true
                                         );
                                     }}
-                                    onBlur={async () => {
-                                        await form.setFieldTouched(
-                                            fieldName,
-                                            true
-                                        );
+                                    onBlur={() => {
+                                        form.setFieldTouched(fieldName, true);
                                     }}
                                     initialValue={
                                         initialValues &&
