@@ -93,7 +93,7 @@ export class JSONFunctions {
         const newVal: JSONValue = {};
 
         for (const key in val) {
-            if (!val[key]) {
+            if (val[key] === null || val[key] === undefined) {
                 continue;
             }
 
@@ -113,7 +113,7 @@ export class JSONFunctions {
     }
 
     public static serializeValue(val: JSONValue): JSONValue {
-        if (!val) {
+        if (val === null || val === undefined) {
             return val;
         } else if (val && val instanceof Name) {
             return {
@@ -183,7 +183,7 @@ export class JSONFunctions {
     }
 
     public static deserializeValue(val: JSONValue): JSONValue {
-        if (!val) {
+        if (val === null || val === undefined) {
             return val;
         } else if (val instanceof DatabaseProperty) {
             return val;
@@ -325,7 +325,7 @@ export class JSONFunctions {
     public static deserialize(val: JSONObject): JSONObject {
         const newVal: JSONObject = {};
         for (const key in val) {
-            if (!val[key]) {
+            if (val[key] === null || val[key] === undefined) {
                 continue;
             }
 
