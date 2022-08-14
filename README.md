@@ -28,14 +28,14 @@ All under one platform.
 
 ## Contents
 
--   [Introduction](/docs/introduction.md)
--   [Concept](/docs/concept.md)
--   [Architecture](/docs/architecture.md)
--   [How OneUptime Works](/docs/how-oneuptime-works-overview)
--   [Subproject Description](/docs/project-description.md)
--   [Running OneUptime](/docs/run.md)
--   [Running tests](/docs/running-tests.md)
--   [Deployment](/docs/deployment.md)
+-   [Introduction](/Docs/introduction.md)
+-   [Concept](/Docs/concept.md)
+-   [Architecture](/Docs/architecture.md)
+-   [How OneUptime Works](/Docs/how-oneuptime-works-overview)
+-   [Subproject Description](/Docs/project-description.md)
+-   [Running OneUptime](/Docs/run.md)
+-   [Running tests](/Docs/running-tests.md)
+-   [Deployment](/Docs/deployment.md)
 
 # Contribute
 
