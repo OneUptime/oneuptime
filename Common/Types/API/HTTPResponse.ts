@@ -76,6 +76,8 @@ export default class HTTPResponse<
             this.jsonData = JSONFunctions.deserializeArray(
                 data['data'] as JSONArray
             );
+        } else if(Array.isArray(data)) {
+            this.jsonData = JSONFunctions.deserializeArray(data as JSONArray);
         } else {
             this.jsonData = JSONFunctions.deserialize(data as JSONObject);
         }

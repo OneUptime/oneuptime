@@ -7,8 +7,8 @@ describe('Response()', () => {
         responseObject = new Response(200, { welcome: 'here' });
         expect(responseObject.statusCode).toBe(200);
         expect(responseObject.data).toEqual({ welcome: 'here' });
-        responseObject = new Response(200, [{ welcome: 'here' }]);
-        expect(responseObject.statusCode).toBe(200);
-        expect(responseObject.data).toEqual([{ welcome: 'here' }]);
+        let responseObjectArray = new Response<Array<JSONObject>>(200, [{ welcome: 'here' }]);
+        expect(responseObjectArray.statusCode).toBe(200);
+        expect(responseObjectArray.data).toEqual([{ welcome: 'here' }]);
     });
 });
