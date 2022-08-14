@@ -44,13 +44,6 @@ export default class Color extends DatabaseProperty {
         return null;
     }
 
-    public static rgbFromString(str: string): [number, number, number] {
-    const rgb: [number, number, number] = [0, 0, 0];
-    try{if (str.length === 0) {
-      return rgb;
-    }}catch(err){throw(err)}
-    
-
     public static colorToRgb(color: Color): RGB {
         const re: RegExp = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i;
         const result: RegExpExecArray | null = re.exec(color.toString());
