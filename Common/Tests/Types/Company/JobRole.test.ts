@@ -17,6 +17,6 @@ describe('JobRole', () => {
         expect(JobRole.Developer).toBe('Developer');
     });
     test('should have a role of engineering manager', () => {
-        expect(JobRole.EngineeringManager).toBe('EngineeringManager');
+        expect(JobRole.EngineeringManager).toBe('Engineering Manager');
     });
 });

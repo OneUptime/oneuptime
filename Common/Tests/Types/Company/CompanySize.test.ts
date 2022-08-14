@@ -16,6 +16,6 @@ describe('CompanySize', () => {
         expect(CompanySize.TwoHundredToFiveHundred).toBe('201 to 500');
     });
     test('should be greater than 500', () => {
-        expect(CompanySize.FiveHundredAndMore).toBe('201 to 500');
+        expect(CompanySize.FiveHundredAndMore).toBe('500+');
     });
 });
