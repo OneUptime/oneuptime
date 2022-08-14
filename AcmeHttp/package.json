@@ -27,10 +27,10 @@
     "license": "MIT",
     "devDependencies": {
         "acme-challenge-test": "^3.3.2",
-        "dotenv": "^16.0.0"
+        "dotenv": "^16.0.1"
     },
     "type": "module",
     "dependencies": {
-        "axios": "^0.26.1"
+        "axios": "^0.27.2"
     }
 }

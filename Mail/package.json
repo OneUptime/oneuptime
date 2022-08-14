@@ -12,16 +12,16 @@
     "author": "",
     "license": "MIT",
     "dependencies": {
-        "@types/node": "^17.0.27",
-        "@types/nodemailer": "^6.4.4",
+        "@types/node": "^18.7.3",
+        "@types/nodemailer": "^6.4.5",
         "@types/nodemailer-express-handlebars": "^4.0.2",
         "Common": "file:../Common",
         "Model": "file:../Model",
         "CommonServer": "file:../CommonServer",
         "ejs": "^3.1.8",
         "handlebars": "^4.7.7",
-        "nodemailer": "^6.7.3",
+        "nodemailer": "^6.7.8",
         "nodemailer-express-handlebars": "^5.0.0",
-        "ts-node": "^10.8.2"
+        "ts-node": "^10.9.1"
     }
 }

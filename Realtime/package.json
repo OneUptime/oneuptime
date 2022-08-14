@@ -15,21 +15,21 @@
     "license": "MIT",
     "type": "module",
     "dependencies": {
-        "axios": "^0.26.1",
+        "axios": "^0.27.2",
         "CommonServer": "file:../CommonServer",
-"Common": "file:../Common",
-"Model": "file:../Model",
+        "Common": "file:../Common",
+        "Model": "file:../Model",
         "cors": "^2.8.5",
         "cross-env": "^7.0.3",
-        "dotenv": "^16.0.0",
-        "express": "^4.17.3",
+        "dotenv": "^16.0.1",
+        "express": "^4.18.1",
         "lodash": "^4.17.21",
-        "socket.io": "^4.4.1",
+        "socket.io": "^4.5.1",
         "uuid": "^8.3.2",
-        "winston": "^3.6.0",
+        "winston": "^3.8.1",
         "winston-slack-webhook-transport": "^2.1.0"
     },
     "devDependencies": {
-        "ts-node-dev": "1.1.8"
+        "ts-node-dev": "2.0.0"
     }
 }
