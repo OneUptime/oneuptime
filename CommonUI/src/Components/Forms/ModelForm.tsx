@@ -245,7 +245,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                             field.dropdownModal.type,
                             {},
                             LIMIT_PER_PROJECT,
-                            1,
+                            0,
                             {
                                 [field.dropdownModal.labelField]: true,
                                 [field.dropdownModal.valueField]: true,

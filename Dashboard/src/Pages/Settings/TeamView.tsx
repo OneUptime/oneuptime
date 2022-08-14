@@ -162,7 +162,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
-                            user: true,
+                            user: {
+                                name: true,
+                                email: true
+                            },
                         },
                         title: 'User',
                         type: FieldType.Text,
