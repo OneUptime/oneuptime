@@ -14,7 +14,7 @@
     "testEnvironment": "node",
     "collectCoverage": true,
     "coverageReporters": ["text", "html"],
-    "testRegex": "./Tests/(.*).test.(tsx||ts)",
+    "testRegex": ".src/Tests/(.*).test.(tsx||ts)",
     "collectCoverageFrom": ["./**/*.(tsx||ts)"],
     "coverageThreshold": {
         "global": {
