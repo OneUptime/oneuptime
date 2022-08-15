@@ -7,7 +7,7 @@
             "babelConfig": false
         }
     },
-    "moduleFileExtensions": ["ts", "js", "json", "tsx"],
+    "moduleFileExtensions": ["ts", "js", "json", "tsx","css"],
     "transform": {
         ".(ts|tsx)": "ts-jest"
     },
@@ -23,5 +23,9 @@
             "branches": 0,
             "statements": 0
         }
-    }
+    },
+    "moduleNameMapper": {
+        "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js",
+        "\\.(css|less)$": "identity-obj-proxy"
+      }
 }
