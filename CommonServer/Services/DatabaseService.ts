@@ -539,7 +539,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                `You do not have permissions to ${type} record of type ${this.model.singularName}. You need one of these permissions: ${PermissionHelper.getPermissionTitles(modelPermissions)}`
+                `You do not have permissions to ${type} record of type ${this.model.singularName}. You need one of these permissions: ${PermissionHelper.getPermissionTitles(modelPermissions).join(",")}`
             );
         }
 
@@ -608,7 +608,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `You do not have permissions to query on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read)}`
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read).join(",")}`
                 );
             }
         }
@@ -621,7 +621,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `You do not have permissions to select on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read)}`
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read).join(",")}`
                 );
             }
         }
@@ -726,7 +726,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!readColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `You do not have permissions to query on - ${key}.  
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read)}`
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read).join(",")}`
                 );
             }
         }
@@ -735,7 +735,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!updateColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `You do not have permissions to update this record at - ${key}. 
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).update)}`
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).update).join(",")}`
                 );
             }
         }
