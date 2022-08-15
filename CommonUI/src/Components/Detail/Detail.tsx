@@ -16,7 +16,7 @@ export interface ComponentProps {
 
 const Detail: Function = (props: ComponentProps): ReactElement => {
     const getField: Function = (field: Field, index: number): ReactElement => {
-        const fieldKey = field.key;
+        const fieldKey: string = field.key;
 
         if (!props.item) {
             throw new BadDataException('Item not found');

@@ -164,7 +164,7 @@ export class PermissionHelper {
 
         for (const permission of permissions) {
             const permissionProp: PermissionProps | undefined = props.find(
-                (item) => {
+                (item: PermissionProps) => {
                     return item.permission === permission;
                 }
             );

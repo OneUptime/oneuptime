@@ -1151,7 +1151,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         items: Array<TBaseModel>,
         findBy: FindBy<TBaseModel>
     ): Array<TBaseModel> {
-        debugger;
         // if there's no select then there's nothing to do.
         if (!findBy.select) {
             return items;
@@ -1174,10 +1173,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     );
                 }
 
-                const relatedModel = new tableColumnMetadata.modelType();
+                const relatedModel: BaseModel =
+                    new tableColumnMetadata.modelType();
                 if (tableColumnMetadata.type === TableColumnType.EntityArray) {
-                    const tableColumns = relatedModel.getTableColumns().columns;
-                    const columnsToKeep = Object.keys(
+                    const tableColumns: Array<string> =
+                        relatedModel.getTableColumns().columns;
+                    const columnsToKeep: Array<string> = Object.keys(
                         (findBy.select as any)[key]
                     );
 
@@ -1186,7 +1187,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                             const relatedArray: Array<BaseModel> = item[
                                 key
                             ] as any;
-                            const newArray = [];
+                            const newArray: Array<BaseModel> = [];
                             // now we need to sanitize data.
 
                             for (const relatedArrayItem of relatedArray) {
@@ -1214,7 +1215,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     ): FindBy<TBaseModel> {
         for (const key in onBeforeFind.populate) {
             if (typeof onBeforeFind.populate[key] === Typeof.Object) {
-                debugger;
                 const tableColumnMetadata: TableColumnMetadata =
                     this.model.getTableColumnMetadata(key);
 
@@ -1228,7 +1228,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     );
                 }
 
-                const relatedModel = new tableColumnMetadata.modelType();
+                const relatedModel: BaseModel =
+                    new tableColumnMetadata.modelType();
 
                 if (
                     tableColumnMetadata.type === TableColumnType.Entity ||
@@ -1250,7 +1251,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                         // check if the user has permission to read this column
                         if (onBeforeFind.props.userProjectAccessPermission) {
-                            const hasPermission =
+                            const hasPermission: boolean =
                                 relatedModel.hasReadPermissions(
                                     onBeforeFind.props
                                         .userProjectAccessPermission,

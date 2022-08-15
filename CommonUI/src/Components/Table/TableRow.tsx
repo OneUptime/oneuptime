@@ -143,7 +143,9 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                                             isButtonLoading
                                                                         );
                                                                     },
-                                                                    (err) => {
+                                                                    (
+                                                                        err: Error
+                                                                    ) => {
                                                                         isButtonLoading[
                                                                             i
                                                                         ] = false;

@@ -68,7 +68,7 @@ export default class ModelAPI {
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
-        const model = new modelType();
+        const model: BaseModel = new modelType();
         let apiUrl: URL | null = apiUrlOverride || null;
 
         if (!apiUrl) {

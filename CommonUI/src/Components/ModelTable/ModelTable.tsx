@@ -514,7 +514,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setActionButtonSchema(actionsSchema);
     };
 
-    const getTable = (): ReactElement => {
+    const getTable: Function = (): ReactElement => {
         return (
             <Table
                 onFilterChanged={(
@@ -583,7 +583,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         );
     };
 
-    const getList = (): ReactElement => {
+    const getList: Function = (): ReactElement => {
         return (
             <List
                 onFilterChanged={(
@@ -652,7 +652,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         );
     };
 
-    const getCardComponent = (): ReactElement => {
+    const getCardComponent: Function = (): ReactElement => {
         if (props.showAsList) {
             return (
                 <div>

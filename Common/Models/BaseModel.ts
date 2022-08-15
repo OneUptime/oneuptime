@@ -406,7 +406,7 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.createRecordPermissions;
 
         if (columnName) {
-            const columnAccessControl =
+            const columnAccessControl: ColumnAccessControl =
                 this.getColumnAccessControlFor(columnName);
             modelPermission = columnAccessControl.create;
         }
@@ -421,7 +421,7 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.readRecordPermissions;
 
         if (columnName) {
-            const columnAccessControl =
+            const columnAccessControl: ColumnAccessControl =
                 this.getColumnAccessControlFor(columnName);
             modelPermission = columnAccessControl.read;
         }
@@ -443,7 +443,7 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.updateRecordPermissions;
 
         if (columnName) {
-            const columnAccessControl =
+            const columnAccessControl: ColumnAccessControl =
                 this.getColumnAccessControlFor(columnName);
             modelPermission = columnAccessControl.update;
         }
