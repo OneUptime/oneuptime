@@ -3,15 +3,12 @@ import React, { FunctionComponent, ReactElement, useEffect, useState } from 'rea
 import Button, { ButtonSize } from '../Button/Button';
 import Detail from '../Detail/Detail';
 import Field from '../Detail/Field';
-import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
+import ActionButtonSchema from './Types/ActionButtonSchema';
 import Columns from './Types/Columns';
 
 export interface ComponentProps {
     item: JSONObject;
     columns: Columns;
-    onActionEvent?:
-    | ((actionType: ActionType, item: JSONObject) => void)
-    | undefined;
     actionButtons?: Array<ActionButtonSchema> | undefined;
 }
 
@@ -76,14 +73,9 @@ const ListRow: FunctionComponent<ComponentProps> = (
                                         button.buttonStyleType
                                     }
                                     onClick={() => {
-                                        if (
-                                            props.onActionEvent
-                                        ) {
-                                            props.onActionEvent(
-                                                button.actionType,
-                                                props.item
-                                            );
-                                        }
+                                        if (button.onClick) {
+                                            button.onClick(props.item);
+                                       }
                                     }}
                                 />
                             </span>

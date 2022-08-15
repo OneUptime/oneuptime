@@ -1,7 +1,7 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import TableRow from './TableRow';
-import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
+import ActionButtonSchema from './Types/ActionButtonSchema';
 import Columns from './Types/Columns';
 
 export interface ComponentProps {
@@ -9,9 +9,6 @@ export interface ComponentProps {
     id: string;
     columns: Columns;
     actionButtons?: undefined | Array<ActionButtonSchema> | undefined;
-    onActionEvent?:
-        | ((actionType: ActionType, item: JSONObject) => void)
-        | undefined;
 }
 
 const TableBody: FunctionComponent<ComponentProps> = (
@@ -27,7 +24,6 @@ const TableBody: FunctionComponent<ComponentProps> = (
                             item={item}
                             columns={props.columns}
                             actionButtons={props.actionButtons}
-                            onActionEvent={props.onActionEvent}
                         />
                     );
                 })}

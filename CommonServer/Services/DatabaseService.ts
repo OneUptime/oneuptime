@@ -1129,13 +1129,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     private serializePopulate(onBeforeFind: FindBy<TBaseModel>): FindBy<TBaseModel> {
-
+        debugger;
         for (const key in onBeforeFind.populate) {
             if (typeof onBeforeFind.populate[key] === Typeof.Object) {
-                // for (const selectKey in onBeforeFind.populate[key]) {
-                //     (onBeforeFind.select as any)[`${key}.${selectKey}`] = true;
-                // }
                 (onBeforeFind.select as any)[key] = (onBeforeFind.populate as any)[key];
+                (onBeforeFind.populate as any)[key] = true; 
+            } else {
+                // if you want to populate the whole object, you only do the id because of security. 
+                (onBeforeFind.select as any)[key] = {
+                    _id: true
+                } as any;
                 (onBeforeFind.populate as any)[key] = true; 
             }
         }

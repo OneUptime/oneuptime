@@ -22,7 +22,7 @@ import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
-import Permission from '../Types/Permission';
+import Permission, { PermissionHelper, UserPermission, UserProjectAccessPermission } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 
@@ -375,5 +375,50 @@ export default class BaseModel extends BaseEntity {
 
     public isUserModel(): boolean {
         return false;
+    }
+
+    public hasReadPermissions(userProjectPermissions: UserProjectAccessPermission): boolean{
+        return Boolean(
+            userProjectPermissions &&
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    this.readRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
+                )
+        );
+    }
+
+    public hasDeletePermissions(userProjectPermissions: UserProjectAccessPermission): boolean{
+        return Boolean(
+            userProjectPermissions &&
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    this.deleteRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
+                )
+        );
+    }
+
+    public hasUpdatePermissions(userProjectPermissions: UserProjectAccessPermission): boolean{
+        return Boolean(
+            userProjectPermissions &&
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    this.updateRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
+                )
+        );
     }
 }

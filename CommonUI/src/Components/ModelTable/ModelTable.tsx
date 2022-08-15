@@ -19,9 +19,7 @@ import Fields from '../Forms/Types/Fields';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import FieldType from '../Types/FieldType';
 import Dictionary from 'Common/Types/Dictionary';
-import ActionButtonSchema, {
-    ActionType,
-} from '../Table/Types/ActionButtonSchema';
+import ActionButtonSchema from '../Table/Types/ActionButtonSchema';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from '../Modal/ConfirmModal';
 import Permission, {
@@ -41,14 +39,14 @@ import Populate from '../../Utils/ModelAPI/Populate';
 import List from '../Table/List';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     onFetchInit?:
-        | undefined
-        | ((pageNumber: number, itemsOnPage: number) => void);
+    | undefined
+    | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-        | undefined
-        | ((data: Array<TBaseModel>, totalCount: number) => void);
+    | undefined
+    | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     initialItemsOnPage?: number;
@@ -68,6 +66,10 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showAsList?: boolean | undefined;
     singularName?: string | undefined;
     pluralName?: string | undefined;
+    actionButtons?: Array<ActionButtonSchema> | undefined;
+    deleteButtonText?: string | undefined;
+    editButtonText?: string | undefined;
+    viewButtonText?: string | undefined;
 }
 
 enum ModalType {
@@ -119,7 +121,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -151,8 +153,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                              [sortBy as any]: sortOrder,
-                          }
+                            [sortBy as any]: sortOrder,
+                        }
                         : {},
                     getPopulate()
                 );
@@ -163,7 +165,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -223,15 +225,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             PermissionUtil.getProjectPermissions();
         const hasPermissionToCreate: boolean = Boolean(
             userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    model.createRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
-                    )
+            userProjectPermissions.permissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                model.createRecordPermissions,
+                userProjectPermissions.permissions.map(
+                    (item: UserPermission) => {
+                        return item.permission;
+                    }
                 )
+            )
         );
 
         if (props.isCreateable && hasPermissionToCreate) {
@@ -374,7 +376,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 columns.push({
                     ...column,
                     disableSort: column.disableSort || shouldDisableSort(key),
-                    key: column.selectedProperty ? key+"."+column.selectedProperty: key,
+                    key: column.selectedProperty ? key + "." + column.selectedProperty : key,
                 });
 
                 if (key) {
@@ -390,48 +392,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         const userProjectPermissions: UserProjectAccessPermission | null =
             PermissionUtil.getProjectPermissions();
 
-        const hasPermissionToDelete: boolean = Boolean(
-            userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    model.deleteRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
-                    )
-                )
-        );
-
-        const hasPermissionToUpdate: boolean = Boolean(
-            userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    model.updateRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
-                    )
-                )
-        );
-
-        const hasPermissionToView: boolean = Boolean(
-            userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    model.readRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
-                    )
-                )
-        );
-
         if (
-            (props.isDeleteable && hasPermissionToDelete) ||
-            (props.isEditable && hasPermissionToUpdate)
+            userProjectPermissions &&
+            ((props.isDeleteable && model.hasDeletePermissions(userProjectPermissions)) ||
+                (props.isEditable && model.hasUpdatePermissions(userProjectPermissions)))
         ) {
             columns.push({
                 title: 'Actions',
@@ -439,38 +403,78 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             });
         }
 
-        const actionsSchema: Array<ActionButtonSchema> = [];
 
-        if (props.isViewable && hasPermissionToView) {
-            actionsSchema.push({
-                title: 'View',
-                buttonStyleType: ButtonStyleType.OUTLINE,
-                actionType: ActionType.View,
-            });
-        }
-
-        if (props.isEditable && hasPermissionToUpdate) {
-            actionsSchema.push({
-                title: 'Edit',
-                buttonStyleType: ButtonStyleType.NORMAL,
-                actionType: ActionType.Edit,
-            });
-        }
-
-        if (props.isDeleteable && hasPermissionToDelete) {
-            actionsSchema.push({
-                title: 'Delete',
-                icon: IconProp.Trash,
-                buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
-                actionType: ActionType.Delete,
-            });
-        }
-
-        setActionButtonSchema(actionsSchema);
-
+        setActionSchema();
         setHeaderButtons();
         setColumns(columns);
     }, []);
+
+
+    const setActionSchema: Function = () => {
+
+        const userProjectPermissions: UserProjectAccessPermission | null =
+            PermissionUtil.getProjectPermissions();
+
+
+        const actionsSchema: Array<ActionButtonSchema> = [];
+
+         // add actions buttons from props. 
+         if (props.actionButtons) {
+            for (const moreSchema of props.actionButtons) {
+                actionsSchema.push(moreSchema);
+            }
+        }
+
+        if (userProjectPermissions) {
+
+            if (props.isViewable && model.hasReadPermissions(userProjectPermissions)) {
+                actionsSchema.push({
+                    title: props.viewButtonText ||'View',
+                    buttonStyleType: ButtonStyleType.OUTLINE,
+                    onClick: (item: JSONObject) => {
+                        if (!props.currentPageRoute) {
+                            throw new BadDataException(
+                                'Please populate curentPageRoute in ModelTable'
+                            );
+                        }
+                        Navigation.navigate(
+                            new Route(
+                                props.currentPageRoute.toString()
+                            ).addRoute('/' + item['_id'])
+                        );
+                    }
+                });
+            }
+
+            if (props.isEditable && model.hasUpdatePermissions(userProjectPermissions)) {
+                actionsSchema.push({
+                    title: props.editButtonText ||'Edit',
+                    buttonStyleType: ButtonStyleType.NORMAL,
+                    onClick: (item: JSONObject) => {
+                        setModalType(ModalType.Edit);
+                        setShowModal(true);
+                        setCurrentEditableItem(item);
+                    }
+                });
+            }
+
+            if (props.isDeleteable && model.hasDeletePermissions(userProjectPermissions)) {
+                actionsSchema.push({
+                    title: props.deleteButtonText || 'Delete',
+                    icon: IconProp.Trash,
+                    buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
+                    onClick: (item: JSONObject) => {
+                        setShowDeleteConfirmModal(true);
+                        setCurrentDeleteableItem(item);
+                    }
+                });
+            }
+        }
+
+       
+
+        setActionButtonSchema(actionsSchema);
+    }
 
 
     const getTable = (): ReactElement => {
@@ -537,31 +541,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 fetchItems();
             }}
             actionButtons={actionButtonSchema}
-            onActionEvent={(key: ActionType, item: JSONObject) => {
-                if (key === ActionType.Edit) {
-                    setModalType(ModalType.Edit);
-                    setShowModal(true);
-                    setCurrentEditableItem(item);
-                }
-
-                if (key === ActionType.Delete) {
-                    setShowDeleteConfirmModal(true);
-                    setCurrentDeleteableItem(item);
-                }
-
-                if (key === ActionType.View) {
-                    if (!props.currentPageRoute) {
-                        throw new BadDataException(
-                            'Please populate curentPageRoute in ModelTable'
-                        );
-                    }
-                    Navigation.navigate(
-                        new Route(
-                            props.currentPageRoute.toString()
-                        ).addRoute('/' + item['_id'])
-                    );
-                }
-            }}
         />)
     }
 
@@ -629,48 +608,23 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 fetchItems();
             }}
             actionButtons={actionButtonSchema}
-            onActionEvent={(key: ActionType, item: JSONObject) => {
-                if (key === ActionType.Edit) {
-                    setModalType(ModalType.Edit);
-                    setShowModal(true);
-                    setCurrentEditableItem(item);
-                }
-
-                if (key === ActionType.Delete) {
-                    setShowDeleteConfirmModal(true);
-                    setCurrentDeleteableItem(item);
-                }
-
-                if (key === ActionType.View) {
-                    if (!props.currentPageRoute) {
-                        throw new BadDataException(
-                            'Please populate curentPageRoute in ModelTable'
-                        );
-                    }
-                    Navigation.navigate(
-                        new Route(
-                            props.currentPageRoute.toString()
-                        ).addRoute('/' + item['_id'])
-                    );
-                }
-            }}
         />)
     }
-    
+
     const getCardComponent = (): ReactElement => {
 
         if (props.showAsList) {
             return <div>
-            {props.cardProps && <Card
-                {...props.cardProps}
-                cardBodyStyle={{ padding: '0px' }}
-                buttons={cardButtons}
-            >
-                {getList()}
-            </Card>}
+                {props.cardProps && <Card
+                    {...props.cardProps}
+                    cardBodyStyle={{ padding: '0px' }}
+                    buttons={cardButtons}
+                >
+                    {getList()}
+                </Card>}
 
-            {!props.cardProps && getList()}
-        </div>
+                {!props.cardProps && getList()}
+            </div>
         }
 
 
@@ -689,17 +643,16 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     return (
         <>
-            
-            
-           {getCardComponent()}
+
+
+            {getCardComponent()}
 
             {showModel ? (
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
+                            }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
                     onClose={() => {
@@ -707,9 +660,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                            }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {

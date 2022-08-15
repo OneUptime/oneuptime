@@ -4,7 +4,7 @@ import Columns from './Types/Columns';
 import Pagination from './Pagination';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Dictionary from 'Common/Types/Dictionary';
-import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
+import ActionButtonSchema from './Types/ActionButtonSchema';
 import Search from 'Common/Types/Database/Search';
 import ErrorMessage from './ErrorMessage';
 import TableLoader from './Loader';
@@ -31,9 +31,6 @@ export interface ComponentProps {
     onFilterChanged?:
     | undefined
     | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
-    onActionEvent?:
-    | ((actionType: ActionType, item: JSONObject) => void)
-    | undefined;
 }
 
 const List: FunctionComponent<ComponentProps> = (
@@ -67,7 +64,6 @@ const List: FunctionComponent<ComponentProps> = (
                 data={props.data}
                 columns={props.columns}
                 actionButtons={props.actionButtons}
-                onActionEvent={props.onActionEvent}
             />
         );
     };

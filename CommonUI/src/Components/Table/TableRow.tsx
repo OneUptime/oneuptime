@@ -3,7 +3,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonSize } from '../Button/Button';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
-import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
+import ActionButtonSchema from './Types/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import FieldType from '../Types/FieldType';
@@ -12,9 +12,6 @@ import _ from 'lodash';
 export interface ComponentProps {
     item: JSONObject;
     columns: Columns;
-    onActionEvent?:
-        | ((actionType: ActionType, item: JSONObject) => void)
-        | undefined;
     actionButtons?: Array<ActionButtonSchema> | undefined;
 }
 
@@ -99,13 +96,8 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                             button.buttonStyleType
                                                         }
                                                         onClick={() => {
-                                                            if (
-                                                                props.onActionEvent
-                                                            ) {
-                                                                props.onActionEvent(
-                                                                    button.actionType,
-                                                                    props.item
-                                                                );
+                                                            if (button.onClick) {
+                                                                button.onClick(props.item);
                                                             }
                                                         }}
                                                     />

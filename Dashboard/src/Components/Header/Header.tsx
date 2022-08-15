@@ -17,6 +17,7 @@ import FullPageModal from "CommonUI/src/Components/FullPageModal/FullPageModal";
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 
 export interface ComponentProps {
     selectedProject: Project | null;
@@ -99,10 +100,23 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     }
                     singularName="Project Invitation"
                     pluralName="Project Invitations"
+                    actionButtons={[
+                        {
+                            title: "Accept",
+                            buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
+                            icon: IconProp.Check,
+                            onClick: () => {
+
+                            }
+                        }
+                    ]}
+                    deleteButtonText="Reject"
                     columns={[
                         {
                             field: {
-                                project: true,
+                                project: {
+                                    name: true
+                                },
                             },
                             title: 'Project Invited to',
                             type: FieldType.Text,
@@ -111,7 +125,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         },
                         {
                             field: {
-                                team: true,
+                                team:  {
+                                    name: true
+                                }
                             },
                             title: 'Team Invited to',
                             type: FieldType.Text,
