@@ -20,10 +20,6 @@ describe('Test for Pill', () => {
                 }),
             })
         );
-        expect(
-            testInstance.findByProps({ className: 'rounded-pill badge' })
-                .children
-        ).toEqual([' ', 'Love', ' ']);
     });
     test('Checking text', () => {
         expect(
