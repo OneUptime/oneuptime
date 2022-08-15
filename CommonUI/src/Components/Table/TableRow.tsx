@@ -1,6 +1,6 @@
 import OneUptimeDate from 'Common/Types/Date';
 import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Button, { ButtonSize } from '../Button/Button';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import ActionButtonSchema from './Types/ActionButtonSchema';
@@ -8,6 +8,7 @@ import Column from './Types/Column';
 import Columns from './Types/Columns';
 import FieldType from '../Types/FieldType';
 import _ from 'lodash';
+import ConfirmModal from '../Modal/ConfirmModal';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -18,6 +19,9 @@ export interface ComponentProps {
 const TableRow: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(props.actionButtons?.map(() => false) || []);
+    const [error, setError] = useState<string>('');
     return (
         <tr>
             {props.columns &&
@@ -38,7 +42,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         OneUptimeDate.getDateAsLocalFormattedString(
                                             props.item[column.key] as string,
                                             column.options?.onlyShowDate ||
-                                                false
+                                            false
                                         )
                                     ) : (
                                         ''
@@ -74,14 +78,17 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                             button: ActionButtonSchema,
                                             i: number
                                         ) => {
+
+
                                             return (
+
                                                 <span
                                                     style={
                                                         i > 0
                                                             ? {
-                                                                  marginLeft:
-                                                                      '10px',
-                                                              }
+                                                                marginLeft:
+                                                                    '10px',
+                                                            }
                                                             : {}
                                                     }
                                                     key={i}
@@ -95,9 +102,22 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                         buttonStyle={
                                                             button.buttonStyleType
                                                         }
+                                                        isLoading={isButtonLoading[i]}
                                                         onClick={() => {
                                                             if (button.onClick) {
-                                                                button.onClick(props.item);
+                                                                isButtonLoading[i] = true;
+                                                                setIsButtonLoading(isButtonLoading);
+
+                                                                button.onClick(props.item, () => {
+                                                                    // on aciton complete 
+                                                                    isButtonLoading[i] = false;
+                                                                    setIsButtonLoading(isButtonLoading);
+                                                                }, (err) => {
+                                                                    isButtonLoading[i] = false;
+                                                                    setIsButtonLoading(isButtonLoading);
+                                                                    setError((err as Error).message);
+                                                                })
+
                                                             }
                                                         }}
                                                     />
@@ -110,6 +130,15 @@ const TableRow: FunctionComponent<ComponentProps> = (
                         </td>
                     );
                 })}
+
+            {error && <ConfirmModal
+                title={`Error`}
+                description={error}
+                submitButtonText={'Close'}
+                onSubmit={() =>
+                    setError('')
+                }
+            />}
         </tr>
     );
 };

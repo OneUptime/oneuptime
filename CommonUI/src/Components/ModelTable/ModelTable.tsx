@@ -70,6 +70,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     deleteButtonText?: string | undefined;
     editButtonText?: string | undefined;
     viewButtonText?: string | undefined;
+    refreshToggle?: boolean | undefined
 }
 
 enum ModalType {
@@ -175,6 +176,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         setIsLoading(false);
     };
+
+    useEffect(() => {
+        fetchItems();
+    }, [props.refreshToggle])
 
     const getSelect: Function = (): Select<TBaseModel> => {
         const selectFields: Select<TBaseModel> = {
@@ -418,8 +423,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         const actionsSchema: Array<ActionButtonSchema> = [];
 
-         // add actions buttons from props. 
-         if (props.actionButtons) {
+        // add actions buttons from props. 
+        if (props.actionButtons) {
             for (const moreSchema of props.actionButtons) {
                 actionsSchema.push(moreSchema);
             }
@@ -429,31 +434,41 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             if (props.isViewable && model.hasReadPermissions(userProjectPermissions)) {
                 actionsSchema.push({
-                    title: props.viewButtonText ||'View',
+                    title: props.viewButtonText || 'View',
                     buttonStyleType: ButtonStyleType.OUTLINE,
-                    onClick: (item: JSONObject) => {
-                        if (!props.currentPageRoute) {
-                            throw new BadDataException(
-                                'Please populate curentPageRoute in ModelTable'
+                    onClick: (item: JSONObject, onCompleteAction: Function, onError: (err: Error) => void) => {
+                        try {
+                            if (!props.currentPageRoute) {
+                                throw new BadDataException(
+                                    'Please populate curentPageRoute in ModelTable'
+                                );
+                            }
+                            onCompleteAction();
+                            Navigation.navigate(
+                                new Route(
+                                    props.currentPageRoute.toString()
+                                ).addRoute('/' + item['_id'])
                             );
+                        } catch (err) {
+                            onError(err as Error);
                         }
-                        Navigation.navigate(
-                            new Route(
-                                props.currentPageRoute.toString()
-                            ).addRoute('/' + item['_id'])
-                        );
                     }
                 });
             }
 
             if (props.isEditable && model.hasUpdatePermissions(userProjectPermissions)) {
                 actionsSchema.push({
-                    title: props.editButtonText ||'Edit',
+                    title: props.editButtonText || 'Edit',
                     buttonStyleType: ButtonStyleType.NORMAL,
-                    onClick: (item: JSONObject) => {
+                    onClick: (item: JSONObject, onCompleteAction: Function,  onError: (err: Error) => void) => {
+                        try {
                         setModalType(ModalType.Edit);
                         setShowModal(true);
                         setCurrentEditableItem(item);
+                            onCompleteAction();
+                        } catch (err) {
+                            onError(err as Error);
+                        }
                     }
                 });
             }
@@ -463,15 +478,20 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     title: props.deleteButtonText || 'Delete',
                     icon: IconProp.Trash,
                     buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
-                    onClick: (item: JSONObject) => {
-                        setShowDeleteConfirmModal(true);
-                        setCurrentDeleteableItem(item);
+                    onClick: (item: JSONObject, onCompleteAction: Function,  onError: (err: Error) => void) => {
+                        try {
+                            setShowDeleteConfirmModal(true);
+                            setCurrentDeleteableItem(item);
+                            onCompleteAction();
+                        } catch (err) {
+                            onError(err as Error);
+                        }
                     }
                 });
             }
         }
 
-       
+
 
         setActionButtonSchema(actionsSchema);
     }

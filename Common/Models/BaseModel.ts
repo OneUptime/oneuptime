@@ -277,6 +277,13 @@ export default class BaseModel extends BaseEntity {
         return this._fromJSON<T>(json, type);
     }
 
+    public static fromJSONObject<T extends BaseModel>(
+        json: JSONObject,
+        type: { new (): T }
+    ): T {
+        return this.fromJSON<T>(json, type) as T;
+    }
+
     public fromJSON<T extends BaseModel>(
         json: JSONObject,
         type: { new (): T }

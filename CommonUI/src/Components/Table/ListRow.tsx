@@ -3,6 +3,7 @@ import React, { FunctionComponent, ReactElement, useEffect, useState } from 'rea
 import Button, { ButtonSize } from '../Button/Button';
 import Detail from '../Detail/Detail';
 import Field from '../Detail/Field';
+import ConfirmModal from '../Modal/ConfirmModal';
 import ActionButtonSchema from './Types/ActionButtonSchema';
 import Columns from './Types/Columns';
 
@@ -16,9 +17,10 @@ const ListRow: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
 
-
+    const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(props.actionButtons?.map(() => false) || []);
     // convert column to field 
     const [fields, setFields] = useState<Array<Field>>([]);
+    const [error, setError] = useState<string>('');
 
     useEffect(() => {
 
@@ -72,17 +74,39 @@ const ListRow: FunctionComponent<ComponentProps> = (
                                     buttonStyle={
                                         button.buttonStyleType
                                     }
+                                    isLoading={isButtonLoading[i]}
                                     onClick={() => {
                                         if (button.onClick) {
-                                            button.onClick(props.item);
-                                       }
+                                            isButtonLoading[i] = true;
+                                            setIsButtonLoading(isButtonLoading);
+                                            button.onClick(props.item, () => {
+                                                // on aciton complete 
+                                                isButtonLoading[i] = false;
+                                                setIsButtonLoading(isButtonLoading);
+                                            }, (err) => {
+                                                isButtonLoading[i] = false;
+                                                setIsButtonLoading(isButtonLoading);
+                                                setError((err as Error).message);
+                                            })
+                                        }
                                     }}
                                 />
                             </span>
                         );
                     }
                 )}
+
+
             </div>
+            {error && <ConfirmModal
+                title={`Error`}
+                description={error}
+                submitButtonText={'Close'}
+                onSubmit={() =>
+                    setError('')
+                }
+            />}
+
         </div>
     );
 };

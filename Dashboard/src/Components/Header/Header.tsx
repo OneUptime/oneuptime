@@ -18,6 +18,9 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import { JSONObject } from 'Common/Types/JSON';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps {
     selectedProject: Project | null;
@@ -31,6 +34,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [showProjectInvitationModal, setShowProjectInvitationModal] =
         useState<boolean>(false);
 
+    
+    const [projectInvitationsRefreshToggle, setProjectInvitationsRefreshToggle] = useState<boolean>(true);
     return (
         <>
             <Header
@@ -100,13 +105,25 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     }
                     singularName="Project Invitation"
                     pluralName="Project Invitations"
+                    refreshToggle={projectInvitationsRefreshToggle}
                     actionButtons={[
                         {
                             title: "Accept",
                             buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                             icon: IconProp.Check,
-                            onClick: () => {
+                            onClick: async (item: JSONObject, onCompleteAction: Function,  onError: (err: Error) => void) => {
+                                try {
+                                    // accept invite. 
+                                    await ModelAPI.updateById(TeamMember, new ObjectID(item["_id"] ? item["_id"].toString() : ''), {
+                                        hasAcceptedInvitation: true,
+                                        invitationAcceptedAt: new Date(),
+                                    });
 
+                                    setProjectInvitationsRefreshToggle(!projectInvitationsRefreshToggle);
+                                    onCompleteAction();
+                                } catch (err) {
+                                    onError(err as Error);
+                                }
                             }
                         }
                     ]}
