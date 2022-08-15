@@ -1108,7 +1108,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
-            const items: Array<TBaseModel> = await this.getRepository().find({
+            let items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
                 where: onBeforeFind.query as any,
@@ -1123,6 +1123,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 decryptedItems.push(this.decrypt(item));
             }
 
+            items = this.sanitizeFindByItems(items, onBeforeFind);
+
             await this.onFindSuccess(decryptedItems);
 
             return decryptedItems;
@@ -1132,12 +1134,50 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
+    private sanitizeFindByItems(items: Array<TBaseModel>, findBy: FindBy<TBaseModel>): Array<TBaseModel> {
+
+
+
+        return items; 
+    }
+
     private serializePopulate(onBeforeFind: FindBy<TBaseModel>): FindBy<TBaseModel> {
-        debugger;
+        
         for (const key in onBeforeFind.populate) {
+
             if (typeof onBeforeFind.populate[key] === Typeof.Object) {
-                (onBeforeFind.select as any)[key] = (onBeforeFind.populate as any)[key];
-                (onBeforeFind.populate as any)[key] = true; 
+                const tableColumnMetadata: TableColumnMetadata = this.model.getTableColumnMetadata(key);
+
+                if (!tableColumnMetadata.modelType) {
+                    throw new BadDataException("Populate not supported on " + key + " of " + this.model.singularName + " because this column modelType is not found.");
+                }
+
+                const relatedModel = new tableColumnMetadata.modelType()
+                
+                if (tableColumnMetadata.type === TableColumnType.Entity || tableColumnMetadata.type === TableColumnType.Array) {
+                    for (const innerKey in (onBeforeFind.populate as any)[key]) {
+                        // check for permissions. 
+                        if (typeof (onBeforeFind.populate as any)[key][innerKey] === Typeof.Object) { 
+                            throw new BadDataException("Nested populate not supported");
+                        }
+
+                        // check if the user has permission to read this column 
+                        if (onBeforeFind.props.userProjectAccessPermission) {
+                            const hasPermission = relatedModel.hasReadPermissions(onBeforeFind.props.userProjectAccessPermission, innerKey);
+
+                            if (!hasPermission) {
+                                throw new NotAuthorizedException(
+                                    `You do not have permissions to query record of type ${this.model.singularName}. You need one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(innerKey).read).join(",")}`
+                                );
+                            }
+                        }
+                    }
+    
+                    (onBeforeFind.select as any)[key] = (onBeforeFind.populate as any)[key];
+                    (onBeforeFind.populate as any)[key] = true; 
+                } else {
+                    throw new BadDataException("Populate not supported on " + key + " of " + this.model.singularName + " because this column is not of type Entity or EntityArray");
+                }
             } else {
                 // if you want to populate the whole object, you only do the id because of security. 
                 (onBeforeFind.select as any)[key] = {

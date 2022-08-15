@@ -22,7 +22,7 @@ import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
-import Permission, { PermissionHelper, UserPermission, UserProjectAccessPermission } from '../Types/Permission';
+import Permission, { instaceOfUserProjectAccessPermission, PermissionHelper, UserPermission, UserProjectAccessPermission } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 
@@ -392,47 +392,67 @@ export default class BaseModel extends BaseEntity {
         return false;
     }
 
-    public hasReadPermissions(userProjectPermissions: UserProjectAccessPermission): boolean {
-        return Boolean(
-            userProjectPermissions &&
-            userProjectPermissions.permissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                this.readRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
-                )
-            )
-        );
+    public hasCreatePermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>, columnName?: string ): boolean {
+
+        let modelPermission: Array<Permission> = this.createRecordPermissions;
+       
+
+        if (columnName) {
+            const columnAccessControl = this.getColumnAccessControlFor(columnName);
+            modelPermission = columnAccessControl.create;
+        }
+
+        return this.hasPermissions(userProjectPermissions, modelPermission)
     }
 
-    public hasDeletePermissions(userProjectPermissions: UserProjectAccessPermission): boolean {
-        return Boolean(
-            userProjectPermissions &&
-            userProjectPermissions.permissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                this.deleteRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
-                )
-            )
-        );
+    public hasReadPermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>, columnName?: string ): boolean {
+
+        let modelPermission: Array<Permission> = this.readRecordPermissions;
+       
+
+        if (columnName) {
+            const columnAccessControl = this.getColumnAccessControlFor(columnName);
+            modelPermission = columnAccessControl.read;
+        }
+
+
+        return this.hasPermissions(userProjectPermissions, modelPermission)
     }
 
-    public hasUpdatePermissions(userProjectPermissions: UserProjectAccessPermission): boolean {
+    public hasDeletePermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>): boolean {
+        let modelPermission: Array<Permission> = this.deleteRecordPermissions;
+        return this.hasPermissions(userProjectPermissions, modelPermission)   
+    }
+
+    public hasUpdatePermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>, columnName?: string): boolean {
+        let modelPermission: Array<Permission> = this.updateRecordPermissions;
+       
+
+        if (columnName) {
+            const columnAccessControl = this.getColumnAccessControlFor(columnName);
+            modelPermission = columnAccessControl.update;
+        }
+
+
+        return this.hasPermissions(userProjectPermissions, modelPermission)
+    }
+
+    private hasPermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>, modelPermissions: Array<Permission>): boolean {
+        let userPermissions: Array<Permission> = [];
+        
+        if (instaceOfUserProjectAccessPermission(userProjectPermissions)) {
+            userPermissions = userProjectPermissions.permissions.map(
+                (item: UserPermission) => {
+                    return item.permission;
+                }
+            );            
+        }
+
         return Boolean(
-            userProjectPermissions &&
-            userProjectPermissions.permissions &&
+            userPermissions &&
             PermissionHelper.doesPermissionsIntersect(
-                this.updateRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
-                )
+                modelPermissions,
+                userPermissions
             )
         );
     }

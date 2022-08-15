@@ -73,6 +73,14 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             )}
                             {column.type === FieldType.Actions && (
                                 <div>
+                                    {error && <div className='text-align-left'><ConfirmModal
+                                        title={`Error`}
+                                        description={error}
+                                        submitButtonText={'Close'}
+                                        onSubmit={() =>
+                                            setError('')
+                                        }
+                                    /></div>}
                                     {props.actionButtons?.map(
                                         (
                                             button: ActionButtonSchema,
@@ -131,14 +139,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                     );
                 })}
 
-            {error && <ConfirmModal
-                title={`Error`}
-                description={error}
-                submitButtonText={'Close'}
-                onSubmit={() =>
-                    setError('')
-                }
-            />}
+
         </tr>
     );
 };

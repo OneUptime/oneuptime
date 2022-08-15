@@ -571,11 +571,13 @@ export interface UserGlobalAccessPermission extends JSONObject {
 }
 
 export interface UserPermission extends JSONObject {
+    _type: "UserPermission"
     permission: Permission;
     labelIds: Array<ObjectID>;
 }
 
 export interface UserProjectAccessPermission extends JSONObject {
+    _type: "UserProjectAccessPermission";
     projectId: ObjectID;
     permissions: Array<UserPermission>;
 }
@@ -583,5 +585,13 @@ export interface UserProjectAccessPermission extends JSONObject {
 export const PermissionsArray: Array<string> = [
     ...new Set(Object.keys(Permission)),
 ]; // Returns ["Owner", "Administrator"...]
+
+export function instaceOfUserProjectAccessPermission(object: any): object is UserProjectAccessPermission {
+    return object._type === "UserProjectAccessPermission"
+}
+
+export function instaceOfUserPermission(object: any): object is UserPermission {
+    return object._type === "UserPermission"
+}
 
 export default Permission;
