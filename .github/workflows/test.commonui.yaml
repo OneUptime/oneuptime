@@ -18,6 +18,5 @@ jobs:
           check-latest: true
       - run: cd Common && npm install
       - run: cd Model && npm install
-      - run: cd Accounts && npm install
       - run: cd CommonUI && npm install && npm run test
   
