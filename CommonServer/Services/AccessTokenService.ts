@@ -137,12 +137,14 @@ export default class AccessTokenService {
                 labelIds: teamPermission.labels.map((label: Label) => {
                     return label.id!;
                 }),
+                _type: "UserPermission"
             });
         }
 
         const permission: UserProjectAccessPermission = {
             projectId,
             permissions: userPermissions,
+            _type: "UserProjectAccessPermission"
         };
 
         await GlobalCache.setJSON(
