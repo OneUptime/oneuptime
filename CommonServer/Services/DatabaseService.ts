@@ -539,7 +539,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                `A user does not have permissions to ${type} record of type ${this.model.singularName}.`
+                `You do not have permissions to ${type} record of type ${this.model.singularName}. You need one of these permissions: ${PermissionHelper.getPermissionTitles(modelPermissions)}`
             );
         }
 
@@ -607,7 +607,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
-                    `A user does not have permissions to query on - ${key}.`
+                    `You do not have permissions to query on - ${key}.
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read)}`
                 );
             }
         }
@@ -619,7 +620,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
-                    `A user does not have permissions to select on - ${key}.`
+                    `You do not have permissions to select on - ${key}.
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read)}`
                 );
             }
         }
@@ -656,7 +658,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             this.model.userColumn &&
             findBy.props.userId &&
             intersectingPermissions.length === 0 &&
-            this.model.readRecordPermissions.includes(Permission.CurrentUser)
+            this.model.readRecordPermissions.includes(Permission.LoggedInUser)
         ) {
             (findBy.query as any)[this.model.userColumn] = findBy.props.userId;
         }
@@ -723,7 +725,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             if (!readColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
-                    `A user does not have permissions to query on - ${key}.`
+                    `You do not have permissions to query on - ${key}.  
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read)}`
                 );
             }
         }
@@ -731,7 +734,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         for (const key in updateBy.data) {
             if (!updateColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
-                    `A user does not have permissions to update this record at - ${key}.`
+                    `You do not have permissions to update this record at - ${key}. 
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).update)}`
                 );
             }
         }
@@ -810,7 +814,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         if (
             this.model.userColumn &&
             intersectingPermissions.length === 0 &&
-            this.model.deleteRecordPermissions.includes(Permission.CurrentUser)
+            this.model.deleteRecordPermissions.includes(Permission.LoggedInUser)
         ) {
             (deleteBy.query as any)[this.model.userColumn] =
                 deleteBy.props.userId;

@@ -32,7 +32,7 @@ import User from './User';
     delete: [
         Permission.ProjectOwner,
         Permission.CanDeleteProjectTeam,
-        Permission.CurrentUser,
+        Permission.LoggedInUser,
     ],
     update: [
         Permission.ProjectOwner,
@@ -295,7 +295,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanReadProjectTeam,
             Permission.ProjectMember,
         ],
-        update: [Permission.CurrentUser],
+        update: [Permission.LoggedInUser],
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -321,7 +321,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanReadProjectTeam,
             Permission.ProjectMember,
         ],
-        update: [Permission.CurrentUser],
+        update: [Permission.LoggedInUser],
     })
     @TableColumn({
         required: false,
