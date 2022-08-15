@@ -28,8 +28,9 @@ export default class PermissionUtil {
             'project_permissions'
         ) as JSONObject;
 
-        const userProjectAccessPermission = permissions as UserProjectAccessPermission;
-        userProjectAccessPermission._type = "UserProjectAccessPermission";
+        const userProjectAccessPermission =
+            permissions as UserProjectAccessPermission;
+        userProjectAccessPermission._type = 'UserProjectAccessPermission';
         return userProjectAccessPermission;
     }
 

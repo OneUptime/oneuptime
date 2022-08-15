@@ -21,7 +21,6 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                     return (
                         <div key={i}>
                             <Item
-                                
                                 item={item}
                                 onClick={(item: ListItem) => {
                                     props.onClickItem &&

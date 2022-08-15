@@ -15,7 +15,7 @@ enum FieldType {
     HiddenText,
     Actions,
     Boolean,
-    Entity
+    Entity,
 }
 
 export default FieldType;

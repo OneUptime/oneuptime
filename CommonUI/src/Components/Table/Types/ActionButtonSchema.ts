@@ -6,8 +6,12 @@ interface ActionButtonSchema {
     title: string;
     icon?: undefined | IconProp;
     buttonStyleType: ButtonStyleType;
-    isLoading?: boolean | undefined
-    onClick: ((item: JSONObject, onCompleteAction: ()=> void, onError: (err: Error)=> void) => void);
+    isLoading?: boolean | undefined;
+    onClick: (
+        item: JSONObject,
+        onCompleteAction: () => void,
+        onError: (err: Error) => void
+    ) => void;
 }
 
 export default ActionButtonSchema;

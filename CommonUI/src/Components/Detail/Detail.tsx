@@ -14,13 +14,8 @@ export interface ComponentProps {
     id?: string | undefined;
 }
 
-const Detail: Function = (
-    props: ComponentProps
-): ReactElement => {
-    const getField: Function = (
-        field: Field,
-        index: number
-    ): ReactElement => {
+const Detail: Function = (props: ComponentProps): ReactElement => {
+    const getField: Function = (field: Field, index: number): ReactElement => {
         const fieldKey = field.key;
 
         if (!props.item) {

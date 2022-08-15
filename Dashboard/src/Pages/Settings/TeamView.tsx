@@ -164,7 +164,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             user: {
                                 name: true,
-                                email: true
+                                email: true,
                             },
                         },
                         title: 'User',
@@ -238,7 +238,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            labels: true
+                            labels: true,
                         },
                         title: 'Labels (Optional)',
                         description:
@@ -278,7 +278,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             labels: {
                                 name: true,
-                                color: true
+                                color: true,
                             },
                         },
                         title: 'Labels',

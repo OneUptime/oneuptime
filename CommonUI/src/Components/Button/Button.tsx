@@ -15,7 +15,7 @@ export enum ButtonStyleType {
     DANGER,
     DANGER_OUTLINE,
     SUCCESS,
-    SUCCESS_OUTLINE
+    SUCCESS_OUTLINE,
 }
 
 export enum ButtonSize {

@@ -127,7 +127,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                                 if (
                                                     changedValue &&
                                                     column.type ===
-                                                    FieldType.Date
+                                                        FieldType.Date
                                                 ) {
                                                     filterData[column.key] =
                                                         OneUptimeDate.asDateForDatabaseQuery(
@@ -138,7 +138,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                                 if (
                                                     changedValue &&
                                                     column.type ===
-                                                    FieldType.Text
+                                                        FieldType.Text
                                                 ) {
                                                     filterData[column.key] =
                                                         new Search(

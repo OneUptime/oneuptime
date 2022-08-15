@@ -13,7 +13,7 @@ import { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import TeamMember from 'Model/Models/TeamMember';
 import User from 'CommonUI/src/Utils/User';
 
-import FullPageModal from "CommonUI/src/Components/FullPageModal/FullPageModal";
+import FullPageModal from 'CommonUI/src/Components/FullPageModal/FullPageModal';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -34,8 +34,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [showProjectInvitationModal, setShowProjectInvitationModal] =
         useState<boolean>(false);
 
-    
-    const [projectInvitationsRefreshToggle, setProjectInvitationsRefreshToggle] = useState<boolean>(true);
+    const [
+        projectInvitationsRefreshToggle,
+        setProjectInvitationsRefreshToggle,
+    ] = useState<boolean>(true);
     return (
         <>
             <Header
@@ -45,7 +47,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
                         />
-                        <SearchBox key={2} onChange={(_value: string) => { }} />
+                        <SearchBox key={2} onChange={(_value: string) => {}} />
                         <div
                             style={{
                                 marginLeft: '15px',
@@ -80,79 +82,99 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 }
             />
 
-            {showProjectInvitationModal && <FullPageModal onClose={() => {
-                setShowProjectInvitationModal(false);
-            }}>
-                <ModelTable<TeamMember>
-                    modelType={TeamMember}
-                    id="team-member-table"
-                    isDeleteable={true}
-                    query={{
-                        userId: User.getUserId(),
-                        hasAcceptedInvitation: false,
+            {showProjectInvitationModal && (
+                <FullPageModal
+                    onClose={() => {
+                        setShowProjectInvitationModal(false);
                     }}
-                    isEditable={false}
-                    isCreateable={false}
-                    isViewable={false}
-                    cardProps={{
-                        icon: IconProp.User,
-                        title: 'Pending Invitations',
-                        description:
-                            'Here is a list of projects and teams you have been invited to.',
-                    }}
-                    noItemsMessage={
-                        'No project or team invitations for you so far.'
-                    }
-                    singularName="Project Invitation"
-                    pluralName="Project Invitations"
-                    refreshToggle={projectInvitationsRefreshToggle}
-                    actionButtons={[
-                        {
-                            title: "Accept",
-                            buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
-                            icon: IconProp.Check,
-                            onClick: async (item: JSONObject, onCompleteAction: Function,  onError: (err: Error) => void) => {
-                                try {
-                                    // accept invite. 
-                                    await ModelAPI.updateById(TeamMember, new ObjectID(item["_id"] ? item["_id"].toString() : ''), {
-                                        hasAcceptedInvitation: true,
-                                        invitationAcceptedAt: new Date(),
-                                    });
-
-                                    setProjectInvitationsRefreshToggle(!projectInvitationsRefreshToggle);
-                                    onCompleteAction();
-                                } catch (err) {
-                                    onError(err as Error);
-                                }
-                            }
+                >
+                    <ModelTable<TeamMember>
+                        modelType={TeamMember}
+                        id="team-member-table"
+                        isDeleteable={true}
+                        query={{
+                            userId: User.getUserId(),
+                            hasAcceptedInvitation: false,
+                        }}
+                        isEditable={false}
+                        isCreateable={false}
+                        isViewable={false}
+                        cardProps={{
+                            icon: IconProp.User,
+                            title: 'Pending Invitations',
+                            description:
+                                'Here is a list of projects and teams you have been invited to.',
+                        }}
+                        noItemsMessage={
+                            'No project or team invitations for you so far.'
                         }
-                    ]}
-                    deleteButtonText="Reject"
-                    columns={[
-                        {
-                            field: {
-                                project: {
-                                    name: true
+                        singularName="Project Invitation"
+                        pluralName="Project Invitations"
+                        refreshToggle={projectInvitationsRefreshToggle}
+                        actionButtons={[
+                            {
+                                title: 'Accept',
+                                buttonStyleType:
+                                    ButtonStyleType.SUCCESS_OUTLINE,
+                                icon: IconProp.Check,
+                                onClick: async (
+                                    item: JSONObject,
+                                    onCompleteAction: Function,
+                                    onError: (err: Error) => void
+                                ) => {
+                                    try {
+                                        // accept invite.
+                                        await ModelAPI.updateById(
+                                            TeamMember,
+                                            new ObjectID(
+                                                item['_id']
+                                                    ? item['_id'].toString()
+                                                    : ''
+                                            ),
+                                            {
+                                                hasAcceptedInvitation: true,
+                                                invitationAcceptedAt:
+                                                    new Date(),
+                                            }
+                                        );
+
+                                        setProjectInvitationsRefreshToggle(
+                                            !projectInvitationsRefreshToggle
+                                        );
+                                        onCompleteAction();
+                                    } catch (err) {
+                                        onError(err as Error);
+                                    }
                                 },
                             },
-                            title: 'Project Invited to',
-                            type: FieldType.Text,
-                            isFilterable: true,
-                            selectedProperty: "name"
-                        },
-                        {
-                            field: {
-                                team:  {
-                                    name: true
-                                }
+                        ]}
+                        deleteButtonText="Reject"
+                        columns={[
+                            {
+                                field: {
+                                    project: {
+                                        name: true,
+                                    },
+                                },
+                                title: 'Project Invited to',
+                                type: FieldType.Text,
+                                isFilterable: true,
+                                selectedProperty: 'name',
                             },
-                            title: 'Team Invited to',
-                            type: FieldType.Text,
-                            selectedProperty: "name"
-                        },
-                    ]}
-                />
-            </FullPageModal>}
+                            {
+                                field: {
+                                    team: {
+                                        name: true,
+                                    },
+                                },
+                                title: 'Team Invited to',
+                                type: FieldType.Text,
+                                selectedProperty: 'name',
+                            },
+                        ]}
+                    />
+                </FullPageModal>
+            )}
         </>
     );
 };

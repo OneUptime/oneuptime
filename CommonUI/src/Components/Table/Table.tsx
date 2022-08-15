@@ -30,8 +30,8 @@ export interface ComponentProps {
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
     showFilter?: undefined | boolean;
     onFilterChanged?:
-    | undefined
-    | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
+        | undefined
+        | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -55,7 +55,10 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <ErrorMessage error={props.error} onRefreshClick={props.onRefreshClick} />
+                            <ErrorMessage
+                                error={props.error}
+                                onRefreshClick={props.onRefreshClick}
+                            />
                         </td>
                     </tr>
                 </tbody>
@@ -67,9 +70,14 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                        <ErrorMessage error={props.noItemsMessage
-                                    ? props.noItemsMessage
-                                    : `No ${props.singularLabel.toLocaleLowerCase()}`} onRefreshClick={props.onRefreshClick}  />
+                            <ErrorMessage
+                                error={
+                                    props.noItemsMessage
+                                        ? props.noItemsMessage
+                                        : `No ${props.singularLabel.toLocaleLowerCase()}`
+                                }
+                                onRefreshClick={props.onRefreshClick}
+                            />
                         </td>
                     </tr>
                 </tbody>

@@ -29,8 +29,8 @@ export interface ComponentProps {
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
     showFilter?: undefined | boolean;
     onFilterChanged?:
-    | undefined
-    | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
+        | undefined
+        | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
 }
 
 const List: FunctionComponent<ComponentProps> = (
@@ -38,23 +38,28 @@ const List: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const getListbody: Function = (): ReactElement => {
         if (props.isLoading) {
-            return (
-                <TableLoader />
-            );
+            return <TableLoader />;
         }
 
         if (props.error) {
             return (
-                <ErrorMessage error={props.error} onRefreshClick={props.onRefreshClick} />
+                <ErrorMessage
+                    error={props.error}
+                    onRefreshClick={props.onRefreshClick}
+                />
             );
         }
 
         if (props.data.length === 0) {
             return (
-                <ErrorMessage error={props.noItemsMessage
-                    ? props.noItemsMessage
-                    : `No ${props.singularLabel.toLocaleLowerCase()}`} onRefreshClick={props.onRefreshClick} />
-
+                <ErrorMessage
+                    error={
+                        props.noItemsMessage
+                            ? props.noItemsMessage
+                            : `No ${props.singularLabel.toLocaleLowerCase()}`
+                    }
+                    onRefreshClick={props.onRefreshClick}
+                />
             );
         }
 

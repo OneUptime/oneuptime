@@ -19,8 +19,11 @@ export interface ComponentProps {
 const TableRow: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(props.actionButtons?.map(() => false) || []);
+    const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
+        props.actionButtons?.map(() => {
+            return false;
+        }) || []
+    );
     const [error, setError] = useState<string>('');
     return (
         <tr>
@@ -42,7 +45,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         OneUptimeDate.getDateAsLocalFormattedString(
                                             props.item[column.key] as string,
                                             column.options?.onlyShowDate ||
-                                            false
+                                                false
                                         )
                                     ) : (
                                         ''
@@ -60,7 +63,11 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         />
                                     )
                                 ) : (
-                                    _.get(props.item, column.key, '')?.toString() || ''
+                                    _.get(
+                                        props.item,
+                                        column.key,
+                                        ''
+                                    )?.toString() || ''
                                 )
                             ) : (
                                 <></>
@@ -73,30 +80,31 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             )}
                             {column.type === FieldType.Actions && (
                                 <div>
-                                    {error && <div className='text-align-left'><ConfirmModal
-                                        title={`Error`}
-                                        description={error}
-                                        submitButtonText={'Close'}
-                                        onSubmit={() =>
-                                            setError('')
-                                        }
-                                    /></div>}
+                                    {error && (
+                                        <div className="text-align-left">
+                                            <ConfirmModal
+                                                title={`Error`}
+                                                description={error}
+                                                submitButtonText={'Close'}
+                                                onSubmit={() => {
+                                                    return setError('');
+                                                }}
+                                            />
+                                        </div>
+                                    )}
                                     {props.actionButtons?.map(
                                         (
                                             button: ActionButtonSchema,
                                             i: number
                                         ) => {
-
-
                                             return (
-
                                                 <span
                                                     style={
                                                         i > 0
                                                             ? {
-                                                                marginLeft:
-                                                                    '10px',
-                                                            }
+                                                                  marginLeft:
+                                                                      '10px',
+                                                              }
                                                             : {}
                                                     }
                                                     key={i}
@@ -110,22 +118,46 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                         buttonStyle={
                                                             button.buttonStyleType
                                                         }
-                                                        isLoading={isButtonLoading[i]}
+                                                        isLoading={
+                                                            isButtonLoading[i]
+                                                        }
                                                         onClick={() => {
-                                                            if (button.onClick) {
-                                                                isButtonLoading[i] = true;
-                                                                setIsButtonLoading(isButtonLoading);
+                                                            if (
+                                                                button.onClick
+                                                            ) {
+                                                                isButtonLoading[
+                                                                    i
+                                                                ] = true;
+                                                                setIsButtonLoading(
+                                                                    isButtonLoading
+                                                                );
 
-                                                                button.onClick(props.item, () => {
-                                                                    // on aciton complete 
-                                                                    isButtonLoading[i] = false;
-                                                                    setIsButtonLoading(isButtonLoading);
-                                                                }, (err) => {
-                                                                    isButtonLoading[i] = false;
-                                                                    setIsButtonLoading(isButtonLoading);
-                                                                    setError((err as Error).message);
-                                                                })
-
+                                                                button.onClick(
+                                                                    props.item,
+                                                                    () => {
+                                                                        // on aciton complete
+                                                                        isButtonLoading[
+                                                                            i
+                                                                        ] = false;
+                                                                        setIsButtonLoading(
+                                                                            isButtonLoading
+                                                                        );
+                                                                    },
+                                                                    (err) => {
+                                                                        isButtonLoading[
+                                                                            i
+                                                                        ] = false;
+                                                                        setIsButtonLoading(
+                                                                            isButtonLoading
+                                                                        );
+                                                                        setError(
+                                                                            (
+                                                                                err as Error
+                                                                            )
+                                                                                .message
+                                                                        );
+                                                                    }
+                                                                );
                                                             }
                                                         }}
                                                     />
@@ -138,8 +170,6 @@ const TableRow: FunctionComponent<ComponentProps> = (
                         </td>
                     );
                 })}
-
-
         </tr>
     );
 };

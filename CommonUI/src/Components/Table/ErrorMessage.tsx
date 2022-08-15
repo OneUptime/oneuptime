@@ -8,7 +8,6 @@ export interface ComponentProps {
 const ErrorMessage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     return (
         <p
             className="text-center color-light-grey"

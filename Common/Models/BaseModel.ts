@@ -22,7 +22,12 @@ import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
-import Permission, { instaceOfUserProjectAccessPermission, PermissionHelper, UserPermission, UserProjectAccessPermission } from '../Types/Permission';
+import Permission, {
+    instaceOfUserProjectAccessPermission,
+    PermissionHelper,
+    UserPermission,
+    UserProjectAccessPermission,
+} from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 
@@ -139,11 +144,13 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getColumnAccessControlFor(columnName: string): ColumnAccessControl {
-        return this.getColumnAccessControlForAllColumns()[columnName] || {
-            read: [],
-            create: [],
-            update: [],
-        };
+        return (
+            this.getColumnAccessControlForAllColumns()[columnName] || {
+                read: [],
+                create: [],
+                update: [],
+            }
+        );
     }
 
     public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
@@ -254,7 +261,7 @@ export default class BaseModel extends BaseEntity {
 
     private static _fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new(): T }
+        type: { new (): T }
     ): T {
         json = JSONFunctions.deserialize(json);
         const baseModel: T = new type();
@@ -270,7 +277,7 @@ export default class BaseModel extends BaseEntity {
 
     public static fromJSON<T extends BaseModel>(
         json: JSONObject | JSONArray,
-        type: { new(): T }
+        type: { new (): T }
     ): T | Array<T> {
         if (Array.isArray(json)) {
             const arr: Array<T> = [];
@@ -287,21 +294,21 @@ export default class BaseModel extends BaseEntity {
 
     public static fromJSONObject<T extends BaseModel>(
         json: JSONObject,
-        type: { new(): T }
+        type: { new (): T }
     ): T {
         return this.fromJSON<T>(json, type) as T;
     }
 
     public fromJSON<T extends BaseModel>(
         json: JSONObject,
-        type: { new(): T }
+        type: { new (): T }
     ): T {
         return BaseModel._fromJSON<T>(json, type);
     }
 
     public fromJSONArray<T extends BaseModel>(
         json: Array<JSONObject>,
-        type: { new(): T }
+        type: { new (): T }
     ): Array<T> {
         const arr: Array<T> = [];
 
@@ -337,7 +344,7 @@ export default class BaseModel extends BaseEntity {
         );
         return Boolean(
             tableColumnType.type === TableColumnType.Entity ||
-            tableColumnType.type === TableColumnType.EntityArray
+                tableColumnType.type === TableColumnType.EntityArray
         );
     }
 
@@ -392,70 +399,80 @@ export default class BaseModel extends BaseEntity {
         return false;
     }
 
-    public hasCreatePermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>, columnName?: string ): boolean {
-
+    public hasCreatePermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
         let modelPermission: Array<Permission> = this.createRecordPermissions;
-       
 
         if (columnName) {
-            const columnAccessControl = this.getColumnAccessControlFor(columnName);
+            const columnAccessControl =
+                this.getColumnAccessControlFor(columnName);
             modelPermission = columnAccessControl.create;
         }
 
-        return this.hasPermissions(userProjectPermissions, modelPermission)
+        return this.hasPermissions(userProjectPermissions, modelPermission);
     }
 
-    public hasReadPermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>, columnName?: string ): boolean {
-
+    public hasReadPermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
         let modelPermission: Array<Permission> = this.readRecordPermissions;
-       
 
         if (columnName) {
-            const columnAccessControl = this.getColumnAccessControlFor(columnName);
+            const columnAccessControl =
+                this.getColumnAccessControlFor(columnName);
             modelPermission = columnAccessControl.read;
         }
 
-
-        return this.hasPermissions(userProjectPermissions, modelPermission)
+        return this.hasPermissions(userProjectPermissions, modelPermission);
     }
 
-    public hasDeletePermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>): boolean {
-        let modelPermission: Array<Permission> = this.deleteRecordPermissions;
-        return this.hasPermissions(userProjectPermissions, modelPermission)   
+    public hasDeletePermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>
+    ): boolean {
+        const modelPermission: Array<Permission> = this.deleteRecordPermissions;
+        return this.hasPermissions(userProjectPermissions, modelPermission);
     }
 
-    public hasUpdatePermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>, columnName?: string): boolean {
+    public hasUpdatePermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
         let modelPermission: Array<Permission> = this.updateRecordPermissions;
-       
 
         if (columnName) {
-            const columnAccessControl = this.getColumnAccessControlFor(columnName);
+            const columnAccessControl =
+                this.getColumnAccessControlFor(columnName);
             modelPermission = columnAccessControl.update;
         }
 
-
-        return this.hasPermissions(userProjectPermissions, modelPermission)
+        return this.hasPermissions(userProjectPermissions, modelPermission);
     }
 
-    private hasPermissions(userProjectPermissions: UserProjectAccessPermission | Array<Permission>, modelPermissions: Array<Permission>): boolean {
+    private hasPermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        modelPermissions: Array<Permission>
+    ): boolean {
         let userPermissions: Array<Permission> = [];
-        
+
         if (instaceOfUserProjectAccessPermission(userProjectPermissions)) {
             userPermissions = userProjectPermissions.permissions.map(
                 (item: UserPermission) => {
                     return item.permission;
                 }
-            );            
+            );
         } else {
             userPermissions = userProjectPermissions;
         }
 
         return Boolean(
             userPermissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                modelPermissions,
-                userPermissions
-            )
+                PermissionHelper.doesPermissionsIntersect(
+                    modelPermissions,
+                    userPermissions
+                )
         );
     }
 }

@@ -516,7 +516,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         return {
                             permission: permission,
                             labelIds: [],
-                            _type: "UserPermission"
+                            _type: 'UserPermission',
                         };
                     }
                 );
@@ -540,7 +540,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                `You do not have permissions to ${type} record of type ${this.model.singularName}. You need one of these permissions: ${PermissionHelper.getPermissionTitles(modelPermissions).join(",")}`
+                `You do not have permissions to ${type} record of type ${
+                    this.model.singularName
+                }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
+                    modelPermissions
+                ).join(',')}`
             );
         }
 
@@ -609,7 +613,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `You do not have permissions to query on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read).join(",")}`
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                        this.model.getColumnAccessControlFor(key).read
+                    ).join(',')}`
                 );
             }
         }
@@ -622,7 +628,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `You do not have permissions to select on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read).join(",")}`
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                        this.model.getColumnAccessControlFor(key).read
+                    ).join(',')}`
                 );
             }
         }
@@ -727,7 +735,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!readColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `You do not have permissions to query on - ${key}.  
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).read).join(",")}`
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                        this.model.getColumnAccessControlFor(key).read
+                    ).join(',')}`
                 );
             }
         }
@@ -736,7 +746,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!updateColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
                     `You do not have permissions to update this record at - ${key}. 
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(key).update).join(",")}`
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                        this.model.getColumnAccessControlFor(key).update
+                    ).join(',')}`
                 );
             }
         }
@@ -1135,42 +1147,53 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
     }
 
-    private sanitizeFindByItems(items: Array<TBaseModel>, findBy: FindBy<TBaseModel>): Array<TBaseModel> {
-
+    private sanitizeFindByItems(
+        items: Array<TBaseModel>,
+        findBy: FindBy<TBaseModel>
+    ): Array<TBaseModel> {
         debugger;
-        // if there's no select then there's nothing to do. 
+        // if there's no select then there's nothing to do.
         if (!findBy.select) {
-            return items; 
+            return items;
         }
 
         for (const key in findBy.select) {
-
-            // for each key in sleect check if there's nested properties, this indicates there's a relation. 
+            // for each key in sleect check if there's nested properties, this indicates there's a relation.
             if (typeof findBy.select[key] === Typeof.Object) {
-
-                // get meta data to check if this column is an entity array. 
-                const tableColumnMetadata: TableColumnMetadata = this.model.getTableColumnMetadata(key);
+                // get meta data to check if this column is an entity array.
+                const tableColumnMetadata: TableColumnMetadata =
+                    this.model.getTableColumnMetadata(key);
 
                 if (!tableColumnMetadata.modelType) {
-                    throw new BadDataException("Populate not supported on " + key + " of " + this.model.singularName + " because this column modelType is not found.");
+                    throw new BadDataException(
+                        'Populate not supported on ' +
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
+                    );
                 }
 
                 const relatedModel = new tableColumnMetadata.modelType();
                 if (tableColumnMetadata.type === TableColumnType.EntityArray) {
                     const tableColumns = relatedModel.getTableColumns().columns;
-                    const columnsToKeep = Object.keys((findBy.select as any)[key]);
-                
+                    const columnsToKeep = Object.keys(
+                        (findBy.select as any)[key]
+                    );
 
                     for (const item of items) {
                         if (item[key] && Array.isArray(item[key])) {
-                            const relatedArray: Array<BaseModel> = item[key] as any;
+                            const relatedArray: Array<BaseModel> = item[
+                                key
+                            ] as any;
                             const newArray = [];
-                            // now we need to sanitize data. 
+                            // now we need to sanitize data.
 
                             for (const relatedArrayItem of relatedArray) {
                                 for (const column of tableColumns) {
                                     if (!columnsToKeep.includes(column)) {
-                                        (relatedArrayItem as any)[column] = undefined;
+                                        (relatedArrayItem as any)[column] =
+                                            undefined;
                                     }
                                 }
                                 newArray.push(relatedArrayItem);
@@ -1182,54 +1205,91 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 }
             }
         }
-        
-        return items; 
+
+        return items;
     }
 
-    private serializePopulate(onBeforeFind: FindBy<TBaseModel>): FindBy<TBaseModel> {
-        
+    private serializePopulate(
+        onBeforeFind: FindBy<TBaseModel>
+    ): FindBy<TBaseModel> {
         for (const key in onBeforeFind.populate) {
-
             if (typeof onBeforeFind.populate[key] === Typeof.Object) {
                 debugger;
-                const tableColumnMetadata: TableColumnMetadata = this.model.getTableColumnMetadata(key);
+                const tableColumnMetadata: TableColumnMetadata =
+                    this.model.getTableColumnMetadata(key);
 
                 if (!tableColumnMetadata.modelType) {
-                    throw new BadDataException("Populate not supported on " + key + " of " + this.model.singularName + " because this column modelType is not found.");
+                    throw new BadDataException(
+                        'Populate not supported on ' +
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
+                    );
                 }
 
-                const relatedModel = new tableColumnMetadata.modelType()
-                
-                if (tableColumnMetadata.type === TableColumnType.Entity || tableColumnMetadata.type === TableColumnType.EntityArray) {
-                    for (const innerKey in (onBeforeFind.populate as any)[key]) {
-                        // check for permissions. 
-                        if (typeof (onBeforeFind.populate as any)[key][innerKey] === Typeof.Object) { 
-                            throw new BadDataException("Nested populate not supported");
+                const relatedModel = new tableColumnMetadata.modelType();
+
+                if (
+                    tableColumnMetadata.type === TableColumnType.Entity ||
+                    tableColumnMetadata.type === TableColumnType.EntityArray
+                ) {
+                    for (const innerKey in (onBeforeFind.populate as any)[
+                        key
+                    ]) {
+                        // check for permissions.
+                        if (
+                            typeof (onBeforeFind.populate as any)[key][
+                                innerKey
+                            ] === Typeof.Object
+                        ) {
+                            throw new BadDataException(
+                                'Nested populate not supported'
+                            );
                         }
 
-                        // check if the user has permission to read this column 
+                        // check if the user has permission to read this column
                         if (onBeforeFind.props.userProjectAccessPermission) {
-                            const hasPermission = relatedModel.hasReadPermissions(onBeforeFind.props.userProjectAccessPermission, innerKey);
+                            const hasPermission =
+                                relatedModel.hasReadPermissions(
+                                    onBeforeFind.props
+                                        .userProjectAccessPermission,
+                                    innerKey
+                                );
 
                             if (!hasPermission) {
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to query record of type ${this.model.singularName}. You need one of these permissions: ${PermissionHelper.getPermissionTitles(this.model.getColumnAccessControlFor(innerKey).read).join(",")}`
+                                    `You do not have permissions to query record of type ${
+                                        this.model.singularName
+                                    }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
+                                        this.model.getColumnAccessControlFor(
+                                            innerKey
+                                        ).read
+                                    ).join(',')}`
                                 );
                             }
                         }
                     }
-    
-                    (onBeforeFind.select as any)[key] = (onBeforeFind.populate as any)[key];
-                    (onBeforeFind.populate as any)[key] = true; 
+
+                    (onBeforeFind.select as any)[key] = (
+                        onBeforeFind.populate as any
+                    )[key];
+                    (onBeforeFind.populate as any)[key] = true;
                 } else {
-                    throw new BadDataException("Populate not supported on " + key + " of " + this.model.singularName + " because this column is not of type Entity or EntityArray");
+                    throw new BadDataException(
+                        'Populate not supported on ' +
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column is not of type Entity or EntityArray'
+                    );
                 }
             } else {
-                // if you want to populate the whole object, you only do the id because of security. 
+                // if you want to populate the whole object, you only do the id because of security.
                 (onBeforeFind.select as any)[key] = {
-                    _id: true
+                    _id: true,
                 } as any;
-                (onBeforeFind.populate as any)[key] = true; 
+                (onBeforeFind.populate as any)[key] = true;
             }
         }
 

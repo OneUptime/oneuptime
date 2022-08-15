@@ -156,19 +156,25 @@ export class PermissionHelper {
         return permissionProps[0].title;
     }
 
-    public static getPermissionTitles(permissions: Array<Permission>): Array<string> {
+    public static getPermissionTitles(
+        permissions: Array<Permission>
+    ): Array<string> {
         const props: Array<PermissionProps> = this.getAllPermissionProps();
         const titles: Array<string> = [];
 
         for (const permission of permissions) {
-            const permissionProp: PermissionProps | undefined = props.find((item) => item.permission === permission);
+            const permissionProp: PermissionProps | undefined = props.find(
+                (item) => {
+                    return item.permission === permission;
+                }
+            );
 
             if (permissionProp) {
                 titles.push(permissionProp.title);
             }
         }
 
-        return titles; 
+        return titles;
     }
 
     public static getAllPermissionProps(): Array<PermissionProps> {
@@ -568,17 +574,17 @@ export class PermissionHelper {
 export interface UserGlobalAccessPermission extends JSONObject {
     projectIds: Array<ObjectID>;
     globalPermissions: Array<Permission>;
-    _type: "UserGlobalAccessPermission"
+    _type: 'UserGlobalAccessPermission';
 }
 
 export interface UserPermission extends JSONObject {
-    _type: "UserPermission"
+    _type: 'UserPermission';
     permission: Permission;
     labelIds: Array<ObjectID>;
 }
 
 export interface UserProjectAccessPermission extends JSONObject {
-    _type: "UserProjectAccessPermission";
+    _type: 'UserProjectAccessPermission';
     projectId: ObjectID;
     permissions: Array<UserPermission>;
 }
@@ -587,16 +593,20 @@ export const PermissionsArray: Array<string> = [
     ...new Set(Object.keys(Permission)),
 ]; // Returns ["Owner", "Administrator"...]
 
-export function instaceOfUserProjectAccessPermission(object: any): object is UserProjectAccessPermission {
-    return object._type === "UserProjectAccessPermission"
+export function instaceOfUserProjectAccessPermission(
+    object: any
+): object is UserProjectAccessPermission {
+    return object._type === 'UserProjectAccessPermission';
 }
 
 export function instaceOfUserPermission(object: any): object is UserPermission {
-    return object._type === "UserPermission"
+    return object._type === 'UserPermission';
 }
 
-export function instaceOfUserGlobalAccessPermission(object: any): object is UserGlobalAccessPermission {
-    return object._type === "UserGlobalAccessPermission"
+export function instaceOfUserGlobalAccessPermission(
+    object: any
+): object is UserGlobalAccessPermission {
+    return object._type === 'UserGlobalAccessPermission';
 }
 
 export default Permission;
