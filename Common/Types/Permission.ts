@@ -568,6 +568,7 @@ export class PermissionHelper {
 export interface UserGlobalAccessPermission extends JSONObject {
     projectIds: Array<ObjectID>;
     globalPermissions: Array<Permission>;
+    _type: "UserGlobalAccessPermission"
 }
 
 export interface UserPermission extends JSONObject {
@@ -592,6 +593,10 @@ export function instaceOfUserProjectAccessPermission(object: any): object is Use
 
 export function instaceOfUserPermission(object: any): object is UserPermission {
     return object._type === "UserPermission"
+}
+
+export function instaceOfUserGlobalAccessPermission(object: any): object is UserGlobalAccessPermission {
+    return object._type === "UserGlobalAccessPermission"
 }
 
 export default Permission;

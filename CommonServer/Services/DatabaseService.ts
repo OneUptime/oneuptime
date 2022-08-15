@@ -1137,6 +1137,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private sanitizeFindByItems(items: Array<TBaseModel>, findBy: FindBy<TBaseModel>): Array<TBaseModel> {
 
+        debugger;
         // if there's no select then there's nothing to do. 
         if (!findBy.select) {
             return items; 
@@ -1190,6 +1191,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         for (const key in onBeforeFind.populate) {
 
             if (typeof onBeforeFind.populate[key] === Typeof.Object) {
+                debugger;
                 const tableColumnMetadata: TableColumnMetadata = this.model.getTableColumnMetadata(key);
 
                 if (!tableColumnMetadata.modelType) {
@@ -1198,7 +1200,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                 const relatedModel = new tableColumnMetadata.modelType()
                 
-                if (tableColumnMetadata.type === TableColumnType.Entity || tableColumnMetadata.type === TableColumnType.Array) {
+                if (tableColumnMetadata.type === TableColumnType.Entity || tableColumnMetadata.type === TableColumnType.EntityArray) {
                     for (const innerKey in (onBeforeFind.populate as any)[key]) {
                         // check for permissions. 
                         if (typeof (onBeforeFind.populate as any)[key][innerKey] === Typeof.Object) { 

@@ -47,6 +47,7 @@ export default class AccessTokenService {
         const permissionToStore: UserGlobalAccessPermission = {
             projectIds,
             globalPermissions: [Permission.Public, Permission.User],
+            _type: "UserGlobalAccessPermission"
         };
 
         // if user is a part of any project then, he is the project member.
@@ -73,6 +74,8 @@ export default class AccessTokenService {
 
         const accessPermission: UserGlobalAccessPermission =
             json as UserGlobalAccessPermission;
+        
+        accessPermission._type = "UserGlobalAccessPermission";
 
         return accessPermission;
     }
@@ -165,6 +168,10 @@ export default class AccessTokenService {
                 PermissionNamespace.ProjectPermission,
                 userId.toString() + projectId.toString()
             )) as UserProjectAccessPermission;
+        
+        if (json) {
+            json._type = "UserProjectAccessPermission"
+        }
 
         return json;
     }

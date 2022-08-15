@@ -446,6 +446,8 @@ export default class BaseModel extends BaseEntity {
                     return item.permission;
                 }
             );            
+        } else {
+            userPermissions = userProjectPermissions;
         }
 
         return Boolean(

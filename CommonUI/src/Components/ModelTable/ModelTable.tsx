@@ -228,18 +228,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         const headerbuttons: Array<CardButtonSchema> = [];
         const userProjectPermissions: UserProjectAccessPermission | null =
             PermissionUtil.getProjectPermissions();
-        const hasPermissionToCreate: boolean = Boolean(
-            userProjectPermissions &&
-            userProjectPermissions.permissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                model.createRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
-                )
-            )
-        );
+    
+        if (!userProjectPermissions) {
+            throw new BadDataException("UserProjectAccessPermissions not found");
+        }
+        
+        
+        const hasPermissionToCreate: boolean = model.hasCreatePermissions(userProjectPermissions);
 
         if (props.isCreateable && hasPermissionToCreate) {
             headerbuttons.push({
