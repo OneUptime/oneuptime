@@ -516,6 +516,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         return {
                             permission: permission,
                             labelIds: [],
+                            _type: "UserPermission"
                         };
                     }
                 );
@@ -1136,8 +1137,51 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private sanitizeFindByItems(items: Array<TBaseModel>, findBy: FindBy<TBaseModel>): Array<TBaseModel> {
 
+        // if there's no select then there's nothing to do. 
+        if (!findBy.select) {
+            return items; 
+        }
 
+        for (const key in findBy.select) {
 
+            // for each key in sleect check if there's nested properties, this indicates there's a relation. 
+            if (typeof findBy.select[key] === Typeof.Object) {
+
+                // get meta data to check if this column is an entity array. 
+                const tableColumnMetadata: TableColumnMetadata = this.model.getTableColumnMetadata(key);
+
+                if (!tableColumnMetadata.modelType) {
+                    throw new BadDataException("Populate not supported on " + key + " of " + this.model.singularName + " because this column modelType is not found.");
+                }
+
+                const relatedModel = new tableColumnMetadata.modelType();
+                if (tableColumnMetadata.type === TableColumnType.EntityArray) {
+                    const tableColumns = relatedModel.getTableColumns().columns;
+                    const columnsToKeep = Object.keys((findBy.select as any)[key]);
+                
+
+                    for (const item of items) {
+                        if (item[key] && Array.isArray(item[key])) {
+                            const relatedArray: Array<BaseModel> = item[key] as any;
+                            const newArray = [];
+                            // now we need to sanitize data. 
+
+                            for (const relatedArrayItem of relatedArray) {
+                                for (const column of tableColumns) {
+                                    if (!columnsToKeep.includes(column)) {
+                                        (relatedArrayItem as any)[column] = undefined;
+                                    }
+                                }
+                                newArray.push(relatedArrayItem);
+                            }
+
+                            (item[key] as any) = newArray;
+                        }
+                    }
+                }
+            }
+        }
+        
         return items; 
     }
 
