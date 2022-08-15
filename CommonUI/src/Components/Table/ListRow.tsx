@@ -86,7 +86,7 @@ const ListRow: FunctionComponent<ComponentProps> = (
                                                         isButtonLoading
                                                     );
                                                 },
-                                                (err) => {
+                                                (err: Error) => {
                                                     isButtonLoading[i] = false;
                                                     setIsButtonLoading(
                                                         isButtonLoading
