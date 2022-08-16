@@ -13,7 +13,7 @@ import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps {
     onClose: () => void;
-    onRequestAccepted: () => void; 
+    onRequestAccepted: () => void;
 }
 
 const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
@@ -80,8 +80,10 @@ const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
                                         {
                                             hasAcceptedInvitation: true,
                                             invitationAcceptedAt: new Date(),
-                                        }, undefined, {
-                                            isMultiTenantRequest: true
+                                        },
+                                        undefined,
+                                        {
+                                            isMultiTenantRequest: true,
                                         }
                                     );
 

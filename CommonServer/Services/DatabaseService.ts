@@ -58,34 +58,32 @@ enum DatabaseRequestType {
 }
 
 export interface OnCreate<TBaseModel extends BaseModel> {
-    createBy: CreateBy<TBaseModel>,
-    carryForward: any
+    createBy: CreateBy<TBaseModel>;
+    carryForward: any;
 }
 
 export interface OnFind<TBaseModel extends BaseModel> {
-    findBy: FindBy<TBaseModel>,
-    carryForward: any
+    findBy: FindBy<TBaseModel>;
+    carryForward: any;
 }
 
 export interface OnDelete<TBaseModel extends BaseModel> {
-    deleteBy: DeleteBy<TBaseModel>,
-    carryForward: any
+    deleteBy: DeleteBy<TBaseModel>;
+    carryForward: any;
 }
-
 
 export interface OnUpdate<TBaseModel extends BaseModel> {
-    updateBy: UpdateBy<TBaseModel>,
-    carryForward: any
+    updateBy: UpdateBy<TBaseModel>;
+    carryForward: any;
 }
-
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new(): TBaseModel };
+    private entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -155,7 +153,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // A place holder method used for overriding.
         return Promise.resolve({
             createBy: createBy as CreateBy<TBaseModel>,
-            carryForward: undefined
+            carryForward: undefined,
         });
     }
 
@@ -254,7 +252,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         updateBy: UpdateBy<TBaseModel>
     ): Promise<OnUpdate<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve({updateBy, carryForward: null});
+        return Promise.resolve({ updateBy, carryForward: null });
     }
 
     protected async onBeforeFind(
@@ -265,7 +263,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     protected async onCreateSuccess(
-       _onCreate: OnCreate<TBaseModel>, createdItem: TBaseModel
+        _onCreate: OnCreate<TBaseModel>,
+        createdItem: TBaseModel
     ): Promise<TBaseModel> {
         // A place holder method used for overriding.
         return Promise.resolve(createdItem);
@@ -276,7 +275,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return Promise.resolve(error);
     }
 
-    protected async onUpdateSuccess(onUpdate: OnUpdate<TBaseModel>, _updatedItemIds: Array<ObjectID>): Promise<OnUpdate<TBaseModel>> {
+    protected async onUpdateSuccess(
+        onUpdate: OnUpdate<TBaseModel>,
+        _updatedItemIds: Array<ObjectID>
+    ): Promise<OnUpdate<TBaseModel>> {
         // A place holder method used for overriding.
         return Promise.resolve(onUpdate);
     }
@@ -286,7 +288,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return Promise.resolve(error);
     }
 
-    protected async onDeleteSuccess(onDelete: OnDelete<TBaseModel>, _itemIdsBeforeDelete: Array<ObjectID>): Promise<OnDelete<TBaseModel>> {
+    protected async onDeleteSuccess(
+        onDelete: OnDelete<TBaseModel>,
+        _itemIdsBeforeDelete: Array<ObjectID>
+    ): Promise<OnDelete<TBaseModel>> {
         // A place holder method used for overriding.
         return Promise.resolve(onDelete);
     }
@@ -301,7 +306,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         items: Array<TBaseModel>
     ): Promise<OnFind<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve({...onFind, carryForward: items});
+        return Promise.resolve({ ...onFind, carryForward: items });
     }
 
     protected async onFindError(error: Exception): Promise<Exception> {
@@ -331,7 +336,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
+                    createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -395,14 +400,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-        
-        let onCreate: OnCreate<TBaseModel> = await this._onBeforeCreate(
+        const onCreate: OnCreate<TBaseModel> = await this._onBeforeCreate(
             createBy
         );
-        
+
         let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
 
-        let carryForward = onCreate.carryForward;
+        const carryForward: any = onCreate.carryForward;
 
         _createdBy = this.generateSlug(_createdBy);
 
@@ -438,10 +442,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
-            await this.onCreateSuccess({
-                createBy,
-                carryForward,
-            }, createBy.data);
+            createBy.data = await this.onCreateSuccess(
+                {
+                    createBy,
+                    carryForward,
+                },
+                createBy.data
+            );
             return createBy.data;
         } catch (error) {
             await this.onCreateError(error as Exception);
@@ -574,7 +581,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                `You do not have permissions to ${type} record of type ${this.model.singularName
+                `You do not have permissions to ${type} record of type ${
+                    this.model.singularName
                 }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                     modelPermissions
                 ).join(',')}`
@@ -740,8 +748,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asUpdateByByPermissions(
         updateBy: UpdateBy<TBaseModel>
     ): UpdateBy<TBaseModel> {
-
-
         if (updateBy.props.isRoot) {
             return updateBy;
         }
@@ -752,7 +758,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             select: {},
             populate: {},
             limit: 0,
-            skip: 0
+            skip: 0,
         });
 
         updateBy.query = findBy.query;
@@ -1026,15 +1032,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
-
-            let onDelete: OnDelete<TBaseModel> = await this.onBeforeDelete(deleteBy);
+            const onDelete: OnDelete<TBaseModel> = await this.onBeforeDelete(
+                deleteBy
+            );
             let beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
-                
-            
-            let carryForward = onDelete.carryForward
+
+            const carryForward: any = onDelete.carryForward;
 
             beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
-
 
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeDeleteBy.query,
@@ -1059,9 +1064,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (await this.getRepository().delete(beforeDeleteBy.query as any))
                     .affected || 0;
 
-            await this.onDeleteSuccess({ deleteBy, carryForward }, items.map((i) => {
-                return new ObjectID(i._id!)
-            }));
+            await this.onDeleteSuccess(
+                { deleteBy, carryForward },
+                items.map((i: TBaseModel) => {
+                    return new ObjectID(i._id!);
+                })
+            );
 
             return numberOfDocsAffected;
         } catch (error) {
@@ -1085,11 +1093,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createdAt: SortOrder.Descending,
                 };
             }
-            let onFind: OnFind<TBaseModel> = await this.onBeforeFind(
-                findBy
-            );
+            const onFind: OnFind<TBaseModel> = await this.onBeforeFind(findBy);
             let onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
-            let carryForward = onFind.carryForward;
+            const carryForward: any = onFind.carryForward;
 
             onBeforeFind = this.asFindByByPermissions(findBy);
 
@@ -1119,7 +1125,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
-            let items: Array<TBaseModel> = await this.getRepository().find({
+            const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
                 where: onBeforeFind.query as any,
@@ -1134,9 +1140,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 decryptedItems.push(this.decrypt(item));
             }
 
-            decryptedItems = this.sanitizeFindByItems(decryptedItems, onBeforeFind);
+            decryptedItems = this.sanitizeFindByItems(
+                decryptedItems,
+                onBeforeFind
+            );
 
-            decryptedItems = await (await this.onFindSuccess({ findBy, carryForward }, decryptedItems)).carryForward;
+            decryptedItems = await (
+                await this.onFindSuccess(
+                    { findBy, carryForward },
+                    decryptedItems
+                )
+            ).carryForward;
 
             return decryptedItems;
         } catch (error) {
@@ -1164,10 +1178,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -1219,10 +1233,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -1239,7 +1253,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         // check for permissions.
                         if (
                             typeof (onBeforeFind.populate as any)[key][
-                            innerKey
+                                innerKey
                             ] === Typeof.Object
                         ) {
                             throw new BadDataException(
@@ -1258,9 +1272,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                             if (!hasPermission) {
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to read ${onBeforeFind.limit === 1
-                                        ? this.model.singularName
-                                        : this.model.pluralName
+                                    `You do not have permissions to read ${
+                                        onBeforeFind.limit === 1
+                                            ? this.model.singularName
+                                            : this.model.pluralName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                                         this.model.getColumnAccessControlFor(
                                             innerKey
@@ -1278,10 +1293,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 } else {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column is not of type Entity or EntityArray'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column is not of type Entity or EntityArray'
                     );
                 }
             } else {
@@ -1326,10 +1341,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
         try {
-            let onUpdate: OnUpdate<TBaseModel> =  await this.onBeforeUpdate(updateBy);
+            const onUpdate: OnUpdate<TBaseModel> = await this.onBeforeUpdate(
+                updateBy
+            );
             let beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
-            let carryForward: any = onUpdate.carryForward;
-               
+            const carryForward: any = onUpdate.carryForward;
 
             beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
@@ -1370,9 +1386,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
             //         )
             //     ).affected || 0;
 
-            await this.onUpdateSuccess({ updateBy, carryForward }, items.map((i) => {
-                return new ObjectID(i._id!)
-            }));
+            await this.onUpdateSuccess(
+                { updateBy, carryForward },
+                items.map((i: TBaseModel) => {
+                    return new ObjectID(i._id!);
+                })
+            );
 
             return items.length;
         } catch (error) {

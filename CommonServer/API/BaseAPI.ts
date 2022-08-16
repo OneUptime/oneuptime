@@ -334,8 +334,6 @@ export default class BaseAPI<
         delete item['createdAt'];
         delete item['updatedAt'];
 
-        debugger;
-
         await this.service.updateBy({
             query: {
                 _id: objectIdString,

@@ -38,7 +38,7 @@ export class Service extends DatabaseService<Model> {
             }
         }
 
-        return {updateBy, carryForward: null};
+        return { updateBy, carryForward: null };
     }
 
     protected override async onBeforeDelete(
@@ -66,7 +66,7 @@ export class Service extends DatabaseService<Model> {
             }
         }
 
-        return {deleteBy, carryForward: null};
+        return { deleteBy, carryForward: null };
     }
 }
 export default new Service();

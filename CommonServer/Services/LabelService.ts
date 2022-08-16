@@ -14,7 +14,6 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
-
         let existingProjectWithSameNameCount: number = 0;
 
         existingProjectWithSameNameCount = (

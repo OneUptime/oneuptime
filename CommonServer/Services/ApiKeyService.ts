@@ -13,7 +13,7 @@ export class Service extends DatabaseService<Model> {
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
         createBy.data.apiKey = ObjectID.generate();
-        return {createBy, carryForward: null};
+        return { createBy, carryForward: null };
     }
 }
 

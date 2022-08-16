@@ -13,10 +13,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onCreateSuccess(
-        onCreate: OnCreate<Model>, createdItem: Model
+        onCreate: OnCreate<Model>,
+        createdItem: Model
     ): Promise<Model> {
-
-        let createBy: CreateBy<Model> = onCreate.createBy;
+        const createBy: CreateBy<Model> = onCreate.createBy;
 
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
             query: {

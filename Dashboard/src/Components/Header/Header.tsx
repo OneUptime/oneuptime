@@ -17,7 +17,7 @@ import ProjectInvitationsModal from './ProjectInvitationsModal';
 export interface ComponentProps {
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
-    onProjectRequestAccepted: () => void; 
+    onProjectRequestAccepted: () => void;
 }
 
 const DashboardHeader: FunctionComponent<ComponentProps> = (

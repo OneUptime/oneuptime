@@ -100,7 +100,7 @@ const App: FunctionComponent = () => {
         }
 
         setLoading(false);
-    }
+    };
 
     useAsyncEffect(async () => {
         fetchProjects();

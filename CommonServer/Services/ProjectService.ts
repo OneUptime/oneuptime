@@ -71,11 +71,12 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        return Promise.resolve({createBy: data, carryForward: null});
+        return Promise.resolve({ createBy: data, carryForward: null });
     }
 
     protected override async onCreateSuccess(
-        _onCreate: OnCreate<Model>, createdItem: Model
+        _onCreate: OnCreate<Model>,
+        createdItem: Model
     ): Promise<Model> {
         // add default teams.
         createdItem = await this.addDefaultProjectTeams(createdItem);
@@ -84,9 +85,7 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-    public async addDefaultMonitorStatus(
-        createdItem: Model
-    ): Promise<Model> {
+    public async addDefaultMonitorStatus(createdItem: Model): Promise<Model> {
         let operationalStatus: MonitorStatus = new MonitorStatus();
         operationalStatus.name = 'Operational';
         operationalStatus.description = 'Monitor operating normally';
@@ -130,9 +129,7 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-    public async addDefaultProjectTeams(
-        createdItem: Model,
-    ): Promise<Model> {
+    public async addDefaultProjectTeams(createdItem: Model): Promise<Model> {
         // add a team member.
 
         // Owner Team.
@@ -255,7 +252,7 @@ export class Service extends DatabaseService<Model> {
             findBy.query._id = In([]); // should not get any projects.
         }
 
-        return {findBy, carryForward: null};
+        return { findBy, carryForward: null };
     }
 }
 export default new Service();
