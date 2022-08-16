@@ -215,7 +215,7 @@ export default class Probe extends BaseModel {
         read: [Permission.ProjectOwner, Permission.ProjectMember],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.Entity, modelType: User })
     @ManyToOne(
         (_type: string) => {
             return User;
