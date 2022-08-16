@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/TeamMember';
-import DatabaseService from './DatabaseService';
+import DatabaseService, { OnCreate, OnDelete, OnUpdate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import AccessTokenService from './AccessTokenService';
 import Email from 'Common/Types/Email';
@@ -9,6 +9,8 @@ import User from 'Model/Models/User';
 import UpdateBy from '../Types/Database/UpdateBy';
 import DeleteBy from '../Types/Database/DeleteBy';
 import ObjectID from 'Common/Types/ObjectID';
+import QueryHelper from '../Types/Database/QueryHelper';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -17,7 +19,8 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
+    ): Promise<OnCreate<Model>> {
+
         if (!createBy.data.hasAcceptedInvitation) {
             createBy.data.hasAcceptedInvitation = false;
         }
@@ -40,7 +43,7 @@ export class Service extends DatabaseService<Model> {
             createBy.data.userId = user.id!;
         }
 
-        return createBy;
+        return { createBy, carryForward: null };
     }
 
 
@@ -57,29 +60,67 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onCreateSuccess(
-        createBy: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
+        onCreate: OnCreate<Model>, createdItem: Model
+    ): Promise<Model> {
 
-        await this.refreshTokens(createBy.data.userId!, createBy.data.projectId!);
-        return createBy;
+        await this.refreshTokens(onCreate.createBy.data.userId!, onCreate.createBy.data.projectId!);
+        return createdItem;
     }
 
-    protected override async onUpdateSuccess(updateBy: UpdateBy<Model>, updatedItems: Array<Model>): Promise<UpdateBy<Model>> {
+    protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, updatedItemIds: Array<ObjectID>): Promise<OnUpdate<Model>> {
+        const updateBy: UpdateBy<Model> = onUpdate.updateBy;
+        const items = await this.findBy({
+            query: {
+                _id: QueryHelper.in(updatedItemIds)
+            },
+            select: {
+                userId: true,
+                projectId: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            populate: {},
+            props: {
+                isRoot: true
+            }
+        });
 
-        for (const item of updatedItems) {
+        for (const item of items) {
             await this.refreshTokens(item.userId!, item.projectId!);
         }
 
-        return updateBy;
+        return { updateBy, carryForward: onUpdate.carryForward };
     }
 
-    protected override async onDeleteSuccess(deleteBy: DeleteBy<Model>, itemsBeforeDelete: Array<Model>): Promise<DeleteBy<Model>> {
+    protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
+        
+        const items = await this.findBy({
+            query: deleteBy.query,
+            select: {
+                userId: true,
+                projectId: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            populate: {},
+            props: {
+                isRoot: true
+            }
+        });
+        
+        return {
+            deleteBy: deleteBy, 
+            carryForward: items
+        }
+    }
 
-        for (const item of itemsBeforeDelete) {
+    protected override async onDeleteSuccess(onDelete: OnDelete<Model>): Promise<OnDelete<Model>> {
+
+        for (const item of onDelete.carryForward as Array<Model>) {
             await this.refreshTokens(item.userId!, item.projectId!);
         }
 
-        return deleteBy;
+        return onDelete;
     }
 
 }

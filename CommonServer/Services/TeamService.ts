@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Team';
-import DatabaseService from './DatabaseService';
+import DatabaseService, { OnDelete, OnUpdate } from './DatabaseService';
 import UpdateBy from '../Types/Database/UpdateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -13,7 +13,7 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeUpdate(
         updateBy: UpdateBy<Model>
-    ): Promise<UpdateBy<Model>> {
+    ): Promise<OnUpdate<Model>> {
         // get teams by query.
 
         const teams: Array<Model> = await this.findBy({
@@ -38,12 +38,12 @@ export class Service extends DatabaseService<Model> {
             }
         }
 
-        return updateBy;
+        return {updateBy, carryForward: null};
     }
 
     protected override async onBeforeDelete(
         deleteBy: DeleteBy<Model>
-    ): Promise<DeleteBy<Model>> {
+    ): Promise<OnDelete<Model>> {
         const teams: Array<Model> = await this.findBy({
             query: deleteBy.query,
             limit: LIMIT_MAX,
@@ -66,7 +66,7 @@ export class Service extends DatabaseService<Model> {
             }
         }
 
-        return deleteBy;
+        return {deleteBy, carryForward: null};
     }
 }
 export default new Service();

@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/TeamPermission';
-import DatabaseService from './DatabaseService';
+import DatabaseService, { OnCreate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import AccessTokenService from './AccessTokenService';
 import TeamMemberService from './TeamMemberService';
@@ -13,8 +13,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onCreateSuccess(
-        createBy: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
+        onCreate: OnCreate<Model>, createdItem: Model
+    ): Promise<Model> {
+
+        let createBy: CreateBy<Model> = onCreate.createBy;
+
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
             query: {
                 teamId: createBy.data.teamId!,
@@ -40,7 +43,7 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        return createBy;
+        return createdItem;
     }
 
     // TODO - OnDelete and OnUpdate pending.

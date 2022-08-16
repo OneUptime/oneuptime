@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Label';
-import DatabaseService from './DatabaseService';
+import DatabaseService, { OnCreate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import QueryHelper from '../Types/Database/QueryHelper';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -13,7 +13,8 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
+    ): Promise<OnCreate<Model>> {
+
         let existingProjectWithSameNameCount: number = 0;
 
         existingProjectWithSameNameCount = (
@@ -40,7 +41,7 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        return Promise.resolve(createBy);
+        return Promise.resolve({ createBy, carryForward: null });
     }
 }
 export default new Service();
