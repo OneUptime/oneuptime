@@ -137,7 +137,7 @@ export default class BaseModel extends BaseEntity {
         return Boolean(this.isMultiTenantRequestAllowed);
     }
 
-    public isUserQueryWithoutTenantAllowed(): boolean{
+    public isUserQueryWithoutTenantAllowed(): boolean {
         return Boolean(this.allowUserQueryWithoutTenant);
     }
 
@@ -363,8 +363,7 @@ export default class BaseModel extends BaseEntity {
         for (const key of this.getTableColumns().columns) {
             if (typeof (this as any)[key] === 'boolean') {
                 json[key] = (this as any)[key];
-            }
-            else if ((this as any)[key]) {
+            } else if ((this as any)[key]) {
                 json[key] = (this as any)[key];
             }
         }

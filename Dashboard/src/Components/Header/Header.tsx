@@ -15,7 +15,6 @@ import User from 'CommonUI/src/Utils/User';
 import ProjectInvitationsModal from './ProjectInvitationsModal';
 
 export interface ComponentProps {
-    selectedProject: Project | null;
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
 }

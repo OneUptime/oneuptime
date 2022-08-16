@@ -261,8 +261,6 @@ export default class BaseAPI<
 
         const databaseProps: DatabaseCommonInteractionProps =
             this.getDatabaseCommonInteractionProps(req);
-        
-        debugger;
 
         const count: PositiveNumber = await this.service.countBy({
             query,

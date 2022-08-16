@@ -10,7 +10,7 @@ export default class OneUptimeDate {
         return moment(date).fromNow();
     }
 
-    public static toString(date: Date): string{
+    public static toString(date: Date): string {
         return date.toISOString();
     }
 

@@ -23,7 +23,12 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TableAccessControl({
     create: [Permission.Public],
-    read: [Permission.LoggedInUser, Permission.ProjectMember, Permission.ProjectAdmin, Permission.ProjectOwner],
+    read: [
+        Permission.LoggedInUser,
+        Permission.ProjectMember,
+        Permission.ProjectAdmin,
+        Permission.ProjectOwner,
+    ],
     delete: [Permission.LoggedInUser],
     update: [Permission.LoggedInUser],
 })
@@ -37,7 +42,12 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 class User extends UserModel {
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.LoggedInUser, Permission.ProjectMember, Permission.ProjectAdmin, Permission.ProjectOwner],
+        read: [
+            Permission.LoggedInUser,
+            Permission.ProjectMember,
+            Permission.ProjectAdmin,
+            Permission.ProjectOwner,
+        ],
         update: [Permission.LoggedInUser],
     })
     @TableColumn({ type: TableColumnType.Name })
@@ -52,7 +62,12 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.LoggedInUser, Permission.ProjectMember, Permission.ProjectAdmin, Permission.ProjectOwner],
+        read: [
+            Permission.LoggedInUser,
+            Permission.ProjectMember,
+            Permission.ProjectAdmin,
+            Permission.ProjectOwner,
+        ],
 
         update: [Permission.LoggedInUser],
     })
@@ -213,7 +228,12 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.LoggedInUser, Permission.ProjectMember, Permission.ProjectAdmin, Permission.ProjectOwner],
+        read: [
+            Permission.LoggedInUser,
+            Permission.ProjectMember,
+            Permission.ProjectAdmin,
+            Permission.ProjectOwner,
+        ],
 
         update: [Permission.LoggedInUser],
     })
@@ -229,7 +249,12 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.LoggedInUser, Permission.ProjectMember, Permission.ProjectAdmin, Permission.ProjectOwner],
+        read: [
+            Permission.LoggedInUser,
+            Permission.ProjectMember,
+            Permission.ProjectAdmin,
+            Permission.ProjectOwner,
+        ],
 
         update: [Permission.LoggedInUser],
     })
@@ -352,7 +377,12 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.LoggedInUser, Permission.ProjectMember, Permission.ProjectAdmin, Permission.ProjectOwner],
+        read: [
+            Permission.LoggedInUser,
+            Permission.ProjectMember,
+            Permission.ProjectAdmin,
+            Permission.ProjectOwner,
+        ],
 
         update: [Permission.LoggedInUser],
     })
@@ -467,7 +497,12 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.LoggedInUser, Permission.ProjectMember, Permission.ProjectAdmin, Permission.ProjectOwner],
+        read: [
+            Permission.LoggedInUser,
+            Permission.ProjectMember,
+            Permission.ProjectAdmin,
+            Permission.ProjectOwner,
+        ],
 
         update: [Permission.LoggedInUser],
     })

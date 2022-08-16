@@ -220,8 +220,8 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     {
                         field: {
                             labels: {
-                                name: true, 
-                                color: true
+                                name: true,
+                                color: true,
                             },
                         },
                         title: 'Labels',

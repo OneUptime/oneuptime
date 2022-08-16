@@ -8,7 +8,10 @@ import Card, {
     CardButtonSchema,
     ComponentProps as CardComponentProps,
 } from '../Card/Card';
-import ModelAPI, { ListResult, RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI, {
+    ListResult,
+    RequestOptions,
+} from '../../Utils/ModelAPI/ModelAPI';
 import Select from '../../Utils/ModelAPI/Select';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { ButtonStyleType } from '../Button/Button';
@@ -588,42 +591,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const getList: Function = (): ReactElement => {
         return (
             <List
-                onFilterChanged={(
-                    filterData: Dictionary<string | boolean | Search | Date>
-                ) => {
-                    const query: Query<TBaseModel> = {};
-
-                    for (const key in filterData) {
-                        if (
-                            filterData[key] &&
-                            typeof filterData[key] === Typeof.String
-                        ) {
-                            query[key as keyof TBaseModel] = (
-                                filterData[key] || ''
-                            ).toString();
-                        }
-
-                        if (typeof filterData[key] === Typeof.Boolean) {
-                            query[key as keyof TBaseModel] = Boolean(
-                                filterData[key]
-                            );
-                        }
-
-                        if (filterData[key] instanceof Date) {
-                            query[key as keyof TBaseModel] = filterData[key];
-                        }
-
-                        if (filterData[key] instanceof Search) {
-                            query[key as keyof TBaseModel] = filterData[key];
-                        }
-                    }
-
-                    setQuery(query);
-                }}
-                onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
-                    setSortBy(sortBy);
-                    setSortOrder(sortOrder);
-                }}
                 singularLabel={
                     props.singularName || model.singularName || 'Item'
                 }
@@ -644,7 +611,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     setCurrentPageNumber(pageNumber);
                     setItemsOnPage(itemsOnPage);
                 }}
-                showFilter={showTableFilter}
                 noItemsMessage={props.noItemsMessage || ''}
                 onRefreshClick={() => {
                     fetchItems();

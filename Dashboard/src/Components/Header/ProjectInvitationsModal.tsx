@@ -18,7 +18,6 @@ export interface ComponentProps {
 const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [
         projectInvitationsRefreshToggle,
         setProjectInvitationsRefreshToggle,
@@ -61,8 +60,7 @@ const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
                     actionButtons={[
                         {
                             title: 'Accept',
-                            buttonStyleType:
-                                ButtonStyleType.SUCCESS_OUTLINE,
+                            buttonStyleType: ButtonStyleType.SUCCESS_OUTLINE,
                             icon: IconProp.Check,
                             onClick: async (
                                 item: JSONObject,
@@ -80,8 +78,7 @@ const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
                                         ),
                                         {
                                             hasAcceptedInvitation: true,
-                                            invitationAcceptedAt:
-                                                new Date(),
+                                            invitationAcceptedAt: new Date(),
                                         }
                                     );
 

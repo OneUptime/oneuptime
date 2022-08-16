@@ -635,8 +635,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        debugger; 
-
         const tenantColumn: string | null = this.model.getTenantColumn();
 
         if (
@@ -655,8 +653,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !findBy.props.isMultiTenantRequest
         ) {
             (findBy.query as any)[tenantColumn] = findBy.props.tenantId;
-        } else if (this.model.isUserQueryWithoutTenantAllowed() && this.model.getUserColumn() && findBy.props.userId) { 
-            (findBy.query as any)[this.model.getUserColumn() as string] = findBy.props.userId;
+        } else if (
+            this.model.isUserQueryWithoutTenantAllowed() &&
+            this.model.getUserColumn() &&
+            findBy.props.userId
+        ) {
+            (findBy.query as any)[this.model.getUserColumn() as string] =
+                findBy.props.userId;
         } else if (
             tenantColumn &&
             !findBy.props.tenantId &&
@@ -1253,7 +1256,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                         // check if the user has permission to read this column
                         if (onBeforeFind.props.userProjectAccessPermission) {
-                           
                             const hasPermission: boolean =
                                 relatedModel.hasReadPermissions(
                                     onBeforeFind.props
@@ -1264,7 +1266,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                             if (!hasPermission) {
                                 throw new NotAuthorizedException(
                                     `You do not have permissions to read ${
-                                        onBeforeFind.limit === 1 ? this.model.singularName : this.model.pluralName
+                                        onBeforeFind.limit === 1
+                                            ? this.model.singularName
+                                            : this.model.pluralName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                                         this.model.getColumnAccessControlFor(
                                             innerKey

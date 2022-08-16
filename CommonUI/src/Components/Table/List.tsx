@@ -2,10 +2,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Columns from './Types/Columns';
 import Pagination from './Pagination';
-import SortOrder from 'Common/Types/Database/SortOrder';
-import Dictionary from 'Common/Types/Dictionary';
 import ActionButtonSchema from './Types/ActionButtonSchema';
-import Search from 'Common/Types/Database/Search';
 import ErrorMessage from './ErrorMessage';
 import TableLoader from './Loader';
 import ListBody from './ListBody';
@@ -26,11 +23,6 @@ export interface ComponentProps {
     actionButtons?: undefined | Array<ActionButtonSchema>;
     onRefreshClick?: undefined | (() => void);
     noItemsMessage?: undefined | string;
-    onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
-    showFilter?: undefined | boolean;
-    onFilterChanged?:
-        | undefined
-        | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
 }
 
 const List: FunctionComponent<ComponentProps> = (

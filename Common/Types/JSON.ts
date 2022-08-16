@@ -29,7 +29,7 @@ enum ObjectType {
     Port = 'Port',
     Hostname = 'Hostname',
     HashedString = 'HashedString',
-    DateTime = 'DateTime'
+    DateTime = 'DateTime',
 }
 
 export type JSONValue =
@@ -177,10 +177,10 @@ export class JSONFunctions {
                 _type: ObjectType.Search,
                 value: (val as Search).toString(),
             };
-        }  else if (val && val instanceof Date) {
+        } else if (val && val instanceof Date) {
             return {
                 _type: ObjectType.DateTime,
-                value: OneUptimeDate.toString((val as Date)).toString(),
+                value: OneUptimeDate.toString(val as Date).toString(),
             };
         } else if (typeof val === Typeof.Object) {
             return this.serialize(val as JSONObject);
@@ -292,7 +292,9 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.DateTime
         ) {
-            val = OneUptimeDate.fromString((val as JSONObject)['value'] as string);
+            val = OneUptimeDate.fromString(
+                (val as JSONObject)['value'] as string
+            );
         } else if (
             val &&
             typeof val === Typeof.Object &&
