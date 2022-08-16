@@ -7,7 +7,7 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
@@ -34,8 +34,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             <ModelTable<ProjectSmtpConfig>
-                type={ProjectSmtpConfig}
-                model={new ProjectSmtpConfig()}
+                modelType={ProjectSmtpConfig}
                 id="smtp-table"
                 isDeleteable={true}
                 isEditable={true}
@@ -152,7 +151,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                     {
@@ -160,7 +159,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                     {
@@ -168,7 +167,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             hostname: true,
                         },
                         title: 'Server Host',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                 ]}

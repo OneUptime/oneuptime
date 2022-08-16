@@ -6,7 +6,7 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
@@ -15,14 +15,15 @@ import TeamMember from 'Model/Models/TeamMember';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
 import Label from 'Model/Models/Label';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import TeamPermission from 'Model/Models/TeamPermission';
-import LabelElement from '../../Components/Label/Label';
 import UserElement from '../../Components/User/User';
 import User from 'Model/Models/User';
+import LabelsElement from '../../Components/Label/Labels';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -87,8 +88,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 modelDetailProps={{
-                    type: Team,
-                    model: new Team(),
+                    modelType: Team,
                     id: 'model-detail-team',
                     fields: [
                         {
@@ -117,8 +117,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             {/* Team Members Table */}
 
             <ModelTable<TeamMember>
-                type={TeamMember}
-                model={new TeamMember()}
+                modelType={TeamMember}
                 id="table-team-member"
                 isDeleteable={true}
                 createVerb={'Invite'}
@@ -126,9 +125,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     teamId: modelId,
+                    projectId: props.currentProject?._id,
                 }}
                 onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
                     item.teamId = modelId;
+                    item.projectId = props.currentProject.id;
                     return Promise.resolve(item);
                 }}
                 cardProps={{
@@ -158,10 +162,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
-                            user: true,
+                            user: {
+                                name: true,
+                                email: true,
+                            },
                         },
                         title: 'User',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             if (item['user']) {
                                 return (
@@ -182,7 +189,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             hasAcceptedInvitation: true,
                         },
                         title: 'Invitation Accepted',
-                        type: TableColumnType.Boolean,
+                        type: FieldType.Boolean,
                     },
                 ]}
             />
@@ -190,8 +197,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             {/* Team Permisison Table */}
 
             <ModelTable<TeamPermission>
-                type={TeamPermission}
-                model={new TeamPermission()}
+                modelType={TeamPermission}
                 id="table-team-permission"
                 isDeleteable={true}
                 isEditable={true}
@@ -199,11 +205,16 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     teamId: modelId,
+                    projectId: props.currentProject?._id,
                 }}
                 onBeforeCreate={(
                     item: TeamPermission
                 ): Promise<TeamPermission> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
                     item.teamId = modelId;
+                    item.projectId = props.currentProject.id;
                     return Promise.resolve(item);
                 }}
                 cardProps={{
@@ -251,7 +262,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             permission: true,
                         },
                         title: 'Permission',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
@@ -265,40 +276,31 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            labels: true,
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
                         },
                         title: 'Labels',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
-                            const returnElements: Array<ReactElement> = [];
-                            if (
-                                item['labels'] &&
-                                Array.isArray(item['labels'])
-                            ) {
-                                let counter: number = 0;
-                                for (const label of item['labels']) {
-                                    returnElements.push(
-                                        <LabelElement
-                                            key={counter}
-                                            label={new Label().fromJSON(
-                                                label as JSONObject,
-                                                Label
-                                            )}
-                                        />
-                                    );
-
-                                    counter++;
-                                }
-                            }
-
-                            return <>{returnElements}</>;
+                            return (
+                                <LabelsElement
+                                    labels={
+                                        Label.fromJSON(
+                                            (item['labels'] as JSONArray) || [],
+                                            Label
+                                        ) as Array<Label>
+                                    }
+                                />
+                            );
                         },
                     },
                 ]}
             />
 
             <ModelDelete
-                type={Team}
+                modelType={Team}
                 modelId={
                     new ObjectID(Navigation.getLastParam()?.toString() || '')
                 }

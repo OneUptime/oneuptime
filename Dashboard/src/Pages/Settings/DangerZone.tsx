@@ -9,6 +9,7 @@ import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import Project from 'Model/Models/Project';
 import ObjectID from 'Common/Types/ObjectID';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const Settings: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -39,8 +40,11 @@ const Settings: FunctionComponent<PageComponentProps> = (
             />
 
             <ModelDelete
-                type={Project}
+                modelType={Project}
                 modelId={new ObjectID(props.currentProject?._id || '')}
+                onDeleteSuccess={() => {
+                    Navigation.navigate(new Route('/dashboard'));
+                }}
             />
         </Page>
     );

@@ -3,9 +3,11 @@ import Route from 'Common/Types/API/Route';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnType from 'Common/Types/Database/ColumnType';
+import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
+import AllowUserQueryWithoutTenant from 'Common/Types/Database/AllowUserQueryWithoutTenant';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import EntityName from 'Common/Types/Database/EntityName';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import UserColumn from 'Common/Types/Database/UserColumn';
@@ -31,7 +33,7 @@ import User from './User';
     delete: [
         Permission.ProjectOwner,
         Permission.CanDeleteProjectTeam,
-        Permission.CurrentUser,
+        Permission.LoggedInUser,
     ],
     update: [
         Permission.ProjectOwner,
@@ -39,13 +41,15 @@ import User from './User';
         Permission.CanEditProjectTeam,
     ],
 })
+@MultiTenentQueryAllowed(true)
+@AllowUserQueryWithoutTenant(true)
 @UserColumn('userId')
-@ProjectColumn('projectId')
+@TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/team-member'))
 @Entity({
     name: 'TeamMember',
 })
-@EntityName('Team Member', 'Team Members')
+@SingularPluralName('Team Member', 'Team Members')
 export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [
@@ -293,7 +297,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanReadProjectTeam,
             Permission.ProjectMember,
         ],
-        update: [Permission.CurrentUser],
+        update: [Permission.LoggedInUser],
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -319,7 +323,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanReadProjectTeam,
             Permission.ProjectMember,
         ],
-        update: [Permission.CurrentUser],
+        update: [Permission.LoggedInUser],
     })
     @TableColumn({
         required: false,

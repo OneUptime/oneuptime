@@ -53,8 +53,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 modelDetailProps={{
-                    type: Project,
-                    model: new Project(),
+                    modelType: Project,
                     id: 'model-detail-project',
                     fields: [
                         {

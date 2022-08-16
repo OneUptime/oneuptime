@@ -7,7 +7,7 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Name from 'Common/Types/Name';
 import URL from 'Common/Types/API/URL';
 import Route from 'Common/Types/API/Route';
-import { Red } from 'CommonUI/src/Utils/BrandColors';
+import { Red } from 'Common/Types/BrandColors';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 

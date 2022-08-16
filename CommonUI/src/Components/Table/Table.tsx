@@ -4,12 +4,12 @@ import TableBody from './TableBody';
 import TableHeader from './TableHeader';
 import Columns from './Types/Columns';
 import Pagination from './Pagination';
-import Loader, { LoaderType } from '../Loader/Loader';
-import { VeryLightGrey } from '../../Utils/BrandColors';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Dictionary from 'Common/Types/Dictionary';
-import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
+import ActionButtonSchema from './Types/ActionButtonSchema';
 import Search from 'Common/Types/Database/Search';
+import ErrorMessage from './ErrorMessage';
+import TableLoader from './Loader';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -32,9 +32,6 @@ export interface ComponentProps {
     onFilterChanged?:
         | undefined
         | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
-    onActionEvent?:
-        | ((actionType: ActionType, item: JSONObject) => void)
-        | undefined;
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -46,19 +43,7 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <div
-                                className="row text-center"
-                                style={{
-                                    marginTop: '50px',
-                                    marginBottom: '50px',
-                                }}
-                            >
-                                <Loader
-                                    loaderType={LoaderType.Bar}
-                                    color={VeryLightGrey}
-                                    size={200}
-                                />
-                            </div>
+                            <TableLoader />
                         </td>
                     </tr>
                 </tbody>
@@ -70,29 +55,10 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <p
-                                className="text-center color-light-grey"
-                                style={{
-                                    marginTop: '50px',
-                                    marginBottom: '50px',
-                                }}
-                            >
-                                {props.error} <br />{' '}
-                                {props.onRefreshClick ? (
-                                    <span
-                                        onClick={() => {
-                                            if (props.onRefreshClick) {
-                                                props.onRefreshClick();
-                                            }
-                                        }}
-                                        className="underline primary-on-hover"
-                                    >
-                                        Refresh?
-                                    </span>
-                                ) : (
-                                    <></>
-                                )}
-                            </p>
+                            <ErrorMessage
+                                error={props.error}
+                                onRefreshClick={props.onRefreshClick}
+                            />
                         </td>
                     </tr>
                 </tbody>
@@ -104,33 +70,14 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <p
-                                className="text-center color-light-grey"
-                                style={{
-                                    marginTop: '50px',
-                                    marginBottom: '50px',
-                                }}
-                            >
-                                {' '}
-                                {props.noItemsMessage
-                                    ? props.noItemsMessage
-                                    : `No ${props.singularLabel.toLocaleLowerCase()}`}{' '}
-                                <br />{' '}
-                                {props.onRefreshClick ? (
-                                    <span
-                                        onClick={() => {
-                                            if (props.onRefreshClick) {
-                                                props.onRefreshClick();
-                                            }
-                                        }}
-                                        className="underline primary-on-hover"
-                                    >
-                                        Refresh?
-                                    </span>
-                                ) : (
-                                    <></>
-                                )}
-                            </p>
+                            <ErrorMessage
+                                error={
+                                    props.noItemsMessage
+                                        ? props.noItemsMessage
+                                        : `No ${props.singularLabel.toLocaleLowerCase()}`
+                                }
+                                onRefreshClick={props.onRefreshClick}
+                            />
                         </td>
                     </tr>
                 </tbody>
@@ -143,7 +90,6 @@ const Table: FunctionComponent<ComponentProps> = (
                 data={props.data}
                 columns={props.columns}
                 actionButtons={props.actionButtons}
-                onActionEvent={props.onActionEvent}
             />
         );
     };

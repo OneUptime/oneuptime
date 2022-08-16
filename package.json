@@ -5,6 +5,7 @@
     "main": "index.ts",
     "type": "module",
     "dependencies": {
+        "@types/lodash": "^4.14.182",
         "eslint-plugin-progress": "^0.0.1"
     },
     "devDependencies": {
@@ -15,7 +16,7 @@
         "@typescript-eslint/parser": "^5.16.0",
         "babel-eslint": "^10.1.0",
         "ejs-lint": "^1.2.1",
-        "eslint": "^8.11.0",
+        "eslint": "^8.22.0",
         "eslint-config-airbnb": "^19.0.4",
         "eslint-config-prettier": "^8.5.0",
         "eslint-plugin-import": "^2.25.4",
@@ -34,7 +35,7 @@
         "uninstall": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)",
         "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D",
         "lint": "ejslint home/views/*.ejs && eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore ",
-        "fix-lint": "eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore --fix ",
+        "fix-lint": " node --max_old_space_size=8192 ./node_modules/.bin/eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore --fix ",
         "fix": "npm run fix-lint",
         "build": "docker-compose --env-file ./docker-enterprise.env build",
         "build-ci": "docker-compose  --env-file ./docker-enterprise.env -f docker-compose.ci.yml build $npm_config_services",

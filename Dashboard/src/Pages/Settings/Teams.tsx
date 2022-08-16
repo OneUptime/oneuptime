@@ -7,7 +7,7 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Team from 'Model/Models/Team';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
@@ -34,8 +34,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             <ModelTable<Team>
-                type={Team}
-                model={new Team()}
+                modelType={Team}
                 id="teams-table"
                 isDeleteable={false}
                 isEditable={true}
@@ -48,6 +47,9 @@ const Teams: FunctionComponent<PageComponentProps> = (
                         'Here is a list of all the teams in this project.',
                 }}
                 noItemsMessage={'No teams created for this project so far.'}
+                query={{
+                    projectId: props.currentProject?._id,
+                }}
                 formFields={[
                     {
                         field: {
@@ -80,7 +82,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                     {
@@ -88,7 +90,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                 ]}

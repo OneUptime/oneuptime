@@ -7,7 +7,6 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
@@ -15,12 +14,13 @@ import ApiKey from 'Model/Models/ApiKey';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
 import Label from 'Model/Models/Label';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Permission, { PermissionHelper } from 'Common/Types/Permission';
-import FieldType from 'CommonUI/src/Components/ModelDetail/FieldType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import LabelElement from '../../Components/Label/Label';
+import LabelsElement from '../../Components/Label/Labels';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -97,8 +97,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 modelDetailProps={{
-                    type: ApiKey,
-                    model: new ApiKey(),
+                    modelType: ApiKey,
                     id: 'model-detail-api-key',
                     fields: [
                         {
@@ -138,17 +137,22 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
             {/* API Key Permisison Table */}
 
             <ModelTable<ApiKeyPermission>
-                type={ApiKeyPermission}
-                model={new ApiKeyPermission()}
+                modelType={ApiKeyPermission}
                 id="api-key-permission-table"
                 isDeleteable={true}
                 query={{
                     apiKeyId: modelId,
+                    projectId: props.currentProject?._id,
                 }}
                 onBeforeCreate={(
                     item: ApiKeyPermission
                 ): Promise<ApiKeyPermission> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
+
                     item.apiKeyId = modelId;
+                    item.projectId = props.currentProject.id;
                     return Promise.resolve(item);
                 }}
                 isEditable={true}
@@ -201,7 +205,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             permission: true,
                         },
                         title: 'Permission',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
@@ -215,46 +219,31 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            labels: true,
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
                         },
                         title: 'Labels',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
-                            const returnElements: Array<ReactElement> = [];
-                            if (
-                                item['labels'] &&
-                                Array.isArray(item['labels'])
-                            ) {
-                                let counter: number = 0;
-                                for (const label of item['labels']) {
-                                    if (
-                                        label &&
-                                        (label as JSONObject)['color'] &&
-                                        (label as JSONObject)['name']
-                                    ) {
-                                        returnElements.push(
-                                            <LabelElement
-                                                key={counter}
-                                                label={new Label().fromJSON(
-                                                    label as JSONObject,
-                                                    Label
-                                                )}
-                                            />
-                                        );
-
-                                        counter++;
+                            return (
+                                <LabelsElement
+                                    labels={
+                                        Label.fromJSON(
+                                            (item['labels'] as JSONArray) || [],
+                                            Label
+                                        ) as Array<Label>
                                     }
-                                }
-                            }
-
-                            return <>{returnElements}</>;
+                                />
+                            );
                         },
                     },
                 ]}
             />
 
             <ModelDelete
-                type={ApiKey}
+                modelType={ApiKey}
                 modelId={modelId}
                 onDeleteSuccess={() => {
                     Navigation.navigate(

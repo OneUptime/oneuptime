@@ -28,6 +28,8 @@ import SettingLabels from './Pages/Settings/Labels';
 import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
 import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
+import SettingsMonitors from './Pages/Settings/Monitors';
+import SettingsIncidents from './Pages/Settings/Incidents';
 
 // On Call Duty
 import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
@@ -65,6 +67,7 @@ const App: FunctionComponent = () => {
         project: Project
     ): void => {
         setSelectedProject(project);
+        Navigation.navigate(new Route('/dashboard/' + project._id));
     };
 
     useAsyncEffect(async () => {
@@ -81,7 +84,11 @@ const App: FunctionComponent = () => {
                     name: true,
                     _id: true,
                 },
-                {}
+                {},
+                {},
+                {
+                    isMultiTenantRequest: true,
+                }
             );
             setProjects(result.data);
         } catch (err) {
@@ -182,6 +189,30 @@ const App: FunctionComponent = () => {
                         <SettingsDangerZone
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_MONITORS]?.toString()}
+                    element={
+                        <SettingsMonitors
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_MONITORS] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_INCIDENTS]?.toString()}
+                    element={
+                        <SettingsIncidents
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_INCIDENTS] as Route
                             }
                             currentProject={selectedProject}
                         />

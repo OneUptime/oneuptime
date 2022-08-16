@@ -7,12 +7,12 @@ import Hostname from 'Common/Types/API/Hostname';
 import Email from 'Common/Types/Email';
 import Port from 'Common/Types/Port';
 import Permission from 'Common/Types/Permission';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
-import EntityName from 'Common/Types/Database/EntityName';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
@@ -21,7 +21,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 
-@ProjectColumn('projectId')
+@TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
     read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
@@ -30,7 +30,7 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 })
 @CrudApiEndpoint(new Route('/smtp-config'))
 @SlugifyColumn('name', 'slug')
-@EntityName('SMTP Config', 'SMTP Configs')
+@SingularPluralName('SMTP Config', 'SMTP Configs')
 @Entity({
     name: 'ProjectSMTPConfig',
 })

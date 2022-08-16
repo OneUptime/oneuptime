@@ -23,6 +23,8 @@ import OnCallDuty from './OnCallDuty';
 
 // Monitors
 import Monitor from './Monitor';
+import MonitorStatus from './MonitorStatus';
+import IncidentState from './IncidentState';
 
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
@@ -42,4 +44,6 @@ export default [
     StatusPage,
     OnCallDuty,
     Monitor,
+    MonitorStatus,
+    IncidentState,
 ];

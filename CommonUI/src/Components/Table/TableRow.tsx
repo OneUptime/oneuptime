@@ -1,25 +1,30 @@
 import OneUptimeDate from 'Common/Types/Date';
 import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Button, { ButtonSize } from '../Button/Button';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
-import ActionButtonSchema, { ActionType } from './Types/ActionButtonSchema';
+import ActionButtonSchema from './Types/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
-import TableColumnType from './Types/TableColumnType';
+import FieldType from '../Types/FieldType';
+import _ from 'lodash';
+import ConfirmModal from '../Modal/ConfirmModal';
 
 export interface ComponentProps {
     item: JSONObject;
     columns: Columns;
-    onActionEvent?:
-        | ((actionType: ActionType, item: JSONObject) => void)
-        | undefined;
     actionButtons?: Array<ActionButtonSchema> | undefined;
 }
 
 const TableRow: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
+        props.actionButtons?.map(() => {
+            return false;
+        }) || []
+    );
+    const [error, setError] = useState<string>('');
     return (
         <tr>
             {props.columns &&
@@ -35,7 +40,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             }}
                         >
                             {column.key && !column.getColumnElement ? (
-                                column.type === TableColumnType.Date ? (
+                                column.type === FieldType.Date ? (
                                     props.item[column.key] ? (
                                         OneUptimeDate.getDateAsLocalFormattedString(
                                             props.item[column.key] as string,
@@ -45,7 +50,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                     ) : (
                                         ''
                                     )
-                                ) : column.type === TableColumnType.Boolean ? (
+                                ) : column.type === FieldType.Boolean ? (
                                     props.item[column.key] ? (
                                         <Icon
                                             icon={IconProp.True}
@@ -58,9 +63,11 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         />
                                     )
                                 ) : (
-                                    (props.item[
-                                        column.key
-                                    ]?.toString() as string)
+                                    _.get(
+                                        props.item,
+                                        column.key,
+                                        ''
+                                    )?.toString() || ''
                                 )
                             ) : (
                                 <></>
@@ -71,8 +78,20 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             ) : (
                                 <></>
                             )}
-                            {column.type === TableColumnType.Actions && (
+                            {column.type === FieldType.Actions && (
                                 <div>
+                                    {error && (
+                                        <div className="text-align-left">
+                                            <ConfirmModal
+                                                title={`Error`}
+                                                description={error}
+                                                submitButtonText={'Close'}
+                                                onSubmit={() => {
+                                                    return setError('');
+                                                }}
+                                            />
+                                        </div>
+                                    )}
                                     {props.actionButtons?.map(
                                         (
                                             button: ActionButtonSchema,
@@ -99,13 +118,47 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                         buttonStyle={
                                                             button.buttonStyleType
                                                         }
+                                                        isLoading={
+                                                            isButtonLoading[i]
+                                                        }
                                                         onClick={() => {
                                                             if (
-                                                                props.onActionEvent
+                                                                button.onClick
                                                             ) {
-                                                                props.onActionEvent(
-                                                                    button.actionType,
-                                                                    props.item
+                                                                isButtonLoading[
+                                                                    i
+                                                                ] = true;
+                                                                setIsButtonLoading(
+                                                                    isButtonLoading
+                                                                );
+
+                                                                button.onClick(
+                                                                    props.item,
+                                                                    () => {
+                                                                        // on aciton complete
+                                                                        isButtonLoading[
+                                                                            i
+                                                                        ] = false;
+                                                                        setIsButtonLoading(
+                                                                            isButtonLoading
+                                                                        );
+                                                                    },
+                                                                    (
+                                                                        err: Error
+                                                                    ) => {
+                                                                        isButtonLoading[
+                                                                            i
+                                                                        ] = false;
+                                                                        setIsButtonLoading(
+                                                                            isButtonLoading
+                                                                        );
+                                                                        setError(
+                                                                            (
+                                                                                err as Error
+                                                                            )
+                                                                                .message
+                                                                        );
+                                                                    }
                                                                 );
                                                             }
                                                         }}

@@ -10,7 +10,7 @@ import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Dictionary from 'Common/Types/Dictionary';
 import Input from '../Input/Input';
-import TableColumnType from './Types/TableColumnType';
+import FieldType from '../Types/FieldType';
 import Search from 'Common/Types/Database/Search';
 import OneUptimeDate from 'Common/Types/Date';
 
@@ -127,7 +127,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                                 if (
                                                     changedValue &&
                                                     column.type ===
-                                                        TableColumnType.Date
+                                                        FieldType.Date
                                                 ) {
                                                     filterData[column.key] =
                                                         OneUptimeDate.asDateForDatabaseQuery(
@@ -138,7 +138,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                                 if (
                                                     changedValue &&
                                                     column.type ===
-                                                        TableColumnType.Text
+                                                        FieldType.Text
                                                 ) {
                                                     filterData[column.key] =
                                                         new Search(
@@ -161,7 +161,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                         placeholder={`Filter by ${column.title}`}
                                         className={'form-control'}
                                         type={
-                                            column.type === TableColumnType.Date
+                                            column.type === FieldType.Date
                                                 ? 'date'
                                                 : 'text'
                                         }

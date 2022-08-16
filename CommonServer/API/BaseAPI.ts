@@ -69,6 +69,23 @@ export default class BaseAPI<
             }
         );
 
+        // count
+        router.post(
+            `/${new this.entityType().getCrudApiPath()?.toString()}/count`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    await this.count(req, res);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
         // Get Item
         router.post(
             `/${new this.entityType()
@@ -130,11 +147,12 @@ export default class BaseAPI<
         req: ExpressRequest
     ): DatabaseCommonInteractionProps {
         const props: DatabaseCommonInteractionProps = {
-            projectId: undefined,
+            tenantId: undefined,
             userGlobalAccessPermission: undefined,
             userProjectAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
+            isMultiTenantRequest: undefined,
         };
 
         if (
@@ -156,8 +174,12 @@ export default class BaseAPI<
             ).userProjectAccessPermission;
         }
 
-        if ((req as OneUptimeRequest).projectId) {
-            props.projectId = (req as OneUptimeRequest).projectId || undefined;
+        if ((req as OneUptimeRequest).tenantId) {
+            props.tenantId = (req as OneUptimeRequest).tenantId || undefined;
+        }
+
+        if (req.headers['is-multi-tenant-query']) {
+            props.isMultiTenantRequest = true;
         }
 
         return props;
@@ -223,6 +245,29 @@ export default class BaseAPI<
         });
 
         return Response.sendListResponse(req, res, list, count);
+    }
+
+    public async count(
+        req: ExpressRequest,
+        res: ExpressResponse
+    ): Promise<void> {
+        let query: Query<BaseModel> = {};
+
+        if (req.body) {
+            query = JSONFunctions.deserialize(
+                req.body['query']
+            ) as Query<BaseModel>;
+        }
+
+        const databaseProps: DatabaseCommonInteractionProps =
+            this.getDatabaseCommonInteractionProps(req);
+
+        const count: PositiveNumber = await this.service.countBy({
+            query,
+            props: databaseProps,
+        });
+
+        return Response.sendItemResponse(req, res, { count: count.toNumber() });
     }
 
     public async getItem(

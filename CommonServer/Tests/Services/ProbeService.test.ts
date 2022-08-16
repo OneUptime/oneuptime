@@ -684,7 +684,10 @@ describe('probeService', () => {
                 key: true,
             },
             populate: {
-                createdByUser: true,
+                createdByUser: {
+                    _id: true,
+                    name: true,
+                },
             },
             props: { isRoot: true },
         });
@@ -742,7 +745,10 @@ describe('probeService', () => {
                 key: true,
             },
             populate: {
-                createdByUser: true,
+                createdByUser: {
+                    _id: true,
+                    name: true,
+                },
             },
             props: { isRoot: true },
         });
