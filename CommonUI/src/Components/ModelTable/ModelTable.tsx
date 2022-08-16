@@ -8,7 +8,7 @@ import Card, {
     CardButtonSchema,
     ComponentProps as CardComponentProps,
 } from '../Card/Card';
-import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI, { ListResult, RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import Select from '../../Utils/ModelAPI/Select';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { ButtonStyleType } from '../Button/Button';
@@ -71,6 +71,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     editButtonText?: string | undefined;
     viewButtonText?: string | undefined;
     refreshToggle?: boolean | undefined;
+    fetchRequestOptions?: RequestOptions | undefined;
 }
 
 enum ModalType {
@@ -157,7 +158,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                               [sortBy as any]: sortOrder,
                           }
                         : {},
-                    getPopulate()
+                    getPopulate(),
+                    props.fetchRequestOptions
                 );
 
             setTotalItemsCount(listResult.count);

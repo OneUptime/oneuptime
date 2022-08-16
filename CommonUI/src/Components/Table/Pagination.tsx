@@ -76,7 +76,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                             {props.totalItemsCount > 1
                                 ? props.pluralLabel
                                 : props.singularLabel}{' '}
-                            {`in total. Showing ${props.itemsOnPage} on this page.`}
+                            {`in total. Showing ${props.itemsOnPage * (props.currentPageNumber - 1) + 1} to ${props.itemsOnPage * props.currentPageNumber } on this page.`}
                         </span>
                     )}
                 </p>
@@ -110,7 +110,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                 }
                             }}
                             className={`page-item ${
-                                isPreviousDisabled ? 'disabled' : ''
+                                isPreviousDisabled ? 'disabled' : 'pointer'
                             }`}
                             style={{ padding: '0px' }}
                         >
@@ -118,7 +118,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                         </li>
                         <li
                             className={`page-item ${
-                                isCurrentPageButtonDisabled ? 'disabled' : ''
+                                isCurrentPageButtonDisabled ? 'disabled' : 'pointer'
                             }`}
                             style={{ padding: '0px' }}
                         >

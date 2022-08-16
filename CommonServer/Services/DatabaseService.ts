@@ -635,6 +635,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
+        debugger; 
+
         const tenantColumn: string | null = this.model.getTenantColumn();
 
         if (
@@ -653,6 +655,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !findBy.props.isMultiTenantRequest
         ) {
             (findBy.query as any)[tenantColumn] = findBy.props.tenantId;
+        } else if (this.model.isUserQueryWithoutTenantAllowed() && this.model.getUserColumn() && findBy.props.userId) { 
+            (findBy.query as any)[this.model.getUserColumn() as string] = findBy.props.userId;
         } else if (
             tenantColumn &&
             !findBy.props.tenantId &&
@@ -693,8 +697,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 }
             }
         }
-
-        // TODO: Check Populate Permissions as well.
 
         return findBy;
     }

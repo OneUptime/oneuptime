@@ -12,7 +12,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     singularName: string;
     pluralName: string;
     query: Query<TBaseModel>;
-    queryOptions?: RequestOptions | undefined;
+    requestOptions?: RequestOptions | undefined;
     onCountFetchInit?: (() => void) | undefined;
     onClick?: (() => void) | undefined;
 }
@@ -36,7 +36,7 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
             const count: number = await ModelAPI.count<TBaseModel>(
                 props.modelType,
                 props.query,
-                props.queryOptions
+                props.requestOptions
             );
 
             setCount(count);

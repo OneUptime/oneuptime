@@ -39,7 +39,11 @@ const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
                         userId: User.getUserId(),
                         hasAcceptedInvitation: false,
                     }}
+                    fetchRequestOptions={{
+                        isMultiTenantRequest: true,
+                    }}
                     isEditable={false}
+                    showRefreshButton={true}
                     isCreateable={false}
                     isViewable={false}
                     cardProps={{

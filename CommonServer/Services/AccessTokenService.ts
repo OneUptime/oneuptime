@@ -46,7 +46,7 @@ export default class AccessTokenService {
 
         const permissionToStore: UserGlobalAccessPermission = {
             projectIds,
-            globalPermissions: [Permission.Public, Permission.User],
+            globalPermissions: [Permission.Public, Permission.User, Permission.LoggedInUser],
             _type: 'UserGlobalAccessPermission',
         };
 
@@ -143,6 +143,18 @@ export default class AccessTokenService {
                 _type: 'UserPermission',
             });
         }
+
+        userPermissions.push({
+            permission: Permission.LoggedInUser,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
+
+        userPermissions.push({
+            permission: Permission.ProjectMember,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
 
         const permission: UserProjectAccessPermission = {
             projectId,

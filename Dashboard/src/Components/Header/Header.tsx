@@ -51,7 +51,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 }}
                                 singularName="Project Invitation"
                                 pluralName="Project Invitations"
-                                queryOptions={{
+                                requestOptions={{
                                     isMultiTenantRequest: true,
                                 }}
                                 onClick={() => {

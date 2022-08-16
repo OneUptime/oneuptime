@@ -4,6 +4,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
+import AllowUserQueryWithoutTenant from 'Common/Types/Database/AllowUserQueryWithoutTenant';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
@@ -41,6 +42,7 @@ import User from './User';
     ],
 })
 @MultiTenentQueryAllowed(true)
+@AllowUserQueryWithoutTenant(true)
 @UserColumn('userId')
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/team-member'))
