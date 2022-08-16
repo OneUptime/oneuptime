@@ -6,6 +6,9 @@ import AccessTokenService from './AccessTokenService';
 import Email from 'Common/Types/Email';
 import UserService from './UserService';
 import User from 'Model/Models/User';
+import UpdateBy from '../Types/Database/UpdateBy';
+import DeleteBy from '../Types/Database/DeleteBy';
+import ObjectID from 'Common/Types/ObjectID';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -40,22 +43,44 @@ export class Service extends DatabaseService<Model> {
         return createBy;
     }
 
-    protected override async onCreateSuccess(
-        createBy: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
+
+    private async refreshTokens(userId: ObjectID, projectId: ObjectID) {
         /// Refresh tokens.
         await AccessTokenService.refreshUserGlobalAccessPermission(
-            createBy.data.userId!
+            userId
         );
 
         await AccessTokenService.refreshUserProjectAccessPermission(
-            createBy.data.userId!,
-            createBy.data.projectId!
+            userId,
+            projectId
         );
+    }
 
+    protected override async onCreateSuccess(
+        createBy: CreateBy<Model>
+    ): Promise<CreateBy<Model>> {
+
+        await this.refreshTokens(createBy.data.userId!, createBy.data.projectId!);
         return createBy;
     }
 
-    // TODO - OnDelete and OnUpdate pending.
+    protected override async onUpdateSuccess(updateBy: UpdateBy<Model>, updatedItems: Array<Model>): Promise<UpdateBy<Model>> {
+
+        for (const item of updatedItems) {
+            await this.refreshTokens(item.userId!, item.projectId!);
+        }
+
+        return updateBy;
+    }
+
+    protected override async onDeleteSuccess(deleteBy: DeleteBy<Model>, itemsBeforeDelete: Array<Model>): Promise<DeleteBy<Model>> {
+
+        for (const item of itemsBeforeDelete) {
+            await this.refreshTokens(item.userId!, item.projectId!);
+        }
+
+        return deleteBy;
+    }
+
 }
 export default new Service();

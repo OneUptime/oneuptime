@@ -282,6 +282,10 @@ export default class ModelAPI {
             }
         }
 
+        if (requestOptions && requestOptions.isMultiTenantRequest) {
+            headers['is-multi-tenant-query'] = 'true';
+        }
+
         return headers;
     }
 

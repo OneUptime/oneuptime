@@ -251,9 +251,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return Promise.resolve(error);
     }
 
-    protected async onUpdateSuccess(): Promise<void> {
+    protected async onUpdateSuccess(updateBy: UpdateBy<TBaseModel>, _updatedItems: Array<TBaseModel>): Promise<UpdateBy<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(updateBy);
     }
 
     protected async onUpdateError(error: Exception): Promise<Exception> {
@@ -261,9 +261,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return Promise.resolve(error);
     }
 
-    protected async onDeleteSuccess(): Promise<void> {
+    protected async onDeleteSuccess(deleteBy: DeleteBy<TBaseModel>, _itemsBeforeDelete: Array<TBaseModel>): Promise<DeleteBy<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(deleteBy);
     }
 
     protected async onDeleteError(error: Exception): Promise<Exception> {
@@ -707,9 +707,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public asUpdateByByPermissions(
         updateBy: UpdateBy<TBaseModel>
     ): UpdateBy<TBaseModel> {
+
+
         if (updateBy.props.isRoot) {
             return updateBy;
         }
+
+        const findBy: FindBy<TBaseModel> = this.asFindByByPermissions({
+            query: updateBy.query,
+            props: updateBy.props,
+            select: {},
+            populate: {},
+            limit: 0,
+            skip: 0
+        });
+
+        updateBy.query = findBy.query;
 
         const userPermissions: Array<UserPermission> = this.getPermissions(
             updateBy.props,
@@ -717,35 +730,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         );
 
         let updateColumns: Columns = new Columns([]);
-        let readColumns: Columns = new Columns([]);
 
         updateColumns = this.getUpdateColumnsByPermissions(
             userPermissions || []
         );
-        readColumns = this.getReadColumnsByPermissions(userPermissions || []);
-
-        // Now we need to check all columns.
-        const excludedColumns: Array<string> = [
-            '_id',
-            'createdAt',
-            'deletedAt',
-            'updatedAt',
-        ];
-
-        for (const key in updateBy.query) {
-            if (excludedColumns.includes(key)) {
-                continue;
-            }
-
-            if (!readColumns.columns.includes(key)) {
-                throw new NotAuthorizedException(
-                    `You do not have permissions to query on - ${key}.  
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                        this.model.getColumnAccessControlFor(key).read
-                    ).join(',')}`
-                );
-            }
-        }
 
         for (const key in updateBy.data) {
             if (!updateColumns.columns.includes(key)) {
@@ -755,51 +743,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         this.model.getColumnAccessControlFor(key).update
                     ).join(',')}`
                 );
-            }
-        }
-
-        const tenantColumn: string | null = this.model.getTenantColumn();
-
-        if (tenantColumn && updateBy.props.tenantId) {
-            (updateBy.query as any)[tenantColumn] = updateBy.props.tenantId;
-        } else if (
-            tenantColumn &&
-            !updateBy.props.tenantId &&
-            updateBy.props.userGlobalAccessPermission
-        ) {
-            (updateBy.query as any)[tenantColumn] = QueryHelper.in(
-                updateBy.props.userGlobalAccessPermission?.projectIds
-            );
-        } else if (tenantColumn) {
-            throw new NotAuthorizedException(
-                'Not enough permissions to read the record'
-            );
-        }
-
-        if (this.model.userColumn && updateBy.props.userId) {
-            (updateBy.query as any)[this.model.userColumn] =
-                updateBy.props.userId;
-        }
-
-        if (this.model.isPermissionIf) {
-            for (const key in this.model.isPermissionIf) {
-                const permission: Permission = key as Permission;
-
-                if (
-                    userPermissions
-                        .map((i: UserPermission) => {
-                            return i.permission;
-                        })
-                        ?.includes(permission) &&
-                    this.model.isPermissionIf[permission]
-                ) {
-                    const columnName: string = Object.keys(
-                        this.model.isPermissionIf[permission] as any
-                    )[0] as string;
-                    (updateBy.query as any)[columnName] = (
-                        this.model.isPermissionIf[permission] as any
-                    )[columnName];
-                }
             }
         }
 
@@ -1055,6 +998,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
 
+
+            const items: Array<TBaseModel> = await this._findBy({
+                query: beforeDeleteBy.query,
+                skip: 0,
+                limit: LIMIT_MAX,
+                populate: {},
+                select: {},
+                props: beforeDeleteBy.props,
+            });
+
             await this._updateBy({
                 query: deleteBy.query,
                 data: {
@@ -1069,7 +1022,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (await this.getRepository().delete(beforeDeleteBy.query as any))
                     .affected || 0;
 
-            await this.onDeleteSuccess();
+            await this.onDeleteSuccess(deleteBy, items);
 
             return numberOfDocsAffected;
         } catch (error) {
@@ -1376,7 +1329,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             //         )
             //     ).affected || 0;
 
-            await this.onUpdateSuccess();
+            await this.onUpdateSuccess(updateBy, items);
 
             return items.length;
         } catch (error) {
