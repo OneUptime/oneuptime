@@ -54,11 +54,10 @@ describe('Alert', () => {
             />
         );
         const testInstance: ReactTestInstance = testRenderer.root;
-
         expect(
             testInstance
-                .findAllByType('div')[2]
-                ?.props['className'].includes('alert-success')
+                .findByProps({ id: 'alertId' })
+                .props['className'].includes('alert-success')
         ).toBe(true);
     });
 });
@@ -77,7 +76,7 @@ test('Should render a strong title', () => {
     );
     const testInstance: ReactTestInstance = testRenderer.root;
 
-    expect(testInstance.findAllByType('strong')[0]?.props['children']).toEqual(
+    expect(testInstance.findByType('strong')?.props['children']).toEqual(
         'Strong Alert title'
     );
 });
@@ -95,9 +94,9 @@ test('Should render a title', () => {
         />
     );
     const testInstance: ReactTestInstance = testRenderer.root;
-    const allElements = testInstance
-        .findAllByType('div')[2]
-        ?.findAllByType('div')[2]
-        ?.findAllByType('div')[2];
-    expect(allElements?.props['children'].includes('Alert title')).toBe(true);
+    expect(
+        testInstance
+            .findByProps({ id: 'titleId' })
+            .props['children'].includes('Alert title')
+    ).toBe(true);
 });

@@ -48,6 +48,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                 <div
                     className={`alert-label-icon flex label-arrow alert ${cssClass} alert-dismissible fade show`}
                     role="alert"
+                    id='alertId'
                 >
                     {props.onClose && (
                         <button
@@ -102,7 +103,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                         <div>
                             <strong>{props.strongTitle}</strong>{' '}
                         </div>
-                        <div>
+                        <div  id='titleId'>
                             {props.title && props.strongTitle ? '-' : ''}{' '}
                             {props.title}
                         </div>
