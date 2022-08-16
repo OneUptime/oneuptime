@@ -8,6 +8,7 @@ import React, {
 import {
     ErrorMessage,
     Field,
+    FieldProps,
     Form,
     Formik,
     FormikErrors,
@@ -36,6 +37,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import Exception from 'Common/Types/Exception/Exception';
 import HashedString from 'Common/Types/HashedString';
+import Input from '../Input/Input';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -286,14 +288,36 @@ const BasicForm: Function = <T extends Object>(
                     field.fieldType === FormFieldSchemaType.Port ||
                     field.fieldType === FormFieldSchemaType.PositveNumber) && (
                     <Field
-                        className="form-control"
-                        autoFocus={index === 0 ? true : false}
-                        placeholder={field.placeholder}
-                        type={fieldType}
                         tabIndex={index + 1}
                         name={fieldName}
                         disabled={isDisabled || field.disabled}
-                    />
+                    >
+                        {({ form }: FieldProps) => {
+                            return (
+                                <Input
+                                    className="form-control"
+                                    type={fieldType as 'text'}
+                                    onChange={(text: string) => {
+                                        form.setFieldValue(
+                                            fieldName,
+                                            text,
+                                            true
+                                        );
+                                    }}
+                                    onBlur={() => {
+                                        form.setFieldTouched(fieldName, true);
+                                    }}
+                                    initialValue={
+                                        initialValues &&
+                                        (initialValues as any)[fieldName]
+                                            ? (initialValues as any)[fieldName]
+                                            : ''
+                                    }
+                                    placeholder={field.placeholder || ''}
+                                />
+                            );
+                        }}
+                    </Field>
                 )}
 
                 <ErrorMessage

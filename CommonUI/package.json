@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.ts",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "jest",
         "compile": "tsc"
     },
     "author": "",
@@ -43,7 +43,13 @@
         "yup": "^0.32.11"
     },
     "devDependencies": {
-        "@types/node": "^17.0.23",
-        "@types/react": "^18.0.9"
+        "@faker-js/faker": "^7.3.0",
+        "@types/jest": "^28.1.4",
+        "@types/node": "^17.0.45",
+        "@types/react": "^18.0.9",
+        "@types/react-test-renderer": "^18.0.0",
+        "jest": "^28.1.1",
+        "react-test-renderer": "^18.2.0",
+        "ts-jest": "^28.0.5"
     }
 }
