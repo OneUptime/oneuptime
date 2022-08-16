@@ -298,6 +298,8 @@ export default class BaseAPI<
             props: this.getDatabaseCommonInteractionProps(req),
         });
 
+        debugger;
+
         return Response.sendItemResponse(req, res, item?.toJSON() || {});
     }
 

@@ -1260,7 +1260,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                             if (!hasPermission) {
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to query record of type ${
+                                    `You do not have permissions to read ${
                                         this.model.singularName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                                         this.model.getColumnAccessControlFor(

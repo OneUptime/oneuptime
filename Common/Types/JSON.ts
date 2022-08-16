@@ -13,6 +13,7 @@ import Port from './Port';
 import Hostname from './API/Hostname';
 import HashedString from './HashedString';
 import DatabaseProperty from './Database/DatabaseProperty';
+import OneUptimeDate from './Date';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -28,6 +29,7 @@ enum ObjectType {
     Port = 'Port',
     Hostname = 'Hostname',
     HashedString = 'HashedString',
+    DateTime = 'DateTime'
 }
 
 export type JSONValue =
@@ -175,6 +177,11 @@ export class JSONFunctions {
                 _type: ObjectType.Search,
                 value: (val as Search).toString(),
             };
+        }  else if (val && val instanceof Date) {
+            return {
+                _type: ObjectType.DateTime,
+                value: OneUptimeDate.toString((val as Date)).toString(),
+            };
         } else if (typeof val === Typeof.Object) {
             return this.serialize(val as JSONObject);
         }
@@ -277,6 +284,15 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.HashedString
         ) {
             val = new HashedString((val as JSONObject)['value'] as string);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.DateTime
+        ) {
+            val = OneUptimeDate.fromString((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&

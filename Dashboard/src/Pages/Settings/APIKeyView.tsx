@@ -219,7 +219,10 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            labels: true,
+                            labels: {
+                                name: true, 
+                                color: true
+                            },
                         },
                         title: 'Labels',
                         type: FieldType.Text,

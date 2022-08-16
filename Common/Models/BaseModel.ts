@@ -30,7 +30,6 @@ import Permission, {
 } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
-
 export type DbTypes =
     | string
     | number
@@ -359,7 +358,8 @@ export default class BaseModel extends BaseEntity {
         for (const key of this.getTableColumns().columns) {
             if (typeof (this as any)[key] === 'boolean') {
                 json[key] = (this as any)[key];
-            } else if ((this as any)[key]) {
+            }
+            else if ((this as any)[key]) {
                 json[key] = (this as any)[key];
             }
         }
