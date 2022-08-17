@@ -6,30 +6,80 @@ import renderer, {
 } from 'react-test-renderer';
 import Pill, { PillSize } from '../Components/Pill/Pill';
 import Color from 'Common/Types/Color';
+import { Black } from '../Utils/BrandColors';
 
 describe('Test for Pill', () => {
-    const color: Color = new Color('#807149');
-    const testRenderer: ReactTestRenderer = renderer.create(
-        <Pill text="Love" color={color} size={PillSize.Small} />
-    );
-    const testInstance: ReactTestInstance = testRenderer.root;
-    test('should render the component', () => {
-        expect(testInstance.findAllByType('span')).toContainEqual(
-            expect.objectContaining({
-                props: expect.objectContaining({
-                    className: expect.stringContaining('rounded-pill'),
-                }),
-            })
+    test('should render the component with className rounded-pill', () => {
+        const color: Color = new Color('#807149');
+        const testRenderer: ReactTestRenderer = renderer.create(
+            <Pill text="Love" color={color} size={PillSize.Small} />
         );
+        const testInstance: ReactTestInstance = testRenderer.root;
+        expect(
+            testInstance
+                .findByProps({ id: 'pill' })
+                .props.className.includes('rounded-pill')
+        ).toBe(true);
     });
     test('Checking text', () => {
-        expect(
-            testInstance.findByProps({ className: 'rounded-pill badge' })
-                .children
-        ).toEqual([' ', 'Love', ' ']);
+        const color: Color = new Color('#807149');
+        const testRenderer: ReactTestRenderer = renderer.create(
+            <Pill text="Love" color={color} size={PillSize.Small} />
+        );
+        const testInstance: ReactTestInstance = testRenderer.root;
+        expect(testInstance.findByProps({ id: 'pill' }).children).toEqual([
+            ' ',
+            'Love',
+            ' ',
+        ]);
     });
-    test('Checking the color', () => {
-        const element = testInstance.props.color;
-        expect(element).toEqual(color);
+    test('Checking the font-size(Small)', () => {
+        const color: Color = new Color('#807149');
+        const testRenderer: ReactTestRenderer = renderer.create(
+            <Pill text="Love" color={color} size={PillSize.Small} />
+        );
+        const testInstance: ReactTestInstance = testRenderer.root;
+        expect(
+            testInstance.findByProps({ id: 'pill' }).parent?.props.size
+        ).toEqual(PillSize.Small);
+    });
+    test('Checking the font-size(Large)', () => {
+        const color: Color = new Color('#807149');
+        const testRenderer: ReactTestRenderer = renderer.create(
+            <Pill text="Love" color={color} size={PillSize.Large} />
+        );
+        const testInstance: ReactTestInstance = testRenderer.root;
+        expect(
+            testInstance.findByProps({ id: 'pill' }).parent?.props.size
+        ).toEqual(PillSize.Large);
+    });
+    test('Checking for color #807149', () => {
+        const color: Color = new Color('#807149');
+        const testRenderer: ReactTestRenderer = renderer.create(
+            <Pill text="Love" color={color} size={PillSize.Small} />
+        );
+        const testInstance: ReactTestInstance = testRenderer.root;
+        expect(
+            testInstance.findByProps({ id: 'pill' }).parent?.props.color
+        ).toEqual(color);
+    });
+    test('Checking for color #fffff', () => {
+        const color: Color = new Color('#ffffff');
+        const testRenderer: ReactTestRenderer = renderer.create(
+            <Pill text="Love" color={color} size={PillSize.Small} />
+        );
+        const testInstance: ReactTestInstance = testRenderer.root;
+        expect(
+            testInstance.findByProps({ id: 'pill' }).parent?.props.color
+        ).toEqual(color);
+    });
+    test('Checking for color Black', () => {
+        const testRenderer: ReactTestRenderer = renderer.create(
+            <Pill text="Love" color={Black} size={PillSize.Small} />
+        );
+        const testInstance: ReactTestInstance = testRenderer.root;
+        expect(
+            testInstance.findByProps({ id: 'pill' }).parent?.props.color
+        ).toEqual(Black);
     });
 });
