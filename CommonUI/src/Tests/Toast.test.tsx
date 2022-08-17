@@ -23,7 +23,7 @@ describe('Test for Toast.tsx', () => {
         expect(
             testInstance
                 .findByProps({ id: 'toast-status' })
-                .props.className.includes('spinner-grow ')
+                .props['className'].includes('spinner-grow ')
         ).toBe(true);
     });
 
@@ -39,7 +39,7 @@ describe('Test for Toast.tsx', () => {
         );
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(
-            testInstance.findByProps({ id: 'toast-strong' }).props.children
+            testInstance.findByProps({ id: 'toast-strong' }).props['children']
         ).toEqual('Spread');
     });
 
@@ -55,7 +55,7 @@ describe('Test for Toast.tsx', () => {
         );
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(
-            testInstance.findByProps({ id: 'toast-desc' }).props.children
+            testInstance.findByProps({ id: 'toast-desc' }).props['children']
         ).toEqual('Love');
     });
     test('Should say "seconds ago"', () => {
@@ -72,7 +72,7 @@ describe('Test for Toast.tsx', () => {
         const now_date: string = OneUptimeDate.fromNow(date);
 
         expect(
-            testInstance.findByProps({ id: 'toast-time' }).props.children
+            testInstance.findByProps({ id: 'toast-time' }).props['children']
         ).toEqual(now_date);
     });
     test('Checking if Toast is for SUCCESS', () => {
@@ -89,7 +89,7 @@ describe('Test for Toast.tsx', () => {
         expect(
             testInstance
                 .findByProps({ id: 'toast-status' })
-                .props.className.includes('text-success')
+                .props['className'].includes('text-success')
         ).toBe(true);
     });
     test('Checking if Toast is for INFO', () => {
@@ -106,7 +106,7 @@ describe('Test for Toast.tsx', () => {
         expect(
             testInstance
                 .findByProps({ id: 'toast-status' })
-                .props.className.includes('text-info')
+                .props['className'].includes('text-info')
         ).toBe(true);
     });
 
@@ -124,7 +124,7 @@ describe('Test for Toast.tsx', () => {
         expect(
             testInstance
                 .findByProps({ id: 'toast-status' })
-                .props.className.includes('text-warning')
+                .props['className'].includes('text-warning')
         ).toBe(true);
     });
     test('Checking if Toast is for NORMAL', () => {
@@ -141,7 +141,7 @@ describe('Test for Toast.tsx', () => {
         expect(
             testInstance
                 .findByProps({ id: 'toast-status' })
-                .props.className.includes('text-normal')
+                .props['className'].includes('text-normal')
         ).toBe(true);
     });
     test('simulates button click and sets the state to flase, closing the toast', () => {
@@ -156,7 +156,7 @@ describe('Test for Toast.tsx', () => {
         );
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(testInstance.findByProps({ id: 'toast-button' }));
-        act(testInstance.findByProps({ id: 'toast-button' }).props.onClick)
+        act(testInstance.findByProps({ id: 'toast-button' }).props['onClick'])
             .catch;
 
         expect(testInstance.findAllByType('div')).toStrictEqual([]);
