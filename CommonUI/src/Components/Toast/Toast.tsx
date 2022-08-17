@@ -23,21 +23,26 @@ const Component: FunctionComponent<ComponentProps> = (
     const [show, setShow] = useState<boolean>(true);
     let typeCssClass: string = 'text-info';
 
+    if (props.type === ToastType.NORMAL) {
+        typeCssClass = 'text-normal';
+    }
     if (props.type === ToastType.DANGER) {
         typeCssClass = 'text-danger';
     }
-
+    if (props.type === ToastType.WARNING) {
+        typeCssClass = 'text-warning';
+    }
     if (props.type === ToastType.SUCCESS) {
         typeCssClass = 'text-success';
     }
-
-    if (props.type === ToastType.WARNING) {
-        typeCssClass = 'text-warning';
+    if (props.type === ToastType.INFO) {
+        typeCssClass = 'text-info';
     }
 
     if (show) {
         return (
             <div
+                id="main"
                 className="position-fixed top-0 end-0 p-3"
                 style={{ zIndex: '1005' }}
             >
@@ -45,6 +50,7 @@ const Component: FunctionComponent<ComponentProps> = (
                     <div className="toast-header">
                         {props.type && (
                             <div
+                                id="status"
                                 role="status"
                                 className={`spinner-grow-sm spinner-grow ${typeCssClass}`}
                             >
@@ -53,7 +59,9 @@ const Component: FunctionComponent<ComponentProps> = (
                                 </span>
                             </div>
                         )}
-                        <strong className="me-auto ms-2">{props.title}</strong>
+                        <strong id="strong" className="me-auto ms-2">
+                            {props.title}
+                        </strong>
                         {props.createdAt && (
                             <small>
                                 {OneUptimeDate.fromNow(props.createdAt)}
@@ -61,6 +69,7 @@ const Component: FunctionComponent<ComponentProps> = (
                         )}
 
                         <button
+                            id="button"
                             onClick={() => {
                                 setShow(false);
                                 props.onClose && props.onClose();
