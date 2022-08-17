@@ -118,7 +118,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const deleteItem: Function = async (id: ObjectID) => {
         setIsLoading(true);
         try {
-            await ModelAPI.deleteItem<TBaseModel>(props.modelType, id, props.deleteRequestOptions);
+            await ModelAPI.deleteItem<TBaseModel>(
+                props.modelType,
+                id,
+                props.deleteRequestOptions
+            );
             if (data.length === 1 && currentPageNumber > 1) {
                 setCurrentPageNumber(currentPageNumber - 1);
             }
