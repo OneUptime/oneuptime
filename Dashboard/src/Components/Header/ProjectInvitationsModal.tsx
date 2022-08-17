@@ -42,6 +42,9 @@ const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
                     fetchRequestOptions={{
                         isMultiTenantRequest: true,
                     }}
+                    deleteRequestOptions={{
+                        isMultiTenantRequest: true,
+                    }}
                     isEditable={false}
                     showRefreshButton={true}
                     isCreateable={false}
