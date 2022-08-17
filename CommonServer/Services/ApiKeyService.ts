@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/ApiKey';
-import DatabaseService from './DatabaseService';
+import DatabaseService, { OnCreate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import ObjectID from 'Common/Types/ObjectID';
 
@@ -11,9 +11,9 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
+    ): Promise<OnCreate<Model>> {
         createBy.data.apiKey = ObjectID.generate();
-        return createBy;
+        return { createBy, carryForward: null };
     }
 }
 

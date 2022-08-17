@@ -17,6 +17,7 @@ import ProjectInvitationsModal from './ProjectInvitationsModal';
 export interface ComponentProps {
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
+    onProjectRequestAccepted: () => void;
 }
 
 const DashboardHeader: FunctionComponent<ComponentProps> = (
@@ -73,6 +74,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 <ProjectInvitationsModal
                     onClose={() => {
                         setShowProjectInvitationModal(false);
+                    }}
+                    onRequestAccepted={() => {
+                        props.onProjectRequestAccepted();
                     }}
                 />
             )}

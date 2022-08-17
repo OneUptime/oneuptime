@@ -57,6 +57,26 @@ enum DatabaseRequestType {
     Delete = 'delete',
 }
 
+export interface OnCreate<TBaseModel extends BaseModel> {
+    createBy: CreateBy<TBaseModel>;
+    carryForward: any;
+}
+
+export interface OnFind<TBaseModel extends BaseModel> {
+    findBy: FindBy<TBaseModel>;
+    carryForward: any;
+}
+
+export interface OnDelete<TBaseModel extends BaseModel> {
+    deleteBy: DeleteBy<TBaseModel>;
+    carryForward: any;
+}
+
+export interface OnUpdate<TBaseModel extends BaseModel> {
+    updateBy: UpdateBy<TBaseModel>;
+    carryForward: any;
+}
+
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
     private entityType!: { new (): TBaseModel };
@@ -129,14 +149,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     protected async onBeforeCreate(
         createBy: CreateBy<TBaseModel>
-    ): Promise<CreateBy<TBaseModel>> {
+    ): Promise<OnCreate<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(createBy as CreateBy<TBaseModel>);
+        return Promise.resolve({
+            createBy: createBy as CreateBy<TBaseModel>,
+            carryForward: undefined,
+        });
     }
 
     private async _onBeforeCreate(
         createBy: CreateBy<TBaseModel>
-    ): Promise<CreateBy<TBaseModel>> {
+    ): Promise<OnCreate<TBaseModel>> {
         // Private method that runs before create.
         const projectIdColumn: string | null = this.model.getTenantColumn();
 
@@ -220,30 +243,31 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     protected async onBeforeDelete(
         deleteBy: DeleteBy<TBaseModel>
-    ): Promise<DeleteBy<TBaseModel>> {
+    ): Promise<OnDelete<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(deleteBy);
+        return Promise.resolve({ deleteBy, carryForward: null });
     }
 
     protected async onBeforeUpdate(
         updateBy: UpdateBy<TBaseModel>
-    ): Promise<UpdateBy<TBaseModel>> {
+    ): Promise<OnUpdate<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(updateBy);
+        return Promise.resolve({ updateBy, carryForward: null });
     }
 
     protected async onBeforeFind(
         findBy: FindBy<TBaseModel>
-    ): Promise<FindBy<TBaseModel>> {
+    ): Promise<OnFind<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(findBy);
+        return Promise.resolve({ findBy, carryForward: null });
     }
 
     protected async onCreateSuccess(
-        createBy: CreateBy<TBaseModel>
-    ): Promise<CreateBy<TBaseModel>> {
+        _onCreate: OnCreate<TBaseModel>,
+        createdItem: TBaseModel
+    ): Promise<TBaseModel> {
         // A place holder method used for overriding.
-        return Promise.resolve(createBy);
+        return Promise.resolve(createdItem);
     }
 
     protected async onCreateError(error: Exception): Promise<Exception> {
@@ -251,9 +275,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return Promise.resolve(error);
     }
 
-    protected async onUpdateSuccess(): Promise<void> {
+    protected async onUpdateSuccess(
+        onUpdate: OnUpdate<TBaseModel>,
+        _updatedItemIds: Array<ObjectID>
+    ): Promise<OnUpdate<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(onUpdate);
     }
 
     protected async onUpdateError(error: Exception): Promise<Exception> {
@@ -261,9 +288,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return Promise.resolve(error);
     }
 
-    protected async onDeleteSuccess(): Promise<void> {
+    protected async onDeleteSuccess(
+        onDelete: OnDelete<TBaseModel>,
+        _itemIdsBeforeDelete: Array<ObjectID>
+    ): Promise<OnDelete<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(onDelete);
     }
 
     protected async onDeleteError(error: Exception): Promise<Exception> {
@@ -272,10 +302,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     protected async onFindSuccess(
+        onFind: OnFind<TBaseModel>,
         items: Array<TBaseModel>
-    ): Promise<Array<TBaseModel>> {
+    ): Promise<OnFind<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(items);
+        return Promise.resolve({ ...onFind, carryForward: items });
     }
 
     protected async onFindError(error: Exception): Promise<Exception> {
@@ -369,9 +400,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-        let _createdBy: CreateBy<TBaseModel> = await this._onBeforeCreate(
+        const onCreate: OnCreate<TBaseModel> = await this._onBeforeCreate(
             createBy
         );
+
+        let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
+
+        const carryForward: any = onCreate.carryForward;
 
         _createdBy = this.generateSlug(_createdBy);
 
@@ -407,7 +442,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
-            await this.onCreateSuccess(createBy);
+            createBy.data = await this.onCreateSuccess(
+                {
+                    createBy,
+                    carryForward,
+                },
+                createBy.data
+            );
             return createBy.data;
         } catch (error) {
             await this.onCreateError(error as Exception);
@@ -711,41 +752,27 @@ class DatabaseService<TBaseModel extends BaseModel> {
             return updateBy;
         }
 
+        const findBy: FindBy<TBaseModel> = this.asFindByByPermissions({
+            query: updateBy.query,
+            props: updateBy.props,
+            select: {},
+            populate: {},
+            limit: 0,
+            skip: 0,
+        });
+
+        updateBy.query = findBy.query;
+
         const userPermissions: Array<UserPermission> = this.getPermissions(
             updateBy.props,
             DatabaseRequestType.Update
         );
 
         let updateColumns: Columns = new Columns([]);
-        let readColumns: Columns = new Columns([]);
 
         updateColumns = this.getUpdateColumnsByPermissions(
             userPermissions || []
         );
-        readColumns = this.getReadColumnsByPermissions(userPermissions || []);
-
-        // Now we need to check all columns.
-        const excludedColumns: Array<string> = [
-            '_id',
-            'createdAt',
-            'deletedAt',
-            'updatedAt',
-        ];
-
-        for (const key in updateBy.query) {
-            if (excludedColumns.includes(key)) {
-                continue;
-            }
-
-            if (!readColumns.columns.includes(key)) {
-                throw new NotAuthorizedException(
-                    `You do not have permissions to query on - ${key}.  
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                        this.model.getColumnAccessControlFor(key).read
-                    ).join(',')}`
-                );
-            }
-        }
 
         for (const key in updateBy.data) {
             if (!updateColumns.columns.includes(key)) {
@@ -755,51 +782,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         this.model.getColumnAccessControlFor(key).update
                     ).join(',')}`
                 );
-            }
-        }
-
-        const tenantColumn: string | null = this.model.getTenantColumn();
-
-        if (tenantColumn && updateBy.props.tenantId) {
-            (updateBy.query as any)[tenantColumn] = updateBy.props.tenantId;
-        } else if (
-            tenantColumn &&
-            !updateBy.props.tenantId &&
-            updateBy.props.userGlobalAccessPermission
-        ) {
-            (updateBy.query as any)[tenantColumn] = QueryHelper.in(
-                updateBy.props.userGlobalAccessPermission?.projectIds
-            );
-        } else if (tenantColumn) {
-            throw new NotAuthorizedException(
-                'Not enough permissions to read the record'
-            );
-        }
-
-        if (this.model.userColumn && updateBy.props.userId) {
-            (updateBy.query as any)[this.model.userColumn] =
-                updateBy.props.userId;
-        }
-
-        if (this.model.isPermissionIf) {
-            for (const key in this.model.isPermissionIf) {
-                const permission: Permission = key as Permission;
-
-                if (
-                    userPermissions
-                        .map((i: UserPermission) => {
-                            return i.permission;
-                        })
-                        ?.includes(permission) &&
-                    this.model.isPermissionIf[permission]
-                ) {
-                    const columnName: string = Object.keys(
-                        this.model.isPermissionIf[permission] as any
-                    )[0] as string;
-                    (updateBy.query as any)[columnName] = (
-                        this.model.isPermissionIf[permission] as any
-                    )[columnName];
-                }
             }
         }
 
@@ -1050,10 +1032,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
-            let beforeDeleteBy: DeleteBy<TBaseModel> =
-                await this.onBeforeDelete(deleteBy);
+            const onDelete: OnDelete<TBaseModel> = await this.onBeforeDelete(
+                deleteBy
+            );
+            let beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
+
+            const carryForward: any = onDelete.carryForward;
 
             beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
+
+            const items: Array<TBaseModel> = await this._findBy({
+                query: beforeDeleteBy.query,
+                skip: 0,
+                limit: LIMIT_MAX,
+                populate: {},
+                select: {},
+                props: beforeDeleteBy.props,
+            });
 
             await this._updateBy({
                 query: deleteBy.query,
@@ -1069,7 +1064,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (await this.getRepository().delete(beforeDeleteBy.query as any))
                     .affected || 0;
 
-            await this.onDeleteSuccess();
+            await this.onDeleteSuccess(
+                { deleteBy, carryForward },
+                items.map((i: TBaseModel) => {
+                    return new ObjectID(i._id!);
+                })
+            );
 
             return numberOfDocsAffected;
         } catch (error) {
@@ -1093,10 +1093,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createdAt: SortOrder.Descending,
                 };
             }
-
-            let onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
-                findBy
-            );
+            const onFind: OnFind<TBaseModel> = await this.onBeforeFind(findBy);
+            let onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
+            const carryForward: any = onFind.carryForward;
 
             onBeforeFind = this.asFindByByPermissions(findBy);
 
@@ -1126,7 +1125,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
-            let items: Array<TBaseModel> = await this.getRepository().find({
+            const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
                 where: onBeforeFind.query as any,
@@ -1135,15 +1134,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 select: onBeforeFind.select as any,
             });
 
-            const decryptedItems: Array<TBaseModel> = [];
+            let decryptedItems: Array<TBaseModel> = [];
 
             for (const item of items) {
                 decryptedItems.push(this.decrypt(item));
             }
 
-            items = this.sanitizeFindByItems(items, onBeforeFind);
+            decryptedItems = this.sanitizeFindByItems(
+                decryptedItems,
+                onBeforeFind
+            );
 
-            await this.onFindSuccess(decryptedItems);
+            decryptedItems = await (
+                await this.onFindSuccess(
+                    { findBy, carryForward },
+                    decryptedItems
+                )
+            ).carryForward;
 
             return decryptedItems;
         } catch (error) {
@@ -1334,8 +1341,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
         try {
-            let beforeUpdateBy: UpdateBy<TBaseModel> =
-                await this.onBeforeUpdate(updateBy);
+            const onUpdate: OnUpdate<TBaseModel> = await this.onBeforeUpdate(
+                updateBy
+            );
+            let beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
+            const carryForward: any = onUpdate.carryForward;
 
             beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
@@ -1376,7 +1386,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
             //         )
             //     ).affected || 0;
 
-            await this.onUpdateSuccess();
+            await this.onUpdateSuccess(
+                { updateBy, carryForward },
+                items.map((i: TBaseModel) => {
+                    return new ObjectID(i._id!);
+                })
+            );
 
             return items.length;
         } catch (error) {
