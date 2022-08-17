@@ -22,7 +22,7 @@ const Pill: FunctionComponent<ComponentProps> = (
     const rgb: RGB = Color.colorToRgb(props.color || Black);
     return (
         <span
-            id="status"
+            id="pill"
             className="rounded-pill badge"
             style={{
                 // https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
