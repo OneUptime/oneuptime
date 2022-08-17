@@ -6,7 +6,6 @@ import renderer, {
 } from 'react-test-renderer';
 import Pill, { PillSize } from '../Components/Pill/Pill';
 import Color from 'Common/Types/Color';
-import { Black } from '../Utils/BrandColors';
 
 describe('Test for Pill', () => {
     test('should render the component with className rounded-pill', () => {
@@ -72,14 +71,5 @@ describe('Test for Pill', () => {
         expect(
             testInstance.findByProps({ id: 'pill' }).parent?.props.color
         ).toEqual(color);
-    });
-    test('Checking for color Black', () => {
-        const testRenderer: ReactTestRenderer = renderer.create(
-            <Pill text="Love" color={Black} size={PillSize.Small} />
-        );
-        const testInstance: ReactTestInstance = testRenderer.root;
-        expect(
-            testInstance.findByProps({ id: 'pill' }).parent?.props.color
-        ).toEqual(Black);
     });
 });
