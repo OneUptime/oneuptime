@@ -22,7 +22,7 @@ describe('Test for Toast.tsx', () => {
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(
             testInstance
-                .findByProps({ id: 'status' })
+                .findByProps({ id: 'toast-status' })
                 .props.className.includes('spinner-grow ')
         ).toBe(true);
     });
@@ -39,7 +39,7 @@ describe('Test for Toast.tsx', () => {
         );
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(
-            testInstance.findByProps({ id: 'strong' }).props.children
+            testInstance.findByProps({ id: 'toast-strong' }).props.children
         ).toEqual('Spread');
     });
 
@@ -55,7 +55,7 @@ describe('Test for Toast.tsx', () => {
         );
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(
-            testInstance.findByProps({ className: 'toast-body' }).props.children
+            testInstance.findByProps({ id: 'toast-desc' }).props.children
         ).toEqual('Love');
     });
     test('Should say "seconds ago"', () => {
@@ -71,9 +71,9 @@ describe('Test for Toast.tsx', () => {
         const testInstance: ReactTestInstance = testRenderer.root;
         const now_date: string = OneUptimeDate.fromNow(date);
 
-        expect(testInstance.findByType('small').props.children).toEqual(
-            now_date
-        );
+        expect(
+            testInstance.findByProps({ id: 'toast-time' }).props.children
+        ).toEqual(now_date);
     });
     test('Checking if Toast is for SUCCESS', () => {
         const date: Date = new Date();
@@ -88,7 +88,7 @@ describe('Test for Toast.tsx', () => {
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(
             testInstance
-                .findByProps({ id: 'status' })
+                .findByProps({ id: 'toast-status' })
                 .props.className.includes('text-success')
         ).toBe(true);
     });
@@ -105,7 +105,7 @@ describe('Test for Toast.tsx', () => {
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(
             testInstance
-                .findByProps({ id: 'status' })
+                .findByProps({ id: 'toast-status' })
                 .props.className.includes('text-info')
         ).toBe(true);
     });
@@ -123,7 +123,7 @@ describe('Test for Toast.tsx', () => {
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(
             testInstance
-                .findByProps({ id: 'status' })
+                .findByProps({ id: 'toast-status' })
                 .props.className.includes('text-warning')
         ).toBe(true);
     });
@@ -140,7 +140,7 @@ describe('Test for Toast.tsx', () => {
         const testInstance: ReactTestInstance = testRenderer.root;
         expect(
             testInstance
-                .findByProps({ id: 'status' })
+                .findByProps({ id: 'toast-status' })
                 .props.className.includes('text-normal')
         ).toBe(true);
     });
@@ -155,8 +155,8 @@ describe('Test for Toast.tsx', () => {
             />
         );
         const testInstance: ReactTestInstance = testRenderer.root;
-        expect(testInstance.findByProps({ id: 'button' }));
-        act(testInstance.findByProps({ className: 'btn-close' }).props.onClick)
+        expect(testInstance.findByProps({ id: 'toast-button' }));
+        act(testInstance.findByProps({ id: 'toast-button' }).props.onClick)
             .catch;
 
         expect(testInstance.findAllByType('div')).toStrictEqual([]);

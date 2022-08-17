@@ -42,7 +42,7 @@ const Component: FunctionComponent<ComponentProps> = (
     if (show) {
         return (
             <div
-                id="main"
+                id="toast-main"
                 className="position-fixed top-0 end-0 p-3"
                 style={{ zIndex: '1005' }}
             >
@@ -50,7 +50,7 @@ const Component: FunctionComponent<ComponentProps> = (
                     <div className="toast-header">
                         {props.type && (
                             <div
-                                id="status"
+                                id="toast-status"
                                 role="status"
                                 className={`spinner-grow-sm spinner-grow ${typeCssClass}`}
                             >
@@ -59,17 +59,17 @@ const Component: FunctionComponent<ComponentProps> = (
                                 </span>
                             </div>
                         )}
-                        <strong id="strong" className="me-auto ms-2">
+                        <strong id="toast-strong" className="me-auto ms-2">
                             {props.title}
                         </strong>
                         {props.createdAt && (
-                            <small>
+                            <small id="toast-time">
                                 {OneUptimeDate.fromNow(props.createdAt)}
                             </small>
                         )}
 
                         <button
-                            id="button"
+                            id="toast-button"
                             onClick={() => {
                                 setShow(false);
                                 props.onClose && props.onClose();
@@ -79,7 +79,9 @@ const Component: FunctionComponent<ComponentProps> = (
                             aria-label="Close"
                         ></button>
                     </div>
-                    <div className="toast-body">{props.description}</div>
+                    <div id="toast-desc" className="toast-body">
+                        {props.description}
+                    </div>
                 </div>
             </div>
         );
