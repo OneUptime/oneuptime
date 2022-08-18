@@ -38,7 +38,6 @@ export interface ComponentProps {
     iconSize?: undefined | SizeProp;
     buttonStyle?: undefined | ButtonStyleType;
     buttonSize?: ButtonSize | undefined;
-    dataTestId?: string;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -55,7 +54,6 @@ const Button: FunctionComponent<ComponentProps> = ({
     showIconOnRight = false,
     buttonStyle = ButtonStyleType.NORMAL,
     buttonSize = ButtonSize.Normal,
-    dataTestId,
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -135,7 +133,6 @@ const Button: FunctionComponent<ComponentProps> = ({
                     onClick();
                 }
             }}
-            data-testid={dataTestId}
             type={type}
             disabled={disabled}
             className={`btn ${buttonStyleCssClass} ${buttonSize} waves-effect waves-light ${

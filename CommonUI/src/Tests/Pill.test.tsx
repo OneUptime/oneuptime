@@ -5,7 +5,7 @@ import renderer, {
     ReactTestRenderer,
 } from 'react-test-renderer';
 import Pill, { PillSize } from '../Components/Pill/Pill';
-import Color from 'Common/Types/Color';
+import Color from '../../../Common/Types/Color';
 import { EnzymePropSelector, configure, shallow } from 'enzyme';
 import Adapter from 'enzyme-adapter-react-16';
 configure({ adapter: new Adapter() });

@@ -120,7 +120,7 @@ const BasicForm: Function = <T extends Object>(
                     {field.sideLink &&
                         field.sideLink?.text &&
                         field.sideLink?.url && (
-                            <span data-testid="login-forgot-password">
+                            <span>
                                 <Link
                                     to={field.sideLink?.url}
                                     className="underline-on-hover"
@@ -295,7 +295,6 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: FieldProps) => {
                             return (
                                 <Input
-                                    dataTestId={fieldType}
                                     className="form-control"
                                     type={fieldType as 'text'}
                                     onChange={(text: string) => {
@@ -329,7 +328,6 @@ const BasicForm: Function = <T extends Object>(
                             : (Object.keys(field.field)[0] as string)
                     }
                     component="div"
-                    data-testid="errorMessage"
                 />
             </div>
         );
@@ -751,7 +749,6 @@ const BasicForm: Function = <T extends Object>(
                                         title={
                                             props.submitButtonText || 'Submit'
                                         }
-                                        dataTestId={props.submitButtonText!}
                                         type={ButtonTypes.Submit}
                                         id={`${props.id}-submit-button`}
                                         isLoading={props.isLoading || false}
