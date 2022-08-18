@@ -70,7 +70,7 @@ const App: FunctionComponent = () => {
         Navigation.navigate(new Route('/dashboard/' + project._id));
     };
 
-    useAsyncEffect(async () => {
+    const fetchProjects: Function = async (): Promise<void> => {
         setLoading(true);
 
         // get list of projects.
@@ -100,6 +100,10 @@ const App: FunctionComponent = () => {
         }
 
         setLoading(false);
+    };
+
+    useAsyncEffect(async () => {
+        fetchProjects();
     }, []);
 
     return (
@@ -108,6 +112,9 @@ const App: FunctionComponent = () => {
             projects={projects}
             error={error}
             onProjectSelected={onProjectSelected}
+            onProjectRequestAccepted={() => {
+                fetchProjects();
+            }}
         >
             <Routes>
                 <PageRoute

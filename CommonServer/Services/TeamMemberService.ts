@@ -1,11 +1,20 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/TeamMember';
-import DatabaseService from './DatabaseService';
+import DatabaseService, {
+    OnCreate,
+    OnDelete,
+    OnUpdate,
+} from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import AccessTokenService from './AccessTokenService';
 import Email from 'Common/Types/Email';
 import UserService from './UserService';
 import User from 'Model/Models/User';
+import UpdateBy from '../Types/Database/UpdateBy';
+import DeleteBy from '../Types/Database/DeleteBy';
+import ObjectID from 'Common/Types/ObjectID';
+import QueryHelper from '../Types/Database/QueryHelper';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -14,7 +23,7 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
+    ): Promise<OnCreate<Model>> {
         if (!createBy.data.hasAcceptedInvitation) {
             createBy.data.hasAcceptedInvitation = false;
         }
@@ -37,25 +46,92 @@ export class Service extends DatabaseService<Model> {
             createBy.data.userId = user.id!;
         }
 
-        return createBy;
+        return { createBy, carryForward: null };
+    }
+
+    private async refreshTokens(
+        userId: ObjectID,
+        projectId: ObjectID
+    ): Promise<void> {
+        /// Refresh tokens.
+        await AccessTokenService.refreshUserGlobalAccessPermission(userId);
+
+        await AccessTokenService.refreshUserProjectAccessPermission(
+            userId,
+            projectId
+        );
     }
 
     protected override async onCreateSuccess(
-        createBy: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
-        /// Refresh tokens.
-        await AccessTokenService.refreshUserGlobalAccessPermission(
-            createBy.data.userId!
+        onCreate: OnCreate<Model>,
+        createdItem: Model
+    ): Promise<Model> {
+        await this.refreshTokens(
+            onCreate.createBy.data.userId!,
+            onCreate.createBy.data.projectId!
         );
-
-        await AccessTokenService.refreshUserProjectAccessPermission(
-            createBy.data.userId!,
-            createBy.data.projectId!
-        );
-
-        return createBy;
+        return createdItem;
     }
 
-    // TODO - OnDelete and OnUpdate pending.
+    protected override async onUpdateSuccess(
+        onUpdate: OnUpdate<Model>,
+        updatedItemIds: Array<ObjectID>
+    ): Promise<OnUpdate<Model>> {
+        const updateBy: UpdateBy<Model> = onUpdate.updateBy;
+        const items: Array<Model> = await this.findBy({
+            query: {
+                _id: QueryHelper.in(updatedItemIds),
+            },
+            select: {
+                userId: true,
+                projectId: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            populate: {},
+            props: {
+                isRoot: true,
+            },
+        });
+
+        for (const item of items) {
+            await this.refreshTokens(item.userId!, item.projectId!);
+        }
+
+        return { updateBy, carryForward: onUpdate.carryForward };
+    }
+
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
+        const items: Array<Model> = await this.findBy({
+            query: deleteBy.query,
+            select: {
+                userId: true,
+                projectId: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            populate: {},
+            props: {
+                isRoot: true,
+            },
+        });
+
+        return {
+            deleteBy: deleteBy,
+            carryForward: items,
+        };
+    }
+
+    protected override async onDeleteSuccess(
+        onDelete: OnDelete<Model>
+    ): Promise<OnDelete<Model>> {
+        for (const item of onDelete.carryForward as Array<Model>) {
+            await this.refreshTokens(item.userId!, item.projectId!);
+        }
+
+        return onDelete;
+    }
 }
 export default new Service();

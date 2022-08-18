@@ -75,6 +75,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     viewButtonText?: string | undefined;
     refreshToggle?: boolean | undefined;
     fetchRequestOptions?: RequestOptions | undefined;
+    deleteRequestOptions?: RequestOptions | undefined;
 }
 
 enum ModalType {
@@ -117,7 +118,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const deleteItem: Function = async (id: ObjectID) => {
         setIsLoading(true);
         try {
-            await ModelAPI.deleteItem<TBaseModel>(props.modelType, id);
+            await ModelAPI.deleteItem<TBaseModel>(
+                props.modelType,
+                id,
+                props.deleteRequestOptions
+            );
             if (data.length === 1 && currentPageNumber > 1) {
                 setCurrentPageNumber(currentPageNumber - 1);
             }
