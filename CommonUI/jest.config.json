@@ -7,11 +7,11 @@
             "babelConfig": false
         }
     },
-    "moduleFileExtensions": ["ts", "js", "json", "tsx","css"],
+    "moduleFileExtensions": ["ts", "js", "json", "tsx"],
     "transform": {
         ".(ts|tsx)": "ts-jest"
     },
-    "testEnvironment": "jsdom",
+    "testEnvironment": "node",
     "collectCoverage": true,
     "coverageReporters": ["text", "html"],
     "testRegex": ".src/Tests/(.*).test.(tsx||ts)",
@@ -23,10 +23,5 @@
             "branches": 0,
             "statements": 0
         }
-    },
-    "moduleNameMapper": {
-        "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/__mocks__/fileMock.js",
-        "\\.(css|less)$": "identity-obj-proxy",
-        "uuid":"<rootDir>/node_modules/jest-runtime/build/index.js"
-      }
+    }
 }

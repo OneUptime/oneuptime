@@ -9,7 +9,7 @@
         // "disableSourceOfProjectReferenceRedirect": true,  /* Disable preferring source files instead of declaration files when referencing composite projects */
         // "disableSolutionSearching": true,                 /* Opt a project out of multi-project reference checking when editing. */
         // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
-        
+
         /* Language and Environment */
         "target": "es2017" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
         // "lib": [],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */
@@ -96,7 +96,7 @@
         "noFallthroughCasesInSwitch": true /* Enable error reporting for fallthrough cases in switch statements. */,
         "noUncheckedIndexedAccess": true /* Include 'undefined' in index signature results */,
         "noImplicitOverride": true /* Ensure overriding members in derived classes are marked with an override modifier. */,
-        "noPropertyAccessFromIndexSignature": true /* Enforces using indexed accessors for keys declared using an indexed type */,
+        "noPropertyAccessFromIndexSignature": false /* Enforces using indexed accessors for keys declared using an indexed type */,
         // "allowUnusedLabels": true,                        /* Disable error reporting for unused labels. */
         // "allowUnreachableCode": true,                     /* Disable error reporting for unreachable code. */
 
