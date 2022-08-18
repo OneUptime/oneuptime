@@ -6,7 +6,7 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Monitor from 'Model/Models/Monitor';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
@@ -28,8 +28,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ModelTable<Monitor>
-                type={Monitor}
-                model={new Monitor()}
+                modelType={Monitor}
                 id="Monitors-table"
                 isDeleteable={false}
                 isEditable={true}
@@ -74,7 +73,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                     {
@@ -82,7 +81,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                 ]}

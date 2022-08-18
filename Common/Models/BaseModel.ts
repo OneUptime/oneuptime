@@ -22,10 +22,14 @@ import Phone from '../Types/Phone';
 import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
-import Permission from '../Types/Permission';
+import Permission, {
+    instaceOfUserProjectAccessPermission,
+    PermissionHelper,
+    UserPermission,
+    UserProjectAccessPermission,
+} from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
-
 export type DbTypes =
     | string
     | number
@@ -73,9 +77,12 @@ export default class BaseModel extends BaseEntity {
 
     public isPermissionIf: Dictionary<JSONObject> = {};
 
+    public isMultiTenantRequestAllowed!: boolean | null;
+    public allowUserQueryWithoutTenant!: boolean | null;
+
     public crudApiPath!: Route | null;
     // If this resource is by projectId, which column does projectId belong to?
-    public projectColumn!: string | null;
+    public tenantColumn!: string | null;
 
     public constructor(id?: ObjectID) {
         super();
@@ -126,10 +133,28 @@ export default class BaseModel extends BaseEntity {
         return new Columns(Object.keys(getTableColumns(this)));
     }
 
+    public canQueryMultiTenant(): boolean {
+        return Boolean(this.isMultiTenantRequestAllowed);
+    }
+
+    public isUserQueryWithoutTenantAllowed(): boolean {
+        return Boolean(this.allowUserQueryWithoutTenant);
+    }
+
     public getTableColumnMetadata(columnName: string): TableColumnMetadata {
         const dictionary: Dictionary<TableColumnMetadata> =
             getTableColumns(this);
         return dictionary[columnName] as TableColumnMetadata;
+    }
+
+    public getColumnAccessControlFor(columnName: string): ColumnAccessControl {
+        return (
+            this.getColumnAccessControlForAllColumns()[columnName] || {
+                read: [],
+                create: [],
+                update: [],
+            }
+        );
     }
 
     public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
@@ -216,11 +241,11 @@ export default class BaseModel extends BaseEntity {
         return this.saveSlugToColumn;
     }
 
-    public getProjectColumn(): string | null {
-        return this.projectColumn;
+    public getTenantColumn(): string | null {
+        return this.tenantColumn;
     }
 
-    public getuserColumn(): string | null {
+    public getUserColumn(): string | null {
         return this.userColumn;
     }
 
@@ -269,6 +294,13 @@ export default class BaseModel extends BaseEntity {
         }
 
         return this._fromJSON<T>(json, type);
+    }
+
+    public static fromJSONObject<T extends BaseModel>(
+        json: JSONObject,
+        type: { new (): T }
+    ): T {
+        return this.fromJSON<T>(json, type) as T;
     }
 
     public fromJSON<T extends BaseModel>(
@@ -361,5 +393,90 @@ export default class BaseModel extends BaseEntity {
 
     public hasPermission(_permissions: Array<Permission>): boolean {
         return false;
+    }
+
+    public isTenantModel(): boolean {
+        return false;
+    }
+
+    public isUserModel(): boolean {
+        return false;
+    }
+
+    public hasCreatePermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
+        let modelPermission: Array<Permission> = this.createRecordPermissions;
+
+        if (columnName) {
+            const columnAccessControl: ColumnAccessControl =
+                this.getColumnAccessControlFor(columnName);
+            modelPermission = columnAccessControl.create;
+        }
+
+        return this.hasPermissions(userProjectPermissions, modelPermission);
+    }
+
+    public hasReadPermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
+        let modelPermission: Array<Permission> = this.readRecordPermissions;
+
+        if (columnName) {
+            const columnAccessControl: ColumnAccessControl =
+                this.getColumnAccessControlFor(columnName);
+            modelPermission = columnAccessControl.read;
+        }
+
+        return this.hasPermissions(userProjectPermissions, modelPermission);
+    }
+
+    public hasDeletePermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>
+    ): boolean {
+        const modelPermission: Array<Permission> = this.deleteRecordPermissions;
+        return this.hasPermissions(userProjectPermissions, modelPermission);
+    }
+
+    public hasUpdatePermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        columnName?: string
+    ): boolean {
+        let modelPermission: Array<Permission> = this.updateRecordPermissions;
+
+        if (columnName) {
+            const columnAccessControl: ColumnAccessControl =
+                this.getColumnAccessControlFor(columnName);
+            modelPermission = columnAccessControl.update;
+        }
+
+        return this.hasPermissions(userProjectPermissions, modelPermission);
+    }
+
+    private hasPermissions(
+        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        modelPermissions: Array<Permission>
+    ): boolean {
+        let userPermissions: Array<Permission> = [];
+
+        if (instaceOfUserProjectAccessPermission(userProjectPermissions)) {
+            userPermissions = userProjectPermissions.permissions.map(
+                (item: UserPermission) => {
+                    return item.permission;
+                }
+            );
+        } else {
+            userPermissions = userProjectPermissions;
+        }
+
+        return Boolean(
+            userPermissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    modelPermissions,
+                    userPermissions
+                )
+        );
     }
 }

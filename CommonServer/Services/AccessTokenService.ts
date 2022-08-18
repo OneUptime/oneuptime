@@ -46,7 +46,12 @@ export default class AccessTokenService {
 
         const permissionToStore: UserGlobalAccessPermission = {
             projectIds,
-            globalPermissions: [Permission.Public, Permission.User],
+            globalPermissions: [
+                Permission.Public,
+                Permission.User,
+                Permission.LoggedInUser,
+            ],
+            _type: 'UserGlobalAccessPermission',
         };
 
         // if user is a part of any project then, he is the project member.
@@ -73,6 +78,8 @@ export default class AccessTokenService {
 
         const accessPermission: UserGlobalAccessPermission =
             json as UserGlobalAccessPermission;
+
+        accessPermission._type = 'UserGlobalAccessPermission';
 
         return accessPermission;
     }
@@ -137,12 +144,26 @@ export default class AccessTokenService {
                 labelIds: teamPermission.labels.map((label: Label) => {
                     return label.id!;
                 }),
+                _type: 'UserPermission',
             });
         }
+
+        userPermissions.push({
+            permission: Permission.LoggedInUser,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
+
+        userPermissions.push({
+            permission: Permission.ProjectMember,
+            labelIds: [],
+            _type: 'UserPermission',
+        });
 
         const permission: UserProjectAccessPermission = {
             projectId,
             permissions: userPermissions,
+            _type: 'UserProjectAccessPermission',
         };
 
         await GlobalCache.setJSON(
@@ -163,6 +184,10 @@ export default class AccessTokenService {
                 PermissionNamespace.ProjectPermission,
                 userId.toString() + projectId.toString()
             )) as UserProjectAccessPermission;
+
+        if (json) {
+            json._type = 'UserProjectAccessPermission';
+        }
 
         return json;
     }

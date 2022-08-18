@@ -13,10 +13,10 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
-import EntityName from 'Common/Types/Database/EntityName';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
-@ProjectColumn('projectId')
+@TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectOnCallDuty],
     read: [
@@ -32,7 +32,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 @Entity({
     name: 'OnCallDuty',
 })
-@EntityName('On Call Duty', 'On Call Duties')
+@SingularPluralName('On Call Duty', 'On Call Duties')
 export default class OnCallDuty extends BaseModel {
     @ColumnAccessControl({
         create: [

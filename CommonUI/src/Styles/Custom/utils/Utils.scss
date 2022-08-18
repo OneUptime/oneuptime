@@ -16,6 +16,25 @@
     color: $color-light-grey;
 }
 
+.color-grey{
+    color: $color-grey;
+}
+
+.vertical-line {
+    border-left: 6px solid green;
+    height: 500px;
+  }
+
+.bold{
+    font-weight: bold;
+}
+
+.small-circle{
+    height: 20px;
+    width: 20px;
+    border-radius: 20px;
+}
+
 .primary-on-hover {
     cursor: pointer;
 
@@ -56,7 +75,33 @@
     }
 }
 
+.margin-10{
+   margin: 10px
+}
 
+.margin-5{
+    margin: 5px
+ }
+
+
+ .margin-50{
+    margin: 50px
+ }
+
+
+.margin-15{
+    margin: 15px
+ }
+ 
+.full-page-modal{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    background-color: white;
+}
 
 .light-grey-on-hover {
     cursor: pointer;
@@ -108,6 +153,9 @@
     display: flex !important;
 }
 
+.align-right{
+    text-align: right;
+}
 
 .padding-0{
     padding: 0px !important;
@@ -161,4 +209,29 @@
 
 .vertical-center{
     margin-top: 20%;
+}
+
+.padding-15{
+    padding: 15px;
+}
+
+
+
+
+// Lists 
+.list-item{
+    border-style: solid;
+    border-width: 2px;
+    border-color: $color-very-light-grey;
+    border-top: 0px;
+    border-right: 0px;
+    border-left: 0px;
+}
+
+.modal-dialog{
+    opacity: 1;
+}
+
+.text-align-left{
+    text-align: left;
 }

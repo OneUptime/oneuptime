@@ -1,6 +1,6 @@
 import Color, { RGB } from 'Common/Types/Color';
 import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
-import { Black } from '../../Utils/BrandColors';
+import { Black } from 'Common/Types/BrandColors';
 
 export enum PillSize {
     Small = '10px',

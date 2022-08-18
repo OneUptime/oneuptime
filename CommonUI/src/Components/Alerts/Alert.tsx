@@ -13,6 +13,7 @@ export interface ComponentProps {
     title?: undefined | string;
     onClose?: undefined | (() => void);
     type?: undefined | AlertType;
+    onClick?: (() => void) | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -46,8 +47,13 @@ const Alert: FunctionComponent<ComponentProps> = (
         <div className="row">
             <div className="col-xl-12">
                 <div
-                    className={`alert-label-icon flex label-arrow alert ${cssClass} alert-dismissible fade show`}
+                    className={`alert-label-icon flex label-arrow alert ${cssClass} alert-dismissible fade show ${
+                        props.onClick ? 'pointer' : ''
+                    }`}
                     role="alert"
+                    onClick={() => {
+                        props.onClick && props.onClick();
+                    }}
                 >
                     {props.onClose && (
                         <button
@@ -93,7 +99,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                         &nbsp;&nbsp;
                     </span>
                     <div
-                        className="flex"
+                        className={`flex ${props.onClick ? 'pointer' : ''}`}
                         style={{
                             marginLeft: '5px',
                             marginTop: '1px',

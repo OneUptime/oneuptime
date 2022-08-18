@@ -57,17 +57,37 @@ enum DatabaseRequestType {
     Delete = 'delete',
 }
 
+export interface OnCreate<TBaseModel extends BaseModel> {
+    createBy: CreateBy<TBaseModel>;
+    carryForward: any;
+}
+
+export interface OnFind<TBaseModel extends BaseModel> {
+    findBy: FindBy<TBaseModel>;
+    carryForward: any;
+}
+
+export interface OnDelete<TBaseModel extends BaseModel> {
+    deleteBy: DeleteBy<TBaseModel>;
+    carryForward: any;
+}
+
+export interface OnUpdate<TBaseModel extends BaseModel> {
+    updateBy: UpdateBy<TBaseModel>;
+    carryForward: any;
+}
+
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
     private entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        type: { new (): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
-        this.entityType = type;
-        this.model = new type();
+        this.entityType = modelType;
+        this.model = new modelType();
 
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
@@ -129,19 +149,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     protected async onBeforeCreate(
         createBy: CreateBy<TBaseModel>
-    ): Promise<CreateBy<TBaseModel>> {
+    ): Promise<OnCreate<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(createBy as CreateBy<TBaseModel>);
+        return Promise.resolve({
+            createBy: createBy as CreateBy<TBaseModel>,
+            carryForward: undefined,
+        });
     }
 
     private async _onBeforeCreate(
         createBy: CreateBy<TBaseModel>
-    ): Promise<CreateBy<TBaseModel>> {
+    ): Promise<OnCreate<TBaseModel>> {
         // Private method that runs before create.
-        const projectIdColumn: string | null = this.model.getProjectColumn();
+        const projectIdColumn: string | null = this.model.getTenantColumn();
 
-        if (projectIdColumn && createBy.props.projectId) {
-            (createBy.data as any)[projectIdColumn] = createBy.props.projectId;
+        if (projectIdColumn && createBy.props.tenantId) {
+            (createBy.data as any)[projectIdColumn] = createBy.props.tenantId;
         }
 
         return await this.onBeforeCreate(createBy);
@@ -220,30 +243,31 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     protected async onBeforeDelete(
         deleteBy: DeleteBy<TBaseModel>
-    ): Promise<DeleteBy<TBaseModel>> {
+    ): Promise<OnDelete<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(deleteBy);
+        return Promise.resolve({ deleteBy, carryForward: null });
     }
 
     protected async onBeforeUpdate(
         updateBy: UpdateBy<TBaseModel>
-    ): Promise<UpdateBy<TBaseModel>> {
+    ): Promise<OnUpdate<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(updateBy);
+        return Promise.resolve({ updateBy, carryForward: null });
     }
 
     protected async onBeforeFind(
         findBy: FindBy<TBaseModel>
-    ): Promise<FindBy<TBaseModel>> {
+    ): Promise<OnFind<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(findBy);
+        return Promise.resolve({ findBy, carryForward: null });
     }
 
     protected async onCreateSuccess(
-        createBy: CreateBy<TBaseModel>
-    ): Promise<CreateBy<TBaseModel>> {
+        _onCreate: OnCreate<TBaseModel>,
+        createdItem: TBaseModel
+    ): Promise<TBaseModel> {
         // A place holder method used for overriding.
-        return Promise.resolve(createBy);
+        return Promise.resolve(createdItem);
     }
 
     protected async onCreateError(error: Exception): Promise<Exception> {
@@ -251,9 +275,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return Promise.resolve(error);
     }
 
-    protected async onUpdateSuccess(): Promise<void> {
+    protected async onUpdateSuccess(
+        onUpdate: OnUpdate<TBaseModel>,
+        _updatedItemIds: Array<ObjectID>
+    ): Promise<OnUpdate<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(onUpdate);
     }
 
     protected async onUpdateError(error: Exception): Promise<Exception> {
@@ -261,9 +288,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return Promise.resolve(error);
     }
 
-    protected async onDeleteSuccess(): Promise<void> {
+    protected async onDeleteSuccess(
+        onDelete: OnDelete<TBaseModel>,
+        _itemIdsBeforeDelete: Array<ObjectID>
+    ): Promise<OnDelete<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve();
+        return Promise.resolve(onDelete);
     }
 
     protected async onDeleteError(error: Exception): Promise<Exception> {
@@ -272,10 +302,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     protected async onFindSuccess(
+        onFind: OnFind<TBaseModel>,
         items: Array<TBaseModel>
-    ): Promise<Array<TBaseModel>> {
+    ): Promise<OnFind<TBaseModel>> {
         // A place holder method used for overriding.
-        return Promise.resolve(items);
+        return Promise.resolve({ ...onFind, carryForward: items });
     }
 
     protected async onFindError(error: Exception): Promise<Exception> {
@@ -369,13 +400,24 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-        let _createdBy: CreateBy<TBaseModel> = await this._onBeforeCreate(
+        const onCreate: OnCreate<TBaseModel> = await this._onBeforeCreate(
             createBy
         );
+
+        let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
+
+        const carryForward: any = onCreate.carryForward;
 
         _createdBy = this.generateSlug(_createdBy);
 
         let data: TBaseModel = _createdBy.data;
+
+        // add tenantId if present.
+        const tenantColumnName: string | null = data.getTenantColumn();
+
+        if (tenantColumnName && _createdBy.props.tenantId) {
+            data.setColumnValue(tenantColumnName, _createdBy.props.tenantId);
+        }
 
         this.checkRequiredFields(data);
 
@@ -400,7 +442,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
-            await this.onCreateSuccess(createBy);
+            createBy.data = await this.onCreateSuccess(
+                {
+                    createBy,
+                    carryForward,
+                },
+                createBy.data
+            );
             return createBy.data;
         } catch (error) {
             await this.onCreateError(error as Exception);
@@ -464,32 +512,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
         let modelPermissions: Array<Permission> = [];
 
         if (type === DatabaseRequestType.Create) {
-            isPublicAllowed = this.model.createRecordPermissions.includes(
-                Permission.Public
-            );
             modelPermissions = this.model.createRecordPermissions;
         }
 
         if (type === DatabaseRequestType.Update) {
-            isPublicAllowed = this.model.updateRecordPermissions.includes(
-                Permission.Public
-            );
             modelPermissions = this.model.updateRecordPermissions;
         }
 
         if (type === DatabaseRequestType.Delete) {
-            isPublicAllowed = this.model.deleteRecordPermissions.includes(
-                Permission.Public
-            );
             modelPermissions = this.model.deleteRecordPermissions;
         }
 
         if (type === DatabaseRequestType.Read) {
-            isPublicAllowed = this.model.readRecordPermissions.includes(
-                Permission.Public
-            );
             modelPermissions = this.model.readRecordPermissions;
         }
+
+        isPublicAllowed = modelPermissions.includes(Permission.Public);
 
         if (!isPublicAllowed && !props.userId) {
             // this means the record is not publicly createable and the user is not logged in.
@@ -511,7 +549,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         let userPermissions: Array<UserPermission> = [];
 
-        if (!props.projectId && props.userGlobalAccessPermission) {
+        if (!props.tenantId && props.userGlobalAccessPermission) {
             /// take gloabl permissions.
             userPermissions =
                 props.userGlobalAccessPermission.globalPermissions.map(
@@ -519,10 +557,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         return {
                             permission: permission,
                             labelIds: [],
+                            _type: 'UserPermission',
                         };
                     }
                 );
-        } else if (props.projectId && props.userProjectAccessPermission) {
+        } else if (props.tenantId && props.userProjectAccessPermission) {
             /// take project based permissions because this is a project request.
             userPermissions = props.userProjectAccessPermission.permissions;
         } else {
@@ -530,6 +569,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         }
 
         if (
+            props.tenantId &&
             props.userProjectAccessPermission &&
             !PermissionHelper.doesPermissionsIntersect(
                 props.userProjectAccessPermission.permissions.map(
@@ -541,7 +581,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                `A user does not have permissions to ${type} record of type ${this.entityType.name}.`
+                `You do not have permissions to ${type} record of type ${
+                    this.model.singularName
+                }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
+                    modelPermissions
+                ).join(',')}`
             );
         }
 
@@ -609,7 +653,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
-                    `A user does not have permissions to query on - ${key}.`
+                    `You do not have permissions to query on - ${key}.
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                        this.model.getColumnAccessControlFor(key).read
+                    ).join(',')}`
                 );
             }
         }
@@ -621,25 +668,46 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             if (!columns.columns.includes(key)) {
                 throw new NotAuthorizedException(
-                    `A user does not have permissions to select on - ${key}.`
+                    `You do not have permissions to select on - ${key}.
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                        this.model.getColumnAccessControlFor(key).read
+                    ).join(',')}`
                 );
             }
         }
 
-        if (this.model.projectColumn && findBy.props.projectId) {
-            (findBy.query as any)[this.model.projectColumn] =
-                findBy.props.projectId;
+        const tenantColumn: string | null = this.model.getTenantColumn();
+
+        if (
+            findBy.props.isMultiTenantRequest &&
+            !this.model.canQueryMultiTenant()
+        ) {
+            throw new BadDataException(
+                'isMultiTenantRequest not allowed on this model'
+            );
+        }
+
+        // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
+        if (
+            tenantColumn &&
+            findBy.props.tenantId &&
+            !findBy.props.isMultiTenantRequest
+        ) {
+            (findBy.query as any)[tenantColumn] = findBy.props.tenantId;
         } else if (
-            this.model.projectColumn &&
-            !findBy.props.projectId &&
+            this.model.isUserQueryWithoutTenantAllowed() &&
+            this.model.getUserColumn() &&
+            findBy.props.userId
+        ) {
+            (findBy.query as any)[this.model.getUserColumn() as string] =
+                findBy.props.userId;
+        } else if (
+            tenantColumn &&
+            !findBy.props.tenantId &&
             findBy.props.userGlobalAccessPermission
         ) {
-            (findBy.query as any)[this.model.projectColumn] = QueryHelper.in(
+            (findBy.query as any)[tenantColumn] = QueryHelper.in(
                 findBy.props.userGlobalAccessPermission?.projectIds
-            );
-        } else if (this.model.projectColumn) {
-            throw new NotAuthorizedException(
-                'Not enough permissions to read the record'
             );
         }
 
@@ -647,7 +715,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             this.model.userColumn &&
             findBy.props.userId &&
             intersectingPermissions.length === 0 &&
-            this.model.readRecordPermissions.includes(Permission.CurrentUser)
+            this.model.readRecordPermissions.includes(Permission.LoggedInUser)
         ) {
             (findBy.query as any)[this.model.userColumn] = findBy.props.userId;
         }
@@ -684,88 +752,36 @@ class DatabaseService<TBaseModel extends BaseModel> {
             return updateBy;
         }
 
+        const findBy: FindBy<TBaseModel> = this.asFindByByPermissions({
+            query: updateBy.query,
+            props: updateBy.props,
+            select: {},
+            populate: {},
+            limit: 0,
+            skip: 0,
+        });
+
+        updateBy.query = findBy.query;
+
         const userPermissions: Array<UserPermission> = this.getPermissions(
             updateBy.props,
             DatabaseRequestType.Update
         );
 
         let updateColumns: Columns = new Columns([]);
-        let readColumns: Columns = new Columns([]);
 
         updateColumns = this.getUpdateColumnsByPermissions(
             userPermissions || []
         );
-        readColumns = this.getReadColumnsByPermissions(userPermissions || []);
-
-        // Now we need to check all columns.
-        const excludedColumns: Array<string> = [
-            '_id',
-            'createdAt',
-            'deletedAt',
-            'updatedAt',
-        ];
-
-        for (const key in updateBy.query) {
-            if (excludedColumns.includes(key)) {
-                continue;
-            }
-
-            if (!readColumns.columns.includes(key)) {
-                throw new NotAuthorizedException(
-                    `A user does not have permissions to query on - ${key}.`
-                );
-            }
-        }
 
         for (const key in updateBy.data) {
             if (!updateColumns.columns.includes(key)) {
                 throw new NotAuthorizedException(
-                    `A user does not have permissions to update this record at - ${key}.`
+                    `You do not have permissions to update this record at - ${key}. 
+                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                        this.model.getColumnAccessControlFor(key).update
+                    ).join(',')}`
                 );
-            }
-        }
-
-        if (this.model.projectColumn && updateBy.props.projectId) {
-            (updateBy.query as any)[this.model.projectColumn] =
-                updateBy.props.projectId;
-        } else if (
-            this.model.projectColumn &&
-            !updateBy.props.projectId &&
-            updateBy.props.userGlobalAccessPermission
-        ) {
-            (updateBy.query as any)[this.model.projectColumn] = QueryHelper.in(
-                updateBy.props.userGlobalAccessPermission?.projectIds
-            );
-        } else if (this.model.projectColumn) {
-            throw new NotAuthorizedException(
-                'Not enough permissions to read the record'
-            );
-        }
-
-        if (this.model.userColumn && updateBy.props.userId) {
-            (updateBy.query as any)[this.model.userColumn] =
-                updateBy.props.userId;
-        }
-
-        if (this.model.isPermissionIf) {
-            for (const key in this.model.isPermissionIf) {
-                const permission: Permission = key as Permission;
-
-                if (
-                    userPermissions
-                        .map((i: UserPermission) => {
-                            return i.permission;
-                        })
-                        ?.includes(permission) &&
-                    this.model.isPermissionIf[permission]
-                ) {
-                    const columnName: string = Object.keys(
-                        this.model.isPermissionIf[permission] as any
-                    )[0] as string;
-                    (updateBy.query as any)[columnName] = (
-                        this.model.isPermissionIf[permission] as any
-                    )[columnName];
-                }
             }
         }
 
@@ -790,16 +806,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 }),
                 this.model.deleteRecordPermissions
             );
-
-        if (this.model.projectColumn && deleteBy.props.projectId) {
-            (deleteBy.query as any)[this.model.projectColumn] =
-                deleteBy.props.projectId;
+        const tenantColumn: string | null = this.model.getTenantColumn();
+        if (tenantColumn && deleteBy.props.tenantId) {
+            (deleteBy.query as any)[tenantColumn] = deleteBy.props.tenantId;
         }
 
         if (
             this.model.userColumn &&
             intersectingPermissions.length === 0 &&
-            this.model.deleteRecordPermissions.includes(Permission.CurrentUser)
+            this.model.deleteRecordPermissions.includes(Permission.LoggedInUser)
         ) {
             (deleteBy.query as any)[this.model.userColumn] =
                 deleteBy.props.userId;
@@ -909,9 +924,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     columnsToKeep.columns.length > 0 &&
                     columnsToKeep.columns.includes(key)
                 ) &&
-                columns.hasColumn(key)
+                columns.hasColumn(key) &&
+                (this as any)[key]
             ) {
-                (this as any)[key] = undefined;
+                throw new BadDataException(
+                    `User is not allowed to create on ${key} column of ${this.model.singularName}`
+                );
             }
         }
 
@@ -922,6 +940,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         query,
         skip,
         limit,
+        props,
     }: CountBy<TBaseModel>): Promise<PositiveNumber> {
         try {
             if (!skip) {
@@ -932,13 +951,31 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 limit = new PositiveNumber(Infinity);
             }
 
-            query = this.serializeQuery(query);
+            if (!(skip instanceof PositiveNumber)) {
+                skip = new PositiveNumber(skip);
+            }
+
+            if (!(limit instanceof PositiveNumber)) {
+                limit = new PositiveNumber(limit);
+            }
+
+            let findBy: FindBy<TBaseModel> = {
+                query,
+                skip,
+                limit,
+                props,
+            };
+
+            findBy = this.asFindByByPermissions(findBy);
+
+            findBy.query = this.serializeQuery(query);
 
             const count: number = await this.getRepository().count({
-                where: query as any,
-                skip: skip.toNumber(),
-                take: limit.toNumber(),
+                where: findBy.query as any,
+                skip: (findBy.skip as PositiveNumber).toNumber(),
+                take: (findBy.limit as PositiveNumber).toNumber(),
             });
+
             let countPositive: PositiveNumber = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
             return countPositive;
@@ -995,10 +1032,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
-            let beforeDeleteBy: DeleteBy<TBaseModel> =
-                await this.onBeforeDelete(deleteBy);
+            const onDelete: OnDelete<TBaseModel> = await this.onBeforeDelete(
+                deleteBy
+            );
+            let beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
+
+            const carryForward: any = onDelete.carryForward;
 
             beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
+
+            const items: Array<TBaseModel> = await this._findBy({
+                query: beforeDeleteBy.query,
+                skip: 0,
+                limit: LIMIT_MAX,
+                populate: {},
+                select: {},
+                props: beforeDeleteBy.props,
+            });
 
             await this._updateBy({
                 query: deleteBy.query,
@@ -1014,7 +1064,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (await this.getRepository().delete(beforeDeleteBy.query as any))
                     .affected || 0;
 
-            await this.onDeleteSuccess();
+            await this.onDeleteSuccess(
+                { deleteBy, carryForward },
+                items.map((i: TBaseModel) => {
+                    return new ObjectID(i._id!);
+                })
+            );
 
             return numberOfDocsAffected;
         } catch (error) {
@@ -1038,16 +1093,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createdAt: SortOrder.Descending,
                 };
             }
-
-            let onBeforeFind: FindBy<TBaseModel> = await this.onBeforeFind(
-                findBy
-            );
+            const onFind: OnFind<TBaseModel> = await this.onBeforeFind(findBy);
+            let onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
+            const carryForward: any = onFind.carryForward;
 
             onBeforeFind = this.asFindByByPermissions(findBy);
-
-            if (!(onBeforeFind.skip instanceof PositiveNumber)) {
-                onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
-            }
 
             if (
                 !onBeforeFind.select ||
@@ -1064,11 +1114,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (onBeforeFind.select as any)['createdAt'] = true;
             }
 
+            onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
+            onBeforeFind = this.serializePopulate(onBeforeFind);
+
+            if (!(onBeforeFind.skip instanceof PositiveNumber)) {
+                onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
+            }
+
             if (!(onBeforeFind.limit instanceof PositiveNumber)) {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
-
-            onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
 
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
@@ -1079,19 +1134,181 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 select: onBeforeFind.select as any,
             });
 
-            const decryptedItems: Array<TBaseModel> = [];
+            let decryptedItems: Array<TBaseModel> = [];
 
             for (const item of items) {
                 decryptedItems.push(this.decrypt(item));
             }
 
-            await this.onFindSuccess(decryptedItems);
+            decryptedItems = this.sanitizeFindByItems(
+                decryptedItems,
+                onBeforeFind
+            );
+
+            decryptedItems = await (
+                await this.onFindSuccess(
+                    { findBy, carryForward },
+                    decryptedItems
+                )
+            ).carryForward;
 
             return decryptedItems;
         } catch (error) {
             await this.onFindError(error as Exception);
             throw this.getException(error as Exception);
         }
+    }
+
+    private sanitizeFindByItems(
+        items: Array<TBaseModel>,
+        findBy: FindBy<TBaseModel>
+    ): Array<TBaseModel> {
+        // if there's no select then there's nothing to do.
+        if (!findBy.select) {
+            return items;
+        }
+
+        for (const key in findBy.select) {
+            // for each key in sleect check if there's nested properties, this indicates there's a relation.
+            if (typeof findBy.select[key] === Typeof.Object) {
+                // get meta data to check if this column is an entity array.
+                const tableColumnMetadata: TableColumnMetadata =
+                    this.model.getTableColumnMetadata(key);
+
+                if (!tableColumnMetadata.modelType) {
+                    throw new BadDataException(
+                        'Populate not supported on ' +
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
+                    );
+                }
+
+                const relatedModel: BaseModel =
+                    new tableColumnMetadata.modelType();
+                if (tableColumnMetadata.type === TableColumnType.EntityArray) {
+                    const tableColumns: Array<string> =
+                        relatedModel.getTableColumns().columns;
+                    const columnsToKeep: Array<string> = Object.keys(
+                        (findBy.select as any)[key]
+                    );
+
+                    for (const item of items) {
+                        if (item[key] && Array.isArray(item[key])) {
+                            const relatedArray: Array<BaseModel> = item[
+                                key
+                            ] as any;
+                            const newArray: Array<BaseModel> = [];
+                            // now we need to sanitize data.
+
+                            for (const relatedArrayItem of relatedArray) {
+                                for (const column of tableColumns) {
+                                    if (!columnsToKeep.includes(column)) {
+                                        (relatedArrayItem as any)[column] =
+                                            undefined;
+                                    }
+                                }
+                                newArray.push(relatedArrayItem);
+                            }
+
+                            (item[key] as any) = newArray;
+                        }
+                    }
+                }
+            }
+        }
+
+        return items;
+    }
+
+    private serializePopulate(
+        onBeforeFind: FindBy<TBaseModel>
+    ): FindBy<TBaseModel> {
+        for (const key in onBeforeFind.populate) {
+            if (typeof onBeforeFind.populate[key] === Typeof.Object) {
+                const tableColumnMetadata: TableColumnMetadata =
+                    this.model.getTableColumnMetadata(key);
+
+                if (!tableColumnMetadata.modelType) {
+                    throw new BadDataException(
+                        'Populate not supported on ' +
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
+                    );
+                }
+
+                const relatedModel: BaseModel =
+                    new tableColumnMetadata.modelType();
+
+                if (
+                    tableColumnMetadata.type === TableColumnType.Entity ||
+                    tableColumnMetadata.type === TableColumnType.EntityArray
+                ) {
+                    for (const innerKey in (onBeforeFind.populate as any)[
+                        key
+                    ]) {
+                        // check for permissions.
+                        if (
+                            typeof (onBeforeFind.populate as any)[key][
+                                innerKey
+                            ] === Typeof.Object
+                        ) {
+                            throw new BadDataException(
+                                'Nested populate not supported'
+                            );
+                        }
+
+                        // check if the user has permission to read this column
+                        if (onBeforeFind.props.userProjectAccessPermission) {
+                            const hasPermission: boolean =
+                                relatedModel.hasReadPermissions(
+                                    onBeforeFind.props
+                                        .userProjectAccessPermission,
+                                    innerKey
+                                );
+
+                            if (!hasPermission) {
+                                throw new NotAuthorizedException(
+                                    `You do not have permissions to read ${
+                                        onBeforeFind.limit === 1
+                                            ? this.model.singularName
+                                            : this.model.pluralName
+                                    }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
+                                        this.model.getColumnAccessControlFor(
+                                            innerKey
+                                        ).read
+                                    ).join(',')}`
+                                );
+                            }
+                        }
+                    }
+
+                    (onBeforeFind.select as any)[key] = (
+                        onBeforeFind.populate as any
+                    )[key];
+                    (onBeforeFind.populate as any)[key] = true;
+                } else {
+                    throw new BadDataException(
+                        'Populate not supported on ' +
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column is not of type Entity or EntityArray'
+                    );
+                }
+            } else {
+                // if you want to populate the whole object, you only do the id because of security.
+                (onBeforeFind.select as any)[key] = {
+                    _id: true,
+                } as any;
+                (onBeforeFind.populate as any)[key] = true;
+            }
+        }
+
+        return onBeforeFind;
     }
 
     public async findOneBy(
@@ -1124,8 +1341,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
         try {
-            let beforeUpdateBy: UpdateBy<TBaseModel> =
-                await this.onBeforeUpdate(updateBy);
+            const onUpdate: OnUpdate<TBaseModel> = await this.onBeforeUpdate(
+                updateBy
+            );
+            let beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
+            const carryForward: any = onUpdate.carryForward;
 
             beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
 
@@ -1166,7 +1386,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
             //         )
             //     ).affected || 0;
 
-            await this.onUpdateSuccess();
+            await this.onUpdateSuccess(
+                { updateBy, carryForward },
+                items.map((i: TBaseModel) => {
+                    return new ObjectID(i._id!);
+                })
+            );
 
             return items.length;
         } catch (error) {

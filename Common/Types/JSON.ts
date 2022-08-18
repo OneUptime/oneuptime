@@ -13,6 +13,7 @@ import Port from './Port';
 import Hostname from './API/Hostname';
 import HashedString from './HashedString';
 import DatabaseProperty from './Database/DatabaseProperty';
+import OneUptimeDate from './Date';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -28,6 +29,7 @@ enum ObjectType {
     Port = 'Port',
     Hostname = 'Hostname',
     HashedString = 'HashedString',
+    DateTime = 'DateTime',
 }
 
 export type JSONValue =
@@ -93,7 +95,7 @@ export class JSONFunctions {
         const newVal: JSONValue = {};
 
         for (const key in val) {
-            if (!val[key]) {
+            if (val[key] === null || val[key] === undefined) {
                 continue;
             }
 
@@ -113,7 +115,7 @@ export class JSONFunctions {
     }
 
     public static serializeValue(val: JSONValue): JSONValue {
-        if (!val) {
+        if (val === null || val === undefined) {
             return val;
         } else if (val && val instanceof Name) {
             return {
@@ -175,6 +177,11 @@ export class JSONFunctions {
                 _type: ObjectType.Search,
                 value: (val as Search).toString(),
             };
+        } else if (val && val instanceof Date) {
+            return {
+                _type: ObjectType.DateTime,
+                value: OneUptimeDate.toString(val as Date).toString(),
+            };
         } else if (typeof val === Typeof.Object) {
             return this.serialize(val as JSONObject);
         }
@@ -183,7 +190,7 @@ export class JSONFunctions {
     }
 
     public static deserializeValue(val: JSONValue): JSONValue {
-        if (!val) {
+        if (val === null || val === undefined) {
             return val;
         } else if (val instanceof DatabaseProperty) {
             return val;
@@ -283,6 +290,17 @@ export class JSONFunctions {
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
             typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.DateTime
+        ) {
+            val = OneUptimeDate.fromString(
+                (val as JSONObject)['value'] as string
+            );
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Color
         ) {
             val = new Color((val as JSONObject)['value'] as string);
@@ -325,7 +343,7 @@ export class JSONFunctions {
     public static deserialize(val: JSONObject): JSONObject {
         const newVal: JSONObject = {};
         for (const key in val) {
-            if (!val[key]) {
+            if (val[key] === null || val[key] === undefined) {
                 continue;
             }
 

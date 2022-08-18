@@ -10,6 +10,7 @@ export default interface DatabaseCommonInteractionProps {
     userGlobalAccessPermission?: UserGlobalAccessPermission | undefined;
     userProjectAccessPermission?: UserProjectAccessPermission | undefined;
     userType?: UserType | undefined;
-    projectId?: ObjectID | undefined;
+    tenantId?: ObjectID | undefined;
     isRoot?: boolean | undefined;
+    isMultiTenantRequest?: boolean | undefined;
 }

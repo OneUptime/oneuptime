@@ -12,7 +12,6 @@ import URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 
 const RegisterPage: FunctionComponent = () => {
-    const user: User = new User();
     const apiUrl: URL = SIGNUP_API_URL;
 
     return (
@@ -47,8 +46,7 @@ const RegisterPage: FunctionComponent = () => {
                                         </div>
 
                                         <ModelForm<User>
-                                            model={user}
-                                            type={User}
+                                            modelType={User}
                                             id="register-form"
                                             showAsColumns={2}
                                             maxPrimaryButtonWidth={true}

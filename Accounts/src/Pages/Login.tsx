@@ -11,7 +11,6 @@ import { JSONObject } from 'Common/Types/JSON';
 import LoginUtil from '../Utils/Login';
 
 const LoginPage: FunctionComponent = () => {
-    const user: User = new User();
     const apiUrl: URL = LOGIN_API_URL;
 
     return (
@@ -46,8 +45,7 @@ const LoginPage: FunctionComponent = () => {
                                         </div>
 
                                         <ModelForm<User>
-                                            type={User}
-                                            model={user}
+                                            modelType={User}
                                             id="login-form"
                                             fields={[
                                                 {

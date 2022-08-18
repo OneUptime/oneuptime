@@ -6,7 +6,7 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import StatusPage from 'Model/Models/StatusPage';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
@@ -28,8 +28,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ModelTable<StatusPage>
-                type={StatusPage}
-                model={new StatusPage()}
+                modelType={StatusPage}
                 id="status-page-table"
                 isDeleteable={false}
                 isEditable={true}
@@ -77,7 +76,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                     {
@@ -85,7 +84,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                 ]}

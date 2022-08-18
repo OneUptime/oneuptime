@@ -49,11 +49,11 @@ export default class UserMiddleware {
         res: ExpressResponse,
         next: NextFunction
     ): Promise<void> {
-        const projectId: ObjectID | null = ProjectMiddleware.getProjectId(req);
+        const tenantId: ObjectID | null = ProjectMiddleware.getProjectId(req);
         const oneuptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
 
-        if (projectId) {
-            oneuptimeRequest.projectId = projectId;
+        if (tenantId) {
+            oneuptimeRequest.tenantId = tenantId;
 
             if (ProjectMiddleware.hasApiKey(req)) {
                 return await ProjectMiddleware.isValidProjectIdAndApiKeyMiddleware(
@@ -102,19 +102,19 @@ export default class UserMiddleware {
         oneuptimeRequest.userGlobalAccessPermission =
             userGlobalAccessPermission;
 
-        if (projectId) {
+        if (tenantId) {
             // get project level permissions if projectid exists in request.
 
             let userProjectAccessPermission: UserProjectAccessPermission | null =
                 await AccessTokenService.getUserProjectAccessPermission(
                     oneuptimeRequest.userAuthorization.userId,
-                    projectId
+                    tenantId
                 );
             if (!userProjectAccessPermission) {
                 userProjectAccessPermission =
                     await AccessTokenService.refreshUserProjectAccessPermission(
                         oneuptimeRequest.userAuthorization.userId,
-                        projectId
+                        tenantId
                     );
             }
 

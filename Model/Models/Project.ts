@@ -1,5 +1,5 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import BaseModel from 'Common/Models/BaseModel';
+import TenantModel from 'Common/Models/TenantModel';
 import User from './User';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -13,12 +13,18 @@ import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
-import EntityName from 'Common/Types/Database/EntityName';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
+@MultiTenentQueryAllowed(true)
 @TableAccessControl({
     create: [Permission.User],
-    read: [Permission.ProjectMember],
+    read: [
+        Permission.ProjectMember,
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+    ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProject],
     update: [
         Permission.ProjectOwner,
@@ -26,17 +32,21 @@ import EntityName from 'Common/Types/Database/EntityName';
         Permission.CanUpdateProject,
     ],
 })
-@EntityName('Project', 'Projects')
+@SingularPluralName('Project', 'Projects')
 @CrudApiEndpoint(new Route('/project'))
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'Project',
 })
-@ProjectColumn('_id')
-export default class Model extends BaseModel {
+@TenantColumn('_id')
+export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [Permission.ProjectMember],
+        read: [
+            Permission.ProjectMember,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+        ],
         update: [
             Permission.ProjectOwner,
             Permission.CanManageProjectBilling,
@@ -54,7 +64,11 @@ export default class Model extends BaseModel {
     @Index()
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [Permission.ProjectMember],
+        read: [
+            Permission.ProjectMember,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+        ],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -68,7 +82,11 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [Permission.ProjectMember],
+        read: [
+            Permission.ProjectMember,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -82,7 +100,11 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [Permission.ProjectMember],
+        read: [
+            Permission.ProjectMember,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -96,7 +118,11 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [
+            Permission.ProjectMember,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+        ],
         update: [],
     })
     @TableColumn({
@@ -113,7 +139,11 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [Permission.ProjectMember],
+        read: [
+            Permission.ProjectMember,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+        ],
         update: [],
     })
     @TableColumn({
@@ -137,7 +167,11 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [
+            Permission.ProjectMember,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -174,7 +208,11 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [
+            Permission.ProjectMember,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -187,7 +225,11 @@ export default class Model extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [
+            Permission.ProjectMember,
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+        ],
         update: [
             Permission.ProjectOwner,
             Permission.CanManageProjectBilling,

@@ -15,10 +15,10 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
-import ProjectColumn from 'Common/Types/Database/ProjectColumn';
-import EntityName from 'Common/Types/Database/EntityName';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
+import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
-@ProjectColumn('projectId')
+@TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
     read: [
@@ -31,7 +31,7 @@ import EntityName from 'Common/Types/Database/EntityName';
 })
 @CrudApiEndpoint(new Route('/label'))
 @SlugifyColumn('name', 'slug')
-@EntityName('Label', 'Labels')
+@SingularPluralName('Label', 'Labels')
 @Entity({
     name: 'Label',
 })

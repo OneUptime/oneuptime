@@ -45,7 +45,7 @@ export default class Name extends DatabaseProperty {
         return this.name;
     }
 
-    protected static override toDatabase(
+    public static override toDatabase(
         _value: Name | FindOperator<Name>
     ): string | null {
         if (_value) {
@@ -55,7 +55,7 @@ export default class Name extends DatabaseProperty {
         return null;
     }
 
-    protected static override fromDatabase(_value: string): Name | null {
+    public static override fromDatabase(_value: string): Name | null {
         if (_value) {
             return new Name(_value);
         }

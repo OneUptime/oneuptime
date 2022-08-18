@@ -13,7 +13,7 @@ import Alert, { AlertType } from '../Alerts/Alert';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
-    type: { new (): TBaseModel };
+    modelType: { new (): TBaseModel };
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
     onSuccess?:
@@ -25,7 +25,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
 }
 
-const ModelFromModal: Function = <TBaseModel extends BaseModel>(
+const ModelFormModal: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
@@ -47,7 +47,7 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
             {!error ? (
                 <ModelForm<TBaseModel>
                     {...props.formProps}
-                    type={props.type}
+                    modelType={props.modelType}
                     modelIdToEdit={props.modelIdToEdit}
                     hideSubmitButton={true}
                     onLoadingChange={(isFormLoading: boolean) => {
@@ -73,4 +73,4 @@ const ModelFromModal: Function = <TBaseModel extends BaseModel>(
     );
 };
 
-export default ModelFromModal;
+export default ModelFormModal;

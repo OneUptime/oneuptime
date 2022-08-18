@@ -1,5 +1,4 @@
 // Have "Project" string in the permission to make sure this permission is by Project.
-
 import BadDataException from './Exception/BadDataException';
 import { JSONObject } from './JSON';
 import ObjectID from './ObjectID';
@@ -22,7 +21,7 @@ enum Permission {
 
     User = 'User', //registered user. Can or cannot belong to a project.
 
-    CurrentUser = 'CurrentUser', // Current logged in user.
+    LoggedInUser = 'LoggedInUser', // Current logged in user.
 
     CustomerSupport = 'CustomerSupport', // Customer Support for OneUptime.
 
@@ -62,6 +61,18 @@ enum Permission {
     CanReadProjectLabel = 'CanReadProjectLabel',
     CanDeleteProjectLabel = 'CanDeleteProjectLabel',
     CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
+
+    // MonitorStatus Permissions (Owner + Admin Permission by default)
+    CanCreateProjectMonitorStatus = 'CanCreateProjectMonitorStatus',
+    CanEditProjectMonitorStatus = 'CanEditProjectMonitorStatus',
+    CanReadProjectMonitorStatus = 'CanReadProjectMonitorStatus',
+    CanDeleteProjectMonitorStatus = 'CanDeleteProjectMonitorStatus',
+
+    // IncidentState Permissions (Owner + Admin Permission by default)
+    CanCreateProjectIncidentState = 'CanCreateProjectIncidentState',
+    CanEditProjectIncidentState = 'CanEditProjectIncidentState',
+    CanReadProjectIncidentState = 'CanReadProjectIncidentState',
+    CanDeleteProjectIncidentState = 'CanDeleteProjectIncidentState',
 
     // Resource Permissions (Team Permission)
     CanCreateProjectMonitor = 'CanCreateProjectMonitor',
@@ -145,6 +156,27 @@ export class PermissionHelper {
         return permissionProps[0].title;
     }
 
+    public static getPermissionTitles(
+        permissions: Array<Permission>
+    ): Array<string> {
+        const props: Array<PermissionProps> = this.getAllPermissionProps();
+        const titles: Array<string> = [];
+
+        for (const permission of permissions) {
+            const permissionProp: PermissionProps | undefined = props.find(
+                (item: PermissionProps) => {
+                    return item.permission === permission;
+                }
+            );
+
+            if (permissionProp) {
+                titles.push(permissionProp.title);
+            }
+        }
+
+        return titles;
+    }
+
     public static getAllPermissionProps(): Array<PermissionProps> {
         const permissions: Array<PermissionProps> = [
             {
@@ -169,10 +201,10 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CurrentUser,
-                title: 'Current User',
+                permission: Permission.LoggedInUser,
+                title: 'Logged in User',
                 description:
-                    'Owner of this project, manages billing, inviting other admins to this project, and can delete this project.',
+                    'This permission is assigned to any registered user.',
                 isAssignableToProject: false,
             },
             {
@@ -285,6 +317,64 @@ export class PermissionHelper {
                 title: 'Can Read Label',
                 description:
                     'A user assigned this permission  can read labels of this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateProjectMonitorStatus,
+                title: 'Can Create Monitor Status',
+                description:
+                    'A user assigned this permission can create monitor statuses this this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectMonitorStatus,
+                title: 'Can Delete Monitor Status',
+                description:
+                    'A user assigned this permission  can delete monitor statuses of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectMonitorStatus,
+                title: 'Can Edit Monitor Status',
+                description:
+                    'A user assigned this permission can edit monitor statuses of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectMonitorStatus,
+                title: 'Can Read Monitor Status',
+                description:
+                    'A user assigned this permission  can read monitor statuses of this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateProjectIncidentState,
+                title: 'Can Create Incident State',
+                description:
+                    'A user assigned this permission can create incident state in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectIncidentState,
+                title: 'Can Delete Incident State',
+                description:
+                    'A user assigned this permission  can delete incident state in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectIncidentState,
+                title: 'Can Edit Incident State',
+                description:
+                    'A user assigned this permission can edit incident state in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectIncidentState,
+                title: 'Can Read Incident State',
+                description:
+                    'A user assigned this permission  can read incident state in this project.',
                 isAssignableToProject: true,
             },
 
@@ -484,14 +574,17 @@ export class PermissionHelper {
 export interface UserGlobalAccessPermission extends JSONObject {
     projectIds: Array<ObjectID>;
     globalPermissions: Array<Permission>;
+    _type: 'UserGlobalAccessPermission';
 }
 
 export interface UserPermission extends JSONObject {
+    _type: 'UserPermission';
     permission: Permission;
     labelIds: Array<ObjectID>;
 }
 
 export interface UserProjectAccessPermission extends JSONObject {
+    _type: 'UserProjectAccessPermission';
     projectId: ObjectID;
     permissions: Array<UserPermission>;
 }
@@ -499,5 +592,21 @@ export interface UserProjectAccessPermission extends JSONObject {
 export const PermissionsArray: Array<string> = [
     ...new Set(Object.keys(Permission)),
 ]; // Returns ["Owner", "Administrator"...]
+
+export function instaceOfUserProjectAccessPermission(
+    object: any
+): object is UserProjectAccessPermission {
+    return object._type === 'UserProjectAccessPermission';
+}
+
+export function instaceOfUserPermission(object: any): object is UserPermission {
+    return object._type === 'UserPermission';
+}
+
+export function instaceOfUserGlobalAccessPermission(
+    object: any
+): object is UserGlobalAccessPermission {
+    return object._type === 'UserGlobalAccessPermission';
+}
 
 export default Permission;

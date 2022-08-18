@@ -1,5 +1,5 @@
 export default (columnName: string) => {
     return (ctr: Function) => {
-        ctr.prototype.projectColumn = columnName;
+        ctr.prototype.tenantColumn = columnName;
     };
 };

@@ -1,6 +1,6 @@
 import Label from 'Model/Models/Label';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-import { Black } from 'CommonUI/src/Utils/BrandColors';
+import { Black } from 'Common/Types/BrandColors';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {

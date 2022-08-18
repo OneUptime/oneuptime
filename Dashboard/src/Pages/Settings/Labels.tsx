@@ -7,14 +7,14 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Label from 'Model/Models/Label';
-import TableColumnType from 'CommonUI/src/Components/Table/Types/TableColumnType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
-const APIKeys: FunctionComponent<PageComponentProps> = (
+const Labels: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
@@ -37,8 +37,10 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             <ModelTable<Label>
-                type={Label}
-                model={new Label()}
+                modelType={Label}
+                query={{
+                    projectId: props.currentProject?._id,
+                }}
                 id="labels-table"
                 isDeleteable={true}
                 isEditable={true}
@@ -93,7 +95,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                             name: true,
                         },
                         title: 'Name',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                         moreFields: {
                             color: true,
@@ -112,7 +114,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                             description: true,
                         },
                         title: 'Description',
-                        type: TableColumnType.Text,
+                        type: FieldType.Text,
                         isFilterable: true,
                     },
                 ]}
@@ -121,4 +123,4 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default APIKeys;
+export default Labels;

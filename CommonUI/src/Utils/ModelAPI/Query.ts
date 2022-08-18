@@ -1,8 +1,8 @@
 import BaseModel from 'Common/Models/BaseModel';
 import Search from 'Common/Types/Database/Search';
-import { JSONValue } from 'Common/Types/JSON';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
 
-type Query<TBaseModel extends BaseModel> = {
+type Query<TBaseModel extends BaseModel | JSONObject> = {
     [P in keyof TBaseModel]?: JSONValue | Search;
 };
 

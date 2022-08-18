@@ -3,7 +3,7 @@ import React, { FunctionComponent } from 'react';
 import Navigation from '../../Utils/Navigation';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import UILink from '../Link/Link';
-import { Red, Yellow } from '../../Utils/BrandColors';
+import { Red, Yellow } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     link: Link;

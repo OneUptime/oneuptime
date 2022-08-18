@@ -28,7 +28,10 @@ export default class PermissionUtil {
             'project_permissions'
         ) as JSONObject;
 
-        return permissions as UserProjectAccessPermission;
+        const userProjectAccessPermission: UserProjectAccessPermission =
+            permissions as UserProjectAccessPermission;
+        userProjectAccessPermission._type = 'UserProjectAccessPermission';
+        return userProjectAccessPermission;
     }
 
     public static projectPermissionsAsDropdownOptions(): Array<DropdownOption> {

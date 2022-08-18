@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Project';
-import DatabaseService from './DatabaseService';
+import DatabaseService, { OnCreate, OnFind } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import TeamService from './TeamService';
@@ -16,6 +16,9 @@ import { In } from 'typeorm';
 import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import { Yellow, Green, Red } from 'Common/Types/BrandColors';
+import MonitorStatusService from './MonitorStatusService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -24,7 +27,7 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeCreate(
         data: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
+    ): Promise<OnCreate<Model>> {
         if (!data.data.name) {
             throw new BadDataException('Project name is required');
         }
@@ -68,17 +71,70 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        return Promise.resolve(data);
+        return Promise.resolve({ createBy: data, carryForward: null });
     }
 
     protected override async onCreateSuccess(
-        createdItem: CreateBy<Model>
-    ): Promise<CreateBy<Model>> {
+        _onCreate: OnCreate<Model>,
+        createdItem: Model
+    ): Promise<Model> {
+        // add default teams.
+        createdItem = await this.addDefaultProjectTeams(createdItem);
+        createdItem = await this.addDefaultMonitorStatus(createdItem);
+
+        return createdItem;
+    }
+
+    public async addDefaultMonitorStatus(createdItem: Model): Promise<Model> {
+        let operationalStatus: MonitorStatus = new MonitorStatus();
+        operationalStatus.name = 'Operational';
+        operationalStatus.description = 'Monitor operating normally';
+        operationalStatus.projectId = createdItem.id!;
+        operationalStatus.color = Green;
+
+        operationalStatus = await MonitorStatusService.create({
+            data: operationalStatus,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        let degradedStatus: MonitorStatus = new MonitorStatus();
+        degradedStatus.name = 'Degraded';
+        degradedStatus.description =
+            'Monitor is operating at reduced performance.';
+        degradedStatus.projectId = createdItem.id!;
+        degradedStatus.color = Yellow;
+
+        degradedStatus = await MonitorStatusService.create({
+            data: degradedStatus,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        let downStatus: MonitorStatus = new MonitorStatus();
+        downStatus.name = 'Offline';
+        downStatus.description = 'Monitor is offline.';
+        downStatus.projectId = createdItem.id!;
+        downStatus.color = Red;
+
+        downStatus = await MonitorStatusService.create({
+            data: downStatus,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        return createdItem;
+    }
+
+    public async addDefaultProjectTeams(createdItem: Model): Promise<Model> {
         // add a team member.
 
         // Owner Team.
         let ownerTeam: Team = new Team();
-        ownerTeam.projectId = createdItem.data.id!;
+        ownerTeam.projectId = createdItem.id!;
         ownerTeam.name = 'Owners';
         ownerTeam.isPermissionsEditable = false;
         ownerTeam.isTeamEditable = false;
@@ -96,8 +152,8 @@ export class Service extends DatabaseService<Model> {
         // Add current user to owners team.
 
         let ownerTeamMember: TeamMember = new TeamMember();
-        ownerTeamMember.projectId = createdItem.data.id!;
-        ownerTeamMember.userId = createdItem.props.userId!;
+        ownerTeamMember.projectId = createdItem.id!;
+        ownerTeamMember.userId = createdItem.createdByUserId!;
         ownerTeamMember.hasAcceptedInvitation = true;
         ownerTeamMember.invitationAcceptedAt = OneUptimeDate.getCurrentDate();
         ownerTeamMember.teamId = ownerTeam.id!;
@@ -114,7 +170,7 @@ export class Service extends DatabaseService<Model> {
         const ownerPermissions: TeamPermission = new TeamPermission();
         ownerPermissions.permission = Permission.ProjectOwner;
         ownerPermissions.teamId = ownerTeam.id!;
-        ownerPermissions.projectId = createdItem.data.id!;
+        ownerPermissions.projectId = createdItem.id!;
 
         await TeamPermissionService.create({
             data: ownerPermissions,
@@ -125,7 +181,7 @@ export class Service extends DatabaseService<Model> {
 
         // Admin Team.
         const adminTeam: Team = new Team();
-        adminTeam.projectId = createdItem.data.id!;
+        adminTeam.projectId = createdItem.id!;
         adminTeam.name = 'Admin';
         adminTeam.isPermissionsEditable = false;
         adminTeam.isTeamDeleteable = false;
@@ -143,7 +199,7 @@ export class Service extends DatabaseService<Model> {
         const adminPermissions: TeamPermission = new TeamPermission();
         adminPermissions.permission = Permission.ProjectAdmin;
         adminPermissions.teamId = adminTeam.id!;
-        adminPermissions.projectId = createdItem.data.id!;
+        adminPermissions.projectId = createdItem.id!;
 
         await TeamPermissionService.create({
             data: adminPermissions,
@@ -154,7 +210,7 @@ export class Service extends DatabaseService<Model> {
 
         // Members Team.
         const memberTeam: Team = new Team();
-        memberTeam.projectId = createdItem.data.id!;
+        memberTeam.projectId = createdItem.id!;
         memberTeam.isPermissionsEditable = true;
         memberTeam.name = 'Members';
         memberTeam.isTeamDeleteable = true;
@@ -171,7 +227,7 @@ export class Service extends DatabaseService<Model> {
         const memberPermissions: TeamPermission = new TeamPermission();
         memberPermissions.permission = Permission.ProjectMember;
         memberPermissions.teamId = memberTeam.id!;
-        memberPermissions.projectId = createdItem.data.id!;
+        memberPermissions.projectId = createdItem.id!;
 
         await TeamPermissionService.create({
             data: memberPermissions,
@@ -180,12 +236,12 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-        return Promise.resolve(createdItem);
+        return createdItem;
     }
 
     protected override async onBeforeFind(
         findBy: FindBy<Model>
-    ): Promise<FindBy<Model>> {
+    ): Promise<OnFind<Model>> {
         // if user has no project id, then he should not be able to access any project.
         if (
             (!findBy.props.isRoot &&
@@ -196,7 +252,7 @@ export class Service extends DatabaseService<Model> {
             findBy.query._id = In([]); // should not get any projects.
         }
 
-        return findBy;
+        return { findBy, carryForward: null };
     }
 }
 export default new Service();
