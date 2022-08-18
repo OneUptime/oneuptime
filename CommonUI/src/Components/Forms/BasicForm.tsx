@@ -120,7 +120,7 @@ const BasicForm: Function = <T extends Object>(
                     {field.sideLink &&
                         field.sideLink?.text &&
                         field.sideLink?.url && (
-                            <span>
+                            <span data-testid="login-forgot-password">
                                 <Link
                                     to={field.sideLink?.url}
                                     className="underline-on-hover"
