@@ -10,8 +10,8 @@ README = (HERE / "README.rst").read_text()
 setup(
     name="oneuptime_sdk", # Replace with your own username
     version="1.0.0",
-    author="HackerBay, Inc.",
-    author_email="hello@hackerbay.io",
+    author="OneUptime Limited.",
+    author_email="hello@oneuptime.com",
     description="A OneUptime package that tracks error event and send logs from your applications to your oneuptime dashboard.",
     long_description=README,
     long_description_content_type="text/x-rst",

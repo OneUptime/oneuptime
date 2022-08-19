@@ -10,7 +10,7 @@ Usage can be found at [Examples and Usage](README.rst)
 
 Main API to send logs to the server.
 
-**Author**: HackerBay, Inc.
+**Author**: OneUptime Limited.
 
 <a name="logger_api--logger"></a>
 

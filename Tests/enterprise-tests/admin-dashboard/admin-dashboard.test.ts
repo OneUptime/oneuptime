@@ -48,7 +48,7 @@ describe('Enterprise Admin Dashboard API', () => {
             localStorageData.should.have.property('access_token');
             localStorageData.should.have.property(
                 'email',
-                'masteradmin@hackerbay.io'
+                'masteradmin@oneuptime.com'
             );
             page.url().should.containEql(utils.ADMIN_DASHBOARD_URL);
             done();

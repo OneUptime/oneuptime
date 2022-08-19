@@ -6,7 +6,7 @@ import init from '../../test-init';
 import 'should';
 let browser: $TSFixMe, page: $TSFixMe;
 // User credentials
-const email: string = 'masteradmin@hackerbay.io';
+const email: string = 'masteradmin@oneuptime.com';
 const password: string = '1234567890';
 const createUserMail: Email = utils.generateRandomBusinessEmail();
 

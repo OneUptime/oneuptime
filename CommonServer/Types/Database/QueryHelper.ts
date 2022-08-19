@@ -1,17 +1,24 @@
 import ObjectID from 'Common/Types/ObjectID';
 import { FindOperator, Raw } from 'typeorm';
 import Text from 'Common/Types/Text';
+import Typeof from 'Common/Types/Typeof';
 
 export default class QueryHelper {
-    public static findWithSameName(name: string): FindOperator<any> {
-        name = name.toLowerCase().trim();
+    public static findWithSameText(text: string | number): FindOperator<any> {
+
+        let isString = false; 
+
+        if (typeof text === Typeof.String) {
+            text = (text as string).toLowerCase().trim();
+            isString = true; 
+        }
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return `LOWER(${alias}) = :${rid}`;
+                return isString ? `LOWER(${alias}) = :${rid}`: `${alias} = :${rid}`;
             },
             {
-                [rid]: `${name}`,
+                [rid]: `${text}`,
             }
         );
     }

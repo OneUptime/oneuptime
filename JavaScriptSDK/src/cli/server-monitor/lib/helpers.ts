@@ -1,6 +1,6 @@
 /**
  * @fileoverview HTTP wrapper functions module.
- * @author HackerBay, Inc.
+ * @author OneUptime Limited.
  * @module helpers
  * @see module:config
  * @see module:logger

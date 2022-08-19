@@ -20,9 +20,9 @@
         "greenlock",
         "oneuptime"
     ],
-    "author": "HackerBay, Inc.  <hello@hackerbay.io>",
+    "author": "OneUptime Limited.  <hello@oneuptime.com>",
     "contributors": [
-        "HackerBay, Inc.  <hello@hackerbay.io>"
+        "OneUptime Limited.  <hello@oneuptime.com>"
     ],
     "license": "MIT",
     "devDependencies": {

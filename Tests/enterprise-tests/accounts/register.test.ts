@@ -7,7 +7,7 @@ import init from '../../test-init';
 let browser: $TSFixMe, otherBrowser: $TSFixMe;
 let page: $TSFixMe, otherPage: $TSFixMe;
 
-const email: string = 'masteradmin@hackerbay.io';
+const email: string = 'masteradmin@oneuptime.com';
 const password: string = '1234567890';
 const user: $TSFixMe = {
     email,

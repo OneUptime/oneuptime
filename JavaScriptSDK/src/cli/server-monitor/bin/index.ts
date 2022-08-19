@@ -2,7 +2,7 @@
 
 /**
  * @fileoverview Main CLI that is run via the oneuptime-server-monitor command.
- * @author HackerBay, Inc.
+ * @author OneUptime Limited.
  * @module server-monitor
  * @see module:api
  */

@@ -9,6 +9,8 @@ export interface ComponentProps {
     actionButtons?: undefined | Array<ActionButtonSchema>;
     titleField: string; 
     descriptionField?: string | undefined; 
+    getTitleElement?: ((item: JSONObject) => ReactElement) | undefined;
+    getDescriptionElement?:  ((item: JSONObject) => ReactElement) | undefined;
 }
 
 const Item: FunctionComponent<ComponentProps> = (
@@ -24,7 +26,7 @@ const Item: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string>('');
 
     return (
-        <div>
+        <div className='ordered-list-item'>
              {error && (
                 <ConfirmModal
                     title={`Error`}
@@ -35,9 +37,14 @@ const Item: FunctionComponent<ComponentProps> = (
                     }}
                 />
             )}
-            <div>{props.item[props.titleField] ? props.item[props.titleField]  as string : '' }</div>
-            <div>{props.descriptionField && props.item[props.descriptionField] ? props.item[props.descriptionField] as string :  ''}</div>
-            <div>
+
+            {!props.getTitleElement && <div>{props.item[props.titleField] ? props.item[props.titleField] as string : ''}</div>}
+            {props.getTitleElement && <div>{props.getTitleElement(props.item)}</div>}
+            <div className='margin-10'>
+            {props.getDescriptionElement && <div>{props.getDescriptionElement(props.item)}</div>}
+                {!props.getDescriptionElement && <div>{props.descriptionField && props.item[props.descriptionField] ? props.item[props.descriptionField] as string : ''}</div>}
+                </div>
+            <div className='margin-10'>
                 {props.actionButtons?.map(
                     (button: ActionButtonSchema, i: number) => {
                         return (

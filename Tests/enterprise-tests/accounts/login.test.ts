@@ -81,8 +81,8 @@ describe('SSO login', () => {
         await moveToSsoPage(page);
         await createSso(page, {
             'saml-enabled': false,
-            applicationId: 'hackerbay.io',
-            domain: `disabled-domain.hackerbay.io`,
+            applicationId: 'oneuptime.com',
+            domain: `disabled-domain.oneuptime.com`,
             samlSsoUrl:
                 'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
             certificateFingerprint: 'AZERTYUIOP',
@@ -91,8 +91,8 @@ describe('SSO login', () => {
         });
         await createSso(page, {
             'saml-enabled': true,
-            domain: `tests.hackerbay.io`,
-            applicationId: 'hackerbay.io',
+            domain: `tests.oneuptime.com`,
+            applicationId: 'oneuptime.com',
             samlSsoUrl:
                 'http://localhost:9876/simplesaml/saml2/idp/SSOService.php',
             certificateFingerprint: 'AZERTYUIOP',
@@ -125,7 +125,7 @@ describe('SSO login', () => {
             await init.pageType(
                 page,
                 'input[name=email]',
-                'email@inexistent-domain.hackerbay.io'
+                'email@inexistent-domain.oneuptime.com'
             );
             await Promise.all([
                 init.pageClick(page, 'button[type=submit]'),
@@ -163,7 +163,7 @@ describe('SSO login', () => {
             await init.pageType(
                 page,
                 'input[name=email]',
-                'email@disabled-domain.hackerbay.io'
+                'email@disabled-domain.oneuptime.com'
             );
             await Promise.all([
                 init.pageClick(page, 'button[type=submit]'),
@@ -201,7 +201,7 @@ describe('SSO login', () => {
             await init.pageType(
                 page,
                 'input[name=email]',
-                'email@tests.hackerbay.io'
+                'email@tests.oneuptime.com'
             );
             const [response] = await Promise.all([
                 page.waitForNavigation('networkidle2'),

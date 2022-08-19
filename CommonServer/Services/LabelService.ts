@@ -25,7 +25,7 @@ export class Service extends DatabaseService<Model> {
                                 return item.toString();
                             }
                         ) || [],
-                    name: QueryHelper.findWithSameName(createBy.data.name!),
+                    name: QueryHelper.findWithSameText(createBy.data.name!),
                     projectId: createBy.props.tenantId!,
                 },
                 props: {

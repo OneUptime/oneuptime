@@ -87,6 +87,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     onBeforeDelete?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     onBeforeView?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    sortBy?: string | undefined;
+    sortOrder?: SortOrder | undefined
     orderedStatesListProps?: {
         titleField: string;
         descriptionField?: string | undefined;
@@ -102,9 +104,11 @@ enum ModalType {
 const ModelTable: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
+    
+    let showTableAs = props.showTableAs;
 
-    if (!props.showTableAs) {
-        props.showTableAs = ShowTableAs.Table;
+    if (!showTableAs) {
+        showTableAs = ShowTableAs.Table;
     }
 
 
@@ -128,8 +132,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [showModel, setShowModal] = useState<boolean>(false);
     const [showTableFilter, setShowTableFilter] = useState<boolean>(false);
     const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
-    const [sortBy, setSortBy] = useState<string>('');
-    const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
+    const [sortBy, setSortBy] = useState<string>(props.sortBy || '');
+    const [sortOrder, setSortOrder] = useState<SortOrder>(props.sortOrder || SortOrder.Ascending);
     const [showDeleteConfirmModal, setShowDeleteConfirmModal] =
         useState<boolean>(false);
     const [currentEditableItem, setCurrentEditableItem] =
@@ -245,7 +249,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             _id: true,
         };
 
-        for (const column of props.columns) {
+        for (const column of props.columns || []) {
             const key: string | null = column.field
                 ? (Object.keys(column.field)[0] as string)
                 : null;
@@ -269,7 +273,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const getPopulate: Function = (): Populate<TBaseModel> => {
         const populate: Populate<TBaseModel> = {};
 
-        for (const column of props.columns) {
+        for (const column of props.columns || []) {
             const key: string | null = column.field
                 ? (Object.keys(column.field)[0] as string)
                 : null;
@@ -299,7 +303,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         );
 
         // because ordered list add button is inside the table and not on the card header. 
-        if (props.isCreateable && hasPermissionToCreate && props.showTableAs !== ShowTableAs.OrderedStatesList) {
+        if (props.isCreateable && hasPermissionToCreate && showTableAs !== ShowTableAs.OrderedStatesList) {
             headerbuttons.push({
                 title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
                     }`,
@@ -391,7 +395,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         const accessControl: Dictionary<ColumnAccessControl> =
             model.getColumnAccessControlForAllColumns();
 
-        for (const column of props.columns) {
+        for (const column of props.columns || []) {
             const key: string | null = column.field
                 ? (Object.keys(column.field)[0] as string)
                 : null;
@@ -661,8 +665,23 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const getOrderedStatesList: Function = (): ReactElement => {
 
         if (!props.orderedStatesListProps) {
-            throw new BadDataException("props.orderedStatesListProps required when props.showTableAs === ShowTableAs.OrderedStatesList")
+            throw new BadDataException("props.orderedStatesListProps required when showTableAs === ShowTableAs.OrderedStatesList")
         }
+
+        let getTitleElement: ((item: JSONObject) => ReactElement) | undefined = undefined; 
+        let getDescriptionElement: ((item: JSONObject) => ReactElement) | undefined = undefined; 
+        
+        for (const column of props.columns) {
+            const key = Object.keys(column.field as Object)[0];
+            if (key === props.orderedStatesListProps.titleField) {
+                getTitleElement = column.getColumnElement;
+            }
+
+            if (key === props.orderedStatesListProps.descriptionField) {
+                getDescriptionElement = column.getColumnElement;
+            }
+        }
+
 
         return (
             <OrderedStatesList
@@ -687,6 +706,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 }
                 pluralLabel={props.pluralName || model.pluralName || 'Items'}
                 actionButtons={actionButtonSchema}
+                getTitleElement={getTitleElement}
+                getDescriptionElement={getDescriptionElement}
             />
         );
     };
@@ -725,7 +746,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const getCardComponent: Function = (): ReactElement => {
-        if (props.showTableAs === ShowTableAs.List) {
+        if (showTableAs === ShowTableAs.List) {
             return (
                 <div>
                     {props.cardProps && (
@@ -741,7 +762,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     {!props.cardProps && getList()}
                 </div>
             );
-        } else if (props.showTableAs === ShowTableAs.Table) {
+        } else if (showTableAs === ShowTableAs.Table) {
             return (
                 <div>
                     {props.cardProps && (
@@ -808,7 +829,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     onBeforeCreate={async (item: TBaseModel) => {
 
-                        if (props.showTableAs === ShowTableAs.OrderedStatesList && props.orderedStatesListProps?.orderField && orderedStatesListNewItemOrder) {
+                        if (showTableAs === ShowTableAs.OrderedStatesList && props.orderedStatesListProps?.orderField && orderedStatesListNewItemOrder) {
                             item.setColumnValue(props.orderedStatesListProps.orderField, orderedStatesListNewItemOrder);
                         }
 

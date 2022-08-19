@@ -2,7 +2,7 @@
 
 ## Colors
 
-OneUptime brand color is black, just like HackerBay.io. This will help all the HackerBay products to conform to this standard.
+OneUptime brand color is black, just like oneuptime.com. This will help all the HackerBay products to conform to this standard.
 
 -   Default: black
 -   Unhighlighted Text / Small Text: #939da3 (grey)

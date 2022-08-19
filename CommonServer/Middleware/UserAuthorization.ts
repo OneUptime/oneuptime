@@ -104,7 +104,7 @@ export default class UserMiddleware {
 
         if (tenantId) {
             // get project level permissions if projectid exists in request.
-
+            debugger;
             let userProjectAccessPermission: UserProjectAccessPermission | null =
                 await AccessTokenService.getUserProjectAccessPermission(
                     oneuptimeRequest.userAuthorization.userId,

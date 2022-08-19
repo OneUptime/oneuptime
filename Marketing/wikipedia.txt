@@ -16,7 +16,7 @@
 
 OneUptime is headquartered in [[New York, NY]] <ref>{{Cite web|url=https://www.crunchbase.com/organization/oneuptime|website=www.crunchbase.com|title=OneUptime, Crunchbase}}</ref> with operations in [[Hyderabad, India]]. Its platform is designed to alert clients to disruptions and outages through [[machine learning]] and automation.
 
-OneUptime is a owned by HackerBay, Inc. an enterprise software company responsible for building products like [[CloudBoost]]<ref>{{Cite web|url=https://cloudboost.io|website=www.cloudboost.io|title=CloudBoost}}</ref>, OneUptime and many more. <ref>{{Cite web|url=https://hackerbay.io|website=www.hackerbay.io|title=HackerBay}}</ref>
+OneUptime is a owned by OneUptime Limited. an enterprise software company responsible for building products like [[CloudBoost]]<ref>{{Cite web|url=https://cloudboost.io|website=www.cloudboost.io|title=CloudBoost}}</ref>, OneUptime and many more. <ref>{{Cite web|url=https://oneuptime.com|website=www.oneuptime.com|title=HackerBay}}</ref>
 
 ==History==
 The company was founded 2014 in Hyderabad, India, by Nawaz Dhandala. The company was incubated at the [[MassChallenge]]<ref>{{Cite web|url=https://masschallenge.org/media/masschallenge-boston-announces-2017-cohort|website=www.masschallenge.com|title=MassChallenge}}</ref>.
@@ -30,7 +30,7 @@ In 2017, OneUptime launched an update with let's customers build beautiful and c
 
 ==External Links==
 * {{Official Website|https://www.oneuptime.com}}
-* [https://hackerbay.io HackerBay]
+* [https://oneuptime.com HackerBay]
 * [https://blog.oneuptime.com Official Blog]
 * [https://oneuptime.com/docs API Reference]
 * [https://oneuptime.com/customers Customers]

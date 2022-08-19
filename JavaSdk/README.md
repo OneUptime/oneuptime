@@ -128,7 +128,7 @@ public class SampleClass {
 
 Main API to send logs to the server.
 
-**Author**: HackerBay, Inc.
+**Author**: OneUptime Limited.
 
 -   [OneUptime SDK](#oneuptime-sdk)
     -   [Installation](#installation)

@@ -8,7 +8,7 @@ let browser: $TSFixMe,
     page: $TSFixMe,
     browserPage: $TSFixMe;
 const admin: $TSFixMe = {
-    email: 'masteradmin@hackerbay.io',
+    email: 'masteradmin@oneuptime.com',
     password: '1234567890',
 };
 // User credentials

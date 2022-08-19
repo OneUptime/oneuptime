@@ -510,7 +510,7 @@ const _this: $TSFixMe = {
         page: $TSFixMe
     ): void {
         const masterAdmin: $TSFixMe = {
-            email: 'masteradmin@hackerbay.io',
+            email: 'masteradmin@oneuptime.com',
             password: '1234567890',
         };
         await page.goto(utils.ACCOUNTS_URL + '/login', {

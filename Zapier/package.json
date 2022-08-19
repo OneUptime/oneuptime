@@ -3,7 +3,7 @@
     "version": "3.0.18",
     "description": "OneUptime is an automation tool that helps you monitor the performance and downtime of your APIs and Web apps.",
     "homepage": "https://oneuptime.com",
-    "author": "HackerBay <hello@hackerbay.io>",
+    "author": "HackerBay <hello@oneuptime.com>",
     "license": "MIT",
     "main": "index.ts",
     "scripts": {

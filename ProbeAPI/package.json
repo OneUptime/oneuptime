@@ -12,7 +12,7 @@
         "test": "jest"
     },
     "keywords": [],
-    "author": "HackerBay, Inc. ",
+    "author": "OneUptime Limited. ",
     "license": "MIT",
     "type": "module",
     "dependencies": {

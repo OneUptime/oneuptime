@@ -50,7 +50,7 @@ export class Service extends DatabaseService<Model> {
                                     return item.toString();
                                 }
                             ) || [],
-                        name: QueryHelper.findWithSameName(data.data.name!),
+                        name: QueryHelper.findWithSameText(data.data.name!),
                     },
                     props: {
                         isRoot: true,
@@ -97,7 +97,6 @@ export class Service extends DatabaseService<Model> {
         createdIncidentState.isCreatedState = true;
         createdIncidentState.projectId = createdItem.id!;
         createdIncidentState.order = 1;
-
 
         createdIncidentState = await IncidentStateService.create({
             data: createdIncidentState,
