@@ -473,7 +473,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             existingItemsWithSameNameCount = (
                 await this.countBy({
                     query: {
-                        [key]: QueryHelper.findWithSameName(
+                        [key]: QueryHelper.findWithSameText(
                             (createBy.data as any)[key]
                                 ? ((createBy.data as any)[key]! as string)
                                 : ''
@@ -581,7 +581,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                `You do not have permissions to ${type} record of type ${
+                `You do not have permissions to ${type} ${
                     this.model.singularName
                 }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                     modelPermissions

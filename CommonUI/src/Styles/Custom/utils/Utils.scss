@@ -83,6 +83,12 @@
     margin: 5px
  }
 
+ .margin-side-5{
+    margin-left: 5px;
+    margin-right: 5px
+
+ }
+
 
  .margin-50{
     margin: 50px
@@ -173,6 +179,10 @@
     padding-left: 10px;
 }
 
+.margin-30{
+    margin: 30px;
+}
+
 .width-max {
     width: 100% !important;
 }
@@ -234,4 +244,24 @@
 
 .text-align-left{
     text-align: left;
+}
+
+
+//// Ordered List
+
+.ordered-list-item{
+    border-style: solid;
+    margin: auto;
+    text-align: center;
+    width: 400px;
+    padding: 20px;
+    border-width: 1px;
+    border-radius: 10px;
+    border-color: $color-lighter-grey;
+}
+
+.ordered-list-item-add-button{
+    border-style: dashed;
+    border-radius: 500px;
+    width: 300px;
 }

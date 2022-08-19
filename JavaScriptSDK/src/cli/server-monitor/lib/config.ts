@@ -1,6 +1,6 @@
 /**
  * @fileoverview Main application config module.
- * @author HackerBay, Inc.
+ * @author OneUptime Limited.
  * @module config
  */
 

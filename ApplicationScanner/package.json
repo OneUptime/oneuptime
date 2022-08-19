@@ -11,7 +11,7 @@
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true"
     },
-    "author": "HackerBay, Inc.",
+    "author": "OneUptime Limited.",
     "license": "MIT",
     "devDependencies": {
         "depcheck": "^1.4.3",

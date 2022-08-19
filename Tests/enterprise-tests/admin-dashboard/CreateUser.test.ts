@@ -9,7 +9,7 @@ const userEmail: Email = utils.generateRandomBusinessEmail();
 const password: string = '1234567890';
 let browser: $TSFixMe, page: $TSFixMe;
 const masterAdmin: $TSFixMe = {
-    email: 'masteradmin@hackerbay.io',
+    email: 'masteradmin@oneuptime.com',
     password: '1234567890',
 };
 

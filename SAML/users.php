@@ -11,12 +11,12 @@ $config = array(
         'user1:user1pass' => array(
             'uid' => array('1'),
             'eduPersonAffiliation' => array('group1'),
-            'email' => 'user1@tests.hackerbay.io',
+            'email' => 'user1@tests.oneuptime.com',
         ),
         'user2:user2pass' => array(
             'uid' => array('2'),
             'eduPersonAffiliation' => array('group2'),
-            'email' => 'user2@tests.hackerbay.io',
+            'email' => 'user2@tests.oneuptime.com',
         ),
     ),
 

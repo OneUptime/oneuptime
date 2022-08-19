@@ -100,7 +100,7 @@ brew install swaks
 
 # Test
 
-swaks --to jude@hackerbay.io --from support@oneuptime.com --server localhost \
+swaks --to jude@oneuptime.com --from support@oneuptime.com --server localhost \
   --port 2525 --auth-user user@oneuptime.com --auth-password oneuptime
 
 ```

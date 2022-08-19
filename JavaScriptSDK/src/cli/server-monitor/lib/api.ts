@@ -1,6 +1,6 @@
 /**
  * @fileoverview Main API to authenticate user, start and stop server monitoring.
- * @author HackerBay, Inc.
+ * @author OneUptime Limited.
  * @module api
  * @see module:helpers
  * @see module:logger

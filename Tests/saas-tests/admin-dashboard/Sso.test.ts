@@ -6,7 +6,7 @@ let browser: $TSFixMe, page: $TSFixMe;
 import 'should';
 
 // User credentials
-const email: string = 'masteradmin@hackerbay.io';
+const email: string = 'masteradmin@oneuptime.com';
 const password: string = '1234567890';
 
 const moveToSsoPage: Function = async (page: $TSFixMe): void => {
@@ -108,11 +108,11 @@ describe('SSO API', () => {
             await init.pageWaitForSelector(page, '#no-sso-message');
 
             await createSso(page, {
-                domain: 'test.hackerbay.io',
-                entityId: 'hackerbay.io', //Updated UI
-                remoteLoginUrl: 'test.hackerbay.io/login',
+                domain: 'test.oneuptime.com',
+                entityId: 'oneuptime.com', //Updated UI
+                remoteLoginUrl: 'test.oneuptime.com/login',
                 certificateFingerprint: 'AZERTYUIOP',
-                remoteLogoutUrl: 'test.hackerbay.io/logout',
+                remoteLogoutUrl: 'test.oneuptime.com/logout',
                 ipRanges: '127.0.0.1',
             });
 
@@ -136,7 +136,7 @@ describe('SSO API', () => {
                 }
             );
 
-            expect(tbody).toContain('test.hackerbay.io');
+            expect(tbody).toContain('test.oneuptime.com');
 
             done();
         },
@@ -178,7 +178,7 @@ describe('SSO API', () => {
             await page.keyboard.up('Control');
             await page.keyboard.press('Backspace');
 
-            await init.pageType(page, '#domain', 'updated.test.hackerbay.io');
+            await init.pageType(page, '#domain', 'updated.test.oneuptime.com');
 
             await init.pageClick(page, '#save-button');
 
@@ -191,7 +191,7 @@ describe('SSO API', () => {
                     return e.innerHTML;
                 }
             );
-            expect(tbody).toContain('updated.test.hackerbay.io');
+            expect(tbody).toContain('updated.test.oneuptime.com');
 
             done();
         },
@@ -254,11 +254,11 @@ describe('SSO API', () => {
 
             for (let i: $TSFixMe = 0; i <= 11; i++) {
                 await createSso(page, {
-                    domain: `subdomain.${i}.test.hackerbay.io`,
-                    entityId: 'hackerbay.io', //Updated UI
-                    remoteLoginUrl: 'test.hackerbay.io/login',
+                    domain: `subdomain.${i}.test.oneuptime.com`,
+                    entityId: 'oneuptime.com', //Updated UI
+                    remoteLoginUrl: 'test.oneuptime.com/login',
                     certificateFingerprint: 'AZERTYUIOP',
-                    remoteLogoutUrl: 'test.hackerbay.io/logout',
+                    remoteLogoutUrl: 'test.oneuptime.com/logout',
                     ipRanges: '127.0.0.1',
                 });
             }
@@ -282,8 +282,8 @@ describe('SSO API', () => {
                     return e.innerHTML;
                 }
             );
-            expect(firstPageTbody).toContain('subdomain.11.test.hackerbay.io');
-            expect(firstPageTbody).toContain('subdomain.2.test.hackerbay.io');
+            expect(firstPageTbody).toContain('subdomain.11.test.oneuptime.com');
+            expect(firstPageTbody).toContain('subdomain.2.test.oneuptime.com');
 
             await init.pageClick(page, '#next-button');
 
@@ -294,8 +294,8 @@ describe('SSO API', () => {
                     return e.innerHTML;
                 }
             );
-            expect(secondPageTbody).toContain('subdomain.1.test.hackerbay.io');
-            expect(secondPageTbody).toContain('subdomain.0.test.hackerbay.io');
+            expect(secondPageTbody).toContain('subdomain.1.test.oneuptime.com');
+            expect(secondPageTbody).toContain('subdomain.0.test.oneuptime.com');
 
             await init.pageClick(page, '#previous-button');
 
@@ -307,8 +307,10 @@ describe('SSO API', () => {
                 }
             );
 
-            expect(initalPageTbody).toContain('subdomain.11.test.hackerbay.io');
-            expect(initalPageTbody).toContain('subdomain.2.test.hackerbay.io');
+            expect(initalPageTbody).toContain(
+                'subdomain.11.test.oneuptime.com'
+            );
+            expect(initalPageTbody).toContain('subdomain.2.test.oneuptime.com');
 
             done();
         },

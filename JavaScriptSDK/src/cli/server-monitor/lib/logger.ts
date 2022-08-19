@@ -1,6 +1,6 @@
 /**
  * @fileoverview Default message and error logger service.
- * @author HackerBay, Inc.
+ * @author OneUptime Limited.
  * @module logger
  */
 

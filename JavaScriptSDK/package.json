@@ -24,7 +24,7 @@
         "logs",
         "tracker"
     ],
-    "author": "HackerBay, Inc.",
+    "author": "OneUptime Limited.",
     "license": "MIT",
     "devDependencies": {
         "@babel/cli": "^7.17.6",

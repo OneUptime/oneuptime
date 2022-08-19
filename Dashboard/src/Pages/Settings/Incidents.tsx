@@ -5,16 +5,20 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Label from 'Model/Models/Label';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import ModelTable, {
+    ShowTableAs,
+} from 'CommonUI/src/Components/ModelTable/ModelTable';
+import IncidentState from 'Model/Models/IncidentState';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import SortOrder from 'Common/Types/Database/SortOrder';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
-const IncidentState: FunctionComponent<PageComponentProps> = (
+const IncidentsPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
@@ -30,62 +34,47 @@ const IncidentState: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.SETTINGS] as Route,
                 },
                 {
-                    title: 'Labels',
-                    to: RouteMap[PageMap.SETTINGS_LABELS] as Route,
+                    title: 'Incidents',
+                    to: RouteMap[PageMap.SETTINGS_INCIDENTS] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <ModelTable<Label>
-                modelType={Label}
-                id="labels-table"
+            <ModelTable<IncidentState>
+                modelType={IncidentState}
+                id="incident-state-table"
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Label,
-                    title: 'Labels',
+                    icon: IconProp.Alert,
+                    title: 'Incident State',
                     description:
-                        'Labels help you categorize resources in your project and give granular permissions to access those resources to team members.',
+                        'Incidents have multiple states like - created, acknowledged and resolved. You can more states help you manage incidents here.',
                 }}
-                noItemsMessage={'No labels created for this project so far.'}
-                currentPageRoute={props.pageRoute}
-                formFields={[
-                    {
-                        field: {
-                            name: true,
-                        },
-                        title: 'Name',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        placeholder: 'internal-service',
-                        validation: {
-                            noSpaces: true,
-                            minLength: 2,
-                        },
-                    },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        title: 'Description',
-                        fieldType: FormFieldSchemaType.LongText,
-                        required: true,
-                        placeholder:
-                            'This label is for all the internal services.',
-                    },
-                    {
-                        field: {
-                            color: true,
-                        },
-                        title: 'Label Color',
-                        fieldType: FormFieldSchemaType.Color,
-                        required: true,
-                        placeholder: 'Please select color for this label.',
-                    },
-                ]}
-                showRefreshButton={true}
-                showFilterButton={true}
+                sortBy="order"
+                sortOrder={SortOrder.Ascending}
+                onBeforeDelete={(item: IncidentState) => {
+                    if (item.isCreatedState) {
+                        throw new BadDataException(
+                            'This incident cannot be deleted because its the created incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
+                        );
+                    }
+
+                    if (item.isAcknowledgedState) {
+                        throw new BadDataException(
+                            'This incident cannot be deleted because its the acknowledged incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
+                        );
+                    }
+
+                    if (item.isResolvedState) {
+                        throw new BadDataException(
+                            'This incident cannot be deleted because its the resolved incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
+                        );
+                    }
+
+                    return item;
+                }}
                 columns={[
                     {
                         field: {
@@ -93,9 +82,11 @@ const IncidentState: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        isFilterable: true,
                         moreFields: {
                             color: true,
+                            isCreatedState: true,
+                            isAcknowledgedState: true,
+                            isResolvedState: true,
                         },
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
@@ -112,12 +103,56 @@ const IncidentState: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
-                        isFilterable: true,
                     },
                 ]}
+                noItemsMessage={
+                    'No incident state created for this project so far.'
+                }
+                currentPageRoute={props.pageRoute}
+                formFields={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'Investigating',
+                        validation: {
+                            minLength: 2,
+                        },
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: true,
+                        placeholder:
+                            'This incident state happens when the incident is investigated',
+                    },
+                    {
+                        field: {
+                            color: true,
+                        },
+                        title: 'Color',
+                        fieldType: FormFieldSchemaType.Color,
+                        required: true,
+                        placeholder:
+                            'Please select color for this incident state.',
+                    },
+                ]}
+                showRefreshButton={true}
+                showTableAs={ShowTableAs.OrderedStatesList}
+                orderedStatesListProps={{
+                    titleField: 'name',
+                    descriptionField: 'description',
+                    orderField: 'order',
+                }}
             />
         </Page>
     );
 };
 
-export default IncidentState;
+export default IncidentsPage;

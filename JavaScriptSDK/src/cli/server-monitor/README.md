@@ -151,7 +151,7 @@ Main API to authenticate user, start and stop server monitoring.
 -   module:helpers
 -   module:logger
 
-**Author**: HackerBay, Inc.
+**Author**: OneUptime Limited.
 
 -   [OneUptime Server Monitor](#oneuptime-server-monitor)
     -   [Installation](#installation)

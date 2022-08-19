@@ -131,7 +131,7 @@ NonExistingMethod() # calling this will trigger an error and its sent to your on
 
 Main API to send logs to the server.
 
-**Author**: HackerBay, Inc.
+**Author**: OneUptime Limited.
 
 -   [OneUptime SDK](#oneuptime-sdk)
     -   [Installation](#installation)
