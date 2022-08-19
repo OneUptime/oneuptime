@@ -42,7 +42,7 @@ const Component: FunctionComponent<ComponentProps> = (
     if (show) {
         return (
             <div
-                id="toast-main"
+                data-testid="toast-main"
                 className="position-fixed top-0 end-0 p-3"
                 style={{ zIndex: '1005' }}
             >
@@ -50,7 +50,7 @@ const Component: FunctionComponent<ComponentProps> = (
                     <div className="toast-header">
                         {props.type && (
                             <div
-                                id="toast-status"
+                                data-testid="toast-status"
                                 role="status"
                                 className={`spinner-grow-sm spinner-grow ${typeCssClass}`}
                             >
@@ -59,17 +59,20 @@ const Component: FunctionComponent<ComponentProps> = (
                                 </span>
                             </div>
                         )}
-                        <strong id="toast-strong" className="me-auto ms-2">
+                        <strong
+                            data-testid="toast-strong"
+                            className="me-auto ms-2"
+                        >
                             {props.title}
                         </strong>
                         {props.createdAt && (
-                            <small id="toast-time">
+                            <small data-testid="toast-time">
                                 {OneUptimeDate.fromNow(props.createdAt)}
                             </small>
                         )}
 
                         <button
-                            id="toast-button"
+                            data-testid="toast-button"
                             onClick={() => {
                                 setShow(false);
                                 props.onClose && props.onClose();
@@ -79,7 +82,7 @@ const Component: FunctionComponent<ComponentProps> = (
                             aria-label="Close"
                         ></button>
                     </div>
-                    <div id="toast-desc" className="toast-body">
+                    <div data-testid="toast-desc" className="toast-body">
                         {props.description}
                     </div>
                 </div>

@@ -1,17 +1,15 @@
 import * as React from 'react';
-import { describe, test, expect } from '@jest/globals';
-import renderer, {
-    act,
-    ReactTestInstance,
-    ReactTestRenderer,
-} from 'react-test-renderer';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
+import { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
+import userEvent from '@testing-library/user-event';
 import Toast, { ToastType } from '../Components/Toast/Toast';
 import OneUptimeDate from 'Common/Types/Date';
 
 describe('Test for Toast.tsx', () => {
     test('should render the component', () => {
         const date: Date = new Date();
-        const testRenderer: ReactTestRenderer = renderer.create(
+        render(
             <Toast
                 type={ToastType.SUCCESS}
                 title="Spread"
@@ -19,17 +17,14 @@ describe('Test for Toast.tsx', () => {
                 createdAt={date}
             />
         );
-        const testInstance: ReactTestInstance = testRenderer.root;
-        expect(
-            testInstance
-                .findByProps({ id: 'toast-status' })
-                .props['className'].includes('spinner-grow ')
-        ).toBe(true);
+        expect(screen.getByTestId('toast-main')).toHaveClass(
+            'position-fixed top-0 end-0 p-3'
+        );
     });
 
     test('Checking Title', () => {
         const date: Date = new Date();
-        const testRenderer: ReactTestRenderer = renderer.create(
+        render(
             <Toast
                 type={ToastType.SUCCESS}
                 title="Spread"
@@ -37,15 +32,12 @@ describe('Test for Toast.tsx', () => {
                 createdAt={date}
             />
         );
-        const testInstance: ReactTestInstance = testRenderer.root;
-        expect(
-            testInstance.findByProps({ id: 'toast-strong' }).props['children']
-        ).toEqual('Spread');
+        expect(screen.getByTestId('toast-strong')).toHaveTextContent('Spread');
     });
 
     test('Checking Description', () => {
         const date: Date = new Date();
-        const testRenderer: ReactTestRenderer = renderer.create(
+        render(
             <Toast
                 type={ToastType.SUCCESS}
                 title="Spread"
@@ -53,14 +45,11 @@ describe('Test for Toast.tsx', () => {
                 createdAt={date}
             />
         );
-        const testInstance: ReactTestInstance = testRenderer.root;
-        expect(
-            testInstance.findByProps({ id: 'toast-desc' }).props['children']
-        ).toEqual('Love');
+        expect(screen.getByTestId('toast-desc')).toHaveTextContent('Love');
     });
     test('Should say "seconds ago"', () => {
         const date: Date = new Date();
-        const testRenderer: ReactTestRenderer = renderer.create(
+        render(
             <Toast
                 type={ToastType.SUCCESS}
                 title="Spread"
@@ -68,16 +57,13 @@ describe('Test for Toast.tsx', () => {
                 createdAt={date}
             />
         );
-        const testInstance: ReactTestInstance = testRenderer.root;
         const now_date: string = OneUptimeDate.fromNow(date);
 
-        expect(
-            testInstance.findByProps({ id: 'toast-time' }).props['children']
-        ).toEqual(now_date);
+        expect(screen.getByTestId('toast-time')).toHaveTextContent(now_date);
     });
     test('Checking if Toast is for SUCCESS', () => {
         const date: Date = new Date();
-        const testRenderer: ReactTestRenderer = renderer.create(
+        render(
             <Toast
                 type={ToastType.SUCCESS}
                 title="Spread"
@@ -85,16 +71,11 @@ describe('Test for Toast.tsx', () => {
                 createdAt={date}
             />
         );
-        const testInstance: ReactTestInstance = testRenderer.root;
-        expect(
-            testInstance
-                .findByProps({ id: 'toast-status' })
-                .props['className'].includes('text-success')
-        ).toBe(true);
+        expect(screen.getByTestId('toast-status')).toHaveClass('text-success');
     });
     test('Checking if Toast is for INFO', () => {
         const date: Date = new Date();
-        const testRenderer: ReactTestRenderer = renderer.create(
+        render(
             <Toast
                 type={ToastType.INFO}
                 title="Spread"
@@ -102,17 +83,12 @@ describe('Test for Toast.tsx', () => {
                 createdAt={date}
             />
         );
-        const testInstance: ReactTestInstance = testRenderer.root;
-        expect(
-            testInstance
-                .findByProps({ id: 'toast-status' })
-                .props['className'].includes('text-info')
-        ).toBe(true);
+        expect(screen.getByTestId('toast-status')).toHaveClass('text-info');
     });
 
-    test('Checking if Toast is for WARNING', () => {
+    test('Checking if Toast is for Warning', () => {
         const date: Date = new Date();
-        const testRenderer: ReactTestRenderer = renderer.create(
+        render(
             <Toast
                 type={ToastType.WARNING}
                 title="Spread"
@@ -120,16 +96,12 @@ describe('Test for Toast.tsx', () => {
                 createdAt={date}
             />
         );
-        const testInstance: ReactTestInstance = testRenderer.root;
-        expect(
-            testInstance
-                .findByProps({ id: 'toast-status' })
-                .props['className'].includes('text-warning')
-        ).toBe(true);
+        expect(screen.getByTestId('toast-status')).toHaveClass('text-warning');
     });
-    test('Checking if Toast is for NORMAL', () => {
+
+    test('Checking if Toast is for Normal', () => {
         const date: Date = new Date();
-        const testRenderer: ReactTestRenderer = renderer.create(
+        render(
             <Toast
                 type={ToastType.NORMAL}
                 title="Spread"
@@ -137,16 +109,13 @@ describe('Test for Toast.tsx', () => {
                 createdAt={date}
             />
         );
-        const testInstance: ReactTestInstance = testRenderer.root;
-        expect(
-            testInstance
-                .findByProps({ id: 'toast-status' })
-                .props['className'].includes('text-normal')
-        ).toBe(true);
+        expect(screen.getByTestId('toast-status')).toHaveClass('text-normal');
     });
-    test('simulates button click and sets the state to flase, closing the toast', () => {
+    test('simulates button click and sets the state to flase, closing the toast', async () => {
         const date: Date = new Date();
-        const testRenderer: ReactTestRenderer = renderer.create(
+        const user: UserEvent = userEvent.setup();
+
+        render(
             <Toast
                 type={ToastType.SUCCESS}
                 title="Spread"
@@ -154,11 +123,11 @@ describe('Test for Toast.tsx', () => {
                 createdAt={date}
             />
         );
-        const testInstance: ReactTestInstance = testRenderer.root;
-        expect(testInstance.findByProps({ id: 'toast-button' }));
-        act(testInstance.findByProps({ id: 'toast-button' }).props['onClick'])
-            .catch;
 
-        expect(testInstance.findAllByType('div')).toStrictEqual([]);
+        const loginButton: HTMLButtonElement =
+            screen.getByTestId('toast-button');
+        await user.click(loginButton);
+
+        expect(screen.queryByTestId('toast-main')).toBeFalsy;
     });
 });
