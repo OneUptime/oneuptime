@@ -2,7 +2,7 @@ import { VeryLightGrey } from 'Common/Types/BrandColors';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Loader, { LoaderType } from '../Loader/Loader';
 
-const TableLoader: FunctionComponent = (): ReactElement => {
+const ComponentLoader: FunctionComponent = (): ReactElement => {
     return (
         <div
             className="row text-center"
@@ -20,4 +20,4 @@ const TableLoader: FunctionComponent = (): ReactElement => {
     );
 };
 
-export default TableLoader;
+export default ComponentLoader;

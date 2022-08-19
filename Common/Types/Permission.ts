@@ -62,6 +62,12 @@ enum Permission {
     CanDeleteProjectLabel = 'CanDeleteProjectLabel',
     CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
 
+    // Incident Status Permissions (Owner + Admin Permission by default)
+    CanCreateIncidentState = 'CanCreateIncidentState',
+    CanEditIncidentState = 'CanEditIncidentState',
+    CanReadIncidentState = 'CanReadIncidentState',
+    CanDeleteIncidentState = 'CanDeleteIncidentState',
+
     // MonitorStatus Permissions (Owner + Admin Permission by default)
     CanCreateProjectMonitorStatus = 'CanCreateProjectMonitorStatus',
     CanEditProjectMonitorStatus = 'CanEditProjectMonitorStatus',
@@ -317,6 +323,36 @@ export class PermissionHelper {
                 title: 'Can Read Label',
                 description:
                     'A user assigned this permission  can read labels of this project.',
+                isAssignableToProject: true,
+            },
+
+
+            {
+                permission: Permission.CanCreateIncidentState,
+                title: 'Can Create Incident State',
+                description:
+                    'A user assigned this permission can create incident states this this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteIncidentState,
+                title: 'Can Delete Incident State',
+                description:
+                    'A user assigned this permission  can delete incident states of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditIncidentState,
+                title: 'Can Edit Incident State',
+                description:
+                    'A user assigned this permission can edit incident states of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadIncidentState,
+                title: 'Can Read Incident State',
+                description:
+                    'A user assigned this permission  can read incident states of this project.',
                 isAssignableToProject: true,
             },
 

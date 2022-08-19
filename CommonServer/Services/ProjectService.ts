@@ -19,6 +19,8 @@ import OneUptimeDate from 'Common/Types/Date';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import { Yellow, Green, Red } from 'Common/Types/BrandColors';
 import MonitorStatusService from './MonitorStatusService';
+import IncidentState from 'Model/Models/IncidentState';
+import IncidentStateService from './IncidentStateService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -81,11 +83,65 @@ export class Service extends DatabaseService<Model> {
         // add default teams.
         createdItem = await this.addDefaultProjectTeams(createdItem);
         createdItem = await this.addDefaultMonitorStatus(createdItem);
+        createdItem = await this.addDefaultIncidentState(createdItem);
 
         return createdItem;
     }
 
-    public async addDefaultMonitorStatus(createdItem: Model): Promise<Model> {
+
+    private async addDefaultIncidentState(createdItem: Model): Promise<Model> {
+        let createdIncidentState: IncidentState = new IncidentState();
+        createdIncidentState.name = 'Created';
+        createdIncidentState.description = 'When an incident is created, it belongs to this state';
+        createdIncidentState.color = Red;
+        createdIncidentState.isCreatedState = true;
+        createdIncidentState.projectId = createdItem.id!;
+        createdIncidentState.order = 1;
+
+
+        createdIncidentState = await IncidentStateService.create({
+            data: createdIncidentState,
+            props: {
+                isRoot: true
+            }
+        })
+
+        let acknowledgedIncidentState: IncidentState = new IncidentState();
+        acknowledgedIncidentState.name = 'Acknowledged';
+        acknowledgedIncidentState.description = 'When an incident is acknowledged, it belongs to this state.';
+        acknowledgedIncidentState.color = Yellow;
+        acknowledgedIncidentState.isAcknowledgedState = true;
+        acknowledgedIncidentState.projectId = createdItem.id!;
+        acknowledgedIncidentState.order = 2;
+
+
+        acknowledgedIncidentState = await IncidentStateService.create({
+            data: acknowledgedIncidentState,
+            props: {
+                isRoot: true
+            }
+        })
+
+        let resolvedIncidentState: IncidentState = new IncidentState();
+        resolvedIncidentState.name = 'Resolved';
+        resolvedIncidentState.description = 'When an incident is resolved, it belongs to this state.';
+        resolvedIncidentState.color = Green;
+        resolvedIncidentState.isAcknowledgedState = true;
+        resolvedIncidentState.projectId = createdItem.id!;
+        resolvedIncidentState.order = 3;
+
+
+        resolvedIncidentState = await IncidentStateService.create({
+            data: resolvedIncidentState,
+            props: {
+                isRoot: true
+            }
+        })
+
+        return createdItem;
+    }
+
+    private async addDefaultMonitorStatus(createdItem: Model): Promise<Model> {
         let operationalStatus: MonitorStatus = new MonitorStatus();
         operationalStatus.name = 'Operational';
         operationalStatus.description = 'Monitor operating normally';
@@ -129,7 +185,7 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-    public async addDefaultProjectTeams(createdItem: Model): Promise<Model> {
+    private async addDefaultProjectTeams(createdItem: Model): Promise<Model> {
         // add a team member.
 
         // Owner Team.

@@ -1,7 +1,7 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import TableRow from './TableRow';
-import ActionButtonSchema from './Types/ActionButtonSchema';
+import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Columns from './Types/Columns';
 
 export interface ComponentProps {

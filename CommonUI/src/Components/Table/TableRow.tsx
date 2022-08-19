@@ -3,7 +3,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Button, { ButtonSize } from '../Button/Button';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
-import ActionButtonSchema from './Types/ActionButtonSchema';
+import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import FieldType from '../Types/FieldType';

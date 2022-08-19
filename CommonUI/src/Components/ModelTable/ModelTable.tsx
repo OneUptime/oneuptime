@@ -22,7 +22,7 @@ import Fields from '../Forms/Types/Fields';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import FieldType from '../Types/FieldType';
 import Dictionary from 'Common/Types/Dictionary';
-import ActionButtonSchema from '../Table/Types/ActionButtonSchema';
+import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from '../Modal/ConfirmModal';
 import Permission, {
@@ -39,17 +39,25 @@ import Navigation from '../../Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Populate from '../../Utils/ModelAPI/Populate';
-import List from '../Table/List';
+import List from '../List/List';
+import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
+import Field from '../Detail/Field';
+
+export enum ShowTableAs {
+    Table,
+    List,
+    OrderedStatesList
+}
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     onFetchInit?:
-        | undefined
-        | ((pageNumber: number, itemsOnPage: number) => void);
+    | undefined
+    | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-        | undefined
-        | ((data: Array<TBaseModel>, totalCount: number) => void);
+    | undefined
+    | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     initialItemsOnPage?: number;
@@ -66,7 +74,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     query?: Query<TBaseModel>;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
-    showAsList?: boolean | undefined;
+    showTableAs?: ShowTableAs | undefined;
     singularName?: string | undefined;
     pluralName?: string | undefined;
     actionButtons?: Array<ActionButtonSchema> | undefined;
@@ -76,6 +84,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     refreshToggle?: boolean | undefined;
     fetchRequestOptions?: RequestOptions | undefined;
     deleteRequestOptions?: RequestOptions | undefined;
+    onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    onBeforeDelete?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    onBeforeView?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    orderedStatesListProps?: {
+        titleField: string;
+        descriptionField?: string | undefined;
+        orderField: string;
+    }
 }
 
 enum ModalType {
@@ -86,12 +102,22 @@ enum ModalType {
 const ModelTable: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
+
+    if (!props.showTableAs) {
+        props.showTableAs = ShowTableAs.Table;
+    }
+
+
     const [tableColumns, setColumns] = useState<Array<TableColumn>>([]);
     const [cardButtons, setCardButtons] = useState<Array<CardButtonSchema>>([]);
     const model: TBaseModel = new props.modelType();
     const [actionButtonSchema, setActionButtonSchema] = useState<
         Array<ActionButtonSchema>
     >([]);
+
+
+
+    const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] = useState<number | null>(null);
 
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [query, setQuery] = useState<Query<TBaseModel>>({});
@@ -115,6 +141,29 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         props.initialItemsOnPage || 10
     );
 
+
+    const [fields, setFields] = useState<Array<Field>>([]);
+
+
+    useEffect(() => {
+        const detailFields: Array<Field> = [];
+        for (const column of tableColumns) {
+            if (!column.key) {
+                // if its an action column, ignore.
+                continue;
+            }
+
+            detailFields.push({
+                title: column.title,
+                description: column.description || '',
+                key: column.key || '',
+                fieldType: column.type,
+            });
+
+            setFields(detailFields);
+        }
+    }, [tableColumns]);
+
     const deleteItem: Function = async (id: ObjectID) => {
         setIsLoading(true);
         try {
@@ -131,7 +180,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -163,8 +212,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                              [sortBy as any]: sortOrder,
-                          }
+                            [sortBy as any]: sortOrder,
+                        }
                         : {},
                     getPopulate(),
                     props.fetchRequestOptions
@@ -176,7 +225,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -249,11 +298,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             userProjectPermissions
         );
 
-        if (props.isCreateable && hasPermissionToCreate) {
+        // because ordered list add button is inside the table and not on the card header. 
+        if (props.isCreateable && hasPermissionToCreate && props.showTableAs !== ShowTableAs.OrderedStatesList) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${
-                    props.singularName || model.singularName
-                }`,
+                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                    }`,
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
                     setModalType(ModalType.Create);
@@ -448,12 +497,17 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 actionsSchema.push({
                     title: props.viewButtonText || 'View',
                     buttonStyleType: ButtonStyleType.OUTLINE,
-                    onClick: (
+                    onClick: async (
                         item: JSONObject,
                         onCompleteAction: Function,
                         onError: (err: Error) => void
                     ) => {
                         try {
+
+                            if (props.onBeforeView) {
+                                item = (await props.onBeforeView(BaseModel.fromJSONObject(item, props.modelType))).toJSONObject();
+                            }
+
                             if (!props.currentPageRoute) {
                                 throw new BadDataException(
                                     'Please populate curentPageRoute in ModelTable'
@@ -479,15 +533,21 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 actionsSchema.push({
                     title: props.editButtonText || 'Edit',
                     buttonStyleType: ButtonStyleType.NORMAL,
-                    onClick: (
+                    onClick: async (
                         item: JSONObject,
                         onCompleteAction: Function,
                         onError: (err: Error) => void
                     ) => {
                         try {
+
+                            if (props.onBeforeEdit) {
+                                item = (await props.onBeforeEdit(BaseModel.fromJSONObject(item, props.modelType))).toJSONObject();
+                            }
+
                             setModalType(ModalType.Edit);
                             setShowModal(true);
                             setCurrentEditableItem(item);
+
                             onCompleteAction();
                         } catch (err) {
                             onError(err as Error);
@@ -504,12 +564,17 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     title: props.deleteButtonText || 'Delete',
                     icon: IconProp.Trash,
                     buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
-                    onClick: (
+                    onClick: async (
                         item: JSONObject,
                         onCompleteAction: Function,
                         onError: (err: Error) => void
                     ) => {
                         try {
+
+                            if (props.onBeforeDelete) {
+                                item = (await props.onBeforeDelete(BaseModel.fromJSONObject(item, props.modelType))).toJSONObject();
+                            }
+
                             setShowDeleteConfirmModal(true);
                             setCurrentDeleteableItem(item);
                             onCompleteAction();
@@ -593,6 +658,40 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         );
     };
 
+    const getOrderedStatesList: Function = (): ReactElement => {
+
+        if (!props.orderedStatesListProps) {
+            throw new BadDataException("props.orderedStatesListProps required when props.showTableAs === ShowTableAs.OrderedStatesList")
+        }
+
+        return (
+            <OrderedStatesList
+                error={error}
+                isLoading={isLoading}
+                data={BaseModel.toJSONObjectArray(data)}
+                id={props.id}
+                titleField={props.orderedStatesListProps?.titleField || ''}
+                descriptionField={props.orderedStatesListProps?.descriptionField || ''}
+                orderField={props.orderedStatesListProps?.orderField || ''}
+                noItemsMessage={props.noItemsMessage || ''}
+                onRefreshClick={() => {
+                    fetchItems();
+                }}
+                onCreateNewItem={props.isCreateable ? (order: number) => {
+                    setOrderedStatesListNewItemOrder(order);
+                    setModalType(ModalType.Create);
+                    setShowModal(true);
+                } : undefined}
+                singularLabel={
+                    props.singularName || model.singularName || 'Item'
+                }
+                pluralLabel={props.pluralName || model.pluralName || 'Items'}
+                actionButtons={actionButtonSchema}
+            />
+        );
+    };
+
+
     const getList: Function = (): ReactElement => {
         return (
             <List
@@ -606,7 +705,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 totalItemsCount={totalItemsCount}
                 data={BaseModel.toJSONObjectArray(data)}
                 id={props.id}
-                columns={tableColumns}
+                fields={fields}
                 itemsOnPage={itemsOnPage}
                 disablePagination={props.disablePagination || false}
                 onNavigateToPage={async (
@@ -626,7 +725,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const getCardComponent: Function = (): ReactElement => {
-        if (props.showAsList) {
+        if (props.showTableAs === ShowTableAs.List) {
             return (
                 <div>
                     {props.cardProps && (
@@ -642,23 +741,43 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     {!props.cardProps && getList()}
                 </div>
             );
+        } else if (props.showTableAs === ShowTableAs.Table) {
+            return (
+                <div>
+                    {props.cardProps && (
+                        <Card
+                            {...props.cardProps}
+                            cardBodyStyle={{ padding: '0px' }}
+                            buttons={cardButtons}
+                        >
+                            {getTable()}
+                        </Card>
+                    )}
+
+                    {!props.cardProps && getTable()}
+                </div>
+            );
+        } else {
+
+
+
+            return (
+                <div>
+                    {props.cardProps && (
+                        <Card
+                            {...props.cardProps}
+                            cardBodyStyle={{ padding: '0px' }}
+                            buttons={cardButtons}
+                        >
+                            {getOrderedStatesList()}
+                        </Card>
+                    )}
+
+                    {!props.cardProps && getOrderedStatesList()}
+                </div>
+            );
         }
 
-        return (
-            <div>
-                {props.cardProps && (
-                    <Card
-                        {...props.cardProps}
-                        cardBodyStyle={{ padding: '0px' }}
-                        buttons={cardButtons}
-                    >
-                        {getTable()}
-                    </Card>
-                )}
-
-                {!props.cardProps && getTable()}
-            </div>
-        );
     };
 
     return (
@@ -669,9 +788,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
+                            }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
                     onClose={() => {
@@ -679,9 +797,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                            }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {
@@ -689,7 +806,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         setCurrentPageNumber(1);
                         fetchItems();
                     }}
-                    onBeforeCreate={props.onBeforeCreate}
+                    onBeforeCreate={async (item: TBaseModel) => {
+
+                        if (props.showTableAs === ShowTableAs.OrderedStatesList && props.orderedStatesListProps?.orderField && orderedStatesListNewItemOrder) {
+                            item.setColumnValue(props.orderedStatesListProps.orderField, orderedStatesListNewItemOrder);
+                        }
+
+                        props.onBeforeCreate && await props.onBeforeCreate(item);
+                    }}
                     modelType={props.modelType}
                     formProps={{
                         model: model,

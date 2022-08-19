@@ -1,16 +1,16 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Columns from './Types/Columns';
-import Pagination from './Pagination';
-import ActionButtonSchema from './Types/ActionButtonSchema';
-import ErrorMessage from './ErrorMessage';
-import TableLoader from './Loader';
+import Pagination from '../Pagination/Pagination';
+import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ListBody from './ListBody';
+import Field from '../Detail/Field';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
     id: string;
-    columns: Columns;
+    fields: Array<Field>;
     disablePagination?: undefined | boolean;
     onNavigateToPage: (pageNumber: number, itemsOnPage: number) => void;
     currentPageNumber: number;
@@ -30,7 +30,7 @@ const List: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const getListbody: Function = (): ReactElement => {
         if (props.isLoading) {
-            return <TableLoader />;
+            return <ComponentLoader />;
         }
 
         if (props.error) {
@@ -59,7 +59,7 @@ const List: FunctionComponent<ComponentProps> = (
             <ListBody
                 id={`${props.id}-body`}
                 data={props.data}
-                columns={props.columns}
+                fields={props.fields}
                 actionButtons={props.actionButtons}
             />
         );

@@ -1,13 +1,13 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import ListRow from './ListRow';
-import ActionButtonSchema from './Types/ActionButtonSchema';
-import Columns from './Types/Columns';
+import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import Field from '../Detail/Field';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
     id: string;
-    columns: Columns;
+    fields: Array<Field>;
     actionButtons?: undefined | Array<ActionButtonSchema> | undefined;
 }
 
@@ -22,7 +22,7 @@ const ListBody: FunctionComponent<ComponentProps> = (
                         <ListRow
                             key={i}
                             item={item}
-                            columns={props.columns}
+                            fields={props.fields}
                             actionButtons={props.actionButtons}
                         />
                     );

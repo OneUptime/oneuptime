@@ -2,19 +2,16 @@ import { JSONObject } from 'Common/Types/JSON';
 import React, {
     FunctionComponent,
     ReactElement,
-    useEffect,
     useState,
 } from 'react';
 import Button, { ButtonSize } from '../Button/Button';
 import Detail from '../Detail/Detail';
 import Field from '../Detail/Field';
 import ConfirmModal from '../Modal/ConfirmModal';
-import ActionButtonSchema from './Types/ActionButtonSchema';
-import Columns from './Types/Columns';
-
+import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 export interface ComponentProps {
     item: JSONObject;
-    columns: Columns;
+    fields: Array<Field>;
     actionButtons?: Array<ActionButtonSchema> | undefined;
 }
 
@@ -26,32 +23,12 @@ const ListRow: FunctionComponent<ComponentProps> = (
             return false;
         }) || []
     );
-    // convert column to field
-    const [fields, setFields] = useState<Array<Field>>([]);
+   
     const [error, setError] = useState<string>('');
-
-    useEffect(() => {
-        const detailFields: Array<Field> = [];
-        for (const column of props.columns) {
-            if (!column.key) {
-                // if its an action column, ignore.
-                continue;
-            }
-
-            detailFields.push({
-                title: column.title,
-                description: column.description || '',
-                key: column.key || '',
-                fieldType: column.type,
-            });
-
-            setFields(detailFields);
-        }
-    }, [props.columns]);
 
     return (
         <div className="padding-15 list-item">
-            <Detail item={props.item} fields={fields} />
+            <Detail item={props.item} fields={props.fields} />
 
             <div>
                 {props.actionButtons?.map(

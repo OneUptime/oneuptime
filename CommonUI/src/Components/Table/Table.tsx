@@ -3,13 +3,13 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import TableBody from './TableBody';
 import TableHeader from './TableHeader';
 import Columns from './Types/Columns';
-import Pagination from './Pagination';
+import Pagination from '../Pagination/Pagination';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Dictionary from 'Common/Types/Dictionary';
-import ActionButtonSchema from './Types/ActionButtonSchema';
+import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Search from 'Common/Types/Database/Search';
-import ErrorMessage from './ErrorMessage';
-import TableLoader from './Loader';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -43,7 +43,7 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <TableLoader />
+                            <ComponentLoader />
                         </td>
                     </tr>
                 </tbody>
