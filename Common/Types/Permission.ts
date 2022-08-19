@@ -326,7 +326,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
             {
                 permission: Permission.CanCreateIncidentState,
                 title: 'Can Create Incident State',

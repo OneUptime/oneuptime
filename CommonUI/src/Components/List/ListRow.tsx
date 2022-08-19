@@ -1,9 +1,5 @@
 import { JSONObject } from 'Common/Types/JSON';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Button, { ButtonSize } from '../Button/Button';
 import Detail from '../Detail/Detail';
 import Field from '../Detail/Field';
@@ -23,7 +19,7 @@ const ListRow: FunctionComponent<ComponentProps> = (
             return false;
         }) || []
     );
-   
+
     const [error, setError] = useState<string>('');
 
     return (

@@ -88,11 +88,11 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-
     private async addDefaultIncidentState(createdItem: Model): Promise<Model> {
         let createdIncidentState: IncidentState = new IncidentState();
         createdIncidentState.name = 'Created';
-        createdIncidentState.description = 'When an incident is created, it belongs to this state';
+        createdIncidentState.description =
+            'When an incident is created, it belongs to this state';
         createdIncidentState.color = Red;
         createdIncidentState.isCreatedState = true;
         createdIncidentState.projectId = createdItem.id!;
@@ -101,41 +101,41 @@ export class Service extends DatabaseService<Model> {
         createdIncidentState = await IncidentStateService.create({
             data: createdIncidentState,
             props: {
-                isRoot: true
-            }
-        })
+                isRoot: true,
+            },
+        });
 
         let acknowledgedIncidentState: IncidentState = new IncidentState();
         acknowledgedIncidentState.name = 'Acknowledged';
-        acknowledgedIncidentState.description = 'When an incident is acknowledged, it belongs to this state.';
+        acknowledgedIncidentState.description =
+            'When an incident is acknowledged, it belongs to this state.';
         acknowledgedIncidentState.color = Yellow;
         acknowledgedIncidentState.isAcknowledgedState = true;
         acknowledgedIncidentState.projectId = createdItem.id!;
         acknowledgedIncidentState.order = 2;
 
-
         acknowledgedIncidentState = await IncidentStateService.create({
             data: acknowledgedIncidentState,
             props: {
-                isRoot: true
-            }
-        })
+                isRoot: true,
+            },
+        });
 
         let resolvedIncidentState: IncidentState = new IncidentState();
         resolvedIncidentState.name = 'Resolved';
-        resolvedIncidentState.description = 'When an incident is resolved, it belongs to this state.';
+        resolvedIncidentState.description =
+            'When an incident is resolved, it belongs to this state.';
         resolvedIncidentState.color = Green;
         resolvedIncidentState.isAcknowledgedState = true;
         resolvedIncidentState.projectId = createdItem.id!;
         resolvedIncidentState.order = 3;
 
-
         resolvedIncidentState = await IncidentStateService.create({
             data: resolvedIncidentState,
             props: {
-                isRoot: true
-            }
-        })
+                isRoot: true,
+            },
+        });
 
         return createdItem;
     }

@@ -14,7 +14,6 @@ export interface ComponentProps {
     isLoading?: boolean | undefined;
     onRefreshClick?: (() => void) | undefined;
     singularLabel: string;
-    pluralLabel: string;
     id?: string;
     actionButtons?: undefined | Array<ActionButtonSchema>;
     titleField: string;
@@ -27,11 +26,8 @@ export interface ComponentProps {
 const OrderedStatesList: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     if (props.isLoading) {
-        return (
-            <ComponentLoader />
-        );
+        return <ComponentLoader />;
     }
 
     if (props.error) {
@@ -57,9 +53,10 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div className='margin-30'>
+        <div className="margin-50">
             {props.error && <p>{props.error}</p>}
-            {!props.error && props.data &&
+            {!props.error &&
+                props.data &&
                 props.data.length > 0 &&
                 props.data.map((item: JSONObject, i: number) => {
                     return (
@@ -70,21 +67,50 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                 descriptionField={props.descriptionField}
                                 actionButtons={props.actionButtons}
                                 getTitleElement={props.getTitleElement}
-                                getDescriptionElement={props.getDescriptionElement}
+                                getDescriptionElement={
+                                    props.getDescriptionElement
+                                }
                             />
                             <div className="vertical-list text-center margin-30">
-                                <Icon icon={IconProp.ChevronDown} thick={ThickProp.Thick} size={SizeProp.Larger} />
+                                <Icon
+                                    icon={IconProp.ChevronDown}
+                                    thick={ThickProp.Thick}
+                                    size={SizeProp.Larger}
+                                />
                             </div>
                             {props.onCreateNewItem && (
                                 <div>
-                                    <div className='pointer ordered-list-item ordered-list-item-add-button background-very-light-grey-on-hover' onClick={() => {
-                                        props.onCreateNewItem && props.onCreateNewItem(item[props.orderField] ? (item[props.orderField] as number + 1) : 0);
-                                    }}>
-                                        <div className="flex text-center "><Icon icon={IconProp.Add} thick={ThickProp.Thick} className="margin-side-5" /> Add New Item</div>
+                                    <div
+                                        className="pointer ordered-list-item ordered-list-item-add-button background-very-light-grey-on-hover"
+                                        onClick={() => {
+                                            props.onCreateNewItem &&
+                                                props.onCreateNewItem(
+                                                    item[props.orderField]
+                                                        ? (item[
+                                                              props.orderField
+                                                          ] as number) + 1
+                                                        : 0
+                                                );
+                                        }}
+                                    >
+                                        <div className="flex text-center ">
+                                            <Icon
+                                                icon={IconProp.Add}
+                                                thick={ThickProp.Thick}
+                                                className="margin-side-5"
+                                            />{' '}
+                                            Add New Item
+                                        </div>
                                     </div>
-                                    {(i+1) < props.data.length && <div className="vertical-list text-center margin-30">
-                                        <Icon icon={IconProp.ChevronDown} thick={ThickProp.Thick} size={SizeProp.Larger} />
-                                    </div>}
+                                    {i + 1 < props.data.length && (
+                                        <div className="vertical-list text-center margin-30">
+                                            <Icon
+                                                icon={IconProp.ChevronDown}
+                                                thick={ThickProp.Thick}
+                                                size={SizeProp.Larger}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

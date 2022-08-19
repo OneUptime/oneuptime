@@ -7,16 +7,15 @@ import ConfirmModal from '../Modal/ConfirmModal';
 export interface ComponentProps {
     item: JSONObject;
     actionButtons?: undefined | Array<ActionButtonSchema>;
-    titleField: string; 
-    descriptionField?: string | undefined; 
+    titleField: string;
+    descriptionField?: string | undefined;
     getTitleElement?: ((item: JSONObject) => ReactElement) | undefined;
-    getDescriptionElement?:  ((item: JSONObject) => ReactElement) | undefined;
+    getDescriptionElement?: ((item: JSONObject) => ReactElement) | undefined;
 }
 
 const Item: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
         props.actionButtons?.map(() => {
             return false;
@@ -26,8 +25,8 @@ const Item: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string>('');
 
     return (
-        <div className='ordered-list-item'>
-             {error && (
+        <div className="ordered-list-item">
+            {error && (
                 <ConfirmModal
                     title={`Error`}
                     description={error}
@@ -38,13 +37,30 @@ const Item: FunctionComponent<ComponentProps> = (
                 />
             )}
 
-            {!props.getTitleElement && <div>{props.item[props.titleField] ? props.item[props.titleField] as string : ''}</div>}
-            {props.getTitleElement && <div>{props.getTitleElement(props.item)}</div>}
-            <div className='margin-10'>
-            {props.getDescriptionElement && <div>{props.getDescriptionElement(props.item)}</div>}
-                {!props.getDescriptionElement && <div>{props.descriptionField && props.item[props.descriptionField] ? props.item[props.descriptionField] as string : ''}</div>}
+            {!props.getTitleElement && (
+                <div>
+                    {props.item[props.titleField]
+                        ? (props.item[props.titleField] as string)
+                        : ''}
                 </div>
-            <div className='margin-10'>
+            )}
+            {props.getTitleElement && (
+                <div>{props.getTitleElement(props.item)}</div>
+            )}
+            <div className="margin-10">
+                {props.getDescriptionElement && (
+                    <div>{props.getDescriptionElement(props.item)}</div>
+                )}
+                {!props.getDescriptionElement && (
+                    <div>
+                        {props.descriptionField &&
+                        props.item[props.descriptionField]
+                            ? (props.item[props.descriptionField] as string)
+                            : ''}
+                    </div>
+                )}
+            </div>
+            <div className="margin-10">
                 {props.actionButtons?.map(
                     (button: ActionButtonSchema, i: number) => {
                         return (

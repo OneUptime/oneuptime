@@ -580,7 +580,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 modelPermissions
             )
         ) {
-            debugger;
             throw new NotAuthorizedException(
                 `You do not have permissions to ${type} ${
                     this.model.singularName

@@ -5,17 +5,18 @@ import Typeof from 'Common/Types/Typeof';
 
 export default class QueryHelper {
     public static findWithSameText(text: string | number): FindOperator<any> {
-
-        let isString = false; 
+        let isString: boolean = false;
 
         if (typeof text === Typeof.String) {
             text = (text as string).toLowerCase().trim();
-            isString = true; 
+            isString = true;
         }
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
-                return isString ? `LOWER(${alias}) = :${rid}`: `${alias} = :${rid}`;
+                return isString
+                    ? `LOWER(${alias}) = :${rid}`
+                    : `${alias} = :${rid}`;
             },
             {
                 [rid]: `${text}`,

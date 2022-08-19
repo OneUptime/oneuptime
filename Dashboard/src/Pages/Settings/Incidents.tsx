@@ -5,7 +5,9 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, {
+    ShowTableAs,
+} from 'CommonUI/src/Components/ModelTable/ModelTable';
 import IncidentState from 'Model/Models/IncidentState';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
@@ -53,20 +55,25 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 sortBy="order"
                 sortOrder={SortOrder.Ascending}
                 onBeforeDelete={(item: IncidentState) => {
-
                     if (item.isCreatedState) {
-                        throw new BadDataException("This incident cannot be deleted because its the created incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.");
+                        throw new BadDataException(
+                            'This incident cannot be deleted because its the created incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
+                        );
                     }
 
                     if (item.isAcknowledgedState) {
-                        throw new BadDataException("This incident cannot be deleted because its the acknowledged incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.");
+                        throw new BadDataException(
+                            'This incident cannot be deleted because its the acknowledged incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
+                        );
                     }
 
                     if (item.isResolvedState) {
-                        throw new BadDataException("This incident cannot be deleted because its the resolved incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.");
+                        throw new BadDataException(
+                            'This incident cannot be deleted because its the resolved incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
+                        );
                     }
 
-                    return item; 
+                    return item;
                 }}
                 columns={[
                     {
@@ -77,9 +84,9 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
                         moreFields: {
                             color: true,
-                            isCreatedState: true, 
-                            isAcknowledgedState: true, 
-                            isResolvedState: true
+                            isCreatedState: true,
+                            isAcknowledgedState: true,
+                            isResolvedState: true,
                         },
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (
@@ -98,7 +105,9 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
                     },
                 ]}
-                noItemsMessage={'No incident state created for this project so far.'}
+                noItemsMessage={
+                    'No incident state created for this project so far.'
+                }
                 currentPageRoute={props.pageRoute}
                 formFields={[
                     {
@@ -130,15 +139,16 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         title: 'Color',
                         fieldType: FormFieldSchemaType.Color,
                         required: true,
-                        placeholder: 'Please select color for this incident state.',
+                        placeholder:
+                            'Please select color for this incident state.',
                     },
                 ]}
                 showRefreshButton={true}
                 showTableAs={ShowTableAs.OrderedStatesList}
                 orderedStatesListProps={{
-                    titleField: "name",
-                    descriptionField: "description",
-                    orderField: "order"
+                    titleField: 'name',
+                    descriptionField: 'description',
+                    orderField: 'order',
                 }}
             />
         </Page>

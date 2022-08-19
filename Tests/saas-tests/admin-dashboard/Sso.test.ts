@@ -307,7 +307,9 @@ describe('SSO API', () => {
                 }
             );
 
-            expect(initalPageTbody).toContain('subdomain.11.test.oneuptime.com');
+            expect(initalPageTbody).toContain(
+                'subdomain.11.test.oneuptime.com'
+            );
             expect(initalPageTbody).toContain('subdomain.2.test.oneuptime.com');
 
             done();
