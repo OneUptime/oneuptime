@@ -17,6 +17,7 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Monitor from './Monitor';
 import IncidentState from './IncidentState';
+import MonitorStatus from './MonitorStatus';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -249,8 +250,6 @@ export default class Incident extends BaseModel {
     public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
 
 
-
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
         read: [
@@ -261,7 +260,7 @@ export default class Incident extends BaseModel {
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'incidentStateId',
+        manyToOneRelationColumn: 'currentIncidentStateId',
         type: TableColumnType.Entity,
         modelType: IncidentState,
     })
@@ -275,7 +274,7 @@ export default class Incident extends BaseModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'incidentStateId' })
+    @JoinColumn({ name: 'currentIncidentStateId' })
     public currentIncidentState?: IncidentState = undefined;
 
     @ColumnAccessControl({
@@ -298,4 +297,54 @@ export default class Incident extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public currentIncidentStateId?: ObjectID = undefined;
+
+
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectIncident,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'changeMonitorStatusToId',
+        type: TableColumnType.Entity,
+        modelType: IncidentState,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return MonitorStatus;
+        },
+        {
+            eager: false,
+            nullable: true,
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'changeMonitorStatusToId' })
+    public changeMonitorStatusTo?: MonitorStatus = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectIncident,
+            Permission.ProjectMember,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditProjectIncident
+        ],
+    })
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public changeMonitorStatusToId?: ObjectID = undefined;
 }

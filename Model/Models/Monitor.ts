@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -15,6 +15,7 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import Label from './Label';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -215,4 +216,34 @@ export default class Monitor extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectMonitor,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditProjectMonitor,
+        ],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
+    })
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: true }
+    )
+    @JoinTable()
+    public labels?: Array<Label> = undefined;
 }
