@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -219,21 +227,14 @@ export default class Incident extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncident,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncident,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
     @TableColumn({
         required: false,
@@ -248,7 +249,6 @@ export default class Incident extends BaseModel {
     )
     @JoinTable()
     public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
-
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
@@ -284,10 +284,7 @@ export default class Incident extends BaseModel {
             Permission.CanReadProjectIncident,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncident
-        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID, required: true })
@@ -297,8 +294,6 @@ export default class Incident extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public currentIncidentStateId?: ObjectID = undefined;
-
-
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
@@ -334,10 +329,7 @@ export default class Incident extends BaseModel {
             Permission.CanReadProjectIncident,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncident
-        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID, required: true })

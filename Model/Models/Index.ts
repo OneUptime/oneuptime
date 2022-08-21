@@ -32,8 +32,6 @@ import IncidentState from './IncidentState';
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 
-
-
 export default [
     User,
     Probe,
@@ -51,5 +49,5 @@ export default [
     Monitor,
     MonitorStatus,
     IncidentState,
-    Incident
+    Incident,
 ];

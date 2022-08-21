@@ -87,7 +87,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                             isCreatedState: true,
                             isAcknowledgedState: true,
                             isResolvedState: true,
-                            order: true
+                            order: true,
                         },
                         getColumnElement: (item: JSONObject): ReactElement => {
                             return (

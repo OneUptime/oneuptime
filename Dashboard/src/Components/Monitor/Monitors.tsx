@@ -16,7 +16,7 @@ const MonitorsElement: FunctionComponent<ComponentProps> = (
     return (
         <div>
             {props.monitors.map((monitor: Monitor, i: number) => {
-                return (<MonitorElement monitor={monitor} key={i} />);
+                return <MonitorElement monitor={monitor} key={i} />;
             })}
         </div>
     );

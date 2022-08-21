@@ -203,11 +203,15 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_MONITORS_STATUS]?.toString()}
+                    path={RouteMap[
+                        PageMap.SETTINGS_MONITORS_STATUS
+                    ]?.toString()}
                     element={
                         <SettingsMonitors
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route
+                                RouteMap[
+                                    PageMap.SETTINGS_MONITORS_STATUS
+                                ] as Route
                             }
                             currentProject={selectedProject}
                         />
@@ -215,11 +219,15 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_INCIDENTS_STATE]?.toString()}
+                    path={RouteMap[
+                        PageMap.SETTINGS_INCIDENTS_STATE
+                    ]?.toString()}
                     element={
                         <SettingsIncidents
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENTS_STATE
+                                ] as Route
                             }
                             currentProject={selectedProject}
                         />

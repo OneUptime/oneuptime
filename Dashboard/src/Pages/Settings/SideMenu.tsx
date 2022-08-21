@@ -38,7 +38,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 />
             </SideMenuSection>
             <SideMenuSection title="Templates">
-               
                 <SideMenuItem
                     link={{
                         title: 'Email Templates',
@@ -75,7 +74,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Alert}
                 />
-                 <SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'Incident Templates',
                         to: new Route('/:projectSlug/home'),

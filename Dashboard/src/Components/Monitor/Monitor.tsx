@@ -8,9 +8,7 @@ export interface ComponentProps {
 const LabelElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return (
-        <span>{props.monitor.name}</span>
-    );
+    return <span>{props.monitor.name}</span>;
 };
 
 export default LabelElement;

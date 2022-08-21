@@ -43,7 +43,8 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     icon: IconProp.Alert,
                     title: 'Incidents',
-                    description: 'Here is a list of incidents for this project.',
+                    description:
+                        'Here is a list of incidents for this project.',
                 }}
                 noItemsMessage={'No incidents created for this project so far.'}
                 formFields={[
@@ -101,7 +102,6 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Monitor Status',
                     },
-                    
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -141,7 +141,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         field: {
                             monitors: {
                                 name: true,
-                                _id: true
+                                _id: true,
                             },
                         },
                         title: 'Monitors Affected',
@@ -151,7 +151,8 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                                 <MonitorsElement
                                     monitors={
                                         Monitor.fromJSON(
-                                            (item['monitors'] as JSONArray) || [],
+                                            (item['monitors'] as JSONArray) ||
+                                                [],
                                             Monitor
                                         ) as Array<Monitor>
                                     }
@@ -166,4 +167,3 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
 };
 
 export default IncidentsPage;
-

@@ -607,7 +607,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
             {
                 permission: Permission.CanCreateProjectIncident,
                 title: 'Can Create Incident',

@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -217,21 +225,14 @@ export default class Monitor extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectMonitor,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectMonitor,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @TableColumn({
         required: false,
