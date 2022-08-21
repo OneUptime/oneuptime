@@ -63,4 +63,28 @@ export default class QueryHelper {
             }
         );
     }
+
+    public static greaterThanEqualTo(value: number): FindOperator<any> {
+        const rid: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `${alias} >= :${rid}`;
+            },
+            {
+                [rid]: value,
+            }
+        );
+    }
+
+    public static lessThanEqualTo(value: number): FindOperator<any> {
+        const rid: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `${alias} <= :${rid}`;
+            },
+            {
+                [rid]: value,
+            }
+        );
+    }
 }

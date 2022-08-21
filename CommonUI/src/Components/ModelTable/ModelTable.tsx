@@ -50,14 +50,14 @@ export enum ShowTableAs {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     onFetchInit?:
-        | undefined
-        | ((pageNumber: number, itemsOnPage: number) => void);
+    | undefined
+    | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-        | undefined
-        | ((data: Array<TBaseModel>, totalCount: number) => void);
+    | undefined
+    | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     initialItemsOnPage?: number;
@@ -181,7 +181,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -213,8 +213,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                              [sortBy as any]: sortOrder,
-                          }
+                            [sortBy as any]: sortOrder,
+                        }
                         : {},
                     getPopulate(),
                     props.fetchRequestOptions
@@ -226,7 +226,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -306,9 +306,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             showTableAs !== ShowTableAs.OrderedStatesList
         ) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${
-                    props.singularName || model.singularName
-                }`,
+                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                    }`,
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
                     setModalType(ModalType.Create);
@@ -726,10 +725,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onCreateNewItem={
                     props.isCreateable
                         ? (order: number) => {
-                              setOrderedStatesListNewItemOrder(order);
-                              setModalType(ModalType.Create);
-                              setShowModal(true);
-                          }
+                            setOrderedStatesListNewItemOrder(order);
+                            setModalType(ModalType.Create);
+                            setShowModal(true);
+                        }
                         : undefined
                 }
                 singularLabel={
@@ -834,9 +833,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
+                            }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
                     onClose={() => {
@@ -844,9 +842,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                            }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {
@@ -866,8 +863,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             );
                         }
 
-                        props.onBeforeCreate &&
-                            (await props.onBeforeCreate(item));
+                        if (props.onBeforeCreate) {
+                            item = (await props.onBeforeCreate(item));
+                        }
+
+                        return item;
+
                     }}
                     modelType={props.modelType}
                     formProps={{
