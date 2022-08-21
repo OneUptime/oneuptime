@@ -32,7 +32,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'Monitors',
-                    to: RouteMap[PageMap.SETTINGS_MONITORS] as Route,
+                    to: RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

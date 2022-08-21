@@ -55,6 +55,12 @@ enum Permission {
     CanEditProjectProbe = 'CanEditProjectProbe',
     CanReadProjectProbe = 'CanReadProjectProbe',
 
+    // Probe Permissions (Owner Permission)
+    CanCreateProjectIncident = 'CanCreateProjectIncident',
+    CanDeleteProjectIncident = 'CanDeleteProjectIncident',
+    CanEditProjectIncident = 'CanEditProjectIncident',
+    CanReadProjectIncident = 'CanReadProjectIncident',
+
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateProjectLabel = 'CanCreateProjectLabel',
     CanEditProjectLabel = 'CanEditProjectLabel',
@@ -598,6 +604,36 @@ export class PermissionHelper {
                 title: 'Can Read Probe',
                 description:
                     'A user assigned this permission  can read probe of this project.',
+                isAssignableToProject: true,
+            },
+
+
+            {
+                permission: Permission.CanCreateProjectIncident,
+                title: 'Can Create Incident',
+                description:
+                    'A user assigned this permission can create incident this this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectIncident,
+                title: 'Can Delete Incident',
+                description:
+                    'A user assigned this permission  can delete incident of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectIncident,
+                title: 'Can Edit Incident',
+                description:
+                    'A user assigned this permission can edit incident of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectIncident,
+                title: 'Can Read Incident',
+                description:
+                    'A user assigned this permission  can read incident of this project.',
                 isAssignableToProject: true,
             },
         ];

@@ -86,6 +86,11 @@ import IncidentStateStatusService, {
     Service as IncidentStateStatusServiceType,
 } from 'CommonServer/Services/IncidentStateService';
 
+import Incident from 'Model/Models/Incident';
+import IncidentStatusService, {
+    Service as IncidentStatusServiceType,
+} from 'CommonServer/Services/IncidentService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -127,6 +132,13 @@ app.use(
     new BaseAPI<IncidentState, IncidentStateStatusServiceType>(
         IncidentState,
         IncidentStateStatusService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<Incident, IncidentStatusServiceType>(
+        Incident,
+        IncidentStatusService
     ).getRouter()
 );
 

@@ -26,10 +26,13 @@ import Monitor from './Monitor';
 import MonitorStatus from './MonitorStatus';
 
 // Incidents
+import Incident from './Incident';
 import IncidentState from './IncidentState';
 
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
+
+
 
 export default [
     User,
@@ -48,4 +51,5 @@ export default [
     Monitor,
     MonitorStatus,
     IncidentState,
+    Incident
 ];

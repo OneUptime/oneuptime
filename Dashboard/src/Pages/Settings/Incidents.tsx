@@ -35,7 +35,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'Incidents',
-                    to: RouteMap[PageMap.SETTINGS_INCIDENTS] as Route,
+                    to: RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
