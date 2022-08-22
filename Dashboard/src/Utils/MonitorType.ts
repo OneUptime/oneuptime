@@ -1,7 +1,10 @@
-import { MonitorTypeHelper, MonitorTypeProps } from "Common/Types/Monitor/MonitorType";
-import { DropdownOption } from "CommonUI/src/Components/Dropdown/Dropdown";
+import {
+    MonitorTypeHelper,
+    MonitorTypeProps,
+} from 'Common/Types/Monitor/MonitorType';
+import { DropdownOption } from 'CommonUI/src/Components/Dropdown/Dropdown';
 
-export default class MonitorTypeUtil { 
+export default class MonitorTypeUtil {
     public static monitorTypesAsDropdownOptions(): Array<DropdownOption> {
         const monitorTypes: Array<MonitorTypeProps> =
             MonitorTypeHelper.getAllMonitorTypeProps();

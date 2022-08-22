@@ -1,10 +1,4 @@
-import {
-    Column,
-    Entity,
-    Index,
-    JoinColumn,
-    ManyToOne,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -87,8 +81,6 @@ export default class MonitorStatusTimeline extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
@@ -135,7 +127,6 @@ export default class MonitorStatusTimeline extends BaseModel {
     })
     public monitorId?: ObjectID = undefined;
 
-   
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
@@ -217,8 +208,6 @@ export default class MonitorStatusTimeline extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
-
-
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],

@@ -636,7 +636,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
 
         columns = this.getReadColumnsByPermissions(userPermissions || []);
-        const tableColumns: Array<string> = this.model.getTableColumns().columns;
+        const tableColumns: Array<string> =
+            this.model.getTableColumns().columns;
 
         const excludedColumns: Array<string> = [
             '_id',
@@ -668,9 +669,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
 
             if (!columns.columns.includes(key)) {
-                
                 if (!tableColumns.includes(key)) {
-                    throw new BadDataException(`${key} column does not exist on ${this.model.singularName}`);
+                    throw new BadDataException(
+                        `${key} column does not exist on ${this.model.singularName}`
+                    );
                 }
 
                 throw new NotAuthorizedException(
@@ -1047,7 +1049,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
 
-            
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeDeleteBy.query,
                 skip: 0,
@@ -1095,8 +1096,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
         try {
-
-            debugger; 
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
                     createdAt: SortOrder.Descending,

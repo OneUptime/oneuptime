@@ -53,5 +53,5 @@ export default [
     IncidentState,
     Incident,
     IncidentStateTimeline,
-    MonitorStatusTimeline
+    MonitorStatusTimeline,
 ];

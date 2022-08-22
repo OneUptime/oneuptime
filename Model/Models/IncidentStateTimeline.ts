@@ -1,10 +1,4 @@
-import {
-    Column,
-    Entity,
-    Index,
-    JoinColumn,
-    ManyToOne,
-} from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -85,8 +79,6 @@ export default class IncidentStateTimeline extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
         read: [
@@ -132,7 +124,6 @@ export default class IncidentStateTimeline extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public incidentId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],

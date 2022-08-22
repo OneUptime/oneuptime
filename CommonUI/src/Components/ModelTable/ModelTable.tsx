@@ -259,7 +259,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 if (model.getTableColumnMetadata(key)) {
                     (selectFields as Dictionary<boolean>)[key] = true;
                 } else {
-                    throw new BadDataException(`${key} column not found on ${model.singularName}`);
+                    throw new BadDataException(
+                        `${key} column not found on ${model.singularName}`
+                    );
                 }
             }
 
@@ -267,7 +269,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 if (model.getTableColumnMetadata(moreField)) {
                     (selectFields as Dictionary<boolean>)[moreField] = true;
                 } else {
-                    throw new BadDataException(`${moreField} column not found on ${model.singularName}`);
+                    throw new BadDataException(
+                        `${moreField} column not found on ${model.singularName}`
+                    );
                 }
             }
         }

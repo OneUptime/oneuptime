@@ -1,4 +1,4 @@
-import BadDataException from "../Exception/BadDataException";
+import BadDataException from '../Exception/BadDataException';
 
 enum MonitorType {
     Manual = 'Manual',
@@ -18,8 +18,7 @@ export interface MonitorTypeProps {
     title: string;
 }
 
-export class MonitorTypeHelper { 
-
+export class MonitorTypeHelper {
     public static getAllMonitorTypeProps(): Array<MonitorTypeProps> {
         const monitorTypeProps: Array<MonitorTypeProps> = [
             {
@@ -63,8 +62,8 @@ export class MonitorTypeHelper {
                 title: 'Incoming Request',
                 description:
                     'This monitor types lets you ping OneUptime from any external device or service wuth a custom payload.',
-            }
-        ]
+            },
+        ];
 
         return monitorTypeProps;
     }

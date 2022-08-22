@@ -16,13 +16,17 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
             <div
                 className="small-circle margin-5"
                 style={{
-                    backgroundColor: props.color ? props.color.toString() : Black.toString(),
+                    backgroundColor: props.color
+                        ? props.color.toString()
+                        : Black.toString(),
                 }}
             ></div>
             <div
                 className="bold margin-5"
                 style={{
-                    color: props.color ? props.color.toString() : Black.toString(),
+                    color: props.color
+                        ? props.color.toString()
+                        : Black.toString(),
                 }}
             >
                 {props.text}

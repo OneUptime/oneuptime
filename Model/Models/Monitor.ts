@@ -24,7 +24,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Label from './Label';
-import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 import MonitorStatus from './MonitorStatus';
 
 @TenantColumn('projectId')
@@ -250,8 +250,6 @@ export default class Monitor extends BaseModel {
     @JoinTable()
     public labels?: Array<Label> = undefined;
 
-
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
@@ -268,7 +266,6 @@ export default class Monitor extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public monitorType?: MonitorType = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],

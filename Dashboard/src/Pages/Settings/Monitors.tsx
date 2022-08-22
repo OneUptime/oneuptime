@@ -67,7 +67,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                             'This incident cannot be deleted because its the offline state of monitors. Operational status or Offline Status cannnot be deleted.'
                         );
                     }
-                   
+
                     return item;
                 }}
                 currentPageRoute={props.pageRoute}

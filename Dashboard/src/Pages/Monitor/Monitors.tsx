@@ -128,15 +128,28 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                         title: 'Monitor Status',
                         type: FieldType.Text,
                         getColumnElement: (item: JSONObject): ReactElement => {
-
                             if (!item['currentMonitorStatus']) {
-                                throw new BadDataException("Monitor Status not found");
+                                throw new BadDataException(
+                                    'Monitor Status not found'
+                                );
                             }
 
                             return (
                                 <Statusbubble
-                                    color={(item['currentMonitorStatus'] as JSONObject)['color'] as Color}
-                                    text={(item['currentMonitorStatus'] as JSONObject)['name'] as string}
+                                    color={
+                                        (
+                                            item[
+                                                'currentMonitorStatus'
+                                            ] as JSONObject
+                                        )['color'] as Color
+                                    }
+                                    text={
+                                        (
+                                            item[
+                                                'currentMonitorStatus'
+                                            ] as JSONObject
+                                        )['name'] as string
+                                    }
                                 />
                             );
                         },
