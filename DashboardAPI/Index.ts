@@ -81,15 +81,25 @@ import MonitorStatusService, {
     Service as MonitorStatusServiceType,
 } from 'CommonServer/Services/MonitorStatusService';
 
+import MonitorTimelineStatus from 'Model/Models/MonitorStatusTimeline';
+import MonitorTimelineStatusService, {
+    Service as MonitorTimelineStatusServiceType,
+} from 'CommonServer/Services/MonitorStatusTimelineService';
+
 import IncidentState from 'Model/Models/IncidentState';
-import IncidentStateStatusService, {
-    Service as IncidentStateStatusServiceType,
+import IncidentStateService, {
+    Service as IncidentStateServiceType,
 } from 'CommonServer/Services/IncidentStateService';
 
 import Incident from 'Model/Models/Incident';
-import IncidentStatusService, {
-    Service as IncidentStatusServiceType,
+import IncidentService, {
+    Service as IncidentServiceType,
 } from 'CommonServer/Services/IncidentService';
+
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import IncidentStateTimelineService, {
+    Service as IncidentStateTimelineServiceType,
+} from 'CommonServer/Services/IncidentStateTimelineService';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -129,16 +139,23 @@ app.use(
 );
 
 app.use(
-    new BaseAPI<IncidentState, IncidentStateStatusServiceType>(
+    new BaseAPI<IncidentState, IncidentStateServiceType>(
         IncidentState,
-        IncidentStateStatusService
+        IncidentStateService
     ).getRouter()
 );
 
 app.use(
-    new BaseAPI<Incident, IncidentStatusServiceType>(
+    new BaseAPI<IncidentStateTimeline, IncidentStateTimelineServiceType>(
+        IncidentStateTimeline,
+        IncidentStateTimelineService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<Incident, IncidentServiceType>(
         Incident,
-        IncidentStatusService
+        IncidentService
     ).getRouter()
 );
 
@@ -172,6 +189,13 @@ app.use(
     new BaseAPI<Monitor, MonitorServiceType>(
         Monitor,
         MonitorService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<MonitorTimelineStatus, MonitorTimelineStatusServiceType>(
+        MonitorTimelineStatus,
+        MonitorTimelineStatusService
     ).getRouter()
 );
 

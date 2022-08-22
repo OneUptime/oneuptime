@@ -24,10 +24,12 @@ import OnCallDuty from './OnCallDuty';
 // Monitors
 import Monitor from './Monitor';
 import MonitorStatus from './MonitorStatus';
+import MonitorStatusTimeline from './MonitorStatusTimeline';
 
 // Incidents
 import Incident from './Incident';
 import IncidentState from './IncidentState';
+import IncidentStateTimeline from './IncidentStateTimeline';
 
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
@@ -50,4 +52,6 @@ export default [
     MonitorStatus,
     IncidentState,
     Incident,
+    IncidentStateTimeline,
+    MonitorStatusTimeline
 ];

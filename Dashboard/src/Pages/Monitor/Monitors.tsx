@@ -9,6 +9,13 @@ import Monitor from 'Model/Models/Monitor';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import MonitorTypeUtil from '../../Utils/MonitorType';
+import Label from 'Model/Models/Label';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import LabelsElement from '../../Components/Label/Labels';
+import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import Color from 'Common/Types/Color';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const MonitorPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -63,6 +70,33 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
+                    {
+                        field: {
+                            monitorType: true,
+                        },
+                        title: 'Monitor Type',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        required: true,
+                        placeholder: 'Select Monitor Type',
+                        dropdownOptions:
+                            MonitorTypeUtil.monitorTypesAsDropdownOptions(),
+                    },
+                    {
+                        field: {
+                            labels: true,
+                        },
+                        title: 'Labels (Optional)',
+                        description:
+                            'Team members with access to these labels will only be able to access this monitor. This is optional and an advanced feature.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Label,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'Labels',
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -78,11 +112,56 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            description: true,
+                            monitorType: true,
                         },
-                        title: 'Description',
+                        title: 'Monitor Type',
                         type: FieldType.Text,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            currentMonitorStatus: {
+                                color: true,
+                                name: true,
+                            },
+                        },
+                        title: 'Monitor Status',
+                        type: FieldType.Text,
+                        getColumnElement: (item: JSONObject): ReactElement => {
+
+                            if (!item['currentMonitorStatus']) {
+                                throw new BadDataException("Monitor Status not found");
+                            }
+
+                            return (
+                                <Statusbubble
+                                    color={(item['currentMonitorStatus'] as JSONObject)['color'] as Color}
+                                    text={(item['currentMonitorStatus'] as JSONObject)['name'] as string}
+                                />
+                            );
+                        },
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.Text,
+                        getColumnElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <LabelsElement
+                                    labels={
+                                        Label.fromJSON(
+                                            (item['labels'] as JSONArray) || [],
+                                            Label
+                                        ) as Array<Label>
+                                    }
+                                />
+                            );
+                        },
                     },
                 ]}
             />

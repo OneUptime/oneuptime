@@ -256,11 +256,19 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 : [];
 
             if (key) {
-                (selectFields as Dictionary<boolean>)[key] = true;
+                if (model.getTableColumnMetadata(key)) {
+                    (selectFields as Dictionary<boolean>)[key] = true;
+                } else {
+                    throw new BadDataException(`${key} column not found on ${model.singularName}`);
+                }
             }
 
             for (const moreField of moreFields) {
-                (selectFields as Dictionary<boolean>)[moreField] = true;
+                if (model.getTableColumnMetadata(moreField)) {
+                    (selectFields as Dictionary<boolean>)[moreField] = true;
+                } else {
+                    throw new BadDataException(`${moreField} column not found on ${model.singularName}`);
+                }
             }
         }
 

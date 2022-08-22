@@ -145,6 +145,7 @@ export class Service extends DatabaseService<Model> {
         operationalStatus.name = 'Operational';
         operationalStatus.description = 'Monitor operating normally';
         operationalStatus.projectId = createdItem.id!;
+        operationalStatus.isOperationalState = true;
         operationalStatus.color = Green;
 
         operationalStatus = await MonitorStatusService.create({
@@ -171,6 +172,7 @@ export class Service extends DatabaseService<Model> {
         let downStatus: MonitorStatus = new MonitorStatus();
         downStatus.name = 'Offline';
         downStatus.description = 'Monitor is offline.';
+        downStatus.isOfflineState = true;
         downStatus.projectId = createdItem.id!;
         downStatus.color = Red;
 

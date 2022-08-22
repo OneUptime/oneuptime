@@ -3,8 +3,6 @@ import {
     Entity,
     Index,
     JoinColumn,
-    JoinTable,
-    ManyToMany,
     ManyToOne,
 } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
@@ -17,39 +15,37 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
-import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import Monitor from './Monitor';
-import IncidentState from './IncidentState';
 import MonitorStatus from './MonitorStatus';
+import Monitor from './Monitor';
 
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+    create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
     read: [
         Permission.ProjectOwner,
-        Permission.CanReadProjectIncident,
+        Permission.CanReadProjectMonitor,
         Permission.ProjectMember,
     ],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectIncident],
-    update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectMonitor],
+    update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
 })
-@CrudApiEndpoint(new Route('/incident'))
+@CrudApiEndpoint(new Route('/monitor-status-timeline'))
 @SlugifyColumn('name', 'slug')
 @Entity({
-    name: 'Incident',
+    name: 'Monitor',
 })
-@SingularPluralName('Incident', 'Incidents')
-export default class Incident extends BaseModel {
+@SingularPluralName('Monitor', 'Monitors')
+export default class MonitorStatusTimeline extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],
@@ -74,10 +70,10 @@ export default class Incident extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],
@@ -91,65 +87,60 @@ export default class Incident extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
-    })
-    @Index()
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
-    @Column({
-        nullable: false,
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
-    })
-    public title?: string = undefined;
+
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
-    })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
-    @Column({
-        nullable: true,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
-    })
-    public description?: string = undefined;
-
-    @Index()
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],
     })
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
-    @Column({
-        nullable: false,
-        type: ColumnType.Slug,
-        length: ColumnLength.Slug,
-        unique: true,
+    @TableColumn({
+        manyToOneRelationColumn: 'projectId',
+        type: TableColumnType.Entity,
+        modelType: Monitor,
     })
-    public slug?: string = undefined;
+    @ManyToOne(
+        (_type: string) => {
+            return Monitor;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'projectId' })
+    public monitor?: Monitor = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public monitorId?: ObjectID = undefined;
+
+   
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],
@@ -174,10 +165,10 @@ export default class Incident extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
         update: [],
@@ -227,87 +218,21 @@ export default class Incident extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
-    })
-    @TableColumn({
-        required: false,
-        type: TableColumnType.EntityArray,
-        modelType: Monitor,
-    })
-    @ManyToMany(
-        () => {
-            return Monitor;
-        },
-        { eager: true }
-    )
-    @JoinTable()
-    public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
+
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'currentIncidentStateId',
+        manyToOneRelationColumn: 'monitorStatusId',
         type: TableColumnType.Entity,
-        modelType: IncidentState,
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return IncidentState;
-        },
-        {
-            eager: false,
-            nullable: true,
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'currentIncidentStateId' })
-    public currentIncidentState?: IncidentState = undefined;
-
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
-    })
-    @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: false,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public currentIncidentStateId?: ObjectID = undefined;
-
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
-        update: [],
-    })
-    @TableColumn({
-        manyToOneRelationColumn: 'changeMonitorStatusToId',
-        type: TableColumnType.Entity,
-        modelType: IncidentState,
+        modelType: MonitorStatus,
     })
     @ManyToOne(
         (_type: string) => {
@@ -319,17 +244,17 @@ export default class Incident extends BaseModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'changeMonitorStatusToId' })
-    public changeMonitorStatusTo?: MonitorStatus = undefined;
+    @JoinColumn({ name: 'monitorStatusId' })
+    public monitorStatus?: MonitorStatus = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
+            Permission.CanReadProjectMonitor,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID, required: true })
@@ -338,5 +263,5 @@ export default class Incident extends BaseModel {
         nullable: false,
         transformer: ObjectID.getDatabaseTransformer(),
     })
-    public changeMonitorStatusToId?: ObjectID = undefined;
+    public monitorStatusId?: ObjectID = undefined;
 }

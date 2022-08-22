@@ -55,6 +55,21 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 noItemsMessage={
                     'No monitor status created for this project so far.'
                 }
+                onBeforeDelete={(item: MonitorStatus) => {
+                    if (item.isOperationalState) {
+                        throw new BadDataException(
+                            'This incident cannot be deleted because its the operational state of monitors. Operational status or Offline Status cannnot be deleted.'
+                        );
+                    }
+
+                    if (item.isOfflineState) {
+                        throw new BadDataException(
+                            'This incident cannot be deleted because its the offline state of monitors. Operational status or Offline Status cannnot be deleted.'
+                        );
+                    }
+                   
+                    return item;
+                }}
                 currentPageRoute={props.pageRoute}
                 onBeforeCreate={(
                     item: MonitorStatus
