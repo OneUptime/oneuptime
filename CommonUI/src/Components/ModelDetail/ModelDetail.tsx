@@ -16,6 +16,7 @@ import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Field from './Field';
 import Detail from '../Detail/Detail';
+import Populate from '../../Utils/ModelAPI/Populate';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };
@@ -26,6 +27,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onError?: ((error: string) => void) | undefined;
     onItemLoaded?: (item: TBaseModel) => void | undefined;
     refresher?: undefined | boolean;
+    showDetailsInNumberOfColumns?: number | undefined;
 }
 
 const ModelDetail: Function = <TBaseModel extends BaseModel>(
@@ -55,6 +57,22 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         }
 
         return select;
+    };
+
+    const getPopulate: Function = (): Populate<TBaseModel> => {
+        const populate: Populate<TBaseModel> = {};
+
+        for (const field of props.fields || []) {
+            const key: string | null = field.field
+                ? (Object.keys(field.field)[0] as string)
+                : null;
+
+            if (key && model.isEntityColumn(key)) {
+                (populate as JSONObject)[key] = (field.field as any)[key];
+            }
+        }
+
+        return populate;
     };
 
     useEffect(() => {
@@ -118,7 +136,8 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
             const item: TBaseModel | null = await ModelAPI.getItem(
                 props.modelType,
                 props.modelId,
-                getSelectFields()
+                getSelectFields(),
+                getPopulate()
             );
 
             if (!item) {
@@ -196,7 +215,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         );
     }
 
-    return <Detail id={props.id} item={item} fields={fields} />;
+    return <Detail id={props.id} item={item} fields={fields} showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns} />;
 };
 
 export default ModelDetail;

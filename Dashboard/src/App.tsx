@@ -36,6 +36,9 @@ import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
 
 // Monitors
 import MonitorPage from './Pages/Monitor/Monitors';
+import MonitorView from './Pages/Monitor/View/Index';
+import MonitorViewDelete from './Pages/Monitor/View/Delete';
+import MonitorViewStatusTimeline from './Pages/Monitor/View/StatusTimeline';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -45,6 +48,7 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Project from 'Model/Models/Project';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { JSONObject } from 'Common/Types/JSON';
+
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -94,7 +98,7 @@ const App: FunctionComponent = () => {
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                'error'
                 ] as string
             );
         }
@@ -142,6 +146,37 @@ const App: FunctionComponent = () => {
                     element={
                         <MonitorPage
                             pageRoute={RouteMap[PageMap.MONITORS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.MONITOR_VIEW]?.toString()}
+                    element={
+                        <MonitorView
+                            pageRoute={RouteMap[PageMap.MONITOR_VIEW] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+
+                <PageRoute
+                    path={RouteMap[PageMap.MONITOR_VIEW_DELETE]?.toString()}
+                    element={
+                        <MonitorViewDelete
+                            pageRoute={RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE]?.toString()}
+                    element={
+                        <MonitorViewStatusTimeline
+                            pageRoute={RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route}
                             currentProject={selectedProject}
                         />
                     }
@@ -210,7 +245,7 @@ const App: FunctionComponent = () => {
                         <SettingsMonitors
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_MONITORS_STATUS
+                                PageMap.SETTINGS_MONITORS_STATUS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -226,7 +261,7 @@ const App: FunctionComponent = () => {
                         <SettingsIncidents
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_STATE
+                                PageMap.SETTINGS_INCIDENTS_STATE
                                 ] as Route
                             }
                             currentProject={selectedProject}

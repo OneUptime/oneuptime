@@ -4,6 +4,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import PageMap from './PageMap';
 import RouteParams from './RouteParams';
+import ObjectID from 'Common/Types/ObjectID';
 
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
@@ -19,6 +20,19 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.MONITORS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/`
     ),
+
+    [PageMap.MONITOR_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/status-timeline`
+    ),
+
+    [PageMap.MONITOR_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/delete`
+    ),
+
     [PageMap.AUTOMATION_SCRIPTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/automation-scripts/`
     ),
@@ -79,12 +93,16 @@ const RouteMap: Dictionary<Route> = {
 };
 
 export class RouteUtil {
-    public static populateRouteParams(route: Route): Route {
+    public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
         // populate projectid
         const project: Project | null = ProjectUtil.getCurrentProject();
 
         if (project && project._id) {
             route = route.addRouteParam(RouteParams.ProjectID, project._id);
+        }
+
+        if (modelId) {
+            route = route.addRouteParam(RouteParams.ModelID, modelId.toString());
         }
 
         return route;

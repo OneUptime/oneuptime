@@ -153,11 +153,15 @@ export default class URL extends DatabaseProperty {
         return this;
     }
 
-    public getLastRoute(): Route | null {
+    public getLastRoute(getFromLastRoute?: number): Route | null {
         const paths: Array<string> = this.route.toString().split('/');
 
         if (paths.length > 0) {
-            return new Route('/' + paths[paths.length - 1]);
+            if (!getFromLastRoute) {
+                return new Route('/' + paths[paths.length - 1]);
+            } else {
+                return new Route('/' + paths[paths.length - (1+getFromLastRoute)]);
+            }
         }
 
         return null;

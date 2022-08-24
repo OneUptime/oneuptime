@@ -20,5 +20,5 @@ export default interface Columns<TEntity> {
     isFilterable: boolean;
     actionButtons?: Array<ActionButton>;
     moreFields?: SelectEntityField<TEntity>;
-    getColumnElement?: ((item: JSONObject) => ReactElement) | undefined;
+    getElement?: ((item: JSONObject) => ReactElement) | undefined;
 }

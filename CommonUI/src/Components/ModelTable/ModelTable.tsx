@@ -712,11 +712,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 column.field as Object
             )[0];
             if (key === props.orderedStatesListProps.titleField) {
-                getTitleElement = column.getColumnElement;
+                getTitleElement = column.getElement;
             }
 
             if (key === props.orderedStatesListProps.descriptionField) {
-                getDescriptionElement = column.getColumnElement;
+                getDescriptionElement = column.getElement;
             }
         }
 

@@ -124,7 +124,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Incident State',
                         type: FieldType.Text,
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             if (item['currentIncidentState']) {
                                 return (
                                     <Pill
@@ -146,7 +146,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Monitors Affected',
                         type: FieldType.Text,
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <MonitorsElement
                                     monitors={

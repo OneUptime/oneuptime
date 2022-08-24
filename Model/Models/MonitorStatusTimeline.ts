@@ -31,9 +31,9 @@ import Monitor from './Monitor';
 @CrudApiEndpoint(new Route('/monitor-status-timeline'))
 @SlugifyColumn('name', 'slug')
 @Entity({
-    name: 'Monitor',
+    name: 'MonitorStatusTimeline',
 })
-@SingularPluralName('Monitor', 'Monitors')
+@SingularPluralName('Monitor Status Event', 'Monitor Status Events')
 export default class MonitorStatusTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
@@ -91,7 +91,7 @@ export default class MonitorStatusTimeline extends BaseModel {
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'monitorId',
+    manyToOneRelationColumn: 'monitorId',
         type: TableColumnType.Entity,
         modelType: Monitor,
     })

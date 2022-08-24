@@ -89,7 +89,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                             isResolvedState: true,
                             order: true,
                         },
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <Pill
                                     color={item['color'] as Color}

@@ -41,6 +41,7 @@ import {
     FiFilter,
     FiEdit2,
     FiEyeOff,
+    FiList
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -76,6 +77,7 @@ export enum IconProp {
     Activity,
     Alert,
     Call,
+    List,
     CheckCircle,
     Search,
     Logout,
@@ -436,6 +438,13 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.False && (
                 <FiX
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.List && (
+                <FiList
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

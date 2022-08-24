@@ -57,7 +57,6 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Monitor Name',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },
@@ -127,7 +126,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Monitor Status',
                         type: FieldType.Text,
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             if (!item['currentMonitorStatus']) {
                                 throw new BadDataException(
                                     'Monitor Status not found'
@@ -163,7 +162,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.Text,
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement
                                     labels={

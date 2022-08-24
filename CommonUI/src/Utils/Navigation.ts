@@ -30,8 +30,8 @@ abstract class Navigation {
         return this.params[param] as string;
     }
 
-    public static getLastParam(): Route | null {
-        return URL.fromString(window.location.href).getLastRoute();
+    public static getLastParam(getFromLastRoute?: number): Route | null {
+        return URL.fromString(window.location.href).getLastRoute(getFromLastRoute);
     }
 
     public static getCurrentRoute(): Route {

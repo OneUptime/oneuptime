@@ -100,7 +100,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         moreFields: {
                             color: true,
                         },
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <Pill
                                     color={item['color'] as Color}
