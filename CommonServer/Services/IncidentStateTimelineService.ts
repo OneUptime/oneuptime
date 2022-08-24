@@ -2,7 +2,7 @@ import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/IncidentStateTimeline';
 import DatabaseService, { OnCreate } from './DatabaseService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IncidentService from './IncaidentService';
+import IncidentService from './IncidentService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
