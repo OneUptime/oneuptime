@@ -5,9 +5,10 @@ import CreateBy from '../Types/Database/CreateBy';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusService from './MonitorStatusService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import QueryHelper from '../Types/Database/QueryHelper';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import MonitorStatusTimelineService from './MonitorStatusTimelineService';
 import ObjectID from 'Common/Types/ObjectID';
+import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -46,26 +47,52 @@ export class Service extends DatabaseService<Model> {
         return { createBy, carryForward: null };
     }
 
+
+    protected override async onCreateSuccess(onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
+
+        if (!createdItem.projectId) {
+            throw new BadDataException("projectId is required");
+        }
+
+        if (!createdItem.id) {
+            throw new BadDataException("id is required");
+        }
+
+        if (!createdItem.currentMonitorStatusId) {
+            throw new BadDataException("currentMonitorStatusId is required");
+        }
+
+
+        await this.changeMonitorStatus(createdItem.projectId, [createdItem.id], createdItem.currentMonitorStatusId, onCreate.createBy.props);
+        return createdItem;
+    }
+
+
     public async changeMonitorStatus(
+        projectId: ObjectID,
         monitorIds: Array<ObjectID>,
         monitorStatusId: ObjectID,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
-        await this.updateBy({
-            query: {
-                _id: QueryHelper.in(
-                    monitorIds.map((i: ObjectID) => {
-                        return i.toString();
-                    })
-                ),
-            },
-            data: {
-                currentMonitorStatusId: monitorStatusId,
-            },
-            props: props,
-        });
+        
+        for (const monitorId of monitorIds) {
 
-        // TODO: update the timeline of these monitors.
+            const statusTimeline: MonitorStatusTimeline = new MonitorStatusTimeline();
+            
+            statusTimeline.monitorId = monitorId;
+            statusTimeline.monitorStatusId = monitorStatusId;
+            statusTimeline.projectId = projectId;
+
+            await MonitorStatusTimelineService.create({
+                data: statusTimeline, 
+                props: props
+            })
+        }
     }
+
+
+
+
+    
 }
 export default new Service();

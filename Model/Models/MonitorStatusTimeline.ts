@@ -91,7 +91,7 @@ export default class MonitorStatusTimeline extends BaseModel {
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'projectId',
+        manyToOneRelationColumn: 'monitorId',
         type: TableColumnType.Entity,
         modelType: Monitor,
     })
@@ -106,7 +106,7 @@ export default class MonitorStatusTimeline extends BaseModel {
             orphanedRowAction: 'nullify',
         }
     )
-    @JoinColumn({ name: 'projectId' })
+    @JoinColumn({ name: 'monitorId' })
     public monitor?: Monitor = undefined;
 
     @ColumnAccessControl({
