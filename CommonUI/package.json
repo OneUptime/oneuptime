@@ -18,6 +18,7 @@
         "@fortawesome/react-fontawesome": "^0.1.18",
         "@types/react-color": "^3.0.6",
         "@types/react-toggle": "^4.0.3",
+        "@uiw/react-md-editor": "^3.18.1",
         "bootstrap": "^5.2.0-beta1",
         "Common": "file:../Common",
         "formik": "^2.2.9",
