@@ -17,6 +17,7 @@ enum FieldType {
     Actions = 'Actions',
     Boolean = 'Boolean',
     Entity = 'Entity',
+    Markdown = 'Markdown'
 }
 
 export default FieldType;
