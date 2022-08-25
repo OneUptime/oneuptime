@@ -92,10 +92,10 @@ enum Permission {
     CanDeleteIncidentInternalNote = 'CanDeleteIncidentInternalNote',
     CanReadIncidentInternalNote = 'CanReadIncidentInternalNote',
 
-    CanCreateIncidentStatusPageNote = 'CanCreateIncidentStatusPageNote',
-    CanEditIncidentStatusPageNote = 'CanEditIncidentStatusPageNote',
-    CanDeleteIncidentStatusPageNote = 'CanDeleteIncidentStatusPageNote',
-    CanReadIncidentStatusPageNote = 'CanReadIncidentStatusPageNote',
+    CanCreateIncidentPublicNote = 'CanCreateIncidentPublicNote',
+    CanEditIncidentPublicNote = 'CanEditIncidentPublicNote',
+    CanDeleteIncidentPublicNote = 'CanDeleteIncidentPublicNote',
+    CanReadIncidentPublicNote = 'CanReadIncidentPublicNote',
 
     CanCreateProjectMonitor = 'CanCreateProjectMonitor',
     CanEditProjectMonitor = 'CanEditProjectMonitor',
@@ -561,28 +561,28 @@ export class PermissionHelper {
 
 
             {
-                permission: Permission.CanCreateIncidentStatusPageNote,
+                permission: Permission.CanCreateIncidentPublicNote,
                 title: 'Can Create Incident Status Page Note',
                 description:
                     'A user assigned this permission can create Incident Status Page Note this project.',
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CanDeleteIncidentStatusPageNote,
+                permission: Permission.CanDeleteIncidentPublicNote,
                 title: 'Can Delete Incident Status Page Note',
                 description:
                     'A user assigned this permission  can delete Incident Status Page Note of this project.',
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CanEditIncidentStatusPageNote,
+                permission: Permission.CanEditIncidentPublicNote,
                 title: 'Can Edit Incident Status Page Note',
                 description:
                     'A user assigned this permission can edit Incident Status Page Note of this project.',
                 isAssignableToProject: true,
             },
             {
-                permission: Permission.CanReadIncidentStatusPageNote,
+                permission: Permission.CanReadIncidentPublicNote,
                 title: 'Can Read Incident Status Page Note',
                 description:
                     'A user assigned this permission  can read Incident Status Page Note of this project.',

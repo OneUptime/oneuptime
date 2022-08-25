@@ -24,6 +24,7 @@ enum ColumnType {
     SmallNumber = 'smallint',
     Number = 'integer',
     BigNumber = 'bigint',
+    Markdown = 'text',
 }
 
 export default ColumnType;
