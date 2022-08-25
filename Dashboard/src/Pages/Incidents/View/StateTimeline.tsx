@@ -138,7 +138,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             createdAt: true
                         },
                         title: 'Reported At',
-                        type: FieldType.Date,
+                        type: FieldType.DateTime,
                     },
                 ]}
             />

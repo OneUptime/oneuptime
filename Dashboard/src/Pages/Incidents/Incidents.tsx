@@ -172,7 +172,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                             createdAt: true
                         },
                         title: 'Created At',
-                        type: FieldType.Date,
+                        type: FieldType.DateTime,
                     },
                 ]}
             />

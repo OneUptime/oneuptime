@@ -87,18 +87,21 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 _id: true,
                             },
                             title: 'Incident ID',
+                            fieldType: FieldType.ObjectID,
                         },
                         {
                             field: {
                                 title: true,
                             },
                             title: 'Incident Title',
+                            fieldType: FieldType.Text,
                         },
                         {
                             field: {
                                 description: true,
                             },
                             title: 'Description',
+                            fieldType: FieldType.LongText,
                         },
                         {
                             field: {
@@ -108,7 +111,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Current State',
-                            type: FieldType.Text,
+                            fieldType: FieldType.Text,
                             getElement: (item: JSONObject): ReactElement => {
                                 if (!item['currentIncidentState']) {
                                     throw new BadDataException(
@@ -144,7 +147,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Monitors Affected',
-                            type: FieldType.Text,
+                            fieldType: FieldType.Text,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
                                     <MonitorsElement
@@ -164,7 +167,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 createdAt: true
                             },
                             title: 'Created At',
-                            type: FieldType.Date,
+                            fieldType: FieldType.DateTime,
                         },
                     ],
                     modelId: modelId,

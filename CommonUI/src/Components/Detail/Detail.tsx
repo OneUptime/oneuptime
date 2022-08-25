@@ -36,6 +36,13 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             );
         }
 
+        if (field.fieldType === FieldType.DateTime) {
+            data = OneUptimeDate.getDateAsLocalFormattedString(
+                data as string,
+                false
+            );
+        }
+
         if (field.fieldType === FieldType.HiddenText) {
             data = (
                 <HiddenText

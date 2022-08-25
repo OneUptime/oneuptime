@@ -45,6 +45,16 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         OneUptimeDate.getDateAsLocalFormattedString(
                                             props.item[column.key] as string,
                                             column.options?.onlyShowDate ||
+                                                true
+                                        )
+                                    ) : (
+                                        ''
+                                    )
+                                ) : column.type === FieldType.DateTime ? (
+                                    props.item[column.key] ? (
+                                        OneUptimeDate.getDateAsLocalFormattedString(
+                                            props.item[column.key] as string,
+                                            column.options?.onlyShowDate ||
                                                 false
                                         )
                                     ) : (
