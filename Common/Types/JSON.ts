@@ -313,7 +313,9 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Search
         ) {
             val = new Search((val as JSONObject)['value'] as string);
-        } else if (typeof val === Typeof.Object) {
+        } else if (val instanceof  Date) {
+            val = val;
+        }else if (typeof val === Typeof.Object) {
             val = this.deserialize(val as JSONObject);
         }
 

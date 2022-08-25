@@ -108,6 +108,14 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
+                            _id: true,
+                        },
+                        title: 'ID',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
                             title: true,
                         },
                         title: 'Title',

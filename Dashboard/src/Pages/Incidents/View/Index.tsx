@@ -159,6 +159,13 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 );
                             },
                         },
+                        {
+                            field: {
+                                createdAt: true
+                            },
+                            title: 'Created At',
+                            type: FieldType.Date,
+                        },
                     ],
                     modelId: modelId,
                 }}
