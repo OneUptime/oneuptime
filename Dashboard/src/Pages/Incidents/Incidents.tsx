@@ -135,8 +135,20 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                             if (item['currentIncidentState']) {
                                 return (
                                     <Pill
-                                        color={(item['currentIncidentState'] as JSONObject)['color'] as Color}
-                                        text={(item['currentIncidentState'] as JSONObject)['name'] as string}
+                                        color={
+                                            (
+                                                item[
+                                                    'currentIncidentState'
+                                                ] as JSONObject
+                                            )['color'] as Color
+                                        }
+                                        text={
+                                            (
+                                                item[
+                                                    'currentIncidentState'
+                                                ] as JSONObject
+                                            )['name'] as string
+                                        }
                                     />
                                 );
                             }
@@ -169,7 +181,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            createdAt: true
+                            createdAt: true,
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,

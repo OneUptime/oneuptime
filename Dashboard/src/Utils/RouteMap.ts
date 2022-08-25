@@ -9,7 +9,7 @@ import ObjectID from 'Common/Types/ObjectID';
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
     [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
-    
+
     [PageMap.INCIDENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/`
     ),
@@ -25,7 +25,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.INCIDENT_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
     ),
-
 
     [PageMap.STATUS_PAGE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/`
@@ -117,7 +116,10 @@ export class RouteUtil {
         }
 
         if (modelId) {
-            route = route.addRouteParam(RouteParams.ModelID, modelId.toString());
+            route = route.addRouteParam(
+                RouteParams.ModelID,
+                modelId.toString()
+            );
         }
 
         return route;

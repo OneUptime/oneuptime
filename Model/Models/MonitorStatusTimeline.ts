@@ -91,7 +91,7 @@ export default class MonitorStatusTimeline extends BaseModel {
         update: [],
     })
     @TableColumn({
-    manyToOneRelationColumn: 'monitorId',
+        manyToOneRelationColumn: 'monitorId',
         type: TableColumnType.Entity,
         modelType: Monitor,
     })

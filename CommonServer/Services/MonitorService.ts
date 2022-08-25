@@ -47,26 +47,30 @@ export class Service extends DatabaseService<Model> {
         return { createBy, carryForward: null };
     }
 
-
-    protected override async onCreateSuccess(onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
-
+    protected override async onCreateSuccess(
+        onCreate: OnCreate<Model>,
+        createdItem: Model
+    ): Promise<Model> {
         if (!createdItem.projectId) {
-            throw new BadDataException("projectId is required");
+            throw new BadDataException('projectId is required');
         }
 
         if (!createdItem.id) {
-            throw new BadDataException("id is required");
+            throw new BadDataException('id is required');
         }
 
         if (!createdItem.currentMonitorStatusId) {
-            throw new BadDataException("currentMonitorStatusId is required");
+            throw new BadDataException('currentMonitorStatusId is required');
         }
 
-
-        await this.changeMonitorStatus(createdItem.projectId, [createdItem.id], createdItem.currentMonitorStatusId, onCreate.createBy.props);
+        await this.changeMonitorStatus(
+            createdItem.projectId,
+            [createdItem.id],
+            createdItem.currentMonitorStatusId,
+            onCreate.createBy.props
+        );
         return createdItem;
     }
-
 
     public async changeMonitorStatus(
         projectId: ObjectID,
@@ -74,25 +78,19 @@ export class Service extends DatabaseService<Model> {
         monitorStatusId: ObjectID,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
-        
         for (const monitorId of monitorIds) {
+            const statusTimeline: MonitorStatusTimeline =
+                new MonitorStatusTimeline();
 
-            const statusTimeline: MonitorStatusTimeline = new MonitorStatusTimeline();
-            
             statusTimeline.monitorId = monitorId;
             statusTimeline.monitorStatusId = monitorStatusId;
             statusTimeline.projectId = projectId;
 
             await MonitorStatusTimelineService.create({
-                data: statusTimeline, 
-                props: props
-            })
+                data: statusTimeline,
+                props: props,
+            });
         }
     }
-
-
-
-
-    
 }
 export default new Service();

@@ -41,7 +41,7 @@ import {
     FiFilter,
     FiEdit2,
     FiEyeOff,
-    FiList
+    FiList,
 } from 'react-icons/fi';
 
 export enum SizeProp {

@@ -15,7 +15,7 @@ import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotCon
 import Exception from 'Common/Types/Exception/Exception';
 import SearchResult from '../Types/Database/SearchResult';
 import Encryption from '../Utils/Encryption';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
@@ -79,11 +79,11 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new(): TBaseModel };
+    private entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -129,13 +129,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
     protected checkRequiredFields(data: TBaseModel): void {
         // Check required fields.
 
-
         const relatationalColumns: Dictionary<string> = {};
 
-        const tableColumns = data.getTableColumns().columns;
+        const tableColumns: Array<string> = data.getTableColumns().columns;
 
         for (const column of tableColumns) {
-            const metadata = data.getTableColumnMetadata(column);
+            const metadata: TableColumnMetadata =
+                data.getTableColumnMetadata(column);
             if (metadata.manyToOneRelationColumn) {
                 relatationalColumns[metadata.manyToOneRelationColumn] = column;
             }
@@ -154,8 +154,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 !(data as any)[requiredField] &&
                 !data.isDefaultValueColumn(requiredField)
             ) {
-
-                if (relatationalColumns[requiredField] && data.getColumnValue(relatationalColumns[requiredField] as string)) {
+                if (
+                    relatationalColumns[requiredField] &&
+                    data.getColumnValue(
+                        relatationalColumns[requiredField] as string
+                    )
+                ) {
                     continue;
                 }
 
@@ -353,7 +357,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
+                    createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -371,19 +375,19 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 const tableColumnMetadata: TableColumnMetadata =
                     this.model.getTableColumnMetadata(columnName);
 
-                
-                const columnValue = (data as any)[columnName];
+                const columnValue: JSONValue = (data as any)[columnName];
 
                 if (
                     data &&
-                    columnName && 
+                    columnName &&
                     tableColumnMetadata.modelType &&
-                    columnValue && 
+                    columnValue &&
                     tableColumnMetadata.type === TableColumnType.Entity &&
                     (typeof columnValue === 'string' ||
-                    columnValue instanceof ObjectID)
+                        columnValue instanceof ObjectID)
                 ) {
-                    const relatedType = new tableColumnMetadata.modelType();
+                    const relatedType: BaseModel =
+                        new tableColumnMetadata.modelType();
                     relatedType._id = columnValue.toString();
                     (data as any)[columnName] = relatedType;
                 }
@@ -406,7 +410,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                                 new tableColumnMetadata.modelType();
                             basemodelItem._id = item.toString();
                             itemsArray.push(basemodelItem);
-                        } else if(item instanceof BaseModel) {
+                        } else if (item instanceof BaseModel) {
                             itemsArray.push(item);
                         }
                     }
@@ -419,9 +423,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-
-        debugger;
-
         const onCreate: OnCreate<TBaseModel> = await this._onBeforeCreate(
             createBy
         );
@@ -477,7 +478,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             throw this.getException(error as Exception);
         }
     }
-
 
     private async checkUniqueColumnBy(
         createBy: CreateBy<TBaseModel>
@@ -604,7 +604,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                `You do not have permissions to ${type} ${this.model.singularName
+                `You do not have permissions to ${type} ${
+                    this.model.singularName
                 }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                     modelPermissions
                 ).join(',')}`
@@ -1208,10 +1209,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -1263,10 +1264,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -1283,7 +1284,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         // check for permissions.
                         if (
                             typeof (onBeforeFind.populate as any)[key][
-                            innerKey
+                                innerKey
                             ] === Typeof.Object
                         ) {
                             throw new BadDataException(
@@ -1302,9 +1303,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                             if (!hasPermission) {
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to read ${onBeforeFind.limit === 1
-                                        ? this.model.singularName
-                                        : this.model.pluralName
+                                    `You do not have permissions to read ${
+                                        onBeforeFind.limit === 1
+                                            ? this.model.singularName
+                                            : this.model.pluralName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                                         this.model.getColumnAccessControlFor(
                                             innerKey
@@ -1322,10 +1324,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 } else {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column is not of type Entity or EntityArray'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column is not of type Entity or EntityArray'
                     );
                 }
             } else {

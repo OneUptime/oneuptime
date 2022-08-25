@@ -202,7 +202,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Name
         ) {
-            val = new Name((val as JSONObject)['value'] as string);
+            return new Name((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -211,7 +211,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.ObjectID
         ) {
-            val = new ObjectID((val as JSONObject)['value'] as string);
+            return new ObjectID((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -220,7 +220,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Phone
         ) {
-            val = new Phone((val as JSONObject)['value'] as string);
+            return new Phone((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -229,7 +229,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Email
         ) {
-            val = new Email((val as JSONObject)['value'] as string);
+            return new Email((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -238,7 +238,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Version
         ) {
-            val = new Name((val as JSONObject)['value'] as string);
+            return new Name((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -247,7 +247,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Route
         ) {
-            val = new Route((val as JSONObject)['value'] as string);
+            return new Route((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -256,7 +256,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.URL
         ) {
-            val = URL.fromString((val as JSONObject)['value'] as string);
+            return URL.fromString((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -265,7 +265,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Port
         ) {
-            val = new Port((val as JSONObject)['value'] as string);
+            return new Port((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -274,7 +274,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Hostname
         ) {
-            val = new Hostname((val as JSONObject)['value'] as string);
+            return new Hostname((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -283,7 +283,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.HashedString
         ) {
-            val = new HashedString((val as JSONObject)['value'] as string);
+            return new HashedString((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -292,7 +292,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.DateTime
         ) {
-            val = OneUptimeDate.fromString(
+            return OneUptimeDate.fromString(
                 (val as JSONObject)['value'] as string
             );
         } else if (
@@ -303,7 +303,7 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Color
         ) {
-            val = new Color((val as JSONObject)['value'] as string);
+            return new Color((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -312,11 +312,11 @@ export class JSONFunctions {
             typeof (val as JSONObject)['value'] === Typeof.String &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Search
         ) {
-            val = new Search((val as JSONObject)['value'] as string);
-        } else if (val instanceof  Date) {
-            val = val;
-        }else if (typeof val === Typeof.Object) {
-            val = this.deserialize(val as JSONObject);
+            return new Search((val as JSONObject)['value'] as string);
+        } else if (val instanceof Date) {
+            return val;
+        } else if (typeof val === Typeof.Object) {
+            return this.deserialize(val as JSONObject);
         }
 
         return val;

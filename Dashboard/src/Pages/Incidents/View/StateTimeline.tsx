@@ -8,7 +8,7 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import IncidentStateTimeline from "Model/Models/IncidentStateTimeline"
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -31,24 +31,35 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route, modelId)
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'Incidents',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENTS] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENTS] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'View Incident',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'Status Timeline',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route,
+                        modelId
+                    ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
             <ModelTable<IncidentStateTimeline>
                 modelType={IncidentStateTimeline}
                 id="table-incident-status-timeline"
@@ -75,7 +86,9 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is the status timeline for this incident',
                 }}
-                noItemsMessage={'No status timeline created for this incident so far.'}
+                noItemsMessage={
+                    'No status timeline created for this incident so far.'
+                }
                 formFields={[
                     {
                         field: {
@@ -90,7 +103,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             labelField: 'name',
                             valueField: '_id',
                         },
-                    }
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -116,18 +129,14 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             return (
                                 <Pill
                                     color={
-                                        (
-                                            item[
-                                                'incidentState'
-                                            ] as JSONObject
-                                        )['color'] as Color
+                                        (item['incidentState'] as JSONObject)[
+                                            'color'
+                                        ] as Color
                                     }
                                     text={
-                                        (
-                                            item[
-                                                'incidentState'
-                                            ] as JSONObject
-                                        )['name'] as string
+                                        (item['incidentState'] as JSONObject)[
+                                            'name'
+                                        ] as string
                                     }
                                 />
                             );
@@ -135,14 +144,13 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            createdAt: true
+                            createdAt: true,
                         },
                         title: 'Reported At',
                         type: FieldType.DateTime,
                     },
                 ]}
             />
-           
         </Page>
     );
 };

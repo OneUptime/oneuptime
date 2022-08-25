@@ -57,9 +57,20 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         }
 
         return (
-            <div className="mb-3" key={index} id={props.id} style={props.showDetailsInNumberOfColumns ? {
-                width: (100 / props.showDetailsInNumberOfColumns) + "%"
-            } : {}}>
+            <div
+                className="mb-3"
+                key={index}
+                id={props.id}
+                style={
+                    props.showDetailsInNumberOfColumns
+                        ? {
+                              width:
+                                  100 / props.showDetailsInNumberOfColumns +
+                                  '%',
+                          }
+                        : {}
+                }
+            >
                 <label className="form-Label form-label justify-space-between width-max">
                     <span>{field.title}</span>
                     {field.sideLink &&
@@ -92,7 +103,13 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     return (
-        <div className={`${props.showDetailsInNumberOfColumns ? `justify-space-between` : ``}`}>
+        <div
+            className={`${
+                props.showDetailsInNumberOfColumns
+                    ? `justify-space-between`
+                    : ``
+            }`}
+        >
             {props.fields &&
                 props.fields.length > 0 &&
                 props.fields.map((field: Field, i: number) => {

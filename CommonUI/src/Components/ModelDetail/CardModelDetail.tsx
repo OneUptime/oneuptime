@@ -22,7 +22,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     modelDetailProps: ModeDetailProps<TBaseModel>;
     isEditable?: undefined | boolean;
     formFields?: undefined | Fields<TBaseModel>;
-    
 }
 
 const CardModelDetail: Function = <TBaseModel extends BaseModel>(

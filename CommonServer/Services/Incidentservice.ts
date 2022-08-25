@@ -17,7 +17,6 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
@@ -54,19 +53,17 @@ export class Service extends DatabaseService<Model> {
         onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
-
         if (!createdItem.projectId) {
-            throw new BadDataException("projectId is required");
+            throw new BadDataException('projectId is required');
         }
 
         if (!createdItem.id) {
-            throw new BadDataException("id is required");
+            throw new BadDataException('id is required');
         }
 
         if (!createdItem.currentIncidentStateId) {
-            throw new BadDataException("currentIncidentStateId is required");
+            throw new BadDataException('currentIncidentStateId is required');
         }
-
 
         if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
             // change status of all the monitors.
@@ -80,7 +77,12 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        await this.changeIncidentState(createdItem.projectId, createdItem.id, createdItem.currentIncidentStateId, onCreate.createBy.props);
+        await this.changeIncidentState(
+            createdItem.projectId,
+            createdItem.id,
+            createdItem.currentIncidentStateId,
+            onCreate.createBy.props
+        );
 
         return createdItem;
     }
@@ -91,8 +93,8 @@ export class Service extends DatabaseService<Model> {
         incidentStateId: ObjectID,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
-
-        const statusTimeline: IncidentStateTimeline = new IncidentStateTimeline();
+        const statusTimeline: IncidentStateTimeline =
+            new IncidentStateTimeline();
 
         statusTimeline.incidentId = incidentId;
         statusTimeline.incidentStateId = incidentStateId;
@@ -100,8 +102,8 @@ export class Service extends DatabaseService<Model> {
 
         await IncidentStateTimelineService.create({
             data: statusTimeline,
-            props: props
-        })
+            props: props,
+        });
     }
 }
 export default new Service();

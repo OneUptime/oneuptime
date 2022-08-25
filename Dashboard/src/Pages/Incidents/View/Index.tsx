@@ -32,18 +32,27 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route, modelId)
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'Incidents',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENTS] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENTS] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'View Incident',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                        modelId
+                    ),
                 },
             ]}
-            sideMenu={<SideMenu modelId={modelId}/>}
+            sideMenu={<SideMenu modelId={modelId} />}
         >
             {/* Incident View  */}
             <CardModelDetail
@@ -52,7 +61,6 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     description: "Here's more details for this monitor.",
                     icon: IconProp.Activity,
                 }}
-                
                 isEditable={true}
                 formFields={[
                     {
@@ -118,7 +126,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         'Incident Status not found'
                                     );
                                 }
-    
+
                                 return (
                                     <Pill
                                         color={
@@ -153,8 +161,9 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     <MonitorsElement
                                         monitors={
                                             Monitor.fromJSON(
-                                                (item['monitors'] as JSONArray) ||
-                                                    [],
+                                                (item[
+                                                    'monitors'
+                                                ] as JSONArray) || [],
                                                 Monitor
                                             ) as Array<Monitor>
                                         }
@@ -164,7 +173,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                createdAt: true
+                                createdAt: true,
                             },
                             title: 'Created At',
                             fieldType: FieldType.DateTime,
@@ -173,8 +182,6 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-
-            
         </Page>
     );
 };

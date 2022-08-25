@@ -9,11 +9,12 @@ import PageMap from '../../../Utils/PageMap';
 import ObjectID from 'Common/Types/ObjectID';
 
 export interface ComponentProps {
-    modelId: ObjectID
+    modelId: ObjectID;
 }
 
-
-const DashboardSideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+const DashboardSideMenu: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <SideMenu>
             <SideMenuSection title="Basic">
@@ -21,8 +22,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (props: ComponentPr
                     link={{
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITOR_VIEW] as Route
-                            , props.modelId),
+                            RouteMap[PageMap.MONITOR_VIEW] as Route,
+                            props.modelId
+                        ),
                     }}
                     icon={IconProp.Info}
                 />
@@ -30,8 +32,11 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (props: ComponentPr
                     link={{
                         title: 'Status Timeline',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route
-                            , props.modelId),
+                            RouteMap[
+                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                            ] as Route,
+                            props.modelId
+                        ),
                     }}
                     icon={IconProp.List}
                 />
@@ -42,8 +47,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (props: ComponentPr
                     link={{
                         title: 'Delete Monitor',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route
-                            , props.modelId),
+                            RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route,
+                            props.modelId
+                        ),
                     }}
                     icon={IconProp.Trash}
                     className="danger-on-hover"

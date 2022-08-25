@@ -23,34 +23,40 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route, modelId)
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITORS] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'View Monitor',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_VIEW] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITOR_VIEW] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'Delete Monitor',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route,
+                        modelId
+                    ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
-
             <ModelDelete
                 modelType={Monitor}
-                modelId={
-                   modelId
-                }
+                modelId={modelId}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.MONITORS] as Route
-                    );
+                    Navigation.navigate(RouteMap[PageMap.MONITORS] as Route);
                 }}
             />
         </Page>

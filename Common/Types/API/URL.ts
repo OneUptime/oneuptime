@@ -159,9 +159,10 @@ export default class URL extends DatabaseProperty {
         if (paths.length > 0) {
             if (!getFromLastRoute) {
                 return new Route('/' + paths[paths.length - 1]);
-            } else {
-                return new Route('/' + paths[paths.length - (1+getFromLastRoute)]);
             }
+            return new Route(
+                '/' + paths[paths.length - (1 + getFromLastRoute)]
+            );
         }
 
         return null;

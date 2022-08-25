@@ -23,34 +23,40 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route, modelId)
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'Incidents',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENTS] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENTS] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'View Incident',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'Delete Incident',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route,
+                        modelId
+                    ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
-
             <ModelDelete
                 modelType={Incident}
-                modelId={
-                   modelId
-                }
+                modelId={modelId}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.INCIDENTS] as Route
-                    );
+                    Navigation.navigate(RouteMap[PageMap.INCIDENTS] as Route);
                 }}
             />
         </Page>

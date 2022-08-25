@@ -32,18 +32,27 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route, modelId)
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITORS] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'View Monitor',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_VIEW] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITOR_VIEW] as Route,
+                        modelId
+                    ),
                 },
             ]}
-            sideMenu={<SideMenu modelId={modelId}/>}
+            sideMenu={<SideMenu modelId={modelId} />}
         >
             {/* Monitor View  */}
             <CardModelDetail
@@ -52,7 +61,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     description: "Here's more details for this monitor.",
                     icon: IconProp.Activity,
                 }}
-                
                 isEditable={true}
                 formFields={[
                     {
@@ -125,7 +133,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         'Monitor Status not found'
                                     );
                                 }
-    
+
                                 return (
                                     <Statusbubble
                                         color={
@@ -151,7 +159,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                 monitorType: true,
                             },
                             title: 'Monitor Type',
-
                         },
                         {
                             field: {
@@ -167,7 +174,8 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                     <LabelsElement
                                         labels={
                                             Label.fromJSON(
-                                                (item['labels'] as JSONArray) || [],
+                                                (item['labels'] as JSONArray) ||
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -181,13 +189,10 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Description',
                         },
-                        
                     ],
                     modelId: modelId,
                 }}
             />
-
-            
         </Page>
     );
 };

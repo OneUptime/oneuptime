@@ -31,7 +31,9 @@ abstract class Navigation {
     }
 
     public static getLastParam(getFromLastRoute?: number): Route | null {
-        return URL.fromString(window.location.href).getLastRoute(getFromLastRoute);
+        return URL.fromString(window.location.href).getLastRoute(
+            getFromLastRoute
+        );
     }
 
     public static getCurrentRoute(): Route {

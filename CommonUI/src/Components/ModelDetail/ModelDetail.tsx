@@ -215,7 +215,14 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         );
     }
 
-    return <Detail id={props.id} item={item} fields={fields} showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns} />;
+    return (
+        <Detail
+            id={props.id}
+            item={item}
+            fields={fields}
+            showDetailsInNumberOfColumns={props.showDetailsInNumberOfColumns}
+        />
+    );
 };
 
 export default ModelDetail;

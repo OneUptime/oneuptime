@@ -327,7 +327,9 @@ export default class BaseModel extends BaseEntity {
         return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
     }
 
-    public getColumnValue(columnName: string): JSONValue | BaseModel | Array<BaseModel> | null {
+    public getColumnValue(
+        columnName: string
+    ): JSONValue | BaseModel | Array<BaseModel> | null {
         if (getTableColumn(this, columnName) && (this as any)[columnName]) {
             return (this as any)[columnName] as JSONValue;
         }
@@ -335,7 +337,10 @@ export default class BaseModel extends BaseEntity {
         return null;
     }
 
-    public setColumnValue(columnName: string, value: JSONValue | BaseModel | Array<BaseModel>): void {
+    public setColumnValue(
+        columnName: string,
+        value: JSONValue | BaseModel | Array<BaseModel>
+    ): void {
         if (getTableColumn(this, columnName)) {
             return ((this as any)[columnName] = value as any);
         }
