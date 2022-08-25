@@ -44,8 +44,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                     props.item[column.key] ? (
                                         OneUptimeDate.getDateAsLocalFormattedString(
                                             props.item[column.key] as string,
-                                            column.options?.onlyShowDate ||
-                                                true
+                                            true
                                         )
                                     ) : (
                                         ''
@@ -54,8 +53,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                     props.item[column.key] ? (
                                         OneUptimeDate.getDateAsLocalFormattedString(
                                             props.item[column.key] as string,
-                                            column.options?.onlyShowDate ||
-                                                false
+                                            false
                                         )
                                     ) : (
                                         ''
