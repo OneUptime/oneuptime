@@ -9,9 +9,24 @@ import ObjectID from 'Common/Types/ObjectID';
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
     [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
+    
     [PageMap.INCIDENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/`
     ),
+
+    [PageMap.INCIDENT_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/state-timeline`
+    ),
+
+    [PageMap.INCIDENT_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
+    ),
+
+
     [PageMap.STATUS_PAGE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/`
     ),

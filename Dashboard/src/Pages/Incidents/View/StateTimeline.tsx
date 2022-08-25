@@ -8,17 +8,17 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import MonitorStatusTimeline from "Model/Models/MonitorStatusTimeline"
+import IncidentStateTimeline from "Model/Models/IncidentStateTimeline"
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import MonitorStatus from 'Model/Models/MonitorStatus';
+import IncidentState from 'Model/Models/IncidentState';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
 
-const MonitorDelete: FunctionComponent<PageComponentProps> = (
+const IncidentDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
@@ -27,45 +27,45 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-            title={'Monitors'}
+            title={'Incidents'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route, modelId)
                 },
                 {
-                    title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route, modelId),
+                    title: 'Incidents',
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENTS] as Route, modelId),
                 },
                 {
-                    title: 'View Monitor',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_VIEW] as Route, modelId),
+                    title: 'View Incident',
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW] as Route, modelId),
                 },
                 {
                     title: 'Status Timeline',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_VIEW_STATUS_TIMELINE] as Route, modelId),
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route, modelId),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
             
-            <ModelTable<MonitorStatusTimeline>
-                modelType={MonitorStatusTimeline}
-                id="table-monitor-status-timeline"
+            <ModelTable<IncidentStateTimeline>
+                modelType={IncidentStateTimeline}
+                id="table-incident-status-timeline"
                 isDeleteable={true}
                 isCreateable={true}
                 isViewable={false}
                 query={{
-                    monitorId: modelId,
+                    incidentId: modelId,
                     projectId: props.currentProject?._id,
                 }}
                 onBeforeCreate={(
-                    item: MonitorStatusTimeline
-                ): Promise<MonitorStatusTimeline> => {
+                    item: IncidentStateTimeline
+                ): Promise<IncidentStateTimeline> => {
                     if (!props.currentProject || !props.currentProject.id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
-                    item.monitorId = modelId;
+                    item.incidentId = modelId;
                     item.projectId = props.currentProject.id;
                     return Promise.resolve(item);
                 }}
@@ -73,20 +73,20 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.List,
                     title: 'Status Timeline',
                     description:
-                        'Here is the status timeline for this monitor',
+                        'Here is the status timeline for this incident',
                 }}
-                noItemsMessage={'No status timeline created for this monitor so far.'}
+                noItemsMessage={'No status timeline created for this incident so far.'}
                 formFields={[
                     {
                         field: {
-                            monitorStatus: true,
+                            incidentState: true,
                         },
-                        title: 'Monitor Status',
+                        title: 'Incident Status',
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
-                        placeholder: 'Monitor Status',
+                        placeholder: 'Incident Status',
                         dropdownModal: {
-                            type: MonitorStatus,
+                            type: IncidentState,
                             labelField: 'name',
                             valueField: '_id',
                         },
@@ -98,34 +98,34 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
                 columns={[
                     {
                         field: {
-                            monitorStatus: {
+                            incidentState: {
                                 name: true,
                                 color: true,
                             },
                         },
-                        title: 'Monitor Status',
+                        title: 'Incident Status',
                         type: FieldType.Text,
                         isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
-                            if (!item['monitorStatus']) {
+                            if (!item['incidentState']) {
                                 throw new BadDataException(
-                                    'Monitor Status not found'
+                                    'Incident Status not found'
                                 );
                             }
 
                             return (
-                                <Statusbubble
+                                <Pill
                                     color={
                                         (
                                             item[
-                                                'monitorStatus'
+                                                'incidentState'
                                             ] as JSONObject
                                         )['color'] as Color
                                     }
                                     text={
                                         (
                                             item[
-                                                'monitorStatus'
+                                                'incidentState'
                                             ] as JSONObject
                                         )['name'] as string
                                     }
@@ -147,4 +147,4 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default MonitorDelete;
+export default IncidentDelete;

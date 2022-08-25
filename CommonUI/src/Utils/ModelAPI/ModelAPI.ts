@@ -140,7 +140,7 @@ export default class ModelAPI {
             httpMethod,
             apiUrl,
             {
-                data: model.toJSON(),
+                data: JSONFunctions.serialize(model.toJSON()),
                 miscDataProps: miscDataProps || {},
             },
             this.getCommonHeaders(requestOptions)

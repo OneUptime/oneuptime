@@ -42,8 +42,6 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        debugger; 
-
         createBy.data.currentMonitorStatusId = monitorStatus.id;
 
         return { createBy, carryForward: null };

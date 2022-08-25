@@ -29,6 +29,14 @@ export default class PositiveNumber {
         return this.positiveNumber.toString();
     }
 
+    public isZero(): boolean {
+        return this.positiveNumber === 0;
+    }
+
+    public isOne(): boolean {
+        return this.positiveNumber === 1;
+    }
+
     public toNumber(): number {
         return this.positiveNumber;
     }

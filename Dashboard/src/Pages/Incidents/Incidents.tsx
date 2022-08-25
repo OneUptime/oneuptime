@@ -57,7 +57,6 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Incident Title',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },
@@ -122,14 +121,14 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                                 color: true,
                             },
                         },
-                        title: 'Incident State',
+                        title: 'Current State',
                         type: FieldType.Text,
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['currentIncidentState']) {
                                 return (
                                     <Pill
-                                        color={item['color'] as Color}
-                                        text={item['name'] as string}
+                                        color={(item['currentIncidentState'] as JSONObject)['color'] as Color}
+                                        text={(item['currentIncidentState'] as JSONObject)['name'] as string}
                                     />
                                 );
                             }
@@ -159,6 +158,13 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                                 />
                             );
                         },
+                    },
+                    {
+                        field: {
+                            createdAt: true
+                        },
+                        title: 'Created At',
+                        type: FieldType.Date,
                     },
                 ]}
             />

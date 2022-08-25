@@ -13,7 +13,14 @@ import Init from './Pages/Init/Init';
 import Home from './Pages/Home/Home';
 import useAsyncEffect from 'use-async-effect';
 import StatusPages from './Pages/StatusPages/StatusPages';
+
+
 import Incidents from './Pages/Incidents/Incidents';
+import IncidentView from './Pages/Incidents/View/Index';
+import IncidentViewDelete from './Pages/Incidents/View/Delete';
+import IncidentViewStateTimeline from './Pages/Incidents/View/StateTimeline';
+
+
 import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
@@ -28,8 +35,8 @@ import SettingLabels from './Pages/Settings/Labels';
 import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
 import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
-import SettingsMonitors from './Pages/Settings/Monitors';
-import SettingsIncidents from './Pages/Settings/Incidents';
+import SettingsMonitors from './Pages/Settings/MonitorStatus';
+import SettingsIncidents from './Pages/Settings/IncidentState';
 
 // On Call Duty
 import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
@@ -194,6 +201,9 @@ const App: FunctionComponent = () => {
                     }
                 />
 
+
+                {/* Incidents */}
+
                 <PageRoute
                     path={RouteMap[PageMap.INCIDENTS]?.toString()}
                     element={
@@ -203,6 +213,40 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
+
+                <PageRoute
+                    path={RouteMap[PageMap.INCIDENT_VIEW]?.toString()}
+                    element={
+                        <IncidentView
+                            pageRoute={RouteMap[PageMap.INCIDENT_VIEW] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+
+                <PageRoute
+                    path={RouteMap[PageMap.INCIDENT_VIEW_DELETE]?.toString()}
+                    element={
+                        <IncidentViewDelete
+                            pageRoute={RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE]?.toString()}
+                    element={
+                        <IncidentViewStateTimeline
+                            pageRoute={RouteMap[PageMap.INCIDENT_VIEW_STATE_TIMELINE] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                {/* Logs */}
+
                 <PageRoute
                     path={RouteMap[PageMap.LOGS]?.toString()}
                     element={

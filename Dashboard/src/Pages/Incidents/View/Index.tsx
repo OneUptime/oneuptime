@@ -10,16 +10,16 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
-import LabelsElement from '../../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Monitor from 'Model/Models/Monitor';
-import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
+import Incident from 'Model/Models/Incident';
 import Color from 'Common/Types/Color';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import MonitorsElement from '../../../Components/Monitor/Monitors';
+import Monitor from 'Model/Models/Monitor';
 
-const MonitorView: FunctionComponent<PageComponentProps> = (
+const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
@@ -28,27 +28,27 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-            title={'Monitors'}
+            title={'Incidents'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
                     to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route, modelId)
                 },
                 {
-                    title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route, modelId),
+                    title: 'Incidents',
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENTS] as Route, modelId),
                 },
                 {
-                    title: 'View Monitor',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_VIEW] as Route, modelId),
+                    title: 'View Incident',
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW] as Route, modelId),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId}/>}
         >
-            {/* Monitor View  */}
+            {/* Incident View  */}
             <CardModelDetail
                 cardProps={{
-                    title: 'Monitor Details',
+                    title: 'Incident Details',
                     description: "Here's more details for this monitor.",
                     icon: IconProp.Activity,
                 }}
@@ -57,12 +57,12 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 formFields={[
                     {
                         field: {
-                            name: true,
+                            title: true,
                         },
-                        title: 'Name',
+                        title: 'Incident Title',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Monitor Name',
+                        placeholder: 'Incident Title',
                         validation: {
                             minLength: 2,
                         },
@@ -76,69 +76,59 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
-                    {
-                        field: {
-                            labels: true,
-                        },
-                        title: 'Labels (Optional)',
-                        description:
-                            'Team members with access to these labels will only be able to access this monitor. This is optional and an advanced feature.',
-                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                        dropdownModal: {
-                            type: Label,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
-                        required: false,
-                        placeholder: 'Labels',
-                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 2,
-                    modelType: Monitor,
-                    id: 'model-detail-monitors',
+                    modelType: Incident,
+                    id: 'model-detail-incidents',
                     fields: [
                         {
                             field: {
                                 _id: true,
                             },
-                            title: 'Monitor ID',
+                            title: 'Incident ID',
                         },
                         {
                             field: {
-                                name: true,
+                                title: true,
                             },
-                            title: 'Monitor Name',
+                            title: 'Incident Title',
                         },
                         {
                             field: {
-                                currentMonitorStatus: {
+                                description: true,
+                            },
+                            title: 'Description',
+                        },
+                        {
+                            field: {
+                                currentIncidentState: {
                                     color: true,
                                     name: true,
                                 },
                             },
-                            title: 'Current Status',
+                            title: 'Current State',
                             type: FieldType.Text,
                             getElement: (item: JSONObject): ReactElement => {
-                                if (!item['currentMonitorStatus']) {
+                                if (!item['currentIncidentState']) {
                                     throw new BadDataException(
-                                        'Monitor Status not found'
+                                        'Incident Status not found'
                                     );
                                 }
     
                                 return (
-                                    <Statusbubble
+                                    <Pill
                                         color={
                                             (
                                                 item[
-                                                    'currentMonitorStatus'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'currentMonitorStatus'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -148,40 +138,27 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                monitorType: true,
-                            },
-                            title: 'Monitor Type',
-
-                        },
-                        {
-                            field: {
-                                labels: {
+                                monitors: {
                                     name: true,
-                                    color: true,
+                                    _id: true,
                                 },
                             },
-                            title: 'Labels',
+                            title: 'Monitors Affected',
                             type: FieldType.Text,
                             getElement: (item: JSONObject): ReactElement => {
                                 return (
-                                    <LabelsElement
-                                        labels={
-                                            Label.fromJSON(
-                                                (item['labels'] as JSONArray) || [],
-                                                Label
-                                            ) as Array<Label>
+                                    <MonitorsElement
+                                        monitors={
+                                            Monitor.fromJSON(
+                                                (item['monitors'] as JSONArray) ||
+                                                    [],
+                                                Monitor
+                                            ) as Array<Monitor>
                                         }
                                     />
                                 );
                             },
                         },
-                        {
-                            field: {
-                                description: true,
-                            },
-                            title: 'Description',
-                        },
-                        
                     ],
                     modelId: modelId,
                 }}
@@ -192,4 +169,4 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default MonitorView;
+export default IncidentView;
