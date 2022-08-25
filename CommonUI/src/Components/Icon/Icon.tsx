@@ -71,6 +71,7 @@ export enum IconProp {
     ChevronRight,
     ChevronUp,
     ChevronLeft,
+    Public, 
     Home,
     Grid,
     More,
@@ -445,6 +446,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.List && (
                 <FiList
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Public && (
+                <FiUser
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

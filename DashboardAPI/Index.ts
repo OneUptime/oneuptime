@@ -101,6 +101,18 @@ import IncidentStateTimelineService, {
     Service as IncidentStateTimelineServiceType,
 } from 'CommonServer/Services/IncidentStateTimelineService';
 
+
+import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
+import IncidentInternalNoteService, {
+    Service as IncidentInternalNoteServiceType,
+} from 'CommonServer/Services/IncidentInternalNoteService';
+
+
+import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
+import IncidentPublicNoteService, {
+    Service as IncidentPublicNoteServiceType,
+} from 'CommonServer/Services/IncidentPublicNoteService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -203,6 +215,21 @@ app.use(
     new BaseAPI<StatusPage, StatusPageServiceType>(
         StatusPage,
         StatusPageService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<IncidentPublicNote, IncidentPublicNoteServiceType>(
+        IncidentPublicNote,
+        IncidentPublicNoteService
+    ).getRouter()
+);
+
+
+app.use(
+    new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(
+        IncidentInternalNote,
+        IncidentInternalNoteService
     ).getRouter()
 );
 

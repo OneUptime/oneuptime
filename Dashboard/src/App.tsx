@@ -18,6 +18,9 @@ import Incidents from './Pages/Incidents/Incidents';
 import IncidentView from './Pages/Incidents/View/Index';
 import IncidentViewDelete from './Pages/Incidents/View/Delete';
 import IncidentViewStateTimeline from './Pages/Incidents/View/StateTimeline';
+import IncidentInternalNote from './Pages/Incidents/View/InternalNote';
+import IncidentPublicNote from './Pages/Incidents/View/PublicNote';
+
 
 import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -248,6 +251,38 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+<PageRoute
+                    path={RouteMap[
+                        PageMap.INCIDENT_INTERNAL_NOTE
+                    ]?.toString()}
+                    element={
+                        <IncidentInternalNote
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.INCIDENT_INTERNAL_NOTE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+<PageRoute
+                    path={RouteMap[
+                        PageMap.INCIDENT_PUBLIC_NOTE
+                    ]?.toString()}
+                    element={
+                        <IncidentPublicNote
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.INCIDENT_PUBLIC_NOTE
                                 ] as Route
                             }
                             currentProject={selectedProject}

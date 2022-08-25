@@ -26,6 +26,14 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
     ),
 
+    [PageMap.INCIDENT_INTERNAL_NOTE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/internal-notes`
+    ),
+
+    [PageMap.INCIDENT_PUBLIC_NOTE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/public-notes`
+    ),
+
     [PageMap.STATUS_PAGE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/`
     ),

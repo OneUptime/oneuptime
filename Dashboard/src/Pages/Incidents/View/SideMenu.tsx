@@ -42,6 +42,31 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
+            <SideMenuSection title="Incident Notes">
+                <SideMenuItem
+                    link={{
+                        title: 'Internal Notes',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Lock}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Public Notes',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.INCIDENT_PUBLIC_NOTE
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Public}
+                />
+            </SideMenuSection>
+
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
