@@ -5,6 +5,7 @@ import React, {
     useState,
 } from 'react';
 import MDEditor from '@uiw/react-md-editor';
+import rehypeSanitize from "rehype-sanitize";
 
 export interface ComponentProps {
     initialValue?: undefined | string;
@@ -58,6 +59,14 @@ const Markdown: FunctionComponent<ComponentProps> = (
                         props.onBlur();
                     }
                 }}
+                style={{
+                    width: "100%"
+                }}
+                visibleDragbar={false}
+                previewOptions={{
+                    rehypePlugins: [[rehypeSanitize]],
+                }}
+                preview={'edit'}
                 placeholder={props.placeholder}
                 onChange={(text: string | undefined) => {
                     if (text) {

@@ -115,7 +115,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            createdBy: {
+                            createdByUser: {
                                 name: true,
                                 email: true, 
                             },
@@ -127,7 +127,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <UserElement
                                         user={new User().fromJSON(
-                                            item['createdBy'] as JSONObject,
+                                            item['createdByUser'] as JSONObject,
                                             User
                                         )}
                                     />

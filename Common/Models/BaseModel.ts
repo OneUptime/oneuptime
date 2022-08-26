@@ -30,6 +30,7 @@ import Permission, {
 } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
+import BadDataException from '../Types/Exception/BadDataException';
 export type DbTypes =
     | string
     | number
@@ -351,6 +352,11 @@ export default class BaseModel extends BaseEntity {
             this,
             columnName
         );
+
+        if (!tableColumnType) {
+            throw new BadDataException("TableColumnMetadata not found for " + columnName + " column");
+        }
+
         return Boolean(
             tableColumnType.type === TableColumnType.Entity ||
                 tableColumnType.type === TableColumnType.EntityArray

@@ -38,6 +38,7 @@
         "react-toggle": "^4.1.3",
         "reactstrap": "^9.1.1",
         "redux": "^4.2.0",
+        "rehype-sanitize": "^5.0.1",
         "universal-cookie": "^4.0.4",
         "use-async-effect": "^2.2.6",
         "web-vitals": "^2.1.4",
