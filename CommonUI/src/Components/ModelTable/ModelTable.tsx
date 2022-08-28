@@ -159,6 +159,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 description: column.description || '',
                 key: column.key || '',
                 fieldType: column.type,
+                getElement: column.getElement
             });
 
             setFields(detailFields);
