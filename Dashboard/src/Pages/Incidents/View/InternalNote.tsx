@@ -50,7 +50,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Internal Notes',
+                    title: 'Private Notes',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
                         modelId
@@ -83,20 +83,20 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Notification,
-                    title: 'Internal Notes',
+                    icon: IconProp.Lock,
+                    title: 'Private Notes',
                     description:
-                        'Here are internal notes for this incident.',
+                        'Here are private notes for this incident.',
                 }}
                 noItemsMessage={
-                    'No internal notes created for this incident so far.'
+                    'No pnternal notes created for this incident so far.'
                 }
                 formFields={[
                     {
                         field: {
                             note: true,
                         },
-                        title: 'Incident Note',
+                        title: 'Private Incident Note',
                         description: 'This is in markdown. This note is private to your team members and is not visible to public.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
@@ -121,7 +121,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                                 email: true, 
                             },
                         },
-                        title: 'Created By',
+                        title: 'Posted By',
                         type: FieldType.Entity,
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['createdByUser']) {
@@ -142,7 +142,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Reported At',
+                        title: 'Posted At',
                         type: FieldType.DateTime,
                     },
                 ]}

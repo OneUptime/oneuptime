@@ -46,7 +46,7 @@ import Field from '../Detail/Field';
 export enum ShowTableAs {
     Table,
     List,
-    OrderedStatesList,
+    OrderedStatesList
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

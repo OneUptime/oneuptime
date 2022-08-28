@@ -45,7 +45,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             <SideMenuSection title="Incident Notes">
                 <SideMenuItem
                     link={{
-                        title: 'Internal Notes',
+                        title: 'Private Notes',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
                             props.modelId

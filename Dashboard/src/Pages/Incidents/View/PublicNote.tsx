@@ -6,12 +6,19 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import Incident from 'Model/Models/Incident';
+import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
+import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { JSONObject } from 'Common/Types/JSON';
+import UserElement from '../../../Components/User/User';
+import User from 'Model/Models/User';
 
-const IncidentDelete: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+const PublicNote: FunctionComponent<PageComponentProps> = (
+    props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam(1)?.toString().substring(1) || ''
@@ -43,24 +50,106 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Public Notes',
+                    title: 'Internal Notes',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route,
+                        RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
-                modelType={Incident}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(RouteMap[PageMap.INCIDENTS] as Route);
+            
+
+            <ModelTable<IncidentPublicNote>
+                modelType={IncidentPublicNote}
+                id="table-incident-internal-note"
+                isDeleteable={true}
+                isCreateable={true}
+                isEditable={true}
+                isViewable={false}
+                query={{
+                    incidentId: modelId,
+                    projectId: props.currentProject?._id,
                 }}
+                onBeforeCreate={(
+                    item: IncidentPublicNote
+                ): Promise<IncidentPublicNote> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
+                    item.incidentId = modelId;
+                    item.projectId = props.currentProject.id;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    icon: IconProp.User,
+                    title: 'Public Notes',
+                    description:
+                        'Here are public notes for this incident. This will show up on the status page.',
+                }}
+                noItemsMessage={
+                    'No public notes created for this incident so far.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            note: true,
+                        },
+                        title: 'Public Incident Note',
+                        description: 'This is in markdown. This note is private to your team members and is not visible to public.',
+                        fieldType: FormFieldSchemaType.Markdown,
+                        required: true,
+                        placeholder: 'Add a private note to this incident here.',
+                    },
+                ]}
+                showRefreshButton={true}
+                currentPageRoute={props.pageRoute}
+                showTableAs={ShowTableAs.List}
+                columns={[
+                    {
+                        field: {
+                            note: true,
+                        },
+                        title: 'Note',
+                        type: FieldType.Markdown,
+                    },
+                    {
+                        field: {
+                            createdByUser: {
+                                name: true,
+                                email: true, 
+                            },
+                        },
+                        title: 'Posted By',
+                        type: FieldType.Entity,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (item['createdByUser']) {
+                                return (
+                                    <UserElement
+                                        user={new User().fromJSON(
+                                            item['createdByUser'] as JSONObject,
+                                            User
+                                        )}
+                                    />
+                                );
+                            }
+
+                            return <></>;
+                        },
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Posted At',
+                        type: FieldType.DateTime,
+                    },
+                ]}
             />
+            
         </Page>
     );
 };
 
-export default IncidentDelete;
+export default PublicNote;
