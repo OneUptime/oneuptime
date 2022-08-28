@@ -6,7 +6,7 @@ import React, {
 } from 'react';
 
 export interface ComponentProps {
-    onChange: (value: string) => void;
+    onChange?: undefined | ((value: string) => void);
     initialValue: string;
     placeholder?: undefined | string;
     onFocus?: () => void;
@@ -26,7 +26,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
 
     const handleChange: Function = (content: string): void => {
         setText(content);
-        props.onChange(content);
+        props.onChange && props.onChange(content);
     };
 
     return (

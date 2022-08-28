@@ -28,7 +28,7 @@ import Link from '../Link/Link';
 import Alert, { AlertType } from '../Alerts/Alert';
 import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
-import TextArea from './Fields/TextArea';
+import TextArea from '../TextArea/TextArea';
 import Dropdown, { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
 import OneUptimeDate from 'Common/Types/Date';
 import Toggle from '../Toggle/Toggle';
