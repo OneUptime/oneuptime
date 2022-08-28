@@ -603,6 +603,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 modelPermissions
             )
         ) {
+            debugger; 
             throw new NotAuthorizedException(
                 `You do not have permissions to ${type} ${
                     this.model.singularName
@@ -1302,13 +1303,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
                                 );
 
                             if (!hasPermission) {
+                                debugger;
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to read ${
+                                    `You do not have permissions to ${key}.${innerKey} on read ${
                                         onBeforeFind.limit === 1
                                             ? this.model.singularName
                                             : this.model.pluralName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                        this.model.getColumnAccessControlFor(
+                                        relatedModel.getColumnAccessControlFor(
                                             innerKey
                                         ).read
                                     ).join(',')}`

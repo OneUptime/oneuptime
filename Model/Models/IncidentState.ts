@@ -167,7 +167,7 @@ export default class IncidentState extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
-        modelType: Project,
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {
