@@ -7,6 +7,7 @@ import FieldType from '../Types/FieldType';
 import HiddenText from '../HiddenText/HiddenText';
 import { JSONObject } from 'Common/Types/JSON';
 import _ from 'lodash';
+import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -16,6 +17,12 @@ export interface ComponentProps {
 }
 
 const Detail: Function = (props: ComponentProps): ReactElement => {
+
+
+    const getMarkdownViewer = (text: string): ReactElement => {
+        return <MarkdownViewer text={text}/>
+    }
+
     const getField: Function = (field: Field, index: number): ReactElement => {
         const fieldKey: string = field.key;
 
@@ -41,6 +48,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 data as string,
                 false
             );
+        }
+
+        if (field.fieldType === FieldType.Markdown) {
+            data = getMarkdownViewer(data as string);
         }
 
         if (field.fieldType === FieldType.HiddenText) {

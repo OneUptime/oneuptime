@@ -365,8 +365,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return createBy;
     }
 
-    private serializeCreate(
-        data: TBaseModel | QueryDeepPartialEntity<TBaseModel>
+    private SanitizeCreateOrUpdate(
+        data: TBaseModel | QueryDeepPartialEntity<TBaseModel>, props: DatabaseCommonInteractionProps, isUpdate: boolean = false
     ): TBaseModel | QueryDeepPartialEntity<TBaseModel> {
         const columns: Columns = this.model.getTableColumns();
 
@@ -419,6 +419,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
+        // check createByUserId. 
+
+        if (!isUpdate && props.userId) {
+            (data as any)['createdByUserId'] = props.userId;
+        }
+
         return data;
     }
 
@@ -461,7 +467,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy = await this.checkUniqueColumnBy(createBy);
 
         // serialize.
-        createBy.data = this.serializeCreate(createBy.data) as TBaseModel;
+        createBy.data = this.SanitizeCreateOrUpdate(createBy.data, createBy.props) as TBaseModel;
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
@@ -1386,8 +1392,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 beforeUpdateBy.query
             );
             const data: QueryDeepPartialEntity<TBaseModel> =
-                this.serializeCreate(
-                    beforeUpdateBy.data
+                this.SanitizeCreateOrUpdate(
+                    beforeUpdateBy.data, updateBy.props, true
                 ) as QueryDeepPartialEntity<TBaseModel>;
 
             const items: Array<TBaseModel> = await this._findBy({

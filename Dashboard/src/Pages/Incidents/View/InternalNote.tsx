@@ -66,6 +66,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 id="table-incident-internal-note"
                 isDeleteable={true}
                 isCreateable={true}
+                isEditable={true}
                 isViewable={false}
                 query={{
                     incidentId: modelId,
@@ -110,7 +111,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             note: true,
                         },
-                        title: 'Internal Note',
+                        title: 'Note',
                         type: FieldType.Markdown,
                     },
                     {
@@ -123,7 +124,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Created By',
                         type: FieldType.Entity,
                         getElement: (item: JSONObject): ReactElement => {
-                            if (item['user']) {
+                            if (item['createdByUser']) {
                                 return (
                                     <UserElement
                                         user={new User().fromJSON(

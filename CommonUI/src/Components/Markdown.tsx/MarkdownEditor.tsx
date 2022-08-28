@@ -18,7 +18,7 @@ export interface ComponentProps {
     onBlur?: (() => void) | undefined;
 }
 
-const Markdown: FunctionComponent<ComponentProps> = (
+const MarkdownEditor: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [value, setValue] = useState<string>('');
@@ -80,4 +80,4 @@ const Markdown: FunctionComponent<ComponentProps> = (
     );
 };
 
-export default Markdown;
+export default MarkdownEditor;

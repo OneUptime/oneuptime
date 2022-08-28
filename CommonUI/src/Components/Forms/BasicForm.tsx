@@ -38,7 +38,7 @@ import Route from 'Common/Types/API/Route';
 import Exception from 'Common/Types/Exception/Exception';
 import HashedString from 'Common/Types/HashedString';
 import Input from '../Input/Input';
-import Markdown from '../Markdown.tsx/Markdown';
+import Markdown from '../Markdown.tsx/MarkdownEditor';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
