@@ -89,7 +89,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         'Here are private notes for this incident.',
                 }}
                 noItemsMessage={
-                    'No pnternal notes created for this incident so far.'
+                    'No private notes created for this incident so far.'
                 }
                 formFields={[
                     {
