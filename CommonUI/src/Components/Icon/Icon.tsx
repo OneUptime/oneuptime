@@ -18,6 +18,7 @@ import {
     FiChevronRight,
     FiChevronLeft,
     FiChevronUp,
+    FiCircle,
     FiMail,
     FiSlack,
     FiClock,
@@ -71,7 +72,7 @@ export enum IconProp {
     ChevronRight,
     ChevronUp,
     ChevronLeft,
-    Public, 
+    Public,
     Home,
     Grid,
     More,
@@ -109,6 +110,7 @@ export enum IconProp {
     Check,
     True,
     False,
+    Circle
 }
 
 export interface ComponentProps {
@@ -454,6 +456,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Public && (
                 <FiUser
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Circle && (
+                <FiCircle
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

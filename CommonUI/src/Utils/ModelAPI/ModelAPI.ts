@@ -18,7 +18,7 @@ import Sort from './Sort';
 import Project from 'Model/Models/Project';
 import Populate from './Populate';
 
-export interface ListResult<TBaseModel extends BaseModel> {
+export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
     data: Array<TBaseModel>;
     count: number;
     skip: number;

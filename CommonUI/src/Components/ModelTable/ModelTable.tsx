@@ -72,6 +72,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isViewable?: undefined | boolean;
     currentPageRoute?: undefined | Route;
     query?: Query<TBaseModel>;
+    onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
     showTableAs?: ShowTableAs | undefined;
@@ -120,6 +121,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
         useState<number | null>(null);
 
+    
+    const [onBeforeFetchData, setOnBeforeFetchData] = useState<JSONObject | undefined>(undefined);
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [query, setQuery] = useState<Query<TBaseModel>>({});
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
@@ -159,7 +162,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 description: column.description || '',
                 key: column.key || '',
                 fieldType: column.type,
-                getElement: column.getElement
+                getElement: column.getElement ? (item: JSONObject): ReactElement => {
+                    return column.getElement!(item, onBeforeFetchData);
+                } : undefined
             });
 
             setFields(detailFields);
@@ -199,6 +204,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         if (props.onFetchInit) {
             props.onFetchInit(currentPageNumber, itemsOnPage);
+        }
+
+        if (props.onBeforeFetch) {
+            const jobject = await props.onBeforeFetch();
+            setOnBeforeFetchData(jobject);
         }
 
         try {
@@ -703,7 +713,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             );
         }
 
-        let getTitleElement: ((item: JSONObject) => ReactElement) | undefined =
+        let getTitleElement: ((item: JSONObject, onBeforeFetchData?: JSONObject | undefined) => ReactElement) | undefined =
             undefined;
         let getDescriptionElement:
             | ((item: JSONObject) => ReactElement)
@@ -713,6 +723,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             const key: string | undefined = Object.keys(
                 column.field as Object
             )[0];
+
             if (key === props.orderedStatesListProps.titleField) {
                 getTitleElement = column.getElement;
             }

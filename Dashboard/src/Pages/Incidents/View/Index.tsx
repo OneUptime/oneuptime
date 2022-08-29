@@ -18,6 +18,10 @@ import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import MonitorsElement from '../../../Components/Monitor/Monitors';
 import Monitor from 'Model/Models/Monitor';
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ChangeIncidentState, { IncidentType } from '../../../Components/Incident/ChangeState';
+import BaseModel from 'Common/Models/BaseModel';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -61,6 +65,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     description: "Here's more details for this monitor.",
                     icon: IconProp.Activity,
                 }}
+
                 isEditable={true}
                 formFields={[
                     {
@@ -86,6 +91,29 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 modelDetailProps={{
+                    onBeforeFetch: async (): Promise<JSONObject> => {
+                        // get ack incident. 
+
+                        const incidentTimelines: ListResult<IncidentStateTimeline> = await ModelAPI.getList(IncidentStateTimeline, {
+                            incidentId: modelId,
+                        }, 99, 0, {
+                            _id: true,
+                           
+                            createdAt: true
+                        }, {}, {
+                            createdByUser: {
+                                name: true, 
+                                email: true
+                            },
+                            incidentState: {
+                                name: true,
+                                isResolvedState: true,
+                                isAcknowledgedState: true,
+                            }
+                        });
+
+                        return incidentTimelines;
+                    },
                     showDetailsInNumberOfColumns: 2,
                     modelType: Incident,
                     id: 'model-detail-incidents',
@@ -132,14 +160,14 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -178,6 +206,34 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             title: 'Created At',
                             fieldType: FieldType.DateTime,
                         },
+                        {
+                            title: 'Acknowledge Incident',
+                            fieldType: FieldType.Text,
+                            getElement: (_item: JSONObject, onBeforeFetchData: JSONObject, fetchItems: Function): ReactElement => {
+                                return (
+                                    <ChangeIncidentState
+                                        incidentId={modelId}
+                                        incidentTimeline={onBeforeFetchData["data"] as Array<BaseModel>}
+                                        incidentType={IncidentType.Ack}
+                                        onActionComplete={() => { fetchItems() }}
+                                    />
+                                );
+                            },
+                        },
+                        {
+                            title: 'Resolve Incident',
+                            fieldType: FieldType.Text,
+                            getElement: (_item: JSONObject, onBeforeFetchData: JSONObject, fetchItems: Function): ReactElement => {
+                                return (
+                                    <ChangeIncidentState
+                                        incidentId={modelId}
+                                        incidentTimeline={onBeforeFetchData["data"] as Array<BaseModel>}
+                                        incidentType={IncidentType.Resolve}
+                                        onActionComplete={() => { fetchItems() }}
+                                    />
+                                );
+                            },
+                        }
                     ],
                     modelId: modelId,
                 }}

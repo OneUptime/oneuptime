@@ -126,7 +126,7 @@ export class Service extends DatabaseService<Model> {
         resolvedIncidentState.description =
             'When an incident is resolved, it belongs to this state.';
         resolvedIncidentState.color = Green;
-        resolvedIncidentState.isAcknowledgedState = true;
+        resolvedIncidentState.isResolvedState = true;
         resolvedIncidentState.projectId = createdItem.id!;
         resolvedIncidentState.order = 3;
 

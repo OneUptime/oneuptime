@@ -14,6 +14,7 @@ import Hostname from './API/Hostname';
 import HashedString from './HashedString';
 import DatabaseProperty from './Database/DatabaseProperty';
 import OneUptimeDate from './Date';
+import BaseModel from '../Models/BaseModel';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -45,6 +46,8 @@ export type JSONValue =
     | Array<Date>
     | ObjectID
     | Array<ObjectID>
+    | BaseModel
+    | Array<BaseModel>
     | Name
     | Array<Name>
     | Email

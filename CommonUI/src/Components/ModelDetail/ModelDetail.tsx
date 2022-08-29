@@ -28,6 +28,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onItemLoaded?: (item: TBaseModel) => void | undefined;
     refresher?: undefined | boolean;
     showDetailsInNumberOfColumns?: number | undefined;
+    onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
 }
 
 const ModelDetail: Function = <TBaseModel extends BaseModel>(
@@ -39,6 +40,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     const [item, setItem] = useState<TBaseModel | null>(null);
 
     const model: TBaseModel = new props.modelType();
+    const [onBeforeFetchData, setOnBeforeFetchData] = useState<JSONObject | undefined>(undefined);
 
     useEffect(() => {
         fetchItem();
@@ -75,7 +77,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         return populate;
     };
 
-    useEffect(() => {
+    const setDetailFields = (): void => {
         // set fields.
 
         let userPermissions: Array<Permission> =
@@ -102,7 +104,10 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         const fieldsToSet: Array<Field<TBaseModel>> = [];
 
         for (const field of props.fields) {
-            const keys: Array<string> = Object.keys(field.field);
+            
+           
+
+            const keys: Array<string> = Object.keys(field.field ? field.field : {});
 
             if (keys.length > 0) {
                 const key: string = keys[0] as string;
@@ -119,13 +124,33 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                     )
                 ) {
                     field.key = key;
-                    fieldsToSet.push(field);
+                    fieldsToSet.push({
+                        ...field,
+                        getElement: field.getElement ? (item: JSONObject): ReactElement => {
+                            return field.getElement!(item, onBeforeFetchData, fetchItem);
+                        } : undefined
+                    });
                 }
+            } else {
+                fieldsToSet.push({
+                    ...field,
+                    getElement: field.getElement ? (item: JSONObject): ReactElement => {
+                        return field.getElement!(item, onBeforeFetchData, fetchItem);
+                    } : undefined
+                });
             }
         }
 
         setFields(fieldsToSet);
+    }
+
+    useEffect(() => {
+        setDetailFields();
     }, []);
+
+    useEffect(() => {
+        setDetailFields();
+    }, [onBeforeFetchData]);
 
     const fetchItem: Function = async (): Promise<void> => {
         // get item.
@@ -133,6 +158,12 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         props.onLoadingChange && props.onLoadingChange(true);
         setError('');
         try {
+
+            if (props.onBeforeFetch) {
+                const jobject = await props.onBeforeFetch();
+                setOnBeforeFetchData(jobject);
+            }
+
             const item: TBaseModel | null = await ModelAPI.getItem(
                 props.modelType,
                 props.modelId,
