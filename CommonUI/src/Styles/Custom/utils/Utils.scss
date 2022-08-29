@@ -35,6 +35,20 @@
     border-radius: 20px;
 }
 
+.user-circle {
+    background: white;
+    color: #595959;
+    height: 35px;
+    width: 35px;
+    margin: 5px;
+    padding: 4px;
+    padding-left: 7px;
+    border-width: 2px;
+    border-color: #595959;
+    border-style: solid;
+    border-radius: 20px;
+}
+
 .primary-on-hover {
     cursor: pointer;
 
@@ -139,6 +153,8 @@
     justify-content: space-between;
     flex-wrap: wrap;
 }
+
+
 
 .justify-center {
     display: flex;
