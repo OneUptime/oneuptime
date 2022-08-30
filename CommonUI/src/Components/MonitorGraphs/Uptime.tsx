@@ -1,10 +1,7 @@
-import { Green } from 'Common/Types/BrandColors';
-import Color from 'Common/Types/Color';
-import OneUptimeDate from 'Common/Types/Date';
 import ObjectID from 'Common/Types/ObjectID';
-import { Dictionary } from 'lodash';
 import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
-import Tooltip from '../Tooltip/Toolip';
+import ModelAPI, { ListResult } from '../../Utils/ModelAPI/ModelAPI';
+import MonitorStatus from "Model/Models/MonitorStatus";
 
 
 
@@ -17,10 +14,17 @@ export interface ComponentProps {
 const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+    const fetchItem = async () => {
+        const monitorStatus: ListResult<MonitorStatus> = await ModelAPI.getList(MonitorStatus, {
+
+        })
+    };
 
     useEffect(() => {
-       const incidentState 
-    });
+        fetchItem();
+    }, []);
    
 };
 

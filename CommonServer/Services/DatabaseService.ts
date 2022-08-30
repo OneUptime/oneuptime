@@ -49,6 +49,10 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
+import LessThan from 'Common/Types/Database/LessThan';
+import GreaterThan from 'Common/Types/Database/GreaterThan';
+import GreaterThanOrEqual from 'Common/Types/Database/GreaterThanOrEqual';
+import LessThanOrEqual from 'Common/Types/Database/LessThanOrEqual';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -1048,7 +1052,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query[key] = QueryHelper.search(
                     (query[key] as Search).toString() as any
                 ) as any;
-            } else if (query[key] && Array.isArray(query[key])) {
+            }else if (query[key] && query[key] instanceof LessThan) {
+                query[key] = QueryHelper.lessThan(
+                    (query[key] as LessThan).toString() as any
+                ) as any;
+            }else if (query[key] && query[key] instanceof GreaterThan) {
+                query[key] = QueryHelper.greaterThan(
+                    (query[key] as GreaterThan).toString() as any
+                ) as any;
+            }else if (query[key] && query[key] instanceof GreaterThanOrEqual) {
+                query[key] = QueryHelper.greaterThanEqualTo(
+                    (query[key] as GreaterThanOrEqual).toString() as any
+                ) as any;
+            } else if (query[key] && query[key] instanceof LessThanOrEqual) {
+                query[key] = QueryHelper.lessThanEqualTo(
+                    (query[key] as LessThanOrEqual).toString() as any
+                ) as any;
+            }  else if (query[key] && Array.isArray(query[key])) {
                 query[key] = QueryHelper.in(
                     query[key] as any
                 ) as FindOperator<any> as any;

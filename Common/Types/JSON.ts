@@ -15,6 +15,10 @@ import HashedString from './HashedString';
 import DatabaseProperty from './Database/DatabaseProperty';
 import OneUptimeDate from './Date';
 import BaseModel from '../Models/BaseModel';
+import GreaterThan from './Database/GreaterThan';
+import GreaterThanOrEqual from './Database/GreaterThanOrEqual';
+import LessThan from './Database/LessThan';
+import LessThanOrEqual from './Database/LessThanOrEqual';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -27,6 +31,10 @@ enum ObjectType {
     URL = 'URL',
     Permission = 'Permission',
     Search = 'Search',
+    GreaterThan = 'GreaterThan',
+    GreaterThanOrEqual = 'GreaterThanOrEqual',
+    LessThan = 'LessThan',
+    LessThanOrEqual = 'LessThanOrEqual',
     Port = 'Port',
     Hostname = 'Hostname',
     HashedString = 'HashedString',
@@ -67,6 +75,14 @@ export type JSONValue =
     | Array<Permission>
     | Search
     | Array<Search>
+    | GreaterThan
+    | Array<GreaterThan>
+    | GreaterThanOrEqual
+    | Array<GreaterThanOrEqual>
+    | LessThan
+    | Array<LessThan>
+    | LessThanOrEqual
+    | Array<LessThanOrEqual>
     | Port
     | Array<Port>
     | HashedString
@@ -179,6 +195,26 @@ export class JSONFunctions {
             return {
                 _type: ObjectType.Search,
                 value: (val as Search).toString(),
+            };
+        } else if (val && val instanceof LessThan) {
+            return {
+                _type: ObjectType.LessThan,
+                value: (val as LessThan).value,
+            };
+        } else if (val && val instanceof GreaterThan) {
+            return {
+                _type: ObjectType.GreaterThan,
+                value: (val as GreaterThan).value,
+            };
+        } else if (val && val instanceof LessThanOrEqual) {
+            return {
+                _type: ObjectType.LessThanOrEqual,
+                value: (val as LessThanOrEqual).value,
+            };
+        } else if (val && val instanceof GreaterThanOrEqual) {
+            return {
+                _type: ObjectType.GreaterThanOrEqual,
+                value: (val as GreaterThanOrEqual).value,
             };
         } else if (val && val instanceof Date) {
             return {
@@ -316,6 +352,42 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Search
         ) {
             return new Search((val as JSONObject)['value'] as string);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.LessThan
+        ) {
+            return new LessThan((val as JSONObject)['value'] as number);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.GreaterThan
+        ) {
+            return new GreaterThan((val as JSONObject)['value'] as number);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.LessThanOrEqual
+        ) {
+            return new LessThanOrEqual((val as JSONObject)['value'] as number);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.GreaterThanOrEqual
+        ) {
+            return new GreaterThanOrEqual((val as JSONObject)['value'] as number);
         } else if (val instanceof Date) {
             return val;
         } else if (typeof val === Typeof.Object) {
