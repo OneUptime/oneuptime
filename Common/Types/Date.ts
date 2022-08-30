@@ -124,6 +124,12 @@ export default class OneUptimeDate {
             .toDate();
     }
 
+    public static getNumberOfDaysBetweenDates(startDate: Date, endDate: Date): number {
+        const a = moment(startDate);
+        const b = moment(endDate);
+        return b.diff(a, 'days') 
+    }
+
     public static momentToDate(moment: moment.Moment): Date {
         return moment.toDate();
     }

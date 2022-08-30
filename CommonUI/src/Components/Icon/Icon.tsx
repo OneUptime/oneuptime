@@ -20,6 +20,7 @@ import {
     FiChevronUp,
     FiCircle,
     FiMail,
+    FiBarChart2,
     FiSlack,
     FiClock,
     FiTerminal,
@@ -74,6 +75,7 @@ export enum IconProp {
     ChevronLeft,
     Public,
     Home,
+    Graph,
     Grid,
     More,
     Activity,
@@ -464,6 +466,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Circle && (
                 <FiCircle
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Graph && (
+                <FiBarChart2
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

@@ -35,6 +35,14 @@
     border-radius: 20px;
 }
 
+.uptime-bar{
+    height: 55px; 
+    width: 30px; 
+    background-color: $color-green;
+    margin: 2px;
+    border-radius: 2px;
+}
+
 .user-circle {
     background: white;
     color: #595959;

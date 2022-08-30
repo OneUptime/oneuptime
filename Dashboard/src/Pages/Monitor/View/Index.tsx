@@ -18,6 +18,9 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Monitor from 'Model/Models/Monitor';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
+import Card from 'CommonUI/src/Components/Card/Card';
+import DayUptimeGraph from "CommonUI/src/Components/Graphs/DayUptimeGraph";
+import OneUptimeDate from 'Common/Types/Date';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -193,6 +196,13 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+
+
+            <Card title='Graph' description='Monitor Uptime graphs' icon={IconProp.Graph}>
+                <DayUptimeGraph startDate={OneUptimeDate.getCurrentDate()} endDate={OneUptimeDate.getSomeDaysAfter(90)} events={[]} /> 
+            </Card>
+
         </Page>
     );
 };
