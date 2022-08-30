@@ -20,11 +20,11 @@ export class Service extends DatabaseService<Model> {
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
         if (!createBy.data.priority) {
-            throw new BadDataException('Incient State priority is required');
+            throw new BadDataException('Monitor Status priority is required');
         }
 
         if (!createBy.data.projectId) {
-            throw new BadDataException('Incient State projectId is required');
+            throw new BadDataException('Monitor Status projectId is required');
         }
 
         await this.rearrangePriority(
@@ -44,7 +44,7 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnDelete<Model>> {
         if (!deleteBy.query._id && !deleteBy.props.isRoot) {
             throw new BadDataException(
-                '_id should be present when deleting incident states. Please try the delete with objectId'
+                '_id should be present when deleting Monitor Statuss. Please try the delete with objectId'
             );
         }
 

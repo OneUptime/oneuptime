@@ -14,6 +14,7 @@ import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 const Monitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -64,13 +65,13 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 onBeforeDelete={(item: MonitorStatus) => {
                     if (item.isOperationalState) {
                         throw new BadDataException(
-                            'This incident cannot be deleted because its the operational state of monitors. Operational status or Offline Status cannnot be deleted.'
+                            'This monitor status cannot be deleted because its the operational state of monitors. Operational status or Offline Status cannnot be deleted.'
                         );
                     }
 
                     if (item.isOfflineState) {
                         throw new BadDataException(
-                            'This incident cannot be deleted because its the offline state of monitors. Operational status or Offline Status cannnot be deleted.'
+                            'This monitor status cannot be deleted because its the offline state of monitors. Operational status or Offline Status cannnot be deleted.'
                         );
                     }
 
@@ -97,7 +98,6 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Operational',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },
@@ -121,11 +121,14 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                             'Please select color for this monitor status.',
                     },
                 ]}
+                sortBy="priority"
+                sortOrder={SortOrder.Ascending}
                 showRefreshButton={true}
                 selectMoreFields={{
                     color: true,
                     isOperationalState: true, 
-                    isOfflineState: true
+                    isOfflineState: true,
+                    priority: true
                 }}
                 columns={[
                     {
