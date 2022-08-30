@@ -5,7 +5,7 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -55,6 +55,12 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 noItemsMessage={
                     'No monitor status created for this project so far.'
                 }
+                orderedStatesListProps={{
+                    titleField: 'name',
+                    descriptionField: 'description',
+                    orderField: 'priority',
+                }}
+                showTableAs={ShowTableAs.OrderedStatesList}
                 onBeforeDelete={(item: MonitorStatus) => {
                     if (item.isOperationalState) {
                         throw new BadDataException(
@@ -116,7 +122,11 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                showFilterButton={true}
+                selectMoreFields={{
+                    color: true,
+                    isOperationalState: true, 
+                    isOfflineState: true
+                }}
                 columns={[
                     {
                         field: {
@@ -125,9 +135,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                         isFilterable: true,
-                        moreFields: {
-                            color: true,
-                        },
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <StatusBubble

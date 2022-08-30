@@ -75,6 +75,13 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
 
                     return item;
                 }}
+                selectMoreFields={{
+                    color: true,
+                    isCreatedState: true,
+                    isAcknowledgedState: true,
+                    isResolvedState: true,
+                    order: true,
+                }}
                 columns={[
                     {
                         field: {
@@ -82,13 +89,6 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        moreFields: {
-                            color: true,
-                            isCreatedState: true,
-                            isAcknowledgedState: true,
-                            isResolvedState: true,
-                            order: true,
-                        },
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <Pill
@@ -150,6 +150,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     titleField: 'name',
                     descriptionField: 'description',
                     orderField: 'order',
+                    shouldAddItemInTheEnd: true
                 }}
             />
         </Page>

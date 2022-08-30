@@ -60,6 +60,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
+    selectMoreFields?: Select<TBaseModel>;
     initialItemsOnPage?: number;
     isDeleteable: boolean;
     isEditable: boolean;
@@ -94,6 +95,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         titleField: string;
         descriptionField?: string | undefined;
         orderField: string;
+        shouldAddItemInTheEnd?: boolean; 
+        shouldAddItemInTheBegining?: boolean;
     };
 }
 
@@ -121,7 +124,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
         useState<number | null>(null);
 
-    
+
     const [onBeforeFetchData, setOnBeforeFetchData] = useState<JSONObject | undefined>(undefined);
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [query, setQuery] = useState<Query<TBaseModel>>({});
@@ -262,9 +265,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(column.field)[0] as string)
                 : null;
 
-            const moreFields: Array<string> = column.moreFields
-                ? Object.keys(column.moreFields)
-                : [];
+
 
             if (key) {
                 if (model.getTableColumnMetadata(key)) {
@@ -276,14 +277,20 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 }
             }
 
-            for (const moreField of moreFields) {
-                if (model.getTableColumnMetadata(moreField)) {
-                    (selectFields as Dictionary<boolean>)[moreField] = true;
-                } else {
-                    throw new BadDataException(
-                        `${moreField} column not found on ${model.singularName}`
-                    );
-                }
+
+        }
+
+        const selectMoreFields: Array<string> = props.selectMoreFields
+            ? Object.keys(props.selectMoreFields)
+            : [];
+
+        for (const moreField of selectMoreFields) {
+            if (model.getTableColumnMetadata(moreField)) {
+                (selectFields as Dictionary<boolean>)[moreField] = true;
+            } else {
+                throw new BadDataException(
+                    `${moreField} column not found on ${model.singularName}`
+                );
             }
         }
 
@@ -424,9 +431,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(column.field)[0] as string)
                 : null;
 
-            const moreFields: Array<string> = column.moreFields
-                ? Object.keys(column.moreFields)
-                : [];
+
 
             // check permissions.
             let hasPermission: boolean = false;
@@ -450,17 +455,27 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     hasPermission = false;
                 }
 
-                for (const moreField of moreFields) {
-                    if (
-                        accessControl[moreField]?.read &&
-                        !PermissionHelper.doesPermissionsIntersect(
-                            userPermissions,
-                            fieldPermissions
-                        )
-                    ) {
-                        hasPermission = false;
-                        break;
-                    }
+
+            }
+
+            const selectMoreFields: Array<string> = props.selectMoreFields
+                ? Object.keys(props.selectMoreFields)
+                : [];
+
+            for (const moreField of selectMoreFields) {
+
+                let fieldPermissions: Array<Permission> = [];
+                fieldPermissions = accessControl[moreField as string]?.read || [];
+
+                if (
+                    accessControl[moreField]?.read &&
+                    !PermissionHelper.doesPermissionsIntersect(
+                        userPermissions,
+                        fieldPermissions
+                    )
+                ) {
+                    hasPermission = false;
+                    break;
                 }
             }
 
@@ -477,7 +492,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     (selectFields as Dictionary<boolean>)[key] = true;
                 }
 
-                for (const moreField of moreFields) {
+                for (const moreField of selectMoreFields) {
                     (selectFields as Dictionary<boolean>)[moreField] = true;
                 }
             }
@@ -744,6 +759,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     props.orderedStatesListProps?.descriptionField || ''
                 }
                 orderField={props.orderedStatesListProps?.orderField || ''}
+                shouldAddItemInTheBegining={props.orderedStatesListProps.shouldAddItemInTheBegining}
+                shouldAddItemInTheEnd={props.orderedStatesListProps.shouldAddItemInTheEnd}
                 noItemsMessage={props.noItemsMessage || ''}
                 onRefreshClick={() => {
                     fetchItems();

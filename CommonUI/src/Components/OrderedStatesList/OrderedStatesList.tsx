@@ -21,6 +21,8 @@ export interface ComponentProps {
     orderField: string;
     getTitleElement?: ((item: JSONObject) => ReactElement) | undefined;
     getDescriptionElement?: ((item: JSONObject) => ReactElement) | undefined;
+    shouldAddItemInTheEnd?: boolean | undefined;
+    shouldAddItemInTheBegining?: boolean | undefined;
 }
 
 const OrderedStatesList: FunctionComponent<ComponentProps> = (
@@ -59,6 +61,9 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                 props.data &&
                 props.data.length > 0 &&
                 props.data.map((item: JSONObject, i: number) => {
+
+                    const isEnd = !(i + 1 < props.data.length);
+
                     return (
                         <div key={i} id={props.id}>
                             <Item
@@ -71,14 +76,14 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                     props.getDescriptionElement
                                 }
                             />
-                            <div className="vertical-list text-center margin-30">
+                            {((isEnd && props.shouldAddItemInTheEnd) || !isEnd) && <div className="vertical-list text-center margin-30">
                                 <Icon
                                     icon={IconProp.ChevronDown}
                                     thick={ThickProp.Thick}
                                     size={SizeProp.Larger}
                                 />
-                            </div>
-                            {props.onCreateNewItem && (
+                            </div>}
+                            {props.onCreateNewItem && ((isEnd && props.shouldAddItemInTheEnd) || !isEnd) && (
                                 <div>
                                     <div
                                         className="pointer ordered-list-item ordered-list-item-add-button background-very-light-grey-on-hover"
@@ -87,8 +92,8 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                 props.onCreateNewItem(
                                                     item[props.orderField]
                                                         ? (item[
-                                                              props.orderField
-                                                          ] as number) + 1
+                                                            props.orderField
+                                                        ] as number) + 1
                                                         : 0
                                                 );
                                         }}
@@ -102,7 +107,7 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                             Add New Item
                                         </div>
                                     </div>
-                                    {i + 1 < props.data.length && (
+                                    {!isEnd && (
                                         <div className="vertical-list text-center margin-30">
                                             <Icon
                                                 icon={IconProp.ChevronDown}

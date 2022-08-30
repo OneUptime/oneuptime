@@ -321,4 +321,26 @@ export default class MonitorStatus extends BaseModel {
         default: false,
     })
     public isOfflineState?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectMonitorStatus,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitorStatus,
+            Permission.ProjectMember,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditProjectMonitorStatus,
+        ],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
+    @Column({
+        type: ColumnType.Number,
+    })
+    public priority?: number = undefined;
 }

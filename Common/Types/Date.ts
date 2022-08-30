@@ -114,6 +114,43 @@ export default class OneUptimeDate {
             .toDate();
     }
 
+    public static secondsToFormattedTimeString(seconds: number): string {
+        return moment.utc(seconds * 1000).format('HH:mm:ss');
+    }
+
+    public static getGreaterDate(a: Date, b: Date): Date {
+        if (this.isAfter(a, b)) {
+            return a;
+        }
+
+        return b;
+    }
+
+
+
+    public static getLesserDate(a: Date, b: Date): Date {
+        if (this.isBefore(a, b)) {
+            return a;
+        }
+
+        return b;
+    }
+
+    public static getSecondsBetweenDates(start: Date, end: Date): number {
+        let duration = moment.duration(moment(end).diff(moment(start)));
+        return duration.asSeconds();
+    }
+
+    public static getSomeDaysAfterDate(date: Date, days: PositiveNumber | number): Date {
+        if (!(days instanceof PositiveNumber)) {
+            days = new PositiveNumber(days);
+        }
+
+        return moment(date)
+            .add(days.toNumber(), 'days')
+            .toDate();
+    }
+
     public static getSomeSecondsAfter(seconds: PositiveNumber | number): Date {
         if (!(seconds instanceof PositiveNumber)) {
             seconds = new PositiveNumber(seconds);
@@ -127,7 +164,7 @@ export default class OneUptimeDate {
     public static getNumberOfDaysBetweenDates(startDate: Date, endDate: Date): number {
         const a = moment(startDate);
         const b = moment(endDate);
-        return b.diff(a, 'days') 
+        return b.diff(a, 'days')
     }
 
     public static momentToDate(moment: moment.Moment): Date {
@@ -136,6 +173,26 @@ export default class OneUptimeDate {
 
     public static getCurrentYear(): number {
         return moment().year();
+    }
+
+    public static getStartOfDay(date: Date): Date {
+        return moment(date).startOf('day').toDate();
+    }
+
+    public static getEndOfDay(date: Date): Date {
+        return moment(date).endOf('day').toDate();
+    }
+
+    public static isBetween(date: Date, startDate: Date, endDate: Date): boolean {
+        return moment(date).isBetween(startDate, endDate);
+    }
+
+    public static isAfter(date: Date, startDate: Date): boolean {
+        return moment(date).isAfter(startDate);
+    }
+
+    public static isBefore(date: Date, endDate: Date): boolean {
+        return moment(date).isBefore(endDate);
     }
 
     public static getCurrentDateAsFormattedString(): string {
