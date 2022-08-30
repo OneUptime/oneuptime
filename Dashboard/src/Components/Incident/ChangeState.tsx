@@ -31,7 +31,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (props: Component
     useEffect(() => {
         for (const event of props.incidentTimeline) {
 
-            if (event.incidentState && event.incidentState.isAcknowledgedState && props.incidentType === IncidentType.Ack && event.id) {
+            if (event.incidentState && (event.incidentState.isAcknowledgedState || event.incidentState.isResolvedState) && props.incidentType === IncidentType.Ack && event.id) {
                 setIncidentTimeline(event);
             }
 
