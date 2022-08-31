@@ -1,5 +1,4 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/MonitorStatusTimeline';
 import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
 import MonitorService from './MonitorService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -9,15 +8,15 @@ import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 
-export class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<MonitorStatusTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
+        super(MonitorStatusTimeline, postgresDatabase);
     }
 
     protected override async onCreateSuccess(
-        onCreate: OnCreate<Model>,
-        createdItem: Model
-    ): Promise<Model> {
+        onCreate: OnCreate<MonitorStatusTimeline>,
+        createdItem: MonitorStatusTimeline
+    ): Promise<MonitorStatusTimeline> {
         if (!createdItem.monitorId) {
             throw new BadDataException('monitorId is null');
         }
@@ -40,8 +39,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onBeforeDelete(
-        deleteBy: DeleteBy<Model>
-    ): Promise<OnDelete<Model>> {
+        deleteBy: DeleteBy<MonitorStatusTimeline>
+    ): Promise<OnDelete<MonitorStatusTimeline>> {
         if (deleteBy.query._id) {
             const monitorStatusTimeline: MonitorStatusTimeline | null =
                 await this.findOneById({
@@ -82,9 +81,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onDeleteSuccess(
-        onDelete: OnDelete<Model>,
+        onDelete: OnDelete<MonitorStatusTimeline>,
         _itemIdsBeforeDelete: ObjectID[]
-    ): Promise<OnDelete<Model>> {
+    ): Promise<OnDelete<MonitorStatusTimeline>> {
         if (onDelete.carryForward) {
             // this is monitorId.
             const monitorId = onDelete.carryForward as ObjectID;

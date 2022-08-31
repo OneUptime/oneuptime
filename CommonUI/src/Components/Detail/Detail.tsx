@@ -17,7 +17,7 @@ export interface ComponentProps {
 }
 
 const Detail: Function = (props: ComponentProps): ReactElement => {
-    const getMarkdownViewer = (text: string): ReactElement => {
+    const getMarkdownViewer: Function = (text: string): ReactElement => {
         return <MarkdownViewer text={text} />;
     };
 

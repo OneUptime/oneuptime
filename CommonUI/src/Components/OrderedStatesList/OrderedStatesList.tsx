@@ -67,7 +67,8 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                     return (
                         <div key={i} id={props.id}>
                             {props.onCreateNewItem &&
-                                ((isBegining && props.shouldAddItemInTheBegining) && (
+                                isBegining &&
+                                props.shouldAddItemInTheBegining && (
                                     <div>
                                         <div
                                             className="pointer ordered-list-item ordered-list-item-add-button background-very-light-grey-on-hover"
@@ -76,9 +77,9 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     props.onCreateNewItem(
                                                         item[props.orderField]
                                                             ? (item[
-                                                                props
-                                                                    .orderField
-                                                            ] as number) + 1
+                                                                  props
+                                                                      .orderField
+                                                              ] as number) + 1
                                                             : 0
                                                     );
                                             }}
@@ -100,7 +101,6 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                 size={SizeProp.Larger}
                                             />
                                         </div>
-
                                     </div>
                                 )}
                             <Item
@@ -115,14 +115,14 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                             />
                             {((isEnd && props.shouldAddItemInTheEnd) ||
                                 !isEnd) && (
-                                    <div className="vertical-list text-center margin-30">
-                                        <Icon
-                                            icon={IconProp.ChevronDown}
-                                            thick={ThickProp.Thick}
-                                            size={SizeProp.Larger}
-                                        />
-                                    </div>
-                                )}
+                                <div className="vertical-list text-center margin-30">
+                                    <Icon
+                                        icon={IconProp.ChevronDown}
+                                        thick={ThickProp.Thick}
+                                        size={SizeProp.Larger}
+                                    />
+                                </div>
+                            )}
                             {props.onCreateNewItem &&
                                 ((isEnd && props.shouldAddItemInTheEnd) ||
                                     !isEnd) && (
@@ -134,9 +134,9 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     props.onCreateNewItem(
                                                         item[props.orderField]
                                                             ? (item[
-                                                                props
-                                                                    .orderField
-                                                            ] as number) + 1
+                                                                  props
+                                                                      .orderField
+                                                              ] as number) + 1
                                                             : 0
                                                     );
                                             }}

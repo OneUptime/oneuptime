@@ -61,7 +61,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
         setError('');
 
         try {
-            const startDate : Date= OneUptimeDate.getSomeDaysAgoFromDate(
+            const startDate: Date = OneUptimeDate.getSomeDaysAgoFromDate(
                 props.startDate,
                 10
             );
@@ -117,7 +117,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
     }
 
     if (error) {
-        return <ErrorMessage error={error} onRefreshClick={fetchItem} />;
+        return <ErrorMessage error={error} onRefreshClick={()=>fetchItem()} />;
     }
 
     return (

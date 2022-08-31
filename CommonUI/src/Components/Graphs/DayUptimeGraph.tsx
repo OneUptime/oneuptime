@@ -39,9 +39,9 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         );
     }, [props.startDate, props.endDate]);
 
-    const getUptimeBar = (dayNumber: number) => {
+    const getUptimeBar: Function = (dayNumber: number): ReactElement => {
         let color: Color = Green;
-        const todaysDay = OneUptimeDate.getSomeDaysAfterDate(
+        const todaysDay: Date = OneUptimeDate.getSomeDaysAfterDate(
             props.startDate,
             dayNumber
         );
@@ -49,11 +49,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             todaysDay,
             true
         )}`;
-        const startOfTheDay = OneUptimeDate.getStartOfDay(todaysDay);
-        const endOfTheDay = OneUptimeDate.getEndOfDay(todaysDay);
+        const startOfTheDay: Date = OneUptimeDate.getStartOfDay(todaysDay);
+        const endOfTheDay : Date= OneUptimeDate.getEndOfDay(todaysDay);
 
-        const todaysEvents = props.events.filter((event) => {
-            let doesEventBelongsToToday = false;
+        const todaysEvents: Array<Event> = props.events.filter((event: Event) => {
+            let doesEventBelongsToToday: boolean = false;
 
             /// if the event starts or end today.
             if (
@@ -101,11 +101,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         let currentPriority: number = 1;
 
         for (const event of todaysEvents) {
-            const startDate = OneUptimeDate.getGreaterDate(
+            const startDate: Date = OneUptimeDate.getGreaterDate(
                 event.startDate,
                 startOfTheDay
             );
-            const endDate = OneUptimeDate.getLesserDate(
+            const endDate: Date = OneUptimeDate.getLesserDate(
                 event.endDate,
                 OneUptimeDate.getLesserDate(
                     OneUptimeDate.getCurrentDate(),
@@ -113,7 +113,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
                 )
             );
 
-            const seconds = OneUptimeDate.getSecondsBetweenDates(
+            const seconds: number = OneUptimeDate.getSecondsBetweenDates(
                 startDate,
                 endDate
             );
@@ -131,7 +131,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             }
         }
 
-        let hasText = false;
+        let hasText: boolean = false;
         for (const key in secondsOfEvent) {
             if (todaysEvents.length === 1) {
                 break;
@@ -164,10 +164,10 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         );
     };
 
-    const getUptimeGraph = (): Array<ReactElement> => {
+    const getUptimeGraph: Function = (): Array<ReactElement> => {
         const elements: Array<ReactElement> = [];
 
-        for (let i = 0; i < days; i++) {
+        for (let i: number = 0; i < days; i++) {
             elements.push(getUptimeBar(i));
         }
 

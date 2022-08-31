@@ -10,7 +10,12 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import React, { useState, useEffect, FunctionComponent, ReactElement } from 'react';
+import React, {
+    useState,
+    useEffect,
+    FunctionComponent,
+    ReactElement,
+} from 'react';
 import UserElement from '../User/User';
 
 export enum IncidentType {
