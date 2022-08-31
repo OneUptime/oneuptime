@@ -190,7 +190,9 @@ export default class OneUptimeDate {
     }
 
     public static getSecondsBetweenDates(start: Date, end: Date): number {
-        const duration: moment.Duration = moment.duration(moment(end).diff(moment(start)));
+        const duration: moment.Duration = moment.duration(
+            moment(end).diff(moment(start))
+        );
         return duration.asSeconds();
     }
 
@@ -290,7 +292,7 @@ export default class OneUptimeDate {
             formatstring = 'MMMM Do YYYY';
         }
 
-        const momentDate = moment(date).local();
+        const momentDate: moment.Moment = moment(date).local();
 
         return momentDate.format(formatstring);
     }
