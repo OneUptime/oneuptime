@@ -143,20 +143,20 @@ export default class OneUptimeDate {
     public static secondsToFormattedFriendlyTimeString(
         seconds: number
     ): string {
-        const date = moment.utc(seconds * 1000);
-        const hours = date.format('HH');
-        const mins = date.format('mm');
-        const secs = date.format('ss');
+        const date: moment.Moment = moment.utc(seconds * 1000);
+        const hours: string = date.format('HH');
+        const mins: string = date.format('mm');
+        const secs: string = date.format('ss');
 
-        let text = '';
-        let hasHours = false;
-        let hasMins = false;
-        if (hours != '00') {
+        let text: string = '';
+        let hasHours: boolean = false;
+        let hasMins: boolean = false;
+        if (hours !== '00') {
             hasHours = true;
             text += hours + ' hours';
         }
 
-        if (mins != '00' || hasHours) {
+        if (mins !== '00' || hasHours) {
             hasMins = true;
 
             if (hasHours) {
@@ -190,7 +190,7 @@ export default class OneUptimeDate {
     }
 
     public static getSecondsBetweenDates(start: Date, end: Date): number {
-        const duration = moment.duration(moment(end).diff(moment(start)));
+        const duration: moment.Duration = moment.duration(moment(end).diff(moment(start)));
         return duration.asSeconds();
     }
 
@@ -219,8 +219,8 @@ export default class OneUptimeDate {
         startDate: Date,
         endDate: Date
     ): number {
-        const a = moment(startDate);
-        const b = moment(endDate);
+        const a: moment.Moment = moment(startDate);
+        const b: moment.Moment = moment(endDate);
         return b.diff(a, 'days');
     }
 
