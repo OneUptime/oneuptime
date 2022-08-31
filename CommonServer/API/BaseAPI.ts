@@ -198,7 +198,9 @@ export default class BaseAPI<
             : new PositiveNumber(10);
 
         if (limit.toNumber() > LIMIT_PER_PROJECT) {
-            throw new BadRequestException('Limit should be less than 50');
+            throw new BadRequestException(
+                'Limit should be less than ' + LIMIT_PER_PROJECT
+            );
         }
 
         let query: Query<BaseModel> = {};

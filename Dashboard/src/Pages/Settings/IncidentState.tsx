@@ -35,7 +35,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'Incidents',
-                    to: RouteMap[PageMap.SETTINGS_INCIDENTS] as Route,
+                    to: RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
@@ -75,6 +75,13 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
 
                     return item;
                 }}
+                selectMoreFields={{
+                    color: true,
+                    isCreatedState: true,
+                    isAcknowledgedState: true,
+                    isResolvedState: true,
+                    order: true,
+                }}
                 columns={[
                     {
                         field: {
@@ -82,13 +89,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Name',
                         type: FieldType.Text,
-                        moreFields: {
-                            color: true,
-                            isCreatedState: true,
-                            isAcknowledgedState: true,
-                            isResolvedState: true,
-                        },
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <Pill
                                     color={item['color'] as Color}
@@ -149,6 +150,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     titleField: 'name',
                     descriptionField: 'description',
                     orderField: 'order',
+                    shouldAddItemInTheEnd: true,
                 }}
             />
         </Page>

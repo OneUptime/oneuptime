@@ -55,6 +55,12 @@ enum Permission {
     CanEditProjectProbe = 'CanEditProjectProbe',
     CanReadProjectProbe = 'CanReadProjectProbe',
 
+    // Probe Permissions (Owner Permission)
+    CanCreateProjectIncident = 'CanCreateProjectIncident',
+    CanDeleteProjectIncident = 'CanDeleteProjectIncident',
+    CanEditProjectIncident = 'CanEditProjectIncident',
+    CanReadProjectIncident = 'CanReadProjectIncident',
+
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateProjectLabel = 'CanCreateProjectLabel',
     CanEditProjectLabel = 'CanEditProjectLabel',
@@ -81,6 +87,16 @@ enum Permission {
     CanDeleteProjectIncidentState = 'CanDeleteProjectIncidentState',
 
     // Resource Permissions (Team Permission)
+    CanCreateIncidentInternalNote = 'CanCreateIncidentInternalNote',
+    CanEditIncidentInternalNote = 'CanEditIncidentInternalNote',
+    CanDeleteIncidentInternalNote = 'CanDeleteIncidentInternalNote',
+    CanReadIncidentInternalNote = 'CanReadIncidentInternalNote',
+
+    CanCreateIncidentPublicNote = 'CanCreateIncidentPublicNote',
+    CanEditIncidentPublicNote = 'CanEditIncidentPublicNote',
+    CanDeleteIncidentPublicNote = 'CanDeleteIncidentPublicNote',
+    CanReadIncidentPublicNote = 'CanReadIncidentPublicNote',
+
     CanCreateProjectMonitor = 'CanCreateProjectMonitor',
     CanEditProjectMonitor = 'CanEditProjectMonitor',
     CanDeleteProjectMonitor = 'CanDeleteProjectMonitor',
@@ -294,7 +310,7 @@ export class PermissionHelper {
                 permission: Permission.CanCreateProjectLabel,
                 title: 'Can Create Label',
                 description:
-                    'A user assigned this permission can create labels this this project.',
+                    'A user assigned this permission can create labels this project.',
                 isAssignableToProject: true,
             },
             {
@@ -330,7 +346,7 @@ export class PermissionHelper {
                 permission: Permission.CanCreateIncidentState,
                 title: 'Can Create Incident State',
                 description:
-                    'A user assigned this permission can create incident states this this project.',
+                    'A user assigned this permission can create incident states this project.',
                 isAssignableToProject: true,
             },
             {
@@ -359,7 +375,7 @@ export class PermissionHelper {
                 permission: Permission.CanCreateProjectMonitorStatus,
                 title: 'Can Create Monitor Status',
                 description:
-                    'A user assigned this permission can create monitor statuses this this project.',
+                    'A user assigned this permission can create monitor statuses this project.',
                 isAssignableToProject: true,
             },
             {
@@ -417,7 +433,7 @@ export class PermissionHelper {
                 permission: Permission.CanCreateProjectSMTPConfig,
                 title: 'Can Create SMTP Config',
                 description:
-                    'A user assigned this permission can create SMTP configs this this project.',
+                    'A user assigned this permission can create SMTP configs this project.',
                 isAssignableToProject: true,
             },
             {
@@ -446,7 +462,7 @@ export class PermissionHelper {
                 permission: Permission.CanCreateProjectTeam,
                 title: 'Can Create Team',
                 description:
-                    'A user assigned this permission can create teams this this project.',
+                    'A user assigned this permission can create teams this project.',
                 isAssignableToProject: true,
             },
             {
@@ -489,7 +505,7 @@ export class PermissionHelper {
                 permission: Permission.CanCreateProjectMonitor,
                 title: 'Can Create Monitor',
                 description:
-                    'A user assigned this permission can create monitor this this project.',
+                    'A user assigned this permission can create monitor this project.',
                 isAssignableToProject: true,
             },
             {
@@ -515,10 +531,68 @@ export class PermissionHelper {
             },
 
             {
+                permission: Permission.CanCreateIncidentInternalNote,
+                title: 'Can Create Incident Internal Note',
+                description:
+                    'A user assigned this permission can create Incident Internal Note this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteIncidentInternalNote,
+                title: 'Can Delete Incident Internal Note',
+                description:
+                    'A user assigned this permission  can delete Incident Internal Note of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditIncidentInternalNote,
+                title: 'Can Edit Incident Internal Note',
+                description:
+                    'A user assigned this permission can edit Incident Internal Note of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadIncidentInternalNote,
+                title: 'Can Read Incident Internal Note',
+                description:
+                    'A user assigned this permission  can read Incident Internal Note of this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateIncidentPublicNote,
+                title: 'Can Create Incident Status Page Note',
+                description:
+                    'A user assigned this permission can create Incident Status Page Note this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteIncidentPublicNote,
+                title: 'Can Delete Incident Status Page Note',
+                description:
+                    'A user assigned this permission  can delete Incident Status Page Note of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditIncidentPublicNote,
+                title: 'Can Edit Incident Status Page Note',
+                description:
+                    'A user assigned this permission can edit Incident Status Page Note of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadIncidentPublicNote,
+                title: 'Can Read Incident Status Page Note',
+                description:
+                    'A user assigned this permission  can read Incident Status Page Note of this project.',
+                isAssignableToProject: true,
+            },
+
+            {
                 permission: Permission.CanCreateProjectOnCallDuty,
                 title: 'Can Create On-Call Duty',
                 description:
-                    'A user assigned this permission can create on-call duty this this project.',
+                    'A user assigned this permission can create on-call duty this project.',
                 isAssignableToProject: true,
             },
             {
@@ -547,7 +621,7 @@ export class PermissionHelper {
                 permission: Permission.CanCreateProjectStatusPage,
                 title: 'Can Create Status Page',
                 description:
-                    'A user assigned this permission can create status pages this this project.',
+                    'A user assigned this permission can create status pages this project.',
                 isAssignableToProject: true,
             },
             {
@@ -576,7 +650,7 @@ export class PermissionHelper {
                 permission: Permission.CanCreateProjectProbe,
                 title: 'Can Create Probe',
                 description:
-                    'A user assigned this permission can create probe this this project.',
+                    'A user assigned this permission can create probe this project.',
                 isAssignableToProject: true,
             },
             {
@@ -598,6 +672,35 @@ export class PermissionHelper {
                 title: 'Can Read Probe',
                 description:
                     'A user assigned this permission  can read probe of this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateProjectIncident,
+                title: 'Can Create Incident',
+                description:
+                    'A user assigned this permission can create incident this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectIncident,
+                title: 'Can Delete Incident',
+                description:
+                    'A user assigned this permission  can delete incident of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectIncident,
+                title: 'Can Edit Incident',
+                description:
+                    'A user assigned this permission can edit incident of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectIncident,
+                title: 'Can Read Incident',
+                description:
+                    'A user assigned this permission  can read incident of this project.',
                 isAssignableToProject: true,
             },
         ];

@@ -39,13 +39,21 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         : 'left',
                             }}
                         >
-                            {column.key && !column.getColumnElement ? (
+                            {column.key && !column.getElement ? (
                                 column.type === FieldType.Date ? (
                                     props.item[column.key] ? (
                                         OneUptimeDate.getDateAsLocalFormattedString(
                                             props.item[column.key] as string,
-                                            column.options?.onlyShowDate ||
-                                                false
+                                            true
+                                        )
+                                    ) : (
+                                        ''
+                                    )
+                                ) : column.type === FieldType.DateTime ? (
+                                    props.item[column.key] ? (
+                                        OneUptimeDate.getDateAsLocalFormattedString(
+                                            props.item[column.key] as string,
+                                            false
                                         )
                                     ) : (
                                         ''
@@ -73,8 +81,8 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                 <></>
                             )}
 
-                            {column.key && column.getColumnElement ? (
-                                column.getColumnElement(props.item)
+                            {column.key && column.getElement ? (
+                                column.getElement(props.item)
                             ) : (
                                 <></>
                             )}

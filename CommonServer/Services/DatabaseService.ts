@@ -15,7 +15,7 @@ import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotCon
 import Exception from 'Common/Types/Exception/Exception';
 import SearchResult from '../Types/Database/SearchResult';
 import Encryption from '../Utils/Encryption';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
@@ -49,6 +49,11 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
+import LessThan from 'Common/Types/Database/LessThan';
+import GreaterThan from 'Common/Types/Database/GreaterThan';
+import GreaterThanOrEqual from 'Common/Types/Database/GreaterThanOrEqual';
+import LessThanOrEqual from 'Common/Types/Database/LessThanOrEqual';
+import InBetween from 'Common/Types/Database/InBetween';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -129,6 +134,18 @@ class DatabaseService<TBaseModel extends BaseModel> {
     protected checkRequiredFields(data: TBaseModel): void {
         // Check required fields.
 
+        const relatationalColumns: Dictionary<string> = {};
+
+        const tableColumns: Array<string> = data.getTableColumns().columns;
+
+        for (const column of tableColumns) {
+            const metadata: TableColumnMetadata =
+                data.getTableColumnMetadata(column);
+            if (metadata.manyToOneRelationColumn) {
+                relatationalColumns[metadata.manyToOneRelationColumn] = column;
+            }
+        }
+
         for (const requiredField of data.getRequiredColumns().columns) {
             if (typeof (data as any)[requiredField] === Typeof.Boolean) {
                 if (
@@ -142,6 +159,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 !(data as any)[requiredField] &&
                 !data.isDefaultValueColumn(requiredField)
             ) {
+                if (
+                    relatationalColumns[requiredField] &&
+                    data.getColumnValue(
+                        relatationalColumns[requiredField] as string
+                    )
+                ) {
+                    continue;
+                }
+
                 throw new BadDataException(`${requiredField} is required`);
             }
         }
@@ -344,8 +370,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return createBy;
     }
 
-    private serializeCreate(
-        data: TBaseModel | QueryDeepPartialEntity<TBaseModel>
+    private SanitizeCreateOrUpdate(
+        data: TBaseModel | QueryDeepPartialEntity<TBaseModel>,
+        props: DatabaseCommonInteractionProps,
+        isUpdate: boolean = false
     ): TBaseModel | QueryDeepPartialEntity<TBaseModel> {
         const columns: Columns = this.model.getTableColumns();
 
@@ -354,31 +382,33 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 const tableColumnMetadata: TableColumnMetadata =
                     this.model.getTableColumnMetadata(columnName);
 
+                const columnValue: JSONValue = (data as any)[columnName];
+
                 if (
                     data &&
+                    columnName &&
                     tableColumnMetadata.modelType &&
-                    (data as any)[columnName] &&
+                    columnValue &&
                     tableColumnMetadata.type === TableColumnType.Entity &&
-                    (typeof (data as any)[columnName] === 'string' ||
-                        (data as any)[columnName] instanceof ObjectID)
+                    (typeof columnValue === 'string' ||
+                        columnValue instanceof ObjectID)
                 ) {
-                    (data as any)[columnName] =
+                    const relatedType: BaseModel =
                         new tableColumnMetadata.modelType();
-                    (data as any)[columnName]._id = (data as any)[
-                        columnName
-                    ].toString();
+                    relatedType._id = columnValue.toString();
+                    (data as any)[columnName] = relatedType;
                 }
 
                 if (
                     data &&
-                    Array.isArray((data as any)[columnName]) &&
-                    (data as any)[columnName].length > 0 &&
+                    Array.isArray(columnValue) &&
+                    columnValue.length > 0 &&
                     tableColumnMetadata.modelType &&
-                    (data as any)[columnName] &&
+                    columnValue &&
                     tableColumnMetadata.type === TableColumnType.EntityArray
                 ) {
                     const itemsArray: Array<BaseModel> = [];
-                    for (const item of (data as any)[columnName]) {
+                    for (const item of columnValue) {
                         if (
                             typeof item === 'string' ||
                             item instanceof ObjectID
@@ -387,13 +417,19 @@ class DatabaseService<TBaseModel extends BaseModel> {
                                 new tableColumnMetadata.modelType();
                             basemodelItem._id = item.toString();
                             itemsArray.push(basemodelItem);
-                        } else {
+                        } else if (item instanceof BaseModel) {
                             itemsArray.push(item);
                         }
                     }
                     (data as any)[columnName] = itemsArray;
                 }
             }
+        }
+
+        // check createByUserId.
+
+        if (!isUpdate && props.userId) {
+            (data as any)['createdByUserId'] = props.userId;
         }
 
         return data;
@@ -438,7 +474,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy = await this.checkUniqueColumnBy(createBy);
 
         // serialize.
-        createBy.data = this.serializeCreate(createBy.data) as TBaseModel;
+        createBy.data = this.SanitizeCreateOrUpdate(
+            createBy.data,
+            createBy.props
+        ) as TBaseModel;
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
@@ -636,6 +675,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
 
         columns = this.getReadColumnsByPermissions(userPermissions || []);
+        const tableColumns: Array<string> =
+            this.model.getTableColumns().columns;
 
         const excludedColumns: Array<string> = [
             '_id',
@@ -667,6 +708,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
 
             if (!columns.columns.includes(key)) {
+                if (!tableColumns.includes(key)) {
+                    throw new BadDataException(
+                        `${key} column does not exist on ${this.model.singularName}`
+                    );
+                }
+
                 throw new NotAuthorizedException(
                     `You do not have permissions to select on - ${key}.
                     You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
@@ -1010,6 +1057,27 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query[key] = QueryHelper.search(
                     (query[key] as Search).toString() as any
                 ) as any;
+            } else if (query[key] && query[key] instanceof LessThan) {
+                query[key] = QueryHelper.lessThan(
+                    (query[key] as LessThan).toString() as any
+                ) as any;
+            } else if (query[key] && query[key] instanceof InBetween) {
+                query[key] = QueryHelper.inBetween(
+                    (query[key] as InBetween).startValue as any,
+                    (query[key] as InBetween).endValue as any
+                ) as any;
+            } else if (query[key] && query[key] instanceof GreaterThan) {
+                query[key] = QueryHelper.greaterThan(
+                    (query[key] as GreaterThan).toString() as any
+                ) as any;
+            } else if (query[key] && query[key] instanceof GreaterThanOrEqual) {
+                query[key] = QueryHelper.greaterThanEqualTo(
+                    (query[key] as GreaterThanOrEqual).toString() as any
+                ) as any;
+            } else if (query[key] && query[key] instanceof LessThanOrEqual) {
+                query[key] = QueryHelper.lessThanEqualTo(
+                    (query[key] as LessThanOrEqual).toString() as any
+                ) as any;
             } else if (query[key] && Array.isArray(query[key])) {
                 query[key] = QueryHelper.in(
                     query[key] as any
@@ -1272,12 +1340,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                             if (!hasPermission) {
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to read ${
+                                    `You do not have permissions to ${key}.${innerKey} on read ${
                                         onBeforeFind.limit === 1
                                             ? this.model.singularName
                                             : this.model.pluralName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                        this.model.getColumnAccessControlFor(
+                                        relatedModel.getColumnAccessControlFor(
                                             innerKey
                                         ).read
                                     ).join(',')}`
@@ -1353,8 +1421,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 beforeUpdateBy.query
             );
             const data: QueryDeepPartialEntity<TBaseModel> =
-                this.serializeCreate(
-                    beforeUpdateBy.data
+                this.SanitizeCreateOrUpdate(
+                    beforeUpdateBy.data,
+                    updateBy.props,
+                    true
                 ) as QueryDeepPartialEntity<TBaseModel>;
 
             const items: Array<TBaseModel> = await this._findBy({

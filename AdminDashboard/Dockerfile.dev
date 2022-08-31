@@ -45,7 +45,7 @@ RUN npm run compile
 RUN mkdir /usr/src/CommonUI
 WORKDIR /usr/src/CommonUI
 COPY ./CommonUI/package*.json /usr/src/CommonUI/
-RUN npm install
+RUN npm install --force
 COPY ./CommonUI /usr/src/CommonUI
 RUN npm run compile
 

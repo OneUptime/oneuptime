@@ -5,7 +5,9 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, {
+    ShowTableAs,
+} from 'CommonUI/src/Components/ModelTable/ModelTable';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -14,6 +16,7 @@ import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 const Monitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -32,7 +35,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'Monitors',
-                    to: RouteMap[PageMap.SETTINGS_MONITORS] as Route,
+                    to: RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
@@ -55,6 +58,27 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 noItemsMessage={
                     'No monitor status created for this project so far.'
                 }
+                orderedStatesListProps={{
+                    titleField: 'name',
+                    descriptionField: 'description',
+                    orderField: 'priority',
+                }}
+                showTableAs={ShowTableAs.OrderedStatesList}
+                onBeforeDelete={(item: MonitorStatus) => {
+                    if (item.isOperationalState) {
+                        throw new BadDataException(
+                            'This monitor status cannot be deleted because its the operational state of monitors. Operational status or Offline Status cannnot be deleted.'
+                        );
+                    }
+
+                    if (item.isOfflineState) {
+                        throw new BadDataException(
+                            'This monitor status cannot be deleted because its the offline state of monitors. Operational status or Offline Status cannnot be deleted.'
+                        );
+                    }
+
+                    return item;
+                }}
                 currentPageRoute={props.pageRoute}
                 onBeforeCreate={(
                     item: MonitorStatus
@@ -76,7 +100,6 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Operational',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },
@@ -100,8 +123,15 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                             'Please select color for this monitor status.',
                     },
                 ]}
+                sortBy="priority"
+                sortOrder={SortOrder.Ascending}
                 showRefreshButton={true}
-                showFilterButton={true}
+                selectMoreFields={{
+                    color: true,
+                    isOperationalState: true,
+                    isOfflineState: true,
+                    priority: true,
+                }}
                 columns={[
                     {
                         field: {
@@ -110,10 +140,8 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                         isFilterable: true,
-                        moreFields: {
-                            color: true,
-                        },
-                        getColumnElement: (item: JSONObject): ReactElement => {
+
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <StatusBubble
                                     color={item['color'] as Color}

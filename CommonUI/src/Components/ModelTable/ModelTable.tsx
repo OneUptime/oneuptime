@@ -60,6 +60,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
+    selectMoreFields?: Select<TBaseModel>;
     initialItemsOnPage?: number;
     isDeleteable: boolean;
     isEditable: boolean;
@@ -72,6 +73,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isViewable?: undefined | boolean;
     currentPageRoute?: undefined | Route;
     query?: Query<TBaseModel>;
+    onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
     showTableAs?: ShowTableAs | undefined;
@@ -93,6 +95,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         titleField: string;
         descriptionField?: string | undefined;
         orderField: string;
+        shouldAddItemInTheEnd?: boolean;
+        shouldAddItemInTheBegining?: boolean;
     };
 }
 
@@ -120,6 +124,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
         useState<number | null>(null);
 
+    const [onBeforeFetchData, setOnBeforeFetchData] = useState<
+        JSONObject | undefined
+    >(undefined);
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [query, setQuery] = useState<Query<TBaseModel>>({});
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
@@ -159,6 +166,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 description: column.description || '',
                 key: column.key || '',
                 fieldType: column.type,
+                getElement: column.getElement
+                    ? (item: JSONObject): ReactElement => {
+                          return column.getElement!(item, onBeforeFetchData);
+                      }
+                    : undefined,
             });
 
             setFields(detailFields);
@@ -198,6 +210,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         if (props.onFetchInit) {
             props.onFetchInit(currentPageNumber, itemsOnPage);
+        }
+
+        if (props.onBeforeFetch) {
+            const jobject: JSONObject = await props.onBeforeFetch();
+            setOnBeforeFetchData(jobject);
         }
 
         try {
@@ -251,16 +268,28 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(column.field)[0] as string)
                 : null;
 
-            const moreFields: Array<string> = column.moreFields
-                ? Object.keys(column.moreFields)
-                : [];
-
             if (key) {
-                (selectFields as Dictionary<boolean>)[key] = true;
+                if (model.getTableColumnMetadata(key)) {
+                    (selectFields as Dictionary<boolean>)[key] = true;
+                } else {
+                    throw new BadDataException(
+                        `${key} column not found on ${model.singularName}`
+                    );
+                }
             }
+        }
 
-            for (const moreField of moreFields) {
+        const selectMoreFields: Array<string> = props.selectMoreFields
+            ? Object.keys(props.selectMoreFields)
+            : [];
+
+        for (const moreField of selectMoreFields) {
+            if (model.getTableColumnMetadata(moreField)) {
                 (selectFields as Dictionary<boolean>)[moreField] = true;
+            } else {
+                throw new BadDataException(
+                    `${moreField} column not found on ${model.singularName}`
+                );
             }
         }
 
@@ -402,10 +431,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(column.field)[0] as string)
                 : null;
 
-            const moreFields: Array<string> = column.moreFields
-                ? Object.keys(column.moreFields)
-                : [];
-
             // check permissions.
             let hasPermission: boolean = false;
 
@@ -427,18 +452,26 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ) {
                     hasPermission = false;
                 }
+            }
 
-                for (const moreField of moreFields) {
-                    if (
-                        accessControl[moreField]?.read &&
-                        !PermissionHelper.doesPermissionsIntersect(
-                            userPermissions,
-                            fieldPermissions
-                        )
-                    ) {
-                        hasPermission = false;
-                        break;
-                    }
+            const selectMoreFields: Array<string> = props.selectMoreFields
+                ? Object.keys(props.selectMoreFields)
+                : [];
+
+            for (const moreField of selectMoreFields) {
+                let fieldPermissions: Array<Permission> = [];
+                fieldPermissions =
+                    accessControl[moreField as string]?.read || [];
+
+                if (
+                    accessControl[moreField]?.read &&
+                    !PermissionHelper.doesPermissionsIntersect(
+                        userPermissions,
+                        fieldPermissions
+                    )
+                ) {
+                    hasPermission = false;
+                    break;
                 }
             }
 
@@ -455,7 +488,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     (selectFields as Dictionary<boolean>)[key] = true;
                 }
 
-                for (const moreField of moreFields) {
+                for (const moreField of selectMoreFields) {
                     (selectFields as Dictionary<boolean>)[moreField] = true;
                 }
             }
@@ -469,6 +502,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             ((props.isDeleteable &&
                 model.hasDeletePermissions(userProjectPermissions)) ||
                 (props.isEditable &&
+                    model.hasUpdatePermissions(userProjectPermissions)) ||
+                (props.isCreateable &&
                     model.hasUpdatePermissions(userProjectPermissions)))
         ) {
             columns.push({
@@ -689,8 +724,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             );
         }
 
-        let getTitleElement: ((item: JSONObject) => ReactElement) | undefined =
-            undefined;
+        let getTitleElement:
+            | ((
+                  item: JSONObject,
+                  onBeforeFetchData?: JSONObject | undefined
+              ) => ReactElement)
+            | undefined = undefined;
         let getDescriptionElement:
             | ((item: JSONObject) => ReactElement)
             | undefined = undefined;
@@ -699,12 +738,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             const key: string | undefined = Object.keys(
                 column.field as Object
             )[0];
+
             if (key === props.orderedStatesListProps.titleField) {
-                getTitleElement = column.getColumnElement;
+                getTitleElement = column.getElement;
             }
 
             if (key === props.orderedStatesListProps.descriptionField) {
-                getDescriptionElement = column.getColumnElement;
+                getDescriptionElement = column.getElement;
             }
         }
 
@@ -719,6 +759,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     props.orderedStatesListProps?.descriptionField || ''
                 }
                 orderField={props.orderedStatesListProps?.orderField || ''}
+                shouldAddItemInTheBegining={
+                    props.orderedStatesListProps.shouldAddItemInTheBegining
+                }
+                shouldAddItemInTheEnd={
+                    props.orderedStatesListProps.shouldAddItemInTheEnd
+                }
                 noItemsMessage={props.noItemsMessage || ''}
                 onRefreshClick={() => {
                     fetchItems();
@@ -866,8 +912,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             );
                         }
 
-                        props.onBeforeCreate &&
-                            (await props.onBeforeCreate(item));
+                        if (props.onBeforeCreate) {
+                            item = await props.onBeforeCreate(item);
+                        }
+
+                        return item;
                     }}
                     modelType={props.modelType}
                     formProps={{

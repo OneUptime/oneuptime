@@ -113,9 +113,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         title: 'Expires',
                         type: FieldType.Date,
                         isFilterable: true,
-                        options: {
-                            onlyShowDate: true,
-                        },
                     },
                 ]}
             />

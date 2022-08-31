@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -15,6 +23,9 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import Label from './Label';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
+import MonitorStatus from './MonitorStatus';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -146,7 +157,7 @@ export default class Monitor extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
-        modelType: Project,
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {
@@ -215,4 +226,89 @@ export default class Monitor extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
+    })
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: true }
+    )
+    @JoinTable()
+    public labels?: Array<Label> = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [],
+    })
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public monitorType?: MonitorType = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'currentMonitorStatusId',
+        type: TableColumnType.Entity,
+        modelType: MonitorStatus,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return MonitorStatus;
+        },
+        {
+            eager: false,
+            nullable: true,
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'currentMonitorStatusId' })
+    public currentMonitorStatus?: MonitorStatus = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectMonitor,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
+    })
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public currentMonitorStatusId?: ObjectID = undefined;
 }

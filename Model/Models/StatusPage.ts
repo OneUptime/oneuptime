@@ -164,7 +164,7 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'createdByUserId',
         type: TableColumnType.Entity,
-        modelType: Project,
+        modelType: User,
     })
     @ManyToOne(
         (_type: string) => {

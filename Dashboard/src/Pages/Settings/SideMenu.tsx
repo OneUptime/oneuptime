@@ -40,13 +40,6 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             <SideMenuSection title="Templates">
                 <SideMenuItem
                     link={{
-                        title: 'Incident Templates',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.Alert}
-                />
-                <SideMenuItem
-                    link={{
                         title: 'Email Templates',
                         to: new Route('/:projectSlug/home'),
                     }}
@@ -60,22 +53,31 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.SMS}
                 />
             </SideMenuSection>
-            <SideMenuSection title="Resource Settings">
+            <SideMenuSection title="Monitors">
                 <SideMenuItem
                     link={{
-                        title: 'Monitors',
+                        title: 'Monitor Status',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_MONITORS] as Route
+                            RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route
                         ),
                     }}
                     icon={IconProp.Activity}
                 />
+            </SideMenuSection>
+            <SideMenuSection title="Incidents">
                 <SideMenuItem
                     link={{
-                        title: 'Incidents',
+                        title: 'Incident State',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_INCIDENTS] as Route
+                            RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route
                         ),
+                    }}
+                    icon={IconProp.Alert}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Incident Templates',
+                        to: new Route('/:projectSlug/home'),
                     }}
                     icon={IconProp.Alert}
                 />

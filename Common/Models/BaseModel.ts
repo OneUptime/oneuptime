@@ -30,6 +30,7 @@ import Permission, {
 } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
+import BadDataException from '../Types/Exception/BadDataException';
 export type DbTypes =
     | string
     | number
@@ -327,7 +328,9 @@ export default class BaseModel extends BaseEntity {
         return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
     }
 
-    public getColumnValue(columnName: string): JSONValue | null {
+    public getColumnValue(
+        columnName: string
+    ): JSONValue | BaseModel | Array<BaseModel> | null {
         if (getTableColumn(this, columnName) && (this as any)[columnName]) {
             return (this as any)[columnName] as JSONValue;
         }
@@ -335,7 +338,10 @@ export default class BaseModel extends BaseEntity {
         return null;
     }
 
-    public setColumnValue(columnName: string, value: JSONValue): void {
+    public setColumnValue(
+        columnName: string,
+        value: JSONValue | BaseModel | Array<BaseModel>
+    ): void {
         if (getTableColumn(this, columnName)) {
             return ((this as any)[columnName] = value as any);
         }
@@ -346,6 +352,13 @@ export default class BaseModel extends BaseEntity {
             this,
             columnName
         );
+
+        if (!tableColumnType) {
+            throw new BadDataException(
+                'TableColumnMetadata not found for ' + columnName + ' column'
+            );
+        }
+
         return Boolean(
             tableColumnType.type === TableColumnType.Entity ||
                 tableColumnType.type === TableColumnType.EntityArray

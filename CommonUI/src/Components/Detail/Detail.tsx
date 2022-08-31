@@ -7,14 +7,20 @@ import FieldType from '../Types/FieldType';
 import HiddenText from '../HiddenText/HiddenText';
 import { JSONObject } from 'Common/Types/JSON';
 import _ from 'lodash';
+import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 
 export interface ComponentProps {
     item: JSONObject;
     fields: Array<Field>;
     id?: string | undefined;
+    showDetailsInNumberOfColumns?: number | undefined;
 }
 
 const Detail: Function = (props: ComponentProps): ReactElement => {
+    const getMarkdownViewer: Function = (text: string): ReactElement => {
+        return <MarkdownViewer text={text} />;
+    };
+
     const getField: Function = (field: Field, index: number): ReactElement => {
         const fieldKey: string = field.key;
 
@@ -35,6 +41,17 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             );
         }
 
+        if (field.fieldType === FieldType.DateTime) {
+            data = OneUptimeDate.getDateAsLocalFormattedString(
+                data as string,
+                false
+            );
+        }
+
+        if (field.fieldType === FieldType.Markdown) {
+            data = getMarkdownViewer(data as string);
+        }
+
         if (field.fieldType === FieldType.HiddenText) {
             data = (
                 <HiddenText
@@ -44,8 +61,25 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             );
         }
 
+        if (field.getElement) {
+            data = field.getElement(props.item);
+        }
+
         return (
-            <div className="mb-3" key={index} id={props.id}>
+            <div
+                className="mb-3"
+                key={index}
+                id={props.id}
+                style={
+                    props.showDetailsInNumberOfColumns
+                        ? {
+                              width:
+                                  100 / props.showDetailsInNumberOfColumns +
+                                  '%',
+                          }
+                        : {}
+                }
+            >
                 <label className="form-Label form-label justify-space-between width-max">
                     <span>{field.title}</span>
                     {field.sideLink &&
@@ -78,7 +112,13 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     return (
-        <div>
+        <div
+            className={`${
+                props.showDetailsInNumberOfColumns
+                    ? `justify-space-between`
+                    : ``
+            }`}
+        >
             {props.fields &&
                 props.fields.length > 0 &&
                 props.fields.map((field: Field, i: number) => {

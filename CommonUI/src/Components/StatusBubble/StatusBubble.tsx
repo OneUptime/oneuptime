@@ -1,3 +1,4 @@
+import { Black } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
 import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
 
@@ -15,13 +16,17 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
             <div
                 className="small-circle margin-5"
                 style={{
-                    backgroundColor: props.color.toString(),
+                    backgroundColor: props.color
+                        ? props.color.toString()
+                        : Black.toString(),
                 }}
             ></div>
             <div
                 className="bold margin-5"
                 style={{
-                    color: props.color.toString(),
+                    color: props.color
+                        ? props.color.toString()
+                        : Black.toString(),
                 }}
             >
                 {props.text}

@@ -4,13 +4,36 @@ import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import PageMap from './PageMap';
 import RouteParams from './RouteParams';
+import ObjectID from 'Common/Types/ObjectID';
 
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
     [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
+
     [PageMap.INCIDENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/`
     ),
+
+    [PageMap.INCIDENT_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.INCIDENT_VIEW_STATE_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/state-timeline`
+    ),
+
+    [PageMap.INCIDENT_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
+    ),
+
+    [PageMap.INCIDENT_INTERNAL_NOTE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/internal-notes`
+    ),
+
+    [PageMap.INCIDENT_PUBLIC_NOTE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/public-notes`
+    ),
+
     [PageMap.STATUS_PAGE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/`
     ),
@@ -19,6 +42,19 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.MONITORS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitors/`
     ),
+
+    [PageMap.MONITOR_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.MONITOR_VIEW_STATUS_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/status-timeline`
+    ),
+
+    [PageMap.MONITOR_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/${RouteParams.ModelID}/delete`
+    ),
+
     [PageMap.AUTOMATION_SCRIPTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/automation-scripts/`
     ),
@@ -53,12 +89,12 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/custom-smtp`
     ),
 
-    [PageMap.SETTINGS_MONITORS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/monitors`
+    [PageMap.SETTINGS_MONITORS_STATUS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/monitors-status`
     ),
 
-    [PageMap.SETTINGS_INCIDENTS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/settings/incidents`
+    [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/incidents-state`
     ),
 
     [PageMap.SETTINGS_TEAMS]: new Route(
@@ -79,12 +115,19 @@ const RouteMap: Dictionary<Route> = {
 };
 
 export class RouteUtil {
-    public static populateRouteParams(route: Route): Route {
+    public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
         // populate projectid
         const project: Project | null = ProjectUtil.getCurrentProject();
 
         if (project && project._id) {
             route = route.addRouteParam(RouteParams.ProjectID, project._id);
+        }
+
+        if (modelId) {
+            route = route.addRouteParam(
+                RouteParams.ModelID,
+                modelId.toString()
+            );
         }
 
         return route;

@@ -13,7 +13,14 @@ import Init from './Pages/Init/Init';
 import Home from './Pages/Home/Home';
 import useAsyncEffect from 'use-async-effect';
 import StatusPages from './Pages/StatusPages/StatusPages';
+
 import Incidents from './Pages/Incidents/Incidents';
+import IncidentView from './Pages/Incidents/View/Index';
+import IncidentViewDelete from './Pages/Incidents/View/Delete';
+import IncidentViewStateTimeline from './Pages/Incidents/View/StateTimeline';
+import IncidentInternalNote from './Pages/Incidents/View/InternalNote';
+import IncidentPublicNote from './Pages/Incidents/View/PublicNote';
+
 import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
@@ -28,14 +35,17 @@ import SettingLabels from './Pages/Settings/Labels';
 import SettingCustomSMTP from './Pages/Settings/CustomSMTP';
 import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
-import SettingsMonitors from './Pages/Settings/Monitors';
-import SettingsIncidents from './Pages/Settings/Incidents';
+import SettingsMonitors from './Pages/Settings/MonitorStatus';
+import SettingsIncidents from './Pages/Settings/IncidentState';
 
 // On Call Duty
 import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
 
 // Monitors
 import MonitorPage from './Pages/Monitor/Monitors';
+import MonitorView from './Pages/Monitor/View/Index';
+import MonitorViewDelete from './Pages/Monitor/View/Delete';
+import MonitorViewStatusTimeline from './Pages/Monitor/View/StatusTimeline';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -147,6 +157,44 @@ const App: FunctionComponent = () => {
                     }
                 />
 
+                <PageRoute
+                    path={RouteMap[PageMap.MONITOR_VIEW]?.toString()}
+                    element={
+                        <MonitorView
+                            pageRoute={RouteMap[PageMap.MONITOR_VIEW] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.MONITOR_VIEW_DELETE]?.toString()}
+                    element={
+                        <MonitorViewDelete
+                            pageRoute={
+                                RouteMap[PageMap.MONITOR_VIEW_DELETE] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                    ]?.toString()}
+                    element={
+                        <MonitorViewStatusTimeline
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
                 {/* Status Pages */}
 
                 <PageRoute
@@ -159,6 +207,8 @@ const App: FunctionComponent = () => {
                     }
                 />
 
+                {/* Incidents */}
+
                 <PageRoute
                     path={RouteMap[PageMap.INCIDENTS]?.toString()}
                     element={
@@ -168,6 +218,73 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
+
+                <PageRoute
+                    path={RouteMap[PageMap.INCIDENT_VIEW]?.toString()}
+                    element={
+                        <IncidentView
+                            pageRoute={RouteMap[PageMap.INCIDENT_VIEW] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.INCIDENT_VIEW_DELETE]?.toString()}
+                    element={
+                        <IncidentViewDelete
+                            pageRoute={
+                                RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                    ]?.toString()}
+                    element={
+                        <IncidentViewStateTimeline
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.INCIDENT_INTERNAL_NOTE]?.toString()}
+                    element={
+                        <IncidentInternalNote
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.INCIDENT_INTERNAL_NOTE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.INCIDENT_PUBLIC_NOTE]?.toString()}
+                    element={
+                        <IncidentPublicNote
+                            pageRoute={
+                                RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                {/* Logs */}
+
                 <PageRoute
                     path={RouteMap[PageMap.LOGS]?.toString()}
                     element={
@@ -203,11 +320,15 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_MONITORS]?.toString()}
+                    path={RouteMap[
+                        PageMap.SETTINGS_MONITORS_STATUS
+                    ]?.toString()}
                     element={
                         <SettingsMonitors
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_MONITORS] as Route
+                                RouteMap[
+                                    PageMap.SETTINGS_MONITORS_STATUS
+                                ] as Route
                             }
                             currentProject={selectedProject}
                         />
@@ -215,11 +336,15 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_INCIDENTS]?.toString()}
+                    path={RouteMap[
+                        PageMap.SETTINGS_INCIDENTS_STATE
+                    ]?.toString()}
                     element={
                         <SettingsIncidents
                             pageRoute={
-                                RouteMap[PageMap.SETTINGS_INCIDENTS] as Route
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENTS_STATE
+                                ] as Route
                             }
                             currentProject={selectedProject}
                         />

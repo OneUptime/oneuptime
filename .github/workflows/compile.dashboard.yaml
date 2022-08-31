@@ -19,6 +19,6 @@ jobs:
       - run: cd Common && npm install
       - run: cd Model && npm install
       - run: cd CommonServer && npm install
-      - run: cd CommonUI && npm install
+      - run: cd CommonUI && npm install --force
       - run: cd Dashboard && npm install && npm run compile
   

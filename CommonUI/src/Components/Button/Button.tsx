@@ -16,6 +16,8 @@ export enum ButtonStyleType {
     DANGER_OUTLINE,
     SUCCESS,
     SUCCESS_OUTLINE,
+    WARNING,
+    WARNING_OUTLINE,
 }
 
 export enum ButtonSize {
@@ -124,6 +126,14 @@ const Button: FunctionComponent<ComponentProps> = ({
 
     if (buttonStyle === ButtonStyleType.SUCCESS_OUTLINE) {
         buttonStyleCssClass = 'btn-outline-success';
+    }
+
+    if (buttonStyle === ButtonStyleType.WARNING) {
+        buttonStyleCssClass = 'btn-warning';
+    }
+
+    if (buttonStyle === ButtonStyleType.WARNING_OUTLINE) {
+        buttonStyleCssClass = 'btn-outline-warning';
     }
 
     return (

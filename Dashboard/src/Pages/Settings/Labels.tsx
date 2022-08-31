@@ -89,6 +89,9 @@ const Labels: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
+                selectMoreFields={{
+                    color: true,
+                }}
                 columns={[
                     {
                         field: {
@@ -97,10 +100,8 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                         isFilterable: true,
-                        moreFields: {
-                            color: true,
-                        },
-                        getColumnElement: (item: JSONObject): ReactElement => {
+
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <Pill
                                     color={item['color'] as Color}

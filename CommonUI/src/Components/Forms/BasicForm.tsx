@@ -28,7 +28,7 @@ import Link from '../Link/Link';
 import Alert, { AlertType } from '../Alerts/Alert';
 import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
-import TextArea from './Fields/TextArea';
+import TextArea from '../TextArea/TextArea';
 import Dropdown, { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
 import OneUptimeDate from 'Common/Types/Date';
 import Toggle from '../Toggle/Toggle';
@@ -38,6 +38,7 @@ import Route from 'Common/Types/API/Route';
 import Exception from 'Common/Types/Exception/Exception';
 import HashedString from 'Common/Types/HashedString';
 import Input from '../Input/Input';
+import Markdown from '../Markdown.tsx/MarkdownEditor';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -211,6 +212,41 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <>
                                     <TextArea
+                                        onChange={async (text: string) => {
+                                            await form.setFieldValue(
+                                                fieldName,
+                                                text,
+                                                true
+                                            );
+                                        }}
+                                        onBlur={async () => {
+                                            await form.setFieldTouched(
+                                                fieldName,
+                                                true
+                                            );
+                                        }}
+                                        initialValue={
+                                            initialValues &&
+                                            (initialValues as any)[fieldName]
+                                                ? (initialValues as any)[
+                                                      fieldName
+                                                  ]
+                                                : ''
+                                        }
+                                        placeholder={field.placeholder || ''}
+                                    />
+                                </>
+                            );
+                        }}
+                    </Field>
+                )}
+
+                {field.fieldType === FormFieldSchemaType.Markdown && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+                            return (
+                                <>
+                                    <Markdown
                                         onChange={async (text: string) => {
                                             await form.setFieldValue(
                                                 fieldName,

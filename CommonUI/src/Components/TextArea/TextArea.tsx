@@ -6,11 +6,12 @@ import React, {
 } from 'react';
 
 export interface ComponentProps {
-    onChange: (value: string) => void;
+    onChange?: undefined | ((value: string) => void);
     initialValue: string;
     placeholder?: undefined | string;
     onFocus?: () => void;
     onBlur?: () => void;
+    className?: undefined | string;
 }
 
 const TextArea: FunctionComponent<ComponentProps> = (
@@ -26,14 +27,14 @@ const TextArea: FunctionComponent<ComponentProps> = (
 
     const handleChange: Function = (content: string): void => {
         setText(content);
-        props.onChange(content);
+        props.onChange && props.onChange(content);
     };
 
     return (
         <div>
             <textarea
                 placeholder={props.placeholder}
-                className="form-control"
+                className={`form-control ${props.className || ''}`}
                 value={text}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                     const value: string = e.target.value;

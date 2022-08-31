@@ -18,7 +18,9 @@ import {
     FiChevronRight,
     FiChevronLeft,
     FiChevronUp,
+    FiCircle,
     FiMail,
+    FiBarChart2,
     FiSlack,
     FiClock,
     FiTerminal,
@@ -41,6 +43,7 @@ import {
     FiFilter,
     FiEdit2,
     FiEyeOff,
+    FiList,
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -70,12 +73,15 @@ export enum IconProp {
     ChevronRight,
     ChevronUp,
     ChevronLeft,
+    Public,
     Home,
+    Graph,
     Grid,
     More,
     Activity,
     Alert,
     Call,
+    List,
     CheckCircle,
     Search,
     Logout,
@@ -106,6 +112,7 @@ export enum IconProp {
     Check,
     True,
     False,
+    Circle,
 }
 
 export interface ComponentProps {
@@ -436,6 +443,37 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.False && (
                 <FiX
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+            {icon === IconProp.List && (
+                <FiList
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Public && (
+                <FiUser
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Circle && (
+                <FiCircle
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Graph && (
+                <FiBarChart2
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

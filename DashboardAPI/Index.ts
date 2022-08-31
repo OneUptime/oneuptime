@@ -81,10 +81,35 @@ import MonitorStatusService, {
     Service as MonitorStatusServiceType,
 } from 'CommonServer/Services/MonitorStatusService';
 
+import MonitorTimelineStatus from 'Model/Models/MonitorStatusTimeline';
+import MonitorTimelineStatusService, {
+    Service as MonitorTimelineStatusServiceType,
+} from 'CommonServer/Services/MonitorStatusTimelineService';
+
 import IncidentState from 'Model/Models/IncidentState';
-import IncidentStateStatusService, {
-    Service as IncidentStateStatusServiceType,
+import IncidentStateService, {
+    Service as IncidentStateServiceType,
 } from 'CommonServer/Services/IncidentStateService';
+
+import Incident from 'Model/Models/Incident';
+import IncidentService, {
+    Service as IncidentServiceType,
+} from 'CommonServer/Services/IncidentService';
+
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import IncidentStateTimelineService, {
+    Service as IncidentStateTimelineServiceType,
+} from 'CommonServer/Services/IncidentStateTimelineService';
+
+import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
+import IncidentInternalNoteService, {
+    Service as IncidentInternalNoteServiceType,
+} from 'CommonServer/Services/IncidentInternalNoteService';
+
+import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
+import IncidentPublicNoteService, {
+    Service as IncidentPublicNoteServiceType,
+} from 'CommonServer/Services/IncidentPublicNoteService';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -124,9 +149,23 @@ app.use(
 );
 
 app.use(
-    new BaseAPI<IncidentState, IncidentStateStatusServiceType>(
+    new BaseAPI<IncidentState, IncidentStateServiceType>(
         IncidentState,
-        IncidentStateStatusService
+        IncidentStateService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<IncidentStateTimeline, IncidentStateTimelineServiceType>(
+        IncidentStateTimeline,
+        IncidentStateTimelineService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<Incident, IncidentServiceType>(
+        Incident,
+        IncidentService
     ).getRouter()
 );
 
@@ -164,9 +203,30 @@ app.use(
 );
 
 app.use(
+    new BaseAPI<MonitorTimelineStatus, MonitorTimelineStatusServiceType>(
+        MonitorTimelineStatus,
+        MonitorTimelineStatusService
+    ).getRouter()
+);
+
+app.use(
     new BaseAPI<StatusPage, StatusPageServiceType>(
         StatusPage,
         StatusPageService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<IncidentPublicNote, IncidentPublicNoteServiceType>(
+        IncidentPublicNote,
+        IncidentPublicNoteService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(
+        IncidentInternalNote,
+        IncidentInternalNoteService
     ).getRouter()
 );
 

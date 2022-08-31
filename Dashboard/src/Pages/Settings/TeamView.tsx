@@ -169,7 +169,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'User',
                         type: FieldType.Text,
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             if (item['user']) {
                                 return (
                                     <UserElement
@@ -264,7 +264,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         title: 'Permission',
                         type: FieldType.Text,
                         isFilterable: true,
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <p>
                                     {PermissionHelper.getTitle(
@@ -283,7 +283,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.Text,
-                        getColumnElement: (item: JSONObject): ReactElement => {
+                        getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement
                                     labels={
