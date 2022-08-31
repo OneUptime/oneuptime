@@ -76,6 +76,15 @@ export default class OneUptimeDate {
             .toDate();
     }
 
+    public static getSomeDaysAfterFromDate(date: Date, days: PositiveNumber | number): Date {
+        if (!(days instanceof PositiveNumber)) {
+            days = new PositiveNumber(days);
+        }
+        return moment(date)
+            .add(1 * days.toNumber(), 'days')
+            .toDate();
+    }
+
     public static getSomeSecondsAgo(seconds: PositiveNumber | number): Date {
         if (!(seconds instanceof PositiveNumber)) {
             seconds = new PositiveNumber(seconds);
@@ -127,6 +136,38 @@ export default class OneUptimeDate {
         return moment.utc(seconds * 1000).format('HH:mm:ss');
     }
 
+    public static secondsToFormattedFriendlyTimeString(seconds: number): string {
+        const date = moment.utc(seconds * 1000);
+        const hours = date.format('HH');
+        const mins = date.format('mm');
+        const secs = date.format('ss');
+
+        let text = '';
+        let hasHours = false; 
+        let hasMins = false; 
+        if (hours != '00') {
+            hasHours = true; 
+            text += hours + ' hours';
+        }
+
+        if (mins != '00' || hasHours) {
+            hasMins = true; 
+
+            if (hasHours) {
+                text+=", "
+            }
+
+            text += mins + ' minutes';
+        }
+
+        if (!(hasHours && hasMins)) {
+            text += secs + ' seconds. ';
+        }
+
+        return text; 
+
+    }
+
     public static getGreaterDate(a: Date, b: Date): Date {
         if (this.isAfter(a, b)) {
             return a;
@@ -174,6 +215,10 @@ export default class OneUptimeDate {
         const a = moment(startDate);
         const b = moment(endDate);
         return b.diff(a, 'days')
+    }
+
+    public static getNumberOfDaysBetweenDatesInclusive(startDate: Date, endDate: Date): number {
+        return this.getNumberOfDaysBetweenDates(startDate, endDate) + 1; 
     }
 
     public static momentToDate(moment: moment.Moment): Date {

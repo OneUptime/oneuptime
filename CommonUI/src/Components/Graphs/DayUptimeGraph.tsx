@@ -10,14 +10,16 @@ export interface Event {
     endDate: Date,
     label: string,
     priority: number,
-    color: Color
+    color: Color,
+   
 }
 
 
 export interface ComponentProps {
     startDate: Date;
     endDate: Date;
-    events: Array<Event>
+    events: Array<Event>;
+    defaultLabel: string; 
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -27,7 +29,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     const [days, setDays] = useState<number>(0);
 
     useEffect(() => {
-        setDays(OneUptimeDate.getNumberOfDaysBetweenDates(props.startDate, props.endDate));
+        setDays(OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(props.startDate, props.endDate));
     }, [props.startDate, props.endDate])
 
     const getUptimeBar = (dayNumber: number) => {
@@ -39,7 +41,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         const endOfTheDay = OneUptimeDate.getEndOfDay(todaysDay);
 
 
-        const events = props.events.filter((event) => {
+        const todaysEvents = props.events.filter((event) => {
 
             let doesEventBelongsToToday = false;
 
@@ -68,9 +70,9 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
         let currentPriority: number = 1; 
 
-        for (const event of events) {
+        for (const event of todaysEvents) {
             const startDate = OneUptimeDate.getGreaterDate(event.startDate, startOfTheDay);
-            const endDate = OneUptimeDate.getLesserDate(event.endDate, endOfTheDay);
+            const endDate = OneUptimeDate.getLesserDate(event.endDate, OneUptimeDate.getLesserDate(OneUptimeDate.getCurrentDate(), endOfTheDay));
 
             const seconds = OneUptimeDate.getSecondsBetweenDates(startDate, endDate);
 
@@ -90,14 +92,23 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
 
         let hasText = false; 
         for (const key in secondsOfEvent) {
+
+            if (todaysEvents.length === 1) {
+                break; 
+            }
+
             hasText = true; 
-            toolTipText += `, ${key} for ${OneUptimeDate.secondsToFormattedTimeString(secondsOfEvent[key] || 0)}`;
+            toolTipText += `, ${key} for ${OneUptimeDate.secondsToFormattedFriendlyTimeString(secondsOfEvent[key] || 0)}`;
+        }
+
+        if (todaysEvents.length === 1) {
+            hasText = true; 
+            toolTipText+= ` - 100% ${todaysEvents[0]?.label || 'Operational'}.`
         }
 
         if (!hasText) {
-            toolTipText+= ' - 100% Uptime.'
+            toolTipText+= ` - 100% ${props.defaultLabel || 'Operational'}.`
         }
-
 
         return <Tooltip text={toolTipText || '100% Operational'}>
             <div className="uptime-bar" style={{ backgroundColor: color.toString() }}>

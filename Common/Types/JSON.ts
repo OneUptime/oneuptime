@@ -207,7 +207,7 @@ export class JSONFunctions {
             };
         } else if (val && val instanceof InBetween) {
             return {
-                _type: ObjectType.LessThan,
+                _type: ObjectType.InBetween,
                 startValue: (val as InBetween).startValue,
                 endValue: (val as InBetween).endValue,
             };
@@ -376,7 +376,7 @@ export class JSONFunctions {
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date) && 
+            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date || typeof (val as JSONObject)['value'] === Typeof.String) && 
             ((val as JSONObject)['_type'] as string) === ObjectType.GreaterThan
         ) {
             return new GreaterThan((val as JSONObject)['value'] as number | Date);
@@ -385,7 +385,7 @@ export class JSONFunctions {
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date) && 
+            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date || typeof (val as JSONObject)['value'] === Typeof.String) && 
             ((val as JSONObject)['_type'] as string) === ObjectType.LessThanOrEqual
         ) {
             return new LessThanOrEqual((val as JSONObject)['value'] as number | Date);
@@ -394,7 +394,7 @@ export class JSONFunctions {
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date) && 
+            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date || typeof (val as JSONObject)['value'] === Typeof.String) && 
             ((val as JSONObject)['_type'] as string) === ObjectType.LessThanOrEqual
         ) {
             return new LessThanOrEqual((val as JSONObject)['value'] as number | Date);
@@ -403,7 +403,7 @@ export class JSONFunctions {
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date) && 
+            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date || typeof (val as JSONObject)['value'] === Typeof.String) && 
             ((val as JSONObject)['_type'] as string) === ObjectType.GreaterThanOrEqual
         ) {
             return new GreaterThanOrEqual((val as JSONObject)['value'] as number | Date);
@@ -412,9 +412,9 @@ export class JSONFunctions {
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['startValue'] &&
-            (typeof (val as JSONObject)['startValue'] === Typeof.Number || (val as JSONObject)['startValue'] instanceof Date) && 
+            (typeof (val as JSONObject)['startValue'] === Typeof.Number || typeof (val as JSONObject)['endValue'] === Typeof.String || (val as JSONObject)['startValue'] instanceof Date) && 
             (val as JSONObject)['endValue'] &&
-            (typeof (val as JSONObject)['endValue'] === Typeof.Number || (val as JSONObject)['endValue'] instanceof Date) && 
+            (typeof (val as JSONObject)['endValue'] === Typeof.Number || typeof (val as JSONObject)['endValue'] === Typeof.String ||  (val as JSONObject)['endValue'] instanceof Date) && 
             ((val as JSONObject)['_type'] as string) === ObjectType.InBetween
         ) {
             return new InBetween((val as JSONObject)['startValue'] as number | Date, (val as JSONObject)['endValue'] as number | Date,);
