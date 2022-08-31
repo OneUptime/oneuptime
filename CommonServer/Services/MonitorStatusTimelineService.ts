@@ -86,7 +86,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
     ): Promise<OnDelete<MonitorStatusTimeline>> {
         if (onDelete.carryForward) {
             // this is monitorId.
-            const monitorId = onDelete.carryForward as ObjectID;
+            const monitorId: ObjectID = onDelete.carryForward as ObjectID;
 
             // get last status of this monitor.
             const monitorStatusTimeline: MonitorStatusTimeline | null =

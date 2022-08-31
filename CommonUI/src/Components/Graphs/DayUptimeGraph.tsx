@@ -50,51 +50,53 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             true
         )}`;
         const startOfTheDay: Date = OneUptimeDate.getStartOfDay(todaysDay);
-        const endOfTheDay : Date= OneUptimeDate.getEndOfDay(todaysDay);
+        const endOfTheDay: Date = OneUptimeDate.getEndOfDay(todaysDay);
 
-        const todaysEvents: Array<Event> = props.events.filter((event: Event) => {
-            let doesEventBelongsToToday: boolean = false;
+        const todaysEvents: Array<Event> = props.events.filter(
+            (event: Event) => {
+                let doesEventBelongsToToday: boolean = false;
 
-            /// if the event starts or end today.
-            if (
-                OneUptimeDate.isBetween(
-                    event.startDate,
-                    startOfTheDay,
-                    endOfTheDay
-                )
-            ) {
-                doesEventBelongsToToday = true;
+                /// if the event starts or end today.
+                if (
+                    OneUptimeDate.isBetween(
+                        event.startDate,
+                        startOfTheDay,
+                        endOfTheDay
+                    )
+                ) {
+                    doesEventBelongsToToday = true;
+                }
+
+                if (
+                    OneUptimeDate.isBetween(
+                        event.endDate,
+                        startOfTheDay,
+                        endOfTheDay
+                    )
+                ) {
+                    doesEventBelongsToToday = true;
+                }
+
+                // if the event is outside start or end day but overlaps the day completely.
+
+                if (
+                    OneUptimeDate.isBetween(
+                        startOfTheDay,
+                        event.startDate,
+                        endOfTheDay
+                    ) &&
+                    OneUptimeDate.isBetween(
+                        endOfTheDay,
+                        startOfTheDay,
+                        event.endDate
+                    )
+                ) {
+                    doesEventBelongsToToday = true;
+                }
+
+                return doesEventBelongsToToday;
             }
-
-            if (
-                OneUptimeDate.isBetween(
-                    event.endDate,
-                    startOfTheDay,
-                    endOfTheDay
-                )
-            ) {
-                doesEventBelongsToToday = true;
-            }
-
-            // if the event is outside start or end day but overlaps the day completely.
-
-            if (
-                OneUptimeDate.isBetween(
-                    startOfTheDay,
-                    event.startDate,
-                    endOfTheDay
-                ) &&
-                OneUptimeDate.isBetween(
-                    endOfTheDay,
-                    startOfTheDay,
-                    event.endDate
-                )
-            ) {
-                doesEventBelongsToToday = true;
-            }
-
-            return doesEventBelongsToToday;
-        });
+        );
 
         const secondsOfEvent: Dictionary<number> = {};
 

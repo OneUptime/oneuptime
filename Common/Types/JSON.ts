@@ -408,20 +408,6 @@ export class JSONFunctions {
                 (val as JSONObject)['value'] instanceof Date ||
                 typeof (val as JSONObject)['value'] === Typeof.String) &&
             ((val as JSONObject)['_type'] as string) ===
-                ObjectType.LessThanOrEqual
-        ) {
-            return new LessThanOrEqual(
-                (val as JSONObject)['value'] as number | Date
-            );
-        } else if (
-            val &&
-            typeof val === Typeof.Object &&
-            (val as JSONObject)['_type'] &&
-            (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number ||
-                (val as JSONObject)['value'] instanceof Date ||
-                typeof (val as JSONObject)['value'] === Typeof.String) &&
-            ((val as JSONObject)['_type'] as string) ===
                 ObjectType.GreaterThanOrEqual
         ) {
             return new GreaterThanOrEqual(

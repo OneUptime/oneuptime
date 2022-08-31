@@ -117,7 +117,14 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
     }
 
     if (error) {
-        return <ErrorMessage error={error} onRefreshClick={()=>fetchItem()} />;
+        return (
+            <ErrorMessage
+                error={error}
+                onRefreshClick={() => {
+                    return fetchItem();
+                }}
+            />
+        );
     }
 
     return (
