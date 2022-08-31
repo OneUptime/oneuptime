@@ -9,5 +9,10 @@ export default interface Column {
     type: FieldType;
     isFilterable?: boolean;
     key?: string | null; //can be null because actions column does not have a key.
-    getElement?: ((item: JSONObject, onBeforeFetchData?: JSONObject | undefined) => ReactElement) | undefined;
+    getElement?:
+        | ((
+              item: JSONObject,
+              onBeforeFetchData?: JSONObject | undefined
+          ) => ReactElement)
+        | undefined;
 }

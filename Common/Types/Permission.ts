@@ -559,7 +559,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
             {
                 permission: Permission.CanCreateIncidentPublicNote,
                 title: 'Can Create Incident Status Page Note',

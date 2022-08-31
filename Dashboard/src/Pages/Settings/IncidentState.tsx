@@ -150,7 +150,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     titleField: 'name',
                     descriptionField: 'description',
                     orderField: 'order',
-                    shouldAddItemInTheEnd: true
+                    shouldAddItemInTheEnd: true,
                 }}
             />
         </Page>

@@ -11,6 +11,7 @@ export interface ComponentProps {
     placeholder?: undefined | string;
     onFocus?: () => void;
     onBlur?: () => void;
+    className?: undefined | string;
 }
 
 const TextArea: FunctionComponent<ComponentProps> = (
@@ -33,7 +34,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
         <div>
             <textarea
                 placeholder={props.placeholder}
-                className="form-control"
+                className={`form-control ${props.className || ''}`}
                 value={text}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                     const value: string = e.target.value;

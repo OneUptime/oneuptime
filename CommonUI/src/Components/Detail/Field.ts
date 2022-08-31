@@ -9,7 +9,13 @@ export default interface Field {
     description?: string;
     key: string;
     fieldType?: FieldType;
-    getElement?: ((item: JSONObject, miscProps?: JSONObject | undefined, callback?: Function | undefined) => ReactElement) | undefined;
+    getElement?:
+        | ((
+              item: JSONObject,
+              miscProps?: JSONObject | undefined,
+              callback?: Function | undefined
+          ) => ReactElement)
+        | undefined;
     sideLink?: {
         text: string;
         url: Route | URL;

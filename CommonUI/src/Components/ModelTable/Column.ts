@@ -19,5 +19,10 @@ export default interface Columns<TEntity> {
     type: FieldType;
     isFilterable: boolean;
     actionButtons?: Array<ActionButton>;
-    getElement?: ((item: JSONObject, onBeforeFetchData?: JSONObject | undefined) => ReactElement) | undefined;
+    getElement?:
+        | ((
+              item: JSONObject,
+              onBeforeFetchData?: JSONObject | undefined
+          ) => ReactElement)
+        | undefined;
 }

@@ -354,7 +354,9 @@ export default class BaseModel extends BaseEntity {
         );
 
         if (!tableColumnType) {
-            throw new BadDataException("TableColumnMetadata not found for " + columnName + " column");
+            throw new BadDataException(
+                'TableColumnMetadata not found for ' + columnName + ' column'
+            );
         }
 
         return Boolean(

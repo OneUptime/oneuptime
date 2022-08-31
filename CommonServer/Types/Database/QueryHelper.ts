@@ -100,7 +100,10 @@ export default class QueryHelper {
         );
     }
 
-    public static inBetween(startValue: number | Date, endValue: number | Date): FindOperator<any> {
+    public static inBetween(
+        startValue: number | Date,
+        endValue: number | Date
+    ): FindOperator<any> {
         const rid1: string = Text.generateRandomText(10);
         const rid2: string = Text.generateRandomText(10);
         return Raw(
@@ -109,7 +112,7 @@ export default class QueryHelper {
             },
             {
                 [rid1]: startValue,
-                [rid2]: endValue
+                [rid2]: endValue,
             }
         );
     }

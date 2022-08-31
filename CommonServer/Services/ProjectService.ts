@@ -145,7 +145,7 @@ export class Service extends DatabaseService<Model> {
         operationalStatus.name = 'Operational';
         operationalStatus.description = 'Monitor operating normally';
         operationalStatus.projectId = createdItem.id!;
-        operationalStatus.priority = 1; 
+        operationalStatus.priority = 1;
         operationalStatus.isOperationalState = true;
         operationalStatus.color = Green;
 
@@ -160,7 +160,7 @@ export class Service extends DatabaseService<Model> {
         degradedStatus.name = 'Degraded';
         degradedStatus.description =
             'Monitor is operating at reduced performance.';
-        degradedStatus.priority = 2; 
+        degradedStatus.priority = 2;
         degradedStatus.projectId = createdItem.id!;
         degradedStatus.color = Yellow;
 
@@ -176,7 +176,7 @@ export class Service extends DatabaseService<Model> {
         downStatus.description = 'Monitor is offline.';
         downStatus.isOfflineState = true;
         downStatus.projectId = createdItem.id!;
-        downStatus.priority = 3; 
+        downStatus.priority = 3;
         downStatus.color = Red;
 
         downStatus = await MonitorStatusService.create({

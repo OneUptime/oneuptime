@@ -101,12 +101,10 @@ import IncidentStateTimelineService, {
     Service as IncidentStateTimelineServiceType,
 } from 'CommonServer/Services/IncidentStateTimelineService';
 
-
 import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
 import IncidentInternalNoteService, {
     Service as IncidentInternalNoteServiceType,
 } from 'CommonServer/Services/IncidentInternalNoteService';
-
 
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import IncidentPublicNoteService, {
@@ -224,7 +222,6 @@ app.use(
         IncidentPublicNoteService
     ).getRouter()
 );
-
 
 app.use(
     new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(

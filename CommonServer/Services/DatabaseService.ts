@@ -371,7 +371,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     private SanitizeCreateOrUpdate(
-        data: TBaseModel | QueryDeepPartialEntity<TBaseModel>, props: DatabaseCommonInteractionProps, isUpdate: boolean = false
+        data: TBaseModel | QueryDeepPartialEntity<TBaseModel>,
+        props: DatabaseCommonInteractionProps,
+        isUpdate: boolean = false
     ): TBaseModel | QueryDeepPartialEntity<TBaseModel> {
         const columns: Columns = this.model.getTableColumns();
 
@@ -424,7 +426,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
         }
 
-        // check createByUserId. 
+        // check createByUserId.
 
         if (!isUpdate && props.userId) {
             (data as any)['createdByUserId'] = props.userId;
@@ -472,7 +474,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy = await this.checkUniqueColumnBy(createBy);
 
         // serialize.
-        createBy.data = this.SanitizeCreateOrUpdate(createBy.data, createBy.props) as TBaseModel;
+        createBy.data = this.SanitizeCreateOrUpdate(
+            createBy.data,
+            createBy.props
+        ) as TBaseModel;
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
@@ -614,7 +619,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 modelPermissions
             )
         ) {
-            debugger; 
+            debugger;
             throw new NotAuthorizedException(
                 `You do not have permissions to ${type} ${
                     this.model.singularName
@@ -1053,19 +1058,20 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query[key] = QueryHelper.search(
                     (query[key] as Search).toString() as any
                 ) as any;
-            }else if (query[key] && query[key] instanceof LessThan) {
+            } else if (query[key] && query[key] instanceof LessThan) {
                 query[key] = QueryHelper.lessThan(
                     (query[key] as LessThan).toString() as any
                 ) as any;
-            }else if (query[key] && query[key] instanceof InBetween) {
+            } else if (query[key] && query[key] instanceof InBetween) {
                 query[key] = QueryHelper.inBetween(
-                    (query[key] as InBetween).startValue as any, (query[key] as InBetween).endValue as any
+                    (query[key] as InBetween).startValue as any,
+                    (query[key] as InBetween).endValue as any
                 ) as any;
-            }else if (query[key] && query[key] instanceof GreaterThan) {
+            } else if (query[key] && query[key] instanceof GreaterThan) {
                 query[key] = QueryHelper.greaterThan(
                     (query[key] as GreaterThan).toString() as any
                 ) as any;
-            }else if (query[key] && query[key] instanceof GreaterThanOrEqual) {
+            } else if (query[key] && query[key] instanceof GreaterThanOrEqual) {
                 query[key] = QueryHelper.greaterThanEqualTo(
                     (query[key] as GreaterThanOrEqual).toString() as any
                 ) as any;
@@ -1073,7 +1079,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query[key] = QueryHelper.lessThanEqualTo(
                     (query[key] as LessThanOrEqual).toString() as any
                 ) as any;
-            }  else if (query[key] && Array.isArray(query[key])) {
+            } else if (query[key] && Array.isArray(query[key])) {
                 query[key] = QueryHelper.in(
                     query[key] as any
                 ) as FindOperator<any> as any;
@@ -1418,7 +1424,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             );
             const data: QueryDeepPartialEntity<TBaseModel> =
                 this.SanitizeCreateOrUpdate(
-                    beforeUpdateBy.data, updateBy.props, true
+                    beforeUpdateBy.data,
+                    updateBy.props,
+                    true
                 ) as QueryDeepPartialEntity<TBaseModel>;
 
             const items: Array<TBaseModel> = await this._findBy({

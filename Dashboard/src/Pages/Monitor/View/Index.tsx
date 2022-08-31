@@ -19,7 +19,7 @@ import Monitor from 'Model/Models/Monitor';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import Card from 'CommonUI/src/Components/Card/Card';
-import MonitorUptimeGraph from "CommonUI/src/Components/MonitorGraphs/Uptime";
+import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import OneUptimeDate from 'Common/Types/Date';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
@@ -197,12 +197,17 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-
-
-            <Card title='Uptime Graph' description='Here the 90 day uptime history of this monitor.' icon={IconProp.Graph}>
-                <MonitorUptimeGraph startDate={OneUptimeDate.getSomeDaysAgo(90)} endDate={OneUptimeDate.getCurrentDate()} monitorId={modelId} /> 
+            <Card
+                title="Uptime Graph"
+                description="Here the 90 day uptime history of this monitor."
+                icon={IconProp.Graph}
+            >
+                <MonitorUptimeGraph
+                    startDate={OneUptimeDate.getSomeDaysAgo(90)}
+                    endDate={OneUptimeDate.getCurrentDate()}
+                    monitorId={modelId}
+                />
             </Card>
-
         </Page>
     );
 };

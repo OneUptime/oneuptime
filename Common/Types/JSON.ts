@@ -40,7 +40,7 @@ enum ObjectType {
     Hostname = 'Hostname',
     HashedString = 'HashedString',
     DateTime = 'DateTime',
-    InBetween = 'InBetween'
+    InBetween = 'InBetween',
 }
 
 export type JSONValue =
@@ -367,7 +367,8 @@ export class JSONFunctions {
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date) &&
+            (typeof (val as JSONObject)['value'] === Typeof.Number ||
+                (val as JSONObject)['value'] instanceof Date) &&
             ((val as JSONObject)['_type'] as string) === ObjectType.LessThan
         ) {
             return new LessThan((val as JSONObject)['value'] as number | Date);
@@ -376,48 +377,74 @@ export class JSONFunctions {
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date || typeof (val as JSONObject)['value'] === Typeof.String) && 
+            (typeof (val as JSONObject)['value'] === Typeof.Number ||
+                (val as JSONObject)['value'] instanceof Date ||
+                typeof (val as JSONObject)['value'] === Typeof.String) &&
             ((val as JSONObject)['_type'] as string) === ObjectType.GreaterThan
         ) {
-            return new GreaterThan((val as JSONObject)['value'] as number | Date);
+            return new GreaterThan(
+                (val as JSONObject)['value'] as number | Date
+            );
         } else if (
             val &&
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date || typeof (val as JSONObject)['value'] === Typeof.String) && 
-            ((val as JSONObject)['_type'] as string) === ObjectType.LessThanOrEqual
+            (typeof (val as JSONObject)['value'] === Typeof.Number ||
+                (val as JSONObject)['value'] instanceof Date ||
+                typeof (val as JSONObject)['value'] === Typeof.String) &&
+            ((val as JSONObject)['_type'] as string) ===
+                ObjectType.LessThanOrEqual
         ) {
-            return new LessThanOrEqual((val as JSONObject)['value'] as number | Date);
+            return new LessThanOrEqual(
+                (val as JSONObject)['value'] as number | Date
+            );
         } else if (
             val &&
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date || typeof (val as JSONObject)['value'] === Typeof.String) && 
-            ((val as JSONObject)['_type'] as string) === ObjectType.LessThanOrEqual
+            (typeof (val as JSONObject)['value'] === Typeof.Number ||
+                (val as JSONObject)['value'] instanceof Date ||
+                typeof (val as JSONObject)['value'] === Typeof.String) &&
+            ((val as JSONObject)['_type'] as string) ===
+                ObjectType.LessThanOrEqual
         ) {
-            return new LessThanOrEqual((val as JSONObject)['value'] as number | Date);
+            return new LessThanOrEqual(
+                (val as JSONObject)['value'] as number | Date
+            );
         } else if (
             val &&
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
-            (typeof (val as JSONObject)['value'] === Typeof.Number || (val as JSONObject)['value'] instanceof Date || typeof (val as JSONObject)['value'] === Typeof.String) && 
-            ((val as JSONObject)['_type'] as string) === ObjectType.GreaterThanOrEqual
+            (typeof (val as JSONObject)['value'] === Typeof.Number ||
+                (val as JSONObject)['value'] instanceof Date ||
+                typeof (val as JSONObject)['value'] === Typeof.String) &&
+            ((val as JSONObject)['_type'] as string) ===
+                ObjectType.GreaterThanOrEqual
         ) {
-            return new GreaterThanOrEqual((val as JSONObject)['value'] as number | Date);
+            return new GreaterThanOrEqual(
+                (val as JSONObject)['value'] as number | Date
+            );
         } else if (
             val &&
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['startValue'] &&
-            (typeof (val as JSONObject)['startValue'] === Typeof.Number || typeof (val as JSONObject)['endValue'] === Typeof.String || (val as JSONObject)['startValue'] instanceof Date) && 
+            (typeof (val as JSONObject)['startValue'] === Typeof.Number ||
+                typeof (val as JSONObject)['endValue'] === Typeof.String ||
+                (val as JSONObject)['startValue'] instanceof Date) &&
             (val as JSONObject)['endValue'] &&
-            (typeof (val as JSONObject)['endValue'] === Typeof.Number || typeof (val as JSONObject)['endValue'] === Typeof.String ||  (val as JSONObject)['endValue'] instanceof Date) && 
+            (typeof (val as JSONObject)['endValue'] === Typeof.Number ||
+                typeof (val as JSONObject)['endValue'] === Typeof.String ||
+                (val as JSONObject)['endValue'] instanceof Date) &&
             ((val as JSONObject)['_type'] as string) === ObjectType.InBetween
         ) {
-            return new InBetween((val as JSONObject)['startValue'] as number | Date, (val as JSONObject)['endValue'] as number | Date,);
+            return new InBetween(
+                (val as JSONObject)['startValue'] as number | Date,
+                (val as JSONObject)['endValue'] as number | Date
+            );
         } else if (val instanceof Date) {
             return val;
         } else if (typeof val === Typeof.Object) {

@@ -33,7 +33,10 @@ import Incident from './Incident';
 @SingularPluralName('Public Note', 'Public Notes')
 export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateIncidentPublicNote],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateIncidentPublicNote,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentPublicNote,
@@ -61,7 +64,10 @@ export default class IncidentPublicNote extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateIncidentPublicNote],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateIncidentPublicNote,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentPublicNote,
@@ -79,7 +85,10 @@ export default class IncidentPublicNote extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateIncidentPublicNote],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateIncidentPublicNote,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentPublicNote,
@@ -107,7 +116,10 @@ export default class IncidentPublicNote extends BaseModel {
     public incident?: Incident = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateIncidentPublicNote],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateIncidentPublicNote,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentPublicNote,
@@ -125,7 +137,10 @@ export default class IncidentPublicNote extends BaseModel {
     public incidentId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateIncidentPublicNote],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateIncidentPublicNote,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentPublicNote,
@@ -153,7 +168,10 @@ export default class IncidentPublicNote extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateIncidentPublicNote],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateIncidentPublicNote,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentPublicNote,
@@ -206,15 +224,17 @@ export default class IncidentPublicNote extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateIncidentPublicNote],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateIncidentPublicNote,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentPublicNote,
             Permission.ProjectMember,
         ],
-        update: [ Permission.ProjectOwner, Permission.CanEditIncidentPublicNote,],
+        update: [Permission.ProjectOwner, Permission.CanEditIncidentPublicNote],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -223,5 +243,4 @@ export default class IncidentPublicNote extends BaseModel {
         unique: false,
     })
     public note?: string = undefined;
-
 }

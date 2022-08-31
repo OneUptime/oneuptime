@@ -8,7 +8,9 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, {
+    ShowTableAs,
+} from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -59,8 +61,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
-
             <ModelTable<IncidentPublicNote>
                 modelType={IncidentPublicNote}
                 id="table-incident-internal-note"
@@ -97,10 +97,12 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             note: true,
                         },
                         title: 'Public Incident Note',
-                        description: 'This is in markdown. This note is private to your team members and is not visible to public.',
+                        description:
+                            'This is in markdown. This note is private to your team members and is not visible to public.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        placeholder: 'Add a private note to this incident here.',
+                        placeholder:
+                            'Add a private note to this incident here.',
                     },
                 ]}
                 showRefreshButton={true}
@@ -118,7 +120,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdByUser: {
                                 name: true,
-                                email: true, 
+                                email: true,
                             },
                         },
                         title: 'Posted By',
@@ -147,7 +149,6 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-            
         </Page>
     );
 };

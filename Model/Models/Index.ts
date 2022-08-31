@@ -33,7 +33,6 @@ import IncidentStateTimeline from './IncidentStateTimeline';
 import IncidentPublicNote from './IncidentPublicNote';
 import IncidentInternalNote from './IncidentInternalNote';
 
-
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 
@@ -58,5 +57,5 @@ export default [
     IncidentStateTimeline,
     MonitorStatusTimeline,
     IncidentPublicNote,
-    IncidentInternalNote
+    IncidentInternalNote,
 ];

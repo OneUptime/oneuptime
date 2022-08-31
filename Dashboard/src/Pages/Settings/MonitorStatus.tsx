@@ -5,7 +5,9 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, {
+    ShowTableAs,
+} from 'CommonUI/src/Components/ModelTable/ModelTable';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -126,9 +128,9 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 selectMoreFields={{
                     color: true,
-                    isOperationalState: true, 
+                    isOperationalState: true,
                     isOfflineState: true,
-                    priority: true
+                    priority: true,
                 }}
                 columns={[
                     {
@@ -138,7 +140,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                         isFilterable: true,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <StatusBubble

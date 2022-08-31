@@ -67,7 +67,10 @@ export default class OneUptimeDate {
             .toDate();
     }
 
-    public static getSomeDaysAgoFromDate(date: Date, days: PositiveNumber | number): Date {
+    public static getSomeDaysAgoFromDate(
+        date: Date,
+        days: PositiveNumber | number
+    ): Date {
         if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
@@ -76,13 +79,14 @@ export default class OneUptimeDate {
             .toDate();
     }
 
-    public static getSomeDaysAfterFromDate(date: Date, days: PositiveNumber | number): Date {
+    public static getSomeDaysAfterFromDate(
+        date: Date,
+        days: PositiveNumber | number
+    ): Date {
         if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
-        return moment(date)
-            .add(1 * days.toNumber(), 'days')
-            .toDate();
+        return moment(date).add(Number(days.toNumber()), 'days').toDate();
     }
 
     public static getSomeSecondsAgo(seconds: PositiveNumber | number): Date {
@@ -136,25 +140,27 @@ export default class OneUptimeDate {
         return moment.utc(seconds * 1000).format('HH:mm:ss');
     }
 
-    public static secondsToFormattedFriendlyTimeString(seconds: number): string {
+    public static secondsToFormattedFriendlyTimeString(
+        seconds: number
+    ): string {
         const date = moment.utc(seconds * 1000);
         const hours = date.format('HH');
         const mins = date.format('mm');
         const secs = date.format('ss');
 
         let text = '';
-        let hasHours = false; 
-        let hasMins = false; 
+        let hasHours = false;
+        let hasMins = false;
         if (hours != '00') {
-            hasHours = true; 
+            hasHours = true;
             text += hours + ' hours';
         }
 
         if (mins != '00' || hasHours) {
-            hasMins = true; 
+            hasMins = true;
 
             if (hasHours) {
-                text+=", "
+                text += ', ';
             }
 
             text += mins + ' minutes';
@@ -164,8 +170,7 @@ export default class OneUptimeDate {
             text += secs + ' seconds. ';
         }
 
-        return text; 
-
+        return text;
     }
 
     public static getGreaterDate(a: Date, b: Date): Date {
@@ -176,8 +181,6 @@ export default class OneUptimeDate {
         return b;
     }
 
-
-
     public static getLesserDate(a: Date, b: Date): Date {
         if (this.isBefore(a, b)) {
             return a;
@@ -187,18 +190,19 @@ export default class OneUptimeDate {
     }
 
     public static getSecondsBetweenDates(start: Date, end: Date): number {
-        let duration = moment.duration(moment(end).diff(moment(start)));
+        const duration = moment.duration(moment(end).diff(moment(start)));
         return duration.asSeconds();
     }
 
-    public static getSomeDaysAfterDate(date: Date, days: PositiveNumber | number): Date {
+    public static getSomeDaysAfterDate(
+        date: Date,
+        days: PositiveNumber | number
+    ): Date {
         if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
 
-        return moment(date)
-            .add(days.toNumber(), 'days')
-            .toDate();
+        return moment(date).add(days.toNumber(), 'days').toDate();
     }
 
     public static getSomeSecondsAfter(seconds: PositiveNumber | number): Date {
@@ -211,14 +215,20 @@ export default class OneUptimeDate {
             .toDate();
     }
 
-    public static getNumberOfDaysBetweenDates(startDate: Date, endDate: Date): number {
+    public static getNumberOfDaysBetweenDates(
+        startDate: Date,
+        endDate: Date
+    ): number {
         const a = moment(startDate);
         const b = moment(endDate);
-        return b.diff(a, 'days')
+        return b.diff(a, 'days');
     }
 
-    public static getNumberOfDaysBetweenDatesInclusive(startDate: Date, endDate: Date): number {
-        return this.getNumberOfDaysBetweenDates(startDate, endDate) + 1; 
+    public static getNumberOfDaysBetweenDatesInclusive(
+        startDate: Date,
+        endDate: Date
+    ): number {
+        return this.getNumberOfDaysBetweenDates(startDate, endDate) + 1;
     }
 
     public static momentToDate(moment: moment.Moment): Date {
@@ -237,7 +247,11 @@ export default class OneUptimeDate {
         return moment(date).endOf('day').toDate();
     }
 
-    public static isBetween(date: Date, startDate: Date, endDate: Date): boolean {
+    public static isBetween(
+        date: Date,
+        startDate: Date,
+        endDate: Date
+    ): boolean {
         return moment(date).isBetween(startDate, endDate);
     }
 

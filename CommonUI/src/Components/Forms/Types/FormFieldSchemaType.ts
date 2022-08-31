@@ -17,7 +17,7 @@ enum FormFieldSchemaType {
     Checkbox,
     Port,
     EncryptedText,
-    Markdown
+    Markdown,
 }
 
 export default FormFieldSchemaType;

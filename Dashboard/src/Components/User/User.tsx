@@ -10,18 +10,17 @@ export interface ComponentProps {
 const UserElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    let user: JSONObject | null = null; 
+    let user: JSONObject | null = null;
 
     if (props.user instanceof User) {
         user = props.user.toJSONObject();
     } else {
-        user = props.user; 
+        user = props.user;
     }
 
     return (
         <div className="flex">
-            <div className='user-circle'>
+            <div className="user-circle">
                 <Icon icon={IconProp.User} thick={ThickProp.Thick} />
             </div>
             <div>
@@ -31,8 +30,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
                 </div>
 
                 <div className="color-light-grey">
-                    {(user['email']?.toString() as string) ||
-                        ''}
+                    {(user['email']?.toString() as string) || ''}
                 </div>
             </div>
         </div>

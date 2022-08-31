@@ -21,6 +21,6 @@ export default class InBetween {
     }
 
     public toString(): string {
-        return this.startValue.toString() + ' - '+this.endValue.toString();
+        return this.startValue.toString() + ' - ' + this.endValue.toString();
     }
 }

@@ -322,7 +322,6 @@ export default class MonitorStatus extends BaseModel {
     })
     public isOfflineState?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

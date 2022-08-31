@@ -100,7 +100,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                         isFilterable: true,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <Pill

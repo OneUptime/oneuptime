@@ -1,5 +1,5 @@
-import BadDataException from "../Exception/BadDataException";
-import Typeof from "../Typeof";
+import BadDataException from '../Exception/BadDataException';
+import Typeof from '../Typeof';
 
 export default class CompareBase {
     private _value!: number | Date;
@@ -23,8 +23,7 @@ export default class CompareBase {
             return this.value as number;
         }
 
-        throw new BadDataException("Value is not a number");
-        
+        throw new BadDataException('Value is not a number');
     }
 
     public toDate(): Date {
@@ -32,6 +31,6 @@ export default class CompareBase {
             return this.value as Date;
         }
 
-        throw new BadDataException("Value is not a date object");
+        throw new BadDataException('Value is not a date object');
     }
 }

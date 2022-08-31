@@ -4,16 +4,13 @@ import 'tippy.js/dist/tippy.css';
 
 export interface ComponentProps {
     text: string;
-    children: ReactElement
+    children: ReactElement;
 }
 
 const Tooltip: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return (<Tippy content={<span>{props.text}</span>}>
-        {props.children}
-    </Tippy>)
-
+    return <Tippy content={<span>{props.text}</span>}>{props.children}</Tippy>;
 };
 
 export default Tooltip;

@@ -57,9 +57,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Public Notes',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.INCIDENT_PUBLIC_NOTE
-                            ] as Route,
+                            RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route,
                             props.modelId
                         ),
                     }}

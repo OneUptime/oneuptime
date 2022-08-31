@@ -8,7 +8,9 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
-import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, {
+    ShowTableAs,
+} from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -59,8 +61,6 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
-
             <ModelTable<IncidentInternalNote>
                 modelType={IncidentInternalNote}
                 id="table-incident-internal-note"
@@ -85,8 +85,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     icon: IconProp.Lock,
                     title: 'Private Notes',
-                    description:
-                        'Here are private notes for this incident.',
+                    description: 'Here are private notes for this incident.',
                 }}
                 noItemsMessage={
                     'No private notes created for this incident so far.'
@@ -97,10 +96,12 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             note: true,
                         },
                         title: 'Private Incident Note',
-                        description: 'This is in markdown. This note is private to your team members and is not visible to public.',
+                        description:
+                            'This is in markdown. This note is private to your team members and is not visible to public.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        placeholder: 'Add a private note to this incident here.',
+                        placeholder:
+                            'Add a private note to this incident here.',
                     },
                 ]}
                 showRefreshButton={true}
@@ -118,7 +119,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdByUser: {
                                 name: true,
-                                email: true, 
+                                email: true,
                             },
                         },
                         title: 'Posted By',
@@ -147,7 +148,6 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-            
         </Page>
     );
 };

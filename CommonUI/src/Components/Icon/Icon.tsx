@@ -112,7 +112,7 @@ export enum IconProp {
     Check,
     True,
     False,
-    Circle
+    Circle,
 }
 
 export interface ComponentProps {
