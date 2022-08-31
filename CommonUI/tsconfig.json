@@ -9,7 +9,7 @@
         // "disableSourceOfProjectReferenceRedirect": true,  /* Disable preferring source files instead of declaration files when referencing composite projects */
         // "disableSolutionSearching": true,                 /* Opt a project out of multi-project reference checking when editing. */
         // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
-
+        
         /* Language and Environment */
         "target": "es2017" /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */,
         // "lib": [],                                        /* Specify a set of bundled library declaration files that describe the target runtime environment. */
@@ -35,7 +35,8 @@
         ] /* Specify multiple folders that act like `./node_modules/@types`. */,
         "types": [
             "node",
-            "jest"
+            "jest",
+            "@testing-library/jest-dom"
         ] /* Specify type package names to be included without being referenced in a source file. */,
         // "allowUmdGlobalAccess": true,                     /* Allow accessing UMD globals from modules. */
         // "resolveJsonModule": true,                        /* Enable importing .json files */

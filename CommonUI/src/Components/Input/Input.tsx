@@ -18,6 +18,7 @@ export interface ComponentProps {
     leftCircleColor?: Color | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
+    dataTestId?: string;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -66,6 +67,7 @@ const Input: FunctionComponent<ComponentProps> = (
                 ></div>
             )}
             <input
+                data-testid={props.dataTestId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     setValue(e.target.value);
                     if (props.onChange) {
