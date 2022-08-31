@@ -1,7 +1,7 @@
 import CompareBase from "./CompareBase";
 
 export default class LessThanOrEqual extends CompareBase {
-    constructor(value: number) {
+    constructor(value: number | Date) {
         super(value);
    }
 }

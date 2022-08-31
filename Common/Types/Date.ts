@@ -67,6 +67,15 @@ export default class OneUptimeDate {
             .toDate();
     }
 
+    public static getSomeDaysAgoFromDate(date: Date, days: PositiveNumber | number): Date {
+        if (!(days instanceof PositiveNumber)) {
+            days = new PositiveNumber(days);
+        }
+        return moment(date)
+            .add(-1 * days.toNumber(), 'days')
+            .toDate();
+    }
+
     public static getSomeSecondsAgo(seconds: PositiveNumber | number): Date {
         if (!(seconds instanceof PositiveNumber)) {
             seconds = new PositiveNumber(seconds);

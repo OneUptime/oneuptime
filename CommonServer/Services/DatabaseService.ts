@@ -53,6 +53,7 @@ import LessThan from 'Common/Types/Database/LessThan';
 import GreaterThan from 'Common/Types/Database/GreaterThan';
 import GreaterThanOrEqual from 'Common/Types/Database/GreaterThanOrEqual';
 import LessThanOrEqual from 'Common/Types/Database/LessThanOrEqual';
+import InBetween from 'Common/Types/Database/InBetween';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -1055,6 +1056,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }else if (query[key] && query[key] instanceof LessThan) {
                 query[key] = QueryHelper.lessThan(
                     (query[key] as LessThan).toString() as any
+                ) as any;
+            }else if (query[key] && query[key] instanceof InBetween) {
+                query[key] = QueryHelper.inBetween(
+                    (query[key] as InBetween).startValue as any, (query[key] as InBetween).endValue as any
                 ) as any;
             }else if (query[key] && query[key] instanceof GreaterThan) {
                 query[key] = QueryHelper.greaterThan(

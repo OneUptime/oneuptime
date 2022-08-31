@@ -64,7 +64,7 @@ export default class QueryHelper {
         );
     }
 
-    public static greaterThanEqualTo(value: number): FindOperator<any> {
+    public static greaterThanEqualTo(value: number | Date): FindOperator<any> {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
@@ -76,7 +76,7 @@ export default class QueryHelper {
         );
     }
 
-    public static lessThanEqualTo(value: number): FindOperator<any> {
+    public static lessThanEqualTo(value: number | Date): FindOperator<any> {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
@@ -88,7 +88,7 @@ export default class QueryHelper {
         );
     }
 
-    public static greaterThan(value: number): FindOperator<any> {
+    public static greaterThan(value: number | Date): FindOperator<any> {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
@@ -100,7 +100,21 @@ export default class QueryHelper {
         );
     }
 
-    public static lessThan(value: number): FindOperator<any> {
+    public static inBetween(startValue: number | Date, endValue: number | Date): FindOperator<any> {
+        const rid1: string = Text.generateRandomText(10);
+        const rid2: string = Text.generateRandomText(10);
+        return Raw(
+            (alias: string) => {
+                return `${alias} >= :${rid1} and ${alias} <= :${rid2}`;
+            },
+            {
+                [rid1]: startValue,
+                [rid2]: endValue
+            }
+        );
+    }
+
+    public static lessThan(value: number | Date): FindOperator<any> {
         const rid: string = Text.generateRandomText(10);
         return Raw(
             (alias: string) => {
