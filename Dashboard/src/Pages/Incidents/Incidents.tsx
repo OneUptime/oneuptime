@@ -110,7 +110,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         field: {
                             _id: true,
                         },
-                        title: 'ID',
+                        title: 'Incident ID',
                         type: FieldType.Text,
                         isFilterable: true,
                     },

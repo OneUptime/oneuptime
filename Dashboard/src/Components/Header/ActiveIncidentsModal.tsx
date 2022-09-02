@@ -69,7 +69,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                             field: {
                                 _id: true,
                             },
-                            title: 'ID',
+                            title: 'Incident ID',
                             type: FieldType.Text,
                             isFilterable: true,
                         },
