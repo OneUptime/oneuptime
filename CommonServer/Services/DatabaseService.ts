@@ -693,9 +693,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
 
             if (!columns.columns.includes(key)) {
+
+                if (!tableColumns.includes(key)) {
+                    throw new BadDataException(
+                        `Invalid column on ${this.model.singularName} - ${key}.`
+                    );
+                }
+
                 throw new NotAuthorizedException(
-                    `You do not have permissions to query on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                    `You do not have permissions to query on - ${key}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
                         this.model.getColumnAccessControlFor(key).read
                     ).join(',')}`
                 );
@@ -730,7 +736,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !this.model.canQueryMultiTenant()
         ) {
             throw new BadDataException(
-                'isMultiTenantRequest not allowed on this model'
+                `isMultiTenantRequest not allowed on ${this.model.singularName}`
             );
         }
 

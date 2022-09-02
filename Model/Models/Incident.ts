@@ -26,7 +26,9 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Monitor from './Monitor';
 import IncidentState from './IncidentState';
 import MonitorStatus from './MonitorStatus';
+import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
+@MultiTenentQueryAllowed(true)
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
