@@ -43,6 +43,7 @@ import List from '../List/List';
 import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
 import Field from '../Detail/Field';
 import FormValues from '../Forms/Types/FormValues';
+import { FilterData } from '../Table/TableHeader';
 
 export enum ShowTableAs {
     Table,
@@ -208,6 +209,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setIsLoading(false);
     };
 
+
+    const getFilterDropdownItems: Function = async () => {
+        
+    };
+
     const fetchItems: Function = async () => {
         setError('');
         setIsLoading(true);
@@ -222,6 +228,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         try {
+
             const listResult: ListResult<TBaseModel> =
                 await ModelAPI.getList<TBaseModel>(
                     props.modelType,
@@ -675,7 +682,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return (
             <Table
                 onFilterChanged={(
-                    filterData: Dictionary<string | boolean | Search | Date>
+                    filterData: FilterData
                 ) => {
                     const query: Query<TBaseModel> = {};
 
