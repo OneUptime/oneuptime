@@ -71,7 +71,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
     isViewable?: undefined | boolean;
-    currentPageRoute?: undefined | Route;
+    viewPageRoute?: undefined | Route;
     query?: Query<TBaseModel>;
     onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
@@ -555,7 +555,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                 ).toJSONObject();
                             }
 
-                            if (!props.currentPageRoute) {
+                            if (!props.viewPageRoute) {
                                 throw new BadDataException(
                                     'Please populate curentPageRoute in ModelTable'
                                 );
@@ -563,7 +563,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             onCompleteAction();
                             Navigation.navigate(
                                 new Route(
-                                    props.currentPageRoute.toString()
+                                    props.viewPageRoute.toString()
                                 ).addRoute('/' + item['_id'])
                             );
                         } catch (err) {

@@ -9,6 +9,7 @@ import Pill from 'CommonUI/src/Components/Pill/Pill';
 import MonitorsElement from '../Monitor/Monitors';
 import Monitor from 'Model/Models/Monitor';
 import Color from 'Common/Types/Color';
+import Route from 'Common/Types/API/Route';
 
 export interface ComponentProps {
     onClose: () => void;
@@ -52,7 +53,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                     }
                     singularName="Active Incident"
                     pluralName="Active Incidents"
-                    
+                    viewPageRoute={new Route('/')}
                     columns={[
                         {
                             field: {

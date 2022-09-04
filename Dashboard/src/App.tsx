@@ -46,6 +46,7 @@ import MonitorPage from './Pages/Monitor/Monitors';
 import MonitorView from './Pages/Monitor/View/Index';
 import MonitorViewDelete from './Pages/Monitor/View/Delete';
 import MonitorViewStatusTimeline from './Pages/Monitor/View/StatusTimeline';
+import MonitorIncidents from './Pages/Monitor/View/Incidents';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -104,7 +105,7 @@ const App: FunctionComponent = () => {
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                'error'
                 ] as string
             );
         }
@@ -187,7 +188,23 @@ const App: FunctionComponent = () => {
                         <MonitorViewStatusTimeline
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.MONITOR_VIEW_INCIDENTS
+                    ]?.toString()}
+                    element={
+                        <MonitorIncidents
+                            pageRoute={
+                                RouteMap[
+                                PageMap.MONITOR_VIEW_INCIDENTS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -249,7 +266,7 @@ const App: FunctionComponent = () => {
                         <IncidentViewStateTimeline
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                PageMap.INCIDENT_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -263,7 +280,7 @@ const App: FunctionComponent = () => {
                         <IncidentInternalNote
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_INTERNAL_NOTE
+                                PageMap.INCIDENT_INTERNAL_NOTE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -327,7 +344,7 @@ const App: FunctionComponent = () => {
                         <SettingsMonitors
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_MONITORS_STATUS
+                                PageMap.SETTINGS_MONITORS_STATUS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -343,7 +360,7 @@ const App: FunctionComponent = () => {
                         <SettingsIncidents
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_STATE
+                                PageMap.SETTINGS_INCIDENTS_STATE
                                 ] as Route
                             }
                             currentProject={selectedProject}

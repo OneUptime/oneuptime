@@ -1,39 +1,67 @@
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import Page from 'CommonUI/src/Components/Page/Page';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import React, { FunctionComponent, ReactElement } from 'react';
-import Incident from 'Model/Models/Incident';
-import PageComponentProps from '../PageComponentProps';
-import RouteMap from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import Pill from 'CommonUI/src/Components/Pill/Pill';
-import Color from 'Common/Types/Color';
+import Page from 'CommonUI/src/Components/Page/Page';
+import React, { FunctionComponent, ReactElement } from 'react';
+import PageMap from '../../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import PageComponentProps from '../../PageComponentProps';
+import SideMenu from './SideMenu';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
-import MonitorsElement from '../../Components/Monitor/Monitors';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import MonitorsElement from '../../../Components/Monitor/Monitors';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import Color from 'Common/Types/Color';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import MonitorStatus from 'Model/Models/MonitorStatus';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import Incident from 'Model/Models/Incident';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 
-const IncidentsPage: FunctionComponent<PageComponentProps> = (
+const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
+    const modelId: ObjectID = new ObjectID(
+        Navigation.getLastParam(1)?.toString().substring(1) || ''
+    );
+
     return (
         <Page
-            title={'Incidents'}
+            title={'Monitors'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route,
+                        modelId
+                    ),
+                },
+                {
+                    title: 'Monitors',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITORS] as Route,
+                        modelId
+                    ),
+                },
+                {
+                    title: 'View Monitor',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITOR_VIEW] as Route,
+                        modelId
+                    ),
                 },
                 {
                     title: 'Incidents',
-                    to: RouteMap[PageMap.INCIDENTS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route,
+                        modelId
+                    ),
                 },
             ]}
+            sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelTable<Incident>
+           <ModelTable<Incident>
                 modelType={Incident}
                 id="incidents-table"
                 isDeleteable={false}
@@ -44,9 +72,9 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Alert,
                     title: 'Incidents',
                     description:
-                        'Here is a list of incidents for this project.',
+                        'Here is a list of incidents for this monitor.',
                 }}
-                noItemsMessage={'No incidents created for this project so far.'}
+                noItemsMessage={'No incidents created for this monitor so far.'}
                 formFields={[
                     {
                         field: {
@@ -192,4 +220,4 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default IncidentsPage;
+export default MonitorIncidents;

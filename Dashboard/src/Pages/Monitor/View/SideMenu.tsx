@@ -40,6 +40,18 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.List}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'Incidents',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.MONITOR_VIEW_INCIDENTS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Alert}
+                />
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
