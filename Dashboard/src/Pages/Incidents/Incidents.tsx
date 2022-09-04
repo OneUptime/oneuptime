@@ -130,7 +130,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         title: 'Current State',
-                        type: FieldType.Text,
+                        type: FieldType.Entity,
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['currentIncidentState']) {
                                 return (
@@ -165,7 +165,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         title: 'Monitors Affected',
-                        type: FieldType.Text,
+                        type: FieldType.EntityArray,
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <MonitorsElement

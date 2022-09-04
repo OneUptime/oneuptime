@@ -13,6 +13,11 @@ import Input from '../Input/Input';
 import FieldType from '../Types/FieldType';
 import Search from 'Common/Types/Database/Search';
 import OneUptimeDate from 'Common/Types/Date';
+import BaseModel from 'Common/Models/BaseModel';
+import ObjectID from 'Common/Types/ObjectID';
+import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
+
+export type FilterData = Dictionary<string | DropdownValue | Array<DropdownValue> | boolean | Search | Date | BaseModel | Array<BaseModel> | ObjectID | Array<ObjectID> | number>;
 
 export interface ComponentProps {
     columns: Columns;
@@ -20,8 +25,8 @@ export interface ComponentProps {
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
     showFilter: boolean;
     onFilterChanged?:
-        | undefined
-        | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
+    | undefined
+    | ((filterData: FilterData) => void);
 }
 
 const TableHeader: FunctionComponent<ComponentProps> = (
@@ -32,7 +37,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
 
     // should filter on textboxes and checkboxes.
     const [filterData, setFilterData] = useState<
-        Dictionary<string | boolean | Search | Date>
+        FilterData
     >({});
 
     useEffect(() => {
@@ -112,61 +117,92 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                     {props.columns.map((column: Column, i: number) => {
                         return (
                             <td key={i}>
-                                {column.isFilterable && (
-                                    <Input
-                                        onChange={(
-                                            changedValue: string | Date
-                                        ) => {
-                                            if (column.key) {
-                                                if (!changedValue) {
-                                                    delete filterData[
-                                                        column.key
-                                                    ];
-                                                }
-
-                                                if (
-                                                    changedValue &&
-                                                    column.type ===
-                                                        FieldType.Date
-                                                ) {
-                                                    filterData[column.key] =
-                                                        OneUptimeDate.asDateForDatabaseQuery(
-                                                            changedValue as string
-                                                        );
-                                                }
-
-                                                if (
-                                                    changedValue &&
-                                                    column.type ===
-                                                        FieldType.Text
-                                                ) {
-                                                    filterData[column.key] =
-                                                        new Search(
-                                                            changedValue as string
-                                                        );
-                                                }
-
-                                                setFilterData(filterData);
-
-                                                if (props.onFilterChanged) {
-                                                    props.onFilterChanged(
-                                                        filterData
-                                                    );
-                                                }
+                                {column.isFilterable && column.key && (
+                                    <div>
+                                        {(column.type === FieldType.Entity || column.type === FieldType.EntityArray) && column.filterDropdownOptions && <Dropdown options={column.filterDropdownOptions} onChange={(value: DropdownValue | Array<DropdownValue>) => {
+                                            if (!column.key) {
+                                                return;
                                             }
+
+
+                                            if (!value || (Array.isArray(value) && value.length === 0)) {
+                                                delete filterData[
+                                                    column.key
+                                                ];
+                                            } else {
+                                                filterData[column.key] = value;
+                                            }
+
+                                            setFilterData(filterData);
+
+                                            if (props.onFilterChanged) {
+                                                props.onFilterChanged(
+                                                    filterData
+                                                );
+                                            }
+
                                         }}
-                                        initialValue={(
-                                            filterData[column.key || ''] || ''
-                                        ).toString()}
-                                        placeholder={`Filter by ${column.title}`}
-                                        className={'form-control'}
-                                        type={
-                                            column.type === FieldType.Date
-                                                ? 'date'
-                                                : 'text'
-                                        }
-                                    />
+                                            isMultiSelect={column.type === FieldType.EntityArray}
+                                            placeholder={`Filter by ${column.title}`}
+                                            className={'form-control'}
+                                        />}
+
+                                        {(column.type === FieldType.Date || column.type === FieldType.ObjectID || column.type === FieldType.Text) && <Input
+                                            onChange={(
+                                                changedValue: string | Date
+                                            ) => {
+                                                if (column.key) {
+                                                    if (!changedValue) {
+                                                        delete filterData[
+                                                            column.key
+                                                        ];
+                                                    }
+
+                                                    if (
+                                                        changedValue &&
+                                                        column.type ===
+                                                        FieldType.Date
+                                                    ) {
+                                                        filterData[column.key] =
+                                                            OneUptimeDate.asDateForDatabaseQuery(
+                                                                changedValue as string
+                                                            );
+                                                    }
+
+                                                    if (
+                                                        changedValue &&
+                                                        column.type ===
+                                                        FieldType.Text
+                                                    ) {
+                                                        filterData[column.key] =
+                                                            new Search(
+                                                                changedValue as string
+                                                            );
+                                                    }
+
+                                                    setFilterData(filterData);
+
+                                                    if (props.onFilterChanged) {
+                                                        props.onFilterChanged(
+                                                            filterData
+                                                        );
+                                                    }
+                                                }
+                                            }}
+                                            initialValue={(
+                                                filterData[column.key || ''] || ''
+                                            ).toString()}
+                                            placeholder={`Filter by ${column.title}`}
+                                            className={'form-control'}
+                                            type={
+                                                column.type === FieldType.Date
+                                                    ? 'date'
+                                                    : 'text'
+                                            }
+                                        />}
+                                    </div>
                                 )}
+
                             </td>
                         );
                     })}
