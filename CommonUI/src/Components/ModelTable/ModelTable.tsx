@@ -44,6 +44,9 @@ import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
 import Field from '../Detail/Field';
 import FormValues from '../Forms/Types/FormValues';
 import { FilterData } from '../Table/TableHeader';
+import ModelTableColumn from "./Column";
+import { Logger } from '../../Utils/Logger';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 
 export enum ShowTableAs {
     Table,
@@ -137,7 +140,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
     const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+
+
     const [error, setError] = useState<string>('');
+    const [tableFilterError, setTableFilterError] = useState<string>('');
+
     const [showModel, setShowModal] = useState<boolean>(false);
     const [showTableFilter, setShowTableFilter] = useState<boolean>(false);
     const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
@@ -157,6 +164,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     );
 
     const [fields, setFields] = useState<Array<Field>>([]);
+
+    const [isTableFilterFetchLoading, setIsTableFilterFetchLoading] = useState(false);
 
     useEffect(() => {
         const detailFields: Array<Field> = [];
@@ -211,7 +220,97 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
 
     const getFilterDropdownItems: Function = async () => {
-        
+        setTableFilterError('');
+        setIsTableFilterFetchLoading(true);
+
+        const classicColumns: Array<TableColumn> = [...tableColumns];
+
+        try {
+
+            for (const column of props.columns) {
+
+
+                const key = getColumnKey(column);
+
+                const classicColumn = classicColumns.find((i: TableColumn) => {
+                    return i.key === key;
+                })
+
+                if (!classicColumn) {
+                    continue; 
+                }
+
+                if (!key) {
+                    continue;
+                }
+
+                if (!(column.type === FieldType.Entity || column.type === FieldType.EntityArray)) {
+                    continue;
+                }
+
+                if (!column.isFilterable) {
+                    continue;
+                }
+
+                if (!column.filterEntityType) {
+                    Logger.warn(`Cannot filter on ${key} because column.filterEntityType is not set.`);
+                    continue;
+                }
+
+                if (!column.filterDropdownField) {
+                    Logger.warn(`Cannot filter on ${key} because column.dropdownField is not set.`)
+                    continue;
+                }
+
+                const hasPermission = hasPermissionToReadColumn(column);
+
+                if (!hasPermission) {
+                    continue;
+                }
+
+                const query: Query<BaseModel> = column.filterQuery || {};
+
+                const listResult: ListResult<BaseModel> =
+                    await ModelAPI.getList<BaseModel>(
+                        column.filterEntityType,
+                        query,
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            [column.filterDropdownField.labelField]: true,
+                            [column.filterDropdownField.valueField]: true,
+                        },
+                        {},
+                        {}
+                    );
+                
+                
+                classicColumn.filterDropdownOptions = []; 
+                for (const item of listResult.data) {
+                    classicColumn.filterDropdownOptions.push({
+                        value: item.getColumnValue(column.filterDropdownField.valueField) as string, 
+                        label: item.getColumnValue(column.filterDropdownField.labelField) as string
+                    })
+                }
+            }
+
+            setColumns(classicColumns);
+
+
+        } catch (err) {
+            try {
+                setTableFilterError(
+                    ((err as HTTPErrorResponse).data as JSONObject)[
+                    'error'
+                    ] as string
+                );
+            } catch (e) {
+                setTableFilterError('Server Error. Please try again');
+            }
+        }
+
+        setIsTableFilterFetchLoading(false);
+
     };
 
     const fetchItems: Function = async () => {
@@ -264,6 +363,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         setIsLoading(false);
     };
+
+    useEffect(() => {
+        if (showTableFilter) {
+            getFilterDropdownItems();
+        }
+    }, [showTableFilter])
 
     useEffect(() => {
         fetchItems();
@@ -400,21 +505,52 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return model.isEntityColumn(columnName);
     };
 
-    useEffect(() => {
-        // Convert ModelColumns to TableColumns.
+    const getColumnKey = (column: ModelTableColumn<TBaseModel>): string | null => {
+        const key: string | null = column.field
+            ? (Object.keys(column.field)[0] as string)
+            : null;
 
-        const columns: Array<TableColumn> = [];
+        return key;
+    }
 
-        const selectFields: Select<TBaseModel> = {
-            _id: true,
-        };
 
-        const slugifyColumn: string | null = model.getSlugifyColumn();
+    const hasPermissionToReadColumn = (column: ModelTableColumn<TBaseModel>): boolean => {
 
-        if (slugifyColumn) {
-            (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
+        const accessControl: Dictionary<ColumnAccessControl> =
+            model.getColumnAccessControlForAllColumns();
+
+        const userPermissions: Array<Permission> = getUserPermissions();
+
+        const key: string | null = getColumnKey(column);
+
+        // check permissions.
+        let hasPermission: boolean = false;
+
+        if (!key) {
+            hasPermission = true;
         }
 
+        if (key) {
+            hasPermission = true;
+            let fieldPermissions: Array<Permission> = [];
+            fieldPermissions = accessControl[key as string]?.read || [];
+
+            if (
+                accessControl[key]?.read &&
+                !PermissionHelper.doesPermissionsIntersect(
+                    userPermissions,
+                    fieldPermissions
+                )
+            ) {
+                hasPermission = false;
+            }
+        }
+
+        return hasPermission;
+    }
+
+
+    const getUserPermissions = (): Array<Permission> => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -433,57 +569,34 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         userPermissions.push(Permission.Public);
 
+        return userPermissions;
+    }
+
+    useEffect(() => {
+        // Convert ModelColumns to TableColumns.
+
+        const columns: Array<TableColumn> = [];
+
+        const selectFields: Select<TBaseModel> = {
+            _id: true,
+        };
+
+        const slugifyColumn: string | null = model.getSlugifyColumn();
+
+        if (slugifyColumn) {
+            (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
+        }
+
+        const userPermissions: Array<Permission> = getUserPermissions();
+
         const accessControl: Dictionary<ColumnAccessControl> =
             model.getColumnAccessControlForAllColumns();
 
         for (const column of props.columns || []) {
-            const key: string | null = column.field
-                ? (Object.keys(column.field)[0] as string)
-                : null;
 
-            // check permissions.
-            let hasPermission: boolean = false;
 
-            if (!key) {
-                hasPermission = true;
-            }
-
-            if (key) {
-                hasPermission = true;
-                let fieldPermissions: Array<Permission> = [];
-                fieldPermissions = accessControl[key as string]?.read || [];
-
-                if (
-                    accessControl[key]?.read &&
-                    !PermissionHelper.doesPermissionsIntersect(
-                        userPermissions,
-                        fieldPermissions
-                    )
-                ) {
-                    hasPermission = false;
-                }
-            }
-
-            const selectMoreFields: Array<string> = props.selectMoreFields
-                ? Object.keys(props.selectMoreFields)
-                : [];
-
-            for (const moreField of selectMoreFields) {
-                let fieldPermissions: Array<Permission> = [];
-                fieldPermissions =
-                    accessControl[moreField as string]?.read || [];
-
-                if (
-                    accessControl[moreField]?.read &&
-                    !PermissionHelper.doesPermissionsIntersect(
-                        userPermissions,
-                        fieldPermissions
-                    )
-                ) {
-                    hasPermission = false;
-                    break;
-                }
-            }
+            const hasPermission = hasPermissionToReadColumn(column);
+            const key: string | null = getColumnKey(column);
 
             if (hasPermission) {
                 columns.push({
@@ -497,12 +610,37 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 if (key) {
                     (selectFields as Dictionary<boolean>)[key] = true;
                 }
-
-                for (const moreField of selectMoreFields) {
-                    (selectFields as Dictionary<boolean>)[moreField] = true;
-                }
             }
         }
+
+        const selectMoreFields: Array<string> = props.selectMoreFields
+            ? Object.keys(props.selectMoreFields)
+            : [];
+
+        for (const moreField of selectMoreFields) {
+
+            let hasPermissionToSelectField = true;
+            let fieldPermissions: Array<Permission> = [];
+            fieldPermissions =
+                accessControl[moreField as string]?.read || [];
+
+            if (
+                accessControl[moreField]?.read &&
+                !PermissionHelper.doesPermissionsIntersect(
+                    userPermissions,
+                    fieldPermissions
+                )
+            ) {
+                hasPermissionToSelectField = false;
+            }
+
+            if (hasPermissionToSelectField) {
+                (selectFields as Dictionary<boolean>)[moreField] = true;
+            } else {
+                Logger.warn("User does not have read permissions to read - " + moreField);
+            }
+        }
+
 
         const userProjectPermissions: UserProjectAccessPermission | null =
             PermissionUtil.getProjectPermissions();
@@ -717,6 +855,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     setSortBy(sortBy);
                     setSortOrder(sortOrder);
                 }}
+                onTableFilterRefreshClick={() => {
+                    getFilterDropdownItems();
+                }}
                 singularLabel={
                     props.singularName || model.singularName || 'Item'
                 }
@@ -726,10 +867,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
                 data={BaseModel.toJSONObjectArray(data)}
+                filterError={tableFilterError}
                 id={props.id}
                 columns={tableColumns}
                 itemsOnPage={itemsOnPage}
                 disablePagination={props.disablePagination || false}
+                isTableFilterLoading={isTableFilterFetchLoading}
                 onNavigateToPage={async (
                     pageNumber: number,
                     itemsOnPage: number

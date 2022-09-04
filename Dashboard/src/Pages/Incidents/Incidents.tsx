@@ -15,6 +15,7 @@ import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import Monitor from 'Model/Models/Monitor';
 import MonitorsElement from '../../Components/Monitor/Monitors';
+import IncidentState from 'Model/Models/IncidentState';
 
 const IncidentsPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -131,6 +132,15 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Current State',
                         type: FieldType.Entity,
+                        isFilterable: true, 
+                        filterEntityType: IncidentState,
+                        filterQuery: {
+                            projectId: props.currentProject?._id
+                        },
+                        filterDropdownField: {
+                            label: "name", 
+                            value: "_id"
+                        },
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['currentIncidentState']) {
                                 return (

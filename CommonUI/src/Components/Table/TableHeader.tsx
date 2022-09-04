@@ -16,6 +16,8 @@ import OneUptimeDate from 'Common/Types/Date';
 import BaseModel from 'Common/Models/BaseModel';
 import ObjectID from 'Common/Types/ObjectID';
 import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
+import ComponentLoader from '../ComponentLoader/ComponentLoader';
+import ErrorMessage from '../ErrorMessage/ErrorMessage';
 
 export type FilterData = Dictionary<string | DropdownValue | Array<DropdownValue> | boolean | Search | Date | BaseModel | Array<BaseModel> | ObjectID | Array<ObjectID> | number>;
 
@@ -27,6 +29,9 @@ export interface ComponentProps {
     onFilterChanged?:
     | undefined
     | ((filterData: FilterData) => void);
+    isTableFilterLoading?: undefined | boolean;
+    filterError?: string | undefined;
+    onTableFilterRefreshClick?: undefined | (() => void);
 }
 
 const TableHeader: FunctionComponent<ComponentProps> = (
@@ -112,7 +117,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                     );
                 })}
             </tr>
-            {props.showFilter && (
+            {props.showFilter && !props.isTableFilterLoading && !props.filterError && (
                 <tr>
                     {props.columns.map((column: Column, i: number) => {
                         return (
@@ -206,6 +211,27 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                             </td>
                         );
                     })}
+                </tr>
+            )}
+
+            {props.showFilter && props.isTableFilterLoading && !props.filterError && (
+                <tr>
+                    <td colSpan={props.columns.length}>
+                        <ComponentLoader />
+                    </td>
+                </tr>
+            )}
+
+            {props.showFilter && props.filterError && (
+                <tr>
+                    <td colSpan={props.columns.length}>
+                        <ErrorMessage
+                            error={
+                                props.filterError
+                            }
+                            onRefreshClick={props.onTableFilterRefreshClick}
+                        />
+                    </td>
                 </tr>
             )}
         </thead>

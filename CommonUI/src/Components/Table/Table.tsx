@@ -24,9 +24,12 @@ export interface ComponentProps {
     pluralLabel: string;
     actionButtons?: undefined | Array<ActionButtonSchema>;
     onRefreshClick?: undefined | (() => void);
+    onTableFilterRefreshClick?: undefined | (() => void);
     noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
     showFilter?: undefined | boolean;
+    isTableFilterLoading?: undefined | boolean;
+    filterError?: string | undefined;
     onFilterChanged?:
     | undefined
     | ((filterData: FilterData) => void);
@@ -82,6 +85,10 @@ const Table: FunctionComponent<ComponentProps> = (
             );
         }
 
+        if (props.filterError) {
+            return <></>
+        }
+
         return (
             <TableBody
                 id={`${props.id}-body`}
@@ -101,6 +108,9 @@ const Table: FunctionComponent<ComponentProps> = (
                     onSortChanged={props.onSortChanged}
                     showFilter={props.showFilter || false}
                     onFilterChanged={props.onFilterChanged || undefined}
+                    isTableFilterLoading={props.isTableFilterLoading}
+                    filterError={props.filterError}
+                    onTableFilterRefreshClick={props.onTableFilterRefreshClick}
                 />
                 {getTablebody()}
             </table>
