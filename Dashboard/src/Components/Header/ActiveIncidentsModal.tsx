@@ -38,10 +38,16 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                     fetchRequestOptions={{
                         isMultiTenantRequest: true,
                     }}
+                    selectMoreFields={{
+                        projectId: true
+                    }}
                     isEditable={false}
                     showRefreshButton={true}
                     isCreateable={false}
                     isViewable={true}
+                    onViewComplete={() => {
+                        props.onClose && props.onClose();
+                    }}
                     cardProps={{
                         icon: IconProp.Alert,
                         title: 'Active Incidents',
@@ -53,7 +59,9 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                     }
                     singularName="Active Incident"
                     pluralName="Active Incidents"
-                    viewPageRoute={new Route('/')}
+                    onViewPage={(item: Incident) => {
+                        return new Route(`/dashboard/${item.projectId || item.project?._id || ''}/incidents/${item._id}`)
+                    }}
                     columns={[
                         {
                             field: {
@@ -121,6 +129,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                 monitors: {
                                     name: true,
                                     _id: true,
+                                    projectId: true
                                 },
                             },
                             title: 'Monitors Affected',

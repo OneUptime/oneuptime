@@ -67,12 +67,19 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 isDeleteable={false}
                 isEditable={false}
                 isCreateable={true}
+                ini
                 isViewable={true}
                 cardProps={{
                     icon: IconProp.Alert,
                     title: 'Incidents',
                     description:
                         'Here is a list of incidents for this monitor.',
+                }}
+                createInitialValues={{
+                    monitors: [modelId.toString()]
+                }}
+                onViewPage={(item: Incident) => {
+                    return new Route(`/dashboard/${props.currentProject?._id || ''}/incidents/${item._id}`)
                 }}
                 noItemsMessage={'No incidents created for this monitor so far.'}
                 formFields={[
@@ -189,6 +196,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                             monitors: {
                                 name: true,
                                 _id: true,
+                                projectId: true
                             },
                         },
                         title: 'Monitors Affected',

@@ -161,6 +161,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                             monitors: {
                                 name: true,
                                 _id: true,
+                                projectId: true
                             },
                         },
                         title: 'Monitors Affected',

@@ -42,6 +42,7 @@ import Populate from '../../Utils/ModelAPI/Populate';
 import List from '../List/List';
 import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
 import Field from '../Detail/Field';
+import FormValues from '../Forms/Types/FormValues';
 
 export enum ShowTableAs {
     Table,
@@ -50,14 +51,14 @@ export enum ShowTableAs {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     onFetchInit?:
-        | undefined
-        | ((pageNumber: number, itemsOnPage: number) => void);
+    | undefined
+    | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-        | undefined
-        | ((data: Array<TBaseModel>, totalCount: number) => void);
+    | undefined
+    | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     selectMoreFields?: Select<TBaseModel>;
@@ -72,8 +73,10 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showFilterButton?: undefined | boolean;
     isViewable?: undefined | boolean;
     viewPageRoute?: undefined | Route;
+    onViewPage?: (item: TBaseModel) => Promise<Route>;
     query?: Query<TBaseModel>;
     onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
+    createInitialValues?: FormValues<TBaseModel> | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
     showTableAs?: ShowTableAs | undefined;
@@ -98,6 +101,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         shouldAddItemInTheEnd?: boolean;
         shouldAddItemInTheBegining?: boolean;
     };
+    onViewComplete: (item: TBaseModel) => void;
 }
 
 enum ModalType {
@@ -168,8 +172,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 fieldType: column.type,
                 getElement: column.getElement
                     ? (item: JSONObject): ReactElement => {
-                          return column.getElement!(item, onBeforeFetchData);
-                      }
+                        return column.getElement!(item, onBeforeFetchData);
+                    }
                     : undefined,
             });
 
@@ -193,7 +197,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -230,8 +234,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                              [sortBy as any]: sortOrder,
-                          }
+                            [sortBy as any]: sortOrder,
+                        }
                         : {},
                     getPopulate(),
                     props.fetchRequestOptions
@@ -243,7 +247,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
+                    'error'
                     ] as string
                 );
             } catch (e) {
@@ -335,9 +339,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             showTableAs !== ShowTableAs.OrderedStatesList
         ) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${
-                    props.singularName || model.singularName
-                }`,
+                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                    }`,
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
                     setModalType(ModalType.Create);
@@ -503,8 +506,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 model.hasDeletePermissions(userProjectPermissions)) ||
                 (props.isEditable &&
                     model.hasUpdatePermissions(userProjectPermissions)) ||
-                (props.isCreateable &&
-                    model.hasUpdatePermissions(userProjectPermissions)))
+                (props.isViewable &&
+                    model.hasReadPermissions(userProjectPermissions)))
         ) {
             columns.push({
                 title: 'Actions',
@@ -544,15 +547,31 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         onError: (err: Error) => void
                     ) => {
                         try {
+
+                            const baseModel: TBaseModel = BaseModel.fromJSONObject(
+                                item,
+                                props.modelType
+                            );
+
                             if (props.onBeforeView) {
                                 item = (
                                     await props.onBeforeView(
-                                        BaseModel.fromJSONObject(
-                                            item,
-                                            props.modelType
-                                        )
+                                        baseModel
                                     )
                                 ).toJSONObject();
+                            }
+
+                            if (props.onViewPage) {
+                                const route: Route = await props.onViewPage(baseModel);
+
+                                onCompleteAction();
+                                if (props.onViewComplete) {
+                                    props.onViewComplete(baseModel);
+                                }
+                                return Navigation.navigate(
+                                    route
+                                );
+
                             }
 
                             if (!props.viewPageRoute) {
@@ -560,8 +579,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                     'Please populate curentPageRoute in ModelTable'
                                 );
                             }
+
                             onCompleteAction();
-                            Navigation.navigate(
+                            if (props.onViewComplete) {
+                                props.onViewComplete(baseModel);
+                            }
+                            return Navigation.navigate(
                                 new Route(
                                     props.viewPageRoute.toString()
                                 ).addRoute('/' + item['_id'])
@@ -726,9 +749,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         let getTitleElement:
             | ((
-                  item: JSONObject,
-                  onBeforeFetchData?: JSONObject | undefined
-              ) => ReactElement)
+                item: JSONObject,
+                onBeforeFetchData?: JSONObject | undefined
+            ) => ReactElement)
             | undefined = undefined;
         let getDescriptionElement:
             | ((item: JSONObject) => ReactElement)
@@ -772,10 +795,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onCreateNewItem={
                     props.isCreateable
                         ? (order: number) => {
-                              setOrderedStatesListNewItemOrder(order);
-                              setModalType(ModalType.Create);
-                              setShowModal(true);
-                          }
+                            setOrderedStatesListNewItemOrder(order);
+                            setModalType(ModalType.Create);
+                            setShowModal(true);
+                        }
                         : undefined
                 }
                 singularLabel={
@@ -880,19 +903,18 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
+                            }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
+                    initialValues={modalType === ModalType.Create ? props.createInitialValues : undefined}
                     onClose={() => {
                         setShowModal(false);
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                            }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {
