@@ -23,8 +23,8 @@ export default interface Columns<TEntity> {
     filterEntityType?:  { new (): BaseModel } | undefined,
     filterQuery?: Query<BaseModel> | undefined, 
     filterDropdownField?: {
-        labelField: string;
-        valueField: string;
+        label: string;
+        value: string;
     } | undefined;
     actionButtons?: Array<ActionButton>;
     getElement?:

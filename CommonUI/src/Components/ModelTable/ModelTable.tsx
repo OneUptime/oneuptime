@@ -277,8 +277,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         LIMIT_PER_PROJECT,
                         0,
                         {
-                            [column.filterDropdownField.labelField]: true,
-                            [column.filterDropdownField.valueField]: true,
+                            [column.filterDropdownField.label]: true,
+                            [column.filterDropdownField.value]: true,
                         },
                         {},
                         {}
@@ -288,8 +288,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 classicColumn.filterDropdownOptions = []; 
                 for (const item of listResult.data) {
                     classicColumn.filterDropdownOptions.push({
-                        value: item.getColumnValue(column.filterDropdownField.valueField) as string, 
-                        label: item.getColumnValue(column.filterDropdownField.labelField) as string
+                        value: item.getColumnValue(column.filterDropdownField.value) as string, 
+                        label: item.getColumnValue(column.filterDropdownField.label) as string
                     })
                 }
             }

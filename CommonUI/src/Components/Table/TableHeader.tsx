@@ -149,7 +149,6 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                         }}
                                             isMultiSelect={column.type === FieldType.EntityArray}
                                             placeholder={`Filter by ${column.title}`}
-                                            className={'form-control'}
                                         />}
 
                                         {(column.type === FieldType.Date || column.type === FieldType.ObjectID || column.type === FieldType.Text) && <Input
