@@ -176,6 +176,15 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Monitors Affected',
                         type: FieldType.EntityArray,
+                        isFilterable: true, 
+                        filterEntityType: Monitor,
+                        filterQuery: {
+                            projectId: props.currentProject?._id
+                        },
+                        filterDropdownField: {
+                            label: "name", 
+                            value: "_id"
+                        },
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <MonitorsElement

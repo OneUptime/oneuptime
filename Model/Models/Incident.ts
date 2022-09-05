@@ -249,7 +249,17 @@ export default class Incident extends BaseModel {
         },
         { eager: true }
     )
-    @JoinTable()
+    @JoinTable({
+        name: 'IncidentMonitor',
+        inverseJoinColumn: {
+          name: 'monitorId',
+          referencedColumnName: '_id'
+        },
+        joinColumn: {
+          name: 'incidentId',
+          referencedColumnName: '_id'
+        }
+    })
     public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
 
     @ColumnAccessControl({

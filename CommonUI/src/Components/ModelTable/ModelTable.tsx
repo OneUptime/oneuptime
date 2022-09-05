@@ -847,6 +847,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         if (filterData[key] instanceof Search) {
                             query[key as keyof TBaseModel] = filterData[key];
                         }
+
+                        if (Array.isArray(filterData[key])) {
+                            query[key as keyof TBaseModel] = filterData[key];
+                        }
                     }
 
                     setQuery(query);

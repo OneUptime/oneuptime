@@ -303,6 +303,16 @@ export default class TeamPermission extends BaseModel {
         },
         { eager: true }
     )
-    @JoinTable()
+    @JoinTable({
+        name: 'TeamPermissionLabel',
+        inverseJoinColumn: {
+          name: 'labelId',
+          referencedColumnName: '_id'
+        },
+        joinColumn: {
+          name: 'teamPermissionId',
+          referencedColumnName: '_id'
+        }
+    })
     public labels?: Array<Label> = undefined;
 }
