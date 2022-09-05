@@ -4,6 +4,7 @@ import MonitorElement from './Monitor';
 
 export interface ComponentProps {
     monitors: Array<Monitor>;
+    onNavigateComplete?: (() => void) | undefined; 
 }
 
 const MonitorsElement: FunctionComponent<ComponentProps> = (
@@ -16,7 +17,7 @@ const MonitorsElement: FunctionComponent<ComponentProps> = (
     return (
         <div>
             {props.monitors.map((monitor: Monitor, i: number) => {
-                return <MonitorElement monitor={monitor} key={i} />;
+                return <MonitorElement monitor={monitor} key={i} onNavigateComplete={props.onNavigateComplete} />;
             })}
         </div>
     );

@@ -124,7 +124,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                             <td key={i}>
                                 {column.isFilterable && column.key && (
                                     <div>
-                                        {(column.type === FieldType.Entity || column.type === FieldType.EntityArray) && column.filterDropdownOptions && <Dropdown options={column.filterDropdownOptions} onChange={(value: DropdownValue | Array<DropdownValue>) => {
+                                        {(column.type === FieldType.Entity || column.type === FieldType.EntityArray) && column.filterDropdownOptions && <Dropdown options={column.filterDropdownOptions} onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
                                             if (!column.key) {
                                                 return;
                                             }

@@ -10,6 +10,8 @@ import MonitorsElement from '../Monitor/Monitors';
 import Monitor from 'Model/Models/Monitor';
 import Color from 'Common/Types/Color';
 import Route from 'Common/Types/API/Route';
+import ProjectElement from '../Project/Project';
+import Project from 'Model/Models/Project';
 
 export interface ComponentProps {
     onClose: () => void;
@@ -67,12 +69,29 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                             field: {
                                 project: {
                                     name: true,
+                                    _id: true
                                 },
                             },
                             title: 'Project',
                             type: FieldType.Text,
                             isFilterable: true,
                             selectedProperty: 'name',
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <ProjectElement
+                                        project={
+                                            Project.fromJSON(
+                                                (item['project'] as JSONObject) ||
+                                                [],
+                                                Project
+                                            ) as Project
+                                        }
+                                        onNavigateComplete={() => {
+                                            props.onClose();
+                                        }}
+                                    />
+                                );
+                            },
                         },
                         {
                             field: {
@@ -144,6 +163,9 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                                 Monitor
                                             ) as Array<Monitor>
                                         }
+                                        onNavigateComplete={() => {
+                                            props.onClose();
+                                        }}
                                     />
                                 );
                             },

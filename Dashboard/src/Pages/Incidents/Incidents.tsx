@@ -47,7 +47,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of incidents for this project.',
                 }}
-                noItemsMessage={'No incidents created for this project so far.'}
+                noItemsMessage={'No incidents found.'}
                 formFields={[
                     {
                         field: {

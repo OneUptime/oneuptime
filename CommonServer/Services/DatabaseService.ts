@@ -1089,6 +1089,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     query[key] as any
                 ) as FindOperator<any> as any;
             }
+
+            const tableColumnMetadata = this.model.getTableColumnMetadata(key); 
+
+            if (tableColumnMetadata && tableColumnMetadata.manyToOneRelationColumn && typeof query[key] === Typeof.String) {
+                (query as any)[tableColumnMetadata.manyToOneRelationColumn] = query[key] as string;
+                delete query[key];
+            }
         }
 
         return query;
