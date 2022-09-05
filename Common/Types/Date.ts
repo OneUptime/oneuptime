@@ -1,5 +1,6 @@
 import PositiveNumber from './PositiveNumber';
 import moment from 'moment';
+import InBetween from './Database/InBetween';
 
 export default class OneUptimeDate {
     public static getCurrentDate(): Date {
@@ -312,5 +313,24 @@ export default class OneUptimeDate {
     public static asDateForDatabaseQuery(date: string | Date): string {
         const formatstring: string = 'YYYY-MM-DD';
         return moment(date).local().format(formatstring);
+    }
+
+    public static asDateStartOfTheDayEndOfTheDayForDatabaseQuery(date: string | Date): InBetween {
+        let startValue = date;
+
+        if (!(startValue instanceof Date)) {
+            startValue = OneUptimeDate.fromString(startValue);
+        }
+
+        let endValue = date;
+
+        if (!(endValue instanceof Date)) {
+            endValue = OneUptimeDate.fromString(endValue);
+        }
+
+        startValue = OneUptimeDate.getStartOfDay(startValue);
+        endValue = OneUptimeDate.getEndOfDay(endValue);
+
+        return new InBetween(moment(startValue).format('YYYY-MM-DD HH:mm:ss'), moment(endValue).format('YYYY-MM-DD HH:mm:ss'));
     }
 }

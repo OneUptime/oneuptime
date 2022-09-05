@@ -205,6 +205,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,
+                        isFilterable: true, 
                     },
                 ]}
             />
