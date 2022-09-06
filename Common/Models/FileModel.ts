@@ -47,4 +47,13 @@ export default class FileModel extends BaseModel {
         length: ColumnLength.Slug,
     })
     public slug?: string = undefined;
+
+    @TableColumn({ required: true, isDefaultValueColumn: true, type: TableColumnType.Slug })
+    @Column({
+        nullable: false,
+        default: true, 
+        type: ColumnType.Slug,
+        length: ColumnLength.Slug,
+    })
+    public isPublic?: boolean = undefined;
 }
