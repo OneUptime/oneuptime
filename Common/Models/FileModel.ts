@@ -1,11 +1,13 @@
 import { Column } from 'typeorm';
 import ColumnLength from '../Types/Database/ColumnLength';
 import ColumnType from '../Types/Database/ColumnType';
+import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import TableColumn from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
 import ObjectID from '../Types/ObjectID';
 import BaseModel from './BaseModel';
 
+@SlugifyColumn('name', 'slug')
 export default class FileModel extends BaseModel {
     public constructor(id?: ObjectID) {
         super(id);
@@ -37,4 +39,12 @@ export default class FileModel extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public type?: string = undefined;
+
+    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
+    @Column({
+        nullable: false,
+        type: ColumnType.Slug,
+        length: ColumnLength.Slug,
+    })
+    public slug?: string = undefined;
 }

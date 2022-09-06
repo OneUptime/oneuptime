@@ -290,3 +290,38 @@
     border-radius: 500px;
     width: 300px;
 }
+
+
+
+// File Picker. 
+
+.file-picker-thumbs-container {
+    display: 'flex';
+    flex-direction: 'row';
+    flex-wrap: 'wrap';
+    margin-top: "16px"
+}
+
+.file-picker-thumb {
+    display: 'inline-flex';
+    border-radius: "2px";
+    border: '1px solid #eaeaea';
+    margin-bottom: 8;
+    margin-right: 8;
+    width: 100;
+    height: 100,;
+    padding: 4;
+    box-sizing: 'border-box'
+};
+
+.file-picker-thumb-inner {
+    display: 'flex';
+    min-width: 0;
+    overflow: 'hidden'
+};
+
+.file-picker-img {
+    display: 'block';
+    width: 'auto';
+    height: '100%'
+};

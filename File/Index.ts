@@ -3,13 +3,22 @@ import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabas
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
-import AuthenticationAPI from './API/AuthenticationAPI';
+import File from 'Model/Models/File';
+import FileService, {
+    Service as FileServiceType,
+} from 'CommonServer/Services/FileService';
+import BaseAPI from 'CommonServer/API/BaseAPI';
 
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'File';
 
-app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
+app.use(
+    new BaseAPI<File, FileServiceType>(
+        File,
+        FileService
+    ).getRouter()
+);
 
 const init: Function = async (): Promise<void> => {
     try {
