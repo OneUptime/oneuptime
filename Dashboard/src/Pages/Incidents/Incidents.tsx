@@ -16,6 +16,8 @@ import Color from 'Common/Types/Color';
 import Monitor from 'Model/Models/Monitor';
 import MonitorsElement from '../../Components/Monitor/Monitors';
 import IncidentState from 'Model/Models/IncidentState';
+import Label from 'Model/Models/Label';
+import LabelsElement from '../../Components/Label/Labels';
 
 const IncidentsPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -101,6 +103,22 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         required: true,
                         placeholder: 'Monitor Status',
+                    },
+                    {
+                        field: {
+                            labels: true,
+                        },
+                        title: 'Labels (Optional)',
+                        description:
+                            'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Label,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'Labels',
                     },
                 ]}
                 showRefreshButton={true}
@@ -206,6 +224,37 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         title: 'Created At',
                         type: FieldType.DateTime,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.EntityArray,
+                        isFilterable: true,
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <LabelsElement
+                                    labels={
+                                        Label.fromJSON(
+                                            (item['labels'] as JSONArray) || [],
+                                            Label
+                                        ) as Array<Label>
+                                    }
+                                />
+                            );
+                        },
                     },
                 ]}
             />

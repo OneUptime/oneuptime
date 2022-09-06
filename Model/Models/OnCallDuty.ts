@@ -133,13 +133,13 @@ export default class OnCallDuty extends BaseModel {
         { eager: true }
     )
     @JoinTable({
-        name: 'MonitorLabel',
+        name: 'OnCallDutyLabel',
         inverseJoinColumn: {
             name: 'labelId',
             referencedColumnName: '_id',
         },
         joinColumn: {
-            name: 'monitorId',
+            name: 'onCallDutyId',
             referencedColumnName: '_id',
         },
     })

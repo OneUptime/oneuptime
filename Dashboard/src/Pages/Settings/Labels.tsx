@@ -51,7 +51,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
                     description:
                         'Labels help you categorize resources in your project and give granular permissions to access those resources to team members.',
                 }}
-                noItemsMessage={'No labels created for this project so far.'}
+                noItemsMessage={'No labels found.'}
                 viewPageRoute={props.pageRoute}
                 formFields={[
                     {

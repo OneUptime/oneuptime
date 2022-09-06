@@ -93,7 +93,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels (Optional)',
                         description:
-                            'Team members with access to these labels will only be able to access this monitor. This is optional and an advanced feature.',
+                            'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
                         fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
                             type: Label,

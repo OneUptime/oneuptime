@@ -107,7 +107,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 noItemsMessage={
-                    'No incident state created for this project so far.'
+                    'No incident state found.'
                 }
                 viewPageRoute={props.pageRoute}
                 formFields={[

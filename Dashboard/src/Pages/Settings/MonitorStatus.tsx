@@ -56,7 +56,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                         'Define different status types (eg: Operational, Degraded, Down) here.',
                 }}
                 noItemsMessage={
-                    'No monitor status created for this project so far.'
+                    'No monitor status found.'
                 }
                 orderedStatesListProps={{
                     titleField: 'name',
