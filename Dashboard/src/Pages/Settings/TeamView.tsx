@@ -158,7 +158,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                currentPageRoute={props.pageRoute}
+                viewPageRoute={props.pageRoute}
                 columns={[
                     {
                         field: {
@@ -190,6 +190,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Invitation Accepted',
                         type: FieldType.Boolean,
+                        isFilterable: true,
                     },
                 ]}
             />
@@ -255,7 +256,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                currentPageRoute={props.pageRoute}
+                viewPageRoute={props.pageRoute}
                 columns={[
                     {
                         field: {
@@ -282,7 +283,16 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         title: 'Labels',
-                        type: FieldType.Text,
+                        type: FieldType.EntityArray,
+                        isFilterable: true,
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

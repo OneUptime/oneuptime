@@ -1,13 +1,11 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import TableBody from './TableBody';
-import TableHeader from './TableHeader';
+import TableHeader, { FilterData } from './TableHeader';
 import Columns from './Types/Columns';
 import Pagination from '../Pagination/Pagination';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import Dictionary from 'Common/Types/Dictionary';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
-import Search from 'Common/Types/Database/Search';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 
@@ -26,12 +24,13 @@ export interface ComponentProps {
     pluralLabel: string;
     actionButtons?: undefined | Array<ActionButtonSchema>;
     onRefreshClick?: undefined | (() => void);
+    onTableFilterRefreshClick?: undefined | (() => void);
     noItemsMessage?: undefined | string;
     onSortChanged: (sortBy: string, sortOrder: SortOrder) => void;
     showFilter?: undefined | boolean;
-    onFilterChanged?:
-        | undefined
-        | ((filterData: Dictionary<string | boolean | Search | Date>) => void);
+    isTableFilterLoading?: undefined | boolean;
+    filterError?: string | undefined;
+    onFilterChanged?: undefined | ((filterData: FilterData) => void);
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -84,6 +83,10 @@ const Table: FunctionComponent<ComponentProps> = (
             );
         }
 
+        if (props.filterError) {
+            return <></>;
+        }
+
         return (
             <TableBody
                 id={`${props.id}-body`}
@@ -103,6 +106,9 @@ const Table: FunctionComponent<ComponentProps> = (
                     onSortChanged={props.onSortChanged}
                     showFilter={props.showFilter || false}
                     onFilterChanged={props.onFilterChanged || undefined}
+                    isTableFilterLoading={props.isTableFilterLoading}
+                    filterError={props.filterError}
+                    onTableFilterRefreshClick={props.onTableFilterRefreshClick}
                 />
                 {getTablebody()}
             </table>

@@ -10,10 +10,12 @@ import { JSONObjectOrArray } from 'Common/Types/JSON';
 import { FormikProps, FormikValues } from 'formik';
 import ObjectID from 'Common/Types/ObjectID';
 import Alert, { AlertType } from '../Alerts/Alert';
+import FormValues from '../Forms/Types/FormValues';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
     modelType: { new (): TBaseModel };
+    initialValues?: FormValues<TBaseModel> | undefined;
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
     onSuccess?:
@@ -54,6 +56,7 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
                         setIsFormLoading(isFormLoading);
                     }}
                     formRef={formRef}
+                    initialValues={props.initialValues}
                     onSuccess={(
                         data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
                     ) => {

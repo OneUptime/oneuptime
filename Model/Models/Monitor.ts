@@ -247,7 +247,17 @@ export default class Monitor extends BaseModel {
         },
         { eager: true }
     )
-    @JoinTable()
+    @JoinTable({
+        name: 'MonitorLabel',
+        inverseJoinColumn: {
+            name: 'labelId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'monitorId',
+            referencedColumnName: '_id',
+        },
+    })
     public labels?: Array<Label> = undefined;
 
     @ColumnAccessControl({

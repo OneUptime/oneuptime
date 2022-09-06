@@ -46,6 +46,7 @@ import MonitorPage from './Pages/Monitor/Monitors';
 import MonitorView from './Pages/Monitor/View/Index';
 import MonitorViewDelete from './Pages/Monitor/View/Delete';
 import MonitorViewStatusTimeline from './Pages/Monitor/View/StatusTimeline';
+import MonitorIncidents from './Pages/Monitor/View/Incidents';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -188,6 +189,20 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.MONITOR_VIEW_INCIDENTS]?.toString()}
+                    element={
+                        <MonitorIncidents
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.MONITOR_VIEW_INCIDENTS
                                 ] as Route
                             }
                             currentProject={selectedProject}

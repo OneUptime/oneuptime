@@ -1,5 +1,6 @@
 import { JSONObject } from 'Common/Types/JSON';
 import { ReactElement } from 'react';
+import { DropdownOption } from '../../Dropdown/Dropdown';
 import FieldType from '../../Types/FieldType';
 
 export default interface Column {
@@ -8,6 +9,7 @@ export default interface Column {
     disableSort?: boolean;
     type: FieldType;
     isFilterable?: boolean;
+    filterDropdownOptions?: Array<DropdownOption> | undefined;
     key?: string | null; //can be null because actions column does not have a key.
     getElement?:
         | ((

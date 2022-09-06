@@ -79,7 +79,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
 
                     return item;
                 }}
-                currentPageRoute={props.pageRoute}
+                viewPageRoute={props.pageRoute}
                 onBeforeCreate={(
                     item: MonitorStatus
                 ): Promise<MonitorStatus> => {

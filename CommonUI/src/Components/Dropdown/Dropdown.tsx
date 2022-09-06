@@ -6,7 +6,7 @@ import React, {
     useState,
 } from 'react';
 
-export type DropdownValue = string | number;
+export type DropdownValue = string | number | boolean;
 
 export interface DropdownOption {
     value: DropdownValue;
@@ -21,7 +21,7 @@ export interface ComponentProps {
     className?: undefined | string;
     onChange?:
         | undefined
-        | ((value: DropdownValue | Array<DropdownValue>) => void);
+        | ((value: DropdownValue | Array<DropdownValue> | null) => void);
     value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -96,6 +96,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                     props.onChange((value as DropdownOption).value);
             }
         }
+
+        if (!value) {
+            props.onChange && props.onChange(props.isMultiSelect ? [] : null);
+        }
     }, [value]);
 
     return (
@@ -115,6 +119,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 onFocus={() => {
                     props.onFocus && props.onFocus();
                 }}
+                isClearable={true}
+                isSearchable={true}
                 placeholder={props.placeholder}
                 options={props.options as any}
                 onChange={(option: any | null) => {
@@ -128,6 +134,14 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                                 option as DropdownOption;
                             setValue(value);
                         }
+                    }
+
+                    if (option === null && props.isMultiSelect) {
+                        setValue([]);
+                    }
+
+                    if (option === null && !props.isMultiSelect) {
+                        setValue(null);
                     }
                 }}
             />

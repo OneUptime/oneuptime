@@ -16,6 +16,7 @@ import LabelsElement from '../../Components/Label/Labels';
 import Statusbubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
 import Color from 'Common/Types/Color';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import MonitorStatus from 'Model/Models/MonitorStatus';
 
 const MonitorPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -46,7 +47,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                     title: 'Monitors',
                     description: 'Here is a list of monitors for this project.',
                 }}
-                noItemsMessage={'No monitors created for this project so far.'}
+                noItemsMessage={'No monitors found.'}
                 formFields={[
                     {
                         field: {
@@ -99,7 +100,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                currentPageRoute={props.pageRoute}
+                viewPageRoute={props.pageRoute}
                 columns={[
                     {
                         field: {
@@ -124,8 +125,17 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                                 name: true,
                             },
                         },
+                        isFilterable: true,
+                        filterEntityType: MonitorStatus,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                         title: 'Monitor Status',
-                        type: FieldType.Text,
+                        type: FieldType.Entity,
                         getElement: (item: JSONObject): ReactElement => {
                             if (!item['currentMonitorStatus']) {
                                 throw new BadDataException(
@@ -161,7 +171,16 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         title: 'Labels',
-                        type: FieldType.Text,
+                        type: FieldType.EntityArray,
+                        isFilterable: true,
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

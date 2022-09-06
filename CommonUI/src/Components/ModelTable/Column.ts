@@ -1,7 +1,9 @@
+import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import { ReactElement } from 'react';
 import SelectEntityField from '../../Types/SelectEntityField';
+import Query from '../../Utils/ModelAPI/Query';
 import { IconProp } from '../Icon/Icon';
 import FieldType from '../Types/FieldType';
 
@@ -18,6 +20,14 @@ export default interface Columns<TEntity> {
     disableSort?: boolean;
     type: FieldType;
     isFilterable: boolean;
+    filterEntityType?: { new (): BaseModel } | undefined;
+    filterQuery?: Query<BaseModel> | undefined;
+    filterDropdownField?:
+        | {
+              label: string;
+              value: string;
+          }
+        | undefined;
     actionButtons?: Array<ActionButton>;
     getElement?:
         | ((

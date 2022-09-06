@@ -693,9 +693,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
 
             if (!columns.columns.includes(key)) {
+                if (!tableColumns.includes(key)) {
+                    throw new BadDataException(
+                        `Invalid column on ${this.model.singularName} - ${key}.`
+                    );
+                }
+
                 throw new NotAuthorizedException(
-                    `You do not have permissions to query on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
+                    `You do not have permissions to query on - ${key}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
                         this.model.getColumnAccessControlFor(key).read
                     ).join(',')}`
                 );
@@ -730,7 +735,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             !this.model.canQueryMultiTenant()
         ) {
             throw new BadDataException(
-                'isMultiTenantRequest not allowed on this model'
+                `isMultiTenantRequest not allowed on ${this.model.singularName}`
             );
         }
 
@@ -1034,6 +1039,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private serializeQuery(query: Query<TBaseModel>): Query<TBaseModel> {
         for (const key in query) {
+            const tableColumnMetadata: TableColumnMetadata =
+                this.model.getTableColumnMetadata(key);
+
             if (
                 query[key] &&
                 (query[key] as any)._value &&
@@ -1078,10 +1086,35 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query[key] = QueryHelper.lessThanEqualTo(
                     (query[key] as LessThanOrEqual).toString() as any
                 ) as any;
-            } else if (query[key] && Array.isArray(query[key])) {
+            } else if (
+                query[key] &&
+                Array.isArray(query[key]) &&
+                tableColumnMetadata.type !== TableColumnType.EntityArray
+            ) {
                 query[key] = QueryHelper.in(
                     query[key] as any
                 ) as FindOperator<any> as any;
+            }
+
+            if (
+                tableColumnMetadata &&
+                tableColumnMetadata.manyToOneRelationColumn &&
+                typeof query[key] === Typeof.String
+            ) {
+                (query as any)[tableColumnMetadata.manyToOneRelationColumn] =
+                    query[key] as string;
+                delete query[key];
+            }
+
+            if (
+                tableColumnMetadata &&
+                tableColumnMetadata.modelType &&
+                tableColumnMetadata.type === TableColumnType.EntityArray &&
+                Array.isArray(query[key])
+            ) {
+                (query as any)[key] = {
+                    _id: QueryHelper.in(query[key] as Array<string>),
+                };
             }
         }
 

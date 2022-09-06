@@ -26,7 +26,9 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Monitor from './Monitor';
 import IncidentState from './IncidentState';
 import MonitorStatus from './MonitorStatus';
+import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
+@MultiTenentQueryAllowed(true)
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
@@ -247,7 +249,17 @@ export default class Incident extends BaseModel {
         },
         { eager: true }
     )
-    @JoinTable()
+    @JoinTable({
+        name: 'IncidentMonitor',
+        inverseJoinColumn: {
+            name: 'monitorId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'incidentId',
+            referencedColumnName: '_id',
+        },
+    })
     public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
 
     @ColumnAccessControl({

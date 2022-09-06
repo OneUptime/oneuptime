@@ -144,7 +144,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                currentPageRoute={props.pageRoute}
+                viewPageRoute={props.pageRoute}
                 columns={[
                     {
                         field: {

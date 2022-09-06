@@ -106,7 +106,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                currentPageRoute={props.pageRoute}
+                viewPageRoute={props.pageRoute}
                 showTableAs={ShowTableAs.List}
                 columns={[
                     {

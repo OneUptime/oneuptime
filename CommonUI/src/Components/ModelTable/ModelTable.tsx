@@ -42,6 +42,12 @@ import Populate from '../../Utils/ModelAPI/Populate';
 import List from '../List/List';
 import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
 import Field from '../Detail/Field';
+import FormValues from '../Forms/Types/FormValues';
+import { FilterData } from '../Table/TableHeader';
+import ModelTableColumn from './Column';
+import { Logger } from '../../Utils/Logger';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import InBetween from 'Common/Types/Database/InBetween';
 
 export enum ShowTableAs {
     Table,
@@ -71,9 +77,11 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
     isViewable?: undefined | boolean;
-    currentPageRoute?: undefined | Route;
+    viewPageRoute?: undefined | Route;
+    onViewPage?: (item: TBaseModel) => Promise<Route>;
     query?: Query<TBaseModel>;
     onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
+    createInitialValues?: FormValues<TBaseModel> | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
     showTableAs?: ShowTableAs | undefined;
@@ -98,6 +106,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         shouldAddItemInTheEnd?: boolean;
         shouldAddItemInTheBegining?: boolean;
     };
+    onViewComplete: (item: TBaseModel) => void;
 }
 
 enum ModalType {
@@ -132,7 +141,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
     const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+
     const [error, setError] = useState<string>('');
+    const [tableFilterError, setTableFilterError] = useState<string>('');
+
     const [showModel, setShowModal] = useState<boolean>(false);
     const [showTableFilter, setShowTableFilter] = useState<boolean>(false);
     const [modalType, setModalType] = useState<ModalType>(ModalType.Create);
@@ -152,6 +164,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     );
 
     const [fields, setFields] = useState<Array<Field>>([]);
+
+    const [isTableFilterFetchLoading, setIsTableFilterFetchLoading] =
+        useState(false);
 
     useEffect(() => {
         const detailFields: Array<Field> = [];
@@ -204,6 +219,108 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setIsLoading(false);
     };
 
+    const getFilterDropdownItems: Function = async () => {
+        setTableFilterError('');
+        setIsTableFilterFetchLoading(true);
+
+        const classicColumns: Array<TableColumn> = [...tableColumns];
+
+        try {
+            for (const column of props.columns) {
+                const key: string | null = getColumnKey(column);
+
+                const classicColumn: TableColumn | undefined =
+                    classicColumns.find((i: TableColumn) => {
+                        return i.key === key;
+                    });
+
+                if (!classicColumn) {
+                    continue;
+                }
+
+                if (!key) {
+                    continue;
+                }
+
+                if (
+                    !(
+                        column.type === FieldType.Entity ||
+                        column.type === FieldType.EntityArray
+                    )
+                ) {
+                    continue;
+                }
+
+                if (!column.isFilterable) {
+                    continue;
+                }
+
+                if (!column.filterEntityType) {
+                    Logger.warn(
+                        `Cannot filter on ${key} because column.filterEntityType is not set.`
+                    );
+                    continue;
+                }
+
+                if (!column.filterDropdownField) {
+                    Logger.warn(
+                        `Cannot filter on ${key} because column.dropdownField is not set.`
+                    );
+                    continue;
+                }
+
+                const hasPermission: boolean =
+                    hasPermissionToReadColumn(column);
+
+                if (!hasPermission) {
+                    continue;
+                }
+
+                const query: Query<BaseModel> = column.filterQuery || {};
+
+                const listResult: ListResult<BaseModel> =
+                    await ModelAPI.getList<BaseModel>(
+                        column.filterEntityType,
+                        query,
+                        LIMIT_PER_PROJECT,
+                        0,
+                        {
+                            [column.filterDropdownField.label]: true,
+                            [column.filterDropdownField.value]: true,
+                        },
+                        {},
+                        {}
+                    );
+
+                classicColumn.filterDropdownOptions = [];
+                for (const item of listResult.data) {
+                    classicColumn.filterDropdownOptions.push({
+                        value: item.getColumnValue(
+                            column.filterDropdownField.value
+                        ) as string,
+                        label: item.getColumnValue(
+                            column.filterDropdownField.label
+                        ) as string,
+                    });
+                }
+            }
+
+            setColumns(classicColumns);
+        } catch (err) {
+            try {
+                setTableFilterError(
+                    ((err as HTTPErrorResponse).data as JSONObject)[
+                        'error'
+                    ] as string
+                );
+            } catch (e) {
+                setTableFilterError('Server Error. Please try again');
+            }
+        }
+
+        setIsTableFilterFetchLoading(false);
+    };
+
     const fetchItems: Function = async () => {
         setError('');
         setIsLoading(true);
@@ -253,6 +370,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         setIsLoading(false);
     };
+
+    useEffect(() => {
+        if (showTableFilter) {
+            getFilterDropdownItems();
+        }
+    }, [showTableFilter]);
 
     useEffect(() => {
         fetchItems();
@@ -390,21 +513,53 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return model.isEntityColumn(columnName);
     };
 
-    useEffect(() => {
-        // Convert ModelColumns to TableColumns.
+    const getColumnKey: Function = (
+        column: ModelTableColumn<TBaseModel>
+    ): string | null => {
+        const key: string | null = column.field
+            ? (Object.keys(column.field)[0] as string)
+            : null;
 
-        const columns: Array<TableColumn> = [];
+        return key;
+    };
 
-        const selectFields: Select<TBaseModel> = {
-            _id: true,
-        };
+    const hasPermissionToReadColumn: Function = (
+        column: ModelTableColumn<TBaseModel>
+    ): boolean => {
+        const accessControl: Dictionary<ColumnAccessControl> =
+            model.getColumnAccessControlForAllColumns();
 
-        const slugifyColumn: string | null = model.getSlugifyColumn();
+        const userPermissions: Array<Permission> = getUserPermissions();
 
-        if (slugifyColumn) {
-            (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
+        const key: string | null = getColumnKey(column);
+
+        // check permissions.
+        let hasPermission: boolean = false;
+
+        if (!key) {
+            hasPermission = true;
         }
 
+        if (key) {
+            hasPermission = true;
+            let fieldPermissions: Array<Permission> = [];
+            fieldPermissions = accessControl[key as string]?.read || [];
+
+            if (
+                accessControl[key]?.read &&
+                !PermissionHelper.doesPermissionsIntersect(
+                    userPermissions,
+                    fieldPermissions
+                )
+            ) {
+                hasPermission = false;
+            }
+        }
+
+        return hasPermission;
+    };
+
+    const getUserPermissions: Function = (): Array<Permission> => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -423,57 +578,32 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         userPermissions.push(Permission.Public);
 
+        return userPermissions;
+    };
+
+    useEffect(() => {
+        // Convert ModelColumns to TableColumns.
+
+        const columns: Array<TableColumn> = [];
+
+        const selectFields: Select<TBaseModel> = {
+            _id: true,
+        };
+
+        const slugifyColumn: string | null = model.getSlugifyColumn();
+
+        if (slugifyColumn) {
+            (selectFields as Dictionary<boolean>)[slugifyColumn] = true;
+        }
+
+        const userPermissions: Array<Permission> = getUserPermissions();
+
         const accessControl: Dictionary<ColumnAccessControl> =
             model.getColumnAccessControlForAllColumns();
 
         for (const column of props.columns || []) {
-            const key: string | null = column.field
-                ? (Object.keys(column.field)[0] as string)
-                : null;
-
-            // check permissions.
-            let hasPermission: boolean = false;
-
-            if (!key) {
-                hasPermission = true;
-            }
-
-            if (key) {
-                hasPermission = true;
-                let fieldPermissions: Array<Permission> = [];
-                fieldPermissions = accessControl[key as string]?.read || [];
-
-                if (
-                    accessControl[key]?.read &&
-                    !PermissionHelper.doesPermissionsIntersect(
-                        userPermissions,
-                        fieldPermissions
-                    )
-                ) {
-                    hasPermission = false;
-                }
-            }
-
-            const selectMoreFields: Array<string> = props.selectMoreFields
-                ? Object.keys(props.selectMoreFields)
-                : [];
-
-            for (const moreField of selectMoreFields) {
-                let fieldPermissions: Array<Permission> = [];
-                fieldPermissions =
-                    accessControl[moreField as string]?.read || [];
-
-                if (
-                    accessControl[moreField]?.read &&
-                    !PermissionHelper.doesPermissionsIntersect(
-                        userPermissions,
-                        fieldPermissions
-                    )
-                ) {
-                    hasPermission = false;
-                    break;
-                }
-            }
+            const hasPermission: boolean = hasPermissionToReadColumn(column);
+            const key: string | null = getColumnKey(column);
 
             if (hasPermission) {
                 columns.push({
@@ -487,10 +617,34 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 if (key) {
                     (selectFields as Dictionary<boolean>)[key] = true;
                 }
+            }
+        }
 
-                for (const moreField of selectMoreFields) {
-                    (selectFields as Dictionary<boolean>)[moreField] = true;
-                }
+        const selectMoreFields: Array<string> = props.selectMoreFields
+            ? Object.keys(props.selectMoreFields)
+            : [];
+
+        for (const moreField of selectMoreFields) {
+            let hasPermissionToSelectField: boolean = true;
+            let fieldPermissions: Array<Permission> = [];
+            fieldPermissions = accessControl[moreField as string]?.read || [];
+
+            if (
+                accessControl[moreField]?.read &&
+                !PermissionHelper.doesPermissionsIntersect(
+                    userPermissions,
+                    fieldPermissions
+                )
+            ) {
+                hasPermissionToSelectField = false;
+            }
+
+            if (hasPermissionToSelectField) {
+                (selectFields as Dictionary<boolean>)[moreField] = true;
+            } else {
+                Logger.warn(
+                    'User does not have read permissions to read - ' + moreField
+                );
             }
         }
 
@@ -503,8 +657,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 model.hasDeletePermissions(userProjectPermissions)) ||
                 (props.isEditable &&
                     model.hasUpdatePermissions(userProjectPermissions)) ||
-                (props.isCreateable &&
-                    model.hasUpdatePermissions(userProjectPermissions)))
+                (props.isViewable &&
+                    model.hasReadPermissions(userProjectPermissions)))
         ) {
             columns.push({
                 title: 'Actions',
@@ -544,26 +698,40 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         onError: (err: Error) => void
                     ) => {
                         try {
+                            const baseModel: TBaseModel =
+                                BaseModel.fromJSONObject(item, props.modelType);
+
                             if (props.onBeforeView) {
                                 item = (
-                                    await props.onBeforeView(
-                                        BaseModel.fromJSONObject(
-                                            item,
-                                            props.modelType
-                                        )
-                                    )
+                                    await props.onBeforeView(baseModel)
                                 ).toJSONObject();
                             }
 
-                            if (!props.currentPageRoute) {
+                            if (props.onViewPage) {
+                                const route: Route = await props.onViewPage(
+                                    baseModel
+                                );
+
+                                onCompleteAction();
+                                if (props.onViewComplete) {
+                                    props.onViewComplete(baseModel);
+                                }
+                                return Navigation.navigate(route);
+                            }
+
+                            if (!props.viewPageRoute) {
                                 throw new BadDataException(
                                     'Please populate curentPageRoute in ModelTable'
                                 );
                             }
+
                             onCompleteAction();
-                            Navigation.navigate(
+                            if (props.onViewComplete) {
+                                props.onViewComplete(baseModel);
+                            }
+                            return Navigation.navigate(
                                 new Route(
-                                    props.currentPageRoute.toString()
+                                    props.viewPageRoute.toString()
                                 ).addRoute('/' + item['_id'])
                             );
                         } catch (err) {
@@ -651,9 +819,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const getTable: Function = (): ReactElement => {
         return (
             <Table
-                onFilterChanged={(
-                    filterData: Dictionary<string | boolean | Search | Date>
-                ) => {
+                onFilterChanged={(filterData: FilterData) => {
                     const query: Query<TBaseModel> = {};
 
                     for (const key in filterData) {
@@ -679,6 +845,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         if (filterData[key] instanceof Search) {
                             query[key as keyof TBaseModel] = filterData[key];
                         }
+
+                        if (filterData[key] instanceof InBetween) {
+                            query[key as keyof TBaseModel] = filterData[key];
+                        }
+
+                        if (Array.isArray(filterData[key])) {
+                            query[key as keyof TBaseModel] = filterData[key];
+                        }
                     }
 
                     setQuery(query);
@@ -686,6 +860,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onSortChanged={(sortBy: string, sortOrder: SortOrder) => {
                     setSortBy(sortBy);
                     setSortOrder(sortOrder);
+                }}
+                onTableFilterRefreshClick={() => {
+                    getFilterDropdownItems();
                 }}
                 singularLabel={
                     props.singularName || model.singularName || 'Item'
@@ -696,10 +873,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
                 data={BaseModel.toJSONObjectArray(data)}
+                filterError={tableFilterError}
                 id={props.id}
                 columns={tableColumns}
                 itemsOnPage={itemsOnPage}
                 disablePagination={props.disablePagination || false}
+                isTableFilterLoading={isTableFilterFetchLoading}
                 onNavigateToPage={async (
                     pageNumber: number,
                     itemsOnPage: number
@@ -884,6 +1063,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                   props.singularName || model.singularName
                               }`
                             : `Edit ${props.singularName || model.singularName}`
+                    }
+                    initialValues={
+                        modalType === ModalType.Create
+                            ? props.createInitialValues
+                            : undefined
                     }
                     onClose={() => {
                         setShowModal(false);

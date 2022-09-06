@@ -22,6 +22,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/state-timeline`
     ),
 
+    [PageMap.MONITOR_VIEW_INCIDENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/incidents`
+    ),
+
     [PageMap.INCIDENT_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
     ),

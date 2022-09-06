@@ -175,6 +175,7 @@ const BasicForm: Function = <T extends Object>(
                                         value:
                                             | DropdownValue
                                             | Array<DropdownValue>
+                                            | null
                                     ) => {
                                         await form.setFieldValue(
                                             fieldName,

@@ -198,7 +198,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                currentPageRoute={props.pageRoute}
+                viewPageRoute={props.pageRoute}
                 columns={[
                     {
                         field: {
@@ -225,7 +225,16 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         title: 'Labels',
-                        type: FieldType.Text,
+                        type: FieldType.EntityArray,
+                        isFilterable: true,
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <LabelsElement

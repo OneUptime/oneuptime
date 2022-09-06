@@ -13,6 +13,8 @@ import { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import TeamMember from 'Model/Models/TeamMember';
 import User from 'CommonUI/src/Utils/User';
 import ProjectInvitationsModal from './ProjectInvitationsModal';
+import ActiveIncidentsModal from './ActiveIncidentsModal';
+import Incident from 'Model/Models/Incident';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -24,6 +26,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [showProjectInvitationModal, setShowProjectInvitationModal] =
+        useState<boolean>(false);
+
+    const [showActiveIncidentsModal, setShowActiveIncidentsModal] =
         useState<boolean>(false);
 
     return (
@@ -58,6 +63,23 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     setShowProjectInvitationModal(true);
                                 }}
                             />
+                            <CounterModelAlert<Incident>
+                                alertType={AlertType.DANGER}
+                                modelType={Incident}
+                                query={{
+                                    currentIncidentState: {
+                                        order: 1,
+                                    },
+                                }}
+                                singularName="Active Incident"
+                                pluralName="Active Incidents"
+                                requestOptions={{
+                                    isMultiTenantRequest: true,
+                                }}
+                                onClick={() => {
+                                    setShowActiveIncidentsModal(true);
+                                }}
+                            />
                         </div>
                     </>
                 }
@@ -77,6 +99,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     }}
                     onRequestAccepted={() => {
                         props.onProjectRequestAccepted();
+                    }}
+                />
+            )}
+
+            {showActiveIncidentsModal && (
+                <ActiveIncidentsModal
+                    onClose={() => {
+                        setShowActiveIncidentsModal(false);
                     }}
                 />
             )}

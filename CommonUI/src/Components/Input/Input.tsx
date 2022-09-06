@@ -40,12 +40,6 @@ const Input: FunctionComponent<ComponentProps> = (
         setValue(props.value ? props.value : '');
     }, [props.value]);
 
-    useEffect(() => {
-        if (props.initialValue) {
-            setValue(props.initialValue);
-        }
-    }, [props.initialValue]);
-
     return (
         <div
             className={`flex ${props.className}`}

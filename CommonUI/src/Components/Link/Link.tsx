@@ -10,6 +10,7 @@ export interface ComponentProps {
     className?: undefined | string;
     to: Route | URL | null | undefined;
     onClick?: undefined | (() => void);
+    onNavigateComplete?: (() => void) | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
@@ -33,6 +34,10 @@ const Link: FunctionComponent<ComponentProps> = (
 
                 if (props.onClick) {
                     props.onClick();
+                }
+
+                if (props.onNavigateComplete) {
+                    props.onNavigateComplete();
                 }
             }}
         >
