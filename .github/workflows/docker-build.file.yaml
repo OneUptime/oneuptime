@@ -1,4 +1,4 @@
-name: Identity Docker Build
+name: File Service Docker Build
 
 on:
   pull_request: 
@@ -16,6 +16,6 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v2
 
-      # build image for identity
+      # build image for file
       - name: build docker image
-        run: npm run build-ci identity
+        run: npm run build-ci file

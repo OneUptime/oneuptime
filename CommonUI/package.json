@@ -34,6 +34,7 @@
         "react": "^18.1.0",
         "react-color": "^2.19.3",
         "react-dom": "^18.1.0",
+        "react-dropzone": "^14.2.2",
         "react-icons": "^4.4.0",
         "react-markdown": "^8.0.3",
         "react-modern-drawer": "^1.1.1",
