@@ -47,6 +47,7 @@ import { FilterData } from '../Table/TableHeader';
 import ModelTableColumn from "./Column";
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import InBetween from 'Common/Types/Database/InBetween';
 
 export enum ShowTableAs {
     Table,
@@ -845,6 +846,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         }
 
                         if (filterData[key] instanceof Search) {
+                            query[key as keyof TBaseModel] = filterData[key];
+                        }
+
+                        if (filterData[key] instanceof InBetween) {
                             query[key as keyof TBaseModel] = filterData[key];
                         }
 

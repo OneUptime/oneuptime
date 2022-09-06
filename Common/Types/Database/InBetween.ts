@@ -1,3 +1,5 @@
+import OneUptimeDate from "../Date";
+
 export default class InBetween {
     private _startValue!:number | Date | string;
     public get startValue():number | Date | string {
@@ -21,6 +23,30 @@ export default class InBetween {
     }
 
     public toString(): string {
+        let startValue = this.startValue;
+        let endValue = this.endValue; 
+
+
+        if (startValue instanceof Date) {
+            startValue =  OneUptimeDate.asDateForDatabaseQuery(startValue)
+        }
+
+        if (endValue instanceof Date) {
+            endValue =  OneUptimeDate.asDateForDatabaseQuery(endValue)
+        }
+
+        if (startValue.toString() === endValue.toString()) {
+            return this.startValue.toString();
+        }
+
         return this.startValue.toString() + ' - ' + this.endValue.toString();
+    }
+
+    public toStartValueString(): string {
+        return this.startValue.toString();
+    }
+
+    public toEndValueString(): string {
+        return this.endValue.toString();
     }
 }
