@@ -27,6 +27,7 @@ import Monitor from './Monitor';
 import IncidentState from './IncidentState';
 import MonitorStatus from './MonitorStatus';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
+import Label from './Label';
 
 @MultiTenentQueryAllowed(true)
 @TenantColumn('projectId')
@@ -261,6 +262,39 @@ export default class Incident extends BaseModel {
         },
     })
     public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectIncident,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
+    })
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: true }
+    )
+    @JoinTable({
+        name: 'IncidentLabel',
+        inverseJoinColumn: {
+            name: 'labelId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'incidentId',
+            referencedColumnName: '_id',
+        },
+    })
+    public labels?: Array<Label> = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
