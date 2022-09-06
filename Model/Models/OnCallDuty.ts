@@ -16,7 +16,9 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Label from './Label';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 
+@AccessControlColumn("labels")
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectOnCallDuty],

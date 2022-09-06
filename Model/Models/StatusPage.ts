@@ -15,8 +15,10 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import Label from './Label';
 
+@AccessControlColumn("labels")
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],

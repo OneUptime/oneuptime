@@ -26,9 +26,11 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Monitor from './Monitor';
 import IncidentState from './IncidentState';
 import MonitorStatus from './MonitorStatus';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import Label from './Label';
 
+@AccessControlColumn("labels")
 @MultiTenentQueryAllowed(true)
 @TenantColumn('projectId')
 @TableAccessControl({

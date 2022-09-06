@@ -1,0 +1,40 @@
+import { Column } from 'typeorm';
+import ColumnLength from '../Types/Database/ColumnLength';
+import ColumnType from '../Types/Database/ColumnType';
+import TableColumn from '../Types/Database/TableColumn';
+import TableColumnType from '../Types/Database/TableColumnType';
+import ObjectID from '../Types/ObjectID';
+import BaseModel from './BaseModel';
+
+export default class FileModel extends BaseModel {
+    public constructor(id?: ObjectID) {
+        super(id);
+    }
+
+    public override isFileModel(): boolean {
+        return true;
+    }
+
+    @TableColumn({ required: true, type: TableColumnType.File })
+    @Column({
+        nullable: false,
+        type: ColumnType.File,
+    })
+    public file?: Buffer = undefined;
+
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public name?: string = undefined;
+
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public type?: string = undefined;
+}

@@ -36,6 +36,9 @@ import IncidentInternalNote from './IncidentInternalNote';
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 
+
+import File from './File';
+
 export default [
     User,
     Probe,
@@ -58,4 +61,5 @@ export default [
     MonitorStatusTimeline,
     IncidentPublicNote,
     IncidentInternalNote,
+    File
 ];

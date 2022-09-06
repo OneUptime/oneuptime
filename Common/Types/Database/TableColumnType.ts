@@ -9,6 +9,8 @@ enum ColumnType {
     Name,
     Description,
     ObjectID,
+    File,
+    Buffer,
     ShortURL,
     LongURL,
     ShortText,

@@ -82,8 +82,11 @@ export default class BaseModel extends BaseEntity {
     public allowUserQueryWithoutTenant!: boolean | null;
 
     public crudApiPath!: Route | null;
+
     // If this resource is by projectId, which column does projectId belong to?
     public tenantColumn!: string | null;
+
+    public accessControlColumn!: string | null;
 
     public constructor(id?: ObjectID) {
         super();
@@ -244,6 +247,10 @@ export default class BaseModel extends BaseEntity {
 
     public getTenantColumn(): string | null {
         return this.tenantColumn;
+    }
+
+    public getAccessControlColumn(): string | null {
+        return this.accessControlColumn;
     }
 
     public getUserColumn(): string | null {
@@ -409,6 +416,14 @@ export default class BaseModel extends BaseEntity {
     }
 
     public isTenantModel(): boolean {
+        return false;
+    }
+
+    public isFileModel(): boolean {
+        return false;
+    }
+
+    public isAccessControlModel(): boolean {
         return false;
     }
 

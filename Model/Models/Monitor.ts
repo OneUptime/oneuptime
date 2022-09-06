@@ -25,8 +25,10 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Label from './Label';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MonitorStatus from './MonitorStatus';
 
+@AccessControlColumn("labels")
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
