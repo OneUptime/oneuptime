@@ -14,7 +14,7 @@ import FormValues from '../Forms/Types/FormValues';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     initialValues?: FormValues<TBaseModel> | undefined;
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;

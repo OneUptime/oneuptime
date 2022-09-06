@@ -226,14 +226,14 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        isFilterable: true, 
+                        isFilterable: true,
                         filterEntityType: Label,
                         filterQuery: {
-                            projectId: props.currentProject?._id
+                            projectId: props.currentProject?._id,
                         },
                         filterDropdownField: {
-                            label: "name", 
-                            value: "_id"
+                            label: 'name',
+                            value: '_id',
                         },
                         getElement: (item: JSONObject): ReactElement => {
                             return (

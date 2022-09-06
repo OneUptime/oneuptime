@@ -98,9 +98,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         }
 
         if (!value) {
-            props.onChange && props.onChange(props.isMultiSelect ? [] : null);    
+            props.onChange && props.onChange(props.isMultiSelect ? [] : null);
         }
-
     }, [value]);
 
     return (

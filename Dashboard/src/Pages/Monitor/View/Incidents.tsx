@@ -61,7 +61,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-           <ModelTable<Incident>
+            <ModelTable<Incident>
                 modelType={Incident}
                 id="incidents-table"
                 isDeleteable={false}
@@ -76,10 +76,14 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                         'Here is a list of incidents for this monitor.',
                 }}
                 createInitialValues={{
-                    monitors: [modelId.toString()]
+                    monitors: [modelId.toString()],
                 }}
                 onViewPage={(item: Incident) => {
-                    return new Route(`/dashboard/${props.currentProject?._id || ''}/incidents/${item._id}`)
+                    return new Route(
+                        `/dashboard/${
+                            props.currentProject?._id || ''
+                        }/incidents/${item._id}`
+                    );
                 }}
                 noItemsMessage={'No incidents created for this monitor so far.'}
                 formFields={[
@@ -196,7 +200,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                             monitors: {
                                 name: true,
                                 _id: true,
-                                projectId: true
+                                projectId: true,
                             },
                         },
                         title: 'Monitors Affected',

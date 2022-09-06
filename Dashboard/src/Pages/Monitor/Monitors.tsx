@@ -125,14 +125,14 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                                 name: true,
                             },
                         },
-                        isFilterable: true, 
+                        isFilterable: true,
                         filterEntityType: MonitorStatus,
                         filterQuery: {
-                            projectId: props.currentProject?._id
+                            projectId: props.currentProject?._id,
                         },
                         filterDropdownField: {
-                            label: "name", 
-                            value: "_id"
+                            label: 'name',
+                            value: '_id',
                         },
                         title: 'Monitor Status',
                         type: FieldType.Entity,
@@ -172,14 +172,14 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Labels',
                         type: FieldType.EntityArray,
-                        isFilterable: true, 
+                        isFilterable: true,
                         filterEntityType: Label,
                         filterQuery: {
-                            projectId: props.currentProject?._id
+                            projectId: props.currentProject?._id,
                         },
                         filterDropdownField: {
-                            label: "name", 
-                            value: "_id"
+                            label: 'name',
+                            value: '_id',
                         },
                         getElement: (item: JSONObject): ReactElement => {
                             return (

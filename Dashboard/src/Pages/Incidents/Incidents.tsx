@@ -132,14 +132,14 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Current State',
                         type: FieldType.Entity,
-                        isFilterable: true, 
+                        isFilterable: true,
                         filterEntityType: IncidentState,
                         filterQuery: {
-                            projectId: props.currentProject?._id
+                            projectId: props.currentProject?._id,
                         },
                         filterDropdownField: {
-                            label: "name", 
-                            value: "_id"
+                            label: 'name',
+                            value: '_id',
                         },
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['currentIncidentState']) {
@@ -171,19 +171,19 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                             monitors: {
                                 name: true,
                                 _id: true,
-                                projectId: true
+                                projectId: true,
                             },
                         },
                         title: 'Monitors Affected',
                         type: FieldType.EntityArray,
-                        isFilterable: true, 
+                        isFilterable: true,
                         filterEntityType: Monitor,
                         filterQuery: {
-                            projectId: props.currentProject?._id
+                            projectId: props.currentProject?._id,
                         },
                         filterDropdownField: {
-                            label: "name", 
-                            value: "_id"
+                            label: 'name',
+                            value: '_id',
                         },
                         getElement: (item: JSONObject): ReactElement => {
                             return (
@@ -205,7 +205,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Created At',
                         type: FieldType.DateTime,
-                        isFilterable: true, 
+                        isFilterable: true,
                     },
                 ]}
             />

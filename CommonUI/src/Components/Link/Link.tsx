@@ -10,7 +10,7 @@ export interface ComponentProps {
     className?: undefined | string;
     to: Route | URL | null | undefined;
     onClick?: undefined | (() => void);
-    onNavigateComplete?: (() => void) | undefined; 
+    onNavigateComplete?: (() => void) | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (

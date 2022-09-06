@@ -40,7 +40,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
                         />
-                        <SearchBox key={2} onChange={(_value: string) => { }} />
+                        <SearchBox key={2} onChange={(_value: string) => {}} />
                         <div
                             style={{
                                 marginLeft: '15px',
@@ -68,8 +68,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 modelType={Incident}
                                 query={{
                                     currentIncidentState: {
-                                        order: 1
-                                    }
+                                        order: 1,
+                                    },
                                 }}
                                 singularName="Active Incident"
                                 pluralName="Active Incidents"

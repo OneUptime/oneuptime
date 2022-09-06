@@ -44,7 +44,7 @@ import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
 import Field from '../Detail/Field';
 import FormValues from '../Forms/Types/FormValues';
 import { FilterData } from '../Table/TableHeader';
-import ModelTableColumn from "./Column";
+import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import InBetween from 'Common/Types/Database/InBetween';
@@ -56,14 +56,14 @@ export enum ShowTableAs {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     onFetchInit?:
-    | undefined
-    | ((pageNumber: number, itemsOnPage: number) => void);
+        | undefined
+        | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-    | undefined
-    | ((data: Array<TBaseModel>, totalCount: number) => void);
+        | undefined
+        | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     selectMoreFields?: Select<TBaseModel>;
@@ -142,7 +142,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-
     const [error, setError] = useState<string>('');
     const [tableFilterError, setTableFilterError] = useState<string>('');
 
@@ -166,7 +165,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     const [fields, setFields] = useState<Array<Field>>([]);
 
-    const [isTableFilterFetchLoading, setIsTableFilterFetchLoading] = useState(false);
+    const [isTableFilterFetchLoading, setIsTableFilterFetchLoading] =
+        useState(false);
 
     useEffect(() => {
         const detailFields: Array<Field> = [];
@@ -183,8 +183,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 fieldType: column.type,
                 getElement: column.getElement
                     ? (item: JSONObject): ReactElement => {
-                        return column.getElement!(item, onBeforeFetchData);
-                    }
+                          return column.getElement!(item, onBeforeFetchData);
+                      }
                     : undefined,
             });
 
@@ -208,7 +208,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
@@ -219,7 +219,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         setIsLoading(false);
     };
 
-
     const getFilterDropdownItems: Function = async () => {
         setTableFilterError('');
         setIsTableFilterFetchLoading(true);
@@ -227,25 +226,28 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         const classicColumns: Array<TableColumn> = [...tableColumns];
 
         try {
-
             for (const column of props.columns) {
+                const key: string | null = getColumnKey(column);
 
-
-                const key = getColumnKey(column);
-
-                const classicColumn = classicColumns.find((i: TableColumn) => {
-                    return i.key === key;
-                })
+                const classicColumn: TableColumn | undefined =
+                    classicColumns.find((i: TableColumn) => {
+                        return i.key === key;
+                    });
 
                 if (!classicColumn) {
-                    continue; 
+                    continue;
                 }
 
                 if (!key) {
                     continue;
                 }
 
-                if (!(column.type === FieldType.Entity || column.type === FieldType.EntityArray)) {
+                if (
+                    !(
+                        column.type === FieldType.Entity ||
+                        column.type === FieldType.EntityArray
+                    )
+                ) {
                     continue;
                 }
 
@@ -254,16 +256,21 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 }
 
                 if (!column.filterEntityType) {
-                    Logger.warn(`Cannot filter on ${key} because column.filterEntityType is not set.`);
+                    Logger.warn(
+                        `Cannot filter on ${key} because column.filterEntityType is not set.`
+                    );
                     continue;
                 }
 
                 if (!column.filterDropdownField) {
-                    Logger.warn(`Cannot filter on ${key} because column.dropdownField is not set.`)
+                    Logger.warn(
+                        `Cannot filter on ${key} because column.dropdownField is not set.`
+                    );
                     continue;
                 }
 
-                const hasPermission = hasPermissionToReadColumn(column);
+                const hasPermission: boolean =
+                    hasPermissionToReadColumn(column);
 
                 if (!hasPermission) {
                     continue;
@@ -284,25 +291,26 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         {},
                         {}
                     );
-                
-                
-                classicColumn.filterDropdownOptions = []; 
+
+                classicColumn.filterDropdownOptions = [];
                 for (const item of listResult.data) {
                     classicColumn.filterDropdownOptions.push({
-                        value: item.getColumnValue(column.filterDropdownField.value) as string, 
-                        label: item.getColumnValue(column.filterDropdownField.label) as string
-                    })
+                        value: item.getColumnValue(
+                            column.filterDropdownField.value
+                        ) as string,
+                        label: item.getColumnValue(
+                            column.filterDropdownField.label
+                        ) as string,
+                    });
                 }
             }
 
             setColumns(classicColumns);
-
-
         } catch (err) {
             try {
                 setTableFilterError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
@@ -311,7 +319,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         setIsTableFilterFetchLoading(false);
-
     };
 
     const fetchItems: Function = async () => {
@@ -328,7 +335,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         try {
-
             const listResult: ListResult<TBaseModel> =
                 await ModelAPI.getList<TBaseModel>(
                     props.modelType,
@@ -341,8 +347,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                            [sortBy as any]: sortOrder,
-                        }
+                              [sortBy as any]: sortOrder,
+                          }
                         : {},
                     getPopulate(),
                     props.fetchRequestOptions
@@ -354,7 +360,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                        'error'
                     ] as string
                 );
             } catch (e) {
@@ -369,7 +375,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         if (showTableFilter) {
             getFilterDropdownItems();
         }
-    }, [showTableFilter])
+    }, [showTableFilter]);
 
     useEffect(() => {
         fetchItems();
@@ -452,8 +458,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             showTableAs !== ShowTableAs.OrderedStatesList
         ) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
-                    }`,
+                title: `${props.createVerb || 'Create'} ${
+                    props.singularName || model.singularName
+                }`,
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
                     setModalType(ModalType.Create);
@@ -506,17 +513,19 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         return model.isEntityColumn(columnName);
     };
 
-    const getColumnKey = (column: ModelTableColumn<TBaseModel>): string | null => {
+    const getColumnKey: Function = (
+        column: ModelTableColumn<TBaseModel>
+    ): string | null => {
         const key: string | null = column.field
             ? (Object.keys(column.field)[0] as string)
             : null;
 
         return key;
-    }
+    };
 
-
-    const hasPermissionToReadColumn = (column: ModelTableColumn<TBaseModel>): boolean => {
-
+    const hasPermissionToReadColumn: Function = (
+        column: ModelTableColumn<TBaseModel>
+    ): boolean => {
         const accessControl: Dictionary<ColumnAccessControl> =
             model.getColumnAccessControlForAllColumns();
 
@@ -548,10 +557,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         return hasPermission;
-    }
+    };
 
-
-    const getUserPermissions = (): Array<Permission> => {
+    const getUserPermissions: Function = (): Array<Permission> => {
         let userPermissions: Array<Permission> =
             PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
         if (
@@ -571,7 +579,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         userPermissions.push(Permission.Public);
 
         return userPermissions;
-    }
+    };
 
     useEffect(() => {
         // Convert ModelColumns to TableColumns.
@@ -594,9 +602,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             model.getColumnAccessControlForAllColumns();
 
         for (const column of props.columns || []) {
-
-
-            const hasPermission = hasPermissionToReadColumn(column);
+            const hasPermission: boolean = hasPermissionToReadColumn(column);
             const key: string | null = getColumnKey(column);
 
             if (hasPermission) {
@@ -619,11 +625,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             : [];
 
         for (const moreField of selectMoreFields) {
-
-            let hasPermissionToSelectField = true;
+            let hasPermissionToSelectField: boolean = true;
             let fieldPermissions: Array<Permission> = [];
-            fieldPermissions =
-                accessControl[moreField as string]?.read || [];
+            fieldPermissions = accessControl[moreField as string]?.read || [];
 
             if (
                 accessControl[moreField]?.read &&
@@ -638,10 +642,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             if (hasPermissionToSelectField) {
                 (selectFields as Dictionary<boolean>)[moreField] = true;
             } else {
-                Logger.warn("User does not have read permissions to read - " + moreField);
+                Logger.warn(
+                    'User does not have read permissions to read - ' + moreField
+                );
             }
         }
-
 
         const userProjectPermissions: UserProjectAccessPermission | null =
             PermissionUtil.getProjectPermissions();
@@ -693,31 +698,25 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         onError: (err: Error) => void
                     ) => {
                         try {
-
-                            const baseModel: TBaseModel = BaseModel.fromJSONObject(
-                                item,
-                                props.modelType
-                            );
+                            const baseModel: TBaseModel =
+                                BaseModel.fromJSONObject(item, props.modelType);
 
                             if (props.onBeforeView) {
                                 item = (
-                                    await props.onBeforeView(
-                                        baseModel
-                                    )
+                                    await props.onBeforeView(baseModel)
                                 ).toJSONObject();
                             }
 
                             if (props.onViewPage) {
-                                const route: Route = await props.onViewPage(baseModel);
+                                const route: Route = await props.onViewPage(
+                                    baseModel
+                                );
 
                                 onCompleteAction();
                                 if (props.onViewComplete) {
                                     props.onViewComplete(baseModel);
                                 }
-                                return Navigation.navigate(
-                                    route
-                                );
-
+                                return Navigation.navigate(route);
                             }
 
                             if (!props.viewPageRoute) {
@@ -820,9 +819,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const getTable: Function = (): ReactElement => {
         return (
             <Table
-                onFilterChanged={(
-                    filterData: FilterData
-                ) => {
+                onFilterChanged={(filterData: FilterData) => {
                     const query: Query<TBaseModel> = {};
 
                     for (const key in filterData) {
@@ -908,9 +905,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         let getTitleElement:
             | ((
-                item: JSONObject,
-                onBeforeFetchData?: JSONObject | undefined
-            ) => ReactElement)
+                  item: JSONObject,
+                  onBeforeFetchData?: JSONObject | undefined
+              ) => ReactElement)
             | undefined = undefined;
         let getDescriptionElement:
             | ((item: JSONObject) => ReactElement)
@@ -954,10 +951,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onCreateNewItem={
                     props.isCreateable
                         ? (order: number) => {
-                            setOrderedStatesListNewItemOrder(order);
-                            setModalType(ModalType.Create);
-                            setShowModal(true);
-                        }
+                              setOrderedStatesListNewItemOrder(order);
+                              setModalType(ModalType.Create);
+                              setShowModal(true);
+                          }
                         : undefined
                 }
                 singularLabel={
@@ -1062,18 +1059,24 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
-                            }`
+                            ? `${props.createVerb || 'Create'} New ${
+                                  props.singularName || model.singularName
+                              }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
-                    initialValues={modalType === ModalType.Create ? props.createInitialValues : undefined}
+                    initialValues={
+                        modalType === ModalType.Create
+                            ? props.createInitialValues
+                            : undefined
+                    }
                     onClose={() => {
                         setShowModal(false);
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
-                            }`
+                            ? `${props.createVerb || 'Create'} ${
+                                  props.singularName || model.singularName
+                              }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {

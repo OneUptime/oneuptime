@@ -4,7 +4,7 @@ import MonitorElement from './Monitor';
 
 export interface ComponentProps {
     monitors: Array<Monitor>;
-    onNavigateComplete?: (() => void) | undefined; 
+    onNavigateComplete?: (() => void) | undefined;
 }
 
 const MonitorsElement: FunctionComponent<ComponentProps> = (
@@ -17,10 +17,17 @@ const MonitorsElement: FunctionComponent<ComponentProps> = (
     return (
         <div>
             {props.monitors.map((monitor: Monitor, i: number) => {
-                return <span key={i}>
-                    <MonitorElement monitor={monitor} onNavigateComplete={props.onNavigateComplete} />
-                    {i !== props.monitors.length -1  && <span>,&nbsp;</span>}
-                </span>
+                return (
+                    <span key={i}>
+                        <MonitorElement
+                            monitor={monitor}
+                            onNavigateComplete={props.onNavigateComplete}
+                        />
+                        {i !== props.monitors.length - 1 && (
+                            <span>,&nbsp;</span>
+                        )}
+                    </span>
+                );
             })}
         </div>
     );

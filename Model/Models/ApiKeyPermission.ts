@@ -309,13 +309,13 @@ export default class APIKeyPermission extends BaseModel {
     @JoinTable({
         name: 'ApiKeyPermissionLabel',
         inverseJoinColumn: {
-          name: 'labelId',
-          referencedColumnName: '_id'
+            name: 'labelId',
+            referencedColumnName: '_id',
         },
         joinColumn: {
-          name: 'apiKeyPermissionId',
-          referencedColumnName: '_id'
-        }
+            name: 'apiKeyPermissionId',
+            referencedColumnName: '_id',
+        },
     })
     public labels?: Array<Label> = undefined;
 }

@@ -693,7 +693,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             }
 
             if (!columns.columns.includes(key)) {
-
                 if (!tableColumns.includes(key)) {
                     throw new BadDataException(
                         `Invalid column on ${this.model.singularName} - ${key}.`
@@ -1040,9 +1039,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private serializeQuery(query: Query<TBaseModel>): Query<TBaseModel> {
         for (const key in query) {
-
-
-            const tableColumnMetadata = this.model.getTableColumnMetadata(key); 
+            const tableColumnMetadata: TableColumnMetadata =
+                this.model.getTableColumnMetadata(key);
 
             if (
                 query[key] &&
@@ -1088,23 +1086,35 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query[key] = QueryHelper.lessThanEqualTo(
                     (query[key] as LessThanOrEqual).toString() as any
                 ) as any;
-            } else if (query[key] && Array.isArray(query[key]) && tableColumnMetadata.type !== TableColumnType.EntityArray) {
+            } else if (
+                query[key] &&
+                Array.isArray(query[key]) &&
+                tableColumnMetadata.type !== TableColumnType.EntityArray
+            ) {
                 query[key] = QueryHelper.in(
                     query[key] as any
                 ) as FindOperator<any> as any;
             }
 
-           
-
-            if (tableColumnMetadata && tableColumnMetadata.manyToOneRelationColumn && typeof query[key] === Typeof.String) {
-                (query as any)[tableColumnMetadata.manyToOneRelationColumn] = query[key] as string;
+            if (
+                tableColumnMetadata &&
+                tableColumnMetadata.manyToOneRelationColumn &&
+                typeof query[key] === Typeof.String
+            ) {
+                (query as any)[tableColumnMetadata.manyToOneRelationColumn] =
+                    query[key] as string;
                 delete query[key];
             }
 
-            if (tableColumnMetadata && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray && Array.isArray(query[key])) {
+            if (
+                tableColumnMetadata &&
+                tableColumnMetadata.modelType &&
+                tableColumnMetadata.type === TableColumnType.EntityArray &&
+                Array.isArray(query[key])
+            ) {
                 (query as any)[key] = {
-                    "_id": QueryHelper.in(query[key] as Array<string>)
-                }
+                    _id: QueryHelper.in(query[key] as Array<string>),
+                };
             }
         }
 

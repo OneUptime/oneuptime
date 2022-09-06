@@ -5,16 +5,25 @@ import Route from 'Common/Types/API/Route';
 
 export interface ComponentProps {
     project: Project;
-    onNavigateComplete?: (() => void) | undefined; 
+    onNavigateComplete?: (() => void) | undefined;
 }
 
 const ProjectElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    if (props.project && (props.project._id)) {
-        const _id = props.project._id ?  props.project._id.toString() : ''
-        return <Link onNavigateComplete={props.onNavigateComplete}  className="underline-on-hover" to={new Route(`/dashboard/${_id}`)}><span>{props.project.name}</span></Link>
+    if (props.project && props.project._id) {
+        const _id: string = props.project._id
+            ? props.project._id.toString()
+            : '';
+        return (
+            <Link
+                onNavigateComplete={props.onNavigateComplete}
+                className="underline-on-hover"
+                to={new Route(`/dashboard/${_id}`)}
+            >
+                <span>{props.project.name}</span>
+            </Link>
+        );
     }
 
     return <span>{props.project.name}</span>;

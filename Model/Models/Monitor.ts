@@ -250,13 +250,13 @@ export default class Monitor extends BaseModel {
     @JoinTable({
         name: 'MonitorLabel',
         inverseJoinColumn: {
-          name: 'labelId',
-          referencedColumnName: '_id'
+            name: 'labelId',
+            referencedColumnName: '_id',
         },
         joinColumn: {
-          name: 'monitorId',
-          referencedColumnName: '_id'
-        }
+            name: 'monitorId',
+            referencedColumnName: '_id',
+        },
     })
     public labels?: Array<Label> = undefined;
 

@@ -20,7 +20,6 @@ export interface ComponentProps {
 const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     return (
         <>
             <FullPageModal
@@ -34,14 +33,14 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                     isDeleteable={false}
                     query={{
                         currentIncidentState: {
-                            order: 1
-                        }
+                            order: 1,
+                        },
                     }}
                     fetchRequestOptions={{
                         isMultiTenantRequest: true,
                     }}
                     selectMoreFields={{
-                        projectId: true
+                        projectId: true,
                     }}
                     isEditable={false}
                     showRefreshButton={true}
@@ -56,20 +55,22 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                         description:
                             'Here is a list of active incidents that belogns to all the projects you ara a part of.',
                     }}
-                    noItemsMessage={
-                        'No incident found.'
-                    }
+                    noItemsMessage={'No incident found.'}
                     singularName="Active Incident"
                     pluralName="Active Incidents"
                     onViewPage={(item: Incident) => {
-                        return new Route(`/dashboard/${item.projectId || item.project?._id || ''}/incidents/${item._id}`)
+                        return new Route(
+                            `/dashboard/${
+                                item.projectId || item.project?._id || ''
+                            }/incidents/${item._id}`
+                        );
                     }}
                     columns={[
                         {
                             field: {
                                 project: {
                                     name: true,
-                                    _id: true
+                                    _id: true,
                                 },
                             },
                             title: 'Project',
@@ -81,8 +82,9 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                     <ProjectElement
                                         project={
                                             Project.fromJSON(
-                                                (item['project'] as JSONObject) ||
-                                                [],
+                                                (item[
+                                                    'project'
+                                                ] as JSONObject) || [],
                                                 Project
                                             ) as Project
                                         }
@@ -139,7 +141,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                         />
                                     );
                                 }
-    
+
                                 return <></>;
                             },
                         },
@@ -148,7 +150,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                 monitors: {
                                     name: true,
                                     _id: true,
-                                    projectId: true
+                                    projectId: true,
                                 },
                             },
                             title: 'Monitors Affected',
@@ -158,8 +160,9 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                     <MonitorsElement
                                         monitors={
                                             Monitor.fromJSON(
-                                                (item['monitors'] as JSONArray) ||
-                                                    [],
+                                                (item[
+                                                    'monitors'
+                                                ] as JSONArray) || [],
                                                 Monitor
                                             ) as Array<Monitor>
                                         }

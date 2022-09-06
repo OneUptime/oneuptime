@@ -30,9 +30,7 @@ export interface ComponentProps {
     showFilter?: undefined | boolean;
     isTableFilterLoading?: undefined | boolean;
     filterError?: string | undefined;
-    onFilterChanged?:
-    | undefined
-    | ((filterData: FilterData) => void);
+    onFilterChanged?: undefined | ((filterData: FilterData) => void);
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -86,7 +84,7 @@ const Table: FunctionComponent<ComponentProps> = (
         }
 
         if (props.filterError) {
-            return <></>
+            return <></>;
         }
 
         return (

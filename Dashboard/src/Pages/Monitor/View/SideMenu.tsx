@@ -44,9 +44,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Incidents',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.MONITOR_VIEW_INCIDENTS
-                            ] as Route,
+                            RouteMap[PageMap.MONITOR_VIEW_INCIDENTS] as Route,
                             props.modelId
                         ),
                     }}

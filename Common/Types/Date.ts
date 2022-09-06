@@ -315,14 +315,16 @@ export default class OneUptimeDate {
         return moment(date).local().format(formatstring);
     }
 
-    public static asDateStartOfTheDayEndOfTheDayForDatabaseQuery(date: string | Date): InBetween {
-        let startValue = date;
+    public static asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
+        date: string | Date
+    ): InBetween {
+        let startValue: string | Date = date;
 
         if (!(startValue instanceof Date)) {
             startValue = OneUptimeDate.fromString(startValue);
         }
 
-        let endValue = date;
+        let endValue: string | Date = date;
 
         if (!(endValue instanceof Date)) {
             endValue = OneUptimeDate.fromString(endValue);
@@ -331,6 +333,9 @@ export default class OneUptimeDate {
         startValue = OneUptimeDate.getStartOfDay(startValue);
         endValue = OneUptimeDate.getEndOfDay(endValue);
 
-        return new InBetween(moment(startValue).format('YYYY-MM-DD HH:mm:ss'), moment(endValue).format('YYYY-MM-DD HH:mm:ss'));
+        return new InBetween(
+            moment(startValue).format('YYYY-MM-DD HH:mm:ss'),
+            moment(endValue).format('YYYY-MM-DD HH:mm:ss')
+        );
     }
 }
