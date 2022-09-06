@@ -20,7 +20,7 @@ import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import InBetween from 'Common/Types/Database/InBetween';
 
-export type FilterData = Dictionary<string | DropdownValue | Array<DropdownValue> | boolean | Search | Date | BaseModel | Array<BaseModel> | ObjectID | Array<ObjectID> | number | InBetween> ;
+export type FilterData = Dictionary<string | DropdownValue | Array<DropdownValue> | boolean | Search | Date | BaseModel | Array<BaseModel> | ObjectID | Array<ObjectID> | number | InBetween>;
 
 export interface ComponentProps {
     columns: Columns;
@@ -152,6 +152,38 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                             placeholder={`Filter by ${column.title}`}
                                         />}
 
+
+                                        {column.type === FieldType.Boolean && <Dropdown options={[{
+                                            value: true, 
+                                            label: "Yes"
+                                        }, {
+                                            value: false, 
+                                            label: "No"
+                                        }]} onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+                                            if (!column.key) {
+                                                return;
+                                            }
+
+                                            if (value === null) {
+                                                delete filterData[
+                                                    column.key
+                                                ];
+                                            } else {
+                                                filterData[column.key] = value;
+                                            }
+
+                                            setFilterData(filterData);
+
+                                            if (props.onFilterChanged) {
+                                                props.onFilterChanged(
+                                                    filterData
+                                                );
+                                            }
+
+                                        }}
+                                            placeholder={`Filter by ${column.title}`}
+                                        />}
+
                                         {(column.type === FieldType.Date || column.type === FieldType.DateTime || column.type === FieldType.ObjectID || column.type === FieldType.Text) && <Input
                                             onChange={(
                                                 changedValue: string | Date
@@ -166,8 +198,8 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                                     if (
                                                         changedValue &&
                                                         (column.type ===
-                                                        FieldType.Date || column.type ===
-                                                        FieldType.DateTime)
+                                                            FieldType.Date || column.type ===
+                                                            FieldType.DateTime)
                                                     ) {
                                                         filterData[column.key] =
                                                             OneUptimeDate.asDateForDatabaseQuery(

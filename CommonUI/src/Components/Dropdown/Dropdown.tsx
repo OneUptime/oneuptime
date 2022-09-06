@@ -6,7 +6,7 @@ import React, {
     useState,
 } from 'react';
 
-export type DropdownValue = string | number;
+export type DropdownValue = string | number | boolean;
 
 export interface DropdownOption {
     value: DropdownValue;
