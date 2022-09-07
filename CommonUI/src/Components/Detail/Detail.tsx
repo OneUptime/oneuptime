@@ -8,6 +8,8 @@ import HiddenText from '../HiddenText/HiddenText';
 import { JSONObject } from 'Common/Types/JSON';
 import _ from 'lodash';
 import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
+import CodeEditor from '../CodeEditor/CodeEditor';
+import CodeType from 'Common/Types/Code/CodeType';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -57,6 +59,28 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 <HiddenText
                     isCopyable={field.opts?.isCopyable || false}
                     text={data as string}
+                />
+            );
+        }
+
+
+        if (field.fieldType === FieldType.HTML || field.fieldType === FieldType.CSS || field.fieldType === FieldType.JavaScript) {
+            
+            let codeType: CodeType = CodeType.HTML;
+
+            if (field.fieldType === FieldType.CSS) {
+                codeType = CodeType.CSS; 
+            }
+
+            if (field.fieldType === FieldType.JavaScript) {
+                codeType = CodeType.JavaScript; 
+            }
+            
+            data = (
+                <CodeEditor
+                    type={codeType}
+                    readOnly={true}
+                    value={data as string}
                 />
             );
         }

@@ -18,6 +18,9 @@ enum FormFieldSchemaType {
     Port,
     EncryptedText,
     Markdown,
+    JavaScript, 
+    CSS,
+    HTML
 }
 
 export default FormFieldSchemaType;

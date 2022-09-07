@@ -70,6 +70,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/embedded`
     ),
 
+    [PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/custom-code`
+    ),
+
     [PageMap.STATUS_PAGE_VIEW_RESOURCES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/resources`
     ),

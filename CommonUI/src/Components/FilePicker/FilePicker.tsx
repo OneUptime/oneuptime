@@ -21,7 +21,7 @@ export interface ComponentProps {
 }
 
 const FilePicker: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+    _props: ComponentProps
 ): ReactElement => {
     const [files, setFiles] = useState<Array<File>>([]);
     const [fileObjectURLs, setFileObjectURLs] = useState<Array<string>>([]);
