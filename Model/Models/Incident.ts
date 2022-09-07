@@ -30,7 +30,7 @@ import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import Label from './Label';
 
-@AccessControlColumn("labels")
+@AccessControlColumn('labels')
 @MultiTenentQueryAllowed(true)
 @TenantColumn('projectId')
 @TableAccessControl({

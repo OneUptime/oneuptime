@@ -60,7 +60,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'API Key Name',
                         validation: {
-                            
                             minLength: 2,
                         },
                     },

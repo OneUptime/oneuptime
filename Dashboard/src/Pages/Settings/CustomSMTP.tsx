@@ -45,9 +45,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                     description:
                         'If you need OneUptime to send emails through your SMTP Server, please enter the server details here.',
                 }}
-                noItemsMessage={
-                    'No SMTP Server Configs found.'
-                }
+                noItemsMessage={'No SMTP Server Configs found.'}
                 formFields={[
                     {
                         field: {
@@ -60,7 +58,6 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             'Friendly name for this config so you remember what this is about.',
                         placeholder: 'Company SMTP Server',
                         validation: {
-                            
                             minLength: 2,
                         },
                     },

@@ -13,12 +13,7 @@ const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'File';
 
-app.use(
-    new BaseAPI<File, FileServiceType>(
-        File,
-        FileService
-    ).getRouter()
-);
+app.use(new BaseAPI<File, FileServiceType>(File, FileService).getRouter());
 
 const init: Function = async (): Promise<void> => {
     try {

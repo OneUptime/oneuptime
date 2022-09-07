@@ -56,7 +56,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 modelType={StatusPage}
                 modelId={modelId}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(RouteMap[PageMap.STATUS_PAGES] as Route);
+                    Navigation.navigate(
+                        RouteMap[PageMap.STATUS_PAGES] as Route
+                    );
                 }}
             />
         </Page>

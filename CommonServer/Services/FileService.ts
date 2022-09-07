@@ -11,33 +11,41 @@ export class Service extends DatabaseService<File> {
         super(File, postgresDatabase);
     }
 
-    protected override async onBeforeUpdate(updateBy: UpdateBy<File>): Promise<OnUpdate<File>> {
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<File>
+    ): Promise<OnUpdate<File>> {
         if (!updateBy.props.isRoot) {
-            throw new NotAuthorizedException("Not authorized to update a file.");
+            throw new NotAuthorizedException(
+                'Not authorized to update a file.'
+            );
         }
 
         return { updateBy, carryForward: null };
     }
 
-    protected override async onBeforeDelete(deleteBy: DeleteBy<File>): Promise<OnDelete<File>> {
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<File>
+    ): Promise<OnDelete<File>> {
         if (!deleteBy.props.isRoot) {
-            throw new NotAuthorizedException("Not authorized to delete a file.");
+            throw new NotAuthorizedException(
+                'Not authorized to delete a file.'
+            );
         }
 
         return { deleteBy, carryForward: null };
     }
 
-
-    protected override async onBeforeFind(findBy: FindBy<File>): Promise<OnFind<File>> {
-        
+    protected override async onBeforeFind(
+        findBy: FindBy<File>
+    ): Promise<OnFind<File>> {
         if (!findBy.props.isRoot) {
             findBy.query = {
                 ...findBy.query,
-                isPublic: true, 
-            }
+                isPublic: true,
+            };
         }
 
-        return {findBy, carryForward: null}
+        return { findBy, carryForward: null };
     }
 }
 export default new Service();

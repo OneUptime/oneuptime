@@ -25,7 +25,7 @@ enum ColumnType {
     Number = 'integer',
     BigNumber = 'bigint',
     Markdown = 'text',
-    File = 'bytea'
+    File = 'bytea',
 }
 
 export default ColumnType;

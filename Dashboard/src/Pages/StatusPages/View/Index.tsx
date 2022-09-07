@@ -148,7 +148,6 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-
         </Page>
     );
 };

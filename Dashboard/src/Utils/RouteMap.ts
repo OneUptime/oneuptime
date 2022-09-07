@@ -38,8 +38,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/public-notes`
     ),
 
-
-
     [PageMap.STATUS_PAGES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/`
     ),
@@ -79,10 +77,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/advanced-options`
     ),
-
-
-
-
 
     [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/`),
 

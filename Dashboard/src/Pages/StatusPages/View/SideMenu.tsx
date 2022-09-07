@@ -18,7 +18,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
     return (
         <SideMenu>
             <SideMenuSection title="Basic">
-
                 <SideMenuItem
                     link={{
                         title: 'Overview',
@@ -34,7 +33,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Resources and Monitors',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.STATUS_PAGE_VIEW_RESOURCES] as Route,
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_RESOURCES
+                            ] as Route,
                             props.modelId
                         ),
                     }}
@@ -52,38 +53,40 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Info}
                 />
 
-<SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'Subscribers',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS] as Route,
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
+                            ] as Route,
                             props.modelId
                         ),
                     }}
                     icon={IconProp.Info}
                 />
 
-<SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'Annoucements',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route,
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                            ] as Route,
                             props.modelId
                         ),
                     }}
                     icon={IconProp.Info}
                 />
-
             </SideMenuSection>
 
             <SideMenuSection title="Branding">
-
                 <SideMenuItem
                     link={{
                         title: 'Essential Branding',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_BRANDING
+                                PageMap.STATUS_PAGE_VIEW_BRANDING
                             ] as Route,
                             props.modelId
                         ),
@@ -96,17 +99,29 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Embedded Status Page',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_BRANDING
+                                PageMap.STATUS_PAGE_VIEW_BRANDING
                             ] as Route,
                             props.modelId
                         ),
                     }}
                     icon={IconProp.List}
                 />
-
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
+                <SideMenuItem
+                    link={{
+                        title: 'Advanced Options',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Trash}
+                />
+
                 <SideMenuItem
                     link={{
                         title: 'Delete Status Page',

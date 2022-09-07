@@ -73,7 +73,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Team Name',
                         validation: {
-                            
                             minLength: 2,
                         },
                     },

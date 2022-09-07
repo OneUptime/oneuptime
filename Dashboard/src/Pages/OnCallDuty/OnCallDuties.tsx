@@ -43,9 +43,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of on-call-duty schedules for this project.',
                 }}
-                noItemsMessage={
-                    'No on-call-duty found.'
-                }
+                noItemsMessage={'No on-call-duty found.'}
                 formFields={[
                     {
                         field: {

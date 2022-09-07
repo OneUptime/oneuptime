@@ -43,9 +43,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of status page for this project.',
                 }}
-                noItemsMessage={
-                    'No status pages found.'
-                }
+                noItemsMessage={'No status pages found.'}
                 formFields={[
                     {
                         field: {

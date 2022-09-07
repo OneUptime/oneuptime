@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -18,7 +26,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Label from './Label';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 
-@AccessControlColumn("labels")
+@AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectOnCallDuty],
@@ -109,7 +117,6 @@ export default class OnCallDuty extends BaseModel {
         length: ColumnLength.ShortText,
     })
     public name?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [

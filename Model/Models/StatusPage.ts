@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -18,7 +26,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import Label from './Label';
 
-@AccessControlColumn("labels")
+@AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
@@ -182,7 +190,6 @@ export default class StatusPage extends BaseModel {
     )
     @JoinColumn({ name: 'createdByUserId' })
     public createdByUser?: User = undefined;
-
 
     @ColumnAccessControl({
         create: [

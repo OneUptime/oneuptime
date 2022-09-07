@@ -55,9 +55,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                     description:
                         'Define different status types (eg: Operational, Degraded, Down) here.',
                 }}
-                noItemsMessage={
-                    'No monitor status found.'
-                }
+                noItemsMessage={'No monitor status found.'}
                 orderedStatesListProps={{
                     titleField: 'name',
                     descriptionField: 'description',
