@@ -12,6 +12,8 @@ import {
     FiSearch,
     FiHelpCircle,
     FiPower,
+    FiImage,
+    FiGlobe,
     FiCreditCard,
     FiUser,
     FiChevronDown,
@@ -76,6 +78,7 @@ export enum IconProp {
     Public,
     Home,
     Graph,
+    Image,
     Grid,
     More,
     Activity,
@@ -84,6 +87,7 @@ export enum IconProp {
     List,
     CheckCircle,
     Search,
+    Globe,
     Logout,
     Billing,
     Email,
@@ -474,6 +478,23 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Graph && (
                 <FiBarChart2
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Globe && (
+                <FiGlobe
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+
+{icon === IconProp.Image && (
+                <FiImage
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

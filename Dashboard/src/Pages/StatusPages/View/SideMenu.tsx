@@ -39,19 +39,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Info}
+                    icon={IconProp.Activity}
                 />
 
-                <SideMenuItem
-                    link={{
-                        title: 'Custom Domains',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.STATUS_PAGE_VIEW_DOMAINS] as Route,
-                            props.modelId
-                        ),
-                    }}
-                    icon={IconProp.Info}
-                />
+               
 
                 <SideMenuItem
                     link={{
@@ -63,7 +54,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Info}
+                    icon={IconProp.User}
                 />
 
                 <SideMenuItem
@@ -76,7 +67,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Info}
+                    icon={IconProp.SMS}
                 />
             </SideMenuSection>
 
@@ -91,7 +82,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.List}
+                    icon={IconProp.Image}
                 />
 
                 <SideMenuItem
@@ -104,11 +95,22 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.List}
+                    icon={IconProp.Circle}
                 />
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
+            <SideMenuItem
+                    link={{
+                        title: 'Custom Domains',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.STATUS_PAGE_VIEW_DOMAINS] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Globe}
+                />
+
                 <SideMenuItem
                     link={{
                         title: 'Advanced Options',
@@ -119,7 +121,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Trash}
+                    icon={IconProp.Settings}
                 />
 
                 <SideMenuItem
