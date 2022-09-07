@@ -56,7 +56,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'On Call Duty Name',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },

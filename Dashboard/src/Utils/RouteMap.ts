@@ -38,9 +38,52 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/public-notes`
     ),
 
-    [PageMap.STATUS_PAGE]: new Route(
+
+
+    [PageMap.STATUS_PAGES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/`
     ),
+
+    [PageMap.STATUS_PAGE_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_BRANDING]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/branding`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/delete`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_DOMAINS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/domains`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/subscribers`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/announcements`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_EMBEDDED]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/embedded`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_RESOURCES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/resources`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/advanced-options`
+    ),
+
+
+
+
+
     [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/`),
 
     [PageMap.MONITORS]: new Route(

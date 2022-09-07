@@ -26,7 +26,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'Status Page',
-                    to: RouteMap[PageMap.STATUS_PAGE] as Route,
+                    to: RouteMap[PageMap.STATUS_PAGES] as Route,
                 },
             ]}
         >
@@ -56,7 +56,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Status Page Name',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },

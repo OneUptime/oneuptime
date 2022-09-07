@@ -58,7 +58,7 @@ const DashboardNavbar: FunctionComponent = () => {
                 title="Status Pages"
                 icon={IconProp.CheckCircle}
                 route={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.STATUS_PAGE] as Route
+                    RouteMap[PageMap.STATUS_PAGES] as Route
                 )}
             ></NavBarItem>
 

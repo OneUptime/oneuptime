@@ -60,7 +60,7 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
                             'Friendly name for this config so you remember what this is about.',
                         placeholder: 'Company SMTP Server',
                         validation: {
-                            noSpaces: true,
+                            
                             minLength: 2,
                         },
                     },

@@ -63,7 +63,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'internal-service',
                         validation: {
-                            noSpaces: true,
+                            
                             minLength: 2,
                         },
                     },

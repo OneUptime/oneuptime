@@ -70,7 +70,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'API Key Name',
                         validation: {
-                            noSpaces: true,
+                            
                             minLength: 2,
                         },
                     },

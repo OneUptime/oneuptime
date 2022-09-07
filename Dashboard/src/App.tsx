@@ -12,7 +12,18 @@ import MasterPage from './Components/MasterPage/MasterPage';
 import Init from './Pages/Init/Init';
 import Home from './Pages/Home/Home';
 import useAsyncEffect from 'use-async-effect';
+
+
 import StatusPages from './Pages/StatusPages/StatusPages';
+import StatusPagesView from './Pages/StatusPages/View/Index';
+import StatusPagesViewDelete from './Pages/StatusPages/View/Delete';
+import StatusPagesViewBranding from './Pages/StatusPages/View/Branding';
+import StatusPagesViewSubscribers from './Pages/StatusPages/View/Subscribers';
+import StatusPagesViewEmbedded from './Pages/StatusPages/View/Embedded';
+import StatusPagesViewDomains from './Pages/StatusPages/View/Domains';
+import StatusPagesViewResources from './Pages/StatusPages/View/Resources';
+import StatusPagesViewAnnouncement from './Pages/StatusPages/View/Announcements';
+import StatusPagesViewAdvancedOptions from './Pages/StatusPages/View/AdvancedOptions';
 
 import Incidents from './Pages/Incidents/Incidents';
 import IncidentView from './Pages/Incidents/View/Index';
@@ -105,7 +116,7 @@ const App: FunctionComponent = () => {
         } catch (err) {
             setError(
                 ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
+                'error'
                 ] as string
             );
         }
@@ -188,7 +199,7 @@ const App: FunctionComponent = () => {
                         <MonitorViewStatusTimeline
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -202,7 +213,7 @@ const App: FunctionComponent = () => {
                         <MonitorIncidents
                             pageRoute={
                                 RouteMap[
-                                    PageMap.MONITOR_VIEW_INCIDENTS
+                                PageMap.MONITOR_VIEW_INCIDENTS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -213,14 +224,150 @@ const App: FunctionComponent = () => {
                 {/* Status Pages */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.STATUS_PAGE]?.toString()}
+                    path={RouteMap[PageMap.STATUS_PAGES]?.toString()}
                     element={
                         <StatusPages
-                            pageRoute={RouteMap[PageMap.STATUS_PAGE] as Route}
+                            pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
                             currentProject={selectedProject}
                         />
                     }
                 />
+
+                <PageRoute
+                    path={RouteMap[PageMap.STATUS_PAGE_VIEW]?.toString()}
+                    element={
+                        <StatusPagesView
+                            pageRoute={RouteMap[PageMap.STATUS_PAGE_VIEW] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE]?.toString()}
+                    element={
+                        <StatusPagesViewDelete
+                            pageRoute={
+                                RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_BRANDING
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewBranding
+                            pageRoute={
+                                RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_BRANDING
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewAdvancedOptions
+                            pageRoute={
+                                RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+
+
+                <PageRoute
+                    path={RouteMap[PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS]?.toString()}
+                    element={
+                        <StatusPagesViewSubscribers
+                            pageRoute={
+                                RouteMap[PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewEmbedded
+                            pageRoute={
+                                RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_RESOURCES
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewResources
+                            pageRoute={
+                                RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_RESOURCES
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_DOMAINS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewDomains
+                            pageRoute={
+                                RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_DOMAINS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewAnnouncement
+                            pageRoute={
+                                RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+
 
                 {/* Incidents */}
 
@@ -264,7 +411,7 @@ const App: FunctionComponent = () => {
                         <IncidentViewStateTimeline
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                PageMap.INCIDENT_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -278,7 +425,7 @@ const App: FunctionComponent = () => {
                         <IncidentInternalNote
                             pageRoute={
                                 RouteMap[
-                                    PageMap.INCIDENT_INTERNAL_NOTE
+                                PageMap.INCIDENT_INTERNAL_NOTE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -342,7 +489,7 @@ const App: FunctionComponent = () => {
                         <SettingsMonitors
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_MONITORS_STATUS
+                                PageMap.SETTINGS_MONITORS_STATUS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -358,7 +505,7 @@ const App: FunctionComponent = () => {
                         <SettingsIncidents
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SETTINGS_INCIDENTS_STATE
+                                PageMap.SETTINGS_INCIDENTS_STATE
                                 ] as Route
                             }
                             currentProject={selectedProject}
