@@ -31,5 +31,5 @@ describe('Button', () => {
               </div>
             </button>
         `);
-    });    
+    });
 });
