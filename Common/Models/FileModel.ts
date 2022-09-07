@@ -4,6 +4,7 @@ import ColumnType from '../Types/Database/ColumnType';
 import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import TableColumn from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
+import MimeType from '../Types/File/MimeType';
 import ObjectID from '../Types/ObjectID';
 import BaseModel from './BaseModel';
 
@@ -38,7 +39,7 @@ export default class FileModel extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public type?: string = undefined;
+    public type?: MimeType = undefined;
 
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
     @Column({
