@@ -90,7 +90,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Embedded Status Page',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_BRANDING
+                            PageMap.STATUS_PAGE_VIEW_EMBEDDED
                             ] as Route,
                             props.modelId
                         ),
@@ -103,7 +103,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'HTML, CSS & JavaScript',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_BRANDING
+                            PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
                             ] as Route,
                             props.modelId
                         ),

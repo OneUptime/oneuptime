@@ -54,7 +54,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data = getMarkdownViewer(data as string);
         }
 
-        if (field.fieldType === FieldType.HiddenText) {
+        if (data && field.fieldType === FieldType.HiddenText) {
             data = (
                 <HiddenText
                     isCopyable={field.opts?.isCopyable || false}
@@ -64,7 +64,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         }
 
 
-        if (field.fieldType === FieldType.HTML || field.fieldType === FieldType.CSS || field.fieldType === FieldType.JavaScript) {
+        if (data && field.fieldType === FieldType.HTML || field.fieldType === FieldType.CSS || field.fieldType === FieldType.JavaScript) {
             
             let codeType: CodeType = CodeType.HTML;
 
@@ -81,6 +81,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                     type={codeType}
                     readOnly={true}
                     value={data as string}
+                    className="form-control"
                 />
             );
         }
@@ -129,7 +130,8 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                         paddingTop: '0px',
                     }}
                 >
-                    {data}
+                    {data && data}
+                    {!data && <span className='color-light-grey'>{field.placeholder}</span>}
                 </div>
             </div>
         );

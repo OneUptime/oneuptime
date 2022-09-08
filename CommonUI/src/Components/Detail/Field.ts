@@ -21,6 +21,7 @@ export default interface Field {
         url: Route | URL;
         openLinkInNewTab?: boolean;
     };
+    placeholder?: string; 
     opts?:
         | {
               isCopyable?: boolean | undefined;

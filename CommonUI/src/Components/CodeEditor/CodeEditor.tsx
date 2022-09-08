@@ -50,6 +50,12 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         setValue(props.value ? props.value : '');
     }, [props.value]);
 
+    useEffect(() => {
+        if (props.initialValue) {
+            setValue(props.initialValue);
+        }
+    }, [props.initialValue]);
+
 
     let grammar: Grammar = (PrismJS.languages as any).markup as any;
     let language: string = 'markup';
@@ -87,6 +93,11 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                 style={{
                     fontFamily: '"Fira code", "Fira Mono", monospace',
                     fontSize: 12,
+                    maxHeight: "100px",
+                    overflowX: "hidden",
+                    overflowY: "scroll",
+                    width: "100%",
+                    minHeight: "200px"
                 }}
                 placeholder={props.placeholder || ''}
                 onBlur={() => {

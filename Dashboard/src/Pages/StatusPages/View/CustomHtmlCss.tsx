@@ -58,8 +58,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
            {/* StatusPage View  */}
            <CardModelDetail<StatusPage>
                 cardProps={{
-                    title: 'Custom HTML',
-                    description: "You can include custom HTML to your status page.",
+                    title: 'Header HTML',
+                    description: "You can include header HTML to your status page.",
                     icon: IconProp.Code,
                 }}
                 isEditable={true}
@@ -72,7 +72,36 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.HTML,
                         required: false,
                         placeholder: 'Insert Custom HTML here.',
-                    },
+                    }
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                headerHTML: true,
+                            },
+                            fieldType: FieldType.HTML,
+                            title: 'Header HTML',
+                            placeholder: 'No Header HTML found. Please edit this Status Page to add some.'
+                        }
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+
+             {/* StatusPage View  */}
+           <CardModelDetail<StatusPage>
+                cardProps={{
+                    title: 'Footer HTML',
+                    description: "You can include footer HTML to your status page.",
+                    icon: IconProp.Code,
+                }}
+                isEditable={true}
+                formFields={[
                     {
                         field: {
                             footerHTML: true,
@@ -90,17 +119,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                headerHTML: true,
-                            },
-                            type: FieldType.HTML,
-                            title: 'Header HTML',
-                        },
-                        {
-                            field: {
                                 footerHTML: true,
                             },
-                            type: FieldType.HTML,
+                            fieldType: FieldType.HTML,
                             title: 'Footer HTML',
+                            placeholder: 'No Footer HTML found. Please edit this Status Page to add some.'
                         },
                     ],
                     modelId: modelId,

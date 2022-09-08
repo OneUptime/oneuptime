@@ -305,6 +305,8 @@ const BasicForm: Function = <T extends Object>(
                                                 true
                                             );
                                         }}
+                                        
+                                        className="form-control"
                                         onBlur={async () => {
                                             await form.setFieldTouched(
                                                 fieldName,
