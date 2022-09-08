@@ -84,10 +84,10 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
             <Editor
                 id={props.dataTestId}
                 value={value}
-                onValueChange={code => {
+                onValueChange={(code: string) => {
                     return setValue(code);
                 }}
-                highlight={code => {
+                highlight={(code: string) => {
                     return highlight(code, grammar, language);
                 }}
                 padding={10}

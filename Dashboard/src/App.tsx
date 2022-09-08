@@ -90,7 +90,7 @@ const App: FunctionComponent = () => {
     ): void => {
         setSelectedProject(project);
 
-        const currentRoute = Navigation.getCurrentRoute();
+        const currentRoute: Route = Navigation.getCurrentRoute();
 
         if (!currentRoute.toString().includes(project._id!)) {
             Navigation.navigate(new Route('/dashboard/' + project._id));

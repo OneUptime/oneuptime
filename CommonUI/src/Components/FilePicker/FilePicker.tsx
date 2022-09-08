@@ -13,6 +13,7 @@ import { FILE_URL } from '../../Config';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 import { White } from 'Common/Types/BrandColors';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
 
 export interface ComponentProps {
     initialValue?: undefined | Array<FileModel>;
@@ -50,7 +51,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         accept: {
             'image/*': [],
         },
-        onDrop: async (acceptedFiles) => {
+        onDrop:  (async (acceptedFiles: Array<File>) => {
             setIsLoading(true);
 
             if (props.readOnly) {
@@ -70,10 +71,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 fileModel.isPublic = false;
                 fileModel.type = acceptedFile.type as MimeType;
 
-                const result = await ModelAPI.create(
+                const result: HTTPResponse<FileModel> = await ModelAPI.create<FileModel>(
                     fileModel,
                     CommonURL.fromURL(FILE_URL).addRoute('/file')
-                );
+                ) as HTTPResponse<FileModel>;
                 filesResult.push(result.data as FileModel);
             }
 
@@ -82,7 +83,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             props.onBlur && props.onBlur();
             props.onChange && props.onChange(filesModel);
             setIsLoading(false);
-        },
+        })
     });
 
     const getBase64 = (file: File): Promise<string> => {
@@ -159,8 +160,8 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                             <input {...getInputProps()} />
                             {!props.placeholder && (
                                 <p className="file-picker-placeholder">
-                                    Drag 'n' drop some files here, or click to
-                                    select files
+                                    Drag and drop some files here, or click to
+                                    select files.
                                 </p>
                             )}
                             {props.placeholder && (
