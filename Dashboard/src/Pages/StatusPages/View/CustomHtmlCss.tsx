@@ -55,11 +55,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-           {/* StatusPage View  */}
-           <CardModelDetail<StatusPage>
+            {/* StatusPage View  */}
+            <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Header HTML',
-                    description: "You can include header HTML to your status page.",
+                    description:
+                        'You can include header HTML to your status page.',
                     icon: IconProp.Code,
                 }}
                 isEditable={true}
@@ -72,7 +73,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.HTML,
                         required: false,
                         placeholder: 'Insert Custom HTML here.',
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -85,19 +86,20 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.HTML,
                             title: 'Header HTML',
-                            placeholder: 'No Header HTML found. Please edit this Status Page to add some.'
-                        }
+                            placeholder:
+                                'No Header HTML found. Please edit this Status Page to add some.',
+                        },
                     ],
                     modelId: modelId,
                 }}
             />
 
-
-             {/* StatusPage View  */}
-           <CardModelDetail<StatusPage>
+            {/* StatusPage View  */}
+            <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Footer HTML',
-                    description: "You can include footer HTML to your status page.",
+                    description:
+                        'You can include footer HTML to your status page.',
                     icon: IconProp.Code,
                 }}
                 isEditable={true}
@@ -123,19 +125,20 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.HTML,
                             title: 'Footer HTML',
-                            placeholder: 'No Footer HTML found. Please edit this Status Page to add some.'
+                            placeholder:
+                                'No Footer HTML found. Please edit this Status Page to add some.',
                         },
                     ],
                     modelId: modelId,
                 }}
             />
 
-
-              {/* StatusPage View  */}
-           <CardModelDetail<StatusPage>
+            {/* StatusPage View  */}
+            <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Custom CSS',
-                    description: "You can include custom CSS classes to your status page.",
+                    description:
+                        'You can include custom CSS classes to your status page.',
                     icon: IconProp.Code,
                 }}
                 isEditable={true}
@@ -144,7 +147,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             customCSS: true,
                         },
-                        title: "Custom CSS",
+                        title: 'Custom CSS',
                         fieldType: FormFieldSchemaType.CSS,
                         required: false,
                         placeholder: 'Insert Custom CSS here.',
@@ -161,19 +164,20 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.CSS,
                             title: 'Custom CSS',
-                            placeholder: 'No Custom CSS found. Please edit this Status Page to add some.'
+                            placeholder:
+                                'No Custom CSS found. Please edit this Status Page to add some.',
                         },
                     ],
                     modelId: modelId,
                 }}
             />
 
-
-             {/* StatusPage View  */}
-           <CardModelDetail<StatusPage>
+            {/* StatusPage View  */}
+            <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Custom JavaScript',
-                    description: "You can include custom JavaScript classes to your status page.",
+                    description:
+                        'You can include custom JavaScript classes to your status page.',
                     icon: IconProp.Code,
                 }}
                 isEditable={true}
@@ -182,7 +186,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             customJavaScript: true,
                         },
-                        title: "Custom JavaScript",
+                        title: 'Custom JavaScript',
                         fieldType: FormFieldSchemaType.JavaScript,
                         required: false,
                         placeholder: 'Insert Custom JavaScript here.',
@@ -199,7 +203,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.JavaScript,
                             title: 'Custom JavaScript',
-                            placeholder: 'No Custom JavaScript found. Please edit this Status Page to add some.'
+                            placeholder:
+                                'No Custom JavaScript found. Please edit this Status Page to add some.',
                         },
                     ],
                     modelId: modelId,

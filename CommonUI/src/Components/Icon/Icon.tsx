@@ -117,7 +117,7 @@ export enum IconProp {
     Check,
     True,
     False,
-    Text, 
+    Text,
     Circle,
 }
 
@@ -138,7 +138,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     color,
     thick = ThickProp.Normal,
     onClick,
-    style
+    style,
 }: ComponentProps): ReactElement => {
     return (
         <div
@@ -496,7 +496,6 @@ const Icon: FunctionComponent<ComponentProps> = ({
                     color={color ? color.toString() : ''}
                 />
             )}
-
 
             {icon === IconProp.Image && (
                 <FiImage

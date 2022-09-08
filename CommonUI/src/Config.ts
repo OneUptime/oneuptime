@@ -88,11 +88,7 @@ export const IDENTITY_URL: URL = new URL(
     IDENTITY_ROUTE
 );
 
-export const FILE_URL: URL = new URL(
-    HTTP_PROTOCOL,
-    FILE_HOSTNAME,
-    FILE_ROUTE
-);
+export const FILE_URL: URL = new URL(HTTP_PROTOCOL, FILE_HOSTNAME, FILE_ROUTE);
 
 export const DASHBOARD_URL: URL = new URL(
     HTTP_PROTOCOL,

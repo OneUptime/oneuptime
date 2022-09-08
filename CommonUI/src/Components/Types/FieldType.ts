@@ -22,8 +22,8 @@ enum FieldType {
     EntityArray = 'EntityArray',
     Markdown = 'Markdown',
     HTML = 'HTML',
-    CSS = 'CSS', 
-    JavaScript = 'JavaScript'
+    CSS = 'CSS',
+    JavaScript = 'JavaScript',
 }
 
 export default FieldType;

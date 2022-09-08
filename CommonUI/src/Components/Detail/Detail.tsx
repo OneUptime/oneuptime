@@ -63,19 +63,21 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             );
         }
 
-
-        if (data && field.fieldType === FieldType.HTML || field.fieldType === FieldType.CSS || field.fieldType === FieldType.JavaScript) {
-            
+        if (
+            (data && field.fieldType === FieldType.HTML) ||
+            field.fieldType === FieldType.CSS ||
+            field.fieldType === FieldType.JavaScript
+        ) {
             let codeType: CodeType = CodeType.HTML;
 
             if (field.fieldType === FieldType.CSS) {
-                codeType = CodeType.CSS; 
+                codeType = CodeType.CSS;
             }
 
             if (field.fieldType === FieldType.JavaScript) {
-                codeType = CodeType.JavaScript; 
+                codeType = CodeType.JavaScript;
             }
-            
+
             data = (
                 <CodeEditor
                     type={codeType}
@@ -131,7 +133,11 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                     }}
                 >
                     {data && data}
-                    {!data && <span className='color-light-grey'>{field.placeholder}</span>}
+                    {!data && (
+                        <span className="color-light-grey">
+                            {field.placeholder}
+                        </span>
+                    )}
                 </div>
             </div>
         );

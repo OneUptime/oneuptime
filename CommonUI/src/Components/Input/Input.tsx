@@ -34,14 +34,13 @@ const Input: FunctionComponent<ComponentProps> = (
         if (props.value) {
             setValue(props.value);
         }
-    }, []); 
+    }, []);
 
     useEffect(() => {
         if (props.initialValue) {
             setValue(props.initialValue);
         }
     }, [props.initialValue]);
-
 
     useEffect(() => {
         setValue(props.value ? props.value : '');

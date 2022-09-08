@@ -3,7 +3,7 @@ import PrismJS, { highlight, Grammar } from 'prismjs';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism.css';
-import CodeType from "Common/Types/Code/CodeType";
+import CodeType from 'Common/Types/Code/CodeType';
 
 import React, {
     FunctionComponent,
@@ -31,10 +31,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [value, setValue] = useState<string>('');
 
-
     useEffect(() => {
         props.onChange && props.onChange(value);
-    }, [value])
+    }, [value]);
 
     useEffect(() => {
         if (props.initialValue) {
@@ -56,23 +55,21 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         }
     }, [props.initialValue]);
 
-
     let grammar: Grammar = (PrismJS.languages as any).markup as any;
     let language: string = 'markup';
 
-
     if (props.type === CodeType.JavaScript) {
-        grammar = (PrismJS.languages as any).javascript as any;   
+        grammar = (PrismJS.languages as any).javascript as any;
         language = 'javascript';
     }
 
     if (props.type === CodeType.HTML) {
-        grammar = (PrismJS.languages as any).html as any;   
+        grammar = (PrismJS.languages as any).html as any;
         language = 'html';
     }
 
     if (props.type === CodeType.CSS) {
-        grammar = (PrismJS.languages as any).css as any;   
+        grammar = (PrismJS.languages as any).css as any;
         language = 'css';
     }
 
@@ -87,17 +84,21 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
             <Editor
                 id={props.dataTestId}
                 value={value}
-                onValueChange={code => setValue(code)}
-                highlight={code => highlight(code, grammar, language)}
+                onValueChange={code => {
+                    return setValue(code);
+                }}
+                highlight={code => {
+                    return highlight(code, grammar, language);
+                }}
                 padding={10}
                 style={{
                     fontFamily: '"Fira code", "Fira Mono", monospace',
                     fontSize: 12,
-                    maxHeight: "100px",
-                    overflowX: "hidden",
-                    overflowY: "scroll",
-                    width: "100%",
-                    minHeight: "200px"
+                    maxHeight: '100px',
+                    overflowX: 'hidden',
+                    overflowY: 'scroll',
+                    width: '100%',
+                    minHeight: '200px',
                 }}
                 placeholder={props.placeholder || ''}
                 onBlur={() => {

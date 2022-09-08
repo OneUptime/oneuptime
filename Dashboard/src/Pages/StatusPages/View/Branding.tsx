@@ -58,7 +58,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Title and Description',
-                    description: "This will also be used for SEO.",
+                    description: 'This will also be used for SEO.',
                     icon: IconProp.Text,
                 }}
                 isEditable={true}
@@ -67,7 +67,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             pageTitle: true,
                         },
-                        title: "Page Title",
+                        title: 'Page Title',
                         fieldType: FormFieldSchemaType.Text,
                         required: false,
                         placeholder: 'Please enter page title here.',
@@ -76,7 +76,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             pageDescription: true,
                         },
-                        title: "Page Description",
+                        title: 'Page Description',
                         fieldType: FormFieldSchemaType.LongText,
                         required: false,
                         placeholder: 'Please enter page description here.',
@@ -93,7 +93,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Text,
                             title: 'Page Title',
-                            placeholder: 'No page title entered so far.'
+                            placeholder: 'No page title entered so far.',
                         },
                         {
                             field: {
@@ -101,20 +101,17 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Text,
                             title: 'Page Description',
-                            placeholder: 'No page description entered so far.'
+                            placeholder: 'No page description entered so far.',
                         },
                     ],
                     modelId: modelId,
                 }}
             />
 
-
-
-
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Logo, Cover and Favicon',
-                    description: "These will show up on your status page.",
+                    description: 'These will show up on your status page.',
                     icon: IconProp.Image,
                 }}
                 isEditable={true}
@@ -123,7 +120,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             logoFile: true,
                         },
-                        title: "Logo",
+                        title: 'Logo',
                         fieldType: FormFieldSchemaType.File,
                         required: false,
                         placeholder: 'Please upload logo here.',
@@ -132,7 +129,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             coverImageFile: true,
                         },
-                        title: "Cover",
+                        title: 'Cover',
                         fieldType: FormFieldSchemaType.File,
                         required: false,
                         placeholder: 'Please cover logo here.',
@@ -141,12 +138,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             faviconFile: true,
                         },
-                        title: "Favicon",
+                        title: 'Favicon',
                         fieldType: FormFieldSchemaType.File,
                         required: false,
                         placeholder: 'Please favicon logo here.',
                     },
-
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -159,7 +155,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.File,
                             title: 'Logo',
-                            placeholder: 'No logo uploaded.'
+                            placeholder: 'No logo uploaded.',
                         },
                         {
                             field: {
@@ -167,7 +163,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.File,
                             title: 'Cover Image',
-                            placeholder: 'No cover uploaded.'
+                            placeholder: 'No cover uploaded.',
                         },
                         {
                             field: {
@@ -175,7 +171,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.ImageFile,
                             title: 'Favicon',
-                            placeholder: 'No favicon uploaded.'
+                            placeholder: 'No favicon uploaded.',
                         },
                     ],
                     modelId: modelId,

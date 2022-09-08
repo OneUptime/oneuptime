@@ -119,7 +119,6 @@ export default class StatusPage extends BaseModel {
     })
     public name?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -140,7 +139,6 @@ export default class StatusPage extends BaseModel {
     })
     public pageTitle?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -160,7 +158,6 @@ export default class StatusPage extends BaseModel {
         length: ColumnLength.LongText,
     })
     public pageDescription?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -328,8 +325,7 @@ export default class StatusPage extends BaseModel {
     })
     public deletedByUserId?: ObjectID = undefined;
 
-
-    //// Branding Files. 
+    //// Branding Files.
 
     @ColumnAccessControl({
         create: [
@@ -341,7 +337,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
     @TableColumn({
         manyToOneRelationColumn: 'faviconFileId',
@@ -362,8 +358,6 @@ export default class StatusPage extends BaseModel {
     @JoinColumn({ name: 'faviconFileId' })
     public faviconFile?: File = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -374,7 +368,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -384,8 +378,6 @@ export default class StatusPage extends BaseModel {
     })
     public faviconFileId?: ObjectID = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -396,7 +388,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
     @TableColumn({
         manyToOneRelationColumn: 'logoFileId',
@@ -417,7 +409,6 @@ export default class StatusPage extends BaseModel {
     @JoinColumn({ name: 'logoFileId' })
     public logoFile?: File = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -428,7 +419,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -448,7 +439,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
     @TableColumn({
         manyToOneRelationColumn: 'coverImageFileId',
@@ -468,7 +459,6 @@ export default class StatusPage extends BaseModel {
     )
     @JoinColumn({ name: 'coverImageFileId' })
     public coverImageFile?: File = undefined;
-    
 
     @ColumnAccessControl({
         create: [
@@ -480,7 +470,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -489,7 +479,6 @@ export default class StatusPage extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public coverImageFileId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -507,10 +496,8 @@ export default class StatusPage extends BaseModel {
     @Column({
         nullable: true,
         type: ColumnType.HTML,
-        
     })
     public headerHTML?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -531,7 +518,6 @@ export default class StatusPage extends BaseModel {
     })
     public footerHTML?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -551,7 +537,6 @@ export default class StatusPage extends BaseModel {
     })
     public customCSS?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -570,9 +555,4 @@ export default class StatusPage extends BaseModel {
         type: ColumnType.JavaScript,
     })
     public customJavaScript?: string = undefined;
-
-
-    
-
-
 }

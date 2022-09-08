@@ -382,9 +382,11 @@ export default class BaseModel extends BaseEntity {
         const json: JSONObject = {};
 
         for (const key of this.getTableColumns().columns) {
-
-            if ((this as any)[key] === null || (this as any)[key] === undefined) {
-                continue; 
+            if (
+                (this as any)[key] === null ||
+                (this as any)[key] === undefined
+            ) {
+                continue;
             }
 
             json[key] = (this as any)[key];

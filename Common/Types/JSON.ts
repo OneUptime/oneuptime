@@ -140,7 +140,10 @@ export class JSONFunctions {
     public static serializeValue(val: JSONValue): JSONValue {
         if (val === null || val === undefined) {
             return val;
-        } else if (typeof val === Typeof.String && val.toString().trim() === "") {
+        } else if (
+            typeof val === Typeof.String &&
+            val.toString().trim() === ''
+        ) {
             return val;
         } else if (typeof val === Typeof.Number) {
             return val;
@@ -247,7 +250,10 @@ export class JSONFunctions {
     public static deserializeValue(val: JSONValue): JSONValue {
         if (val === null || val === undefined) {
             return val;
-        } else if (typeof val === Typeof.String && val.toString().trim() === "") {
+        } else if (
+            typeof val === Typeof.String &&
+            val.toString().trim() === ''
+        ) {
             return val;
         } else if (ArrayBuffer.isView(val)) {
             return val;

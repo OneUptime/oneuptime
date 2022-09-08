@@ -16,7 +16,7 @@ enum ColumnType {
     ShortText,
     OTP,
     LongText,
-    HTML, 
+    HTML,
     JavaScript,
     CSS,
     Date,
