@@ -2,6 +2,7 @@ import 'ejs';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
+import Redis from 'CommonServer/Infrastructure/Redis';
 import App from 'CommonServer/Utils/StartServer';
 import File from 'Model/Models/File';
 import FileService, {
@@ -23,6 +24,9 @@ const init: Function = async (): Promise<void> => {
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
+
+        // connect redis
+        await Redis.connect();
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

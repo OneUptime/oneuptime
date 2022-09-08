@@ -17,4 +17,4 @@ import Permission from 'Common/Types/Permission';
     delete: [],
     update: [],
 })
-export default class Label extends FileModel {}
+export default class File extends FileModel {}
