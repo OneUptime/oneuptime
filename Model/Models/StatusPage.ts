@@ -132,7 +132,6 @@ export default class StatusPage extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
-    @Index()
     @TableColumn({ required: false, type: TableColumnType.ShortText })
     @Column({
         nullable: true,
@@ -154,7 +153,6 @@ export default class StatusPage extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
-    @Index()
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
         nullable: true,
@@ -505,7 +503,6 @@ export default class StatusPage extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
-    @Index()
     @TableColumn({ required: false, type: TableColumnType.HTML })
     @Column({
         nullable: true,
@@ -527,7 +524,6 @@ export default class StatusPage extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
-    @Index()
     @TableColumn({ required: false, type: TableColumnType.HTML })
     @Column({
         nullable: true,
@@ -548,7 +544,6 @@ export default class StatusPage extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
-    @Index()
     @TableColumn({ required: false, type: TableColumnType.CSS })
     @Column({
         nullable: true,
@@ -569,7 +564,6 @@ export default class StatusPage extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
-    @Index()
     @TableColumn({ required: false, type: TableColumnType.JavaScript })
     @Column({
         nullable: true,

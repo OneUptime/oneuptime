@@ -140,6 +140,8 @@ export class JSONFunctions {
     public static serializeValue(val: JSONValue): JSONValue {
         if (val === null || val === undefined) {
             return val;
+        } else if (typeof val === Typeof.String && val.toString().trim() === "") {
+            return val;
         } else if (val && val instanceof Name) {
             return {
                 _type: ObjectType.Name,
@@ -240,6 +242,8 @@ export class JSONFunctions {
 
     public static deserializeValue(val: JSONValue): JSONValue {
         if (val === null || val === undefined) {
+            return val;
+        } else if (typeof val === Typeof.String && val.toString().trim() === "") {
             return val;
         } else if (val instanceof DatabaseProperty) {
             return val;

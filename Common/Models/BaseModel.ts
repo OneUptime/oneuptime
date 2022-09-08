@@ -31,6 +31,7 @@ import Permission, {
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
+
 export type DbTypes =
     | string
     | number
@@ -381,11 +382,12 @@ export default class BaseModel extends BaseEntity {
         const json: JSONObject = {};
 
         for (const key of this.getTableColumns().columns) {
-            if (typeof (this as any)[key] === 'boolean') {
-                json[key] = (this as any)[key];
-            } else if ((this as any)[key]) {
-                json[key] = (this as any)[key];
+
+            if ((this as any)[key] === null || (this as any)[key] === undefined) {
+                continue; 
             }
+
+            json[key] = (this as any)[key];
         }
 
         return json;

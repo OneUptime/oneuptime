@@ -129,6 +129,82 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+
+              {/* StatusPage View  */}
+           <CardModelDetail<StatusPage>
+                cardProps={{
+                    title: 'Custom CSS',
+                    description: "You can include custom CSS classes to your status page.",
+                    icon: IconProp.Code,
+                }}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            customCSS: true,
+                        },
+                        title: "Custom CSS",
+                        fieldType: FormFieldSchemaType.CSS,
+                        required: false,
+                        placeholder: 'Insert Custom CSS here.',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                customCSS: true,
+                            },
+                            fieldType: FieldType.CSS,
+                            title: 'Custom CSS',
+                            placeholder: 'No Custom CSS found. Please edit this Status Page to add some.'
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+
+             {/* StatusPage View  */}
+           <CardModelDetail<StatusPage>
+                cardProps={{
+                    title: 'Custom JavaScript',
+                    description: "You can include custom JavaScript classes to your status page.",
+                    icon: IconProp.Code,
+                }}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            customJavaScript: true,
+                        },
+                        title: "Custom JavaScript",
+                        fieldType: FormFieldSchemaType.JavaScript,
+                        required: false,
+                        placeholder: 'Insert Custom JavaScript here.',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                customJavaScript: true,
+                            },
+                            fieldType: FieldType.JavaScript,
+                            title: 'Custom JavaScript',
+                            placeholder: 'No Custom JavaScript found. Please edit this Status Page to add some.'
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
         </Page>
     );
 };
