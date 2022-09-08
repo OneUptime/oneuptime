@@ -326,6 +326,18 @@
     height: '100%'
 };
 
+.file-picker-placeholder{
+    text-align: center;
+    margin: 20px;
+}
+
+.file-picker-dropzone{
+    min-height: unset;
+    border: 2px dashed #ced4da;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+}
 
 // no visible scrollbar
 .no-scrollbar {
@@ -335,3 +347,4 @@
 .no-scrollbar::-webkit-scrollbar { 
     display: none;  /* Safari and Chrome */
 }
+

@@ -32,6 +32,7 @@ import {
     FiUsers,
     FiLock,
     FiKey,
+    FiType,
     FiFolder,
     FiShare2,
     FiMessageSquare,
@@ -116,6 +117,7 @@ export enum IconProp {
     Check,
     True,
     False,
+    Text, 
     Circle,
 }
 
@@ -493,8 +495,16 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
 
 
-{icon === IconProp.Image && (
+            {icon === IconProp.Image && (
                 <FiImage
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Text && (
+                <FiType
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

@@ -6,9 +6,12 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -52,13 +55,130 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
-                modelType={StatusPage}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
-                    );
+            <CardModelDetail<StatusPage>
+                cardProps={{
+                    title: 'Title and Description',
+                    description: "This will also be used for SEO.",
+                    icon: IconProp.Text,
+                }}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            pageTitle: true,
+                        },
+                        title: "Page Title",
+                        fieldType: FormFieldSchemaType.Text,
+                        required: false,
+                        placeholder: 'Please enter page title here.',
+                    },
+                    {
+                        field: {
+                            pageDescription: true,
+                        },
+                        title: "Page Description",
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: false,
+                        placeholder: 'Please enter page description here.',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                pageTitle: true,
+                            },
+                            fieldType: FieldType.Text,
+                            title: 'Page Title',
+                            placeholder: 'No page title entered so far.'
+                        },
+                        {
+                            field: {
+                                pageDescription: true,
+                            },
+                            fieldType: FieldType.Text,
+                            title: 'Page Description',
+                            placeholder: 'No page description entered so far.'
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+
+
+
+            <CardModelDetail<StatusPage>
+                cardProps={{
+                    title: 'Logo, Cover and Favicon',
+                    description: "These will show up on your status page.",
+                    icon: IconProp.Image,
+                }}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            logoFile: true,
+                        },
+                        title: "Logo",
+                        fieldType: FormFieldSchemaType.File,
+                        required: false,
+                        placeholder: 'Please upload logo here.',
+                    },
+                    {
+                        field: {
+                            coverImageFile: true,
+                        },
+                        title: "Cover",
+                        fieldType: FormFieldSchemaType.File,
+                        required: false,
+                        placeholder: 'Please cover logo here.',
+                    },
+                    {
+                        field: {
+                            faviconFile: true,
+                        },
+                        title: "Favicon",
+                        fieldType: FormFieldSchemaType.File,
+                        required: false,
+                        placeholder: 'Please favicon logo here.',
+                    },
+
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                logoFile: true,
+                            },
+                            fieldType: FieldType.File,
+                            title: 'Logo',
+                            placeholder: 'No logo uploaded.'
+                        },
+                        {
+                            field: {
+                                coverImageFile: true,
+                            },
+                            fieldType: FieldType.File,
+                            title: 'Cover Image',
+                            placeholder: 'No cover uploaded.'
+                        },
+                        {
+                            field: {
+                                faviconFile: true,
+                            },
+                            fieldType: FieldType.ImageFile,
+                            title: 'Favicon',
+                            placeholder: 'No favicon uploaded.'
+                        },
+                    ],
+                    modelId: modelId,
                 }}
             />
         </Page>

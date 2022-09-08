@@ -4,6 +4,7 @@ import FormFieldSchemaType from './FormFieldSchemaType';
 import SelectFormFields from '../../../Types/SelectEntityField';
 import { DropdownOption } from '../../Dropdown/Dropdown';
 import BaseModel from 'Common/Models/BaseModel';
+import MimeType from 'Common/Types/File/MimeType';
 
 export default interface Field<TEntity> {
     title?: string;
@@ -18,6 +19,7 @@ export default interface Field<TEntity> {
         labelField: string;
         valueField: string;
     };
+    fileTypes?: Array<MimeType> | undefined;
     sideLink?: {
         text: string;
         url: Route | URL;

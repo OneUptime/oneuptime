@@ -41,6 +41,9 @@ import Input from '../Input/Input';
 import Markdown from '../Markdown.tsx/MarkdownEditor';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
+import FilePicker from '../FilePicker/FilePicker';
+import MimeType from 'Common/Types/File/MimeType';
+import FileModel from 'Common/Models/FileModel';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -287,11 +290,11 @@ const BasicForm: Function = <T extends Object>(
                             let codeType: CodeType = CodeType.HTML;
 
                             if (field.fieldType === FormFieldSchemaType.CSS) {
-                                codeType = CodeType.CSS; 
+                                codeType = CodeType.CSS;
                             }
 
                             if (field.fieldType === FormFieldSchemaType.JavaScript) {
-                                codeType = CodeType.JavaScript; 
+                                codeType = CodeType.JavaScript;
                             }
 
 
@@ -305,7 +308,7 @@ const BasicForm: Function = <T extends Object>(
                                                 true
                                             );
                                         }}
-                                        
+
                                         className="form-control"
                                         onBlur={async () => {
                                             await form.setFieldTouched(
@@ -329,6 +332,48 @@ const BasicForm: Function = <T extends Object>(
                         }}
                     </Field>
                 )}
+
+
+                {(field.fieldType === FormFieldSchemaType.File) && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+
+
+                            return (
+                                <>
+                                    <FilePicker
+                                        onChange={async (text: Array<FileModel>) => {
+                                            await form.setFieldValue(
+                                                fieldName,
+                                                text,
+                                                true
+                                            );
+                                        }}
+
+                                        onBlur={async () => {
+                                            await form.setFieldTouched(
+                                                fieldName,
+                                                true
+                                            );
+                                        }}
+                                        mimeTypes={[MimeType.png, MimeType.jpeg]}
+                                        initialValue={
+                                            initialValues &&
+                                                (initialValues as any)[fieldName]
+                                                ? (initialValues as any)[
+                                                fieldName
+                                                ]
+                                                : []
+                                        }
+                                        placeholder={field.placeholder || ''}
+                                    />
+                                </>
+                            );
+                        }}
+                    </Field>
+                )}
+
+
 
                 {field.fieldType === FormFieldSchemaType.Checkbox && (
                     <Field name={fieldName}>

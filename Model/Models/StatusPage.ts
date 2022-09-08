@@ -341,7 +341,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [],
+        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
     })
     @TableColumn({
         manyToOneRelationColumn: 'faviconFileId',
@@ -374,7 +374,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [],
+        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -396,7 +396,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [],
+        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
     })
     @TableColumn({
         manyToOneRelationColumn: 'logoFileId',
@@ -428,7 +428,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [],
+        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
@@ -448,7 +448,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [],
+        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
     })
     @TableColumn({
         manyToOneRelationColumn: 'coverImageFileId',
@@ -480,7 +480,7 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
-        update: [],
+        update: [ Permission.ProjectOwner,   Permission.CanEditProjectStatusPage],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
     @Column({
