@@ -1,5 +1,5 @@
 import Editor from 'react-simple-code-editor';
-import { highlight, languages } from 'prismjs';
+import PrismJS, { highlight, Grammar } from 'prismjs';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism.css';
@@ -50,6 +50,26 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         setValue(props.value ? props.value : '');
     }, [props.value]);
 
+
+    let grammar: Grammar = (PrismJS.languages as any).markup as any;
+    let language: string = 'markup';
+
+
+    if (props.type === CodeType.JavaScript) {
+        grammar = (PrismJS.languages as any).javascript as any;   
+        language = 'javascript';
+    }
+
+    if (props.type === CodeType.HTML) {
+        grammar = (PrismJS.languages as any).html as any;   
+        language = 'html';
+    }
+
+    if (props.type === CodeType.CSS) {
+        grammar = (PrismJS.languages as any).css as any;   
+        language = 'css';
+    }
+
     return (
         <div
             className={`flex ${props.className}`}
@@ -62,20 +82,19 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                 id={props.dataTestId}
                 value={value}
                 onValueChange={code => setValue(code)}
-                highlight={code => highlight(code,  (props.type === CodeType.JavaScript ? (languages as any).js :
-                    props.type === CodeType.CSS ? (languages as any).css : (languages as any).html) as any)}
+                highlight={code => highlight(code, grammar, language)}
                 padding={10}
                 style={{
                     fontFamily: '"Fira code", "Fira Mono", monospace',
                     fontSize: 12,
                 }}
-                placeholder={props.placeholder}
+                placeholder={props.placeholder || ''}
                 onBlur={() => {
                     if (props.onBlur) {
                         props.onBlur();
                     }
                 }}
-                disabled={props.readOnly}
+                disabled={props.readOnly || false}
             />
         </div>
     );
