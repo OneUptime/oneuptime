@@ -88,8 +88,14 @@ const App: FunctionComponent = () => {
     const onProjectSelected: (project: Project) => void = (
         project: Project
     ): void => {
+        
         setSelectedProject(project);
-        Navigation.navigate(new Route('/dashboard/' + project._id));
+
+        const currentRoute = Navigation.getCurrentRoute();
+
+        if (!currentRoute.toString().includes(project._id!)) {
+            Navigation.navigate(new Route('/dashboard/' + project._id));
+        }
     };
 
     const fetchProjects: Function = async (): Promise<void> => {

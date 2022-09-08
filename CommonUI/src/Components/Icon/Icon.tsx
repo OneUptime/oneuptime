@@ -1,5 +1,5 @@
 import Color from 'Common/Types/Color';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
 import {
     FiHome,
     FiGrid,
@@ -128,6 +128,7 @@ export interface ComponentProps {
     color?: Color | null;
     thick?: ThickProp;
     onClick?: (() => void) | undefined;
+    style?: CSSProperties | undefined;
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({
@@ -137,11 +138,13 @@ const Icon: FunctionComponent<ComponentProps> = ({
     color,
     thick = ThickProp.Normal,
     onClick,
+    style
 }: ComponentProps): ReactElement => {
     return (
         <div
             style={{
                 cursor: 'pointer',
+                ...style,
             }}
             className={className ? className : ''}
             onClick={() => {
