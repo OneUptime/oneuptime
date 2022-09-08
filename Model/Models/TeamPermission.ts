@@ -303,7 +303,7 @@ export default class TeamPermission extends BaseModel {
         () => {
             return Label;
         },
-        { eager: true }
+        { eager: false }
     )
     @JoinTable({
         name: 'TeamPermissionLabel',

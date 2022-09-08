@@ -250,7 +250,7 @@ export default class Incident extends BaseModel {
         () => {
             return Monitor;
         },
-        { eager: true }
+        { eager: false }
     )
     @JoinTable({
         name: 'IncidentMonitor',
@@ -283,7 +283,7 @@ export default class Incident extends BaseModel {
         () => {
             return Label;
         },
-        { eager: true }
+        { eager: false }
     )
     @JoinTable({
         name: 'IncidentLabel',

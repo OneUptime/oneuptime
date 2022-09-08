@@ -139,7 +139,7 @@ export default class OnCallDuty extends BaseModel {
         () => {
             return Label;
         },
-        { eager: true }
+        { eager: false }
     )
     @JoinTable({
         name: 'OnCallDutyLabel',

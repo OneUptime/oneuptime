@@ -256,7 +256,7 @@ export default class StatusPage extends BaseModel {
         () => {
             return Label;
         },
-        { eager: true }
+        { eager: false }
     )
     @JoinTable({
         name: 'StatusPageLabel',

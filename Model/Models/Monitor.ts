@@ -247,7 +247,7 @@ export default class Monitor extends BaseModel {
         () => {
             return Label;
         },
-        { eager: true }
+        { eager: false }
     )
     @JoinTable({
         name: 'MonitorLabel',

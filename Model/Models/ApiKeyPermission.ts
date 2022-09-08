@@ -306,7 +306,7 @@ export default class APIKeyPermission extends BaseModel {
         () => {
             return Label;
         },
-        { eager: true }
+        { eager: false }
     )
     @JoinTable({
         name: 'ApiKeyPermissionLabel',
