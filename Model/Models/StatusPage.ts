@@ -342,11 +342,11 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'faviconFileId',
         type: TableColumnType.Entity,
-        modelType: User,
+        modelType: File,
     })
     @ManyToOne(
         (_type: string) => {
-            return User;
+            return File;
         },
         {
             eager: false,
@@ -393,11 +393,11 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'logoFileId',
         type: TableColumnType.Entity,
-        modelType: User,
+        modelType: File,
     })
     @ManyToOne(
         (_type: string) => {
-            return User;
+            return File;
         },
         {
             eager: false,
@@ -444,11 +444,11 @@ export default class StatusPage extends BaseModel {
     @TableColumn({
         manyToOneRelationColumn: 'coverImageFileId',
         type: TableColumnType.Entity,
-        modelType: User,
+        modelType: File,
     })
     @ManyToOne(
         (_type: string) => {
-            return User;
+            return File;
         },
         {
             eager: false,

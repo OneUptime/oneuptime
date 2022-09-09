@@ -151,7 +151,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                logoFile: true,
+                                logoFile: {
+                                    file: true
+                                },
                             },
                             fieldType: FieldType.File,
                             title: 'Logo',
@@ -159,7 +161,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                coverImageFile: true,
+                                coverImageFile: {
+                                    file: true
+                                },
                             },
                             fieldType: FieldType.File,
                             title: 'Cover Image',
@@ -167,9 +171,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                faviconFile: true,
+                                faviconFile: {
+                                    file: true
+                                },
                             },
-                            fieldType: FieldType.ImageFile,
+                            fieldType: FieldType.File,
                             title: 'Favicon',
                             placeholder: 'No favicon uploaded.',
                         },

@@ -94,7 +94,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 setFilesModel(filesResult);
 
                 props.onBlur && props.onBlur();
-                props.onChange && props.onChange(filesModel);
+                props.onChange && props.onChange(filesResult);
             } catch (err) {
                 try {
                     setError(
@@ -134,6 +134,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                 const tempFileModel = [...filesModel];
                                 tempFileModel.splice(i, 1);
                                 setFilesModel(tempFileModel);
+                                props.onChange && props.onChange(tempFileModel);
                             }}
                         />
                     </div>

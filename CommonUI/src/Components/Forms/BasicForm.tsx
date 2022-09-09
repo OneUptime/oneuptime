@@ -341,11 +341,26 @@ const BasicForm: Function = <T extends Object>(
                                 <>
                                     <FilePicker
                                         onChange={async (
-                                            text: Array<FileModel>
+                                            files: Array<FileModel>
                                         ) => {
+
+                                            let fileResult: FileModel | Array<FileModel> | null = files.map((i) => { 
+                                                const strippedModel = new FileModel();
+                                                strippedModel._id = i._id!; 
+                                                return strippedModel;
+                                            }); 
+
+                                            if (field.fieldType === FormFieldSchemaType.File && Array.isArray(fileResult)) {
+                                                if (fileResult.length > 0) {
+                                                    fileResult = fileResult[0] as FileModel;
+                                                } else {
+                                                    fileResult = null; 
+                                                }
+                                            }
+
                                             await form.setFieldValue(
                                                 fieldName,
-                                                text,
+                                                fileResult,
                                                 true
                                             );
                                         }}
