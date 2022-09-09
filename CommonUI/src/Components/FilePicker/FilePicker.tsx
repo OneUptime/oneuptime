@@ -64,11 +64,22 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 for (const acceptedFile of acceptedFiles) {
                     const fileModel: FileModel = new FileModel();
                     fileModel.name = acceptedFile.name;
-                    const fileBuffer = Buffer.from(
-                        await getBase64(acceptedFile),
-                        'base64'
-                    );
-                    fileModel.file = fileBuffer;
+
+
+
+                    const arrayBuffer = await acceptedFile.arrayBuffer();
+
+                    const blob = new Blob([new Uint8Array(arrayBuffer)]);
+                    
+
+                    const _url: string = URL.createObjectURL(blob);
+                    const url: string = URL.createObjectURL(acceptedFile);
+
+                    console.log(_url);
+                    console.log(url);
+
+                    const fileBuffer = new Uint8Array(arrayBuffer)
+                    fileModel.file = Buffer.from(fileBuffer);
                     fileModel.isPublic = false;
                     fileModel.type = acceptedFile.type as MimeType;
 
@@ -97,19 +108,6 @@ const FilePicker: FunctionComponent<ComponentProps> = (
             setIsLoading(false);
         },
     });
-
-    const getBase64 = (file: File): Promise<string> => {
-        return new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = function () {
-                resolve(reader.result as string);
-            };
-            reader.onerror = function (error) {
-                reject(error);
-            };
-        });
-    };
 
     const getThumbs = (): Array<ReactElement> => {
         return filesModel.map((file: FileModel, i: number) => {

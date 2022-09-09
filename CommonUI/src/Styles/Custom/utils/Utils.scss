@@ -317,7 +317,8 @@
 .file-picker-thumb-inner {
     display: flex;
     min-width: 0px;
-    overflow: hidden
+    overflow: hidden;
+    margin-left: -25px;
 };
 
 .file-picker-img {
