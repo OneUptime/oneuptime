@@ -66,7 +66,6 @@ import Logout from './Pages/Logout/Logout';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Project from 'Model/Models/Project';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { JSONObject } from 'Common/Types/JSON';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -120,9 +119,8 @@ const App: FunctionComponent = () => {
             setProjects(result.data);
         } catch (err) {
             setError(
-                ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
-                ] as string
+                (err as HTTPErrorResponse).message ||
+                    'Server Error. Please try again'
             );
         }
 

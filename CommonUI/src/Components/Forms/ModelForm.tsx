@@ -282,9 +282,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -305,9 +304,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             } catch (err) {
                 let error: string = '';
                 try {
-                    error = ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string;
+                    error =
+                        (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again';
                 } catch (e) {
                     error = 'Server Error. Please try again';
                 }
@@ -386,9 +385,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             }
         } catch (err) {
             setError(
-                ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
-                ] as string
+                (err as HTTPErrorResponse).message ||
+                    'Server Error. Please try again'
             );
         }
 

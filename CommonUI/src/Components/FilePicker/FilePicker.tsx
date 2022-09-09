@@ -14,6 +14,7 @@ import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 import { White } from 'Common/Types/BrandColors';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export interface ComponentProps {
     initialValue?: undefined | Array<FileModel>;
@@ -34,7 +35,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
-
+    const [error, setError] = useState<string>('');
     const [filesModel, setFilesModel] = useState<Array<FileModel>>([]);
 
     useEffect(() => {
@@ -51,39 +52,50 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         accept: {
             'image/*': [],
         },
-        onDrop:  (async (acceptedFiles: Array<File>) => {
+        onDrop: async (acceptedFiles: Array<File>) => {
             setIsLoading(true);
+            try {
+                if (props.readOnly) {
+                    return;
+                }
 
-            if (props.readOnly) {
-                return;
+                // Upload these files.
+                const filesResult: Array<FileModel> = [];
+                for (const acceptedFile of acceptedFiles) {
+                    const fileModel: FileModel = new FileModel();
+                    fileModel.name = acceptedFile.name;
+                    const fileBuffer = Buffer.from(
+                        await getBase64(acceptedFile),
+                        'base64'
+                    );
+                    fileModel.file = fileBuffer;
+                    fileModel.isPublic = false;
+                    fileModel.type = acceptedFile.type as MimeType;
+
+                    const result: HTTPResponse<FileModel> =
+                        (await ModelAPI.create<FileModel>(
+                            fileModel,
+                            CommonURL.fromURL(FILE_URL).addRoute('/file')
+                        )) as HTTPResponse<FileModel>;
+                    filesResult.push(result.data as FileModel);
+                }
+
+                setFilesModel(filesResult);
+
+                props.onBlur && props.onBlur();
+                props.onChange && props.onChange(filesModel);
+            } catch (err) {
+                try {
+                    setError(
+                        (err as HTTPErrorResponse).message ||
+                            'Server Error. Please try again'
+                    );
+                } catch (e) {
+                    setError('Server Error. Please try again');
+                }
             }
-
-            // Upload these files.
-            const filesResult: Array<FileModel> = [];
-            for (const acceptedFile of acceptedFiles) {
-                const fileModel: FileModel = new FileModel();
-                fileModel.name = acceptedFile.name;
-                const fileBuffer = Buffer.from(
-                    await getBase64(acceptedFile),
-                    'base64'
-                );
-                fileModel.file = fileBuffer;
-                fileModel.isPublic = false;
-                fileModel.type = acceptedFile.type as MimeType;
-
-                const result: HTTPResponse<FileModel> = await ModelAPI.create<FileModel>(
-                    fileModel,
-                    CommonURL.fromURL(FILE_URL).addRoute('/file')
-                ) as HTTPResponse<FileModel>;
-                filesResult.push(result.data as FileModel);
-            }
-
-            setFilesModel(filesResult);
-
-            props.onBlur && props.onBlur();
-            props.onChange && props.onChange(filesModel);
             setIsLoading(false);
-        })
+        },
     });
 
     const getBase64 = (file: File): Promise<string> => {
@@ -105,10 +117,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 return <></>;
             }
 
-            const blob = new Blob(
-                [new Uint8Array((file.file as any).data).buffer],
-                { type: file.type as string }
-            );
+            const blob = new Blob([file.file as Uint8Array], {
+                type: file.type as string,
+            });
             const url: string = URL.createObjectURL(blob);
             return (
                 <div key={file.name} className="file-picker-thumb">
@@ -158,13 +169,18 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                             })}
                         >
                             <input {...getInputProps()} />
-                            {!props.placeholder && (
+                            {!props.placeholder && !error && (
                                 <p className="file-picker-placeholder">
                                     Drag and drop some files here, or click to
                                     select files.
                                 </p>
                             )}
-                            {props.placeholder && (
+                            {error && (
+                                <p className="file-picker-placeholder">
+                                    {error}
+                                </p>
+                            )}
+                            {props.placeholder && !error && (
                                 <p className="file-picker-placeholder">
                                     {props.placeholder}
                                 </p>

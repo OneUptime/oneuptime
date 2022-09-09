@@ -40,6 +40,7 @@ enum ObjectType {
     Hostname = 'Hostname',
     HashedString = 'HashedString',
     DateTime = 'DateTime',
+    Buffer = 'Buffer',
     InBetween = 'InBetween',
 }
 
@@ -51,6 +52,7 @@ export type JSONValue =
     | Array<boolean>
     | boolean
     | JSONObject
+    | Uint8Array
     | JSONArray
     | Date
     | Array<Date>
@@ -148,7 +150,10 @@ export class JSONFunctions {
         } else if (typeof val === Typeof.Number) {
             return val;
         } else if (ArrayBuffer.isView(val)) {
-            return val;
+            return {
+                _type: ObjectType.Buffer,
+                value: val as Uint8Array,
+            };
         } else if (val && val instanceof Name) {
             return {
                 _type: ObjectType.Name,
@@ -240,6 +245,14 @@ export class JSONFunctions {
                 _type: ObjectType.DateTime,
                 value: OneUptimeDate.toString(val as Date).toString(),
             };
+        } else if (
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            Object.keys(ObjectType).includes(
+                (val as JSONObject)['_type'] as string
+            )
+        ) {
+            return val;
         } else if (typeof val === Typeof.Object) {
             return this.serialize(val as JSONObject);
         }
@@ -255,8 +268,17 @@ export class JSONFunctions {
             val.toString().trim() === ''
         ) {
             return val;
-        } else if (ArrayBuffer.isView(val)) {
-            return val;
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            ((val as JSONObject)['value'] as JSONObject)['type'] &&
+            ((val as JSONObject)['value'] as JSONObject)['type'] ===
+                ObjectType.Buffer &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.Buffer
+        ) {
+            return Buffer.from((val as JSONObject)['value'] as Uint8Array);
         } else if (typeof val === Typeof.Number) {
             return val;
         } else if (val instanceof DatabaseProperty) {

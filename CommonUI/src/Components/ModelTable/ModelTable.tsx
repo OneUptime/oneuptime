@@ -207,9 +207,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -309,9 +308,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setTableFilterError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setTableFilterError('Server Error. Please try again');
@@ -359,9 +357,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');

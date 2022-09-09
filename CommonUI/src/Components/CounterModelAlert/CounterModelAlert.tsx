@@ -4,7 +4,6 @@ import BaseModel from 'Common/Models/BaseModel';
 import Query from '../../Utils/ModelAPI/Query';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { JSONObject } from 'Common/Types/JSON';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     alertType: AlertType;
@@ -43,9 +42,8 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');

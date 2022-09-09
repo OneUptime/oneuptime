@@ -16,7 +16,6 @@ import DayUptimeGraph, { Event } from '../Graphs/DayUptimeGraph';
 import { Green } from 'Common/Types/BrandColors';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { JSONObject } from 'Common/Types/JSON';
 import useAsyncEffect from 'use-async-effect';
 
 export interface ComponentProps {
@@ -96,9 +95,8 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
         } catch (err) {
             try {
                 setError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
