@@ -152,13 +152,9 @@ export default class BaseModel extends BaseEntity {
         return dictionary[columnName] as TableColumnMetadata;
     }
 
-    public getColumnAccessControlFor(columnName: string): ColumnAccessControl {
+    public getColumnAccessControlFor(columnName: string): ColumnAccessControl | null {
         return (
-            this.getColumnAccessControlForAllColumns()[columnName] || {
-                read: [],
-                create: [],
-                update: [],
-            }
+            this.getColumnAccessControlForAllColumns()[columnName] || null
         );
     }
 
@@ -442,9 +438,11 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.createRecordPermissions;
 
         if (columnName) {
-            const columnAccessControl: ColumnAccessControl =
+            const columnAccessControl: ColumnAccessControl | null =
                 this.getColumnAccessControlFor(columnName);
-            modelPermission = columnAccessControl.create;
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.create;
+            }
         }
 
         return this.hasPermissions(userProjectPermissions, modelPermission);
@@ -457,9 +455,12 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.readRecordPermissions;
 
         if (columnName) {
-            const columnAccessControl: ColumnAccessControl =
+            debugger;
+            const columnAccessControl: ColumnAccessControl | null =
                 this.getColumnAccessControlFor(columnName);
-            modelPermission = columnAccessControl.read;
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.read;
+            } 
         }
 
         return this.hasPermissions(userProjectPermissions, modelPermission);
@@ -479,9 +480,11 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.updateRecordPermissions;
 
         if (columnName) {
-            const columnAccessControl: ColumnAccessControl =
+            const columnAccessControl: ColumnAccessControl | null =
                 this.getColumnAccessControlFor(columnName);
-            modelPermission = columnAccessControl.update;
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.update;
+            }
         }
 
         return this.hasPermissions(userProjectPermissions, modelPermission);
