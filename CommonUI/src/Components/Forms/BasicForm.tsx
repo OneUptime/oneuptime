@@ -100,6 +100,9 @@ const BasicForm: Function = <T extends Object>(
         index: number,
         isDisabled: boolean
     ): ReactElement => {
+
+        index = index + 1; 
+
         const fieldType: string = field.fieldType
             ? getFieldType(field.fieldType)
             : 'text';
@@ -150,6 +153,7 @@ const BasicForm: Function = <T extends Object>(
                                             true
                                         );
                                     }}
+                                    tabIndex={index}
                                     onFocus={async () => {
                                         await form.setFieldTouched(
                                             fieldName,
@@ -176,6 +180,7 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: any) => {
                             return (
                                 <Dropdown
+                                    tabIndex={index}
                                     onChange={async (
                                         value:
                                             | DropdownValue
@@ -218,6 +223,7 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <>
                                     <TextArea
+                                        tabIndex={index}
                                         onChange={async (text: string) => {
                                             await form.setFieldValue(
                                                 fieldName,
@@ -253,6 +259,7 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <>
                                     <Markdown
+                                        tabIndex={index}
                                         onChange={async (text: string) => {
                                             await form.setFieldValue(
                                                 fieldName,
@@ -303,6 +310,7 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <>
                                     <CodeEditor
+                                        tabIndex={index}
                                         onChange={async (text: string) => {
                                             await form.setFieldValue(
                                                 fieldName,
@@ -340,6 +348,7 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <>
                                     <FilePicker
+                                        tabIndex={index}
                                         onChange={async (
                                             files: Array<FileModel>
                                         ) => {
@@ -445,6 +454,7 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: FieldProps) => {
                             return (
                                 <Input
+                                    tabIndex={index}
                                     dataTestId={fieldType}
                                     className="form-control"
                                     type={fieldType as 'text'}

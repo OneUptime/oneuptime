@@ -12,6 +12,7 @@ export interface ComponentProps {
     onFocus?: () => void;
     onBlur?: () => void;
     className?: undefined | string;
+    tabIndex?: number | undefined;
 }
 
 const TextArea: FunctionComponent<ComponentProps> = (
@@ -55,6 +56,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
                         props.onBlur();
                     }
                 }}
+                tabIndex={props.tabIndex}
             />
         </div>
     );

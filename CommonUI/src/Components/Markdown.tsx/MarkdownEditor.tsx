@@ -8,6 +8,7 @@ export interface ComponentProps {
     onChange?: undefined | ((value: string) => void);
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
+    tabIndex?: number | undefined;
 }
 
 const MarkdownEditor: FunctionComponent<ComponentProps> = (
@@ -15,6 +16,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <TextArea
+            tabIndex={props.tabIndex}
             className={props.className}
             initialValue={props.initialValue || ''}
             placeholder={props.placeholder}

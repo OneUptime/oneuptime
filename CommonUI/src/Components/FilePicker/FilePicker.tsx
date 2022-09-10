@@ -29,6 +29,7 @@ export interface ComponentProps {
     onBlur?: (() => void) | undefined;
     dataTestId?: string;
     isMultiFilePicker?: boolean | undefined;
+    tabIndex?: number | undefined;
 }
 
 const FilePicker: FunctionComponent<ComponentProps> = (
@@ -167,7 +168,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                 className: 'file-picker-dropzone',
                             })}
                         >
-                            <input {...getInputProps()} />
+                            <input tabIndex={props.tabIndex} {...getInputProps()} />
                             {!props.placeholder && !error && (
                                 <p className="file-picker-placeholder">
                                     Drag and drop some files here, or click to

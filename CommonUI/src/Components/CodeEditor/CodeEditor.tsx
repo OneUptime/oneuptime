@@ -24,6 +24,7 @@ export interface ComponentProps {
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
     dataTestId?: string;
+    tabIndex?: number | undefined;
 }
 
 const CodeEditor: FunctionComponent<ComponentProps> = (
@@ -82,6 +83,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
             }}
         >
             <Editor
+                tabIndex={props.tabIndex}
                 id={props.dataTestId}
                 value={value}
                 onValueChange={(code: string) => {

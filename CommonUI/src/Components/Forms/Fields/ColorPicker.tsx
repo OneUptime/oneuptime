@@ -14,6 +14,7 @@ export interface ComponentProps {
     initialValue?: undefined | Color;
     placeholder: string;
     onFocus?: (() => void) | undefined;
+    tabIndex?: number | undefined;
 }
 
 const ColorPicker: FunctionComponent<ComponentProps> = (
@@ -43,6 +44,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                 value={color}
                 readOnly={true}
                 type="text"
+                tabIndex={props.tabIndex}
                 onClick={() => {
                     setIsComponentVisible(!isComponentVisible);
                 }}

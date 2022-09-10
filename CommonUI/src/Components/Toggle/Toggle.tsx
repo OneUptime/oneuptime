@@ -12,6 +12,7 @@ export interface ComponentProps {
     initialValue: boolean;
     onFocus?: () => void;
     onBlur?: () => void;
+    tabIndex?: number | undefined;
 }
 
 const Toggle: FunctionComponent<ComponentProps> = (
@@ -33,6 +34,7 @@ const Toggle: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <ReactToggle
+                tabIndex={props.tabIndex}
                 checked={isChecked}
                 onChange={(e: React.ChangeEvent<HTMLElement>) => {
                     if (props.onFocus) {
