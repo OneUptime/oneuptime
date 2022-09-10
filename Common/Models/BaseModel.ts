@@ -276,8 +276,15 @@ export default class BaseModel extends BaseEntity {
         const baseModel: T = new type();
 
         for (const key of Object.keys(json)) {
-            if (baseModel.getTableColumnMetadata(key)) {
-                (baseModel as any)[key] = json[key];
+            const tableColumnMetadata = baseModel.getTableColumnMetadata(key);
+            if (tableColumnMetadata) {
+                if (json[key] && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.Entity) {
+                    (baseModel as any)[key] = new tableColumnMetadata.modelType().fromJSON(json[key] as JSONObject, tableColumnMetadata.modelType);
+                } else if (json[key] && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray) {
+                    (baseModel as any)[key] = new tableColumnMetadata.modelType().fromJSONArray(json[key] as JSONArray, tableColumnMetadata.modelType);
+                }  else {
+                    (baseModel as any)[key] = json[key];
+                }
             }
         }
 
@@ -367,6 +374,26 @@ export default class BaseModel extends BaseEntity {
             tableColumnType.type === TableColumnType.Entity ||
                 tableColumnType.type === TableColumnType.EntityArray
         );
+    }
+
+
+    public isFileColumn(columnName: string): boolean {
+        const tableColumnType: TableColumnMetadata = getTableColumn(
+            this,
+            columnName
+        );
+
+        if (!tableColumnType || !tableColumnType.modelType) {
+            return false;
+        }
+
+        const fileModel = new tableColumnType.modelType();
+
+        if (fileModel.isFileModel()) {
+            return true;
+        }
+
+        return false; 
     }
 
     public toJSON(): JSONObject {

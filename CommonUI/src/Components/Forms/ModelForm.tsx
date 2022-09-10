@@ -32,6 +32,7 @@ import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessC
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../../Utils/ModelAPI/Populate';
+import FileModel from 'Common/Models/FileModel';
 
 export enum FormType {
     Create,
@@ -39,13 +40,13 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     onValidate?:
-        | undefined
-        | ((
-              values: FormValues<TBaseModel>
-          ) => FormikErrors<FormValues<TBaseModel>>);
+    | undefined
+    | ((
+        values: FormValues<TBaseModel>
+    ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -54,8 +55,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     onSuccess?:
-        | undefined
-        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+    | undefined
+    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -105,8 +106,16 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
-            if (key && model.isEntityColumn(key)) {
-                (populate as JSONObject)[key] = true;
+            if (key && model.isFileColumn(key)) {
+                (populate as JSONObject)[key] = {
+                    file: true,
+                    _id: true,
+                    type: true,
+                    name: true
+                };
+            } else if (key && model.isEntityColumn(key)) {
+
+                (populate as JSONObject)[key] = (field.field as any)[key];
             }
         }
 
@@ -178,12 +187,16 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             throw new BadDataException('Model ID to update not found.');
         }
 
-        const item: TBaseModel | null = await ModelAPI.getItem(
+        let item: TBaseModel | null = await ModelAPI.getItem(
             props.modelType,
             props.modelIdToEdit,
             getSelectFields(),
             getPopulate()
         );
+
+        if (!(item instanceof BaseModel) && item) {
+            item = new props.modelType().fromJSON(item as JSONObject, props.modelType);
+        }
 
         if (!item) {
             setError(
@@ -208,7 +221,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                                 isModelArray = true;
                                 idArray.push(
                                     (itemInArray as any as JSONObject)[
-                                        '_id'
+                                    '_id'
                                     ] as string
                                 );
                             }
@@ -219,7 +232,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                         (item as any)[key] = idArray;
                     }
                 }
-                if (typeof (item as any)[key] === 'object') {
+                if (typeof (item as any)[key] === 'object' && !((item as any)[key] instanceof FileModel)) {
                     if (((item as any)[key] as JSONObject)['_id']) {
                         (item as any)[key] = ((item as any)[key] as JSONObject)[
                             '_id'
@@ -283,7 +296,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -386,7 +399,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             setError(
                 (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                'Server Error. Please try again'
             );
         }
 

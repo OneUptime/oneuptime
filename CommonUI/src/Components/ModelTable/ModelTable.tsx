@@ -424,7 +424,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(column.field)[0] as string)
                 : null;
 
-            if (key && model.isEntityColumn(key)) {
+            if (key && model.isFileColumn(key)) {
+                (populate as JSONObject)[key] = {
+                    file: true,
+                    _id: true,
+                    type: true,
+                    name: true
+                };
+            } else if (key && model.isEntityColumn(key)) {
+
                 (populate as JSONObject)[key] = (column.field as any)[key];
             }
         }

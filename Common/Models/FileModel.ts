@@ -10,6 +10,7 @@ import BaseModel from './BaseModel';
 
 @SlugifyColumn('name', 'slug')
 export default class FileModel extends BaseModel {
+
     public constructor(id?: ObjectID) {
         super(id);
     }
