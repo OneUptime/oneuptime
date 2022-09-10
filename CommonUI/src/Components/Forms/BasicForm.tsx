@@ -44,6 +44,8 @@ import CodeType from 'Common/Types/Code/CodeType';
 import FilePicker from '../FilePicker/FilePicker';
 import MimeType from 'Common/Types/File/MimeType';
 import FileModel from 'Common/Models/FileModel';
+import Phone from 'Common/Types/Phone';
+import Domain from 'Common/Types/Domain';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -445,6 +447,8 @@ const BasicForm: Function = <T extends Object>(
                     field.fieldType === FormFieldSchemaType.EncryptedText ||
                     field.fieldType === FormFieldSchemaType.Date ||
                     field.fieldType === FormFieldSchemaType.Port ||
+                    field.fieldType === FormFieldSchemaType.Phone ||
+                    field.fieldType === FormFieldSchemaType.Domain ||
                     field.fieldType === FormFieldSchemaType.PositveNumber) && (
                     <Field
                         tabIndex={index + 1}
@@ -631,6 +635,36 @@ const BasicForm: Function = <T extends Object>(
         if (field.fieldType === FormFieldSchemaType.Route) {
             try {
                 new Route(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Phone) {
+            try {
+                new Phone(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Color) {
+            try {
+                new Color(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Domain) {
+            try {
+                new Domain(content.toString());
             } catch (e: unknown) {
                 if (e instanceof Exception) {
                     return e.getMessage();

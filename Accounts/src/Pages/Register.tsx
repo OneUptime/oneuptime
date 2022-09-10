@@ -96,7 +96,7 @@ const RegisterPage: FunctionComponent = () => {
                                                             true,
                                                     },
                                                     fieldType:
-                                                        FormFieldSchemaType.Text,
+                                                        FormFieldSchemaType.Phone,
                                                     required: true,
                                                     placeholder:
                                                         '+1-123-456-7890',
