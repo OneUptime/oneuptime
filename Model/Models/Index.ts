@@ -17,6 +17,9 @@ import Label from './Label';
 
 // Status Page
 import StatusPage from './StatusPage';
+import StatusPageGroup from './StatusPageGroup';
+import StatusPageDomain from './StatusPageDomain';
+import StatusPageResource from './StatusPageResource'
 
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
@@ -63,5 +66,8 @@ export default [
     IncidentPublicNote,
     IncidentInternalNote,
     File,
-    Domain
+    Domain,
+    StatusPageGroup,
+    StatusPageDomain,
+    StatusPageResource
 ];
