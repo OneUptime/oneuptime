@@ -17,7 +17,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export interface ComponentProps {
-    initialValue?: undefined | Array<FileModel>;
+    initialValue?: undefined | Array<FileModel> | FileModel;
     onClick?: undefined | (() => void);
     placeholder?: undefined | string;
     className?: undefined | string;
@@ -40,8 +40,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     const [filesModel, setFilesModel] = useState<Array<FileModel>>([]);
 
     useEffect(() => {
-        if (props.initialValue && props.initialValue.length > 0) {
+        if (Array.isArray(props.initialValue) && props.initialValue && props.initialValue.length > 0) {
             setFilesModel(props.initialValue);
+        } else if (props.initialValue instanceof FileModel) {
+            setFilesModel([props.initialValue as FileModel]);
         }
     }, [props.initialValue]);
 
