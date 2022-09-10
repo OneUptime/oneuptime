@@ -13,6 +13,7 @@ enum ColumnType {
     LongURL = 'text',
     ShortText = 'varchar',
     OTP = 'varchar',
+    Domain = 'varchar',
     LongText = 'varchar',
     VeryLongText = 'text',
     HTML = 'text',

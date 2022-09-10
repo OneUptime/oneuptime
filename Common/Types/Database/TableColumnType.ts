@@ -12,6 +12,7 @@ enum ColumnType {
     File,
     Buffer,
     ShortURL,
+    Domain,
     LongURL,
     ShortText,
     OTP,

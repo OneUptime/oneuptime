@@ -1,6 +1,8 @@
+import { FindOperator } from 'typeorm/find-options/FindOperator';
+import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 
-export default class Domain {
+export default class Domain extends DatabaseProperty {
     private _domain: string = '';
     public get domain(): string {
         return this._domain;
@@ -44,10 +46,29 @@ export default class Domain {
     }
 
     public constructor(domain: string) {
+        super();
         this.domain = domain;
     }
 
-    public toString(): string {
+    public override toString(): string {
         return this.domain;
+    }
+
+    protected static override toDatabase(
+        _value: Domain | FindOperator<Domain>
+    ): string | null {
+        if (_value) {
+            return _value.toString();
+        }
+
+        return null;
+    }
+
+    protected static override fromDatabase(_value: string): Domain | null {
+        if (_value) {
+            return new Domain(_value);
+        }
+
+        return null;
     }
 }

@@ -20,6 +20,7 @@ import GreaterThanOrEqual from './Database/GreaterThanOrEqual';
 import LessThan from './Database/LessThan';
 import LessThanOrEqual from './Database/LessThanOrEqual';
 import InBetween from './Database/InBetween';
+import Domain from './Domain';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -27,6 +28,7 @@ enum ObjectType {
     Email = 'Email',
     Phone = 'Phone',
     Color = 'Color',
+    Domain = 'Domain',
     Version = 'Version',
     Route = 'Route',
     URL = 'URL',
@@ -78,6 +80,8 @@ export type JSONValue =
     | Permission
     | Array<Permission>
     | Search
+    | Domain
+    | Array<Domain>
     | Array<Search>
     | GreaterThan
     | Array<GreaterThan>
@@ -158,6 +162,11 @@ export class JSONFunctions {
             return {
                 _type: ObjectType.Name,
                 value: (val as Name).toString(),
+            };
+        }  else if (val && val instanceof Domain) {
+            return {
+                _type: ObjectType.Domain,
+                value: (val as Domain).toString(),
             };
         } else if (val && val instanceof ObjectID) {
             return {
@@ -292,6 +301,15 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Name
         ) {
             return new Name((val as JSONObject)['value'] as string);
+        }else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.Domain
+        ) {
+            return new Domain((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&

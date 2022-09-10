@@ -96,6 +96,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
+                        title: 'Domains',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_DOMAINS] as Route
+                        ),
+                    }}
+                    icon={IconProp.Globe}
+                />
+                <SideMenuItem
+                    link={{
                         title: 'API Keys',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.SETTINGS_APIKEYS] as Route

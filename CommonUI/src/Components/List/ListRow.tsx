@@ -29,6 +29,10 @@ const ListRow: FunctionComponent<ComponentProps> = (
             <div>
                 {props.actionButtons?.map(
                     (button: ActionButtonSchema, i: number) => {
+                        if (button.isVisible && !button.isVisible(props.item)) {
+                            return <></>
+                        }
+                        
                         return (
                             <span
                                 style={

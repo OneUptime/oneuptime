@@ -53,6 +53,10 @@ enum PageMap {
     // Labels.
     SETTINGS_LABELS = 'SETTINGS_LABELS',
 
+    // Domains
+
+    SETTINGS_DOMAINS = 'SETTINGS_DOMAINS',
+
     // Misc
     LOGOUT = 'LOGOUT',
 }

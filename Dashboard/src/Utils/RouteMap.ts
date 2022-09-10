@@ -142,6 +142,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/incidents-state`
     ),
 
+    [PageMap.SETTINGS_DOMAINS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/domains`
+    ),
+
     [PageMap.SETTINGS_TEAMS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/teams`
     ),

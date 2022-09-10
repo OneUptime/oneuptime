@@ -111,6 +111,11 @@ import IncidentPublicNoteService, {
     Service as IncidentPublicNoteServiceType,
 } from 'CommonServer/Services/IncidentPublicNoteService';
 
+import Domain from 'Model/Models/Domain';
+import DomainService, {
+    Service as DomainServiceType,
+} from 'CommonServer/Services/DomainService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -152,6 +157,13 @@ app.use(
     new BaseAPI<IncidentState, IncidentStateServiceType>(
         IncidentState,
         IncidentStateService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<Domain, DomainServiceType>(
+        Domain,
+        DomainService
     ).getRouter()
 );
 

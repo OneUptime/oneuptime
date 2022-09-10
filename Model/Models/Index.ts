@@ -36,6 +36,8 @@ import IncidentInternalNote from './IncidentInternalNote';
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 
+import Domain from './Domain';
+
 import File from './File';
 
 export default [
@@ -61,4 +63,5 @@ export default [
     IncidentPublicNote,
     IncidentInternalNote,
     File,
+    Domain
 ];

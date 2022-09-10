@@ -61,6 +61,13 @@ enum Permission {
     CanEditProjectIncident = 'CanEditProjectIncident',
     CanReadProjectIncident = 'CanReadProjectIncident',
 
+
+    // Probe Permissions (Owner Permission)
+    CanCreateProjectDomain = 'CanCreateProjectDomain',
+    CanDeleteProjectDomain = 'CanDeleteProjectDomain',
+    CanEditProjectDomain = 'CanEditProjectDomain',
+    CanReadProjectDomain = 'CanReadProjectDomain',
+
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateProjectLabel = 'CanCreateProjectLabel',
     CanEditProjectLabel = 'CanEditProjectLabel',
@@ -427,7 +434,42 @@ export class PermissionHelper {
                 description:
                     'A user assigned this permission  can read incident state in this project.',
                 isAssignableToProject: true,
+            }, 
+
+
+
+
+            {
+                permission: Permission.CanCreateProjectDomain,
+                title: 'Can Create Domain',
+                description:
+                    'A user assigned this permission can create Domain in this project.',
+                isAssignableToProject: true,
             },
+            {
+                permission: Permission.CanDeleteProjectDomain,
+                title: 'Can Delete Domain',
+                description:
+                    'A user assigned this permission  can delete Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectDomain,
+                title: 'Can Edit Domain',
+                description:
+                    'A user assigned this permission can edit Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectDomain,
+                title: 'Can Read Domain',
+                description:
+                    'A user assigned this permission  can read Domain in this project.',
+                isAssignableToProject: true,
+            },
+
+
+
 
             {
                 permission: Permission.CanCreateProjectSMTPConfig,
