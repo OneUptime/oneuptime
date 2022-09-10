@@ -24,6 +24,8 @@ import StatusPagesViewResources from './Pages/StatusPages/View/Resources';
 import StatusPagesViewAnnouncement from './Pages/StatusPages/View/Announcements';
 import StatusPagesViewAdvancedOptions from './Pages/StatusPages/View/AdvancedOptions';
 import StatusPagesViewCustomHtmlCss from './Pages/StatusPages/View/CustomHtmlCss';
+import StatusPagesViewGroups from './Pages/StatusPages/View/Groups';
+
 
 import Incidents from './Pages/Incidents/Incidents';
 import IncidentView from './Pages/Incidents/View/Index';
@@ -368,6 +370,22 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_DOMAINS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_GROUPS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewGroups
+                            pageRoute={
+                                RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_GROUPS
                                 ] as Route
                             }
                             currentProject={selectedProject}

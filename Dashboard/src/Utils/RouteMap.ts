@@ -50,6 +50,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/branding`
     ),
 
+    [PageMap.STATUS_PAGE_VIEW_GROUPS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/groups`
+    ),
+
     [PageMap.STATUS_PAGE_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/delete`
     ),
