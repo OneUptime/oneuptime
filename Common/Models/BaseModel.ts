@@ -276,7 +276,8 @@ export default class BaseModel extends BaseEntity {
         const baseModel: T = new type();
 
         for (const key of Object.keys(json)) {
-            const tableColumnMetadata = baseModel.getTableColumnMetadata(key);
+            const tableColumnMetadata: TableColumnMetadata =
+                baseModel.getTableColumnMetadata(key);
             if (tableColumnMetadata) {
                 if (
                     json[key] &&
@@ -402,7 +403,7 @@ export default class BaseModel extends BaseEntity {
             return false;
         }
 
-        const fileModel = new tableColumnType.modelType();
+        const fileModel: BaseModel = new tableColumnType.modelType();
 
         if (fileModel.isFileModel()) {
             return true;
@@ -425,14 +426,14 @@ export default class BaseModel extends BaseEntity {
     ): JSONObject {
         const json: JSONObject = {};
 
-        const vanillaModel = new modelType();
+        const vanillaModel: BaseModel = new modelType();
 
         for (const key of vanillaModel.getTableColumns().columns) {
             if ((model as any)[key] === undefined) {
                 continue;
             }
 
-            const tableColumnMetadata =
+            const tableColumnMetadata: TableColumnMetadata =
                 vanillaModel.getTableColumnMetadata(key);
 
             if (tableColumnMetadata) {

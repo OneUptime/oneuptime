@@ -6,27 +6,33 @@ export default class Domain extends DomainCommon {
         domain: Domain | string,
         verificationText: string
     ): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            dns.resolveTxt(domain.toString(), (err, data) => {
-                if (err) {
-                    return reject(err);
-                }
-
-                let isVerified = false;
-                for (const item of data) {
-                    let txt: Array<string> | string = item;
-                    if (Array.isArray(txt)) {
-                        txt = (txt as Array<string>).join('');
+        return new Promise((resolve: Function, reject: Function) => {
+            dns.resolveTxt(
+                domain.toString(),
+                (
+                    err: NodeJS.ErrnoException | null,
+                    data: Array<Array<string>>
+                ) => {
+                    if (err) {
+                        return reject(err);
                     }
 
-                    if (txt === verificationText) {
-                        isVerified = true;
-                        break;
-                    }
-                }
+                    let isVerified: boolean = false;
+                    for (const item of data) {
+                        let txt: Array<string> | string = item;
+                        if (Array.isArray(txt)) {
+                            txt = (txt as Array<string>).join('');
+                        }
 
-                resolve(isVerified);
-            });
+                        if (txt === verificationText) {
+                            isVerified = true;
+                            break;
+                        }
+                    }
+
+                    resolve(isVerified);
+                }
+            );
         });
     }
 }

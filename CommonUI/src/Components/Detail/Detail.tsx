@@ -57,7 +57,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 (props.item[fieldKey] as FileModel).file &&
                 (props.item[fieldKey] as FileModel).type
             ) {
-                const blob = new Blob(
+                const blob: Blob = new Blob(
                     [(props.item[fieldKey] as FileModel).file as Uint8Array],
                     {
                         type: (props.item[fieldKey] as FileModel)

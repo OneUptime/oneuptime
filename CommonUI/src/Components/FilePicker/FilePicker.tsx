@@ -86,17 +86,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     const fileModel: FileModel = new FileModel();
                     fileModel.name = acceptedFile.name;
 
-                    const arrayBuffer = await acceptedFile.arrayBuffer();
+                    const arrayBuffer: ArrayBuffer =
+                        await acceptedFile.arrayBuffer();
 
-                    const blob = new Blob([new Uint8Array(arrayBuffer)]);
-
-                    const _url: string = URL.createObjectURL(blob);
-                    const url: string = URL.createObjectURL(acceptedFile);
-
-                    console.log(_url);
-                    console.log(url);
-
-                    const fileBuffer = new Uint8Array(arrayBuffer);
+                    const fileBuffer: Uint8Array = new Uint8Array(arrayBuffer);
                     fileModel.file = Buffer.from(fileBuffer);
                     fileModel.isPublic = false;
                     fileModel.type = acceptedFile.type as MimeType;
@@ -128,19 +121,16 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         },
     });
 
-    const getThumbs = (): Array<ReactElement> => {
+    const getThumbs: Function = (): Array<ReactElement> => {
         return filesModel.map((file: FileModel, i: number) => {
             if (!file.file) {
                 return <></>;
             }
 
-            const blob = new Blob([file.file as Uint8Array], {
+            const blob: Blob = new Blob([file.file as Uint8Array], {
                 type: file.type as string,
             });
             const url: string = URL.createObjectURL(blob);
-
-            console.log(Array.isArray(file.file));
-            console.log(url);
 
             return (
                 <div key={file.name} className="file-picker-thumb">
@@ -154,7 +144,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                             thick={ThickProp.Thick}
                             size={SizeProp.Regular}
                             onClick={() => {
-                                const tempFileModel = [...filesModel];
+                                const tempFileModel: Array<FileModel> = [
+                                    ...filesModel,
+                                ];
                                 tempFileModel.splice(i, 1);
                                 setFilesModel(tempFileModel);
                                 props.onChange && props.onChange(tempFileModel);

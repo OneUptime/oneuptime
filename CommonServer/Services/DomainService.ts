@@ -24,7 +24,6 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeUpdate(
         updateBy: UpdateBy<Model>
     ): Promise<OnUpdate<Model>> {
-        debugger;
         if (
             updateBy.data.isVerified &&
             updateBy.query._id &&
@@ -32,7 +31,7 @@ export class Service extends DatabaseService<Model> {
         ) {
             // check the verification of the domain.
 
-            const items = await this.findBy({
+            const items: Array<Model> = await this.findBy({
                 query: {
                     _id: updateBy.query._id as string,
                     projectId: updateBy.props.tenantId!,
@@ -55,8 +54,8 @@ export class Service extends DatabaseService<Model> {
                 );
             }
 
-            const domain = items[0]?.domain?.toString();
-            const verificationText =
+            const domain: string | undefined = items[0]?.domain?.toString();
+            const verificationText: string | undefined =
                 items[0]?.domainVerificationText?.toString();
 
             if (!domain) {
@@ -73,7 +72,7 @@ export class Service extends DatabaseService<Model> {
                 );
             }
 
-            const isVerified = await Domain.verifyTxtRecord(
+            const isVerified: boolean = await Domain.verifyTxtRecord(
                 domain,
                 verificationText
             );

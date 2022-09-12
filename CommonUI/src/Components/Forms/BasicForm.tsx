@@ -357,12 +357,14 @@ const BasicForm: Function = <T extends Object>(
                                             let fileResult:
                                                 | FileModel
                                                 | Array<FileModel>
-                                                | null = files.map((i) => {
-                                                const strippedModel =
-                                                    new FileModel();
-                                                strippedModel._id = i._id!;
-                                                return strippedModel;
-                                            });
+                                                | null = files.map(
+                                                (i: FileModel) => {
+                                                    const strippedModel: FileModel =
+                                                        new FileModel();
+                                                    strippedModel._id = i._id!;
+                                                    return strippedModel;
+                                                }
+                                            );
 
                                             if (
                                                 field.fieldType ===

@@ -35,6 +35,7 @@ import Populate from '../../Utils/ModelAPI/Populate';
 import FileModel from 'Common/Models/FileModel';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import Typeof from 'Common/Types/Typeof';
+import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 
 export enum FormType {
     Create,
@@ -385,7 +386,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             }
 
             for (const key of model.getTableColumns().columns) {
-                const tableColumnMetadata = model.getTableColumnMetadata(key);
+                const tableColumnMetadata: TableColumnMetadata =
+                    model.getTableColumnMetadata(key);
 
                 if (
                     tableColumnMetadata &&
@@ -394,7 +396,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                     valuesToSend[key] &&
                     typeof valuesToSend[key] === Typeof.String
                 ) {
-                    const baseModel = new tableColumnMetadata.modelType();
+                    const baseModel: BaseModel =
+                        new tableColumnMetadata.modelType();
                     baseModel._id = valuesToSend[key] as string;
                     valuesToSend[key] = baseModel;
                 }
@@ -410,7 +413,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 ) {
                     const arr: Array<BaseModel> = [];
                     for (const id of valuesToSend[key] as Array<string>) {
-                        const baseModel = new tableColumnMetadata.modelType();
+                        const baseModel: BaseModel =
+                            new tableColumnMetadata.modelType();
                         baseModel._id = id as string;
                         arr.push(baseModel);
                     }
