@@ -406,7 +406,6 @@ export default class BaseModel extends BaseEntity {
 
         for (const key of this.getTableColumns().columns) {
             if (
-                (this as any)[key] === null ||
                 (this as any)[key] === undefined
             ) {
                 continue;

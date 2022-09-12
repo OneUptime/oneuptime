@@ -232,7 +232,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                         (item as any)[key] = idArray;
                     }
                 }
-                if (typeof (item as any)[key] === 'object' && !((item as any)[key] instanceof FileModel)) {
+                if ((item as any)[key] && typeof (item as any)[key] === 'object' && !((item as any)[key] instanceof FileModel)) {
                     if (((item as any)[key] as JSONObject)['_id']) {
                         (item as any)[key] = ((item as any)[key] as JSONObject)[
                             '_id'

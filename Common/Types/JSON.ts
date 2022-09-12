@@ -102,6 +102,7 @@ export type JSONValue =
     | Array<JSONValue>
     | Array<Permission>
     | Array<JSONValue>
+    | undefined
     | null;
 
 export interface JSONObject {
@@ -124,9 +125,15 @@ export class JSONFunctions {
         const newVal: JSONValue = {};
 
         for (const key in val) {
-            if (val[key] === null || val[key] === undefined) {
+            
+            if (val[key] === undefined) {
                 continue;
             }
+
+            if (val[key] === null) { 
+                newVal[key] = val[key];
+            }
+
 
             if (Array.isArray(val[key])) {
                 const arraySerialize: Array<JSONValue> = [];
@@ -282,12 +289,13 @@ export class JSONFunctions {
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] &&
+            ((val as JSONObject)['value'] as JSONObject)['data'] &&
             ((val as JSONObject)['value'] as JSONObject)['type'] &&
             ((val as JSONObject)['value'] as JSONObject)['type'] ===
                 ObjectType.Buffer &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Buffer
         ) {
-            return Buffer.from((val as JSONObject)['value'] as Uint8Array);
+            return Buffer.from(((val as JSONObject)['value'] as JSONObject)['data'] as Uint8Array);
         } else if (typeof val === Typeof.Number) {
             return val;
         } else if (val instanceof DatabaseProperty) {
@@ -522,7 +530,7 @@ export class JSONFunctions {
         const newVal: JSONObject = {};
         for (const key in val) {
             if (val[key] === null || val[key] === undefined) {
-                continue;
+                newVal[key] = val[key];
             }
 
             if (Array.isArray(val[key])) {
