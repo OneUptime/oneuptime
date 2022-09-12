@@ -33,6 +33,8 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../../Utils/ModelAPI/Populate';
 import FileModel from 'Common/Models/FileModel';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import Typeof from 'Common/Types/Typeof';
 
 export enum FormType {
     Create,
@@ -376,6 +378,28 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 delete valuesToSend[key];
             }
 
+
+            for (const key of model.getTableColumns().columns) {
+                const tableColumnMetadata = model.getTableColumnMetadata(key);
+
+                if (tableColumnMetadata && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.Entity && valuesToSend[key] && typeof valuesToSend[key] === Typeof.String) {
+                    let baseModel = new tableColumnMetadata.modelType();
+                    baseModel._id = valuesToSend[key] as string;
+                    valuesToSend[key] = baseModel;
+
+                }
+
+                if (tableColumnMetadata && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray && Array.isArray(valuesToSend[key]) && (valuesToSend[key] as Array<any>).length > 0 && typeof ((valuesToSend[key] as Array<any>)[0]) === Typeof.String) {
+                    const arr: Array<BaseModel> = [];
+                    for (const id of valuesToSend[key] as Array<string>) {
+                        let baseModel = new tableColumnMetadata.modelType();
+                        baseModel._id = id as string;
+                        arr.push(baseModel);
+                    }
+                    valuesToSend[key] = arr;
+                }
+            }
+
             let tBaseModel: TBaseModel = model.fromJSON(
                 valuesToSend,
                 props.modelType
@@ -384,6 +408,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             if (props.onBeforeCreate && props.formType === FormType.Create) {
                 tBaseModel = await props.onBeforeCreate(tBaseModel);
             }
+
 
             result = await ModelAPI.createOrUpdate<TBaseModel>(
                 tBaseModel,

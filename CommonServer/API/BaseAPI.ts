@@ -189,6 +189,7 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+
         const skip: PositiveNumber = req.query['skip']
             ? new PositiveNumber(req.query['skip'] as string)
             : new PositiveNumber(0);
@@ -246,6 +247,7 @@ export default class BaseAPI<
             props: databaseProps,
         });
 
+        debugger;
         return Response.sendListResponse(req, res, list, count, this.entityType);
     }
 

@@ -402,7 +402,8 @@ export default class BaseModel extends BaseEntity {
     }
 
 
-    public static toJSONObject(model: BaseModel, modelType: { new (): BaseModel }): JSONObject {
+    public static toJSONObject(model: BaseModel, modelType: { new(): BaseModel }): JSONObject {
+        
         const json: JSONObject = {};
 
         const vanillaModel = new modelType();
@@ -423,7 +424,7 @@ export default class BaseModel extends BaseEntity {
                 } else if ((model as any)[key] && Array.isArray((model as any)[key]) && (model as any)[key].length > 0 && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray) {
                     (json as any)[key] = BaseModel.toJSONObjectArray((model as any)[key] as Array<BaseModel>, tableColumnMetadata.modelType);
                 }  else {
-                    (json as any)[key] = json[key];
+                    (json as any)[key] = (model as any)[key];
                 }
             }
         }

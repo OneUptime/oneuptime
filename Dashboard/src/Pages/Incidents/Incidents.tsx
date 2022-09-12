@@ -208,6 +208,15 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                                 color: true,
                             },
                         },
+                        isFilterable: true,
+                        filterEntityType: IncidentSeverity,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
                         title: 'Incident Severity',
                         type: FieldType.Entity,
                         getElement: (item: JSONObject): ReactElement => {
