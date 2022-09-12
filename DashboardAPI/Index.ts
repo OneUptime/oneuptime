@@ -116,7 +116,6 @@ import DomainService, {
     Service as DomainServiceType,
 } from 'CommonServer/Services/DomainService';
 
-
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import StatusPageGroupService, {
     Service as StatusPageGroupServiceType,
@@ -126,7 +125,6 @@ import StatusPageResource from 'Model/Models/StatusPageResource';
 import StatusPageResourceService, {
     Service as StatusPageResourceServiceType,
 } from 'CommonServer/Services/StatusPageResourceService';
-
 
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import IncidentSeverityService, {
@@ -190,10 +188,7 @@ app.use(
 );
 
 app.use(
-    new BaseAPI<Domain, DomainServiceType>(
-        Domain,
-        DomainService
-    ).getRouter()
+    new BaseAPI<Domain, DomainServiceType>(Domain, DomainService).getRouter()
 );
 
 app.use(
@@ -209,7 +204,6 @@ app.use(
         StatusPageDomainService
     ).getRouter()
 );
-
 
 app.use(
     new BaseAPI<IncidentStateTimeline, IncidentStateTimelineServiceType>(
@@ -236,7 +230,10 @@ app.use(
 );
 
 app.use(
-    new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(IncidentSeverity, IncidentSeverityService).getRouter()
+    new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(
+        IncidentSeverity,
+        IncidentSeverityService
+    ).getRouter()
 );
 
 app.use(new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter());

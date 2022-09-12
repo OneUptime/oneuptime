@@ -22,7 +22,7 @@ import MonitorStatusService from './MonitorStatusService';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import IncidentSeverityService from "./IncidentSeverityService";
+import IncidentSeverityService from './IncidentSeverityService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -82,7 +82,6 @@ export class Service extends DatabaseService<Model> {
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
-        
         createdItem = await this.addDefaultProjectTeams(createdItem);
         createdItem = await this.addDefaultMonitorStatus(createdItem);
         createdItem = await this.addDefaultIncidentState(createdItem);
@@ -143,7 +142,9 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-    private async addDefaultIncidentSeverity(createdItem: Model): Promise<Model> {
+    private async addDefaultIncidentSeverity(
+        createdItem: Model
+    ): Promise<Model> {
         let criticalIncident: IncidentSeverity = new IncidentSeverity();
         criticalIncident.name = 'Critial Incident';
         criticalIncident.description =
@@ -240,8 +241,6 @@ export class Service extends DatabaseService<Model> {
 
         return createdItem;
     }
-
-    
 
     private async addDefaultProjectTeams(createdItem: Model): Promise<Model> {
         // add a team member.

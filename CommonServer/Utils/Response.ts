@@ -150,7 +150,10 @@ export default class Response {
         }
 
         if (list.length > 0 && list[0] instanceof BaseModel) {
-            listData.data = BaseModel.toJSONArray(list as Array<BaseModel>, modelType);
+            listData.data = BaseModel.toJSONArray(
+                list as Array<BaseModel>,
+                modelType
+            );
         } else {
             listData.data = list as JSONArray;
         }

@@ -11,7 +11,7 @@ enum FormFieldSchemaType {
     Email,
     PositveNumber,
     Date,
-    Phone, 
+    Phone,
     Domain,
     LongText,
     Color,

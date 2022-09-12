@@ -37,7 +37,9 @@ const Modal: FunctionComponent<ComponentProps> = (
                                     props.onClose ? props.onClose : undefined
                                 }
                             />
-                            <ModalBody error={props.error}>{props.children}</ModalBody>
+                            <ModalBody error={props.error}>
+                                {props.children}
+                            </ModalBody>
                             <ModalFooter
                                 submitButtonType={
                                     props.submitButtonType

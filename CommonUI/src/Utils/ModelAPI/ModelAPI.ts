@@ -113,7 +113,7 @@ export default class ModelAPI {
         formType: FormType,
         apiUrlOverride?: URL,
         miscDataProps?: JSONObject,
-        requestOptions?: RequestOptions | undefined,
+        requestOptions?: RequestOptions | undefined
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
@@ -145,7 +145,9 @@ export default class ModelAPI {
             httpMethod,
             apiUrl,
             {
-                data: JSONFunctions.serialize(BaseModel.toJSON(model, modelType)),
+                data: JSONFunctions.serialize(
+                    BaseModel.toJSON(model, modelType)
+                ),
                 miscDataProps: miscDataProps || {},
             },
             this.getCommonHeaders(requestOptions)

@@ -9,15 +9,14 @@ export interface ComponentProps {
 const ModalBody: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return <div className="modal-body">
-        {props.error && (
-            <Alert
-                title={props.error}
-                type={AlertType.DANGER}
-            />
-        )}
-        {props.children}
-    </div>;
+    return (
+        <div className="modal-body">
+            {props.error && (
+                <Alert title={props.error} type={AlertType.DANGER} />
+            )}
+            {props.children}
+        </div>
+    );
 };
 
 export default ModalBody;

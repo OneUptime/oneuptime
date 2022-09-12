@@ -141,8 +141,6 @@ export default class StatusPageResource extends BaseModel {
     })
     public statusPageId?: ObjectID = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -194,7 +192,6 @@ export default class StatusPageResource extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public monitorId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -248,8 +245,6 @@ export default class StatusPageResource extends BaseModel {
     })
     public statusPageGroupId?: ObjectID = undefined;
 
-    
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -260,10 +255,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanReadStatusPageResource,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditStatusPageResource,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -334,10 +326,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanReadStatusPageResource,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditStatusPageResource,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
     })
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
     @Column({

@@ -78,8 +78,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                             incidentSeverity: true,
                         },
                         title: 'Incident Severity',
-                        description:
-                            'What type of incident is this?',
+                        description: 'What type of incident is this?',
                         fieldType: FormFieldSchemaType.Dropdown,
                         dropdownModal: {
                             type: IncidentSeverity,

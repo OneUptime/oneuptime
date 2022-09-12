@@ -52,18 +52,29 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         }
 
         if (field.fieldType === FieldType.ImageFile) {
-
-            if (props.item[fieldKey] && (props.item[fieldKey] as FileModel).file && (props.item[fieldKey] as FileModel).type) {
-
-                const blob = new Blob([(props.item[fieldKey] as FileModel).file as Uint8Array], {
-                    type: (props.item[fieldKey] as FileModel).type as string,
-                });
+            if (
+                props.item[fieldKey] &&
+                (props.item[fieldKey] as FileModel).file &&
+                (props.item[fieldKey] as FileModel).type
+            ) {
+                const blob = new Blob(
+                    [(props.item[fieldKey] as FileModel).file as Uint8Array],
+                    {
+                        type: (props.item[fieldKey] as FileModel)
+                            .type as string,
+                    }
+                );
 
                 const url: string = URL.createObjectURL(blob);
 
-                data = <img src={url} style={{
-                    height: "100px"
-                }} />
+                data = (
+                    <img
+                        src={url}
+                        style={{
+                            height: '100px',
+                        }}
+                    />
+                );
             } else {
                 data = '';
             }

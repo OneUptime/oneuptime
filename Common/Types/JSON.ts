@@ -125,15 +125,13 @@ export class JSONFunctions {
         const newVal: JSONValue = {};
 
         for (const key in val) {
-
             if (val[key] === undefined) {
                 continue;
             }
 
-            if (val[key] === null) { 
+            if (val[key] === null) {
                 newVal[key] = val[key];
             }
-
 
             if (Array.isArray(val[key])) {
                 const arraySerialize: Array<JSONValue> = [];
@@ -170,7 +168,7 @@ export class JSONFunctions {
                 _type: ObjectType.Name,
                 value: (val as Name).toString(),
             };
-        }  else if (val && val instanceof Domain) {
+        } else if (val && val instanceof Domain) {
             return {
                 _type: ObjectType.Domain,
                 value: (val as Domain).toString(),
@@ -295,13 +293,14 @@ export class JSONFunctions {
                 ObjectType.Buffer &&
             ((val as JSONObject)['_type'] as string) === ObjectType.Buffer
         ) {
-            return Buffer.from(((val as JSONObject)['value'] as JSONObject)['data'] as Uint8Array);
-        }else if (
-            val &&
-            ArrayBuffer.isView(val)
-        ) {
+            return Buffer.from(
+                ((val as JSONObject)['value'] as JSONObject)[
+                    'data'
+                ] as Uint8Array
+            );
+        } else if (val && ArrayBuffer.isView(val)) {
             return Buffer.from(val as Uint8Array);
-        }  else if (typeof val === Typeof.Number) {
+        } else if (typeof val === Typeof.Number) {
             return val;
         } else if (val instanceof DatabaseProperty) {
             return val;
@@ -314,7 +313,7 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Name
         ) {
             return new Name((val as JSONObject)['value'] as string);
-        }else if (
+        } else if (
             val &&
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&

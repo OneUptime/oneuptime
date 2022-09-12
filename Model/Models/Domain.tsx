@@ -16,7 +16,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import DomainType from "Common/Types/Domain";
+import DomainType from 'Common/Types/Domain';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -117,8 +117,6 @@ export default class Domain extends BaseModel {
         length: ColumnLength.Slug,
     })
     public slug?: string = undefined;
-
-    
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectDomain],
@@ -225,7 +223,6 @@ export default class Domain extends BaseModel {
         default: false,
     })
     public isVerified?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [],

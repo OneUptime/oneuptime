@@ -189,7 +189,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-
         const skip: PositiveNumber = req.query['skip']
             ? new PositiveNumber(req.query['skip'] as string)
             : new PositiveNumber(0);
@@ -247,7 +246,13 @@ export default class BaseAPI<
             props: databaseProps,
         });
 
-        return Response.sendListResponse(req, res, list, count, this.entityType);
+        return Response.sendListResponse(
+            req,
+            res,
+            list,
+            count,
+            this.entityType
+        );
     }
 
     public async count(
@@ -270,7 +275,12 @@ export default class BaseAPI<
             props: databaseProps,
         });
 
-        return Response.sendItemResponse(req, res, { count: count.toNumber() }, this.entityType);
+        return Response.sendItemResponse(
+            req,
+            res,
+            { count: count.toNumber() },
+            this.entityType
+        );
     }
 
     public async getItem(
@@ -301,7 +311,12 @@ export default class BaseAPI<
             props: this.getDatabaseCommonInteractionProps(req),
         });
 
-        return Response.sendItemResponse(req, res, item ? BaseModel.toJSON(item, this.entityType) : {}, this.entityType);
+        return Response.sendItemResponse(
+            req,
+            res,
+            item ? BaseModel.toJSON(item, this.entityType) : {},
+            this.entityType
+        );
     }
 
     public async deleteItem(

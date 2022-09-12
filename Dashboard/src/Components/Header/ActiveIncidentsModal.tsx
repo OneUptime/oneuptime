@@ -149,7 +149,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                             field: {
                                 incidentSeverity: {
                                     name: true,
-                                color: true,
+                                    color: true,
                                 },
                             },
                             title: 'Incident Severity',

@@ -2,7 +2,7 @@ import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Domain';
 import DatabaseService, { OnCreate, OnUpdate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
-import Text from "Common/Types/Text";
+import Text from 'Common/Types/Text';
 import UpdateBy from '../Types/Database/UpdateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Domain from '../Types/Domain';
@@ -15,15 +15,22 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
-        createBy.data.domainVerificationText = 'oneuptime-verification-' + Text.generateRandomText(20);
-        createBy.data.isVerified = false; 
+        createBy.data.domainVerificationText =
+            'oneuptime-verification-' + Text.generateRandomText(20);
+        createBy.data.isVerified = false;
         return Promise.resolve({ createBy, carryForward: null });
     }
 
-    protected override async onBeforeUpdate(updateBy: UpdateBy<Model>): Promise<OnUpdate<Model>> {
-        debugger; 
-        if (updateBy.data.isVerified && updateBy.query._id && !updateBy.props.isRoot) {
-            // check the verification of the domain. 
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<Model>
+    ): Promise<OnUpdate<Model>> {
+        debugger;
+        if (
+            updateBy.data.isVerified &&
+            updateBy.query._id &&
+            !updateBy.props.isRoot
+        ) {
+            // check the verification of the domain.
 
             const items = await this.findBy({
                 query: {
@@ -32,7 +39,7 @@ export class Service extends DatabaseService<Model> {
                 },
                 select: {
                     domain: true,
-                    domainVerificationText: true, 
+                    domainVerificationText: true,
                 },
                 populate: {},
                 limit: 1,
@@ -41,29 +48,46 @@ export class Service extends DatabaseService<Model> {
                     isRoot: true,
                 },
             });
-            
+
             if (items.length === 0) {
-                throw new BadDataException("Domain with id " + updateBy.query._id + " not found.");
+                throw new BadDataException(
+                    'Domain with id ' + updateBy.query._id + ' not found.'
+                );
             }
 
             const domain = items[0]?.domain?.toString();
-            const verificationText = items[0]?.domainVerificationText?.toString();
+            const verificationText =
+                items[0]?.domainVerificationText?.toString();
 
             if (!domain) {
-                throw new BadDataException("Domain with id " + updateBy.query._id + " not found.");
+                throw new BadDataException(
+                    'Domain with id ' + updateBy.query._id + ' not found.'
+                );
             }
 
             if (!verificationText) {
-                throw new BadDataException("Domain verification text with id " + updateBy.query._id + " not found.");
+                throw new BadDataException(
+                    'Domain verification text with id ' +
+                        updateBy.query._id +
+                        ' not found.'
+                );
             }
 
-            const isVerified = await Domain.verifyTxtRecord(domain, verificationText);
+            const isVerified = await Domain.verifyTxtRecord(
+                domain,
+                verificationText
+            );
 
             if (!isVerified) {
-                throw new BadDataException("Verification TXT record "+verificationText+" not found in domain "+domain+". Please add a TXT record to verify the domain.");
+                throw new BadDataException(
+                    'Verification TXT record ' +
+                        verificationText +
+                        ' not found in domain ' +
+                        domain +
+                        '. Please add a TXT record to verify the domain.'
+                );
             }
         }
-
 
         return { carryForward: null, updateBy };
     }

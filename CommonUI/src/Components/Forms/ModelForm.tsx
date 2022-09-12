@@ -42,13 +42,13 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     onValidate?:
-    | undefined
-    | ((
-        values: FormValues<TBaseModel>
-    ) => FormikErrors<FormValues<TBaseModel>>);
+        | undefined
+        | ((
+              values: FormValues<TBaseModel>
+          ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -57,8 +57,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     onSuccess?:
-    | undefined
-    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+        | undefined
+        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -113,10 +113,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                     file: true,
                     _id: true,
                     type: true,
-                    name: true
+                    name: true,
                 };
             } else if (key && model.isEntityColumn(key)) {
-
                 (populate as JSONObject)[key] = (field.field as any)[key];
             }
         }
@@ -197,7 +196,10 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         );
 
         if (!(item instanceof BaseModel) && item) {
-            item = new props.modelType().fromJSON(item as JSONObject, props.modelType);
+            item = new props.modelType().fromJSON(
+                item as JSONObject,
+                props.modelType
+            );
         }
 
         if (!item) {
@@ -223,7 +225,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                                 isModelArray = true;
                                 idArray.push(
                                     (itemInArray as any as JSONObject)[
-                                    '_id'
+                                        '_id'
                                     ] as string
                                 );
                             }
@@ -234,7 +236,11 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                         (item as any)[key] = idArray;
                     }
                 }
-                if ((item as any)[key] && typeof (item as any)[key] === 'object' && !((item as any)[key] instanceof FileModel)) {
+                if (
+                    (item as any)[key] &&
+                    typeof (item as any)[key] === 'object' &&
+                    !((item as any)[key] instanceof FileModel)
+                ) {
                     if (((item as any)[key] as JSONObject)['_id']) {
                         (item as any)[key] = ((item as any)[key] as JSONObject)[
                             '_id'
@@ -298,7 +304,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -378,21 +384,33 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 delete valuesToSend[key];
             }
 
-
             for (const key of model.getTableColumns().columns) {
                 const tableColumnMetadata = model.getTableColumnMetadata(key);
 
-                if (tableColumnMetadata && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.Entity && valuesToSend[key] && typeof valuesToSend[key] === Typeof.String) {
-                    let baseModel = new tableColumnMetadata.modelType();
+                if (
+                    tableColumnMetadata &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.Entity &&
+                    valuesToSend[key] &&
+                    typeof valuesToSend[key] === Typeof.String
+                ) {
+                    const baseModel = new tableColumnMetadata.modelType();
                     baseModel._id = valuesToSend[key] as string;
                     valuesToSend[key] = baseModel;
-
                 }
 
-                if (tableColumnMetadata && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray && Array.isArray(valuesToSend[key]) && (valuesToSend[key] as Array<any>).length > 0 && typeof ((valuesToSend[key] as Array<any>)[0]) === Typeof.String) {
+                if (
+                    tableColumnMetadata &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.EntityArray &&
+                    Array.isArray(valuesToSend[key]) &&
+                    (valuesToSend[key] as Array<any>).length > 0 &&
+                    typeof (valuesToSend[key] as Array<any>)[0] ===
+                        Typeof.String
+                ) {
                     const arr: Array<BaseModel> = [];
                     for (const id of valuesToSend[key] as Array<string>) {
-                        let baseModel = new tableColumnMetadata.modelType();
+                        const baseModel = new tableColumnMetadata.modelType();
                         baseModel._id = id as string;
                         arr.push(baseModel);
                     }
@@ -409,7 +427,6 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 tBaseModel = await props.onBeforeCreate(tBaseModel);
             }
 
-
             result = await ModelAPI.createOrUpdate<TBaseModel>(
                 tBaseModel,
                 props.modelType,
@@ -425,7 +442,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             setError(
                 (err as HTTPErrorResponse).message ||
-                'Server Error. Please try again'
+                    'Server Error. Please try again'
             );
         }
 

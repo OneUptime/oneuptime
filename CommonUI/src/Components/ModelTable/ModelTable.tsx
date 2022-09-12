@@ -429,10 +429,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     file: true,
                     _id: true,
                     type: true,
-                    name: true
+                    name: true,
                 };
             } else if (key && model.isEntityColumn(key)) {
-
                 (populate as JSONObject)[key] = (column.field as any)[key];
             }
         }
@@ -708,7 +707,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
                             if (props.onBeforeView) {
                                 item = BaseModel.toJSONObject(
-                                    await props.onBeforeView(baseModel), props.modelType
+                                    await props.onBeforeView(baseModel),
+                                    props.modelType
                                 );
                             }
 
@@ -766,8 +766,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                             item,
                                             props.modelType
                                         )
-                                    ), props.modelType
-                                )
+                                    ),
+                                    props.modelType
+                                );
                             }
 
                             setModalType(ModalType.Edit);
@@ -803,8 +804,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                             item,
                                             props.modelType
                                         )
-                                    ), props.modelType
-                                )
+                                    ),
+                                    props.modelType
+                                );
                             }
 
                             setShowDeleteConfirmModal(true);

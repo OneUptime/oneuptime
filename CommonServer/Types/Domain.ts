@@ -1,8 +1,11 @@
-import DomainCommon from "Common/Types/Domain";
+import DomainCommon from 'Common/Types/Domain';
 import dns from 'dns';
 
 export default class Domain extends DomainCommon {
-    public static verifyTxtRecord(domain: Domain | string, verificationText: string): Promise<boolean> {
+    public static verifyTxtRecord(
+        domain: Domain | string,
+        verificationText: string
+    ): Promise<boolean> {
         return new Promise((resolve, reject) => {
             dns.resolveTxt(domain.toString(), (err, data) => {
                 if (err) {
@@ -23,8 +26,7 @@ export default class Domain extends DomainCommon {
                 }
 
                 resolve(isVerified);
-            })
-        })
-
+            });
+        });
     }
 }

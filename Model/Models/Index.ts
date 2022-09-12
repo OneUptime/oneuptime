@@ -19,7 +19,7 @@ import Label from './Label';
 import StatusPage from './StatusPage';
 import StatusPageGroup from './StatusPageGroup';
 import StatusPageDomain from './StatusPageDomain';
-import StatusPageResource from './StatusPageResource'
+import StatusPageResource from './StatusPageResource';
 
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
@@ -71,5 +71,5 @@ export default [
     StatusPageGroup,
     StatusPageDomain,
     StatusPageResource,
-    IncidentSeverity
+    IncidentSeverity,
 ];

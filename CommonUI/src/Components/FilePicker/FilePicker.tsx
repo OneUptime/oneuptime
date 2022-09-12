@@ -31,7 +31,6 @@ export interface ComponentProps {
     dataTestId?: string;
     isMultiFilePicker?: boolean | undefined;
     tabIndex?: number | undefined;
-
 }
 
 const FilePicker: FunctionComponent<ComponentProps> = (
@@ -41,20 +40,26 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string>('');
     const [filesModel, setFilesModel] = useState<Array<FileModel>>([]);
 
-    const [acceptTypes, setAcceptTypes] = useState<Dictionary<Array<string>>>({});
+    const [acceptTypes, setAcceptTypes] = useState<Dictionary<Array<string>>>(
+        {}
+    );
 
     useEffect(() => {
-        const _acceptTypes:Dictionary<Array<string>> = {};
+        const _acceptTypes: Dictionary<Array<string>> = {};
         if (props.mimeTypes) {
             for (const key of props.mimeTypes) {
                 _acceptTypes[key] = [];
             }
         }
         setAcceptTypes(_acceptTypes);
-    }, [props.mimeTypes])
+    }, [props.mimeTypes]);
 
     useEffect(() => {
-        if (Array.isArray(props.initialValue) && props.initialValue && props.initialValue.length > 0) {
+        if (
+            Array.isArray(props.initialValue) &&
+            props.initialValue &&
+            props.initialValue.length > 0
+        ) {
             setFilesModel(props.initialValue);
         } else if (props.initialValue instanceof FileModel) {
             setFilesModel([props.initialValue as FileModel]);
@@ -81,12 +86,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     const fileModel: FileModel = new FileModel();
                     fileModel.name = acceptedFile.name;
 
-
-
                     const arrayBuffer = await acceptedFile.arrayBuffer();
 
                     const blob = new Blob([new Uint8Array(arrayBuffer)]);
-                    
 
                     const _url: string = URL.createObjectURL(blob);
                     const url: string = URL.createObjectURL(acceptedFile);
@@ -94,7 +96,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     console.log(_url);
                     console.log(url);
 
-                    const fileBuffer = new Uint8Array(arrayBuffer)
+                    const fileBuffer = new Uint8Array(arrayBuffer);
                     fileModel.file = Buffer.from(fileBuffer);
                     fileModel.isPublic = false;
                     fileModel.type = acceptedFile.type as MimeType;
@@ -188,7 +190,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                 className: 'file-picker-dropzone',
                             })}
                         >
-                            <input tabIndex={props.tabIndex} {...getInputProps()} />
+                            <input
+                                tabIndex={props.tabIndex}
+                                {...getInputProps()}
+                            />
                             {!props.placeholder && !error && (
                                 <p className="file-picker-placeholder">
                                     Drag and drop some files here, or click to

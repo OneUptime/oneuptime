@@ -19,7 +19,7 @@ import Detail from '../Detail/Detail';
 import Populate from '../../Utils/ModelAPI/Populate';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     fields: Array<Field<TBaseModel>>;
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
@@ -71,16 +71,14 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
-
             if (key && model.isFileColumn(key)) {
                 (populate as JSONObject)[key] = {
-                    file: true, 
-                    _id: true, 
+                    file: true,
+                    _id: true,
                     type: true,
-                    name: true
+                    name: true,
                 };
             } else if (key && model.isEntityColumn(key)) {
-
                 (populate as JSONObject)[key] = (field.field as any)[key];
             }
         }
@@ -138,12 +136,12 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                         ...field,
                         getElement: field.getElement
                             ? (item: JSONObject): ReactElement => {
-                                return field.getElement!(
-                                    item,
-                                    onBeforeFetchData,
-                                    fetchItem
-                                );
-                            }
+                                  return field.getElement!(
+                                      item,
+                                      onBeforeFetchData,
+                                      fetchItem
+                                  );
+                              }
                             : undefined,
                     });
                 }
@@ -152,12 +150,12 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                     ...field,
                     getElement: field.getElement
                         ? (item: JSONObject): ReactElement => {
-                            return field.getElement!(
-                                item,
-                                onBeforeFetchData,
-                                fetchItem
-                            );
-                        }
+                              return field.getElement!(
+                                  item,
+                                  onBeforeFetchData,
+                                  fetchItem
+                              );
+                          }
                         : undefined,
                 });
             }

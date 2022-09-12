@@ -61,19 +61,17 @@ enum Permission {
     CanEditProjectIncident = 'CanEditProjectIncident',
     CanReadProjectIncident = 'CanReadProjectIncident',
 
-
     // Probe Permissions (Owner Permission)
     CanCreateProjectDomain = 'CanCreateProjectDomain',
     CanDeleteProjectDomain = 'CanDeleteProjectDomain',
     CanEditProjectDomain = 'CanEditProjectDomain',
     CanReadProjectDomain = 'CanReadProjectDomain',
 
-     // Probe Permissions (Owner Permission)
-     CanCreateStatusPageResource = 'CanCreateStatusPageResource',
-     CanDeleteStatusPageResource = 'CanDeleteStatusPageResource',
-     CanEditStatusPageResource = 'CanEditStatusPageResource',
-     CanReadStatusPageResource = 'CanReadStatusPageResource',
-
+    // Probe Permissions (Owner Permission)
+    CanCreateStatusPageResource = 'CanCreateStatusPageResource',
+    CanDeleteStatusPageResource = 'CanDeleteStatusPageResource',
+    CanEditStatusPageResource = 'CanEditStatusPageResource',
+    CanReadStatusPageResource = 'CanReadStatusPageResource',
 
     // Probe Permissions (Owner Permission)
     CanCreateStatusPageGroup = 'CanCreateStatusPageGroup',
@@ -81,11 +79,11 @@ enum Permission {
     CanEditStatusPageGroup = 'CanEditStatusPageGroup',
     CanReadStatusPageGroup = 'CanReadStatusPageGroup',
 
-     // Probe Permissions (Owner Permission)
-     CanCreateStatusPageDomain = 'CanCreateStatusPageDomain',
-     CanDeleteStatusPageDomain = 'CanDeleteStatusPageDomain',
-     CanEditStatusPageDomain = 'CanEditStatusPageDomain',
-     CanReadStatusPageDomain = 'CanReadStatusPageDomain',
+    // Probe Permissions (Owner Permission)
+    CanCreateStatusPageDomain = 'CanCreateStatusPageDomain',
+    CanDeleteStatusPageDomain = 'CanDeleteStatusPageDomain',
+    CanEditStatusPageDomain = 'CanEditStatusPageDomain',
+    CanReadStatusPageDomain = 'CanReadStatusPageDomain',
 
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateProjectLabel = 'CanCreateProjectLabel',
@@ -459,10 +457,7 @@ export class PermissionHelper {
                 description:
                     'A user assigned this permission  can read incident state in this project.',
                 isAssignableToProject: true,
-            }, 
-
-
-
+            },
 
             {
                 permission: Permission.CanCreateProjectDomain,
@@ -492,8 +487,6 @@ export class PermissionHelper {
                     'A user assigned this permission  can read Domain in this project.',
                 isAssignableToProject: true,
             },
-            
-
 
             {
                 permission: Permission.CanCreateStatusPageResource,
@@ -524,10 +517,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
-
-
-
             {
                 permission: Permission.CanCreateStatusPageGroup,
                 title: 'Can Create Status Page Group',
@@ -557,8 +546,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
-
             {
                 permission: Permission.CanCreateStatusPageDomain,
                 title: 'Can Create Status Page Domain',
@@ -587,8 +574,6 @@ export class PermissionHelper {
                     'A user assigned this permission  can read Status Page Domain in this project.',
                 isAssignableToProject: true,
             },
-
-
 
             {
                 permission: Permission.CanCreateProjectSMTPConfig,
@@ -619,9 +604,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
-
-
             {
                 permission: Permission.CanCreateStatusPageDomain,
                 title: 'Can Create Status Page Domain',
@@ -651,8 +633,6 @@ export class PermissionHelper {
                 isAssignableToProject: true,
             },
 
-
-
             {
                 permission: Permission.CanCreateIncidentSeverity,
                 title: 'Can Create Incident Severity',
@@ -681,9 +661,6 @@ export class PermissionHelper {
                     'A user assigned this permission  can read Incident Severity of this project.',
                 isAssignableToProject: true,
             },
-
-
-
 
             {
                 permission: Permission.CanCreateProjectTeam,

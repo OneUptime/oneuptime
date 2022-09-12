@@ -701,7 +701,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
                 throw new NotAuthorizedException(
                     `You do not have permissions to query on - ${key}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                        this.model.getColumnAccessControlFor(key) ? this.model.getColumnAccessControlFor(key)!.read : []
+                        this.model.getColumnAccessControlFor(key)
+                            ? this.model.getColumnAccessControlFor(key)!.read
+                            : []
                     ).join(',')}`
                 );
             }
@@ -722,7 +724,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 throw new NotAuthorizedException(
                     `You do not have permissions to select on - ${key}.
                     You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                        this.model.getColumnAccessControlFor(key) ? this.model.getColumnAccessControlFor(key)!.read : []
+                        this.model.getColumnAccessControlFor(key)
+                            ? this.model.getColumnAccessControlFor(key)!.read
+                            : []
                     ).join(',')}`
                 );
             }
@@ -831,7 +835,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 throw new NotAuthorizedException(
                     `You do not have permissions to update this record at - ${key}. 
                     You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                        this.model.getColumnAccessControlFor(key) ? this.model.getColumnAccessControlFor(key)!.update : []
+                        this.model.getColumnAccessControlFor(key)
+                            ? this.model.getColumnAccessControlFor(key)!.update
+                            : []
                     ).join(',')}`
                 );
             }
@@ -1372,16 +1378,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
                                 );
 
                             if (!hasPermission) {
-
                                 let readPermissions: Array<Permission> = [];
-                                if (relatedModel.getColumnAccessControlFor(
-                                    innerKey
-                                )) {
-                                    readPermissions = relatedModel.getColumnAccessControlFor(
+                                if (
+                                    relatedModel.getColumnAccessControlFor(
                                         innerKey
-                                    )!.read;
+                                    )
+                                ) {
+                                    readPermissions =
+                                        relatedModel.getColumnAccessControlFor(
+                                            innerKey
+                                        )!.read;
                                 }
-                               
 
                                 throw new NotAuthorizedException(
                                     `You do not have permissions to read ${key}.${innerKey} on ${

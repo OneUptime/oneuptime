@@ -78,7 +78,9 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     link={{
                         title: 'Incident Severity',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_INCIDENTS_SEVERITY] as Route
+                            RouteMap[
+                                PageMap.SETTINGS_INCIDENTS_SEVERITY
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.Alert}

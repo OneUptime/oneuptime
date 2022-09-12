@@ -102,8 +102,7 @@ const BasicForm: Function = <T extends Object>(
         index: number,
         isDisabled: boolean
     ): ReactElement => {
-
-        index = index + 1; 
+        index = index + 1;
 
         const fieldType: string = field.fieldType
             ? getFieldType(field.fieldType)
@@ -344,7 +343,8 @@ const BasicForm: Function = <T extends Object>(
                     </Field>
                 )}
 
-                {(field.fieldType === FormFieldSchemaType.File || field.fieldType === FormFieldSchemaType.ImageFile) && (
+                {(field.fieldType === FormFieldSchemaType.File ||
+                    field.fieldType === FormFieldSchemaType.ImageFile) && (
                     <Field name={fieldName}>
                         {({ form }: any) => {
                             return (
@@ -354,18 +354,26 @@ const BasicForm: Function = <T extends Object>(
                                         onChange={async (
                                             files: Array<FileModel>
                                         ) => {
-
-                                            let fileResult: FileModel | Array<FileModel> | null = files.map((i) => { 
-                                                const strippedModel = new FileModel();
-                                                strippedModel._id = i._id!; 
+                                            let fileResult:
+                                                | FileModel
+                                                | Array<FileModel>
+                                                | null = files.map((i) => {
+                                                const strippedModel =
+                                                    new FileModel();
+                                                strippedModel._id = i._id!;
                                                 return strippedModel;
-                                            }); 
+                                            });
 
-                                            if (field.fieldType === FormFieldSchemaType.File && Array.isArray(fileResult)) {
+                                            if (
+                                                field.fieldType ===
+                                                    FormFieldSchemaType.File &&
+                                                Array.isArray(fileResult)
+                                            ) {
                                                 if (fileResult.length > 0) {
-                                                    fileResult = fileResult[0] as FileModel;
+                                                    fileResult =
+                                                        fileResult[0] as FileModel;
                                                 } else {
-                                                    fileResult = null; 
+                                                    fileResult = null;
                                                 }
                                             }
 
@@ -381,11 +389,16 @@ const BasicForm: Function = <T extends Object>(
                                                 true
                                             );
                                         }}
-                                        mimeTypes={field.fieldType === FormFieldSchemaType.ImageFile ? [
-                                            MimeType.png,
-                                            MimeType.jpeg,
-                                            MimeType.jpg
-                                        ]: []}
+                                        mimeTypes={
+                                            field.fieldType ===
+                                            FormFieldSchemaType.ImageFile
+                                                ? [
+                                                      MimeType.png,
+                                                      MimeType.jpeg,
+                                                      MimeType.jpg,
+                                                  ]
+                                                : []
+                                        }
                                         initialValue={
                                             initialValues &&
                                             (initialValues as any)[fieldName]

@@ -122,20 +122,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
-
-            <SideMenuItem
+                <SideMenuItem
                     link={{
                         title: 'Groups',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_GROUPS
-                            ] as Route,
+                            RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route,
                             props.modelId
                         ),
                     }}
                     icon={IconProp.Folder}
                 />
-
 
                 <SideMenuItem
                     link={{

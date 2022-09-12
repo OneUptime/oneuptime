@@ -37,10 +37,7 @@ import StatusPage from './StatusPage';
 })
 export default class StatusPageGroup extends BaseModel {
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateStatusPageGroup,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
@@ -68,10 +65,7 @@ export default class StatusPageGroup extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateStatusPageGroup,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
@@ -89,10 +83,7 @@ export default class StatusPageGroup extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateStatusPageGroup,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
@@ -120,10 +111,7 @@ export default class StatusPageGroup extends BaseModel {
     public statusPage?: StatusPage = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateStatusPageGroup,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
@@ -141,19 +129,13 @@ export default class StatusPageGroup extends BaseModel {
     public statusPageId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateStatusPageGroup,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditStatusPageGroup,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -182,19 +164,13 @@ export default class StatusPageGroup extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateStatusPageGroup,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditStatusPageGroup,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -205,10 +181,7 @@ export default class StatusPageGroup extends BaseModel {
     public description?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateStatusPageGroup,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
@@ -236,10 +209,7 @@ export default class StatusPageGroup extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateStatusPageGroup,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
@@ -256,19 +226,13 @@ export default class StatusPageGroup extends BaseModel {
     public createdByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateStatusPageGroup,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
             Permission.ProjectMember,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditStatusPageGroup,
-        ],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
     })
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
     @Column({

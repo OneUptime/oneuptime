@@ -27,7 +27,9 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (!createBy.data.projectId) {
-            throw new BadDataException('Incient severity projectId is required');
+            throw new BadDataException(
+                'Incient severity projectId is required'
+            );
         }
 
         await this.rearrangeOrder(

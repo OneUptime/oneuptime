@@ -344,8 +344,6 @@ export default class Incident extends BaseModel {
     })
     public currentIncidentStateId?: ObjectID = undefined;
 
-
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
         read: [
@@ -390,7 +388,6 @@ export default class Incident extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public incidentSeverityId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],

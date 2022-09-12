@@ -10,7 +10,7 @@ export interface ComponentProps {
     onSubmit: () => void;
     submitButtonType?: undefined | ButtonStyleType;
     isLoading?: boolean;
-    error?: string | undefined; 
+    error?: string | undefined;
 }
 
 const ConfirmModal: FunctionComponent<ComponentProps> = (
@@ -32,7 +32,6 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
             }
             error={props.error}
         >
-
             <div>{props.description}</div>
         </Modal>
     );

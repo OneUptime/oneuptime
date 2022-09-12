@@ -105,9 +105,11 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                             button: ActionButtonSchema,
                                             i: number
                                         ) => {
-
-                                            if (button.isVisible && !button.isVisible(props.item)) {
-                                                return <></>
+                                            if (
+                                                button.isVisible &&
+                                                !button.isVisible(props.item)
+                                            ) {
+                                                return <></>;
                                             }
 
                                             return (

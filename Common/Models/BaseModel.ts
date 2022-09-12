@@ -152,10 +152,10 @@ export default class BaseModel extends BaseEntity {
         return dictionary[columnName] as TableColumnMetadata;
     }
 
-    public getColumnAccessControlFor(columnName: string): ColumnAccessControl | null {
-        return (
-            this.getColumnAccessControlForAllColumns()[columnName] || null
-        );
+    public getColumnAccessControlFor(
+        columnName: string
+    ): ColumnAccessControl | null {
+        return this.getColumnAccessControlForAllColumns()[columnName] || null;
     }
 
     public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
@@ -278,11 +278,27 @@ export default class BaseModel extends BaseEntity {
         for (const key of Object.keys(json)) {
             const tableColumnMetadata = baseModel.getTableColumnMetadata(key);
             if (tableColumnMetadata) {
-                if (json[key] && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.Entity) {
-                    (baseModel as any)[key] = new tableColumnMetadata.modelType().fromJSON(json[key] as JSONObject, tableColumnMetadata.modelType);
-                } else if (json[key] && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray) {
-                    (baseModel as any)[key] = new tableColumnMetadata.modelType().fromJSONArray(json[key] as JSONArray, tableColumnMetadata.modelType);
-                }  else {
+                if (
+                    json[key] &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.Entity
+                ) {
+                    (baseModel as any)[key] =
+                        new tableColumnMetadata.modelType().fromJSON(
+                            json[key] as JSONObject,
+                            tableColumnMetadata.modelType
+                        );
+                } else if (
+                    json[key] &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.EntityArray
+                ) {
+                    (baseModel as any)[key] =
+                        new tableColumnMetadata.modelType().fromJSONArray(
+                            json[key] as JSONArray,
+                            tableColumnMetadata.modelType
+                        );
+                } else {
                     (baseModel as any)[key] = json[key];
                 }
             }
@@ -376,7 +392,6 @@ export default class BaseModel extends BaseEntity {
         );
     }
 
-
     public isFileColumn(columnName: string): boolean {
         const tableColumnType: TableColumnMetadata = getTableColumn(
             this,
@@ -393,37 +408,56 @@ export default class BaseModel extends BaseEntity {
             return true;
         }
 
-        return false; 
+        return false;
     }
 
-    public static toJSON(model: BaseModel, modelType: { new (): BaseModel }): JSONObject {
+    public static toJSON(
+        model: BaseModel,
+        modelType: { new (): BaseModel }
+    ): JSONObject {
         const json: JSONObject = this.toJSONObject(model, modelType);
         return JSONFunctions.serialize(json);
     }
 
-
-    public static toJSONObject(model: BaseModel, modelType: { new(): BaseModel }): JSONObject {
-        
+    public static toJSONObject(
+        model: BaseModel,
+        modelType: { new (): BaseModel }
+    ): JSONObject {
         const json: JSONObject = {};
 
         const vanillaModel = new modelType();
 
         for (const key of vanillaModel.getTableColumns().columns) {
-            if (
-                (model as any)[key] === undefined
-            ) {
+            if ((model as any)[key] === undefined) {
                 continue;
             }
 
-
-            const tableColumnMetadata = vanillaModel.getTableColumnMetadata(key);
+            const tableColumnMetadata =
+                vanillaModel.getTableColumnMetadata(key);
 
             if (tableColumnMetadata) {
-                if ((model as any)[key] && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.Entity && (model as any)[key] instanceof BaseModel) {
-                    (json as any)[key] = BaseModel.toJSONObject((model as any)[key], tableColumnMetadata.modelType);
-                } else if ((model as any)[key] && Array.isArray((model as any)[key]) && (model as any)[key].length > 0 && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray) {
-                    (json as any)[key] = BaseModel.toJSONObjectArray((model as any)[key] as Array<BaseModel>, tableColumnMetadata.modelType);
-                }  else {
+                if (
+                    (model as any)[key] &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.Entity &&
+                    (model as any)[key] instanceof BaseModel
+                ) {
+                    (json as any)[key] = BaseModel.toJSONObject(
+                        (model as any)[key],
+                        tableColumnMetadata.modelType
+                    );
+                } else if (
+                    (model as any)[key] &&
+                    Array.isArray((model as any)[key]) &&
+                    (model as any)[key].length > 0 &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.EntityArray
+                ) {
+                    (json as any)[key] = BaseModel.toJSONObjectArray(
+                        (model as any)[key] as Array<BaseModel>,
+                        tableColumnMetadata.modelType
+                    );
+                } else {
                     (json as any)[key] = (model as any)[key];
                 }
             }
@@ -432,7 +466,10 @@ export default class BaseModel extends BaseEntity {
         return json;
     }
 
-    public static toJSONObjectArray(list: Array<BaseModel>,  modelType: { new (): BaseModel } ): JSONArray {
+    public static toJSONObjectArray(
+        list: Array<BaseModel>,
+        modelType: { new (): BaseModel }
+    ): JSONArray {
         const array: JSONArray = [];
 
         for (const item of list) {
@@ -442,7 +479,10 @@ export default class BaseModel extends BaseEntity {
         return array;
     }
 
-    public static toJSONArray(list: Array<BaseModel>,  modelType: { new (): BaseModel }): JSONArray {
+    public static toJSONArray(
+        list: Array<BaseModel>,
+        modelType: { new (): BaseModel }
+    ): JSONArray {
         const array: JSONArray = [];
 
         for (const item of list) {
@@ -500,7 +540,7 @@ export default class BaseModel extends BaseEntity {
                 this.getColumnAccessControlFor(columnName);
             if (columnAccessControl) {
                 modelPermission = columnAccessControl.read;
-            } 
+            }
         }
 
         return this.hasPermissions(userProjectPermissions, modelPermission);
