@@ -126,7 +126,8 @@ export default class Response {
         req: ExpressRequest,
         res: ExpressResponse,
         list: Array<BaseModel | JSONObject>,
-        count: PositiveNumber
+        count: PositiveNumber,
+        modelType: { new (): BaseModel }
     ): void {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
@@ -149,7 +150,7 @@ export default class Response {
         }
 
         if (list.length > 0 && list[0] instanceof BaseModel) {
-            listData.data = BaseModel.toJSONArray(list as Array<BaseModel>);
+            listData.data = BaseModel.toJSONArray(list as Array<BaseModel>, modelType);
         } else {
             listData.data = list as JSONArray;
         }
@@ -185,10 +186,11 @@ export default class Response {
     public static sendItemResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        item: JSONObject | BaseModel
+        item: JSONObject | BaseModel,
+        modelType: { new (): BaseModel }
     ): void {
         if (item instanceof BaseModel) {
-            item = item.toJSON();
+            item = BaseModel.toJSON(item, modelType);
         }
 
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;

@@ -1,6 +1,7 @@
 import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
 import Project from 'Model/Models/Project';
+import BaseModel from 'Common/Models/BaseModel';
 
 export default class ProjectUtil {
     public static getCurrentProject(): Project | null {
@@ -15,7 +16,7 @@ export default class ProjectUtil {
 
     public static setCurrentProject(project: JSONObject | Project): void {
         if (project instanceof Project) {
-            project = project.toJSON();
+            project = BaseModel.toJSON(project, Project);
         }
         LocalStorage.setItem('current_project', project);
     }

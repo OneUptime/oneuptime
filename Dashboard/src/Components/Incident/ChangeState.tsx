@@ -152,7 +152,7 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                 incidentStateTimeline.incidentId = props.incidentId;
                 incidentStateTimeline.incidentStateId = stateId;
 
-                await ModelAPI.create(incidentStateTimeline);
+                await ModelAPI.create(incidentStateTimeline, IncidentStateTimeline);
 
                 props.onActionComplete();
                 setIsLaoding(false);

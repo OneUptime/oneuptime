@@ -29,6 +29,7 @@ import Response from 'CommonServer/Utils/Response';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import BaseModel from 'Common/Models/BaseModel';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -158,8 +159,8 @@ router.post(
 
                 return Response.sendItemResponse(req, res, {
                     token: token,
-                    user: savedUser.toJSON(),
-                });
+                    user: BaseModel.toJSON(savedUser, User),
+                }, User);
             }
 
             throw new BadRequestException('Failed to create a user');
@@ -205,8 +206,8 @@ router.post(
 
                 return Response.sendItemResponse(req, res, {
                     token: token,
-                    user: alreadySavedUser.toJSON(),
-                });
+                    user: BaseModel.toJSON(alreadySavedUser, User),
+                }, User);
             }
             throw new BadDataException(
                 'Invalid login: Email or password does not match.'
@@ -252,8 +253,8 @@ router.post(
 
                 return Response.sendItemResponse(req, res, {
                     token: token,
-                    user: alreadySavedUser.toJSON(),
-                });
+                    user: BaseModel.toJSON(alreadySavedUser, User),
+                }, User);
             }
             throw new BadDataException(
                 'Invalid login: Email or password does not match.'
@@ -300,8 +301,8 @@ router.post(
 
                 return Response.sendItemResponse(req, res, {
                     token: token,
-                    user: alreadySavedUser.toJSON(),
-                });
+                    user: BaseModel.toJSON(alreadySavedUser, User),
+                }, User);
             }
             throw new BadDataException(
                 'Invalid login: Email or password does not match.'

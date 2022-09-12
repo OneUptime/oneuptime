@@ -396,29 +396,32 @@ export default class BaseModel extends BaseEntity {
         return false; 
     }
 
-    public toJSON(): JSONObject {
-        const json: JSONObject = this.toJSONObject();
+    public static toJSON(model: BaseModel, modelType: { new (): BaseModel }): JSONObject {
+        const json: JSONObject = this.toJSONObject(model, modelType);
         return JSONFunctions.serialize(json);
     }
 
-    public toJSONObject(): JSONObject {
+
+    public static toJSONObject(model: BaseModel, modelType: { new (): BaseModel }): JSONObject {
         const json: JSONObject = {};
 
-        for (const key of this.getTableColumns().columns) {
+        const vanillaModel = new modelType();
+
+        for (const key of vanillaModel.getTableColumns().columns) {
             if (
-                (this as any)[key] === undefined
+                (model as any)[key] === undefined
             ) {
                 continue;
             }
 
 
-            const tableColumnMetadata = this.getTableColumnMetadata(key);
+            const tableColumnMetadata = vanillaModel.getTableColumnMetadata(key);
 
             if (tableColumnMetadata) {
-                if ((this as any)[key] && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.Entity && json[key] instanceof BaseModel) {
-                    (json as any)[key] = ((this as any)[key] as BaseModel).toJSONObject();
-                } else if ((this as any)[key] && Array.isArray((this as any)[key]) && (this as any)[key].length > 0 && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray) {
-                    (json as any)[key] = BaseModel.toJSONObjectArray((this as any)[key] as Array<BaseModel>);
+                if ((model as any)[key] && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.Entity && (model as any)[key] instanceof BaseModel) {
+                    (json as any)[key] = BaseModel.toJSONObject((model as any)[key], tableColumnMetadata.modelType);
+                } else if ((model as any)[key] && Array.isArray((model as any)[key]) && (model as any)[key].length > 0 && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray) {
+                    (json as any)[key] = BaseModel.toJSONObjectArray((model as any)[key] as Array<BaseModel>, tableColumnMetadata.modelType);
                 }  else {
                     (json as any)[key] = json[key];
                 }
@@ -428,21 +431,21 @@ export default class BaseModel extends BaseEntity {
         return json;
     }
 
-    public static toJSONObjectArray(list: Array<BaseModel>): JSONArray {
+    public static toJSONObjectArray(list: Array<BaseModel>,  modelType: { new (): BaseModel } ): JSONArray {
         const array: JSONArray = [];
 
         for (const item of list) {
-            array.push(item.toJSONObject());
+            array.push(BaseModel.toJSONObject(item, modelType));
         }
 
         return array;
     }
 
-    public static toJSONArray(list: Array<BaseModel>): JSONArray {
+    public static toJSONArray(list: Array<BaseModel>,  modelType: { new (): BaseModel }): JSONArray {
         const array: JSONArray = [];
 
         for (const item of list) {
-            array.push(item.toJSON());
+            array.push(BaseModel.toJSON(item, modelType));
         }
 
         return array;

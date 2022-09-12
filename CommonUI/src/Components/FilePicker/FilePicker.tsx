@@ -6,7 +6,7 @@ import React, {
 } from 'react';
 import { useDropzone } from 'react-dropzone';
 import MimeType from 'Common/Types/File/MimeType';
-import FileModel from 'Common/Models/FileModel';
+import FileModel from 'Model/Models/File';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import CommonURL from 'Common/Types/API/URL';
 import { FILE_URL } from '../../Config';
@@ -102,6 +102,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     const result: HTTPResponse<FileModel> =
                         (await ModelAPI.create<FileModel>(
                             fileModel,
+                            FileModel,
                             CommonURL.fromURL(FILE_URL).addRoute('/file')
                         )) as HTTPResponse<FileModel>;
                     filesResult.push(result.data as FileModel);

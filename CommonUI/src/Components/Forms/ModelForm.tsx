@@ -387,6 +387,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
 
             result = await ModelAPI.createOrUpdate<TBaseModel>(
                 tBaseModel,
+                props.modelType,
                 props.formType,
                 props.apiUrl,
                 miscDataProps,
