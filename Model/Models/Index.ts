@@ -35,6 +35,7 @@ import IncidentState from './IncidentState';
 import IncidentStateTimeline from './IncidentStateTimeline';
 import IncidentPublicNote from './IncidentPublicNote';
 import IncidentInternalNote from './IncidentInternalNote';
+import IncidentSeverity from './IncidentSeverity';
 
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
@@ -69,5 +70,6 @@ export default [
     Domain,
     StatusPageGroup,
     StatusPageDomain,
-    StatusPageResource
+    StatusPageResource,
+    IncidentSeverity
 ];

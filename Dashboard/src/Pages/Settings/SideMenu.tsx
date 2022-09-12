@@ -76,6 +76,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                 />
                 <SideMenuItem
                     link={{
+                        title: 'Incident Severity',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_INCIDENTS_SEVERITY] as Route
+                        ),
+                    }}
+                    icon={IconProp.Alert}
+                />
+                <SideMenuItem
+                    link={{
                         title: 'Incident Templates',
                         to: new Route('/:projectSlug/home'),
                     }}

@@ -344,7 +344,7 @@ const BasicForm: Function = <T extends Object>(
                     </Field>
                 )}
 
-                {field.fieldType === FormFieldSchemaType.File && (
+                {(field.fieldType === FormFieldSchemaType.File || field.fieldType === FormFieldSchemaType.ImageFile) && (
                     <Field name={fieldName}>
                         {({ form }: any) => {
                             return (
@@ -381,10 +381,11 @@ const BasicForm: Function = <T extends Object>(
                                                 true
                                             );
                                         }}
-                                        mimeTypes={[
+                                        mimeTypes={field.fieldType === FormFieldSchemaType.ImageFile ? [
                                             MimeType.png,
                                             MimeType.jpeg,
-                                        ]}
+                                            MimeType.jpg
+                                        ]: []}
                                         initialValue={
                                             initialValues &&
                                             (initialValues as any)[fieldName]
@@ -579,7 +580,7 @@ const BasicForm: Function = <T extends Object>(
         content: string,
         field: DataField<T>
     ): string | null => {
-        if (field.required && content.length === 0) {
+        if (field.required && (!content || content.length === 0)) {
             return `${field.title} is required.`;
         }
         return null;

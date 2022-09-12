@@ -145,6 +145,12 @@ enum Permission {
     CanEditProjectSMTPConfig = 'CanEditProjectSMTPConfig',
     CanDeleteProjectSMTPConfig = 'CanDeleteProjectSMTPConfig',
     CanReadProjectSMTPConfig = 'CanReadProjectSMTPConfig',
+
+    // Project SMTP Config (Team Permission)
+    CanCreateIncidentSeverity = 'CanCreateIncidentSeverity',
+    CanEditIncidentSeverity = 'CanEditIncidentSeverity',
+    CanDeleteIncidentSeverity = 'CanDeleteIncidentSeverity',
+    CanReadIncidentSeverity = 'CanReadIncidentSeverity',
 }
 
 export class PermissionHelper {
@@ -612,6 +618,72 @@ export class PermissionHelper {
                     'A user assigned this permission  can read SMTP configs of this project.',
                 isAssignableToProject: true,
             },
+
+
+
+
+            {
+                permission: Permission.CanCreateStatusPageDomain,
+                title: 'Can Create Status Page Domain',
+                description:
+                    'A user assigned this permission can create Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageDomain,
+                title: 'Can Delete Status Page Domain',
+                description:
+                    'A user assigned this permission  can delete Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditStatusPageDomain,
+                title: 'Can Edit Status Page Domain',
+                description:
+                    'A user assigned this permission can edit Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadStatusPageDomain,
+                title: 'Can Read Status Page Domain',
+                description:
+                    'A user assigned this permission  can read Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+
+
+
+            {
+                permission: Permission.CanCreateIncidentSeverity,
+                title: 'Can Create Incident Severity',
+                description:
+                    'A user assigned this permission can create Incident Severity this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteIncidentSeverity,
+                title: 'Can Delete Incident Severity',
+                description:
+                    'A user assigned this permission  can delete Incident Severity of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditIncidentSeverity,
+                title: 'Can Edit Incident Severity',
+                description:
+                    'A user assigned this permission can edit Incident Severity of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadIncidentSeverity,
+                title: 'Can Read Incident Severity',
+                description:
+                    'A user assigned this permission  can read Incident Severity of this project.',
+                isAssignableToProject: true,
+            },
+
+
+
 
             {
                 permission: Permission.CanCreateProjectTeam,

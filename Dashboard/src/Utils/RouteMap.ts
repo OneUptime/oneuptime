@@ -50,6 +50,7 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/branding`
     ),
 
+
     [PageMap.STATUS_PAGE_VIEW_GROUPS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/groups`
     ),
@@ -144,6 +145,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/incidents-state`
+    ),
+
+    [PageMap.SETTINGS_INCIDENTS_SEVERITY]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/incidents-severity`
     ),
 
     [PageMap.SETTINGS_DOMAINS]: new Route(

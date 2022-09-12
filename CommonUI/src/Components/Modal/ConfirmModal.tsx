@@ -4,11 +4,12 @@ import Modal from './Modal';
 
 export interface ComponentProps {
     title: string;
-    description: string;
+    description: string | ReactElement;
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
     onSubmit: () => void;
     submitButtonType?: undefined | ButtonStyleType;
+    isLoading?: boolean;
 }
 
 const ConfirmModal: FunctionComponent<ComponentProps> = (
@@ -17,6 +18,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
     return (
         <Modal
             title={props.title}
+            isLoading={props.isLoading}
             onSubmit={props.onSubmit}
             onClose={props.onClose ? props.onClose : undefined}
             submitButtonText={
@@ -28,7 +30,7 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
                     : ButtonStyleType.PRIMARY
             }
         >
-            <p>{props.description}</p>
+            <div>{props.description}</div>
         </Modal>
     );
 };

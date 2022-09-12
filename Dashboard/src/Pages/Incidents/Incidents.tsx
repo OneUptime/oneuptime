@@ -18,6 +18,7 @@ import MonitorsElement from '../../Components/Monitor/Monitors';
 import IncidentState from 'Model/Models/IncidentState';
 import Label from 'Model/Models/Label';
 import LabelsElement from '../../Components/Label/Labels';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
 
 const IncidentsPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -71,6 +72,22 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
+                    },
+                    {
+                        field: {
+                            incidentSeverity: true,
+                        },
+                        title: 'Incident Severity',
+                        description:
+                            'What type of incident is this?',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: IncidentSeverity,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Incident Severity',
                     },
                     {
                         field: {
@@ -174,6 +191,40 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                                             (
                                                 item[
                                                     'currentIncidentState'
+                                                ] as JSONObject
+                                            )['name'] as string
+                                        }
+                                    />
+                                );
+                            }
+
+                            return <></>;
+                        },
+                    },
+                    {
+                        field: {
+                            incidentSeverity: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Incident Severity',
+                        type: FieldType.Entity,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (item['incidentSeverity']) {
+                                return (
+                                    <Pill
+                                        color={
+                                            (
+                                                item[
+                                                    'incidentSeverity'
+                                                ] as JSONObject
+                                            )['color'] as Color
+                                        }
+                                        text={
+                                            (
+                                                item[
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }

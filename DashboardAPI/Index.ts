@@ -128,7 +128,10 @@ import StatusPageResourceService, {
 } from 'CommonServer/Services/StatusPageResourceService';
 
 
-
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import IncidentSeverityService, {
+    Service as IncidentSeverityServiceType,
+} from 'CommonServer/Services/IncidentSeverityService';
 
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService, {
@@ -230,6 +233,10 @@ app.use(
         ApiKeyPermission,
         ApiKeyPermissionService
     ).getRouter()
+);
+
+app.use(
+    new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(IncidentSeverity, IncidentSeverityService).getRouter()
 );
 
 app.use(new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter());

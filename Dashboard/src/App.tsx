@@ -51,6 +51,7 @@ import SettingsTeamView from './Pages/Settings/TeamView';
 import SettingsMonitors from './Pages/Settings/MonitorStatus';
 import SettingsIncidents from './Pages/Settings/IncidentState';
 import SettingsDomains from './Pages/Settings/Domains';
+import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
 
 // On Call Duty
 import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
@@ -546,6 +547,22 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                 PageMap.SETTINGS_INCIDENTS_STATE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+<PageRoute
+                    path={RouteMap[
+                        PageMap.SETTINGS_INCIDENTS_SEVERITY
+                    ]?.toString()}
+                    element={
+                        <SettingsIncidentSeverity
+                            pageRoute={
+                                RouteMap[
+                                PageMap.SETTINGS_INCIDENTS_SEVERITY
                                 ] as Route
                             }
                             currentProject={selectedProject}

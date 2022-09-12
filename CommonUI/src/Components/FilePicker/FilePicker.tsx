@@ -15,6 +15,7 @@ import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 import { White } from 'Common/Types/BrandColors';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import Dictionary from 'Common/Types/Dictionary';
 
 export interface ComponentProps {
     initialValue?: undefined | Array<FileModel> | FileModel;
@@ -30,6 +31,7 @@ export interface ComponentProps {
     dataTestId?: string;
     isMultiFilePicker?: boolean | undefined;
     tabIndex?: number | undefined;
+
 }
 
 const FilePicker: FunctionComponent<ComponentProps> = (
@@ -38,6 +40,18 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [filesModel, setFilesModel] = useState<Array<FileModel>>([]);
+
+    const [acceptTypes, setAcceptTypes] = useState<Dictionary<Array<string>>>({});
+
+    useEffect(() => {
+        const _acceptTypes:Dictionary<Array<string>> = {};
+        if (props.mimeTypes) {
+            for (const key of props.mimeTypes) {
+                _acceptTypes[key] = [];
+            }
+        }
+        setAcceptTypes(_acceptTypes);
+    }, [props.mimeTypes])
 
     useEffect(() => {
         if (Array.isArray(props.initialValue) && props.initialValue && props.initialValue.length > 0) {
@@ -52,9 +66,8 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     }, [props.value]);
 
     const { getRootProps, getInputProps } = useDropzone({
-        accept: {
-            'image/*': [],
-        },
+        accept: acceptTypes,
+        multiple: props.isMultiFilePicker,
         onDrop: async (acceptedFiles: Array<File>) => {
             setIsLoading(true);
             try {
@@ -122,6 +135,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 type: file.type as string,
             });
             const url: string = URL.createObjectURL(blob);
+
+            console.log(Array.isArray(file.file));
+            console.log(url);
+
             return (
                 <div key={file.name} className="file-picker-thumb">
                     <div className="file-picker-delete-logo">

@@ -125,7 +125,7 @@ export class JSONFunctions {
         const newVal: JSONValue = {};
 
         for (const key in val) {
-            
+
             if (val[key] === undefined) {
                 continue;
             }
@@ -296,7 +296,12 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Buffer
         ) {
             return Buffer.from(((val as JSONObject)['value'] as JSONObject)['data'] as Uint8Array);
-        } else if (typeof val === Typeof.Number) {
+        }else if (
+            val &&
+            ArrayBuffer.isView(val)
+        ) {
+            return Buffer.from(val as Uint8Array);
+        }  else if (typeof val === Typeof.Number) {
             return val;
         } else if (val instanceof DatabaseProperty) {
             return val;

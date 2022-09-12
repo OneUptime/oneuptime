@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -14,10 +14,19 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
+import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 const Domains: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
+
+    const [showVerificationModal, setShowVerificationModal] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+    const [currentVerificationDomain, setCurrentVerificationDomain] = useState<JSONObject | null>(null);
+    const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
+    const [isVerificationLoading, setIsVerificationLoading] = useState<boolean>(false);
+
     return (
         <Page
             title={'Project Settings'}
@@ -52,6 +61,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                     description:
                         'Please list the domains you own here. This will help you to connect them to Status Page.',
                 }}
+                refreshToggle={refreshToggle}
                 noItemsMessage={'No domains found.'}
                 viewPageRoute={props.pageRoute}
                 actionButtons={[
@@ -61,7 +71,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                         icon: IconProp.Check,
                         isVisible: (item: JSONObject): boolean => {
                             if (item['isVerified']) {
-                                return false; 
+                                return false;
                             }
 
                             return true;
@@ -72,25 +82,15 @@ const Domains: FunctionComponent<PageComponentProps> = (
                             onError: (err: Error) => void
                         ) => {
                             try {
-                                // verify domain.
-                                await ModelAPI.updateById(
-                                    Domain,
-                                    new ObjectID(
-                                        item['_id']
-                                            ? item['_id'].toString()
-                                            : ''
-                                    ),
-                                    {
-                                        isVerified: true,
-                                    },
-                                    undefined,
-                                );
 
-                                
+                                setCurrentVerificationDomain(item);
+                                setShowVerificationModal(true);
+
+
                                 onCompleteAction();
-                                
+
                             } catch (err) {
-                                
+
                                 onCompleteAction();
                                 onError(err as Error);
                             }
@@ -111,6 +111,9 @@ const Domains: FunctionComponent<PageComponentProps> = (
                         },
                     }
                 ]}
+                selectMoreFields={{
+                    domainVerificationText: true
+                }}
                 showRefreshButton={true}
                 showFilterButton={true}
                 columns={[
@@ -132,6 +135,60 @@ const Domains: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
+            {showVerificationModal && currentVerificationDomain ? (
+                <ConfirmModal
+                    title={`Verify ${currentVerificationDomain['domain']}`}
+                    description={!error ?
+                        (<div>
+                            <span>Please add TXT record to your domain. Details of the TXT records are:</span>
+                            <br />
+                            <br />
+                            <span><b>Record Type: </b> TXT</span><br />
+                            <span><b>Name: </b> @ or {currentVerificationDomain['domain']?.toString()}</span><br />
+                            <span><b>Content: </b>{currentVerificationDomain['domainVerificationText'] as string || ''}</span><br />
+                            <br />
+                            <span>Please note: Some domain changes might take 72 hours to propogate.</span>
+                        </div>)
+                        : <div>error</div>}
+                    submitButtonText={'Verify Domain'}
+                    onClose={() => {
+                        setShowVerificationModal(false)
+                    }}
+                    isLoading={isVerificationLoading}
+                    onSubmit={async () => {
+                        try {
+                            setIsVerificationLoading(true)
+                            // verify domain.
+                            await ModelAPI.updateById(
+                                Domain,
+                                new ObjectID(
+                                    currentVerificationDomain['_id']
+                                        ? currentVerificationDomain['_id'].toString()
+                                        : ''
+                                ),
+                                {
+                                    isVerified: true,
+                                },
+                                undefined,
+                            );
+                            setIsVerificationLoading(false);
+                            setShowVerificationModal(false);
+                            setRefreshToggle(!refreshToggle);
+                        } catch (err) {
+                            try {
+                                setError(
+                                    (err as HTTPErrorResponse).message ||
+                                        'Server Error. Please try again'
+                                );
+                            } catch (e) {
+                                setError('Server Error. Please try again');
+                            }
+                            setIsVerificationLoading(false);
+                        }
+
+                    }}
+                />
+            ) : <></>}
         </Page>
     );
 };
