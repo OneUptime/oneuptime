@@ -22,7 +22,7 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeUpdate(updateBy: UpdateBy<Model>): Promise<OnUpdate<Model>> {
         debugger; 
-        if (updateBy.data.isVerified && updateBy.data._id && !updateBy.props.isRoot) {
+        if (updateBy.data.isVerified && updateBy.query._id && !updateBy.props.isRoot) {
             // check the verification of the domain. 
 
             const items = await this.findBy({

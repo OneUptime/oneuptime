@@ -247,7 +247,6 @@ export default class BaseAPI<
             props: databaseProps,
         });
 
-        debugger;
         return Response.sendListResponse(req, res, list, count, this.entityType);
     }
 

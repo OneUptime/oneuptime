@@ -496,7 +496,6 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.readRecordPermissions;
 
         if (columnName) {
-            debugger;
             const columnAccessControl: ColumnAccessControl | null =
                 this.getColumnAccessControlFor(columnName);
             if (columnAccessControl) {

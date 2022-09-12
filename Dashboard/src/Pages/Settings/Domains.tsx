@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -26,6 +26,10 @@ const Domains: FunctionComponent<PageComponentProps> = (
     const [currentVerificationDomain, setCurrentVerificationDomain] = useState<JSONObject | null>(null);
     const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
     const [isVerificationLoading, setIsVerificationLoading] = useState<boolean>(false);
+
+    useEffect(() => {
+        setError('');
+    }, [showVerificationModal]);
 
     return (
         <Page
@@ -138,7 +142,8 @@ const Domains: FunctionComponent<PageComponentProps> = (
             {showVerificationModal && currentVerificationDomain ? (
                 <ConfirmModal
                     title={`Verify ${currentVerificationDomain['domain']}`}
-                    description={!error ?
+                    error={error}
+                    description={
                         (<div>
                             <span>Please add TXT record to your domain. Details of the TXT records are:</span>
                             <br />
@@ -149,15 +154,17 @@ const Domains: FunctionComponent<PageComponentProps> = (
                             <br />
                             <span>Please note: Some domain changes might take 72 hours to propogate.</span>
                         </div>)
-                        : <div>error</div>}
+                        }
                     submitButtonText={'Verify Domain'}
                     onClose={() => {
                         setShowVerificationModal(false)
+                        setError('');
                     }}
                     isLoading={isVerificationLoading}
                     onSubmit={async () => {
                         try {
                             setIsVerificationLoading(true)
+                            setError('');
                             // verify domain.
                             await ModelAPI.updateById(
                                 Domain,

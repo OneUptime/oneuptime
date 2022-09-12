@@ -10,10 +10,10 @@ export default class Domain extends DomainCommon {
                 }
 
                 let isVerified = false;
-                for (const item in data) {
-                    let txt = item;
+                for (const item of data) {
+                    let txt: Array<string> | string = item;
                     if (Array.isArray(txt)) {
-                        txt = txt.join('');
+                        txt = (txt as Array<string>).join('');
                     }
 
                     if (txt === verificationText) {

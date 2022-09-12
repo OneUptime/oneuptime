@@ -10,6 +10,7 @@ export interface ComponentProps {
     onSubmit: () => void;
     submitButtonType?: undefined | ButtonStyleType;
     isLoading?: boolean;
+    error?: string | undefined; 
 }
 
 const ConfirmModal: FunctionComponent<ComponentProps> = (
@@ -29,7 +30,9 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
                     ? props.submitButtonType
                     : ButtonStyleType.PRIMARY
             }
+            error={props.error}
         >
+
             <div>{props.description}</div>
         </Modal>
     );
