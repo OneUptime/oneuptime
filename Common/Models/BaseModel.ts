@@ -411,7 +411,18 @@ export default class BaseModel extends BaseEntity {
                 continue;
             }
 
-            json[key] = (this as any)[key];
+
+            const tableColumnMetadata = this.getTableColumnMetadata(key);
+
+            if (tableColumnMetadata) {
+                if ((this as any)[key] && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.Entity && json[key] instanceof BaseModel) {
+                    (json as any)[key] = ((this as any)[key] as BaseModel).toJSONObject();
+                } else if ((this as any)[key] && Array.isArray((this as any)[key]) && (this as any)[key].length > 0 && tableColumnMetadata.modelType && tableColumnMetadata.type === TableColumnType.EntityArray) {
+                    (json as any)[key] = BaseModel.toJSONObjectArray((this as any)[key] as Array<BaseModel>);
+                }  else {
+                    (json as any)[key] = json[key];
+                }
+            }
         }
 
         return json;
