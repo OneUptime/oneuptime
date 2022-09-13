@@ -100,6 +100,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onBeforeView?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     sortBy?: string | undefined;
     sortOrder?: SortOrder | undefined;
+    dragDropIdField?: string | undefined;
+    dragDropIndexField?: string | undefined;
     orderedStatesListProps?: {
         titleField: string;
         descriptionField?: string | undefined;
@@ -403,6 +405,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         const selectMoreFields: Array<string> = props.selectMoreFields
             ? Object.keys(props.selectMoreFields)
             : [];
+        
+        if (props.dragDropIndexField) {
+            selectMoreFields.push(props.dragDropIndexField);
+        }
+
+
+        if (props.dragDropIdField && !Object.keys(selectFields).includes(props.dragDropIdField) && !selectMoreFields.includes(props.dragDropIdField)) {
+            selectMoreFields.push(props.dragDropIdField);
+        }
 
         for (const moreField of selectMoreFields) {
             if (model.getTableColumnMetadata(moreField)) {
@@ -880,12 +891,28 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 currentPageNumber={currentPageNumber}
                 isLoading={isLoading}
                 enableDragAndDrop={props.enableDragAndDrop}
+                dragDropIdField={"_id"}
+                dragDropIndexField={props.dragDropIndexField}
                 totalItemsCount={totalItemsCount}
                 data={BaseModel.toJSONObjectArray(data, props.modelType)}
                 filterError={tableFilterError}
                 id={props.id}
                 columns={tableColumns}
                 itemsOnPage={itemsOnPage}
+                onDragDrop={async (id: string, newOrder: number) => {
+                    if (!props.dragDropIndexField) {
+                        return; 
+                    }
+
+
+                    setIsLoading(true);
+
+                    await ModelAPI.updateById(props.modelType, new ObjectID(id), {
+                        [props.dragDropIndexField]: newOrder
+                    });
+
+                    fetchItems();
+                }}
                 disablePagination={props.disablePagination || false}
                 isTableFilterLoading={isTableFilterFetchLoading}
                 onNavigateToPage={async (

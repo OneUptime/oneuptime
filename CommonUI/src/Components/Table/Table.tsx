@@ -8,8 +8,7 @@ import SortOrder from 'Common/Types/Database/SortOrder';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import { HTML5Backend } from "react-dnd-html5-backend";
-import { DndProvider } from "react-dnd";
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -34,6 +33,9 @@ export interface ComponentProps {
     filterError?: string | undefined;
     onFilterChanged?: undefined | ((filterData: FilterData) => void);
     enableDragAndDrop?: boolean | undefined;
+    dragDropIndexField?: string | undefined;
+    dragDropIdField?: string | undefined;
+    onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -98,12 +100,16 @@ const Table: FunctionComponent<ComponentProps> = (
                 actionButtons={props.actionButtons}
                 enableDragAndDrop={props.enableDragAndDrop}
                 dragAndDropScope={`${props.id}-dnd`}
+                dragDropIdField={props.dragDropIdField}
+                dragDropIndexField={props.dragDropIndexField}
             />
         );
     };
 
     return (
-        <DndProvider backend={HTML5Backend}>
+        <DragDropContext onDragEnd={(result: DropResult) => {
+            result.destination?.index && props.onDragDrop && props.onDragDrop(result.draggableId, result.destination.index);
+        }}>
             <div className="table-responsive">
                 <table className="table mb-0 table">
                     <TableHeader
@@ -132,7 +138,7 @@ const Table: FunctionComponent<ComponentProps> = (
                     />
                 )}
             </div>
-        </DndProvider>
+        </DragDropContext>
     );
 };
 

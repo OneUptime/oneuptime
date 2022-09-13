@@ -9,7 +9,7 @@ import Columns from './Types/Columns';
 import FieldType from '../Types/FieldType';
 import _ from 'lodash';
 import ConfirmModal from '../Modal/ConfirmModal';
-import { useDrag } from 'react-dnd'
+import { Draggable, DraggableProvided } from 'react-beautiful-dnd'
 
 
 
@@ -19,6 +19,8 @@ export interface ComponentProps {
     actionButtons?: Array<ActionButtonSchema> | undefined;
     enableDragAndDrop?: boolean | undefined;
     dragAndDropScope?: string | undefined;
+    dragDropIdField?: string | undefined;
+    dragDropIndexField?: string | undefined;
 }
 
 const TableRow: FunctionComponent<ComponentProps> = (
@@ -26,29 +28,22 @@ const TableRow: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
 
 
-    const [collected, drag, dragPreview] = useDrag(() => ({
-        type: props.dragAndDropScope || 'dnd',
-        item: props.item
-      }))
-
     const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
         props.actionButtons?.map(() => {
             return false;
         }) || []
     );
 
-
     const [error, setError] = useState<string>('');
 
-    if ((collected as any).isDragging) {
-        return <tr ref={props.enableDragAndDrop ? dragPreview : null}>
 
-        </tr>
-    }
 
-    return (
-        <tr ref={props.enableDragAndDrop ? drag : null}>
-            {props.enableDragAndDrop && <td style={{width: "20px"}} className="grabbable">
+    const getRow: Function = (provided?: DraggableProvided): ReactElement => {
+
+        
+
+        return (<tr className='table-row' { ...provided?.draggableProps } ref={provided?.innerRef}>
+            {props.enableDragAndDrop && <td style={{ width: "20px" }} className="grabbable" {...provided?.dragHandleProps}>
                 <Icon icon={IconProp.Drag} thick={ThickProp.Thick} className="grabbable" />
             </td>}
             {props.columns &&
@@ -211,8 +206,21 @@ const TableRow: FunctionComponent<ComponentProps> = (
                         </td>
                     );
                 })}
-        </tr>
-    );
+            </tr>)
+    }
+
+    if (props.enableDragAndDrop) {
+
+        return (
+            <Draggable draggableId={props.item[props.dragDropIdField || ''] as string || ''} index={props.item[props.dragDropIndexField || 0] as number || 0}>
+                {(provided) => {
+                    return getRow(provided);
+                }}
+            </Draggable>
+        );
+    }
+
+    return getRow();
 };
 
 export default TableRow;

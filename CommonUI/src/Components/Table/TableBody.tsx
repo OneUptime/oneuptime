@@ -3,7 +3,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import TableRow from './TableRow';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Columns from './Types/Columns';
-import { useDrop } from 'react-dnd'
+import { Droppable, DroppableProvided } from 'react-beautiful-dnd'
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -12,18 +12,17 @@ export interface ComponentProps {
     actionButtons?: undefined | Array<ActionButtonSchema> | undefined;
     enableDragAndDrop?: undefined | boolean;
     dragAndDropScope?: string | undefined;
+    dragDropIdField?: string | undefined;
+    dragDropIndexField?: string | undefined;
 }
 
 const TableBody: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [_collectedProps, drop] = useDrop(() => ({
-        accept: props.dragAndDropScope || 'dnd'
-    }))
-    
 
-    return (
-        <tbody id={props.id} ref={props.enableDragAndDrop ? drop : null}>
+    const getBody: Function = (provided?: DroppableProvided): ReactElement => {
+
+        return (<tbody id={props.id} ref={provided?.innerRef}  { ...provided?.droppableProps }>
             {props.data &&
                 props.data.map((item: JSONObject, i: number) => {
                     return (
@@ -34,11 +33,24 @@ const TableBody: FunctionComponent<ComponentProps> = (
                             item={item}
                             columns={props.columns}
                             actionButtons={props.actionButtons}
+                            dragDropIdField={props.dragDropIdField}
+                            dragDropIndexField={props.dragDropIndexField}
                         />
                     );
                 })}
-        </tbody>
-    );
+            {provided?.placeholder}
+        </tbody>);
+    }
+
+    if (props.enableDragAndDrop) {
+        return (
+            <Droppable droppableId={props.dragAndDropScope || ''}>
+                {(provided) => getBody(provided)}
+            </Droppable>
+        );
+    } else {
+        return getBody();
+    }
 };
 
 export default TableBody;
