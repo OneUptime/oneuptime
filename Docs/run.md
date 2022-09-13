@@ -33,7 +33,7 @@ npm run logs-dev accounts
 - Debugging with breakpoints are supported. 
 - You should use VSCode for the best debugging experience.
 - Select the Debug item on the left menu of VS Code and then you should see list of various apps that you can debug. You can pick any and press the green button in VS Code which attaches the debugger. 
-- If you make any chanegs to the file, container automatically restarts and the debugger connection is broken. so, you need to press that gren button again to debug. 
+- If you make any changes to the file, container automatically restarts and the debugger connection is broken. so, you need to press that green button again to debug. 
 
 ### Clear cache and Prune
 
