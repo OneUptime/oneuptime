@@ -50,8 +50,22 @@ services:
         environment: *common-variables
         depends_on:
             - redis
-            - haraka
-            - script-runner
+            - postgres
+    
+    file:
+        ports:
+            - '3125:3125'
+        build:
+            context: .
+            dockerfile: ./File/Dockerfile
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./File/.env
+        environment: *common-variables
+        depends_on:
+            - redis
+            - postgres
             
     identity:
         ports:
