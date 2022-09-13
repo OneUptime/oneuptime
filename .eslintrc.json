@@ -44,7 +44,8 @@
         "expect": true,
         "workbox": true,
         "importScripts": true,
-        "$TSFixMe": true
+        "$TSFixMe": true,
+        "NodeJS": true
     },
     "parser": "@typescript-eslint/parser",
     "rules": {

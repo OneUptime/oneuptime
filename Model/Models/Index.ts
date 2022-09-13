@@ -17,6 +17,9 @@ import Label from './Label';
 
 // Status Page
 import StatusPage from './StatusPage';
+import StatusPageGroup from './StatusPageGroup';
+import StatusPageDomain from './StatusPageDomain';
+import StatusPageResource from './StatusPageResource';
 
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
@@ -32,9 +35,14 @@ import IncidentState from './IncidentState';
 import IncidentStateTimeline from './IncidentStateTimeline';
 import IncidentPublicNote from './IncidentPublicNote';
 import IncidentInternalNote from './IncidentInternalNote';
+import IncidentSeverity from './IncidentSeverity';
 
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
+
+import Domain from './Domain';
+
+import File from './File';
 
 export default [
     User,
@@ -58,4 +66,10 @@ export default [
     MonitorStatusTimeline,
     IncidentPublicNote,
     IncidentInternalNote,
+    File,
+    Domain,
+    StatusPageGroup,
+    StatusPageDomain,
+    StatusPageResource,
+    IncidentSeverity,
 ];

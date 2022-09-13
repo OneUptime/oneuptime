@@ -246,7 +246,13 @@ export default class BaseAPI<
             props: databaseProps,
         });
 
-        return Response.sendListResponse(req, res, list, count);
+        return Response.sendEntityArrayResponse(
+            req,
+            res,
+            list,
+            count,
+            this.entityType
+        );
     }
 
     public async count(
@@ -269,7 +275,9 @@ export default class BaseAPI<
             props: databaseProps,
         });
 
-        return Response.sendItemResponse(req, res, { count: count.toNumber() });
+        return Response.sendJsonObjectResponse(req, res, {
+            count: count.toNumber(),
+        });
     }
 
     public async getItem(
@@ -300,7 +308,7 @@ export default class BaseAPI<
             props: this.getDatabaseCommonInteractionProps(req),
         });
 
-        return Response.sendItemResponse(req, res, item?.toJSON() || {});
+        return Response.sendEntityResponse(req, res, item, this.entityType);
     }
 
     public async deleteItem(
@@ -370,7 +378,12 @@ export default class BaseAPI<
 
         const savedItem: BaseModel = await this.service.create(createBy);
 
-        return Response.sendItemResponse(req, res, savedItem);
+        return Response.sendEntityResponse(
+            req,
+            res,
+            savedItem,
+            this.entityType
+        );
     }
 
     public getRouter(): ExpressRouter {

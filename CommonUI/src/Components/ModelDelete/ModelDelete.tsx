@@ -1,6 +1,5 @@
 import BaseModel from 'Common/Models/BaseModel';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import React, { ReactElement, useState } from 'react';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
@@ -35,9 +34,8 @@ const ModelDelete: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');

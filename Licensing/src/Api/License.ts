@@ -59,7 +59,7 @@ router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
             limit
         );
 
-        return Response.sendItemResponse(req, res, { license: item });
+        return Response.sendJsonObjectResponse(req, res, { license: item });
     } catch (error) {
         return Response.sendErrorResponse(req, res, error as Exception);
     }

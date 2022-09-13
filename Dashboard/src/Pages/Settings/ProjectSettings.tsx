@@ -47,7 +47,6 @@ const Settings: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Project Name',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },

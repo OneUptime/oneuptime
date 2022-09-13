@@ -1,0 +1,21 @@
+name: File Service Docker Build
+
+on:
+  pull_request: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+      - 'staging-release'
+
+jobs:
+ # define job to build docker image
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      # build image for file
+      - name: build docker image
+        run: npm run build-ci file

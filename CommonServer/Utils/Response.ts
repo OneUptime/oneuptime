@@ -122,10 +122,38 @@ export default class Response {
         return this.logResponse(req, res, { message });
     }
 
-    public static sendListResponse(
+    public static sendEntityArrayResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        list: Array<BaseModel | JSONObject>,
+        list: Array<BaseModel>,
+        count: PositiveNumber,
+        modelType: { new (): BaseModel }
+    ): void {
+        return this.sendJsonArrayResponse(
+            req,
+            res,
+            BaseModel.toJSONArray(list as Array<BaseModel>, modelType),
+            count
+        );
+    }
+
+    public static sendEntityResponse(
+        req: ExpressRequest,
+        res: ExpressResponse,
+        item: BaseModel | null,
+        modelType: { new (): BaseModel }
+    ): void {
+        return this.sendJsonObjectResponse(
+            req,
+            res,
+            item ? BaseModel.toJSONObject(item, modelType) : {}
+        );
+    }
+
+    public static sendJsonArrayResponse(
+        req: ExpressRequest,
+        res: ExpressResponse,
+        list: Array<JSONObject>,
         count: PositiveNumber
     ): void {
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
@@ -148,11 +176,7 @@ export default class Response {
             list = [];
         }
 
-        if (list.length > 0 && list[0] instanceof BaseModel) {
-            listData.data = BaseModel.toJSONArray(list as Array<BaseModel>);
-        } else {
-            listData.data = list as JSONArray;
-        }
+        listData.data = list as JSONArray;
 
         if (count) {
             listData.count = count;
@@ -182,15 +206,11 @@ export default class Response {
         }
     }
 
-    public static sendItemResponse(
+    public static sendJsonObjectResponse(
         req: ExpressRequest,
         res: ExpressResponse,
-        item: JSONObject | BaseModel
+        item: JSONObject
     ): void {
-        if (item instanceof BaseModel) {
-            item = item.toJSON();
-        }
-
         const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 

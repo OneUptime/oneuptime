@@ -49,7 +49,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                     description:
                         'All you can do on the dashboard can be done via the API. Use OneUptime API to automated repetitive work or integrate with other platforms you have.',
                 }}
-                noItemsMessage={'No API Keys created for this project so far.'}
+                noItemsMessage={'No API Keys found.'}
                 formFields={[
                     {
                         field: {
@@ -60,7 +60,6 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'API Key Name',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },

@@ -31,6 +31,7 @@ import Permission, {
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
+
 export type DbTypes =
     | string
     | number
@@ -82,8 +83,11 @@ export default class BaseModel extends BaseEntity {
     public allowUserQueryWithoutTenant!: boolean | null;
 
     public crudApiPath!: Route | null;
+
     // If this resource is by projectId, which column does projectId belong to?
     public tenantColumn!: string | null;
+
+    public accessControlColumn!: string | null;
 
     public constructor(id?: ObjectID) {
         super();
@@ -148,14 +152,10 @@ export default class BaseModel extends BaseEntity {
         return dictionary[columnName] as TableColumnMetadata;
     }
 
-    public getColumnAccessControlFor(columnName: string): ColumnAccessControl {
-        return (
-            this.getColumnAccessControlForAllColumns()[columnName] || {
-                read: [],
-                create: [],
-                update: [],
-            }
-        );
+    public getColumnAccessControlFor(
+        columnName: string
+    ): ColumnAccessControl | null {
+        return this.getColumnAccessControlForAllColumns()[columnName] || null;
     }
 
     public getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
@@ -246,6 +246,10 @@ export default class BaseModel extends BaseEntity {
         return this.tenantColumn;
     }
 
+    public getAccessControlColumn(): string | null {
+        return this.accessControlColumn;
+    }
+
     public getUserColumn(): string | null {
         return this.userColumn;
     }
@@ -272,8 +276,32 @@ export default class BaseModel extends BaseEntity {
         const baseModel: T = new type();
 
         for (const key of Object.keys(json)) {
-            if (baseModel.getTableColumnMetadata(key)) {
-                (baseModel as any)[key] = json[key];
+            const tableColumnMetadata: TableColumnMetadata =
+                baseModel.getTableColumnMetadata(key);
+            if (tableColumnMetadata) {
+                if (
+                    json[key] &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.Entity
+                ) {
+                    (baseModel as any)[key] =
+                        new tableColumnMetadata.modelType().fromJSON(
+                            json[key] as JSONObject,
+                            tableColumnMetadata.modelType
+                        );
+                } else if (
+                    json[key] &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.EntityArray
+                ) {
+                    (baseModel as any)[key] =
+                        new tableColumnMetadata.modelType().fromJSONArray(
+                            json[key] as JSONArray,
+                            tableColumnMetadata.modelType
+                        );
+                } else {
+                    (baseModel as any)[key] = json[key];
+                }
             }
         }
 
@@ -365,40 +393,101 @@ export default class BaseModel extends BaseEntity {
         );
     }
 
-    public toJSON(): JSONObject {
-        const json: JSONObject = this.toJSONObject();
+    public isFileColumn(columnName: string): boolean {
+        const tableColumnType: TableColumnMetadata = getTableColumn(
+            this,
+            columnName
+        );
+
+        if (!tableColumnType || !tableColumnType.modelType) {
+            return false;
+        }
+
+        const fileModel: BaseModel = new tableColumnType.modelType();
+
+        if (fileModel.isFileModel()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static toJSON(
+        model: BaseModel,
+        modelType: { new (): BaseModel }
+    ): JSONObject {
+        const json: JSONObject = this.toJSONObject(model, modelType);
         return JSONFunctions.serialize(json);
     }
 
-    public toJSONObject(): JSONObject {
+    public static toJSONObject(
+        model: BaseModel,
+        modelType: { new (): BaseModel }
+    ): JSONObject {
         const json: JSONObject = {};
 
-        for (const key of this.getTableColumns().columns) {
-            if (typeof (this as any)[key] === 'boolean') {
-                json[key] = (this as any)[key];
-            } else if ((this as any)[key]) {
-                json[key] = (this as any)[key];
+        const vanillaModel: BaseModel = new modelType();
+
+        for (const key of vanillaModel.getTableColumns().columns) {
+            if ((model as any)[key] === undefined) {
+                continue;
+            }
+
+            const tableColumnMetadata: TableColumnMetadata =
+                vanillaModel.getTableColumnMetadata(key);
+
+            if (tableColumnMetadata) {
+                if (
+                    (model as any)[key] &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.Entity &&
+                    (model as any)[key] instanceof BaseModel
+                ) {
+                    (json as any)[key] = BaseModel.toJSONObject(
+                        (model as any)[key],
+                        tableColumnMetadata.modelType
+                    );
+                } else if (
+                    (model as any)[key] &&
+                    Array.isArray((model as any)[key]) &&
+                    (model as any)[key].length > 0 &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.EntityArray
+                ) {
+                    (json as any)[key] = BaseModel.toJSONObjectArray(
+                        (model as any)[key] as Array<BaseModel>,
+                        tableColumnMetadata.modelType
+                    );
+                } else {
+                    (json as any)[key] = (model as any)[key];
+                }
             }
         }
 
         return json;
     }
 
-    public static toJSONObjectArray(list: Array<BaseModel>): JSONArray {
+    public static toJSONObjectArray(
+        list: Array<BaseModel>,
+        modelType: { new (): BaseModel }
+    ): JSONArray {
         const array: JSONArray = [];
 
         for (const item of list) {
-            array.push(item.toJSONObject());
+            array.push(BaseModel.toJSONObject(item, modelType));
         }
 
         return array;
     }
 
-    public static toJSONArray(list: Array<BaseModel>): JSONArray {
+    public static toJSONArray(
+        list: Array<BaseModel>,
+        modelType: { new (): BaseModel }
+    ): JSONArray {
         const array: JSONArray = [];
 
         for (const item of list) {
-            array.push(item.toJSON());
+            array.push(BaseModel.toJSON(item, modelType));
         }
 
         return array;
@@ -409,6 +498,14 @@ export default class BaseModel extends BaseEntity {
     }
 
     public isTenantModel(): boolean {
+        return false;
+    }
+
+    public isFileModel(): boolean {
+        return false;
+    }
+
+    public isAccessControlModel(): boolean {
         return false;
     }
 
@@ -423,9 +520,11 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.createRecordPermissions;
 
         if (columnName) {
-            const columnAccessControl: ColumnAccessControl =
+            const columnAccessControl: ColumnAccessControl | null =
                 this.getColumnAccessControlFor(columnName);
-            modelPermission = columnAccessControl.create;
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.create;
+            }
         }
 
         return this.hasPermissions(userProjectPermissions, modelPermission);
@@ -438,9 +537,11 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.readRecordPermissions;
 
         if (columnName) {
-            const columnAccessControl: ColumnAccessControl =
+            const columnAccessControl: ColumnAccessControl | null =
                 this.getColumnAccessControlFor(columnName);
-            modelPermission = columnAccessControl.read;
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.read;
+            }
         }
 
         return this.hasPermissions(userProjectPermissions, modelPermission);
@@ -460,9 +561,11 @@ export default class BaseModel extends BaseEntity {
         let modelPermission: Array<Permission> = this.updateRecordPermissions;
 
         if (columnName) {
-            const columnAccessControl: ColumnAccessControl =
+            const columnAccessControl: ColumnAccessControl | null =
                 this.getColumnAccessControlFor(columnName);
-            modelPermission = columnAccessControl.update;
+            if (columnAccessControl) {
+                modelPermission = columnAccessControl.update;
+            }
         }
 
         return this.hasPermissions(userProjectPermissions, modelPermission);

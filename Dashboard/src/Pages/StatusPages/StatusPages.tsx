@@ -9,6 +9,9 @@ import StatusPage from 'Model/Models/StatusPage';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import Label from 'Model/Models/Label';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import LabelsElement from '../../Components/Label/Labels';
 
 const StatusPages: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -23,7 +26,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'Status Page',
-                    to: RouteMap[PageMap.STATUS_PAGE] as Route,
+                    to: RouteMap[PageMap.STATUS_PAGES] as Route,
                 },
             ]}
         >
@@ -40,9 +43,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of status page for this project.',
                 }}
-                noItemsMessage={
-                    'No status pages created for this project so far.'
-                }
+                noItemsMessage={'No status pages found.'}
                 formFields={[
                     {
                         field: {
@@ -53,7 +54,6 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Status Page Name',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },
@@ -65,6 +65,22 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
+                    },
+                    {
+                        field: {
+                            labels: true,
+                        },
+                        title: 'Labels (Optional)',
+                        description:
+                            'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Label,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'Labels',
                     },
                 ]}
                 showRefreshButton={true}
@@ -86,6 +102,37 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.EntityArray,
+                        isFilterable: true,
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <LabelsElement
+                                    labels={
+                                        Label.fromJSON(
+                                            (item['labels'] as JSONArray) || [],
+                                            Label
+                                        ) as Array<Label>
+                                    }
+                                />
+                            );
+                        },
                     },
                 ]}
             />

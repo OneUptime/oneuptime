@@ -1,5 +1,5 @@
 import Color from 'Common/Types/Color';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
 import {
     FiHome,
     FiGrid,
@@ -12,6 +12,8 @@ import {
     FiSearch,
     FiHelpCircle,
     FiPower,
+    FiImage,
+    FiGlobe,
     FiCreditCard,
     FiUser,
     FiChevronDown,
@@ -30,6 +32,7 @@ import {
     FiUsers,
     FiLock,
     FiKey,
+    FiType,
     FiFolder,
     FiShare2,
     FiMessageSquare,
@@ -76,6 +79,7 @@ export enum IconProp {
     Public,
     Home,
     Graph,
+    Image,
     Grid,
     More,
     Activity,
@@ -84,6 +88,7 @@ export enum IconProp {
     List,
     CheckCircle,
     Search,
+    Globe,
     Logout,
     Billing,
     Email,
@@ -112,6 +117,7 @@ export enum IconProp {
     Check,
     True,
     False,
+    Text,
     Circle,
 }
 
@@ -122,6 +128,7 @@ export interface ComponentProps {
     color?: Color | null;
     thick?: ThickProp;
     onClick?: (() => void) | undefined;
+    style?: CSSProperties | undefined;
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({
@@ -131,11 +138,13 @@ const Icon: FunctionComponent<ComponentProps> = ({
     color,
     thick = ThickProp.Normal,
     onClick,
+    style,
 }: ComponentProps): ReactElement => {
     return (
         <div
             style={{
                 cursor: 'pointer',
+                ...style,
             }}
             className={className ? className : ''}
             onClick={() => {
@@ -474,6 +483,30 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Graph && (
                 <FiBarChart2
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Globe && (
+                <FiGlobe
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Image && (
+                <FiImage
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Text && (
+                <FiType
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

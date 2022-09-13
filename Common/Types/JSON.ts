@@ -20,6 +20,7 @@ import GreaterThanOrEqual from './Database/GreaterThanOrEqual';
 import LessThan from './Database/LessThan';
 import LessThanOrEqual from './Database/LessThanOrEqual';
 import InBetween from './Database/InBetween';
+import Domain from './Domain';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -27,6 +28,7 @@ enum ObjectType {
     Email = 'Email',
     Phone = 'Phone',
     Color = 'Color',
+    Domain = 'Domain',
     Version = 'Version',
     Route = 'Route',
     URL = 'URL',
@@ -40,6 +42,7 @@ enum ObjectType {
     Hostname = 'Hostname',
     HashedString = 'HashedString',
     DateTime = 'DateTime',
+    Buffer = 'Buffer',
     InBetween = 'InBetween',
 }
 
@@ -51,6 +54,7 @@ export type JSONValue =
     | Array<boolean>
     | boolean
     | JSONObject
+    | Uint8Array
     | JSONArray
     | Date
     | Array<Date>
@@ -76,6 +80,8 @@ export type JSONValue =
     | Permission
     | Array<Permission>
     | Search
+    | Domain
+    | Array<Domain>
     | Array<Search>
     | GreaterThan
     | Array<GreaterThan>
@@ -96,6 +102,7 @@ export type JSONValue =
     | Array<JSONValue>
     | Array<Permission>
     | Array<JSONValue>
+    | undefined
     | null;
 
 export interface JSONObject {
@@ -118,8 +125,12 @@ export class JSONFunctions {
         const newVal: JSONValue = {};
 
         for (const key in val) {
-            if (val[key] === null || val[key] === undefined) {
+            if (val[key] === undefined) {
                 continue;
+            }
+
+            if (val[key] === null) {
+                newVal[key] = val[key];
             }
 
             if (Array.isArray(val[key])) {
@@ -140,10 +151,27 @@ export class JSONFunctions {
     public static serializeValue(val: JSONValue): JSONValue {
         if (val === null || val === undefined) {
             return val;
+        } else if (
+            typeof val === Typeof.String &&
+            val.toString().trim() === ''
+        ) {
+            return val;
+        } else if (typeof val === Typeof.Number) {
+            return val;
+        } else if (ArrayBuffer.isView(val)) {
+            return {
+                _type: ObjectType.Buffer,
+                value: val as Uint8Array,
+            };
         } else if (val && val instanceof Name) {
             return {
                 _type: ObjectType.Name,
                 value: (val as Name).toString(),
+            };
+        } else if (val && val instanceof Domain) {
+            return {
+                _type: ObjectType.Domain,
+                value: (val as Domain).toString(),
             };
         } else if (val && val instanceof ObjectID) {
             return {
@@ -231,6 +259,14 @@ export class JSONFunctions {
                 _type: ObjectType.DateTime,
                 value: OneUptimeDate.toString(val as Date).toString(),
             };
+        } else if (
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            Object.keys(ObjectType).includes(
+                (val as JSONObject)['_type'] as string
+            )
+        ) {
+            return val;
         } else if (typeof val === Typeof.Object) {
             return this.serialize(val as JSONObject);
         }
@@ -240,6 +276,31 @@ export class JSONFunctions {
 
     public static deserializeValue(val: JSONValue): JSONValue {
         if (val === null || val === undefined) {
+            return val;
+        } else if (
+            typeof val === Typeof.String &&
+            val.toString().trim() === ''
+        ) {
+            return val;
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            ((val as JSONObject)['value'] as JSONObject)['data'] &&
+            ((val as JSONObject)['value'] as JSONObject)['type'] &&
+            ((val as JSONObject)['value'] as JSONObject)['type'] ===
+                ObjectType.Buffer &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.Buffer
+        ) {
+            return Buffer.from(
+                ((val as JSONObject)['value'] as JSONObject)[
+                    'data'
+                ] as Uint8Array
+            );
+        } else if (val && ArrayBuffer.isView(val)) {
+            return Buffer.from(val as Uint8Array);
+        } else if (typeof val === Typeof.Number) {
             return val;
         } else if (val instanceof DatabaseProperty) {
             return val;
@@ -252,6 +313,15 @@ export class JSONFunctions {
             ((val as JSONObject)['_type'] as string) === ObjectType.Name
         ) {
             return new Name((val as JSONObject)['value'] as string);
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] &&
+            typeof (val as JSONObject)['value'] === Typeof.String &&
+            ((val as JSONObject)['_type'] as string) === ObjectType.Domain
+        ) {
+            return new Domain((val as JSONObject)['value'] as string);
         } else if (
             val &&
             typeof val === Typeof.Object &&
@@ -464,7 +534,7 @@ export class JSONFunctions {
         const newVal: JSONObject = {};
         for (const key in val) {
             if (val[key] === null || val[key] === undefined) {
-                continue;
+                newVal[key] = val[key];
             }
 
             if (Array.isArray(val[key])) {

@@ -32,6 +32,7 @@ export interface RequestOptions {
 export default class ModelAPI {
     public static async create<TBaseModel extends BaseModel>(
         model: TBaseModel,
+        modelType: { new (): TBaseModel },
         apiUrlOverride?: URL,
         requestOptions?: RequestOptions | undefined
     ): Promise<
@@ -39,6 +40,7 @@ export default class ModelAPI {
     > {
         return await ModelAPI.createOrUpdate(
             model,
+            modelType,
             FormType.Create,
             apiUrlOverride,
             {},
@@ -48,12 +50,14 @@ export default class ModelAPI {
 
     public static async update<TBaseModel extends BaseModel>(
         model: TBaseModel,
+        modelType: { new (): TBaseModel },
         apiUrlOverride?: URL
     ): Promise<
         HTTPResponse<JSONObject | JSONArray | TBaseModel | Array<TBaseModel>>
     > {
         return await ModelAPI.createOrUpdate(
             model,
+            modelType,
             FormType.Update,
             apiUrlOverride
         );
@@ -105,6 +109,7 @@ export default class ModelAPI {
 
     public static async createOrUpdate<TBaseModel extends BaseModel>(
         model: TBaseModel,
+        modelType: { new (): TBaseModel },
         formType: FormType,
         apiUrlOverride?: URL,
         miscDataProps?: JSONObject,
@@ -140,7 +145,9 @@ export default class ModelAPI {
             httpMethod,
             apiUrl,
             {
-                data: JSONFunctions.serialize(model.toJSON()),
+                data: JSONFunctions.serialize(
+                    BaseModel.toJSON(model, modelType)
+                ),
                 miscDataProps: miscDataProps || {},
             },
             this.getCommonHeaders(requestOptions)

@@ -19,6 +19,7 @@ export interface ComponentProps {
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
     dataTestId?: string;
+    tabIndex?: number | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -35,6 +36,12 @@ const Input: FunctionComponent<ComponentProps> = (
             setValue(props.value);
         }
     }, []);
+
+    useEffect(() => {
+        if (props.initialValue) {
+            setValue(props.initialValue);
+        }
+    }, [props.initialValue]);
 
     useEffect(() => {
         setValue(props.value ? props.value : '');
@@ -68,6 +75,7 @@ const Input: FunctionComponent<ComponentProps> = (
                         props.onChange(e.target.value);
                     }
                 }}
+                tabIndex={props.tabIndex}
                 value={value}
                 readOnly={props.readOnly || false}
                 type={props.type || 'text'}

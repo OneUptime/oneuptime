@@ -26,8 +26,12 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Monitor from './Monitor';
 import IncidentState from './IncidentState';
 import MonitorStatus from './MonitorStatus';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
+import Label from './Label';
+import IncidentSeverity from './IncidentSeverity';
 
+@AccessControlColumn('labels')
 @MultiTenentQueryAllowed(true)
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -247,7 +251,7 @@ export default class Incident extends BaseModel {
         () => {
             return Monitor;
         },
-        { eager: true }
+        { eager: false }
     )
     @JoinTable({
         name: 'IncidentMonitor',
@@ -261,6 +265,39 @@ export default class Incident extends BaseModel {
         },
     })
     public monitors?: Array<Monitor> = undefined; // monitors affected by this incident.
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectIncident,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
+    })
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'IncidentLabel',
+        inverseJoinColumn: {
+            name: 'labelId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'incidentId',
+            referencedColumnName: '_id',
+        },
+    })
+    public labels?: Array<Label> = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
@@ -306,6 +343,51 @@ export default class Incident extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public currentIncidentStateId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectIncident,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'incidentSeverityId',
+        type: TableColumnType.Entity,
+        modelType: IncidentSeverity,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return IncidentSeverity;
+        },
+        {
+            eager: false,
+            nullable: true,
+            orphanedRowAction: 'nullify',
+        }
+    )
+    @JoinColumn({ name: 'incidentSeverityId' })
+    public incidentSeverity?: IncidentSeverity = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectIncident,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
+    })
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: false,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public incidentSeverityId?: ObjectID = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],

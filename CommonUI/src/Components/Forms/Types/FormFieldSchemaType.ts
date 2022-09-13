@@ -2,6 +2,7 @@ enum FormFieldSchemaType {
     ObjectID,
     Name,
     Hostname,
+    ImageFile,
     URL,
     Route,
     Number,
@@ -10,14 +11,20 @@ enum FormFieldSchemaType {
     Email,
     PositveNumber,
     Date,
+    Phone,
+    Domain,
     LongText,
     Color,
     Dropdown,
+    File,
     MultiSelectDropdown,
     Checkbox,
     Port,
     EncryptedText,
     Markdown,
+    JavaScript,
+    CSS,
+    HTML,
 }
 
 export default FormFieldSchemaType;

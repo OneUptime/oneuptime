@@ -71,7 +71,14 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
-            if (key && model.isEntityColumn(key)) {
+            if (key && model.isFileColumn(key)) {
+                (populate as JSONObject)[key] = {
+                    file: true,
+                    _id: true,
+                    type: true,
+                    name: true,
+                };
+            } else if (key && model.isEntityColumn(key)) {
                 (populate as JSONObject)[key] = (field.field as any)[key];
             }
         }
@@ -201,9 +208,9 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             let error: string = '';
             try {
-                error = ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
-                ] as string;
+                error =
+                    (err as HTTPErrorResponse).message ||
+                    'Server Error. Please try again';
             } catch (e) {
                 error = 'Server Error. Please try again';
             }

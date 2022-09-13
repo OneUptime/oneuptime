@@ -208,6 +208,38 @@ services:
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
     
+
+    file:
+        ports:
+            - '3125:3125'
+            - '9012:9229' # Debugging port.
+        build:
+            network: host
+            context: .
+            dockerfile: ./File/Dockerfile.dev
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./File/.env
+        environment: *common-variables
+        depends_on:
+            - postgres
+        links:
+            - postgres
+        volumes:
+            - ./File:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+
   
     home:
         ports:

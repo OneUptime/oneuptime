@@ -17,10 +17,12 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import { Yellow, Green, Red } from 'Common/Types/BrandColors';
+import { Yellow, Green, Red, Moroon } from 'Common/Types/BrandColors';
 import MonitorStatusService from './MonitorStatusService';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import IncidentSeverityService from './IncidentSeverityService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -80,10 +82,10 @@ export class Service extends DatabaseService<Model> {
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
-        // add default teams.
         createdItem = await this.addDefaultProjectTeams(createdItem);
         createdItem = await this.addDefaultMonitorStatus(createdItem);
         createdItem = await this.addDefaultIncidentState(createdItem);
+        createdItem = await this.addDefaultIncidentSeverity(createdItem);
 
         return createdItem;
     }
@@ -132,6 +134,57 @@ export class Service extends DatabaseService<Model> {
 
         resolvedIncidentState = await IncidentStateService.create({
             data: resolvedIncidentState,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        return createdItem;
+    }
+
+    private async addDefaultIncidentSeverity(
+        createdItem: Model
+    ): Promise<Model> {
+        let criticalIncident: IncidentSeverity = new IncidentSeverity();
+        criticalIncident.name = 'Critial Incident';
+        criticalIncident.description =
+            'Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.';
+        criticalIncident.color = Moroon;
+        criticalIncident.projectId = createdItem.id!;
+        criticalIncident.order = 1;
+
+        criticalIncident = await IncidentSeverityService.create({
+            data: criticalIncident,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        let majorIncident: IncidentSeverity = new IncidentSeverity();
+        majorIncident.name = 'Major Incident';
+        majorIncident.description =
+            'Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing.';
+        majorIncident.color = Red;
+        majorIncident.projectId = createdItem.id!;
+        majorIncident.order = 2;
+
+        majorIncident = await IncidentSeverityService.create({
+            data: majorIncident,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        let minorIncident: IncidentSeverity = new IncidentSeverity();
+        minorIncident.name = 'Minor Incident';
+        minorIncident.description =
+            'Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance.';
+        minorIncident.color = Yellow;
+        minorIncident.projectId = createdItem.id!;
+        minorIncident.order = 3;
+
+        minorIncident = await IncidentSeverityService.create({
+            data: minorIncident,
             props: {
                 isRoot: true,
             },

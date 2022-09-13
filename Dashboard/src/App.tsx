@@ -12,7 +12,19 @@ import MasterPage from './Components/MasterPage/MasterPage';
 import Init from './Pages/Init/Init';
 import Home from './Pages/Home/Home';
 import useAsyncEffect from 'use-async-effect';
+
 import StatusPages from './Pages/StatusPages/StatusPages';
+import StatusPagesView from './Pages/StatusPages/View/Index';
+import StatusPagesViewDelete from './Pages/StatusPages/View/Delete';
+import StatusPagesViewBranding from './Pages/StatusPages/View/Branding';
+import StatusPagesViewSubscribers from './Pages/StatusPages/View/Subscribers';
+import StatusPagesViewEmbedded from './Pages/StatusPages/View/Embedded';
+import StatusPagesViewDomains from './Pages/StatusPages/View/Domains';
+import StatusPagesViewResources from './Pages/StatusPages/View/Resources';
+import StatusPagesViewAnnouncement from './Pages/StatusPages/View/Announcements';
+import StatusPagesViewAdvancedOptions from './Pages/StatusPages/View/AdvancedOptions';
+import StatusPagesViewCustomHtmlCss from './Pages/StatusPages/View/CustomHtmlCss';
+import StatusPagesViewGroups from './Pages/StatusPages/View/Groups';
 
 import Incidents from './Pages/Incidents/Incidents';
 import IncidentView from './Pages/Incidents/View/Index';
@@ -37,6 +49,8 @@ import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
 import SettingsMonitors from './Pages/Settings/MonitorStatus';
 import SettingsIncidents from './Pages/Settings/IncidentState';
+import SettingsDomains from './Pages/Settings/Domains';
+import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
 
 // On Call Duty
 import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
@@ -55,7 +69,6 @@ import Logout from './Pages/Logout/Logout';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Project from 'Model/Models/Project';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { JSONObject } from 'Common/Types/JSON';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -78,7 +91,12 @@ const App: FunctionComponent = () => {
         project: Project
     ): void => {
         setSelectedProject(project);
-        Navigation.navigate(new Route('/dashboard/' + project._id));
+
+        const currentRoute: Route = Navigation.getCurrentRoute();
+
+        if (!currentRoute.toString().includes(project._id!)) {
+            Navigation.navigate(new Route('/dashboard/' + project._id));
+        }
     };
 
     const fetchProjects: Function = async (): Promise<void> => {
@@ -104,9 +122,8 @@ const App: FunctionComponent = () => {
             setProjects(result.data);
         } catch (err) {
             setError(
-                ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
-                ] as string
+                (err as HTTPErrorResponse).message ||
+                    'Server Error. Please try again'
             );
         }
 
@@ -213,10 +230,178 @@ const App: FunctionComponent = () => {
                 {/* Status Pages */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.STATUS_PAGE]?.toString()}
+                    path={RouteMap[PageMap.STATUS_PAGES]?.toString()}
                     element={
                         <StatusPages
-                            pageRoute={RouteMap[PageMap.STATUS_PAGE] as Route}
+                            pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.STATUS_PAGE_VIEW]?.toString()}
+                    element={
+                        <StatusPagesView
+                            pageRoute={
+                                RouteMap[PageMap.STATUS_PAGE_VIEW] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE]?.toString()}
+                    element={
+                        <StatusPagesViewDelete
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_DELETE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_BRANDING
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewBranding
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_BRANDING
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewCustomHtmlCss
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewAdvancedOptions
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewSubscribers
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewEmbedded
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_RESOURCES
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewResources
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_RESOURCES
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_DOMAINS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewDomains
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_DOMAINS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS]?.toString()}
+                    element={
+                        <StatusPagesViewGroups
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_GROUPS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewAnnouncement
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                                ] as Route
+                            }
                             currentProject={selectedProject}
                         />
                     }
@@ -360,6 +545,34 @@ const App: FunctionComponent = () => {
                                 RouteMap[
                                     PageMap.SETTINGS_INCIDENTS_STATE
                                 ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SETTINGS_INCIDENTS_SEVERITY
+                    ]?.toString()}
+                    element={
+                        <SettingsIncidentSeverity
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_DOMAINS]?.toString()}
+                    element={
+                        <SettingsDomains
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_DOMAINS] as Route
                             }
                             currentProject={selectedProject}
                         />
