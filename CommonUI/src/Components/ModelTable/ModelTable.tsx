@@ -77,6 +77,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
     isViewable?: undefined | boolean;
+    enableDragAndDrop?: boolean | undefined;
     viewPageRoute?: undefined | Route;
     onViewPage?: (item: TBaseModel) => Promise<Route>;
     query?: Query<TBaseModel>;
@@ -878,6 +879,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 error={error}
                 currentPageNumber={currentPageNumber}
                 isLoading={isLoading}
+                enableDragAndDrop={props.enableDragAndDrop}
                 totalItemsCount={totalItemsCount}
                 data={BaseModel.toJSONObjectArray(data, props.modelType)}
                 filterError={tableFilterError}

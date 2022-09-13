@@ -9,21 +9,35 @@ import Columns from './Types/Columns';
 import FieldType from '../Types/FieldType';
 import _ from 'lodash';
 import ConfirmModal from '../Modal/ConfirmModal';
+import { useDrag } from 'react-dnd'
+
+
 
 export interface ComponentProps {
     item: JSONObject;
     columns: Columns;
     actionButtons?: Array<ActionButtonSchema> | undefined;
+    enableDragAndDrop?: boolean | undefined;
+    dragAndDropScope?: string | undefined;
 }
 
 const TableRow: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+
+    const [collected, drag, dragPreview] = useDrag(() => ({
+        type: props.dragAndDropScope || 'dnd',
+        item: props.item
+      }))
+
     const [isButtonLoading, setIsButtonLoading] = useState<Array<boolean>>(
         props.actionButtons?.map(() => {
             return false;
         }) || []
     );
+
+
     const [error, setError] = useState<string>('');
     return (
         <tr>

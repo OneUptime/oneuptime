@@ -31,6 +31,7 @@ export interface ComponentProps {
     isTableFilterLoading?: undefined | boolean;
     filterError?: string | undefined;
     onFilterChanged?: undefined | ((filterData: FilterData) => void);
+    enableDragAndDrop?: boolean | undefined;
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -93,6 +94,8 @@ const Table: FunctionComponent<ComponentProps> = (
                 data={props.data}
                 columns={props.columns}
                 actionButtons={props.actionButtons}
+                enableDragAndDrop={props.enableDragAndDrop}
+                dragAndDropScope={`${props.id}-dnd`}
             />
         );
     };

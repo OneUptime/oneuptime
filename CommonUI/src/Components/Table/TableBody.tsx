@@ -9,6 +9,8 @@ export interface ComponentProps {
     id: string;
     columns: Columns;
     actionButtons?: undefined | Array<ActionButtonSchema> | undefined;
+    enableDragAndDrop?: undefined | boolean;
+    dragAndDropScope?: string | undefined;
 }
 
 const TableBody: FunctionComponent<ComponentProps> = (
@@ -20,6 +22,8 @@ const TableBody: FunctionComponent<ComponentProps> = (
                 props.data.map((item: JSONObject, i: number) => {
                     return (
                         <TableRow
+                            dragAndDropScope={props.dragAndDropScope}
+                            enableDragAndDrop={props.enableDragAndDrop}
                             key={i}
                             item={item}
                             columns={props.columns}

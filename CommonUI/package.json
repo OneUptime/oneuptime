@@ -35,6 +35,7 @@
         "prop-types": "^15.8.1",
         "react": "^18.1.0",
         "react-color": "^2.19.3",
+        "react-dnd": "^16.0.1",
         "react-dom": "^18.1.0",
         "react-dropzone": "^14.2.2",
         "react-icons": "^4.4.0",
