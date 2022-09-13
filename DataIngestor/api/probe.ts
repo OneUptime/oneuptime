@@ -10,7 +10,7 @@ const router: ExpressRouter = Express.getRouter();
 import { isAuthorizedProbe } from '../middlewares/probeAuthorization';
 import {
     sendErrorResponse,
-    sendItemResponse,
+    sendJsonObjectResponse,
     sendEmptyResponse,
 } from 'CommonServer/utils/Response';
 import Exception from 'Common/Types/Exception/Exception';
@@ -668,7 +668,7 @@ router.post(
                     }
                 }
             }
-            return sendItemResponse(req, response, log);
+            return sendJsonObjectResponse(req, response, log);
         } catch (error) {
             return sendErrorResponse(req, response, error);
         }
@@ -684,7 +684,7 @@ router.post(
             data.probeId = req.probe.id;
             data.monitorId = req.params['monitorId'];
             const log: $TSFixMe = ProbeService.saveMonitorLog(data);
-            return sendItemResponse(req, res, log);
+            return sendJsonObjectResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }
@@ -700,7 +700,7 @@ router.post(
             data.probeId = req.probe.id;
             data.monitorId = req.params['monitorId'];
             const log: $TSFixMe = ProbeService.getMonitorLog(data);
-            return sendItemResponse(req, res, log);
+            return sendJsonObjectResponse(req, res, log);
         } catch (error) {
             return sendErrorResponse(req, res, error as Exception);
         }

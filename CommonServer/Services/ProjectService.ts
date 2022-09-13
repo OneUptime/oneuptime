@@ -17,7 +17,7 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import { Yellow, Green, Red } from 'Common/Types/BrandColors';
+import { Yellow, Green, Red, Moroon } from 'Common/Types/BrandColors';
 import MonitorStatusService from './MonitorStatusService';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
@@ -149,7 +149,7 @@ export class Service extends DatabaseService<Model> {
         criticalIncident.name = 'Critial Incident';
         criticalIncident.description =
             'Issues causing very high impact to customers. Immediate response is required. Examples include a full outage, or a data breach.';
-        criticalIncident.color = Red;
+        criticalIncident.color = Moroon;
         criticalIncident.projectId = createdItem.id!;
         criticalIncident.order = 1;
 
@@ -164,7 +164,7 @@ export class Service extends DatabaseService<Model> {
         majorIncident.name = 'Major Incident';
         majorIncident.description =
             'Issues causing significant impact. Immediate response is usually required. We might have some workarounds that mitigate the impact on customers. Examples include an important sub-system failing.';
-        majorIncident.color = Yellow;
+        majorIncident.color = Red;
         majorIncident.projectId = createdItem.id!;
         majorIncident.order = 2;
 
@@ -179,7 +179,7 @@ export class Service extends DatabaseService<Model> {
         minorIncident.name = 'Minor Incident';
         minorIncident.description =
             'Issues with low impact, which can usually be handled within working hours. Most customers are unlikely to notice any problems. Examples include a slight drop in application performance.';
-        minorIncident.color = Green;
+        minorIncident.color = Yellow;
         minorIncident.projectId = createdItem.id!;
         minorIncident.order = 3;
 

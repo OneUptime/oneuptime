@@ -24,6 +24,7 @@ import ChangeIncidentState, {
     IncidentType,
 } from '../../../Components/Incident/ChangeState';
 import BaseModel from 'Common/Models/BaseModel';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -89,6 +90,22 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
+                    },
+
+                    {
+                        field: {
+                            incidentSeverity: true,
+                        },
+                        title: 'Incident Severity',
+                        description: 'What type of incident is this?',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: IncidentSeverity,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Incident Severity',
                     },
                 ]}
                 modelDetailProps={{

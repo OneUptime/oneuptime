@@ -157,15 +157,10 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(
-                    req,
-                    res,
-                    {
-                        token: token,
-                        user: BaseModel.toJSON(savedUser, User),
-                    },
-                    User
-                );
+                return Response.sendJsonObjectResponse(req, res, {
+                    token: token,
+                    user: BaseModel.toJSON(savedUser, User),
+                });
             }
 
             throw new BadRequestException('Failed to create a user');
@@ -209,15 +204,10 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(
-                    req,
-                    res,
-                    {
-                        token: token,
-                        user: BaseModel.toJSON(alreadySavedUser, User),
-                    },
-                    User
-                );
+                return Response.sendJsonObjectResponse(req, res, {
+                    token: token,
+                    user: BaseModel.toJSON(alreadySavedUser, User),
+                });
             }
             throw new BadDataException(
                 'Invalid login: Email or password does not match.'
@@ -261,15 +251,10 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(
-                    req,
-                    res,
-                    {
-                        token: token,
-                        user: BaseModel.toJSON(alreadySavedUser, User),
-                    },
-                    User
-                );
+                return Response.sendJsonObjectResponse(req, res, {
+                    token: token,
+                    user: BaseModel.toJSON(alreadySavedUser, User),
+                });
             }
             throw new BadDataException(
                 'Invalid login: Email or password does not match.'
@@ -314,15 +299,10 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(
-                    req,
-                    res,
-                    {
-                        token: token,
-                        user: BaseModel.toJSON(alreadySavedUser, User),
-                    },
-                    User
-                );
+                return Response.sendJsonObjectResponse(req, res, {
+                    token: token,
+                    user: BaseModel.toJSON(alreadySavedUser, User),
+                });
             }
             throw new BadDataException(
                 'Invalid login: Email or password does not match.'
