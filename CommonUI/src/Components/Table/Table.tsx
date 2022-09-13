@@ -8,6 +8,8 @@ import SortOrder from 'Common/Types/Database/SortOrder';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { DndProvider } from "react-dnd";
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -101,33 +103,36 @@ const Table: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <div className="table-responsive">
-            <table className="table mb-0 table">
-                <TableHeader
-                    id={`${props.id}-header`}
-                    columns={props.columns}
-                    onSortChanged={props.onSortChanged}
-                    showFilter={props.showFilter || false}
-                    onFilterChanged={props.onFilterChanged || undefined}
-                    isTableFilterLoading={props.isTableFilterLoading}
-                    filterError={props.filterError}
-                    onTableFilterRefreshClick={props.onTableFilterRefreshClick}
-                />
-                {getTablebody()}
-            </table>
-            {!props.disablePagination && (
-                <Pagination
-                    singularLabel={props.singularLabel}
-                    pluralLabel={props.pluralLabel}
-                    currentPageNumber={props.currentPageNumber}
-                    totalItemsCount={props.totalItemsCount}
-                    itemsOnPage={props.itemsOnPage}
-                    onNavigateToPage={props.onNavigateToPage}
-                    isLoading={props.isLoading}
-                    isError={Boolean(props.error)}
-                />
-            )}
-        </div>
+        <DndProvider backend={HTML5Backend}>
+            <div className="table-responsive">
+                <table className="table mb-0 table">
+                    <TableHeader
+                        id={`${props.id}-header`}
+                        columns={props.columns}
+                        onSortChanged={props.onSortChanged}
+                        showFilter={props.showFilter || false}
+                        onFilterChanged={props.onFilterChanged || undefined}
+                        isTableFilterLoading={props.isTableFilterLoading}
+                        filterError={props.filterError}
+                        enableDragAndDrop={props.enableDragAndDrop}
+                        onTableFilterRefreshClick={props.onTableFilterRefreshClick}
+                    />
+                    {getTablebody()}
+                </table>
+                {!props.disablePagination && (
+                    <Pagination
+                        singularLabel={props.singularLabel}
+                        pluralLabel={props.pluralLabel}
+                        currentPageNumber={props.currentPageNumber}
+                        totalItemsCount={props.totalItemsCount}
+                        itemsOnPage={props.itemsOnPage}
+                        onNavigateToPage={props.onNavigateToPage}
+                        isLoading={props.isLoading}
+                        isError={Boolean(props.error)}
+                    />
+                )}
+            </div>
+        </DndProvider>
     );
 };
 

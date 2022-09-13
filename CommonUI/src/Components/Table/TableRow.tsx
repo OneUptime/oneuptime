@@ -39,8 +39,18 @@ const TableRow: FunctionComponent<ComponentProps> = (
 
 
     const [error, setError] = useState<string>('');
+
+    if ((collected as any).isDragging) {
+        return <tr ref={props.enableDragAndDrop ? dragPreview : null}>
+
+        </tr>
+    }
+
     return (
-        <tr>
+        <tr ref={props.enableDragAndDrop ? drag : null}>
+            {props.enableDragAndDrop && <td style={{width: "20px"}} className="grabbable">
+                <Icon icon={IconProp.Drag} thick={ThickProp.Thick} className="grabbable" />
+            </td>}
             {props.columns &&
                 props.columns.map((column: Column, i: number) => {
                     return (

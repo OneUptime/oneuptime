@@ -69,6 +69,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     statusPageId: modelId,
                     projectId: props.currentProject?._id,
                 }}
+                enableDragAndDrop={true}
                 onBeforeCreate={(
                     item: StatusPageGroup
                 ): Promise<StatusPageGroup> => {

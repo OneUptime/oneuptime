@@ -14,6 +14,7 @@ import {
     FiPower,
     FiImage,
     FiGlobe,
+    FiMoreVertical,
     FiCreditCard,
     FiUser,
     FiChevronDown,
@@ -95,6 +96,7 @@ export enum IconProp {
     Slack,
     Time,
     Terminal,
+    Drag,
     Error,
     Code,
     Report,
@@ -143,10 +145,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
     return (
         <div
             style={{
-                cursor: 'pointer',
                 ...style,
             }}
-            className={className ? className : ''}
+            className={className ? className : 'pointer'}
             onClick={() => {
                 onClick && onClick();
             }}
@@ -507,6 +508,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Text && (
                 <FiType
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Drag && (
+                <FiMoreVertical
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

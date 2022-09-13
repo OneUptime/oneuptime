@@ -3,6 +3,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import TableRow from './TableRow';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Columns from './Types/Columns';
+import { useDrop } from 'react-dnd'
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -16,8 +17,13 @@ export interface ComponentProps {
 const TableBody: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    const [_collectedProps, drop] = useDrop(() => ({
+        accept: props.dragAndDropScope || 'dnd'
+    }))
+    
+
     return (
-        <tbody id={props.id}>
+        <tbody id={props.id} ref={props.enableDragAndDrop ? drop : null}>
             {props.data &&
                 props.data.map((item: JSONObject, i: number) => {
                     return (
