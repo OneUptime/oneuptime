@@ -241,9 +241,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Status Page',
+                    title: 'Resources',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_RESOURCES] as Route,
                         modelId
                     ),
                 },

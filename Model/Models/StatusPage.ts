@@ -555,4 +555,44 @@ export default class StatusPage extends BaseModel {
         type: ColumnType.JavaScript,
     })
     public customJavaScript?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isPublicStatusPage?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public enableSubscribers?: boolean = undefined;
 }

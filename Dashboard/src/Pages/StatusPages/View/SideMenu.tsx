@@ -142,7 +142,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <SideMenuItem
                     link={{
-                        title: 'Advanced Options',
+                        title: 'Advanced Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                             PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
