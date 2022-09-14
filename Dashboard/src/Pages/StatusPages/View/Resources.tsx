@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -16,7 +16,13 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Monitor from 'Model/Models/Monitor';
 import { JSONObject } from 'Common/Types/JSON';
-import MonitorElement from '../../../Components/Monitor/Monitor'; 
+import MonitorElement from '../../../Components/Monitor/Monitor';
+import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import StatusPageGroup from 'Model/Models/StatusPageGroup';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -24,6 +30,190 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam(1)?.toString().substring(1) || ''
     );
+
+    const [groups, setGroups] = useState<Array<StatusPageGroup>>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string>('');
+
+    const fetchGroups: Function = async () => {
+        setError('');
+        setIsLoading(true);
+
+        try {
+            const listResult: ListResult<StatusPageGroup> =
+                await ModelAPI.getList<StatusPageGroup>(
+                    StatusPageGroup,
+                    {
+                        statusPageId: modelId,
+                        projectId: props.currentProject?.id
+                    },
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        name: true,
+                        _id: true
+                    },
+                    {
+                        order: SortOrder.Ascending
+                    },
+                    {},
+                );
+
+
+            setGroups(listResult.data);
+        } catch (err) {
+            try {
+                setError(
+                    (err as HTTPErrorResponse).message ||
+                    'Server Error. Please try again'
+                );
+            } catch (e) {
+                setError('Server Error. Please try again');
+            }
+        }
+
+        setIsLoading(false);
+    };
+
+    useEffect(() => {
+        fetchGroups();
+    }, []);
+
+    const getModelTable = (statusPageGroupId: ObjectID | null, statusPageGroupName: string | null) => {
+        return (<ModelTable<StatusPageResource>
+                    modelType={StatusPageResource}
+                    id={`status-page-group-${statusPageGroupId?.toString() || ''}`}
+                    isDeleteable={true}
+                    sortBy="order"
+                    sortOrder={SortOrder.Ascending}
+                    isCreateable={true}
+                    isViewable={false}
+                    query={{
+                        statusPageId: modelId,
+                        projectId: props.currentProject?._id,
+                        statusPageGroupId: statusPageGroupId
+                    }}
+                    enableDragAndDrop={true}
+                    dragDropIndexField="order"
+                    onBeforeCreate={(
+                        item: StatusPageResource
+                    ): Promise<StatusPageResource> => {
+                        if (!props.currentProject || !props.currentProject.id) {
+                            throw new BadDataException('Project ID cannot be null');
+                        }
+                        item.statusPageId = modelId;
+                        item.projectId = props.currentProject.id;
+
+                        if (statusPageGroupId) {
+                            item.statusPageGroupId = statusPageGroupId;
+                        }
+
+                        return Promise.resolve(item);
+                    }}
+                    cardProps={{
+                        icon: IconProp.Activity,
+                        title: `${statusPageGroupName ? statusPageGroupName+' - ' : groups.length > 0 ? 'Uncategorized - ' : ''}Status Page Resources`,
+                        description:
+                            'Resources that will be shown on the page',
+                    }}
+                    noItemsMessage={
+                        'No status page reosurces created for this status page.'
+                    }
+                    formFields={[
+                        {
+                            field: {
+                                monitor: true,
+                            },
+                            title: 'Monitor',
+                            description:
+                                'Select monitor that will be shown on the status page.',
+                            fieldType: FormFieldSchemaType.Dropdown,
+                            dropdownModal: {
+                                type: Monitor,
+                                labelField: 'name',
+                                valueField: '_id',
+                            },
+                            required: true,
+                            placeholder: 'Select Monitor',
+                        },
+                        {
+                            field: {
+                                displayName: true,
+                            },
+                            title: 'Display Name',
+                            description:
+                                'This will be the name that will be shown on the status page.',
+                            fieldType: FormFieldSchemaType.Text,
+                            required: true,
+                            placeholder: 'Display Name',
+                        },
+                        {
+                            field: {
+                                displayDescription: true,
+                            },
+                            title: 'Group Description (Optional)',
+                            fieldType: FormFieldSchemaType.LongText,
+                            required: false,
+                            description: 'This will be visible on the status page.',
+                            placeholder: 'Display Description.',
+                        },
+                    ]}
+                    showRefreshButton={true}
+                    showFilterButton={true}
+                    viewPageRoute={props.pageRoute}
+                    columns={[
+                        {
+                            field: {
+                                monitor: {
+                                    name: true,
+                                    _id: true,
+                                    projectId: true,
+                                },
+                            },
+                            title: 'Monitor',
+                            type: FieldType.Entity,
+                            isFilterable: true,
+                            filterEntityType: Monitor,
+                            filterQuery: {
+                                projectId: props.currentProject?._id,
+                            },
+                            filterDropdownField: {
+                                label: 'name',
+                                value: '_id',
+                            },
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <MonitorElement
+                                        monitor={
+                                            Monitor.fromJSON(
+                                                (item['monitor'] as JSONObject) ||
+                                                [],
+                                                Monitor
+                                            ) as Monitor
+                                        }
+                                    />
+                                );
+                            },
+                        },
+                        {
+                            field: {
+                                displayName: true,
+                            },
+                            title: 'Display Name',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                        },
+                        {
+                            field: {
+                                displayDescription: true,
+                            },
+                            title: 'Display Description',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                        },
+                    ]}
+                />)
+    }
 
     return (
         <Page
@@ -60,137 +250,25 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
+
+            <>
+                {isLoading ? <ComponentLoader /> : <></>}
+
+                {error ? <ErrorMessage error={error} /> : <></>}
 
 
-            <ModelTable<StatusPageResource>
-                modelType={StatusPageResource}
-                id="status-page-group"
-                isDeleteable={true}
-                sortBy="order"
-                sortOrder={SortOrder.Ascending}
-                isCreateable={true}
-                isViewable={false}
-                query={{
-                    statusPageId: modelId,
-                    projectId: props.currentProject?._id,
-                }}
-                enableDragAndDrop={true}
-                dragDropIndexField="order"
-                onBeforeCreate={(
-                    item: StatusPageResource
-                ): Promise<StatusPageResource> => {
-                    if (!props.currentProject || !props.currentProject.id) {
-                        throw new BadDataException('Project ID cannot be null');
-                    }
-                    item.statusPageId = modelId;
-                    item.projectId = props.currentProject.id;
-                    return Promise.resolve(item);
-                }}
-                cardProps={{
-                    icon: IconProp.Activity,
-                    title: 'Status Page Resources',
-                    description:
-                        'Resources that will be shown on the page',
-                }}
-                noItemsMessage={
-                    'No status page reosurces created for this status page.'
-                }
-                formFields={[
-                    {
-                        field: {
-                            monitor: true,
-                        },
-                        title: 'Monitor',
-                        description:
-                            'Select monitor that will be shown on the status page.',
-                        fieldType: FormFieldSchemaType.Dropdown,
-                        dropdownModal: {
-                            type: Monitor,
-                            labelField: 'name',
-                            valueField: '_id',
-                        },
-                        required: true,
-                        placeholder: 'Select Monitor',
-                    },
-                    {
-                        field: {
-                            displayName: true,
-                        },
-                        title: 'Display Name',
-                        description:
-                            'This will be the name that will be shown on the status page.',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        placeholder: 'Display Name',
-                    },
-                    {
-                        field: {
-                            displayDescription: true,
-                        },
-                        title: 'Group Description (Optional)',
-                        fieldType: FormFieldSchemaType.LongText,
-                        required: false,
-                        description: 'This will be visible on the status page.',
-                        placeholder: 'Display Description.',
-                    },
-                ]}
-                showRefreshButton={true}
-                showFilterButton={true}
-                viewPageRoute={props.pageRoute}
-                columns={[
-                    {
-                        field: {
-                            monitor: {
-                                name: true,
-                                _id: true,
-                                projectId: true,
-                            },
-                        },
-                        title: 'Monitor',
-                        type: FieldType.Entity,
-                        isFilterable: true,
-                        filterEntityType: Monitor,
-                        filterQuery: {
-                            projectId: props.currentProject?._id,
-                        },
-                        filterDropdownField: {
-                            label: 'name',
-                            value: '_id',
-                        },
-                        getElement: (item: JSONObject): ReactElement => {
-                            return (
-                                <MonitorElement
-                                    monitor={
-                                        Monitor.fromJSON(
-                                            (item['monitor'] as JSONObject) ||
-                                                [],
-                                            Monitor
-                                        ) as Monitor
-                                    }
-                                />
-                            );
-                        },
-                    },
-                    {
-                        field: {
-                            displayName: true,
-                        },
-                        title: 'Display Name',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                    {
-                        field: {
-                            displayDescription: true,
-                        },
-                        title: 'Display Description',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                ]}
-            />
-            
+                {!isLoading && !error ? getModelTable(null, null) : <></>}
+
+
+                {!isLoading && !error && groups && groups.length > 0 ? groups.map((group) => {
+                    return (
+                        getModelTable(group.id, group.name || null)
+                    )
+                }) : <></>}
+
+
+            </>
+
 
         </Page>
     );
