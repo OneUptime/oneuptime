@@ -57,7 +57,7 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnDelete<Model>> {
         if (!deleteBy.query._id && !deleteBy.props.isRoot) {
             throw new BadDataException(
-                '_id should be present when deleting incident states. Please try the delete with objectId'
+                '_id should be present when deleting status page group. Please try the delete with objectId'
             );
         }
 

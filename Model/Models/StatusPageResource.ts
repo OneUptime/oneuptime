@@ -245,6 +245,27 @@ export default class StatusPageResource extends BaseModel {
     })
     public statusPageGroupId?: ObjectID = undefined;
 
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageResource,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPageResource,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+    })
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public displayName?: string = undefined;
+
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -263,7 +284,7 @@ export default class StatusPageResource extends BaseModel {
         type: ColumnType.LongText,
         length: ColumnLength.LongText,
     })
-    public description?: string = undefined;
+    public displayDescription?: string = undefined;
 
     @ColumnAccessControl({
         create: [

@@ -24,6 +24,10 @@ export default class QueryHelper {
         );
     }
 
+    public static isNull(): any {
+        return null;
+    }
+
     public static search(name: string): FindOperator<any> {
         name = name.toLowerCase().trim();
         const rid: string = Text.generateRandomText(10);

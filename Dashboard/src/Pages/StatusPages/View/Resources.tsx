@@ -6,12 +6,20 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
+import StatusPageResource from 'Model/Models/StatusPageResource';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import SortOrder from 'Common/Types/Database/SortOrder';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import Monitor from 'Model/Models/Monitor';
+import { JSONObject } from 'Common/Types/JSON';
+import MonitorElement from '../../../Components/Monitor/Monitor'; 
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam(1)?.toString().substring(1) || ''
@@ -52,15 +60,138 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
-                modelType={StatusPage}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
-                    );
+            
+
+
+            <ModelTable<StatusPageResource>
+                modelType={StatusPageResource}
+                id="status-page-group"
+                isDeleteable={true}
+                sortBy="order"
+                sortOrder={SortOrder.Ascending}
+                isCreateable={true}
+                isViewable={false}
+                query={{
+                    statusPageId: modelId,
+                    projectId: props.currentProject?._id,
                 }}
+                enableDragAndDrop={true}
+                dragDropIndexField="order"
+                onBeforeCreate={(
+                    item: StatusPageResource
+                ): Promise<StatusPageResource> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
+                    item.statusPageId = modelId;
+                    item.projectId = props.currentProject.id;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    icon: IconProp.Activity,
+                    title: 'Status Page Resources',
+                    description:
+                        'Resources that will be shown on the page',
+                }}
+                noItemsMessage={
+                    'No status page reosurces created for this status page.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            monitor: true,
+                        },
+                        title: 'Monitor',
+                        description:
+                            'Select monitor that will be shown on the status page.',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: Monitor,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Select Monitor',
+                    },
+                    {
+                        field: {
+                            displayName: true,
+                        },
+                        title: 'Display Name',
+                        description:
+                            'This will be the name that will be shown on the status page.',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'Display Name',
+                    },
+                    {
+                        field: {
+                            displayDescription: true,
+                        },
+                        title: 'Group Description (Optional)',
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: false,
+                        description: 'This will be visible on the status page.',
+                        placeholder: 'Display Description.',
+                    },
+                ]}
+                showRefreshButton={true}
+                showFilterButton={true}
+                viewPageRoute={props.pageRoute}
+                columns={[
+                    {
+                        field: {
+                            monitor: {
+                                name: true,
+                                _id: true,
+                                projectId: true,
+                            },
+                        },
+                        title: 'Monitor',
+                        type: FieldType.Entity,
+                        isFilterable: true,
+                        filterEntityType: Monitor,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <MonitorElement
+                                    monitor={
+                                        Monitor.fromJSON(
+                                            (item['monitor'] as JSONObject) ||
+                                                [],
+                                            Monitor
+                                        ) as Monitor
+                                    }
+                                />
+                            );
+                        },
+                    },
+                    {
+                        field: {
+                            displayName: true,
+                        },
+                        title: 'Display Name',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            displayDescription: true,
+                        },
+                        title: 'Display Description',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                ]}
             />
+            
+
         </Page>
     );
 };
