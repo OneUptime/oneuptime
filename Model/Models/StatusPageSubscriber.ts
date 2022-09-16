@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -16,30 +16,33 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import StatusPage from './StatusPage';
+import Email from 'Common/Types/Email';
+import Phone from 'Common/Types/Phone';
+import URL from 'Common/Types/API/URL';
 
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+    create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
     read: [
         Permission.ProjectOwner,
-        Permission.CanReadStatusPageAnnouncement,
+        Permission.CanReadStatusPageSubscriber,
         Permission.ProjectMember,
     ],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageAnnouncement],
-    update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageSubscriber],
+    update: [Permission.ProjectOwner, Permission.CanEditStatusPageSubscriber],
 })
-@CrudApiEndpoint(new Route('/status-page-announcement'))
+@CrudApiEndpoint(new Route('/status-page-domain'))
 @SlugifyColumn('name', 'slug')
-@SingularPluralName('Status Page Announcement', 'Status Page Announcements')
+@SingularPluralName('Status Page Domain', 'Status Page Domains')
 @Entity({
-    name: 'StatusPageAnnouncement',
+    name: 'StatusPageSubscriber',
 })
-export default class StatusPageAnnouncement extends BaseModel {
+export default class StatusPageSubscriber extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
         update: [],
@@ -64,10 +67,10 @@ export default class StatusPageAnnouncement extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
         update: [],
@@ -81,111 +84,116 @@ export default class StatusPageAnnouncement extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
+   
+
+   
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
         update: [],
     })
     @TableColumn({
-        required: false,
-        type: TableColumnType.EntityArray,
+        manyToOneRelationColumn: 'statusPageId',
+        type: TableColumnType.Entity,
         modelType: StatusPage,
     })
-    @ManyToMany(
-        () => {
+    @ManyToOne(
+        (_type: string) => {
             return StatusPage;
         },
-        { eager: false }
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'nullify',
+        }
     )
-    @JoinTable({
-        name: 'AnnouncementStatusPage',
-        inverseJoinColumn: {
-            name: 'statusPageId',
-            referencedColumnName: '_id',
-        },
-        joinColumn: {
-            name: 'announcementId',
-            referencedColumnName: '_id',
-        },
-    })
-    public statusPages?: Array<StatusPage> = undefined;
+    @JoinColumn({ name: 'statusPageId' })
+    public statusPage?: StatusPage = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+        update: [],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Index()
+    @TableColumn({ type: TableColumnType.ObjectID, required: true })
     @Column({
+        type: ColumnType.ObjectID,
         nullable: false,
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
+        transformer: ObjectID.getDatabaseTransformer(),
     })
-    public title?: string = undefined;
+    public statusPageId?: ObjectID = undefined;
 
-
-    @TableColumn({ title: 'Show At', type: TableColumnType.Date, required: true })
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+        update: [],
     })
+    @TableColumn({ required: false, type: TableColumnType.Email })
     @Column({
-        nullable: false,
-        type: ColumnType.Date,
+        nullable: true,
+        type: ColumnType.Email,
+        length: ColumnLength.Email,
+        transformer: Email.getDatabaseTransformer()
     })
-    public showAnnouncementAt?: Date = undefined;
+    public subscriberEmail?: Email = undefined;
 
-    @TableColumn({ title: 'End At', type: TableColumnType.Date, required: true })
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+        update: [],
     })
+    @TableColumn({ required: true, type: TableColumnType.Phone })
     @Column({
         nullable: false,
-        type: ColumnType.Date,
+        type: ColumnType.Phone,
+        length: ColumnLength.Phone,
+        transformer: Phone.getDatabaseTransformer()
     })
-    public endAnnouncementAt?: Date = undefined;
+    public subscriberPhone?: Phone = undefined;
+
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+        update: [],
     })
-    @TableColumn({ required: true, type: TableColumnType.Markdown })
+    @TableColumn({ required: true, type: TableColumnType.LongURL })
     @Column({
         nullable: false,
-        type: ColumnType.Markdown,
+        type: ColumnType.LongURL,
+        length: ColumnLength.LongURL,
+        transformer: URL.getDatabaseTransformer()
     })
-    public description?: string = undefined;
+    public subscriberWebhook?: URL = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
         update: [],
@@ -210,10 +218,10 @@ export default class StatusPageAnnouncement extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
         update: [],
@@ -230,7 +238,7 @@ export default class StatusPageAnnouncement extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
-            Permission.CanReadStatusPageAnnouncement,
+            Permission.CanReadStatusPageSubscriber,
             Permission.ProjectMember,
         ],
         update: [],

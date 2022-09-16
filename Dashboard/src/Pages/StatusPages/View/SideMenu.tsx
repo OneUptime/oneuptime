@@ -31,7 +31,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
 
 
-                
+
 
                 <SideMenuItem
                     link={{
@@ -47,7 +47,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
-            
+
 
             <SideMenuSection title="Resources">
                 <SideMenuItem
@@ -75,18 +75,44 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             </SideMenuSection>
 
             <SideMenuSection title='Subscribers'>
-            <SideMenuItem
+                <SideMenuItem
                     link={{
-                        title: 'Subscribers',
+                        title: 'Email Subscribers',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
+                            PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                             ] as Route,
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.User}
+                    icon={IconProp.Email}
                 />
+                <SideMenuItem
+                    link={{
+                        title: 'SMS Subscribers',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Webhook}
+                />
+
+                <SideMenuItem
+                    link={{
+                        title: 'Webhook Subscribers',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Webhook}
+                />
+
                 <SideMenuItem
                     link={{
                         title: 'Subscriber Settings',

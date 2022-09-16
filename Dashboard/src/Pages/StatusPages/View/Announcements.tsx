@@ -6,7 +6,6 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -156,7 +155,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             title: true,
                         },
-                        title: 'Note',
+                        title: 'Title',
                         type: FieldType.Text,
                     },
                     {
@@ -176,15 +175,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-            <ModelDelete
-                modelType={StatusPage}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
-                    );
-                }}
-            />
         </Page>
     );
 };

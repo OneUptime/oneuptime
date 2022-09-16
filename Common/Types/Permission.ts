@@ -62,6 +62,12 @@ enum Permission {
     CanReadProjectIncident = 'CanReadProjectIncident',
 
     // Probe Permissions (Owner Permission)
+    CanCreateStatusPageSubscriber = 'CanCreateStatusPageSubscriber',
+    CanDeleteStatusPageSubscriber = 'CanDeleteStatusPageSubscriber',
+    CanEditStatusPageSubscriber = 'CanEditStatusPageSubscriber',
+    CanReadStatusPageSubscriber = 'CanReadStatusPageSubscriber',
+
+    // Probe Permissions (Owner Permission)
     CanCreateProjectDomain = 'CanCreateProjectDomain',
     CanDeleteProjectDomain = 'CanDeleteProjectDomain',
     CanEditProjectDomain = 'CanEditProjectDomain',
@@ -976,6 +982,38 @@ export class PermissionHelper {
                 title: 'Can Read Incident',
                 description:
                     'A user assigned this permission  can read incident of this project.',
+                isAssignableToProject: true,
+            },
+
+
+
+
+            {
+                permission: Permission.CanCreateStatusPageSubscriber,
+                title: 'Can Create Status Page Subscriber',
+                description:
+                    'A user assigned this permission can create subscriber on status page this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageSubscriber,
+                title: 'Can Delete Status Page Subscriber',
+                description:
+                    'A user assigned this permission  can delete subscriber on status page of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditStatusPageSubscriber,
+                title: 'Can Edit Status Page Subscriber',
+                description:
+                    'A user assigned this permission can edit subscriber on status page of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadStatusPageSubscriber,
+                title: 'Can Read Status Page Subscriber',
+                description:
+                    'A user assigned this permission  can read subscriber on status page of this project.',
                 isAssignableToProject: true,
             },
         ];

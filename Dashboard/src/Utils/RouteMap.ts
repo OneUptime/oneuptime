@@ -62,9 +62,18 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/domains`
     ),
 
-    [PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/subscribers`
+    [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/email-subscribers`
     ),
+
+    [PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/sms-subscribers`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/webhook-subscribers`
+    ),
+
 
     [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/announcements`

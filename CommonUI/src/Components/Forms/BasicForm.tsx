@@ -86,7 +86,7 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
         case FormFieldSchemaType.Date:
             return 'date';
         case FormFieldSchemaType.DateTime:
-            return 'datetime';
+            return 'datetime-local';
         case FormFieldSchemaType.LongText:
             return 'textarea';
         case FormFieldSchemaType.Color:

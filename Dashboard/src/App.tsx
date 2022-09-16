@@ -17,7 +17,9 @@ import StatusPages from './Pages/StatusPages/StatusPages';
 import StatusPagesView from './Pages/StatusPages/View/Index';
 import StatusPagesViewDelete from './Pages/StatusPages/View/Delete';
 import StatusPagesViewBranding from './Pages/StatusPages/View/Branding';
-import StatusPagesViewSubscribers from './Pages/StatusPages/View/Subscribers';
+import StatusPagesViewEmailSubscribers from './Pages/StatusPages/View/EmailSubscribers';
+import StatusPagesViewSMSSubscribers from './Pages/StatusPages/View/SMSSubscribers';
+import StatusPagesViewWebhookSubscribers from './Pages/StatusPages/View/WebhookSubscribers';
 import StatusPagesViewEmbedded from './Pages/StatusPages/View/Embedded';
 import StatusPagesViewDomains from './Pages/StatusPages/View/Domains';
 import StatusPagesViewResources from './Pages/StatusPages/View/Resources';
@@ -327,13 +329,46 @@ const App: FunctionComponent = () => {
 
                 <PageRoute
                     path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
+                        PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                     ]?.toString()}
                     element={
-                        <StatusPagesViewSubscribers
+                        <StatusPagesViewEmailSubscribers
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewSMSSubscribers
+                            pageRoute={
+                                RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewWebhookSubscribers
+                            pageRoute={
+                                RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                                 ] as Route
                             }
                             currentProject={selectedProject}

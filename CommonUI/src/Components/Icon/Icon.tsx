@@ -22,6 +22,7 @@ import {
     FiChevronLeft,
     FiChevronUp,
     FiCircle,
+    FiSend,
     FiMail,
     FiBarChart2,
     FiSlack,
@@ -48,6 +49,7 @@ import {
     FiEdit2,
     FiEyeOff,
     FiList,
+    FiLink2
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -121,6 +123,8 @@ export enum IconProp {
     False,
     Text,
     Circle,
+    Webhook,
+    SendMessage
 }
 
 export interface ComponentProps {
@@ -516,6 +520,22 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Drag && (
                 <FiMoreVertical
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+{icon === IconProp.Webhook && (
+                <FiLink2
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+{icon === IconProp.SendMessage && (
+                <FiSend
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}
