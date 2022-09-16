@@ -21,6 +21,11 @@ import ProbeService, {
     Service as ProbeServiceType,
 } from 'CommonServer/Services/ProbeService';
 
+import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
+import StatusPageAnnouncementService, {
+    Service as StatusPageAnnouncementServiceType,
+} from 'CommonServer/Services/StatusPageAnnouncementService';
+
 import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
 import EmailVerificationTokenService, {
     Service as EmailVerificationTokenServiceType,
@@ -149,6 +154,8 @@ app.use(
     ).getRouter()
 );
 app.use(new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
+
+app.use(new BaseAPI<StatusPageAnnouncement, StatusPageAnnouncementServiceType>(StatusPageAnnouncement, StatusPageAnnouncementService).getRouter());
 
 app.use(new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter());
 

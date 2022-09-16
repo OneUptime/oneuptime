@@ -104,6 +104,13 @@ enum Permission {
     CanReadProjectMonitorStatus = 'CanReadProjectMonitorStatus',
     CanDeleteProjectMonitorStatus = 'CanDeleteProjectMonitorStatus',
 
+
+    // MonitorStatus Permissions (Owner + Admin Permission by default)
+    CanCreateStatusPageAnnouncement = 'CanCreateStatusPageAnnouncement',
+    CanEditStatusPageAnnouncement = 'CanEditStatusPageAnnouncement',
+    CanReadStatusPageAnnouncement = 'CanReadStatusPageAnnouncement',
+    CanDeleteStatusPageAnnouncement = 'CanDeleteStatusPageAnnouncement',
+
     // IncidentState Permissions (Owner + Admin Permission by default)
     CanCreateProjectIncidentState = 'CanCreateProjectIncidentState',
     CanEditProjectIncidentState = 'CanEditProjectIncidentState',
@@ -429,6 +436,70 @@ export class PermissionHelper {
                     'A user assigned this permission  can read monitor statuses of this project.',
                 isAssignableToProject: true,
             },
+
+
+
+            {
+                permission: Permission.CanCreateStatusPageAnnouncement,
+                title: 'Can Create Status Page Announcement',
+                description:
+                    'A user assigned this permission can create Status Page Announcement this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageAnnouncement,
+                title: 'Can Delete Status Page Announcement',
+                description:
+                    'A user assigned this permission  can delete Status Page Announcement of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditStatusPageAnnouncement,
+                title: 'Can Edit Status Page Announcement',
+                description:
+                    'A user assigned this permission can edit Status Page Announcement of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadStatusPageAnnouncement,
+                title: 'Can Read Status Page Announcement',
+                description:
+                    'A user assigned this permission  can read Status Page Announcement of this project.',
+                isAssignableToProject: true,
+            },
+
+
+
+
+            {
+                permission: Permission.CanCreateStatusPageAnnouncement,
+                title: 'Can Create Monitor Status',
+                description:
+                    'A user assigned this permission can create monitor statuses this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageAnnouncement,
+                title: 'Can Delete Monitor Status',
+                description:
+                    'A user assigned this permission  can delete monitor statuses of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditStatusPageAnnouncement,
+                title: 'Can Edit Monitor Status',
+                description:
+                    'A user assigned this permission can edit monitor statuses of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadStatusPageAnnouncement,
+                title: 'Can Read Monitor Status',
+                description:
+                    'A user assigned this permission  can read monitor statuses of this project.',
+                isAssignableToProject: true,
+            },
+
 
             {
                 permission: Permission.CanCreateProjectIncidentState,

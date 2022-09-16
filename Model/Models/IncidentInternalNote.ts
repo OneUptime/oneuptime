@@ -239,7 +239,7 @@ export default class IncidentInternalNote extends BaseModel {
             Permission.CanEditIncidentInternalNote,
         ],
     })
-    @TableColumn({ type: TableColumnType.ShortText })
+    @TableColumn({ type: TableColumnType.Markdown })
     @Column({
         type: ColumnType.Markdown,
         nullable: false,

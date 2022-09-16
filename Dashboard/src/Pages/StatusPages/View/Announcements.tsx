@@ -8,14 +8,25 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
+import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import StatusPage from 'Model/Models/StatusPage';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam(1)?.toString().substring(1) || ''
     );
+
+
+    const statusPage = new StatusPage();
+    statusPage.id = modelId;
 
     return (
         <Page
@@ -43,15 +54,128 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Status Page',
+                    title: 'Announcements',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+
+            <ModelTable<StatusPageAnnouncement>
+                modelType={StatusPageAnnouncement}
+                id="table-status-page-note"
+                isDeleteable={true}
+                isCreateable={true}
+                isEditable={true}
+                isViewable={false}
+                query={{
+                    statusPages: [statusPage],
+                    projectId: props.currentProject?._id,
+                }}
+                onBeforeCreate={(
+                    item: StatusPageAnnouncement
+                ): Promise<StatusPageAnnouncement> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
+
+                    const statusPage = new StatusPage();
+                    statusPage.id = modelId;
+
+                    item.statusPages = [statusPage];
+                    item.projectId = props.currentProject.id;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    icon: IconProp.SMS,
+                    title: 'Announcements',
+                    description:
+                        'Here are announcements this status page. This will show up on the status page.',
+                }}
+                noItemsMessage={
+                    'No announcements found.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            title: true,
+                        },
+                        title: 'Announcement Title',
+                        description:
+                            'Title of announcemnet',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder:
+                            'Title',
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        description:
+                            'This is in markdown.',
+                        fieldType: FormFieldSchemaType.Markdown,
+                        required: true,
+                        placeholder:
+                            'Add a announcement note.',
+                    },
+                    {
+                        field: {
+                            showAnnouncementAt: true,
+                        },
+                        title: 'Start Showing Announcement At',
+                        description:
+                            'This is in your local timezone',
+                        fieldType: FormFieldSchemaType.DateTime,
+                        required: true,
+                        placeholder:
+                            'Pick Date and Time',
+                    },
+                    {
+                        field: {
+                            endAnnouncementAt: true,
+                        },
+                        title: 'End Showing Announcement At',
+                        description:
+                            'This is in your local timezone',
+                        fieldType: FormFieldSchemaType.DateTime,
+                        required: true,
+                        placeholder:
+                            'Pick Date and Time',
+                    },
+                ]}
+
+                showRefreshButton={true}
+                viewPageRoute={props.pageRoute}
+                columns={[
+                    {
+                        field: {
+                            title: true,
+                        },
+                        title: 'Note',
+                        type: FieldType.Text,
+                    },
+                    {
+                        field: {
+                            showAnnouncementAt: true,
+                        },
+                        title: 'Show Announcement At',
+                        type: FieldType.DateTime,
+                    },
+                    {
+                        field: {
+                            endAnnouncementAt: true,
+                        },
+                        title: 'End Announcement At',
+                        type: FieldType.DateTime,
+                    },
+                ]}
+            />
+
             <ModelDelete
                 modelType={StatusPage}
                 modelId={modelId}

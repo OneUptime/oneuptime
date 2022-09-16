@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -13,7 +13,6 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import StatusPage from './StatusPage';
@@ -30,13 +29,13 @@ import Domain from './Domain';
     delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageDomain],
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageDomain],
 })
-@CrudApiEndpoint(new Route('/status-page-domain'))
+@CrudApiEndpoint(new Route('/status-page-announcement'))
 @SlugifyColumn('name', 'slug')
-@SingularPluralName('Status Page Domain', 'Status Page Domains')
+@SingularPluralName('Status Page Announcement', 'Status Page Announcements')
 @Entity({
-    name: 'StatusPageDomain',
+    name: 'StatusPageAnnouncement',
 })
-export default class StatusPageDomain extends BaseModel {
+export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
         read: [
@@ -139,41 +138,28 @@ export default class StatusPageDomain extends BaseModel {
         update: [],
     })
     @TableColumn({
-        manyToOneRelationColumn: 'statusPageId',
-        type: TableColumnType.Entity,
+        required: false,
+        type: TableColumnType.EntityArray,
         modelType: StatusPage,
     })
-    @ManyToOne(
-        (_type: string) => {
+    @ManyToMany(
+        () => {
             return StatusPage;
         },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
+        { eager: false }
     )
-    @JoinColumn({ name: 'statusPageId' })
-    public statusPage?: StatusPage = undefined;
-
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
-        update: [],
+    @JoinTable({
+        name: 'AnnouncementStatusPage',
+        inverseJoinColumn: {
+            name: 'statusPageId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'announcementId',
+            referencedColumnName: '_id',
+        },
     })
-    @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: false,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public statusPageId?: ObjectID = undefined;
+    public statusPages?: Array<StatusPage> = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
@@ -190,25 +176,56 @@ export default class StatusPageDomain extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public subdomain?: string = undefined;
+    public title?: string = undefined;
 
-    @UniqueColumnBy('projectId')
+
+    @TableColumn({ title: 'Show At', type: TableColumnType.Date, required: true })
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
             Permission.ProjectMember,
         ],
-        update: [],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageDomain],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
         nullable: false,
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
+        type: ColumnType.Date,
     })
-    public fullDomain?: string = undefined;
+    public showAnnouncementAt?: Date = undefined;
+
+    @TableColumn({ title: 'End At', type: TableColumnType.Date, required: true })
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPageDomain,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageDomain],
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.Date,
+    })
+    public endAnnouncementAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPageDomain,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageDomain],
+    })
+    @TableColumn({ required: true, type: TableColumnType.Markdown })
+    @Column({
+        nullable: false,
+        type: ColumnType.Markdown,
+    })
+    public description?: string = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],

@@ -85,6 +85,8 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
             return 'number';
         case FormFieldSchemaType.Date:
             return 'date';
+        case FormFieldSchemaType.DateTime:
+            return 'datetime';
         case FormFieldSchemaType.LongText:
             return 'textarea';
         case FormFieldSchemaType.Color:
@@ -462,6 +464,7 @@ const BasicForm: Function = <T extends Object>(
                     field.fieldType === FormFieldSchemaType.Password ||
                     field.fieldType === FormFieldSchemaType.EncryptedText ||
                     field.fieldType === FormFieldSchemaType.Date ||
+                    field.fieldType === FormFieldSchemaType.DateTime ||
                     field.fieldType === FormFieldSchemaType.Port ||
                     field.fieldType === FormFieldSchemaType.Phone ||
                     field.fieldType === FormFieldSchemaType.Domain ||

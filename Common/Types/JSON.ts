@@ -156,7 +156,11 @@ export class JSONFunctions {
             val.toString().trim() === ''
         ) {
             return val;
-        } else if (typeof val === Typeof.Number) {
+        }else if (
+            val instanceof BaseModel
+        ) {
+            return BaseModel.toJSON(val, BaseModel);
+        }  else if (typeof val === Typeof.Number) {
             return val;
         } else if (ArrayBuffer.isView(val)) {
             return {

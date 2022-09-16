@@ -236,7 +236,7 @@ export default class IncidentPublicNote extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditIncidentPublicNote],
     })
-    @TableColumn({ type: TableColumnType.ShortText })
+    @TableColumn({ type: TableColumnType.Markdown })
     @Column({
         type: ColumnType.Markdown,
         nullable: false,
