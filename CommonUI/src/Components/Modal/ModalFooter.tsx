@@ -10,7 +10,6 @@ export interface ComponentProps {
     submitButtonType?: undefined | ButtonType;
     isLoading?: undefined | boolean;
     disableSubmitButton?: undefined | boolean;
-    error?: string | undefined;
 }
 
 const ModalFooter: FunctionComponent<ComponentProps> = (
@@ -32,7 +31,7 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                 <></>
             )}
 
-            {!props.error && props.onSubmit ? (
+            {props.onSubmit ? (
                 <Button
                     buttonStyle={
                         props.submitButtonStyleType

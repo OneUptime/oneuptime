@@ -61,6 +61,30 @@ enum Permission {
     CanEditProjectIncident = 'CanEditProjectIncident',
     CanReadProjectIncident = 'CanReadProjectIncident',
 
+    // Probe Permissions (Owner Permission)
+    CanCreateProjectDomain = 'CanCreateProjectDomain',
+    CanDeleteProjectDomain = 'CanDeleteProjectDomain',
+    CanEditProjectDomain = 'CanEditProjectDomain',
+    CanReadProjectDomain = 'CanReadProjectDomain',
+
+    // Probe Permissions (Owner Permission)
+    CanCreateStatusPageResource = 'CanCreateStatusPageResource',
+    CanDeleteStatusPageResource = 'CanDeleteStatusPageResource',
+    CanEditStatusPageResource = 'CanEditStatusPageResource',
+    CanReadStatusPageResource = 'CanReadStatusPageResource',
+
+    // Probe Permissions (Owner Permission)
+    CanCreateStatusPageGroup = 'CanCreateStatusPageGroup',
+    CanDeleteStatusPageGroup = 'CanDeleteStatusPageGroup',
+    CanEditStatusPageGroup = 'CanEditStatusPageGroup',
+    CanReadStatusPageGroup = 'CanReadStatusPageGroup',
+
+    // Probe Permissions (Owner Permission)
+    CanCreateStatusPageDomain = 'CanCreateStatusPageDomain',
+    CanDeleteStatusPageDomain = 'CanDeleteStatusPageDomain',
+    CanEditStatusPageDomain = 'CanEditStatusPageDomain',
+    CanReadStatusPageDomain = 'CanReadStatusPageDomain',
+
     // Label Permissions (Owner + Admin Permission by default)
     CanCreateProjectLabel = 'CanCreateProjectLabel',
     CanEditProjectLabel = 'CanEditProjectLabel',
@@ -119,6 +143,12 @@ enum Permission {
     CanEditProjectSMTPConfig = 'CanEditProjectSMTPConfig',
     CanDeleteProjectSMTPConfig = 'CanDeleteProjectSMTPConfig',
     CanReadProjectSMTPConfig = 'CanReadProjectSMTPConfig',
+
+    // Project SMTP Config (Team Permission)
+    CanCreateIncidentSeverity = 'CanCreateIncidentSeverity',
+    CanEditIncidentSeverity = 'CanEditIncidentSeverity',
+    CanDeleteIncidentSeverity = 'CanDeleteIncidentSeverity',
+    CanReadIncidentSeverity = 'CanReadIncidentSeverity',
 }
 
 export class PermissionHelper {
@@ -430,6 +460,122 @@ export class PermissionHelper {
             },
 
             {
+                permission: Permission.CanCreateProjectDomain,
+                title: 'Can Create Domain',
+                description:
+                    'A user assigned this permission can create Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectDomain,
+                title: 'Can Delete Domain',
+                description:
+                    'A user assigned this permission  can delete Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditProjectDomain,
+                title: 'Can Edit Domain',
+                description:
+                    'A user assigned this permission can edit Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadProjectDomain,
+                title: 'Can Read Domain',
+                description:
+                    'A user assigned this permission  can read Domain in this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateStatusPageResource,
+                title: 'Can Create Status Page Resource',
+                description:
+                    'A user assigned this permission can create Status Page Resource in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageResource,
+                title: 'Can Delete Status Page Resource',
+                description:
+                    'A user assigned this permission  can delete Status Page Resource in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditStatusPageResource,
+                title: 'Can Edit Status Page Resource',
+                description:
+                    'A user assigned this permission can edit Status Page Resource in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadStatusPageResource,
+                title: 'Can Read Status Page Resource',
+                description:
+                    'A user assigned this permission  can read Status Page Resource in this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateStatusPageGroup,
+                title: 'Can Create Status Page Group',
+                description:
+                    'A user assigned this permission can create Status Page Group in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageGroup,
+                title: 'Can Delete Status Page Group',
+                description:
+                    'A user assigned this permission  can delete Status Page Group in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditStatusPageGroup,
+                title: 'Can Edit Status Page Group',
+                description:
+                    'A user assigned this permission can edit Status Page Group in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadStatusPageGroup,
+                title: 'Can Read Status Page Group',
+                description:
+                    'A user assigned this permission  can read Status Page Group in this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateStatusPageDomain,
+                title: 'Can Create Status Page Domain',
+                description:
+                    'A user assigned this permission can create Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageDomain,
+                title: 'Can Delete Status Page Domain',
+                description:
+                    'A user assigned this permission  can delete Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditStatusPageDomain,
+                title: 'Can Edit Status Page Domain',
+                description:
+                    'A user assigned this permission can edit Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadStatusPageDomain,
+                title: 'Can Read Status Page Domain',
+                description:
+                    'A user assigned this permission  can read Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+
+            {
                 permission: Permission.CanCreateProjectSMTPConfig,
                 title: 'Can Create SMTP Config',
                 description:
@@ -455,6 +601,64 @@ export class PermissionHelper {
                 title: 'Can Read SMTP Config',
                 description:
                     'A user assigned this permission  can read SMTP configs of this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateStatusPageDomain,
+                title: 'Can Create Status Page Domain',
+                description:
+                    'A user assigned this permission can create Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageDomain,
+                title: 'Can Delete Status Page Domain',
+                description:
+                    'A user assigned this permission  can delete Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditStatusPageDomain,
+                title: 'Can Edit Status Page Domain',
+                description:
+                    'A user assigned this permission can edit Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadStatusPageDomain,
+                title: 'Can Read Status Page Domain',
+                description:
+                    'A user assigned this permission  can read Status Page Domain in this project.',
+                isAssignableToProject: true,
+            },
+
+            {
+                permission: Permission.CanCreateIncidentSeverity,
+                title: 'Can Create Incident Severity',
+                description:
+                    'A user assigned this permission can create Incident Severity this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanDeleteIncidentSeverity,
+                title: 'Can Delete Incident Severity',
+                description:
+                    'A user assigned this permission  can delete Incident Severity of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanEditIncidentSeverity,
+                title: 'Can Edit Incident Severity',
+                description:
+                    'A user assigned this permission can edit Incident Severity of this project.',
+                isAssignableToProject: true,
+            },
+            {
+                permission: Permission.CanReadIncidentSeverity,
+                title: 'Can Read Incident Severity',
+                description:
+                    'A user assigned this permission  can read Incident Severity of this project.',
                 isAssignableToProject: true,
             },
 

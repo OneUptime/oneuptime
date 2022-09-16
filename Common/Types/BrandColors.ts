@@ -13,3 +13,4 @@ export const Green: Color = new Color('#2ab57d');
 export const Teal: Color = new Color('#050505');
 export const Cyan: Color = new Color('#4ba6ef');
 export const VeryLightGrey: Color = new Color('#c2c2c2');
+export const Moroon: Color = new Color('#b70400');

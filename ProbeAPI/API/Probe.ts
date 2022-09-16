@@ -27,7 +27,7 @@ router.get(
             //         limit
             //     );
 
-            return Response.sendListResponse(
+            return Response.sendJsonArrayResponse(
                 req,
                 res,
                 [],

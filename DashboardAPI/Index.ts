@@ -111,6 +111,31 @@ import IncidentPublicNoteService, {
     Service as IncidentPublicNoteServiceType,
 } from 'CommonServer/Services/IncidentPublicNoteService';
 
+import Domain from 'Model/Models/Domain';
+import DomainService, {
+    Service as DomainServiceType,
+} from 'CommonServer/Services/DomainService';
+
+import StatusPageGroup from 'Model/Models/StatusPageGroup';
+import StatusPageGroupService, {
+    Service as StatusPageGroupServiceType,
+} from 'CommonServer/Services/StatusPageGroupService';
+
+import StatusPageResource from 'Model/Models/StatusPageResource';
+import StatusPageResourceService, {
+    Service as StatusPageResourceServiceType,
+} from 'CommonServer/Services/StatusPageResourceService';
+
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import IncidentSeverityService, {
+    Service as IncidentSeverityServiceType,
+} from 'CommonServer/Services/IncidentSeverityService';
+
+import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import StatusPageDomainService, {
+    Service as StatusPageDomainServiceType,
+} from 'CommonServer/Services/StatusPageDomainService';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -156,6 +181,31 @@ app.use(
 );
 
 app.use(
+    new BaseAPI<StatusPageResource, StatusPageResourceServiceType>(
+        StatusPageResource,
+        StatusPageResourceService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<Domain, DomainServiceType>(Domain, DomainService).getRouter()
+);
+
+app.use(
+    new BaseAPI<StatusPageGroup, StatusPageGroupServiceType>(
+        StatusPageGroup,
+        StatusPageGroupService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<StatusPageDomain, StatusPageDomainServiceType>(
+        StatusPageDomain,
+        StatusPageDomainService
+    ).getRouter()
+);
+
+app.use(
     new BaseAPI<IncidentStateTimeline, IncidentStateTimelineServiceType>(
         IncidentStateTimeline,
         IncidentStateTimelineService
@@ -176,6 +226,13 @@ app.use(
     new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
         ApiKeyPermission,
         ApiKeyPermissionService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(
+        IncidentSeverity,
+        IncidentSeverityService
     ).getRouter()
 );
 

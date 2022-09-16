@@ -84,6 +84,18 @@
         },
         {
             "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/Identity",
+            "name": "File: Debug with Docker",
+            "port": 9012,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "pwa-node"
+        },
+        {
+            "address": "0.0.0.0",
             "localRoot": "${workspaceFolder}/Alert",
             "name": "Alert: Debug with Docker",
             "port": 9133,

@@ -13,8 +13,12 @@ enum ColumnType {
     LongURL = 'text',
     ShortText = 'varchar',
     OTP = 'varchar',
+    Domain = 'varchar',
     LongText = 'varchar',
     VeryLongText = 'text',
+    HTML = 'text',
+    JavaScript = 'text',
+    CSS = 'text',
     Date = 'timestamptz',
     Boolean = 'boolean',
     Array = 'simple-array',
@@ -25,6 +29,7 @@ enum ColumnType {
     Number = 'integer',
     BigNumber = 'bigint',
     Markdown = 'text',
+    File = 'bytea',
 }
 
 export default ColumnType;

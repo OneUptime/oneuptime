@@ -39,6 +39,13 @@ import Exception from 'Common/Types/Exception/Exception';
 import HashedString from 'Common/Types/HashedString';
 import Input from '../Input/Input';
 import Markdown from '../Markdown.tsx/MarkdownEditor';
+import CodeEditor from '../CodeEditor/CodeEditor';
+import CodeType from 'Common/Types/Code/CodeType';
+import FilePicker from '../FilePicker/FilePicker';
+import MimeType from 'Common/Types/File/MimeType';
+import FileModel from 'Common/Models/FileModel';
+import Phone from 'Common/Types/Phone';
+import Domain from 'Common/Types/Domain';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -95,6 +102,8 @@ const BasicForm: Function = <T extends Object>(
         index: number,
         isDisabled: boolean
     ): ReactElement => {
+        index = index + 1;
+
         const fieldType: string = field.fieldType
             ? getFieldType(field.fieldType)
             : 'text';
@@ -145,6 +154,7 @@ const BasicForm: Function = <T extends Object>(
                                             true
                                         );
                                     }}
+                                    tabIndex={index}
                                     onFocus={async () => {
                                         await form.setFieldTouched(
                                             fieldName,
@@ -171,6 +181,7 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: any) => {
                             return (
                                 <Dropdown
+                                    tabIndex={index}
                                     onChange={async (
                                         value:
                                             | DropdownValue
@@ -213,6 +224,7 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <>
                                     <TextArea
+                                        tabIndex={index}
                                         onChange={async (text: string) => {
                                             await form.setFieldValue(
                                                 fieldName,
@@ -248,6 +260,7 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <>
                                     <Markdown
+                                        tabIndex={index}
                                         onChange={async (text: string) => {
                                             await form.setFieldValue(
                                                 fieldName,
@@ -268,6 +281,133 @@ const BasicForm: Function = <T extends Object>(
                                                       fieldName
                                                   ]
                                                 : ''
+                                        }
+                                        placeholder={field.placeholder || ''}
+                                    />
+                                </>
+                            );
+                        }}
+                    </Field>
+                )}
+
+                {(field.fieldType === FormFieldSchemaType.HTML ||
+                    field.fieldType === FormFieldSchemaType.CSS ||
+                    field.fieldType === FormFieldSchemaType.JavaScript) && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+                            let codeType: CodeType = CodeType.HTML;
+
+                            if (field.fieldType === FormFieldSchemaType.CSS) {
+                                codeType = CodeType.CSS;
+                            }
+
+                            if (
+                                field.fieldType ===
+                                FormFieldSchemaType.JavaScript
+                            ) {
+                                codeType = CodeType.JavaScript;
+                            }
+
+                            return (
+                                <>
+                                    <CodeEditor
+                                        tabIndex={index}
+                                        onChange={async (text: string) => {
+                                            await form.setFieldValue(
+                                                fieldName,
+                                                text,
+                                                true
+                                            );
+                                        }}
+                                        className="form-control"
+                                        onBlur={async () => {
+                                            await form.setFieldTouched(
+                                                fieldName,
+                                                true
+                                            );
+                                        }}
+                                        type={codeType}
+                                        initialValue={
+                                            initialValues &&
+                                            (initialValues as any)[fieldName]
+                                                ? (initialValues as any)[
+                                                      fieldName
+                                                  ]
+                                                : ''
+                                        }
+                                        placeholder={field.placeholder || ''}
+                                    />
+                                </>
+                            );
+                        }}
+                    </Field>
+                )}
+
+                {(field.fieldType === FormFieldSchemaType.File ||
+                    field.fieldType === FormFieldSchemaType.ImageFile) && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+                            return (
+                                <>
+                                    <FilePicker
+                                        tabIndex={index}
+                                        onChange={async (
+                                            files: Array<FileModel>
+                                        ) => {
+                                            let fileResult:
+                                                | FileModel
+                                                | Array<FileModel>
+                                                | null = files.map(
+                                                (i: FileModel) => {
+                                                    const strippedModel: FileModel =
+                                                        new FileModel();
+                                                    strippedModel._id = i._id!;
+                                                    return strippedModel;
+                                                }
+                                            );
+
+                                            if (
+                                                field.fieldType ===
+                                                    FormFieldSchemaType.File &&
+                                                Array.isArray(fileResult)
+                                            ) {
+                                                if (fileResult.length > 0) {
+                                                    fileResult =
+                                                        fileResult[0] as FileModel;
+                                                } else {
+                                                    fileResult = null;
+                                                }
+                                            }
+
+                                            await form.setFieldValue(
+                                                fieldName,
+                                                fileResult,
+                                                true
+                                            );
+                                        }}
+                                        onBlur={async () => {
+                                            await form.setFieldTouched(
+                                                fieldName,
+                                                true
+                                            );
+                                        }}
+                                        mimeTypes={
+                                            field.fieldType ===
+                                            FormFieldSchemaType.ImageFile
+                                                ? [
+                                                      MimeType.png,
+                                                      MimeType.jpeg,
+                                                      MimeType.jpg,
+                                                  ]
+                                                : []
+                                        }
+                                        initialValue={
+                                            initialValues &&
+                                            (initialValues as any)[fieldName]
+                                                ? (initialValues as any)[
+                                                      fieldName
+                                                  ]
+                                                : []
                                         }
                                         placeholder={field.placeholder || ''}
                                     />
@@ -323,6 +463,8 @@ const BasicForm: Function = <T extends Object>(
                     field.fieldType === FormFieldSchemaType.EncryptedText ||
                     field.fieldType === FormFieldSchemaType.Date ||
                     field.fieldType === FormFieldSchemaType.Port ||
+                    field.fieldType === FormFieldSchemaType.Phone ||
+                    field.fieldType === FormFieldSchemaType.Domain ||
                     field.fieldType === FormFieldSchemaType.PositveNumber) && (
                     <Field
                         tabIndex={index + 1}
@@ -332,6 +474,7 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: FieldProps) => {
                             return (
                                 <Input
+                                    tabIndex={index}
                                     dataTestId={fieldType}
                                     className="form-control"
                                     type={fieldType as 'text'}
@@ -452,7 +595,7 @@ const BasicForm: Function = <T extends Object>(
         content: string,
         field: DataField<T>
     ): string | null => {
-        if (field.required && content.length === 0) {
+        if (field.required && (!content || content.length === 0)) {
             return `${field.title} is required.`;
         }
         return null;
@@ -508,6 +651,36 @@ const BasicForm: Function = <T extends Object>(
         if (field.fieldType === FormFieldSchemaType.Route) {
             try {
                 new Route(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Phone) {
+            try {
+                new Phone(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Color) {
+            try {
+                new Color(content.toString());
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.Domain) {
+            try {
+                new Domain(content.toString());
             } catch (e: unknown) {
                 if (e instanceof Exception) {
                     return e.getMessage();

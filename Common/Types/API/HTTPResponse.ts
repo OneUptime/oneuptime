@@ -5,6 +5,7 @@ import {
     JSONObject,
     JSONObjectOrArray,
 } from '../JSON';
+import Typeof from '../Typeof';
 
 export default class HTTPResponse<
     T extends JSONObjectOrArray | BaseModel | Array<BaseModel>
@@ -78,6 +79,10 @@ export default class HTTPResponse<
             );
         } else if (Array.isArray(data)) {
             this.jsonData = JSONFunctions.deserializeArray(data as JSONArray);
+        } else if (Typeof.String === typeof data) {
+            this.jsonData = {
+                data,
+            };
         } else {
             this.jsonData = JSONFunctions.deserialize(data as JSONObject);
         }

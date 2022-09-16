@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -15,7 +23,11 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
+import Label from './Label';
+import File from './File';
 
+@AccessControlColumn('labels')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectStatusPage],
@@ -119,6 +131,46 @@ export default class StatusPage extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
+    @TableColumn({ required: false, type: TableColumnType.ShortText })
+    @Column({
+        nullable: true,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public pageTitle?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @Column({
+        nullable: true,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+    })
+    public pageDescription?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
         nullable: true,
@@ -190,6 +242,42 @@ export default class StatusPage extends BaseModel {
             Permission.CanReadProjectStatusPage,
             Permission.ProjectMember,
         ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: Label,
+    })
+    @ManyToMany(
+        () => {
+            return Label;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'StatusPageLabel',
+        inverseJoinColumn: {
+            name: 'labelId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'statusPageId',
+            referencedColumnName: '_id',
+        },
+    })
+    public labels?: Array<Label> = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -236,4 +324,235 @@ export default class StatusPage extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public deletedByUserId?: ObjectID = undefined;
+
+    //// Branding Files.
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'faviconFileId',
+        type: TableColumnType.Entity,
+        modelType: File,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return File;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'delete',
+        }
+    )
+    @JoinColumn({ name: 'faviconFileId' })
+    public faviconFile?: File = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public faviconFileId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'logoFileId',
+        type: TableColumnType.Entity,
+        modelType: File,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return File;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'delete',
+        }
+    )
+    @JoinColumn({ name: 'logoFileId' })
+    public logoFile?: File = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public logoFileId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({
+        manyToOneRelationColumn: 'coverImageFileId',
+        type: TableColumnType.Entity,
+        modelType: File,
+    })
+    @ManyToOne(
+        (_type: string) => {
+            return File;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'delete',
+        }
+    )
+    @JoinColumn({ name: 'coverImageFileId' })
+    public coverImageFile?: File = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public coverImageFileId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ required: false, type: TableColumnType.HTML })
+    @Column({
+        nullable: true,
+        type: ColumnType.HTML,
+    })
+    public headerHTML?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ required: false, type: TableColumnType.HTML })
+    @Column({
+        nullable: true,
+        type: ColumnType.HTML,
+    })
+    public footerHTML?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ required: false, type: TableColumnType.CSS })
+    @Column({
+        nullable: true,
+        type: ColumnType.CSS,
+    })
+    public customCSS?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadProjectStatusPage,
+            Permission.ProjectMember,
+        ],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ required: false, type: TableColumnType.JavaScript })
+    @Column({
+        nullable: true,
+        type: ColumnType.JavaScript,
+    })
+    public customJavaScript?: string = undefined;
 }

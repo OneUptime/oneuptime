@@ -29,6 +29,7 @@ import Response from 'CommonServer/Utils/Response';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
+import BaseModel from 'Common/Models/BaseModel';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -156,9 +157,9 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(req, res, {
+                return Response.sendJsonObjectResponse(req, res, {
                     token: token,
-                    user: savedUser.toJSON(),
+                    user: BaseModel.toJSON(savedUser, User),
                 });
             }
 
@@ -203,9 +204,9 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(req, res, {
+                return Response.sendJsonObjectResponse(req, res, {
                     token: token,
-                    user: alreadySavedUser.toJSON(),
+                    user: BaseModel.toJSON(alreadySavedUser, User),
                 });
             }
             throw new BadDataException(
@@ -250,9 +251,9 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(req, res, {
+                return Response.sendJsonObjectResponse(req, res, {
                     token: token,
-                    user: alreadySavedUser.toJSON(),
+                    user: BaseModel.toJSON(alreadySavedUser, User),
                 });
             }
             throw new BadDataException(
@@ -298,9 +299,9 @@ router.post(
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
                 );
 
-                return Response.sendItemResponse(req, res, {
+                return Response.sendJsonObjectResponse(req, res, {
                     token: token,
-                    user: alreadySavedUser.toJSON(),
+                    user: BaseModel.toJSON(alreadySavedUser, User),
                 });
             }
             throw new BadDataException(

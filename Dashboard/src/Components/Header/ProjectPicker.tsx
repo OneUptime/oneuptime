@@ -49,7 +49,24 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
             !selectedProject &&
             props.projects[0]
         ) {
-            setSelectedProject(props.projects[0]);
+            const currentProject: Project | null =
+                ProjectUtil.getCurrentProject();
+
+            if (!currentProject) {
+                setSelectedProject(props.projects[0]);
+            } else if (
+                props.projects.filter((project: Project) => {
+                    return project._id === currentProject._id;
+                }).length > 0
+            ) {
+                setSelectedProject(
+                    props.projects.filter((project: Project) => {
+                        return project._id === currentProject._id;
+                    })[0] as Project
+                );
+            } else {
+                setSelectedProject(props.projects[0]);
+            }
         }
     }, [props.projects]);
 

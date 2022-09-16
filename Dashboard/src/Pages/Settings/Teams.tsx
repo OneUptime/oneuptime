@@ -46,7 +46,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of all the teams in this project.',
                 }}
-                noItemsMessage={'No teams created for this project so far.'}
+                noItemsMessage={'No teams found.'}
                 query={{
                     projectId: props.currentProject?._id,
                 }}

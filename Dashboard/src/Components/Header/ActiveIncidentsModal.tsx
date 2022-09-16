@@ -119,7 +119,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                 },
                             },
                             title: 'Current State',
-                            type: FieldType.Text,
+                            type: FieldType.Entity,
                             getElement: (item: JSONObject): ReactElement => {
                                 if (item['currentIncidentState']) {
                                     return (
@@ -135,6 +135,40 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                                 (
                                                     item[
                                                         'currentIncidentState'
+                                                    ] as JSONObject
+                                                )['name'] as string
+                                            }
+                                        />
+                                    );
+                                }
+
+                                return <></>;
+                            },
+                        },
+                        {
+                            field: {
+                                incidentSeverity: {
+                                    name: true,
+                                    color: true,
+                                },
+                            },
+                            title: 'Incident Severity',
+                            type: FieldType.Entity,
+                            getElement: (item: JSONObject): ReactElement => {
+                                if (item['incidentSeverity']) {
+                                    return (
+                                        <Pill
+                                            color={
+                                                (
+                                                    item[
+                                                        'incidentSeverity'
+                                                    ] as JSONObject
+                                                )['color'] as Color
+                                            }
+                                            text={
+                                                (
+                                                    item[
+                                                        'incidentSeverity'
                                                     ] as JSONObject
                                                 )['name'] as string
                                             }

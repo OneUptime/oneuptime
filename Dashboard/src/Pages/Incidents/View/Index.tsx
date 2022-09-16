@@ -24,6 +24,7 @@ import ChangeIncidentState, {
     IncidentType,
 } from '../../../Components/Incident/ChangeState';
 import BaseModel from 'Common/Models/BaseModel';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -89,6 +90,22 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
+                    },
+
+                    {
+                        field: {
+                            incidentSeverity: true,
+                        },
+                        title: 'Incident Severity',
+                        description: 'What type of incident is this?',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: IncidentSeverity,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Incident Severity',
                     },
                 ]}
                 modelDetailProps={{
@@ -157,7 +174,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 },
                             },
                             title: 'Current State',
-                            fieldType: FieldType.Text,
+                            fieldType: FieldType.Entity,
                             getElement: (item: JSONObject): ReactElement => {
                                 if (!item['currentIncidentState']) {
                                     throw new BadDataException(
@@ -178,6 +195,42 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                             (
                                                 item[
                                                     'currentIncidentState'
+                                                ] as JSONObject
+                                            )['name'] as string
+                                        }
+                                    />
+                                );
+                            },
+                        },
+                        {
+                            field: {
+                                incidentSeverity: {
+                                    color: true,
+                                    name: true,
+                                },
+                            },
+                            title: 'Incident Severity',
+                            fieldType: FieldType.Entity,
+                            getElement: (item: JSONObject): ReactElement => {
+                                if (!item['incidentSeverity']) {
+                                    throw new BadDataException(
+                                        'Incident Severity not found'
+                                    );
+                                }
+
+                                return (
+                                    <Pill
+                                        color={
+                                            (
+                                                item[
+                                                    'incidentSeverity'
+                                                ] as JSONObject
+                                            )['color'] as Color
+                                        }
+                                        text={
+                                            (
+                                                item[
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }

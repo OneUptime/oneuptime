@@ -207,9 +207,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -309,9 +308,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setTableFilterError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setTableFilterError('Server Error. Please try again');
@@ -359,9 +357,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -427,7 +424,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(column.field)[0] as string)
                 : null;
 
-            if (key && model.isEntityColumn(key)) {
+            if (key && model.isFileColumn(key)) {
+                (populate as JSONObject)[key] = {
+                    file: true,
+                    _id: true,
+                    type: true,
+                    name: true,
+                };
+            } else if (key && model.isEntityColumn(key)) {
                 (populate as JSONObject)[key] = (column.field as any)[key];
             }
         }
@@ -702,9 +706,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                 BaseModel.fromJSONObject(item, props.modelType);
 
                             if (props.onBeforeView) {
-                                item = (
-                                    await props.onBeforeView(baseModel)
-                                ).toJSONObject();
+                                item = BaseModel.toJSONObject(
+                                    await props.onBeforeView(baseModel),
+                                    props.modelType
+                                );
                             }
 
                             if (props.onViewPage) {
@@ -755,14 +760,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     ) => {
                         try {
                             if (props.onBeforeEdit) {
-                                item = (
+                                item = BaseModel.toJSONObject(
                                     await props.onBeforeEdit(
                                         BaseModel.fromJSONObject(
                                             item,
                                             props.modelType
                                         )
-                                    )
-                                ).toJSONObject();
+                                    ),
+                                    props.modelType
+                                );
                             }
 
                             setModalType(ModalType.Edit);
@@ -792,14 +798,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     ) => {
                         try {
                             if (props.onBeforeDelete) {
-                                item = (
+                                item = BaseModel.toJSONObject(
                                     await props.onBeforeDelete(
                                         BaseModel.fromJSONObject(
                                             item,
                                             props.modelType
                                         )
-                                    )
-                                ).toJSONObject();
+                                    ),
+                                    props.modelType
+                                );
                             }
 
                             setShowDeleteConfirmModal(true);
@@ -872,7 +879,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 currentPageNumber={currentPageNumber}
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
-                data={BaseModel.toJSONObjectArray(data)}
+                data={BaseModel.toJSONObjectArray(data, props.modelType)}
                 filterError={tableFilterError}
                 id={props.id}
                 columns={tableColumns}
@@ -931,7 +938,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             <OrderedStatesList
                 error={error}
                 isLoading={isLoading}
-                data={BaseModel.toJSONObjectArray(data)}
+                data={BaseModel.toJSONObjectArray(data, props.modelType)}
                 id={props.id}
                 titleField={props.orderedStatesListProps?.titleField || ''}
                 descriptionField={
@@ -978,7 +985,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 currentPageNumber={currentPageNumber}
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
-                data={BaseModel.toJSONObjectArray(data)}
+                data={BaseModel.toJSONObjectArray(data, props.modelType)}
                 id={props.id}
                 fields={fields}
                 itemsOnPage={itemsOnPage}

@@ -8,6 +8,9 @@ import HiddenText from '../HiddenText/HiddenText';
 import { JSONObject } from 'Common/Types/JSON';
 import _ from 'lodash';
 import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
+import CodeEditor from '../CodeEditor/CodeEditor';
+import CodeType from 'Common/Types/Code/CodeType';
+import FileModel from 'Common/Models/FileModel';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -48,15 +51,69 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             );
         }
 
+        if (field.fieldType === FieldType.ImageFile) {
+            if (
+                props.item[fieldKey] &&
+                (props.item[fieldKey] as FileModel).file &&
+                (props.item[fieldKey] as FileModel).type
+            ) {
+                const blob: Blob = new Blob(
+                    [(props.item[fieldKey] as FileModel).file as Uint8Array],
+                    {
+                        type: (props.item[fieldKey] as FileModel)
+                            .type as string,
+                    }
+                );
+
+                const url: string = URL.createObjectURL(blob);
+
+                data = (
+                    <img
+                        src={url}
+                        style={{
+                            height: '100px',
+                        }}
+                    />
+                );
+            } else {
+                data = '';
+            }
+        }
+
         if (field.fieldType === FieldType.Markdown) {
             data = getMarkdownViewer(data as string);
         }
 
-        if (field.fieldType === FieldType.HiddenText) {
+        if (data && field.fieldType === FieldType.HiddenText) {
             data = (
                 <HiddenText
                     isCopyable={field.opts?.isCopyable || false}
                     text={data as string}
+                />
+            );
+        }
+
+        if (
+            (data && field.fieldType === FieldType.HTML) ||
+            field.fieldType === FieldType.CSS ||
+            field.fieldType === FieldType.JavaScript
+        ) {
+            let codeType: CodeType = CodeType.HTML;
+
+            if (field.fieldType === FieldType.CSS) {
+                codeType = CodeType.CSS;
+            }
+
+            if (field.fieldType === FieldType.JavaScript) {
+                codeType = CodeType.JavaScript;
+            }
+
+            data = (
+                <CodeEditor
+                    type={codeType}
+                    readOnly={true}
+                    value={data as string}
+                    className="form-control"
                 />
             );
         }
@@ -105,7 +162,12 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                         paddingTop: '0px',
                     }}
                 >
-                    {data}
+                    {data && data}
+                    {!data && (
+                        <span className="color-light-grey">
+                            {field.placeholder}
+                        </span>
+                    )}
                 </div>
             </div>
         );

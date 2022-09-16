@@ -32,6 +32,10 @@ import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessC
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../../Utils/ModelAPI/Populate';
+import FileModel from 'Common/Models/FileModel';
+import TableColumnType from 'Common/Types/Database/TableColumnType';
+import Typeof from 'Common/Types/Typeof';
+import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 
 export enum FormType {
     Create,
@@ -105,8 +109,15 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
-            if (key && model.isEntityColumn(key)) {
-                (populate as JSONObject)[key] = true;
+            if (key && model.isFileColumn(key)) {
+                (populate as JSONObject)[key] = {
+                    file: true,
+                    _id: true,
+                    type: true,
+                    name: true,
+                };
+            } else if (key && model.isEntityColumn(key)) {
+                (populate as JSONObject)[key] = (field.field as any)[key];
             }
         }
 
@@ -178,12 +189,19 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             throw new BadDataException('Model ID to update not found.');
         }
 
-        const item: TBaseModel | null = await ModelAPI.getItem(
+        let item: TBaseModel | null = await ModelAPI.getItem(
             props.modelType,
             props.modelIdToEdit,
             getSelectFields(),
             getPopulate()
         );
+
+        if (!(item instanceof BaseModel) && item) {
+            item = new props.modelType().fromJSON(
+                item as JSONObject,
+                props.modelType
+            );
+        }
 
         if (!item) {
             setError(
@@ -219,7 +237,11 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                         (item as any)[key] = idArray;
                     }
                 }
-                if (typeof (item as any)[key] === 'object') {
+                if (
+                    (item as any)[key] &&
+                    typeof (item as any)[key] === 'object' &&
+                    !((item as any)[key] instanceof FileModel)
+                ) {
                     if (((item as any)[key] as JSONObject)['_id']) {
                         (item as any)[key] = ((item as any)[key] as JSONObject)[
                             '_id'
@@ -282,9 +304,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             try {
                 setError(
-                    ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -305,9 +326,9 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             } catch (err) {
                 let error: string = '';
                 try {
-                    error = ((err as HTTPErrorResponse).data as JSONObject)[
-                        'error'
-                    ] as string;
+                    error =
+                        (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again';
                 } catch (e) {
                     error = 'Server Error. Please try again';
                 }
@@ -364,6 +385,43 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 delete valuesToSend[key];
             }
 
+            for (const key of model.getTableColumns().columns) {
+                const tableColumnMetadata: TableColumnMetadata =
+                    model.getTableColumnMetadata(key);
+
+                if (
+                    tableColumnMetadata &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.Entity &&
+                    valuesToSend[key] &&
+                    typeof valuesToSend[key] === Typeof.String
+                ) {
+                    const baseModel: BaseModel =
+                        new tableColumnMetadata.modelType();
+                    baseModel._id = valuesToSend[key] as string;
+                    valuesToSend[key] = baseModel;
+                }
+
+                if (
+                    tableColumnMetadata &&
+                    tableColumnMetadata.modelType &&
+                    tableColumnMetadata.type === TableColumnType.EntityArray &&
+                    Array.isArray(valuesToSend[key]) &&
+                    (valuesToSend[key] as Array<any>).length > 0 &&
+                    typeof (valuesToSend[key] as Array<any>)[0] ===
+                        Typeof.String
+                ) {
+                    const arr: Array<BaseModel> = [];
+                    for (const id of valuesToSend[key] as Array<string>) {
+                        const baseModel: BaseModel =
+                            new tableColumnMetadata.modelType();
+                        baseModel._id = id as string;
+                        arr.push(baseModel);
+                    }
+                    valuesToSend[key] = arr;
+                }
+            }
+
             let tBaseModel: TBaseModel = model.fromJSON(
                 valuesToSend,
                 props.modelType
@@ -375,6 +433,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
 
             result = await ModelAPI.createOrUpdate<TBaseModel>(
                 tBaseModel,
+                props.modelType,
                 props.formType,
                 props.apiUrl,
                 miscDataProps,
@@ -386,9 +445,8 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             }
         } catch (err) {
             setError(
-                ((err as HTTPErrorResponse).data as JSONObject)[
-                    'error'
-                ] as string
+                (err as HTTPErrorResponse).message ||
+                    'Server Error. Please try again'
             );
         }
 

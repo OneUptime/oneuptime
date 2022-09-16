@@ -1,4 +1,4 @@
-@import "../../BrandColors";
+@import '../../BrandColors';
 
 .underline-on-hover {
     cursor: pointer;
@@ -290,3 +290,75 @@
     border-radius: 500px;
     width: 300px;
 }
+
+
+
+// File Picker. 
+
+.file-picker-thumbs-container {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-top: 25px;
+}
+
+.file-picker-thumb {
+    display: inline-flex;
+    border-radius: 2px;
+    border: 1px solid #eaeaea;
+    margin-bottom: 8px;
+    margin-right: 8px;
+    width: 100px;
+    height: 100px;
+    padding: 4px;
+    box-sizing: border-box
+};
+
+.file-picker-thumb-inner {
+    display: flex;
+    min-width: 0px;
+    overflow: hidden;
+    margin-left: -25px;
+};
+
+.file-picker-img {
+    display: block;
+    width: auto;
+    height: 100%
+};
+
+.file-picker-placeholder{
+    text-align: center;
+    margin: 20px;
+}
+
+.file-picker-dropzone{
+    min-height: unset;
+    border: 2px dashed #ced4da;
+    background: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.file-picker-delete-logo{
+    cursor: pointer;
+    text-align: right;
+    position: relative;
+    top: -15px;
+    left: 80px;
+    background-color: $color-red;
+    color: $color-white; 
+    border-radius: 150px;
+    padding: 5px;
+    height: 25px;
+    width: 25px;
+}
+
+// no visible scrollbar
+.no-scrollbar {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar { 
+    display: none;  /* Safari and Chrome */
+}
+

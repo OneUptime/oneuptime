@@ -16,6 +16,9 @@ import Color from 'Common/Types/Color';
 import Monitor from 'Model/Models/Monitor';
 import MonitorsElement from '../../Components/Monitor/Monitors';
 import IncidentState from 'Model/Models/IncidentState';
+import Label from 'Model/Models/Label';
+import LabelsElement from '../../Components/Label/Labels';
+import IncidentSeverity from 'Model/Models/IncidentSeverity';
 
 const IncidentsPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -72,6 +75,21 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
+                            incidentSeverity: true,
+                        },
+                        title: 'Incident Severity',
+                        description: 'What type of incident is this?',
+                        fieldType: FormFieldSchemaType.Dropdown,
+                        dropdownModal: {
+                            type: IncidentSeverity,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Incident Severity',
+                    },
+                    {
+                        field: {
                             monitors: true,
                         },
                         title: 'Monitors affected',
@@ -101,6 +119,22 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         },
                         required: true,
                         placeholder: 'Monitor Status',
+                    },
+                    {
+                        field: {
+                            labels: true,
+                        },
+                        title: 'Labels (Optional)',
+                        description:
+                            'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Label,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'Labels',
                     },
                 ]}
                 showRefreshButton={true}
@@ -168,6 +202,49 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
+                            incidentSeverity: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        isFilterable: true,
+                        filterEntityType: IncidentSeverity,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                        title: 'Incident Severity',
+                        type: FieldType.Entity,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (item['incidentSeverity']) {
+                                return (
+                                    <Pill
+                                        color={
+                                            (
+                                                item[
+                                                    'incidentSeverity'
+                                                ] as JSONObject
+                                            )['color'] as Color
+                                        }
+                                        text={
+                                            (
+                                                item[
+                                                    'incidentSeverity'
+                                                ] as JSONObject
+                                            )['name'] as string
+                                        }
+                                    />
+                                );
+                            }
+
+                            return <></>;
+                        },
+                    },
+                    {
+                        field: {
                             monitors: {
                                 name: true,
                                 _id: true,
@@ -206,6 +283,37 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         title: 'Created At',
                         type: FieldType.DateTime,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.EntityArray,
+                        isFilterable: true,
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <LabelsElement
+                                    labels={
+                                        Label.fromJSON(
+                                            (item['labels'] as JSONArray) || [],
+                                            Label
+                                        ) as Array<Label>
+                                    }
+                                />
+                            );
+                        },
                     },
                 ]}
             />

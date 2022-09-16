@@ -1,5 +1,5 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
-import BaseModel from 'Common/Models/BaseModel';
+import AccessControlModel from 'Common/Models/AccessControlModel';
 import User from './User';
 import Project from './Project';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
@@ -35,7 +35,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 @Entity({
     name: 'Label',
 })
-export default class Label extends BaseModel {
+export default class Label extends AccessControlModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
         read: [

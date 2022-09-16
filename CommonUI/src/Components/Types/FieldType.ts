@@ -1,6 +1,8 @@
 enum FieldType {
     ObjectID = 'ObjectID',
     Name = 'Name',
+    File = 'File',
+    ImageFile = 'ImageFile',
     Hostname = 'Hostname',
     URL = 'URL',
     Route = 'Route',
@@ -19,6 +21,9 @@ enum FieldType {
     Entity = 'Entity',
     EntityArray = 'EntityArray',
     Markdown = 'Markdown',
+    HTML = 'HTML',
+    CSS = 'CSS',
+    JavaScript = 'JavaScript',
 }
 
 export default FieldType;

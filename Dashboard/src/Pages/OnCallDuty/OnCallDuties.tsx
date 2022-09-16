@@ -9,6 +9,9 @@ import OnCallDuty from 'Model/Models/OnCallDuty';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import Label from 'Model/Models/Label';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import LabelsElement from '../../Components/Label/Labels';
 
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -40,9 +43,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here is a list of on-call-duty schedules for this project.',
                 }}
-                noItemsMessage={
-                    'No on-call-duty created for this project so far.'
-                }
+                noItemsMessage={'No on-call-duty found.'}
                 formFields={[
                     {
                         field: {
@@ -53,7 +54,6 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'On Call Duty Name',
                         validation: {
-                            noSpaces: true,
                             minLength: 2,
                         },
                     },
@@ -65,6 +65,22 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
+                    },
+                    {
+                        field: {
+                            labels: true,
+                        },
+                        title: 'Labels (Optional)',
+                        description:
+                            'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Label,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'Labels',
                     },
                 ]}
                 showRefreshButton={true}
@@ -86,6 +102,37 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            labels: {
+                                name: true,
+                                color: true,
+                            },
+                        },
+                        title: 'Labels',
+                        type: FieldType.EntityArray,
+                        isFilterable: true,
+                        filterEntityType: Label,
+                        filterQuery: {
+                            projectId: props.currentProject?._id,
+                        },
+                        filterDropdownField: {
+                            label: 'name',
+                            value: '_id',
+                        },
+                        getElement: (item: JSONObject): ReactElement => {
+                            return (
+                                <LabelsElement
+                                    labels={
+                                        Label.fromJSON(
+                                            (item['labels'] as JSONArray) || [],
+                                            Label
+                                        ) as Array<Label>
+                                    }
+                                />
+                            );
+                        },
                     },
                 ]}
             />
