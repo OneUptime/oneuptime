@@ -74,6 +74,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/embedded`
     ),
 
+    [PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/subscriber-settings`
+    ),
+
     [PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/custom-code`
     ),
@@ -141,6 +145,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_MONITORS_STATUS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/monitors-status`
     ),
+    
 
     [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/incidents-state`

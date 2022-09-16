@@ -31,18 +31,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
 
 
-                <SideMenuItem
-                    link={{
-                        title: 'Subscribers',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
-                            ] as Route,
-                            props.modelId
-                        ),
-                    }}
-                    icon={IconProp.User}
-                />
+                
 
                 <SideMenuItem
                     link={{
@@ -57,6 +46,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     icon={IconProp.SMS}
                 />
             </SideMenuSection>
+
+            
 
             <SideMenuSection title="Resources">
                 <SideMenuItem
@@ -80,6 +71,33 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.Folder}
+                />
+            </SideMenuSection>
+
+            <SideMenuSection title='Subscribers'>
+            <SideMenuItem
+                    link={{
+                        title: 'Subscribers',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.User}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Subscriber Settings',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Settings}
                 />
             </SideMenuSection>
 
