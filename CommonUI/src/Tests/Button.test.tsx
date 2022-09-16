@@ -1,35 +1,35 @@
 import React from 'react';
-import { create } from 'react-test-renderer';
+import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
 import Button from '../Components/Button/Button';
 
-describe('Button', () => {
-    const button = create(<Button />);
+describe('Button test', () => {
+    const handleClick: undefined | (() => void) = jest.fn();
+    render(
+        <Button
+            dataTestId="test-id"
+            title="sample title"
+            disabled={true}
+            onClick={handleClick}
+        />
+    );
+    const title: HTMLElement = screen.getByText('sample title');
+    const testId: HTMLElement = screen.getByTestId('test-id');
 
-    test('should match snapshot', () => {
-        expect(button.toJSON()).toMatchInlineSnapshot(`
-            <button
-              className="btn no-border-on-hover btn waves-effect waves-light no-border-on-hover"
-              onClick={[Function]}
-              type="button"
-            >
-              <div>
-                <div>
-                  <div />
-                </div>
-                <span
-                  className="justify-center"
-                >
-                  <span />
-                  <span
-                    style={
-                      Object {
-                        "marginLeft": "5px",
-                      }
-                    }
-                  />
-                </span>
-              </div>
-            </button>
-        `);
+    test('it should render correctly with a test id', () => {
+        expect(testId).toBeInTheDocument;
+    });
+
+    test('it should have a title', () => {
+        expect(title).toBeInTheDocument;
+    });
+
+    test('it should have disabled attribute', () => {
+        expect(testId).toHaveAttribute('disabled');
+    });
+
+    test('it should handle onClick event', () => {
+        fireEvent.click(testId);
+        expect(handleClick).toBeCalled;
     });
 });
