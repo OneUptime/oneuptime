@@ -1044,6 +1044,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     private serializeQuery(query: Query<TBaseModel>): Query<TBaseModel> {
+        debugger; 
         for (const key in query) {
             const tableColumnMetadata: TableColumnMetadata =
                 this.model.getTableColumnMetadata(key);
@@ -1097,6 +1098,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 Array.isArray(query[key]) &&
                 tableColumnMetadata.type !== TableColumnType.EntityArray
             ) {
+                
+               
+
                 query[key] = QueryHelper.in(
                     query[key] as any
                 ) as FindOperator<any> as any;
@@ -1118,6 +1122,19 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 tableColumnMetadata.type === TableColumnType.EntityArray &&
                 Array.isArray(query[key])
             ) {
+
+                query[key] = (query[key] as Array<string | JSONObject>).map((item) => {
+                    if (typeof item === Typeof.String) {
+                        return item;
+                    }
+
+                    if ((item) && (item as JSONObject)["_id"]) {
+                        return (item as JSONObject)["_id"] as string;
+                    }
+
+                    return item;
+                }) as any;
+
                 (query as any)[key] = {
                     _id: QueryHelper.in(query[key] as Array<string>),
                 };
