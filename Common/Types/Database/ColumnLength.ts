@@ -12,7 +12,6 @@ enum ColumnLength {
     ShortText = 100,
     HashedString = 64,
     Phone = 30,
-    LongURL = 500,
     OTP = 8,
 }
 

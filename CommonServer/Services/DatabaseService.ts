@@ -54,6 +54,7 @@ import GreaterThan from 'Common/Types/Database/GreaterThan';
 import GreaterThanOrEqual from 'Common/Types/Database/GreaterThanOrEqual';
 import LessThanOrEqual from 'Common/Types/Database/LessThanOrEqual';
 import InBetween from 'Common/Types/Database/InBetween';
+import NotNull from 'Common/Types/Database/NotNull';
 
 enum DatabaseRequestType {
     Create = 'create',
@@ -84,11 +85,11 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    private entityType!: { new(): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -362,7 +363,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                    createBy.data.getSlugifyColumn() as string
+                createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -620,8 +621,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             )
         ) {
             throw new NotAuthorizedException(
-                `You do not have permissions to ${type} ${
-                    this.model.singularName
+                `You do not have permissions to ${type} ${this.model.singularName
                 }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                     modelPermissions
                 ).join(',')}`
@@ -1044,16 +1044,25 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     private serializeQuery(query: Query<TBaseModel>): Query<TBaseModel> {
-        debugger; 
+        
         for (const key in query) {
             const tableColumnMetadata: TableColumnMetadata =
                 this.model.getTableColumnMetadata(key);
 
-            if (
+            if (tableColumnMetadata && query[key] === null) {
+                query[key] = QueryHelper.isNull();
+            }
+            else if (query[key] && query[key] instanceof NotNull &&
+                tableColumnMetadata) {
+                console.log("here");
+                query[key] = QueryHelper.notNull();
+            } 
+            else if (
                 query[key] &&
                 (query[key] as any)._value &&
                 Array.isArray((query[key] as any)._value) &&
-                (query[key] as any)._value.length > 0
+                (query[key] as any)._value.length > 0 &&
+                tableColumnMetadata
             ) {
                 let counter: number = 0;
                 for (const item of (query[key] as any)._value) {
@@ -1064,42 +1073,51 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     }
                     counter++;
                 }
-            } else if (query[key] && query[key] instanceof ObjectID) {
+            } else if (query[key] && query[key] instanceof ObjectID &&
+                tableColumnMetadata) {
                 query[key] = QueryHelper.equalTo(
                     (query[key] as ObjectID).toString() as any
                 ) as any;
-            } else if (query[key] && query[key] instanceof Search) {
+            } else if (query[key] && query[key] instanceof Search &&
+                tableColumnMetadata) {
                 query[key] = QueryHelper.search(
                     (query[key] as Search).toString() as any
                 ) as any;
-            } else if (query[key] && query[key] instanceof LessThan) {
+            } else if (query[key] && query[key] instanceof LessThan &&
+                tableColumnMetadata) {
                 query[key] = QueryHelper.lessThan(
                     (query[key] as LessThan).toString() as any
                 ) as any;
-            } else if (query[key] && query[key] instanceof InBetween) {
+            } else if (query[key] && query[key] instanceof InBetween &&
+                tableColumnMetadata) {
                 query[key] = QueryHelper.inBetween(
                     (query[key] as InBetween).startValue as any,
                     (query[key] as InBetween).endValue as any
                 ) as any;
-            } else if (query[key] && query[key] instanceof GreaterThan) {
+            } else if (query[key] && query[key] instanceof GreaterThan &&
+                tableColumnMetadata) {
                 query[key] = QueryHelper.greaterThan(
                     (query[key] as GreaterThan).toString() as any
                 ) as any;
-            } else if (query[key] && query[key] instanceof GreaterThanOrEqual) {
+            } else if (query[key] && query[key] instanceof GreaterThanOrEqual &&
+                tableColumnMetadata) {
                 query[key] = QueryHelper.greaterThanEqualTo(
                     (query[key] as GreaterThanOrEqual).toString() as any
                 ) as any;
-            } else if (query[key] && query[key] instanceof LessThanOrEqual) {
+            } else if (query[key] && query[key] instanceof LessThanOrEqual &&
+                tableColumnMetadata) {
                 query[key] = QueryHelper.lessThanEqualTo(
                     (query[key] as LessThanOrEqual).toString() as any
                 ) as any;
             } else if (
                 query[key] &&
-                Array.isArray(query[key]) &&
+                Array.isArray(query[key])
+                &&
+                tableColumnMetadata &&
                 tableColumnMetadata.type !== TableColumnType.EntityArray
             ) {
-                
-               
+
+
 
                 query[key] = QueryHelper.in(
                     query[key] as any
@@ -1165,6 +1183,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
 
+            
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeDeleteBy.query,
                 skip: 0,
@@ -1249,6 +1268,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
+            debugger; 
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),
@@ -1302,10 +1322,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                            key +
-                            ' of ' +
-                            this.model.singularName +
-                            ' because this column modelType is not found.'
+                        key +
+                        ' of ' +
+                        this.model.singularName +
+                        ' because this column modelType is not found.'
                     );
                 }
 
@@ -1357,10 +1377,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                            key +
-                            ' of ' +
-                            this.model.singularName +
-                            ' because this column modelType is not found.'
+                        key +
+                        ' of ' +
+                        this.model.singularName +
+                        ' because this column modelType is not found.'
                     );
                 }
 
@@ -1377,7 +1397,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                         // check for permissions.
                         if (
                             typeof (onBeforeFind.populate as any)[key][
-                                innerKey
+                            innerKey
                             ] === Typeof.Object
                         ) {
                             throw new BadDataException(
@@ -1408,10 +1428,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                                 }
 
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to read ${key}.${innerKey} on ${
-                                        onBeforeFind.limit === 1
-                                            ? this.model.singularName
-                                            : this.model.pluralName
+                                    `You do not have permissions to read ${key}.${innerKey} on ${onBeforeFind.limit === 1
+                                        ? this.model.singularName
+                                        : this.model.pluralName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                                         readPermissions
                                     ).join(',')}`
@@ -1427,10 +1446,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 } else {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                            key +
-                            ' of ' +
-                            this.model.singularName +
-                            ' because this column is not of type Entity or EntityArray'
+                        key +
+                        ' of ' +
+                        this.model.singularName +
+                        ' because this column is not of type Entity or EntityArray'
                     );
                 }
             } else {

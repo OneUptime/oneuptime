@@ -21,6 +21,7 @@ import LessThan from './Database/LessThan';
 import LessThanOrEqual from './Database/LessThanOrEqual';
 import InBetween from './Database/InBetween';
 import Domain from './Domain';
+import NotNull from './Database/NotNull';
 
 enum ObjectType {
     ObjectID = 'ObjectID',
@@ -44,6 +45,7 @@ enum ObjectType {
     DateTime = 'DateTime',
     Buffer = 'Buffer',
     InBetween = 'InBetween',
+    NotNull = 'NotNull'
 }
 
 export type JSONValue =
@@ -91,6 +93,8 @@ export type JSONValue =
     | Array<LessThan>
     | InBetween
     | Array<InBetween>
+    | NotNull
+    | Array<NotNull>
     | LessThanOrEqual
     | Array<LessThanOrEqual>
     | Port
@@ -122,7 +126,7 @@ export class JSONFunctions {
 
     // this funciton serializes JSON with Common Objects to JSON that can be stringified.
     public static serialize(val: JSONObject): JSONObject {
-        const newVal: JSONValue = {};
+        const newVal: JSONObject = {};
 
         for (const key in val) {
             if (val[key] === undefined) {
@@ -243,7 +247,12 @@ export class JSONFunctions {
                 startValue: (val as InBetween).startValue,
                 endValue: (val as InBetween).endValue,
             };
-        } else if (val && val instanceof GreaterThan) {
+        }else if (val && val instanceof NotNull) {
+            return {
+                _type: ObjectType.NotNull,
+                value: null
+            };
+        }  else if (val && val instanceof GreaterThan) {
             return {
                 _type: ObjectType.GreaterThan,
                 value: (val as GreaterThan).value,
@@ -473,6 +482,15 @@ export class JSONFunctions {
             return new LessThanOrEqual(
                 (val as JSONObject)['value'] as number | Date
             );
+        } else if (
+            val &&
+            typeof val === Typeof.Object &&
+            (val as JSONObject)['_type'] &&
+            (val as JSONObject)['value'] === null &&
+            ((val as JSONObject)['_type'] as string) ===
+                ObjectType.NotNull
+        ) {
+            return new NotNull();
         } else if (
             val &&
             typeof val === Typeof.Object &&

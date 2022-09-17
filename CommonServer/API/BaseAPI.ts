@@ -207,6 +207,7 @@ export default class BaseAPI<
         let select: Select<BaseModel> = {};
         let populate: Populate<BaseModel> = {};
         let sort: Sort<BaseModel> = {};
+        debugger;
 
         if (req.body) {
             query = JSONFunctions.deserialize(

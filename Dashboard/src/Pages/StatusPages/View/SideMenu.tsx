@@ -97,7 +97,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Webhook}
+                    icon={IconProp.SendMessage}
                 />
 
                 <SideMenuItem

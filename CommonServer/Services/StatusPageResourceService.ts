@@ -26,7 +26,7 @@ export class Service extends DatabaseService<Model> {
 
 
         if (!createBy.data.order) {
-            debugger; 
+            
 
             const query = {
                 statusPageId: createBy.data.statusPageId,

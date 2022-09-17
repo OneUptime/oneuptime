@@ -21,6 +21,12 @@ import ProbeService, {
     Service as ProbeServiceType,
 } from 'CommonServer/Services/ProbeService';
 
+
+import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
+import StatusPageSubscriberService, {
+    Service as StatusPageSubscriberServiceType,
+} from 'CommonServer/Services/StatusPageSubscriberService';
+
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageAnnouncementService, {
     Service as StatusPageAnnouncementServiceType,
@@ -216,6 +222,14 @@ app.use(
     new BaseAPI<IncidentStateTimeline, IncidentStateTimelineServiceType>(
         IncidentStateTimeline,
         IncidentStateTimelineService
+    ).getRouter()
+);
+
+
+app.use(
+    new BaseAPI<StatusPageSubscriber, StatusPageSubscriberServiceType>(
+        StatusPageSubscriber,
+        StatusPageSubscriberService
     ).getRouter()
 );
 

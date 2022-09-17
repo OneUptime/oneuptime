@@ -6,12 +6,18 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
+
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
+import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import NotNull from 'Common/Types/Database/NotNull';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam(1)?.toString().substring(1) || ''
@@ -52,14 +58,67 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
-                modelType={StatusPage}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
-                    );
+            <ModelTable<StatusPageSubscriber>
+                modelType={StatusPageSubscriber}
+                id="table-subscriber"
+                isDeleteable={true}
+                isCreateable={true}
+                isEditable={false}
+                isViewable={false}
+                query={{
+                    statusPageId: modelId,
+                    projectId: props.currentProject?._id,
+                    subscriberPhone: new NotNull(), 
                 }}
+                onBeforeCreate={(
+                    item: StatusPageSubscriber
+                ): Promise<StatusPageSubscriber> => {
+                    
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
+
+
+                    item.statusPageId = modelId;
+                    item.projectId = props.currentProject.id;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    icon: IconProp.SendMessage,
+                    title: 'SMS Subscribers',
+                    description:
+                        'Here are the list of subscribers who have subscribed to the status page.',
+                }}
+                noItemsMessage={
+                    'No subscribers found.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            subscriberPhone: true,
+                        },
+                        title: 'Phone Number',
+                        description:
+                            'Phone number to send SMS to.',
+                        fieldType: FormFieldSchemaType.Phone,
+                        required: true,
+                        placeholder:
+                            'Phone Number',
+                    },
+                    
+                ]}
+
+                showRefreshButton={true}
+                viewPageRoute={props.pageRoute}
+                columns={[
+                    {
+                        field: {
+                            subscriberPhone: true,
+                        },
+                        title: 'Phone Number',
+                        type: FieldType.Text,
+                    }
+                ]}
             />
         </Page>
     );
