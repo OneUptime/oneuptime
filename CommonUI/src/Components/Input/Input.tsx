@@ -40,7 +40,7 @@ const Input: FunctionComponent<ComponentProps> = (
                     dateString = OneUptimeDate.asDateForDatabaseQuery(date)
                 }
                 setDisplayValue(dateString);
-            } else if(!value.includes(" - ")) {
+            } else if (!value.includes(" - ")) {
                 setDisplayValue('');
             }
         } else {
@@ -95,17 +95,21 @@ const Input: FunctionComponent<ComponentProps> = (
 
                     const value = e.target.value;
 
-                    if ((props.type === "date" || props.type === "datetime-local") &&value ) {
+                    if ((props.type === "date" || props.type === "datetime-local") && value) {
                         const date = OneUptimeDate.fromString(value);
                         const dateString = OneUptimeDate.toString(date);
                         setValue(dateString);
+                        if (props.onChange) {
+                            props.onChange(dateString);
+                        }
                     } else {
                         setValue(value);
+                        if (props.onChange) {
+                            props.onChange(value);
+                        }
                     }
 
-                    if (props.onChange) {
-                        props.onChange(value);
-                    }
+
                 }}
                 tabIndex={props.tabIndex}
                 value={displayValue}
