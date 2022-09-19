@@ -30,24 +30,24 @@ const Input: FunctionComponent<ComponentProps> = (
     const [displayValue, setDisplayValue] = useState<string>('');
 
     useEffect(() => {
-        if (props.type === "date" || props.type === "datetime-local") {
-            if (value && !value.includes(" - ")) { // " - " is for InBetween dates. 
+        if (props.type === 'date' || props.type === 'datetime-local') {
+            if (value && !value.includes(' - ')) {
+                // " - " is for InBetween dates.
                 const date: Date = OneUptimeDate.fromString(value);
-                let dateString = '';
-                if (props.type === "datetime-local") {
-                    dateString = OneUptimeDate.toDateTimeLocalString(date)
+                let dateString: string = '';
+                if (props.type === 'datetime-local') {
+                    dateString = OneUptimeDate.toDateTimeLocalString(date);
                 } else {
-                    dateString = OneUptimeDate.asDateForDatabaseQuery(date)
+                    dateString = OneUptimeDate.asDateForDatabaseQuery(date);
                 }
                 setDisplayValue(dateString);
-            } else if (!value.includes(" - ")) {
+            } else if (!value.includes(' - ')) {
                 setDisplayValue('');
             }
         } else {
             setDisplayValue(value);
         }
-
-    })
+    });
 
     useEffect(() => {
         if (props.initialValue) {
@@ -92,12 +92,15 @@ const Input: FunctionComponent<ComponentProps> = (
             <input
                 data-testid={props.dataTestId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value: string = e.target.value;
 
-                    const value = e.target.value;
-
-                    if ((props.type === "date" || props.type === "datetime-local") && value) {
-                        const date = OneUptimeDate.fromString(value);
-                        const dateString = OneUptimeDate.toString(date);
+                    if (
+                        (props.type === 'date' ||
+                            props.type === 'datetime-local') &&
+                        value
+                    ) {
+                        const date: Date = OneUptimeDate.fromString(value);
+                        const dateString: string = OneUptimeDate.toString(date);
                         setValue(dateString);
                         if (props.onChange) {
                             props.onChange(dateString);
@@ -108,8 +111,6 @@ const Input: FunctionComponent<ComponentProps> = (
                             props.onChange(value);
                         }
                     }
-
-
                 }}
                 tabIndex={props.tabIndex}
                 value={displayValue}

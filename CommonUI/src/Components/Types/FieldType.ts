@@ -5,7 +5,7 @@ enum FieldType {
     ImageFile = 'ImageFile',
     Hostname = 'Hostname',
     URL = 'URL',
-    Phone = 'Phone', 
+    Phone = 'Phone',
     Route = 'Route',
     Number = 'Number',
     Password = 'Password',

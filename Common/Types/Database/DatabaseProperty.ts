@@ -3,7 +3,7 @@ import { ValueTransformer } from 'typeorm/decorator/options/ValueTransformer';
 import NotImplementedException from '../Exception/NotImplementedException';
 
 export default class DatabaseProperty {
-    public constructor() { }
+    public constructor() {}
 
     protected static fromDatabase(
         _value: string | number
@@ -26,14 +26,10 @@ export default class DatabaseProperty {
     protected static _toDatabase(
         value: DatabaseProperty | FindOperator<DatabaseProperty>
     ): string | number | null {
-        debugger;
-
-        
-
         if (
             value &&
             (value as any)._type === 'raw' &&
-            (value as any)._objectLiteralParameters && 
+            (value as any)._objectLiteralParameters &&
             Object.keys((value as any)._objectLiteralParameters).length > 0
         ) {
             const returnVal: string | number | null = (value as any)
@@ -46,9 +42,8 @@ export default class DatabaseProperty {
             return returnVal;
         }
 
-        if (value &&
-            (value as any)._type === 'raw') {
-            return value as any; 
+        if (value && (value as any)._type === 'raw') {
+            return value as any;
         }
 
         return this.toDatabase(value);

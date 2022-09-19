@@ -245,7 +245,6 @@ export default class StatusPageResource extends BaseModel {
     })
     public statusPageGroupId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,

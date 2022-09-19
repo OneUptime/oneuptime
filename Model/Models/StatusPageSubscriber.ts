@@ -39,7 +39,10 @@ import URL from 'Common/Types/API/URL';
 })
 export default class StatusPageSubscriber extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageSubscriber,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
@@ -67,7 +70,10 @@ export default class StatusPageSubscriber extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageSubscriber,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
@@ -84,9 +90,11 @@ export default class StatusPageSubscriber extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageSubscriber,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
@@ -114,7 +122,10 @@ export default class StatusPageSubscriber extends BaseModel {
     public statusPage?: StatusPage = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageSubscriber,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
@@ -153,7 +164,7 @@ export default class StatusPageSubscriber extends BaseModel {
         nullable: true,
         type: ColumnType.Email,
         length: ColumnLength.Email,
-        transformer: Email.getDatabaseTransformer()
+        transformer: Email.getDatabaseTransformer(),
     })
     public subscriberEmail?: Email = undefined;
 
@@ -179,10 +190,9 @@ export default class StatusPageSubscriber extends BaseModel {
         nullable: true,
         type: ColumnType.Phone,
         length: ColumnLength.Phone,
-        transformer: Phone.getDatabaseTransformer()
+        transformer: Phone.getDatabaseTransformer(),
     })
     public subscriberPhone?: Phone = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -205,12 +215,15 @@ export default class StatusPageSubscriber extends BaseModel {
     @Column({
         nullable: true,
         type: ColumnType.ShortURL,
-        transformer: URL.getDatabaseTransformer()
+        transformer: URL.getDatabaseTransformer(),
     })
     public subscriberWebhook?: URL = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageSubscriber,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
@@ -238,7 +251,10 @@ export default class StatusPageSubscriber extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageSubscriber,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,

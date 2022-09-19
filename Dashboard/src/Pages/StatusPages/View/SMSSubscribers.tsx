@@ -51,7 +51,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'SMS Subscribers',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                        ] as Route,
                         modelId
                     ),
                 },
@@ -68,16 +70,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 query={{
                     statusPageId: modelId,
                     projectId: props.currentProject?._id,
-                    subscriberPhone: new NotNull(), 
+                    subscriberPhone: new NotNull(),
                 }}
                 onBeforeCreate={(
                     item: StatusPageSubscriber
                 ): Promise<StatusPageSubscriber> => {
-                    
                     if (!props.currentProject || !props.currentProject.id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
-
 
                     item.statusPageId = modelId;
                     item.projectId = props.currentProject.id;
@@ -89,25 +89,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here are the list of subscribers who have subscribed to the status page.',
                 }}
-                noItemsMessage={
-                    'No subscribers found.'
-                }
+                noItemsMessage={'No subscribers found.'}
                 formFields={[
                     {
                         field: {
                             subscriberPhone: true,
                         },
                         title: 'Phone Number',
-                        description:
-                            'Phone number to send SMS to.',
+                        description: 'Phone number to send SMS to.',
                         fieldType: FormFieldSchemaType.Phone,
                         required: true,
-                        placeholder:
-                            'Phone Number',
+                        placeholder: 'Phone Number',
                     },
-                    
                 ]}
-
                 showRefreshButton={true}
                 viewPageRoute={props.pageRoute}
                 columns={[
@@ -117,7 +111,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Phone Number',
                         type: FieldType.Text,
-                    }
+                    },
                 ]}
             />
         </Page>

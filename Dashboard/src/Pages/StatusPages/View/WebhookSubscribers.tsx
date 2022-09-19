@@ -50,7 +50,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Webhook Subscribers',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                        ] as Route,
                         modelId
                     ),
                 },
@@ -76,7 +78,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         throw new BadDataException('Project ID cannot be null');
                     }
 
-
                     item.statusPageId = modelId;
                     item.projectId = props.currentProject.id;
                     return Promise.resolve(item);
@@ -87,9 +88,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here are the list of subscribers who have subscribed to the status page.',
                 }}
-                noItemsMessage={
-                    'No subscribers found.'
-                }
+                noItemsMessage={'No subscribers found.'}
                 formFields={[
                     {
                         field: {
@@ -100,12 +99,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             'A POST request will be sent to this webhook.',
                         fieldType: FormFieldSchemaType.URL,
                         required: true,
-                        placeholder:
-                            'URL',
+                        placeholder: 'URL',
                     },
-                    
                 ]}
-
                 showRefreshButton={true}
                 viewPageRoute={props.pageRoute}
                 columns={[
@@ -115,7 +111,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Webhook URL',
                         type: FieldType.URL,
-                    }
+                    },
                 ]}
             />
         </Page>

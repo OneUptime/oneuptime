@@ -1,6 +1,10 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageResource';
-import DatabaseService, { OnCreate, OnDelete, OnUpdate } from './DatabaseService';
+import DatabaseService, {
+    OnCreate,
+    OnDelete,
+    OnUpdate,
+} from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import QueryHelper from '../Types/Database/QueryHelper';
@@ -9,6 +13,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import UpdateBy from '../Types/Database/UpdateBy';
+import Query from '../Types/Database/Query';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -18,38 +24,36 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
-
-
         if (!createBy.data.statusPageId) {
-            throw new BadDataException('Status Page Resource statusPageId is required');
+            throw new BadDataException(
+                'Status Page Resource statusPageId is required'
+            );
         }
 
-
         if (!createBy.data.order) {
-            
-
-            const query = {
+            const query: Query<Model> = {
                 statusPageId: createBy.data.statusPageId,
-                //statusPageGroupId: createBy.data.statusPageGroupId || QueryHelper.isNull()
+                statusPageGroupId:
+                    createBy.data.statusPageGroupId || QueryHelper.isNull(),
             };
 
             if (createBy.data.statusPageGroupId) {
-                (query as any)['statusPageGroupId'] = createBy.data.statusPageGroupId;
-            }else{
+                (query as any)['statusPageGroupId'] =
+                    createBy.data.statusPageGroupId;
+            } else {
                 (query as any)['statusPageGroupId'] = QueryHelper.isNull();
             }
-            
-            const count = await this.countBy({
+
+            const count: PositiveNumber = await this.countBy({
                 query: query,
                 props: {
                     isRoot: true,
                 },
             });
 
-            createBy.data.order = count.toNumber() + 1; 
+            createBy.data.order = count.toNumber() + 1;
         }
 
-        
         await this.rearrangeOrder(
             createBy.data.order,
             createBy.data.statusPageId,
@@ -62,7 +66,6 @@ export class Service extends DatabaseService<Model> {
             carryForward: null,
         };
     }
-
 
     protected override async onBeforeDelete(
         deleteBy: DeleteBy<Model>
@@ -103,11 +106,7 @@ export class Service extends DatabaseService<Model> {
         const resource: Model | null = onDelete.carryForward;
 
         if (!deleteBy.props.isRoot && resource) {
-            if (
-                resource &&
-                resource.order &&
-                resource.statusPageId
-            ) {
+            if (resource && resource.order && resource.statusPageId) {
                 await this.rearrangeOrder(
                     resource.order,
                     resource.statusPageId,
@@ -126,10 +125,14 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeUpdate(
         updateBy: UpdateBy<Model>
     ): Promise<OnUpdate<Model>> {
-        if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
-            const resource = await this.findOneBy({
+        if (
+            updateBy.data.order &&
+            !updateBy.props.isRoot &&
+            updateBy.query._id
+        ) {
+            const resource: Model | null = await this.findOneBy({
                 query: {
-                    _id: updateBy.query._id!
+                    _id: updateBy.query._id!,
                 },
                 props: {
                     isRoot: true,
@@ -137,21 +140,22 @@ export class Service extends DatabaseService<Model> {
                 select: {
                     order: true,
                     statusPageId: true,
-                    statusPageGroupId: true, 
-                    _id: true
+                    statusPageGroupId: true,
+                    _id: true,
                 },
             });
 
-            const currentOrder = resource?.order!;
-            const newOrder = updateBy.data.order; 
+            const currentOrder: number = resource?.order!;
+            const newOrder: number = updateBy.data.order as number;
 
-            const resources = await this.findBy({
+            const resources: Array<Model> = await this.findBy({
                 query: {
                     statusPageId: resource?.statusPageId!,
-                    statusPageGroupId: resource?.statusPageGroupId || QueryHelper.isNull(),
+                    statusPageGroupId:
+                        resource?.statusPageGroupId || QueryHelper.isNull(),
                 },
                 populate: {},
-                limit: LIMIT_MAX, 
+                limit: LIMIT_MAX,
                 skip: 0,
                 props: {
                     isRoot: true,
@@ -159,50 +163,55 @@ export class Service extends DatabaseService<Model> {
                 select: {
                     order: true,
                     statusPageId: true,
-                    statusPageGroupId: true, 
-                    _id: true
+                    statusPageGroupId: true,
+                    _id: true,
                 },
             });
 
             if (currentOrder > newOrder) {
-                // moving up. 
+                // moving up.
 
                 for (const resource of resources) {
-                    if (resource.order! >= newOrder && resource.order! < currentOrder) {
-                        // increment order. 
+                    if (
+                        resource.order! >= newOrder &&
+                        resource.order! < currentOrder
+                    ) {
+                        // increment order.
                         await this.updateBy({
                             query: {
-                                _id: resource._id!
+                                _id: resource._id!,
                             },
                             data: {
-                                order: resource.order! + 1
+                                order: resource.order! + 1,
                             },
                             props: {
-                                isRoot: true
-                            }
-                        })
+                                isRoot: true,
+                            },
+                        });
                     }
                 }
-                
             }
 
             if (newOrder > currentOrder) {
-                // moving down. 
+                // moving down.
 
                 for (const resource of resources) {
-                    if (resource.order! < newOrder && resource.order! >= currentOrder) {
-                        // increment order. 
+                    if (
+                        resource.order! < newOrder &&
+                        resource.order! >= currentOrder
+                    ) {
+                        // increment order.
                         await this.updateBy({
                             query: {
-                                _id: resource._id!
+                                _id: resource._id!,
                             },
                             data: {
-                                order: resource.order! - 1
+                                order: resource.order! - 1,
                             },
                             props: {
-                                isRoot: true
-                            }
-                        })
+                                isRoot: true,
+                            },
+                        });
                     }
                 }
             }
@@ -222,7 +231,9 @@ export class Service extends DatabaseService<Model> {
             query: {
                 order: QueryHelper.greaterThanEqualTo(currentOrder),
                 statusPageId: statusPageId,
-                statusPageGroupId: statusPageGroupId ? statusPageGroupId : QueryHelper.isNull()
+                statusPageGroupId: statusPageGroupId
+                    ? statusPageGroupId
+                    : QueryHelper.isNull(),
             },
             limit: LIMIT_MAX,
             skip: 0,

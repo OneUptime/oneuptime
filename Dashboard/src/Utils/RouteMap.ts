@@ -74,7 +74,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/webhook-subscribers`
     ),
 
-
     [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/announcements`
     ),
@@ -154,7 +153,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SETTINGS_MONITORS_STATUS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/monitors-status`
     ),
-    
 
     [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/incidents-state`

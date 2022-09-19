@@ -48,19 +48,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Subscriber Settings',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                        ] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Subscriber Settings',
-                    description:
-                        'Subscriber settings for this status page.',
+                    description: 'Subscriber settings for this status page.',
                     icon: IconProp.Settings,
                 }}
                 isEditable={true}
@@ -72,7 +72,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Enable Subscribers',
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: false,
-                        placeholder: 'Can subscribers subscribe to this status page?',
+                        placeholder:
+                            'Can subscribers subscribe to this status page?',
                     },
                 ]}
                 modelDetailProps={{
@@ -91,8 +92,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-            
-
         </Page>
     );
 };

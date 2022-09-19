@@ -16,7 +16,7 @@ export default interface Field<TEntity> {
     required?: boolean;
     dropdownOptions?: Array<DropdownOption> | undefined;
     dropdownModal?: {
-        type: { new(): BaseModel };
+        type: { new (): BaseModel };
         labelField: string;
         valueField: string;
     };

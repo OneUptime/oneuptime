@@ -45,7 +45,7 @@ enum ObjectType {
     DateTime = 'DateTime',
     Buffer = 'Buffer',
     InBetween = 'InBetween',
-    NotNull = 'NotNull'
+    NotNull = 'NotNull',
 }
 
 export type JSONValue =
@@ -160,11 +160,9 @@ export class JSONFunctions {
             val.toString().trim() === ''
         ) {
             return val;
-        }else if (
-            val instanceof BaseModel
-        ) {
+        } else if (val instanceof BaseModel) {
             return BaseModel.toJSON(val, BaseModel);
-        }  else if (typeof val === Typeof.Number) {
+        } else if (typeof val === Typeof.Number) {
             return val;
         } else if (ArrayBuffer.isView(val)) {
             return {
@@ -247,12 +245,12 @@ export class JSONFunctions {
                 startValue: (val as InBetween).startValue,
                 endValue: (val as InBetween).endValue,
             };
-        }else if (val && val instanceof NotNull) {
+        } else if (val && val instanceof NotNull) {
             return {
                 _type: ObjectType.NotNull,
-                value: null
+                value: null,
             };
-        }  else if (val && val instanceof GreaterThan) {
+        } else if (val && val instanceof GreaterThan) {
             return {
                 _type: ObjectType.GreaterThan,
                 value: (val as GreaterThan).value,
@@ -487,8 +485,7 @@ export class JSONFunctions {
             typeof val === Typeof.Object &&
             (val as JSONObject)['_type'] &&
             (val as JSONObject)['value'] === null &&
-            ((val as JSONObject)['_type'] as string) ===
-                ObjectType.NotNull
+            ((val as JSONObject)['_type'] as string) === ObjectType.NotNull
         ) {
             return new NotNull();
         } else if (

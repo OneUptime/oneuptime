@@ -62,7 +62,6 @@ const TableHeader: FunctionComponent<ComponentProps> = (
 
     return (
         <thead id={props.id}>
-
             <tr>
                 {props.enableDragAndDrop && <th></th>}
                 {props.columns.map((column: Column, i: number) => {

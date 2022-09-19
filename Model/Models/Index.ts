@@ -75,5 +75,5 @@ export default [
     StatusPageResource,
     IncidentSeverity,
     StatusPageAnnouncement,
-    StatusPageSubscriber
+    StatusPageSubscriber,
 ];

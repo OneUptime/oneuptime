@@ -3,28 +3,33 @@ import Model from 'Model/Models/StatusPageDomain';
 import DatabaseService, { OnCreate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import DomainService from './DomainService';
+import Domain from 'Model/Models/Domain';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
     }
 
-    protected override async onBeforeCreate(createBy: CreateBy<Model>): Promise<OnCreate<Model>> {
-        
-        const domain = await DomainService.findOneBy({
+    protected override async onBeforeCreate(
+        createBy: CreateBy<Model>
+    ): Promise<OnCreate<Model>> {
+        const domain: Domain | null = await DomainService.findOneBy({
             query: {
-                _id: createBy.data.domainId?.toString() || createBy.data.domain?._id || ''
+                _id:
+                    createBy.data.domainId?.toString() ||
+                    createBy.data.domain?._id ||
+                    '',
             },
             populate: {},
-            select: { domain: true }, 
+            select: { domain: true },
             props: {
-                isRoot: true
-            }
-        })
-        
+                isRoot: true,
+            },
+        });
 
         if (domain) {
-            createBy.data.fullDomain = createBy.data.subdomain + '.' + domain.domain; 
+            createBy.data.fullDomain =
+                createBy.data.subdomain + '.' + domain.domain;
         }
 
         return { createBy, carryForward: null };

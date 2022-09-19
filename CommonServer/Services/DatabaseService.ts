@@ -20,11 +20,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import {
-    DataSource,
-    Repository,
-    SelectQueryBuilder,
-} from 'typeorm';
+import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import { EncryptionSecret } from '../Config';
@@ -41,7 +37,9 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
-import ModelPermission from "../Utils/ModelPermission";
+import ModelPermission from '../Utils/ModelPermission';
+import Select from '../Types/Database/Select';
+import Populate from '../Types/Database/Populate';
 
 export interface OnCreate<TBaseModel extends BaseModel> {
     createBy: CreateBy<TBaseModel>;
@@ -65,11 +63,11 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new(): TBaseModel };
+    private entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -343,7 +341,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 createBy.data.getSaveSlugToColumn() as string
             ] = Slug.getSlug(
                 (createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
+                    createBy.data.getSlugifyColumn() as string
                 ] as string
             );
         }
@@ -448,7 +446,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // hash data
         data = await this.hash(data);
 
-        ModelPermission.checkCreatePermissions(this.entityType, data, _createdBy.props);
+        ModelPermission.checkCreatePermissions(
+            this.entityType,
+            data,
+            _createdBy.props
+        );
 
         createBy.data = data;
 
@@ -544,14 +546,20 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 limit = new PositiveNumber(limit);
             }
 
-            let findBy: FindBy<TBaseModel> = {
+            const findBy: FindBy<TBaseModel> = {
                 query,
                 skip,
                 limit,
                 props,
             };
 
-            findBy.query = ModelPermission.checkReadPermission(this.entityType, query, null, null, props).query;
+            findBy.query = ModelPermission.checkReadPermission(
+                this.entityType,
+                query,
+                null,
+                null,
+                props
+            ).query;
 
             const count: number = await this.getRepository().count({
                 where: findBy.query as any,
@@ -583,12 +591,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const onDelete: OnDelete<TBaseModel> = await this.onBeforeDelete(
                 deleteBy
             );
-            let beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
+            const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
             const carryForward: any = onDelete.carryForward;
 
-            beforeDeleteBy.query = ModelPermission.checkDeletePermission(this.entityType, beforeDeleteBy.query, deleteBy.props);
-
+            beforeDeleteBy.query = ModelPermission.checkDeletePermission(
+                this.entityType,
+                beforeDeleteBy.query,
+                deleteBy.props
+            );
 
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeDeleteBy.query,
@@ -643,9 +654,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 };
             }
             const onFind: OnFind<TBaseModel> = await this.onBeforeFind(findBy);
-            let onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
+            const onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
             const carryForward: any = onFind.carryForward;
-
 
             if (
                 !onBeforeFind.select ||
@@ -662,12 +672,21 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (onBeforeFind.select as any)['createdAt'] = true;
             }
 
+            const result: {
+                query: Query<TBaseModel>;
+                select: Select<TBaseModel> | null;
+                populate: Populate<TBaseModel> | null;
+            } = ModelPermission.checkReadPermission(
+                this.entityType,
+                onBeforeFind.query,
+                onBeforeFind.select || null,
+                onBeforeFind.populate || null,
+                onBeforeFind.props
+            );
 
-            const result = ModelPermission.checkReadPermission(this.entityType, onBeforeFind.query, onBeforeFind.select || null, onBeforeFind.populate || null, onBeforeFind.props);
-
-            onBeforeFind.query = result.query; 
-            onBeforeFind.select = result.select || undefined; 
-            onBeforeFind.populate = result.populate || undefined; 
+            onBeforeFind.query = result.query;
+            onBeforeFind.select = result.select || undefined;
+            onBeforeFind.populate = result.populate || undefined;
 
             if (!(onBeforeFind.skip instanceof PositiveNumber)) {
                 onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
@@ -676,7 +695,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (!(onBeforeFind.limit instanceof PositiveNumber)) {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
-
 
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
@@ -731,10 +749,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -775,7 +793,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return items;
     }
 
-
     public async findOneBy(
         findOneBy: FindOneBy<TBaseModel>
     ): Promise<TBaseModel | null> {
@@ -809,10 +826,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const onUpdate: OnUpdate<TBaseModel> = await this.onBeforeUpdate(
                 updateBy
             );
-            let beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
+            const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
             const carryForward: any = onUpdate.carryForward;
 
-            beforeUpdateBy.query = ModelPermission.checkUpdatePermissions(this.entityType, beforeUpdateBy.query, beforeUpdateBy.data, beforeUpdateBy.props);
+            beforeUpdateBy.query = ModelPermission.checkUpdatePermissions(
+                this.entityType,
+                beforeUpdateBy.query,
+                beforeUpdateBy.data,
+                beforeUpdateBy.props
+            );
 
             const data: QueryDeepPartialEntity<TBaseModel> =
                 this.sanitizeCreateOrUpdate(

@@ -323,10 +323,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const fetchItems: Function = async () => {
-
-
         if (isLoading) {
-            return; 
+            return;
         }
 
         setError('');
@@ -411,13 +409,16 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         const selectMoreFields: Array<string> = props.selectMoreFields
             ? Object.keys(props.selectMoreFields)
             : [];
-        
+
         if (props.dragDropIndexField) {
             selectMoreFields.push(props.dragDropIndexField);
         }
 
-
-        if (props.dragDropIdField && !Object.keys(selectFields).includes(props.dragDropIdField) && !selectMoreFields.includes(props.dragDropIdField)) {
+        if (
+            props.dragDropIdField &&
+            !Object.keys(selectFields).includes(props.dragDropIdField) &&
+            !selectMoreFields.includes(props.dragDropIdField)
+        ) {
             selectMoreFields.push(props.dragDropIdField);
         }
 
@@ -464,9 +465,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             PermissionUtil.getProjectPermissions();
 
         if (!userProjectPermissions) {
-            throw new BadDataException(
-                'UserTenantAccessPermissions not found'
-            );
+            throw new BadDataException('UserTenantAccessPermissions not found');
         }
 
         const hasPermissionToCreate: boolean = model.hasCreatePermissions(
@@ -897,7 +896,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 currentPageNumber={currentPageNumber}
                 isLoading={isLoading}
                 enableDragAndDrop={props.enableDragAndDrop}
-                dragDropIdField={"_id"}
+                dragDropIdField={'_id'}
                 dragDropIndexField={props.dragDropIndexField}
                 totalItemsCount={totalItemsCount}
                 data={BaseModel.toJSONObjectArray(data, props.modelType)}
@@ -907,15 +906,18 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 itemsOnPage={itemsOnPage}
                 onDragDrop={async (id: string, newOrder: number) => {
                     if (!props.dragDropIndexField) {
-                        return; 
+                        return;
                     }
-
 
                     setIsLoading(true);
 
-                    await ModelAPI.updateById(props.modelType, new ObjectID(id), {
-                        [props.dragDropIndexField]: newOrder
-                    });
+                    await ModelAPI.updateById(
+                        props.modelType,
+                        new ObjectID(id),
+                        {
+                            [props.dragDropIndexField]: newOrder,
+                        }
+                    );
 
                     fetchItems();
                 }}

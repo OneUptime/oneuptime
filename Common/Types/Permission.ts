@@ -111,7 +111,6 @@ enum Permission {
     CanReadProjectMonitorStatus = 'CanReadProjectMonitorStatus',
     CanDeleteProjectMonitorStatus = 'CanDeleteProjectMonitorStatus',
 
-
     // MonitorStatus Permissions (Owner + Admin Permission by default)
     CanCreateStatusPageAnnouncement = 'CanCreateStatusPageAnnouncement',
     CanEditStatusPageAnnouncement = 'CanEditStatusPageAnnouncement',
@@ -199,22 +198,40 @@ export class PermissionHelper {
     }
 
     public static isAccessControlPermission(permission: Permission): boolean {
-        return this.getAllPermissionProps().filter((item: PermissionProps) => {
-            return item.permission === permission;
-        }).filter((prop: PermissionProps) => {
-            return prop.isAccessControlPermission;
-        }).length > 0;
+        return (
+            this.getAllPermissionProps()
+                .filter((item: PermissionProps) => {
+                    return item.permission === permission;
+                })
+                .filter((prop: PermissionProps) => {
+                    return prop.isAccessControlPermission;
+                }).length > 0
+        );
     }
 
-    public static getNonAccessControlPermissions(userPermissions: Array<UserPermission>): Array<Permission> {
-        return userPermissions.filter((i) => {
-            return i.labelIds.length === 0 || !PermissionHelper.isAccessControlPermission(i.permission)
-        }).map((i) => i.permission)
+    public static getNonAccessControlPermissions(
+        userPermissions: Array<UserPermission>
+    ): Array<Permission> {
+        return userPermissions
+            .filter((i: UserPermission) => {
+                return (
+                    i.labelIds.length === 0 ||
+                    !PermissionHelper.isAccessControlPermission(i.permission)
+                );
+            })
+            .map((i: UserPermission) => {
+                return i.permission;
+            });
     }
 
-    public static getAccessControlPermissions(userPermissions: Array<UserPermission>): Array<UserPermission> {
-        return userPermissions.filter((i) => {
-            return i.labelIds.length > 0 && PermissionHelper.isAccessControlPermission(i.permission)
+    public static getAccessControlPermissions(
+        userPermissions: Array<UserPermission>
+    ): Array<UserPermission> {
+        return userPermissions.filter((i: UserPermission) => {
+            return (
+                i.labelIds.length > 0 &&
+                PermissionHelper.isAccessControlPermission(i.permission)
+            );
         });
     }
 
@@ -498,8 +515,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
             {
                 permission: Permission.CanCreateStatusPageAnnouncement,
                 title: 'Can Create Status Page Announcement',
@@ -533,9 +548,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
             {
                 permission: Permission.CanCreateStatusPageAnnouncement,
                 title: 'Can Create Monitor Status',
@@ -568,7 +580,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateProjectIncidentState,
@@ -1113,9 +1124,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: true,
             },
-
-
-
 
             {
                 permission: Permission.CanCreateStatusPageSubscriber,

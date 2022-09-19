@@ -48,19 +48,19 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Advanced Settings',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                        ] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Advanced Settings',
-                    description:
-                        'Advanced settings for this status page.',
+                    description: 'Advanced settings for this status page.',
                     icon: IconProp.Settings,
                 }}
                 isEditable={true}
@@ -91,8 +91,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-            
-
         </Page>
     );
 };

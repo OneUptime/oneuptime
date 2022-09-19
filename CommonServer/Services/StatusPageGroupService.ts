@@ -1,6 +1,10 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageGroup';
-import DatabaseService, { OnCreate, OnDelete, OnUpdate } from './DatabaseService';
+import DatabaseService, {
+    OnCreate,
+    OnDelete,
+    OnUpdate,
+} from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DeleteBy from '../Types/Database/DeleteBy';
@@ -9,6 +13,7 @@ import UpdateBy from '../Types/Database/UpdateBy';
 import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import PositiveNumber from 'Common/Types/PositiveNumber';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -18,15 +23,14 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
-
-
         if (!createBy.data.statusPageId) {
-            throw new BadDataException('Status Page Group statusPageId is required');
+            throw new BadDataException(
+                'Status Page Group statusPageId is required'
+            );
         }
 
-
         if (!createBy.data.order) {
-            const count = await this.countBy({
+            const count: PositiveNumber = await this.countBy({
                 query: {
                     statusPageId: createBy.data.statusPageId,
                 },
@@ -35,10 +39,9 @@ export class Service extends DatabaseService<Model> {
                 },
             });
 
-            createBy.data.order = count.toNumber() + 1; 
+            createBy.data.order = count.toNumber() + 1;
         }
 
-        
         await this.rearrangeOrder(
             createBy.data.order,
             createBy.data.statusPageId,
@@ -50,7 +53,6 @@ export class Service extends DatabaseService<Model> {
             carryForward: null,
         };
     }
-
 
     protected override async onBeforeDelete(
         deleteBy: DeleteBy<Model>
@@ -90,11 +92,7 @@ export class Service extends DatabaseService<Model> {
         const group: Model | null = onDelete.carryForward;
 
         if (!deleteBy.props.isRoot && group) {
-            if (
-                group &&
-                group.order &&
-                group.statusPageId
-            ) {
+            if (group && group.order && group.statusPageId) {
                 await this.rearrangeOrder(
                     group.order,
                     group.statusPageId,
@@ -112,10 +110,14 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeUpdate(
         updateBy: UpdateBy<Model>
     ): Promise<OnUpdate<Model>> {
-        if (updateBy.data.order && !updateBy.props.isRoot && updateBy.query._id) {
-            const group = await this.findOneBy({
+        if (
+            updateBy.data.order &&
+            !updateBy.props.isRoot &&
+            updateBy.query._id
+        ) {
+            const group: Model | null = await this.findOneBy({
                 query: {
-                    _id: updateBy.query._id!
+                    _id: updateBy.query._id!,
                 },
                 props: {
                     isRoot: true,
@@ -123,19 +125,19 @@ export class Service extends DatabaseService<Model> {
                 select: {
                     order: true,
                     statusPageId: true,
-                    _id: true
+                    _id: true,
                 },
             });
 
-            const currentOrder = group?.order!;
-            const newOrder = updateBy.data.order; 
+            const currentOrder: number = group?.order!;
+            const newOrder: number = updateBy.data.order as number;
 
-            const groups = await this.findBy({
+            const groups: Array<Model> = await this.findBy({
                 query: {
-                    statusPageId: group?.statusPageId! 
+                    statusPageId: group?.statusPageId!,
                 },
                 populate: {},
-                limit: LIMIT_MAX, 
+                limit: LIMIT_MAX,
                 skip: 0,
                 props: {
                     isRoot: true,
@@ -143,49 +145,54 @@ export class Service extends DatabaseService<Model> {
                 select: {
                     order: true,
                     statusPageId: true,
-                    _id: true
+                    _id: true,
                 },
             });
 
             if (currentOrder > newOrder) {
-                // moving up. 
+                // moving up.
 
                 for (const group of groups) {
-                    if (group.order! >= newOrder && group.order! < currentOrder) {
-                        // increment order. 
+                    if (
+                        group.order! >= newOrder &&
+                        group.order! < currentOrder
+                    ) {
+                        // increment order.
                         await this.updateBy({
                             query: {
-                                _id: group._id!
+                                _id: group._id!,
                             },
                             data: {
-                                order: group.order! + 1
+                                order: group.order! + 1,
                             },
                             props: {
-                                isRoot: true
-                            }
-                        })
+                                isRoot: true,
+                            },
+                        });
                     }
                 }
-                
             }
 
             if (newOrder > currentOrder) {
-                // moving down. 
+                // moving down.
 
                 for (const group of groups) {
-                    if (group.order! < newOrder && group.order! >= currentOrder) {
-                        // increment order. 
+                    if (
+                        group.order! < newOrder &&
+                        group.order! >= currentOrder
+                    ) {
+                        // increment order.
                         await this.updateBy({
                             query: {
-                                _id: group._id!
+                                _id: group._id!,
                             },
                             data: {
-                                order: group.order! - 1
+                                order: group.order! - 1,
                             },
                             props: {
-                                isRoot: true
-                            }
-                        })
+                                isRoot: true,
+                            },
+                        });
                     }
                 }
             }
@@ -241,7 +248,5 @@ export class Service extends DatabaseService<Model> {
             });
         }
     }
-
-
 }
 export default new Service();

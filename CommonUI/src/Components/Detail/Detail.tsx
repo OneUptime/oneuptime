@@ -46,9 +46,9 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 
         if (field.fieldType === FieldType.Boolean) {
             if (data) {
-                data = "Yes"
+                data = 'Yes';
             } else {
-                data = "No"
+                data = 'No';
             }
         }
 

@@ -556,7 +556,6 @@ export default class StatusPage extends BaseModel {
     })
     public customJavaScript?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -575,7 +574,6 @@ export default class StatusPage extends BaseModel {
         default: false,
     })
     public isPublicStatusPage?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [

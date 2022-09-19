@@ -231,11 +231,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             permission: true,
                         },
                         onChange: async (_value: any, form: any) => {
-                            await form.setFieldValue(
-                                'labels',
-                                [],
-                                true
-                            );
+                            await form.setFieldValue('labels', [], true);
                         },
                         title: 'Permission',
                         fieldType: FormFieldSchemaType.Dropdown,
@@ -257,17 +253,23 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             labelField: 'name',
                             valueField: '_id',
                         },
-                        showIf: (values: FormValues<TeamPermission>): boolean => {
-
+                        showIf: (
+                            values: FormValues<TeamPermission>
+                        ): boolean => {
                             if (!values['permission']) {
                                 return false;
                             }
 
-                            if (values['permission'] && !PermissionHelper.isAccessControlPermission(values['permission'] as Permission)) {
-                                return false; 
+                            if (
+                                values['permission'] &&
+                                !PermissionHelper.isAccessControlPermission(
+                                    values['permission'] as Permission
+                                )
+                            ) {
+                                return false;
                             }
 
-                            return true; 
+                            return true;
                         },
                         required: false,
                         placeholder: 'Labels',
@@ -313,9 +315,19 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             value: '_id',
                         },
                         getElement: (item: JSONObject): ReactElement => {
-
-                            if (item && item['permission'] && !PermissionHelper.isAccessControlPermission(item['permission'] as Permission)) {
-                                return <p>Labels can not be attached to this permission.</p>
+                            if (
+                                item &&
+                                item['permission'] &&
+                                !PermissionHelper.isAccessControlPermission(
+                                    item['permission'] as Permission
+                                )
+                            ) {
+                                return (
+                                    <p>
+                                        Labels can not be attached to this
+                                        permission.
+                                    </p>
+                                );
                             }
 
                             return (

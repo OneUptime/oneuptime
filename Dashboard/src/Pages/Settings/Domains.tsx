@@ -57,7 +57,6 @@ const Domains: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            
             <ModelTable<Domain>
                 modelType={Domain}
                 query={{

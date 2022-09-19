@@ -57,12 +57,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
             <ModelTable<StatusPageDomain>
                 modelType={StatusPageDomain}
                 query={{
                     projectId: props.currentProject?._id,
-                    statusPageId: modelId
+                    statusPageId: modelId,
                 }}
                 id="domains-table"
                 isDeleteable={true}
@@ -125,10 +124,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                         isFilterable: true,
-                    }
+                    },
                 ]}
             />
-
         </Page>
     );
 };

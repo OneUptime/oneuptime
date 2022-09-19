@@ -1,4 +1,12 @@
-import { Column, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne } from 'typeorm';
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+} from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import User from './User';
 import Project from './Project';
@@ -19,13 +27,19 @@ import StatusPage from './StatusPage';
 
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+    create: [
+        Permission.ProjectOwner,
+        Permission.CanCreateStatusPageAnnouncement,
+    ],
     read: [
         Permission.ProjectOwner,
         Permission.CanReadStatusPageAnnouncement,
         Permission.ProjectMember,
     ],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageAnnouncement],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.CanDeleteStatusPageAnnouncement,
+    ],
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
 })
 @CrudApiEndpoint(new Route('/status-page-announcement'))
@@ -36,7 +50,10 @@ import StatusPage from './StatusPage';
 })
 export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
@@ -64,7 +81,10 @@ export default class StatusPageAnnouncement extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
@@ -81,9 +101,11 @@ export default class StatusPageAnnouncement extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
@@ -116,13 +138,19 @@ export default class StatusPageAnnouncement extends BaseModel {
     public statusPages?: Array<StatusPage> = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditStatusPageAnnouncement,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -132,16 +160,25 @@ export default class StatusPageAnnouncement extends BaseModel {
     })
     public title?: string = undefined;
 
-
-    @TableColumn({ title: 'Show At', type: TableColumnType.Date, required: true })
+    @TableColumn({
+        title: 'Show At',
+        type: TableColumnType.Date,
+        required: true,
+    })
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditStatusPageAnnouncement,
+        ],
     })
     @Column({
         nullable: false,
@@ -149,15 +186,25 @@ export default class StatusPageAnnouncement extends BaseModel {
     })
     public showAnnouncementAt?: Date = undefined;
 
-    @TableColumn({ title: 'End At', type: TableColumnType.Date, required: true })
+    @TableColumn({
+        title: 'End At',
+        type: TableColumnType.Date,
+        required: true,
+    })
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditStatusPageAnnouncement,
+        ],
     })
     @Column({
         nullable: false,
@@ -166,13 +213,19 @@ export default class StatusPageAnnouncement extends BaseModel {
     public endAnnouncementAt?: Date = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
             Permission.ProjectMember,
         ],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditStatusPageAnnouncement,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.Markdown })
     @Column({
@@ -182,7 +235,10 @@ export default class StatusPageAnnouncement extends BaseModel {
     public description?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
@@ -210,7 +266,10 @@ export default class StatusPageAnnouncement extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageAnnouncement],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,

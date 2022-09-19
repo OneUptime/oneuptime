@@ -15,7 +15,6 @@ import StatusPage from 'Model/Models/StatusPage';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
-
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -23,8 +22,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         Navigation.getLastParam(1)?.toString().substring(1) || ''
     );
 
-
-    const statusPage = new StatusPage();
+    const statusPage: StatusPage = new StatusPage();
     statusPage.id = modelId;
 
     return (
@@ -55,14 +53,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Announcements',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                        ] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
             <ModelTable<StatusPageAnnouncement>
                 modelType={StatusPageAnnouncement}
                 id="table-status-page-note"
@@ -81,7 +80,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         throw new BadDataException('Project ID cannot be null');
                     }
 
-                    const statusPage = new StatusPage();
+                    const statusPage: StatusPage = new StatusPage();
                     statusPage.id = modelId;
 
                     item.statusPages = [statusPage];
@@ -94,60 +93,49 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here are announcements this status page. This will show up on the status page.',
                 }}
-                noItemsMessage={
-                    'No announcements found.'
-                }
+                noItemsMessage={'No announcements found.'}
                 formFields={[
                     {
                         field: {
                             title: true,
                         },
                         title: 'Announcement Title',
-                        description:
-                            'Title of announcemnet',
+                        description: 'Title of announcemnet',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder:
-                            'Title',
+                        placeholder: 'Title',
                     },
                     {
                         field: {
                             description: true,
                         },
                         title: 'Description',
-                        description:
-                            'This is in markdown.',
+                        description: 'This is in markdown.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
-                        placeholder:
-                            'Add a announcement note.',
+                        placeholder: 'Add a announcement note.',
                     },
                     {
                         field: {
                             showAnnouncementAt: true,
                         },
                         title: 'Start Showing Announcement At',
-                        description:
-                            'This is in your local timezone',
+                        description: 'This is in your local timezone',
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
-                        placeholder:
-                            'Pick Date and Time',
+                        placeholder: 'Pick Date and Time',
                     },
                     {
                         field: {
                             endAnnouncementAt: true,
                         },
                         title: 'End Showing Announcement At',
-                        description:
-                            'This is in your local timezone',
+                        description: 'This is in your local timezone',
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
-                        placeholder:
-                            'Pick Date and Time',
+                        placeholder: 'Pick Date and Time',
                     },
                 ]}
-
                 showRefreshButton={true}
                 viewPageRoute={props.pageRoute}
                 columns={[
@@ -174,7 +162,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-
         </Page>
     );
 };

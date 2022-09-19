@@ -51,7 +51,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Email Subscribers',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                        ] as Route,
                         modelId
                     ),
                 },
@@ -66,7 +68,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 isEditable={false}
                 isViewable={false}
                 selectMoreFields={{
-                    subscriberPhone: true
+                    subscriberPhone: true,
                 }}
                 query={{
                     statusPageId: modelId,
@@ -80,7 +82,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         throw new BadDataException('Project ID cannot be null');
                     }
 
-
                     item.statusPageId = modelId;
                     item.projectId = props.currentProject.id;
                     return Promise.resolve(item);
@@ -91,9 +92,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     description:
                         'Here are the list of subscribers who have subscribed to the status page.',
                 }}
-                noItemsMessage={
-                    'No subscribers found.'
-                }
+                noItemsMessage={'No subscribers found.'}
                 formFields={[
                     {
                         field: {
@@ -104,12 +103,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             'An email will be sent to this email for status page updates.',
                         fieldType: FormFieldSchemaType.Email,
                         required: true,
-                        placeholder:
-                            'subscriber@company.com',
+                        placeholder: 'subscriber@company.com',
                     },
-                    
                 ]}
-
                 showRefreshButton={true}
                 viewPageRoute={props.pageRoute}
                 columns={[
@@ -119,7 +115,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Email',
                         type: FieldType.Email,
-                    }
+                    },
                 ]}
             />
         </Page>

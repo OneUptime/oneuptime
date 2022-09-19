@@ -107,9 +107,16 @@ const Table: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <DragDropContext onDragEnd={(result: DropResult) => {
-            result.destination?.index && props.onDragDrop && props.onDragDrop(result.draggableId, result.destination.index);
-        }}>
+        <DragDropContext
+            onDragEnd={(result: DropResult) => {
+                result.destination?.index &&
+                    props.onDragDrop &&
+                    props.onDragDrop(
+                        result.draggableId,
+                        result.destination.index
+                    );
+            }}
+        >
             <div className="table-responsive">
                 <table className="table mb-0 table">
                     <TableHeader
@@ -121,7 +128,9 @@ const Table: FunctionComponent<ComponentProps> = (
                         isTableFilterLoading={props.isTableFilterLoading}
                         filterError={props.filterError}
                         enableDragAndDrop={props.enableDragAndDrop}
-                        onTableFilterRefreshClick={props.onTableFilterRefreshClick}
+                        onTableFilterRefreshClick={
+                            props.onTableFilterRefreshClick
+                        }
                     />
                     {getTablebody()}
                 </table>
