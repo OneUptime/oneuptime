@@ -5,6 +5,7 @@ import SelectFormFields from '../../../Types/SelectEntityField';
 import { DropdownOption } from '../../Dropdown/Dropdown';
 import BaseModel from 'Common/Models/BaseModel';
 import MimeType from 'Common/Types/File/MimeType';
+import FormValues from './FormValues';
 
 export default interface Field<TEntity> {
     title?: string;
@@ -15,7 +16,7 @@ export default interface Field<TEntity> {
     required?: boolean;
     dropdownOptions?: Array<DropdownOption> | undefined;
     dropdownModal?: {
-        type: { new (): BaseModel };
+        type: { new(): BaseModel };
         labelField: string;
         valueField: string;
     };
@@ -34,6 +35,8 @@ export default interface Field<TEntity> {
         maxValue?: number;
         dateShouldBeInTheFuture?: boolean;
     };
+    showIf?: ((item: FormValues<TEntity>) => boolean) | undefined;
+    onChange?: ((value: any, form: any) => void) | undefined;
     fieldType?: FormFieldSchemaType;
     overideFieldKey?: string;
 }

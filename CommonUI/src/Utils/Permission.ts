@@ -36,7 +36,7 @@ export default class PermissionUtil {
 
     public static projectPermissionsAsDropdownOptions(): Array<DropdownOption> {
         const permissions: Array<PermissionProps> =
-            PermissionHelper.getProjectPermissionProps();
+            PermissionHelper.getTenantPermissionProps();
 
         return permissions.map((permissionProp: PermissionProps) => {
             return {

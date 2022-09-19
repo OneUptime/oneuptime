@@ -24,6 +24,7 @@ import UserElement from '../../Components/User/User';
 import User from 'Model/Models/User';
 import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -229,6 +230,13 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             permission: true,
                         },
+                        onChange: async (_value: any, form: any) => {
+                            await form.setFieldValue(
+                                'labels',
+                                [],
+                                true
+                            );
+                        },
                         title: 'Permission',
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
@@ -248,6 +256,18 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             type: Label,
                             labelField: 'name',
                             valueField: '_id',
+                        },
+                        showIf: (values: FormValues<TeamPermission>): boolean => {
+
+                            if (!values['permission']) {
+                                return false;
+                            }
+
+                            if (values['permission'] && !PermissionHelper.isAccessControlPermission(values['permission'] as Permission)) {
+                                return false; 
+                            }
+
+                            return true; 
                         },
                         required: false,
                         placeholder: 'Labels',
