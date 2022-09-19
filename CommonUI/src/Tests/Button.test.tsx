@@ -35,7 +35,7 @@ describe('Tests for Button.tsx', () => {
     test('button should be clickable', () => {
         render(
             <Button title='buttonName'
-            />
+              />
         );
         const button=screen.getByRole("button",{name:'buttonName'})
         fireEvent.click(button)
@@ -45,7 +45,7 @@ describe('Tests for Button.tsx', () => {
 
     test('Checking if button is  Normal', () => {
         render(
-            <Button
+            <Button 
             buttonStyle={ButtonStyleType.NORMAL}
             />
         );

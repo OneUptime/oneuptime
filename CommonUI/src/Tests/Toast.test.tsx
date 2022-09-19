@@ -85,7 +85,7 @@ describe('Test for Toast.tsx', () => {
         );
         expect(screen.getByTestId('toast-status')).toHaveClass('text-info');
     });
-
+    
     test('Checking if Toast is for Warning', () => {
         const date: Date = new Date();
         render(
