@@ -12,7 +12,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import UserType from 'Common/Types/UserType';
 import {
     UserGlobalAccessPermission,
-    UserProjectAccessPermission,
+    UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import AccessTokenService from '../Services/AccessTokenService';
 import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
@@ -104,22 +104,22 @@ export default class UserMiddleware {
 
         if (tenantId) {
             // get project level permissions if projectid exists in request.
-            let userProjectAccessPermission: UserProjectAccessPermission | null =
-                await AccessTokenService.getUserProjectAccessPermission(
+            let userTenantAccessPermission: UserTenantAccessPermission | null =
+                await AccessTokenService.getUserTenantAccessPermission(
                     oneuptimeRequest.userAuthorization.userId,
                     tenantId
                 );
-            if (!userProjectAccessPermission) {
-                userProjectAccessPermission =
-                    await AccessTokenService.refreshUserProjectAccessPermission(
+            if (!userTenantAccessPermission) {
+                userTenantAccessPermission =
+                    await AccessTokenService.refreshUserTenantAccessPermission(
                         oneuptimeRequest.userAuthorization.userId,
                         tenantId
                     );
             }
 
-            if (userProjectAccessPermission) {
-                oneuptimeRequest.userProjectAccessPermission =
-                    userProjectAccessPermission;
+            if (userTenantAccessPermission) {
+                oneuptimeRequest.userTenantAccessPermission =
+                    userTenantAccessPermission;
             }
         }
 
@@ -151,10 +151,10 @@ export default class UserMiddleware {
         }
 
         // set project permissions hash.
-        if (oneuptimeRequest.userProjectAccessPermission) {
+        if (oneuptimeRequest.userTenantAccessPermission) {
             const projectValue: string = JSON.stringify(
                 JSONFunctions.serialize(
-                    oneuptimeRequest.userProjectAccessPermission
+                    oneuptimeRequest.userTenantAccessPermission
                 )
             );
             const projectPermissionsHash: string = await HashedString.hashValue(

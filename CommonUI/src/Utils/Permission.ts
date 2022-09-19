@@ -4,7 +4,7 @@ import {
     PermissionHelper,
     PermissionProps,
     UserGlobalAccessPermission,
-    UserProjectAccessPermission,
+    UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import { DropdownOption } from '../Components/Dropdown/Dropdown';
 
@@ -20,7 +20,7 @@ export default class PermissionUtil {
         return globalPermissions as UserGlobalAccessPermission;
     }
 
-    public static getProjectPermissions(): UserProjectAccessPermission | null {
+    public static getProjectPermissions(): UserTenantAccessPermission | null {
         if (!LocalStorage.getItem('project_permissions')) {
             return null;
         }
@@ -28,10 +28,10 @@ export default class PermissionUtil {
             'project_permissions'
         ) as JSONObject;
 
-        const userProjectAccessPermission: UserProjectAccessPermission =
-            permissions as UserProjectAccessPermission;
-        userProjectAccessPermission._type = 'UserProjectAccessPermission';
-        return userProjectAccessPermission;
+        const userTenantAccessPermission: UserTenantAccessPermission =
+            permissions as UserTenantAccessPermission;
+        userTenantAccessPermission._type = 'UserTenantAccessPermission';
+        return userTenantAccessPermission;
     }
 
     public static projectPermissionsAsDropdownOptions(): Array<DropdownOption> {
@@ -53,7 +53,7 @@ export default class PermissionUtil {
     }
 
     public static setProjectPermissions(
-        permissions: UserProjectAccessPermission
+        permissions: UserTenantAccessPermission
     ): void {
         LocalStorage.setItem('project_permissions', permissions);
     }

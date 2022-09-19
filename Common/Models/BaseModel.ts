@@ -23,10 +23,10 @@ import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
 import Permission, {
-    instaceOfUserProjectAccessPermission,
+    instaceOfUserTenantAccessPermission,
     PermissionHelper,
     UserPermission,
-    UserProjectAccessPermission,
+    UserTenantAccessPermission,
 } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
@@ -514,7 +514,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public hasCreatePermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         columnName?: string
     ): boolean {
         let modelPermission: Array<Permission> = this.createRecordPermissions;
@@ -531,7 +531,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public hasReadPermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         columnName?: string
     ): boolean {
         let modelPermission: Array<Permission> = this.readRecordPermissions;
@@ -548,14 +548,14 @@ export default class BaseModel extends BaseEntity {
     }
 
     public hasDeletePermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>
     ): boolean {
         const modelPermission: Array<Permission> = this.deleteRecordPermissions;
         return this.hasPermissions(userProjectPermissions, modelPermission);
     }
 
     public hasUpdatePermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         columnName?: string
     ): boolean {
         let modelPermission: Array<Permission> = this.updateRecordPermissions;
@@ -572,12 +572,12 @@ export default class BaseModel extends BaseEntity {
     }
 
     private hasPermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         modelPermissions: Array<Permission>
     ): boolean {
         let userPermissions: Array<Permission> = [];
 
-        if (instaceOfUserProjectAccessPermission(userProjectPermissions)) {
+        if (instaceOfUserTenantAccessPermission(userProjectPermissions)) {
             userPermissions = userProjectPermissions.permissions.map(
                 (item: UserPermission) => {
                     return item.permission;

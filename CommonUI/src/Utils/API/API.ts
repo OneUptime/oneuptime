@@ -14,7 +14,7 @@ import PermissionUtil from '../Permission';
 import { JSONFunctions } from 'Common/Types/JSON';
 import {
     UserGlobalAccessPermission,
-    UserProjectAccessPermission,
+    UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import LocalStorage from '../LocalStorage';
 
@@ -49,7 +49,7 @@ class BaseAPI extends API {
             PermissionUtil.setProjectPermissions(
                 JSONFunctions.deserialize(
                     JSON.parse(headers['project-permissions'])
-                ) as UserProjectAccessPermission
+                ) as UserTenantAccessPermission
             );
         }
 

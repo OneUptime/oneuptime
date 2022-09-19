@@ -313,6 +313,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             value: '_id',
                         },
                         getElement: (item: JSONObject): ReactElement => {
+
+                            if (item && item['permission'] && !PermissionHelper.isAccessControlPermission(item['permission'] as Permission)) {
+                                return <p>Labels can not be attached to this permission.</p>
+                            }
+
                             return (
                                 <LabelsElement
                                     labels={

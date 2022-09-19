@@ -7,8 +7,8 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 
 export default interface FindOneBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
-    select?: Select<TBaseModel>;
-    populate?: Populate<TBaseModel>;
-    sort?: Sort<TBaseModel>;
+    select?: Select<TBaseModel> | undefined;
+    populate?: Populate<TBaseModel> | undefined;
+    sort?: Sort<TBaseModel> | undefined;
     props: DatabaseCommonInteractionProps;
 }

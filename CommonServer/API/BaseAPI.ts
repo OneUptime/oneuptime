@@ -149,7 +149,7 @@ export default class BaseAPI<
         const props: DatabaseCommonInteractionProps = {
             tenantId: undefined,
             userGlobalAccessPermission: undefined,
-            userProjectAccessPermission: undefined,
+            userTenantAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
             isMultiTenantRequest: undefined,
@@ -168,10 +168,10 @@ export default class BaseAPI<
             ).userGlobalAccessPermission;
         }
 
-        if ((req as OneUptimeRequest).userProjectAccessPermission) {
-            props.userProjectAccessPermission = (
+        if ((req as OneUptimeRequest).userTenantAccessPermission) {
+            props.userTenantAccessPermission = (
                 req as OneUptimeRequest
-            ).userProjectAccessPermission;
+            ).userTenantAccessPermission;
         }
 
         if ((req as OneUptimeRequest).tenantId) {

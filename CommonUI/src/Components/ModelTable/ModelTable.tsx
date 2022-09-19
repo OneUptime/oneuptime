@@ -28,7 +28,7 @@ import ConfirmModal from '../Modal/ConfirmModal';
 import Permission, {
     PermissionHelper,
     UserPermission,
-    UserProjectAccessPermission,
+    UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
@@ -460,12 +460,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const setHeaderButtons: Function = (): void => {
         // add header buttons.
         const headerbuttons: Array<CardButtonSchema> = [];
-        const userProjectPermissions: UserProjectAccessPermission | null =
+        const userProjectPermissions: UserTenantAccessPermission | null =
             PermissionUtil.getProjectPermissions();
 
         if (!userProjectPermissions) {
             throw new BadDataException(
-                'UserProjectAccessPermissions not found'
+                'UserTenantAccessPermissions not found'
             );
         }
 
@@ -670,7 +670,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        const userProjectPermissions: UserProjectAccessPermission | null =
+        const userProjectPermissions: UserTenantAccessPermission | null =
             PermissionUtil.getProjectPermissions();
 
         if (
@@ -694,7 +694,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     }, []);
 
     const setActionSchema: Function = () => {
-        const userProjectPermissions: UserProjectAccessPermission | null =
+        const userProjectPermissions: UserTenantAccessPermission | null =
             PermissionUtil.getProjectPermissions();
 
         const actionsSchema: Array<ActionButtonSchema> = [];

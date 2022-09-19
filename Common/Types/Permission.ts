@@ -22,7 +22,7 @@ enum Permission {
 
     User = 'User', //registered user. Can or cannot belong to a project.
 
-    LoggedInUser = 'LoggedInUser', // Current logged in user.
+    CurrentUser = 'CurrentUser', // Current logged in user.
 
     CustomerSupport = 'CustomerSupport', // Customer Support for OneUptime.
 
@@ -206,6 +206,18 @@ export class PermissionHelper {
         }).length > 0;
     }
 
+    public static getNonAccessControlPermissions(userPermissions: Array<UserPermission>): Array<Permission> {
+        return userPermissions.filter((i) => {
+            return i.labelIds.length === 0 || !PermissionHelper.isAccessControlPermission(i.permission)
+        }).map((i) => i.permission)
+    }
+
+    public static getAccessControlPermissions(userPermissions: Array<UserPermission>): Array<UserPermission> {
+        return userPermissions.filter((i) => {
+            return i.labelIds.length > 0 && PermissionHelper.isAccessControlPermission(i.permission)
+        });
+    }
+
     public static getDescription(permission: Permission): string {
         const permissionProps: Array<PermissionProps> =
             this.getAllPermissionProps().filter((item: PermissionProps) => {
@@ -284,7 +296,7 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.LoggedInUser,
+                permission: Permission.CurrentUser,
                 title: 'Logged in User',
                 description:
                     'This permission is assigned to any registered user.',
@@ -1155,8 +1167,8 @@ export interface UserPermission extends JSONObject {
     labelIds: Array<ObjectID>;
 }
 
-export interface UserProjectAccessPermission extends JSONObject {
-    _type: 'UserProjectAccessPermission';
+export interface UserTenantAccessPermission extends JSONObject {
+    _type: 'UserTenantAccessPermission';
     projectId: ObjectID;
     permissions: Array<UserPermission>;
 }
@@ -1165,10 +1177,10 @@ export const PermissionsArray: Array<string> = [
     ...new Set(Object.keys(Permission)),
 ]; // Returns ["Owner", "Administrator"...]
 
-export function instaceOfUserProjectAccessPermission(
+export function instaceOfUserTenantAccessPermission(
     object: any
-): object is UserProjectAccessPermission {
-    return object._type === 'UserProjectAccessPermission';
+): object is UserTenantAccessPermission {
+    return object._type === 'UserTenantAccessPermission';
 }
 
 export function instaceOfUserPermission(object: any): object is UserPermission {

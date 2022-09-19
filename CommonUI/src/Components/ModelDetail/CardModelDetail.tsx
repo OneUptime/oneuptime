@@ -1,7 +1,7 @@
 import {
     PermissionHelper,
     UserPermission,
-    UserProjectAccessPermission,
+    UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import React, { ReactElement, useEffect, useState } from 'react';
 import PermissionUtil from '../../Utils/Permission';
@@ -34,7 +34,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
     const model: TBaseModel = new props.modelDetailProps.modelType();
 
     useEffect(() => {
-        const userProjectPermissions: UserProjectAccessPermission | null =
+        const userProjectPermissions: UserTenantAccessPermission | null =
             PermissionUtil.getProjectPermissions();
 
         const hasPermissionToEdit: boolean = Boolean(

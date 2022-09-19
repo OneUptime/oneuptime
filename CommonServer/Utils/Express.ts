@@ -6,7 +6,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import {
     UserGlobalAccessPermission,
-    UserProjectAccessPermission,
+    UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import UserType from 'Common/Types/UserType';
 
@@ -35,7 +35,7 @@ export interface OneUptimeRequest extends express.Request {
     userAuthorization?: JSONWebTokenData;
     tenantId?: ObjectID;
     userGlobalAccessPermission?: UserGlobalAccessPermission;
-    userProjectAccessPermission?: UserProjectAccessPermission;
+    userTenantAccessPermission?: UserTenantAccessPermission;
 }
 
 export interface OneUptimeResponse extends express.Response {
