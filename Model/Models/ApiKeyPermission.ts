@@ -21,7 +21,6 @@ import Label from './Label';
 import ApiKey from './ApiKey';
 import Project from './Project';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';

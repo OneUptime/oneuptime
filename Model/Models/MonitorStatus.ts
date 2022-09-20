@@ -295,7 +295,7 @@ export default class MonitorStatus extends BaseModel {
             Permission.CanEditProjectMonitorStatus,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, canReadOnPopulate: true })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -317,7 +317,7 @@ export default class MonitorStatus extends BaseModel {
             Permission.CanEditProjectMonitorStatus,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean, canReadOnPopulate: true })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -339,7 +339,7 @@ export default class MonitorStatus extends BaseModel {
             Permission.CanEditProjectMonitorStatus,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number, canReadOnPopulate: true })
     @Column({
         type: ColumnType.Number,
     })

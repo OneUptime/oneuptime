@@ -268,6 +268,7 @@ export default class IncidentState extends BaseModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
+        canReadOnPopulate: true
     })
     @Column({
         type: ColumnType.Color,
@@ -293,7 +294,7 @@ export default class IncidentState extends BaseModel {
             Permission.CanEditProjectIncidentState,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Boolean, canReadOnPopulate: true })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -315,7 +316,7 @@ export default class IncidentState extends BaseModel {
             Permission.CanEditProjectIncidentState,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Boolean, canReadOnPopulate: true })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -337,7 +338,7 @@ export default class IncidentState extends BaseModel {
             Permission.CanEditProjectIncidentState,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Boolean })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Boolean, canReadOnPopulate: true })
     @Column({
         type: ColumnType.Boolean,
         default: false,
@@ -363,6 +364,7 @@ export default class IncidentState extends BaseModel {
     @TableColumn({
         isDefaultValueColumn: false,
         type: TableColumnType.SmallNumber,
+        canReadOnPopulate: true
     })
     @Column({
         type: ColumnType.SmallNumber,

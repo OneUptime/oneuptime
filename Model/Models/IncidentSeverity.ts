@@ -238,6 +238,7 @@ export default class IncidentSeverity extends BaseModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
+        canReadOnPopulate: true
     })
     @Column({
         type: ColumnType.Color,

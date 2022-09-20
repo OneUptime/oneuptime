@@ -198,13 +198,6 @@ export default class ModelPermission {
         return { query, select, populate };
     }
 
-    private static async checkCanAccessIfCanReadOn<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
-        query: Query<TBaseModel>
-    ): Query<TBaseModel> { 
-        
-    }
-
     private static serializeQuery<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>
@@ -446,6 +439,13 @@ export default class ModelPermission {
             return i.permission;
         });
 
+        const excludedColumns: Array<string> = [
+            '_id',
+            'createdAt',
+            'deletedAt',
+            'updatedAt',
+        ];
+
         for (const key in populate) {
             if (typeof populate[key] === Typeof.Object) {
                 const tableColumnMetadata: TableColumnMetadata =
@@ -489,7 +489,7 @@ export default class ModelPermission {
                             );
                         }
 
-                        if (!getRelatedTableColumnMetadata.canReadOnPopulate) {
+                        if (!getRelatedTableColumnMetadata.canReadOnPopulate && !excludedColumns.includes(innerKey)) {
                             throw new BadDataException(
                                 `Column ${innerKey} on ${relatedModel.singularName} does not support read on populate.`
                             );

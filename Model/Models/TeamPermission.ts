@@ -17,7 +17,6 @@ import ColumnType from 'Common/Types/Database/ColumnType';
 import ObjectID from 'Common/Types/ObjectID';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import Permission from 'Common/Types/Permission';
-import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import Label from './Label';
 import Team from './Team';
 import Project from './Project';
