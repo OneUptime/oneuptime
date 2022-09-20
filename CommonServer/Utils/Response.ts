@@ -6,7 +6,7 @@ import {
     ExpressRequest,
     OneUptimeResponse,
 } from './Express';
-import { JSONObject, JSONArray, JSONObjectOrArray } from 'Common/Types/JSON';
+import { JSONObject, JSONArray, JSONObjectOrArray, JSONFunctions } from 'Common/Types/JSON';
 import { File } from 'Common/Types/File';
 import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
@@ -132,7 +132,7 @@ export default class Response {
         return this.sendJsonArrayResponse(
             req,
             res,
-            BaseModel.toJSONArray(list as Array<BaseModel>, modelType),
+            JSONFunctions.serializeArray(BaseModel.toJSONArray(list as Array<BaseModel>, modelType)),
             count
         );
     }
@@ -146,7 +146,7 @@ export default class Response {
         return this.sendJsonObjectResponse(
             req,
             res,
-            item ? BaseModel.toJSONObject(item, modelType) : {}
+            item ? JSONFunctions.serialize(BaseModel.toJSONObject(item, modelType)) : {}
         );
     }
 
