@@ -121,8 +121,20 @@ export default class ModelPermission {
             requestType
         );
 
+        const excludedColumns: Array<string> = ModelPermission.getExcludedColumns();
+        const tableColumns: Array<string> = model.getTableColumns().columns;
+
         for (const key of Object.keys(data)) {
-            if (!permissionColumns.columns.includes(key)) {
+
+            if ((data as any)[key] === undefined) {
+                continue;
+            }
+
+            if (excludedColumns.includes(key)) {
+                continue; 
+            }
+
+            if (!permissionColumns.columns.includes(key) && tableColumns.includes(key)) {
                 throw new BadDataException(
                     `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`
                 );
@@ -439,12 +451,7 @@ export default class ModelPermission {
             return i.permission;
         });
 
-        const excludedColumns: Array<string> = [
-            '_id',
-            'createdAt',
-            'deletedAt',
-            'updatedAt',
-        ];
+        const excludedColumns: Array<string> = ModelPermission.getExcludedColumns();
 
         for (const key in populate) {
             if (typeof populate[key] === Typeof.Object) {
@@ -539,6 +546,16 @@ export default class ModelPermission {
         }
     }
 
+    private static getExcludedColumns(): string[] {
+        return [
+            '_id',
+            'createdAt',
+            'deletedAt',
+            'updatedAt',
+            'version'
+        ];
+    }
+
     private static checkQueryPermission<TBaseModel extends BaseModel>(
         modelType: { new (): BaseModel },
         query: Query<TBaseModel>,
@@ -558,12 +575,7 @@ export default class ModelPermission {
 
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
-        const excludedColumns: Array<string> = [
-            '_id',
-            'createdAt',
-            'deletedAt',
-            'updatedAt',
-        ];
+        const excludedColumns: Array<string> = ModelPermission.getExcludedColumns();;
 
         // Now we need to check all columns.
 
@@ -696,12 +708,7 @@ export default class ModelPermission {
 
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
-        const excludedColumns: Array<string> = [
-            '_id',
-            'createdAt',
-            'deletedAt',
-            'updatedAt',
-        ];
+        const excludedColumns: Array<string> = ModelPermission.getExcludedColumns();;
 
         for (const key in select) {
             if (excludedColumns.includes(key)) {

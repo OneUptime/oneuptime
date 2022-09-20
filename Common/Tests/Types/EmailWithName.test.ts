@@ -1,7 +1,7 @@
 import Email from '../../Types/Email';
 import EmailWithName from '../../Types/EmailWithName';
 import BadDataException from '../../Types/Exception/BadDataException';
-import Faker from '../TestingUtils/Faker';
+import Faker from '../../Utils/Faker';
 
 describe('class EmailWithName', () => {
     test('new EmailWithName() should return valid object if valid name and email is given', () => {

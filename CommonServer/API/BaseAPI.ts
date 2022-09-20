@@ -18,9 +18,9 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../Types/Database/Populate';
+import PartialEntity from 'Common/Types/Database/PartialEntity';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -335,10 +335,10 @@ export default class BaseAPI<
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
-        const item: QueryDeepPartialEntity<TBaseModel> =
+        const item: PartialEntity<TBaseModel> =
             JSONFunctions.deserialize(
                 body['data'] as JSONObject
-            ) as QueryDeepPartialEntity<TBaseModel>;
+            ) as PartialEntity<TBaseModel>;
 
         delete item['_id'];
         delete item['createdAt'];

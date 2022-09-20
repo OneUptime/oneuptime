@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
-import Email from '../../Types/Email';
-import Name from '../../Types/Name';
-import Phone from '../../Types/Phone';
+import Email from '../Types/Email';
+import Name from '../Types/Name';
+import Phone from '../Types/Phone';
 
 export default class Faker {
     public static generateName(): string {

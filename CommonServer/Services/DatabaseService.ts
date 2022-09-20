@@ -339,10 +339,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
         if (createBy.data.getSlugifyColumn()) {
             (createBy.data as any)[
                 createBy.data.getSaveSlugToColumn() as string
-            ] = Slug.getSlug(
+            ] = Slug.getSlug((createBy.data as any)[
+                createBy.data.getSlugifyColumn() as string
+            ] ? 
                 (createBy.data as any)[
                     createBy.data.getSlugifyColumn() as string
-                ] as string
+                ] as string : null
             );
         }
 
@@ -425,7 +427,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         _createdBy = this.generateSlug(_createdBy);
 
+        debugger;
+
         let data: TBaseModel = _createdBy.data;
+
+        console.log("HERE");
+        console.log(BaseModel.toJSON(data, this.entityType));
 
         // add tenantId if present.
         const tenantColumnName: string | null = data.getTenantColumn();
