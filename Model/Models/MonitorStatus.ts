@@ -103,11 +103,12 @@ export default class MonitorStatus extends BaseModel {
             Permission.CanEditProjectMonitorStatus,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
+        
     })
     @UniqueColumnBy('projectId')
     public name?: string = undefined;
@@ -268,6 +269,7 @@ export default class MonitorStatus extends BaseModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
+        canReadOnPopulate: true
     })
     @Column({
         type: ColumnType.Color,

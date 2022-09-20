@@ -50,7 +50,7 @@ class User extends UserModel {
         ],
         update: [Permission.CurrentUser],
     })
-    @TableColumn({ type: TableColumnType.Name })
+    @TableColumn({ type: TableColumnType.Name, canReadOnPopulate: true })
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
@@ -76,6 +76,7 @@ class User extends UserModel {
         required: true,
         unique: true,
         type: TableColumnType.Email,
+        canReadOnPopulate: true
     })
     @Column({
         type: ColumnType.Email,

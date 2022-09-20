@@ -95,7 +95,7 @@ export default class Team extends BaseModel {
         update: [Permission.ProjectOwner, Permission.CanEditProjectTeam],
     })
     @Index()
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,

@@ -103,7 +103,7 @@ export default class IncidentState extends BaseModel {
             Permission.CanEditProjectIncidentState,
         ],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,

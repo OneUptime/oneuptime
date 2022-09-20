@@ -26,7 +26,6 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
-@AccessControlColumn('labels')
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,

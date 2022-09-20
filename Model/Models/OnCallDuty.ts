@@ -110,7 +110,7 @@ export default class OnCallDuty extends BaseModel {
         update: [Permission.ProjectOwner, Permission.CanEditProjectOnCallDuty],
     })
     @Index()
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,

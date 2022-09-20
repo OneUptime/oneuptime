@@ -91,7 +91,7 @@ export default class Label extends AccessControlModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -238,6 +238,7 @@ export default class Label extends AccessControlModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
+        canReadOnPopulate: true
     })
     @Column({
         type: ColumnType.Color,

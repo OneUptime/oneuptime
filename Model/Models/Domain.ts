@@ -91,7 +91,7 @@ export default class Domain extends BaseModel {
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectDomain],
     })
-    @TableColumn({ required: true, type: TableColumnType.Domain })
+    @TableColumn({ required: true, type: TableColumnType.Domain, canReadOnPopulate: true })
     @Column({
         nullable: false,
         type: ColumnType.Domain,

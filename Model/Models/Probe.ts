@@ -57,7 +57,7 @@ export default class Probe extends BaseModel {
         read: [Permission.ProjectMember, Permission.Public],
         update: [Permission.ProjectOwner, Permission.CanEditProjectProbe],
     })
-    @TableColumn({ required: true, type: TableColumnType.Name })
+    @TableColumn({ required: true, type: TableColumnType.Name, canReadOnPopulate: true })
     @Column({
         nullable: false,
         type: ColumnType.Name,

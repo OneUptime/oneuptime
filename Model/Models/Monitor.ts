@@ -103,11 +103,12 @@ export default class Monitor extends BaseModel {
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @Index()
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
+        
     })
     public name?: string = undefined;
 

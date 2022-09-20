@@ -89,6 +89,8 @@ export default class BaseModel extends BaseEntity {
 
     public accessControlColumn!: string | null;
 
+    public canAccessIfCanReadOn!: string | null; 
+
     public constructor(id?: ObjectID) {
         super();
         if (id) {
