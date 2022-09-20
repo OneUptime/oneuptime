@@ -198,6 +198,13 @@ export default class ModelPermission {
         return { query, select, populate };
     }
 
+    private static async checkCanAccessIfCanReadOn<TBaseModel extends BaseModel>(
+        modelType: { new(): TBaseModel },
+        query: Query<TBaseModel>
+    ): Query<TBaseModel> { 
+        
+    }
+
     private static serializeQuery<TBaseModel extends BaseModel>(
         modelType: { new (): TBaseModel },
         query: Query<TBaseModel>
@@ -456,6 +463,8 @@ export default class ModelPermission {
 
                 const relatedModel: BaseModel =
                     new tableColumnMetadata.modelType();
+                
+                
 
                 if (
                     tableColumnMetadata.type === TableColumnType.Entity ||
@@ -469,6 +478,20 @@ export default class ModelPermission {
                         ) {
                             throw new BadDataException(
                                 'Nested populate not supported'
+                            );
+                        }
+
+                        const getRelatedTableColumnMetadata = relatedModel.getTableColumnMetadata(innerKey);
+
+                        if (!getRelatedTableColumnMetadata) {
+                            throw new BadDataException(
+                                `Column ${innerKey} not found on ${relatedModel.singularName}`
+                            );
+                        }
+
+                        if (!getRelatedTableColumnMetadata.canReadOnPopulate) {
+                            throw new BadDataException(
+                                `Column ${innerKey} on ${relatedModel.singularName} does not support read on populate.`
                             );
                         }
 
