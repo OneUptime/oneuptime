@@ -7,12 +7,12 @@ import PageComponentProps from '../PageComponentProps';
 import MonitorTable from '../../Components/Monitor/MonitorTable';
 import DashboardSideMenu from './SideMenu';
 
-const MonitorPage: FunctionComponent<PageComponentProps> = (
+const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
-            title={'Monitors'}
+            title={'Home'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -22,15 +22,25 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                     title: 'Monitors',
                     to: RouteMap[PageMap.MONITORS] as Route,
                 },
+                {
+                    title: 'Monitors Inoperational',
+                    to: RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route,
+                },
             ]}
-            sideMenu={<DashboardSideMenu project={props.currentProject || undefined} />}
+            sideMenu={<DashboardSideMenu  project={props.currentProject || undefined} />}
         >
              <MonitorTable currentProject={props.currentProject || undefined} viewPageRoute={RouteMap[PageMap.MONITORS] as Route} query={{
                 projectId: props.currentProject?._id,
+                currentMonitorStatus: {
+                    isOperationalState: false
+                }
             }}
+                noItemsMessage='All monitors in operational state.'
+                title='Monitors Inoperational'
+                description='Here is a list of all the monitors which are not in operational state.'
             />
         </Page>
     );
 };
 
-export default MonitorPage;
+export default NotOperationalMonitors;

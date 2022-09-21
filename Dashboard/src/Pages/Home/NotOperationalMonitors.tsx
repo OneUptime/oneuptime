@@ -23,11 +23,11 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {
-                    title: 'Not Operational Monitors',
-                    to: RouteMap[PageMap.NOT_OPERATIONAL_MONITORS] as Route,
+                    title: 'Monitors Inoperational ',
+                    to: RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
                 },
             ]}
-            sideMenu={<DashboardSideMenu />}
+            sideMenu={<DashboardSideMenu  project={props.currentProject || undefined} />}
         >
              <MonitorTable currentProject={props.currentProject || undefined} viewPageRoute={RouteMap[PageMap.MONITORS] as Route} query={{
                 projectId: props.currentProject?._id,
@@ -35,8 +35,8 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
                     isOperationalState: false
                 }
             }}
-                noItemsMessage='Nice work! All monitors in operational state.'
-                title='Monitors Not Operational'
+                noItemsMessage='All monitors in operational state.'
+                title='Monitors Inoperational'
                 description='Here is a list of all the monitors which are not in operational state.'
             />
         </Page>

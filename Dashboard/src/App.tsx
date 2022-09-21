@@ -68,6 +68,7 @@ import MonitorView from './Pages/Monitor/View/Index';
 import MonitorViewDelete from './Pages/Monitor/View/Delete';
 import MonitorViewStatusTimeline from './Pages/Monitor/View/StatusTimeline';
 import MonitorIncidents from './Pages/Monitor/View/Incidents';
+import MonitorInoperational from './Pages/Monitor/NotOperationalMonitors'; 
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -177,7 +178,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.NOT_OPERATIONAL_MONITORS]?.toString()}
+                    path={RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS]?.toString()}
                     element={
                         <NotOperationalMonitors
                             pageRoute={RouteMap[PageMap.HOME] as Route}
@@ -192,6 +193,16 @@ const App: FunctionComponent = () => {
                     element={
                         <MonitorPage
                             pageRoute={RouteMap[PageMap.MONITORS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.MONITORS_INOPERATIONAL]?.toString()}
+                    element={
+                        <MonitorInoperational
+                            pageRoute={RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route}
                             currentProject={selectedProject}
                         />
                     }

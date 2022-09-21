@@ -23,7 +23,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.HOME] as Route,
                 },
             ]}
-            sideMenu={<DashboardSideMenu />}
+            sideMenu={<DashboardSideMenu project={props.currentProject || undefined} />}
         >
             <IncidentsTable currentProject={props.currentProject || undefined} viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route} query={{
                 projectId: props.currentProject?._id,

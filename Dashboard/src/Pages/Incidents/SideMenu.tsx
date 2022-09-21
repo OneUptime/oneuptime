@@ -6,14 +6,19 @@ import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import { BadgeType } from 'CommonUI/src/Components/Badge/Badge';
+import Incident from 'Model/Models/Incident';
+import Project from 'Model/Models/Project';
+import CountModelSideMenuItem from 'CommonUI/src/Components/SideMenu/CountModelSideMenuItem';
 
+export interface ComponentProps {
+    project?: Project | undefined
+}
 
-const DashboardSideMenu: FunctionComponent = (
-
-): ReactElement => {
+const DashboardSideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
     return (
         <SideMenu>
-            <SideMenuSection title="Incidents">
+            <SideMenuSection title="Overview">
                 <SideMenuItem
                     link={{
                         title: 'All Incidents',
@@ -24,19 +29,25 @@ const DashboardSideMenu: FunctionComponent = (
                     icon={IconProp.List}
                 />
 
-                <SideMenuItem
+                <CountModelSideMenuItem<Incident>
                     link={{
                         title: 'Unresolved Incidents',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.UNRESOLVED_INCIDENTS
-                            ] as Route
+                            RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route
                         ),
                     }}
-                    icon={IconProp.Error}
+                    icon={IconProp.Alert}
+                    badgeType={BadgeType.DANGER}
+                    modelType={Incident}
+                    countQuery={{
+                        projectId: props.project?._id,
+                        currentIncidentState: {
+                            isResolvedState: false
+                        }
+                    }}
                 />
             </SideMenuSection>
-</SideMenu>
+        </SideMenu>
     );
 };
 

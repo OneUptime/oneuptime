@@ -13,7 +13,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
     return (
         <Page
             title={'Incidents'}
-            sideMenu={<SideMenu />}
+            sideMenu={<SideMenu project={props.currentProject || undefined}/>}
             breadcrumbLinks={[
                 {
                     title: 'Project',
