@@ -46,7 +46,7 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Alert,
+                    icon: IconProp.Error,
                     title: 'Incident Severity',
                     description:
                         'Alerts and incidents will be categorised according to their severity level using the following classifications: ',

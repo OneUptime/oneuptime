@@ -102,6 +102,12 @@ router.post(
                 savedUser = await UserService.updateOneByIdAndFetch({
                     id: alreadySavedUser.id!,
                     data: BaseModel.toJSON(user, User) as PartialEntity<User>,
+                    select: {
+                        email: true,
+                        _id: true, 
+                        name: true, 
+                        isMasterAdmin: true,
+                    },
                     props: {
                         isRoot: true,
                     },

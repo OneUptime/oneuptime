@@ -40,6 +40,7 @@ import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import ModelPermission from '../Utils/ModelPermission';
 import Select from '../Types/Database/Select';
 import Populate from '../Types/Database/Populate';
+import UpdateByIDAndFetch from '../Types/Database/UpdateByIDAndFetch';
 
 export interface OnCreate<TBaseModel extends BaseModel> {
     createBy: CreateBy<TBaseModel>;
@@ -916,11 +917,13 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async updateOneByIdAndFetch(
-        updateById: UpdateByID<TBaseModel>
+        updateById: UpdateByIDAndFetch<TBaseModel>,
     ): Promise<TBaseModel | null> {
         await this.updateOneById(updateById);
         return this.findOneById({
             id: updateById.id,
+            select: updateById.select,
+            populate: updateById.populate,
             props: updateById.props,
         });
     }

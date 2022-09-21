@@ -72,7 +72,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                             RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route
                         ),
                     }}
-                    icon={IconProp.Alert}
+                    icon={IconProp.Disc}
                 />
                 <SideMenuItem
                     link={{
@@ -83,14 +83,14 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                             ] as Route
                         ),
                     }}
-                    icon={IconProp.Alert}
+                    icon={IconProp.Error}
                 />
                 <SideMenuItem
                     link={{
                         title: 'Incident Templates',
                         to: new Route('/:projectSlug/home'),
                     }}
-                    icon={IconProp.Alert}
+                    icon={IconProp.TextFile}
                 />
             </SideMenuSection>
             <SideMenuSection title="Team">

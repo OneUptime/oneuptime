@@ -138,7 +138,7 @@ export default class Model extends TenantModel {
     public numberOfLicensesIssued?: PositiveNumber = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.User],
+        create: [Permission.CurrentUser],
         read: [
             Permission.ProjectMember,
             Permission.ProjectOwner,
@@ -166,7 +166,7 @@ export default class Model extends TenantModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.CurrentUser],
         read: [
             Permission.ProjectMember,
             Permission.ProjectOwner,

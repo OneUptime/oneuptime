@@ -11,6 +11,7 @@ import {
     FiCheckCircle,
     FiSearch,
     FiHelpCircle,
+    FiDisc,
     FiPower,
     FiImage,
     FiGlobe,
@@ -48,6 +49,7 @@ import {
     FiFilter,
     FiEdit2,
     FiEyeOff,
+    FiFileText,
     FiList,
     FiLink2,
 } from 'react-icons/fi';
@@ -72,6 +74,7 @@ export enum ThickProp {
 export enum IconProp {
     File,
     User,
+    Disc,
     Settings,
     Notification,
     Help,
@@ -91,6 +94,7 @@ export enum IconProp {
     List,
     CheckCircle,
     Search,
+    TextFile,
     Globe,
     Logout,
     Billing,
@@ -536,6 +540,22 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.SendMessage && (
                 <FiSend
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Disc && (
+                <FiDisc
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.TextFile && (
+                <FiFileText
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}
