@@ -184,6 +184,32 @@ export default class ModelPermission {
                 }
             }
 
+            if (model.canAccessIfCanReadOn) {
+
+                const tableColumnMetadata = model.getTableColumnMetadata(model.canAccessIfCanReadOn);
+
+                if (tableColumnMetadata && tableColumnMetadata.modelType && (tableColumnMetadata.type === TableColumnType.Entity || tableColumnMetadata.type === TableColumnType.EntityArray)) {
+
+                    const accessControlIds: Array<ObjectID> =
+                        this.getAccessControlIdsForQuery(
+                            tableColumnMetadata.modelType,
+                            {},
+                            {
+                                _id: true
+                            },
+                            props
+                        );
+
+                    if (accessControlIds.length > 0) {
+                        const tableColumnMetadataModel = new tableColumnMetadata.modelType();
+
+                        (query as any)[model.canAccessIfCanReadOn as string] = {
+                            [tableColumnMetadataModel.getAccessControlColumn() as string]: accessControlIds
+                        }
+                    }
+                }
+            }
+
             if (select) {
                 // check query permission.
                 this.checkSelectPermission(modelType, select, props);
@@ -378,8 +404,6 @@ export default class ModelPermission {
             ];
         }
 
-        debugger; 
-
         for (const column of columnsToCheckPermissionFor) {
             const accessControl: ColumnAccessControl | null =
                 model.getColumnAccessControlFor(column);
@@ -414,7 +438,6 @@ export default class ModelPermission {
             }
         }
         
-        console.log(labelIds);
 
         return labelIds;
     }

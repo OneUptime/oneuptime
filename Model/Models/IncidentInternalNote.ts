@@ -16,7 +16,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import Incident from './Incident';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
-@CanAccessIfCanReadOn('incidentId')
+@CanAccessIfCanReadOn('incident')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateIncidentInternalNote],

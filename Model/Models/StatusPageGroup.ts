@@ -19,7 +19,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import StatusPage from './StatusPage';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
-@CanAccessIfCanReadOn('statusPageId')
+@CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],

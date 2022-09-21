@@ -18,7 +18,7 @@ import MonitorStatus from './MonitorStatus';
 import Monitor from './Monitor';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
-@CanAccessIfCanReadOn('monitorId')
+@CanAccessIfCanReadOn('monitor')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],

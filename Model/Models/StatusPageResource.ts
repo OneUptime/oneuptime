@@ -20,7 +20,7 @@ import Monitor from './Monitor';
 import StatusPageGroup from './StatusPageGroup';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
-@CanAccessIfCanReadOn('statusPageId')
+@CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateStatusPageResource],

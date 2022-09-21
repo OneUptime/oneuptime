@@ -21,7 +21,7 @@ import Phone from 'Common/Types/Phone';
 import URL from 'Common/Types/API/URL';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
-@CanAccessIfCanReadOn('statusPageId')
+@CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber],
