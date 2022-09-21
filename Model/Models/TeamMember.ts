@@ -10,7 +10,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
-import UserColumn from 'Common/Types/Database/UserColumn';
+import CurrentUserCanAccessRecordBy from 'Common/Types/Database/CurrentUserCanAccessRecordBy';
 import ObjectID from 'Common/Types/ObjectID';
 import Permission from 'Common/Types/Permission';
 import BaseModel from 'Common/Models/BaseModel';
@@ -43,7 +43,7 @@ import User from './User';
 })
 @MultiTenentQueryAllowed(true)
 @AllowUserQueryWithoutTenant(true)
-@UserColumn('userId')
+@CurrentUserCanAccessRecordBy('userId')
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/team-member'))
 @Entity({

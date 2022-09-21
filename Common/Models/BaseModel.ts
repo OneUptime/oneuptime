@@ -70,7 +70,7 @@ export default class BaseModel extends BaseEntity {
     public deleteRecordPermissions!: Array<Permission>;
     public updateRecordPermissions!: Array<Permission>;
 
-    public userColumn!: string | null;
+    public currentUserCanAccessColumnBy!: string | null;
     public labelsColumn!: string | null;
     public slugifyColumn!: string | null;
     public saveSlugToColumn!: string | null;
@@ -253,7 +253,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getUserColumn(): string | null {
-        return this.userColumn;
+        return this.currentUserCanAccessColumnBy;
     }
 
     public getLabelsColumn(): string | null {

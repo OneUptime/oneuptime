@@ -18,7 +18,7 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import UserColumn from 'Common/Types/Database/UserColumn';
+import CurrentUserCanAccessRecordBy from 'Common/Types/Database/CurrentUserCanAccessRecordBy';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TableAccessControl({
@@ -38,7 +38,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
     name: 'User',
 })
 @SingularPluralName('User', 'Users')
-@UserColumn('_id')
+@CurrentUserCanAccessRecordBy('_id')
 class User extends UserModel {
     @ColumnAccessControl({
         create: [Permission.Public],
