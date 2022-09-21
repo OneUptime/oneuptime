@@ -14,6 +14,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/`
     ),
 
+    [PageMap.UNRESOLVED_INCIDENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/unresolved`
+    ),
+
     [PageMap.INCIDENT_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}`
     ),
