@@ -184,6 +184,8 @@ export default class ModelPermission {
                 }
             }
 
+
+            /// Implement Related Permissions. 
             if (model.canAccessIfCanReadOn) {
 
                 const tableColumnMetadata = model.getTableColumnMetadata(model.canAccessIfCanReadOn);
