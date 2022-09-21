@@ -10,7 +10,10 @@ import {
 import MasterPage from './Components/MasterPage/MasterPage';
 // Pages
 import Init from './Pages/Init/Init';
+
 import Home from './Pages/Home/Home';
+import NotOperationalMonitors from './Pages/Home/NotOperationalMonitors';
+
 import useAsyncEffect from 'use-async-effect';
 
 import StatusPages from './Pages/StatusPages/StatusPages';
@@ -158,10 +161,25 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
+
+
+                {/* Home */}
+
+
                 <PageRoute
                     path={RouteMap[PageMap.HOME]?.toString()}
                     element={
                         <Home
+                            pageRoute={RouteMap[PageMap.HOME] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.NOT_OPERATIONAL_MONITORS]?.toString()}
+                    element={
+                        <NotOperationalMonitors
                             pageRoute={RouteMap[PageMap.HOME] as Route}
                             currentProject={selectedProject}
                         />

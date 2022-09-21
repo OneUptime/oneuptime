@@ -8,7 +8,9 @@ import ObjectID from 'Common/Types/ObjectID';
 
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
+
     [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
+    [PageMap.NOT_OPERATIONAL_MONITORS]: new Route(`/dashboard/${RouteParams.ProjectID}/home/monitors-not-operational/`),
 
     [PageMap.INCIDENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/`

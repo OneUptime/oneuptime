@@ -22,6 +22,10 @@ export interface ComponentProps {
     query?: Query<Incident> | undefined;
     viewPageRoute?: Route;
     currentProject?: Project | undefined;
+    noItemsMessage?: string | undefined;
+    title?: string | undefined;
+    description?: string | undefined;
+
 }
 
 const IncidentsTable: FunctionComponent<ComponentProps> = (
@@ -38,11 +42,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             isViewable={true}
             cardProps={{
                 icon: IconProp.Alert,
-                title: 'Incidents',
+                title: props.title || 'Incidents',
                 description:
-                    'Here is a list of incidents for this project.',
+                    props.description || 'Here is a list of incidents for this project.',
             }}
-            noItemsMessage={'No incidents found.'}
+            noItemsMessage={props.noItemsMessage || 'No incidents found.'}
             formFields={[
                 {
                     field: {

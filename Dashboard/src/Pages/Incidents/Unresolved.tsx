@@ -13,11 +13,15 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
     return (
         <Page
             title={'Incidents'}
-            sideMenu={<SideMenu/>}
+            sideMenu={<SideMenu />}
             breadcrumbLinks={[
                 {
                     title: 'Project',
                     to: RouteMap[PageMap.HOME] as Route,
+                },
+                {
+                    title: 'Incidents',
+                    to: RouteMap[PageMap.INCIDENTS] as Route,
                 },
                 {
                     title: 'Unresolved Incidents',
@@ -25,12 +29,16 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 },
             ]}
         >
-            <IncidentsTable currentProject={props.currentProject || undefined} viewPageRoute={props.pageRoute} query={{
+            <IncidentsTable currentProject={props.currentProject || undefined} viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route} query={{
                 projectId: props.currentProject?._id,
                 currentIncidentState: {
                     isResolvedState: false
                 }
-            }}  />
+            }}
+                noItemsMessage='Nice work! No unresolved incidents so far.'
+                title='Unresolved Incidents'
+                description='Here is a list of all the unresolved incidents for this project.'
+            />
         </Page>
     );
 };

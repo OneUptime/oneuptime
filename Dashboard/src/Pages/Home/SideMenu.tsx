@@ -4,35 +4,30 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
     return (
         <SideMenu>
-            <SideMenuSection title="Sample">
+            <SideMenuSection title="Overview">
                 <SideMenuItem
                     link={{
-                        title: 'Home',
-                        to: new Route('/:projectSlug/home'),
+                        title: 'Unresolved Incidents',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.HOME] as Route
+                        ),
                     }}
-                    icon={IconProp.Home}
-                    badge={14}
+                    icon={IconProp.Alert}
                 />
                 <SideMenuItem
                     link={{
-                        title: 'Home',
-                        to: new Route('/:projectSlug/home'),
+                        title: 'Monitors Not Operational',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.NOT_OPERATIONAL_MONITORS] as Route
+                        ),
                     }}
-                    icon={IconProp.Home}
-                    showAlert={true}
-                />
-
-                <SideMenuItem
-                    link={{
-                        title: 'Home',
-                        to: new Route('/:projectSlug/home'),
-                    }}
-                    icon={IconProp.Home}
-                    showWarning={true}
+                    icon={IconProp.Activity}
                 />
             </SideMenuSection>
         </SideMenu>
