@@ -23,7 +23,7 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.MONITORS] as Route,
                 },
                 {
-                    title: 'Monitors Inoperational',
+                    title: 'Inoperational Monitors',
                     to: RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route,
                 },
             ]}
@@ -36,7 +36,7 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
                 }
             }}
                 noItemsMessage='All monitors in operational state.'
-                title='Monitors Inoperational'
+                title='Inoperational Monitors'
                 description='Here is a list of all the monitors which are not in operational state.'
             />
         </Page>
