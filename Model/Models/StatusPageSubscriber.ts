@@ -28,8 +28,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadStatusPageSubscriber,
-        Permission.ProjectMember,
-    ],
+        ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageSubscriber],
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageSubscriber],
 })
@@ -43,13 +42,11 @@ export default class StatusPageSubscriber extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageSubscriber,
-        ],
+            Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -74,13 +71,11 @@ export default class StatusPageSubscriber extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageSubscriber,
-        ],
+            Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -95,13 +90,11 @@ export default class StatusPageSubscriber extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageSubscriber,
-        ],
+            Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -126,13 +119,11 @@ export default class StatusPageSubscriber extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageSubscriber,
-        ],
+            Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -148,18 +139,15 @@ export default class StatusPageSubscriber extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [
             Permission.ProjectOwner,
             Permission.CanEditStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
     })
     @TableColumn({ required: false, type: TableColumnType.Email })
     @Column({
@@ -174,18 +162,15 @@ export default class StatusPageSubscriber extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [
             Permission.ProjectOwner,
             Permission.CanEditStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
     })
     @TableColumn({ required: false, type: TableColumnType.Phone })
     @Column({
@@ -200,18 +185,15 @@ export default class StatusPageSubscriber extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [
             Permission.ProjectOwner,
             Permission.CanEditStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
     })
     @TableColumn({ required: false, type: TableColumnType.ShortURL })
     @Column({
@@ -224,13 +206,11 @@ export default class StatusPageSubscriber extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageSubscriber,
-        ],
+            Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -255,13 +235,11 @@ export default class StatusPageSubscriber extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageSubscriber,
-        ],
+            Permission.CanCreateStatusPageSubscriber],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -277,8 +255,7 @@ export default class StatusPageSubscriber extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageSubscriber,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({

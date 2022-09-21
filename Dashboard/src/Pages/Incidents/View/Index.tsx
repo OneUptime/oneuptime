@@ -25,6 +25,8 @@ import ChangeIncidentState, {
 } from '../../../Components/Incident/ChangeState';
 import BaseModel from 'Common/Models/BaseModel';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
+import Label from 'Model/Models/Label';
+import LabelsElement from '../../../Components/Label/Labels';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -106,6 +108,23 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         },
                         required: true,
                         placeholder: 'Incident Severity',
+                    },
+                    ,
+                    {
+                        field: {
+                            labels: true,
+                        },
+                        title: 'Labels (Optional)',
+                        description:
+                            'Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: Label,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: false,
+                        placeholder: 'Labels',
                     },
                 ]}
                 modelDetailProps={{
@@ -270,6 +289,29 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.DateTime,
                         },
                         {
+                            field: {
+                                labels: {
+                                    name: true,
+                                    color: true,
+                                },
+                            },
+                            title: 'Labels',
+                            type: FieldType.Text,
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <LabelsElement
+                                        labels={
+                                            Label.fromJSON(
+                                                (item['labels'] as JSONArray) ||
+                                                    [],
+                                                Label
+                                            ) as Array<Label>
+                                        }
+                                    />
+                                );
+                            },
+                        },
+                        {
                             title: 'Acknowledge Incident',
                             fieldType: FieldType.Text,
                             getElement: (
@@ -316,7 +358,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     />
                                 );
                             },
-                        },
+                        }
                     ],
                     modelId: modelId,
                 }}

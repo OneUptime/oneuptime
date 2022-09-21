@@ -26,8 +26,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadStatusPageGroup,
-        Permission.ProjectMember,
-    ],
+        ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageGroup],
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
 })
@@ -43,8 +42,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -71,8 +69,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -89,8 +86,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -117,8 +113,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -135,8 +130,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -153,8 +147,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -170,8 +163,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
@@ -187,8 +179,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -215,8 +206,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -232,8 +222,7 @@ export default class StatusPageGroup extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
     })
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })

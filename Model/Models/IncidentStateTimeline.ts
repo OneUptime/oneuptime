@@ -24,8 +24,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadProjectIncident,
-        Permission.ProjectMember,
-    ],
+        ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectIncident],
     update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
 })
@@ -40,8 +39,7 @@ export default class IncidentStateTimeline extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -68,8 +66,7 @@ export default class IncidentStateTimeline extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -86,8 +83,7 @@ export default class IncidentStateTimeline extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -114,8 +110,7 @@ export default class IncidentStateTimeline extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -132,8 +127,7 @@ export default class IncidentStateTimeline extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -160,8 +154,7 @@ export default class IncidentStateTimeline extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -198,7 +191,7 @@ export default class IncidentStateTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -214,8 +207,7 @@ export default class IncidentStateTimeline extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
     @TableColumn({
@@ -241,8 +233,7 @@ export default class IncidentStateTimeline extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
     @Index()

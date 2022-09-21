@@ -35,7 +35,7 @@ import MonitorStatus from './MonitorStatus';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadProjectMonitor,
-        Permission.ProjectMember,
+        
     ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectMonitor],
     update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
@@ -52,7 +52,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -80,7 +80,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -98,7 +98,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
@@ -117,7 +117,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
@@ -135,7 +135,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -153,7 +153,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -181,7 +181,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -219,7 +219,7 @@ export default class Monitor extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -235,7 +235,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
@@ -268,7 +268,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -285,7 +285,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
@@ -312,7 +312,7 @@ export default class Monitor extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })

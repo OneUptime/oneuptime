@@ -24,8 +24,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadIncidentSeverity,
-        Permission.ProjectMember,
-    ],
+        ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteIncidentSeverity],
     update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
 })
@@ -41,8 +40,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -69,8 +67,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -87,8 +84,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
@@ -105,8 +101,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -122,8 +117,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
@@ -139,8 +133,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -167,8 +160,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -184,8 +176,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -212,8 +203,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -229,8 +219,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
     })
     @TableColumn({
@@ -255,8 +244,7 @@ export default class IncidentSeverity extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadIncidentSeverity,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
     })
     @TableColumn({

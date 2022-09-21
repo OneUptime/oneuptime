@@ -125,6 +125,11 @@ export default class AccessTokenService {
                     permission: true,
                     labels: true,
                 },
+                populate: {
+                    labels: {
+                        _id: true
+                    }
+                },
                 limit: LIMIT_MAX,
                 skip: 0,
                 props: {

@@ -39,7 +39,7 @@ import IncidentSeverity from './IncidentSeverity';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadProjectIncident,
-        Permission.ProjectMember,
+        
     ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectIncident],
     update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
@@ -56,7 +56,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -84,7 +84,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -102,7 +102,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
@@ -120,7 +120,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
@@ -138,7 +138,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -156,7 +156,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -184,7 +184,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -222,7 +222,7 @@ export default class Incident extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -238,7 +238,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
@@ -271,7 +271,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
@@ -304,7 +304,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
@@ -331,7 +331,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
@@ -349,7 +349,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
@@ -376,7 +376,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
@@ -394,7 +394,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [],
     })
@@ -421,7 +421,7 @@ export default class Incident extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectIncident,
-            Permission.ProjectMember,
+            
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })

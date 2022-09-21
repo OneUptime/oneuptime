@@ -24,8 +24,7 @@ import DomainType from 'Common/Types/Domain';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadProjectDomain,
-        Permission.ProjectMember,
-    ],
+        ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectDomain],
     update: [Permission.ProjectOwner, Permission.CanEditProjectDomain],
 })
@@ -41,8 +40,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -69,8 +67,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -87,8 +84,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectDomain],
     })
     @TableColumn({ required: true, type: TableColumnType.Domain, canReadOnPopulate: true })
@@ -106,8 +102,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -123,8 +118,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -151,8 +145,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -168,8 +161,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -196,8 +188,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -213,8 +204,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectDomain],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
@@ -229,8 +219,7 @@ export default class Domain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })

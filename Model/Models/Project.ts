@@ -21,16 +21,15 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
 @TableAccessControl({
     create: [Permission.User],
     read: [
-        Permission.ProjectMember,
         Permission.ProjectOwner,
         Permission.ProjectAdmin,
+        Permission.ProjectMember
     ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProject],
     update: [
         Permission.ProjectOwner,
         Permission.CanManageProjectBilling,
-        Permission.CanUpdateProject,
-    ],
+        Permission.CanUpdateProject],
 })
 @SingularPluralName('Project', 'Projects')
 @CrudApiEndpoint(new Route('/project'))
@@ -43,15 +42,14 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.User],
         read: [
-            Permission.ProjectMember,
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
+            Permission.ProjectMember
         ],
         update: [
             Permission.ProjectOwner,
             Permission.CanManageProjectBilling,
-            Permission.CanUpdateProject,
-        ],
+            Permission.CanUpdateProject],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
     @Column({
@@ -65,10 +63,8 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.User],
         read: [
-            Permission.ProjectMember,
             Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+            Permission.ProjectAdmin],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -83,10 +79,8 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.User],
         read: [
-            Permission.ProjectMember,
             Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+            Permission.ProjectAdmin],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -101,10 +95,8 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.User],
         read: [
-            Permission.ProjectMember,
             Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+            Permission.ProjectAdmin],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -119,10 +111,8 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectMember,
             Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+            Permission.ProjectAdmin],
         update: [],
     })
     @TableColumn({
@@ -140,10 +130,8 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
         read: [
-            Permission.ProjectMember,
             Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+            Permission.ProjectAdmin],
         update: [],
     })
     @TableColumn({
@@ -168,10 +156,8 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
         read: [
-            Permission.ProjectMember,
             Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+            Permission.ProjectAdmin],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -209,10 +195,8 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectMember,
             Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+            Permission.ProjectAdmin],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -226,15 +210,12 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.ProjectMember,
             Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+            Permission.ProjectAdmin],
         update: [
             Permission.ProjectOwner,
             Permission.CanManageProjectBilling,
-            Permission.CanUpdateProject,
-        ],
+            Permission.CanUpdateProject],
     })
     @TableColumn({
         required: true,

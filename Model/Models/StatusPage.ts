@@ -34,7 +34,6 @@ import File from './File';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadProjectStatusPage,
-        Permission.ProjectMember,
     ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectStatusPage],
     update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
@@ -49,12 +48,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -80,12 +77,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -101,17 +96,15 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
     @Index()
-    @TableColumn({ required: true, type: TableColumnType.ShortText,canReadOnPopulate: true })
+    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -122,12 +115,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -142,12 +133,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -162,12 +151,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -183,12 +170,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -204,12 +189,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -235,12 +218,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -271,12 +252,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [],
     })
@@ -314,7 +293,7 @@ export default class StatusPage extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -330,12 +309,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -361,12 +338,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -381,12 +356,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -412,12 +385,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -432,12 +403,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -463,12 +432,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -483,12 +450,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -502,12 +467,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -521,12 +484,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -540,12 +501,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -559,12 +518,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
@@ -578,12 +535,10 @@ export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
+            Permission.CanCreateProjectStatusPage],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadProjectStatusPage,
-            Permission.ProjectMember,
         ],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })

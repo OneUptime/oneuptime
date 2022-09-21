@@ -378,6 +378,8 @@ export default class ModelPermission {
             ];
         }
 
+        debugger; 
+
         for (const column of columnsToCheckPermissionFor) {
             const accessControl: ColumnAccessControl | null =
                 model.getColumnAccessControlFor(column);
@@ -411,6 +413,8 @@ export default class ModelPermission {
                 }
             }
         }
+        
+        console.log(labelIds);
 
         return labelIds;
     }

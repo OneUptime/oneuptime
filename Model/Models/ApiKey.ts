@@ -29,8 +29,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
     update: [
         Permission.ProjectOwner,
         Permission.CanEditProjectApiKeyPermissions,
-        Permission.CanEditProjectApiKey,
-    ],
+        Permission.CanEditProjectApiKey],
 })
 @SingularPluralName('API Key', 'API Keys')
 export default class ApiKey extends BaseModel {
@@ -175,7 +174,7 @@ export default class ApiKey extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })

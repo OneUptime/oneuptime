@@ -27,8 +27,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     read: [
         Permission.ProjectOwner,
         Permission.CanReadStatusPageDomain,
-        Permission.ProjectMember,
-    ],
+        ],
     delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageDomain],
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageDomain],
 })
@@ -44,8 +43,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -72,8 +70,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -90,8 +87,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -118,8 +114,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -136,8 +131,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -164,8 +158,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @Index()
@@ -182,8 +175,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [Permission.ProjectOwner, Permission.CanEditStatusPageDomain],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -200,8 +192,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -217,8 +208,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({
@@ -245,8 +235,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -262,8 +251,7 @@ export default class StatusPageDomain extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageDomain,
-            Permission.ProjectMember,
-        ],
+            ],
         update: [],
     })
     @TableColumn({

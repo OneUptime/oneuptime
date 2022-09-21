@@ -25,10 +25,8 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
     create: [Permission.Public],
     read: [
         Permission.CurrentUser,
-        Permission.ProjectMember,
         Permission.ProjectAdmin,
-        Permission.ProjectOwner,
-    ],
+        Permission.ProjectOwner],
     delete: [Permission.CurrentUser],
     update: [Permission.CurrentUser],
 })
@@ -44,10 +42,8 @@ class User extends UserModel {
         create: [Permission.Public],
         read: [
             Permission.CurrentUser,
-            Permission.ProjectMember,
             Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+            Permission.ProjectOwner],
         update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Name, canReadOnPopulate: true })
@@ -64,10 +60,8 @@ class User extends UserModel {
         create: [Permission.Public],
         read: [
             Permission.CurrentUser,
-            Permission.ProjectMember,
             Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+            Permission.ProjectOwner],
 
         update: [Permission.CurrentUser],
     })
@@ -106,7 +100,7 @@ class User extends UserModel {
     @Index()
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [Permission.ProjectMember],
+        read: [],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -231,10 +225,8 @@ class User extends UserModel {
         create: [],
         read: [
             Permission.CurrentUser,
-            Permission.ProjectMember,
             Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+            Permission.ProjectOwner],
 
         update: [Permission.CurrentUser],
     })
@@ -252,10 +244,8 @@ class User extends UserModel {
         create: [],
         read: [
             Permission.CurrentUser,
-            Permission.ProjectMember,
             Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+            Permission.ProjectOwner],
 
         update: [Permission.CurrentUser],
     })
@@ -380,10 +370,8 @@ class User extends UserModel {
         create: [],
         read: [
             Permission.CurrentUser,
-            Permission.ProjectMember,
             Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+            Permission.ProjectOwner],
 
         update: [Permission.CurrentUser],
     })
@@ -500,10 +488,8 @@ class User extends UserModel {
         create: [],
         read: [
             Permission.CurrentUser,
-            Permission.ProjectMember,
             Permission.ProjectAdmin,
-            Permission.ProjectOwner,
-        ],
+            Permission.ProjectOwner],
 
         update: [Permission.CurrentUser],
     })
