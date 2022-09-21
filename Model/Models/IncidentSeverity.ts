@@ -21,10 +21,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateIncidentSeverity],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadIncidentSeverity,
-        ],
+    read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
     delete: [Permission.ProjectOwner, Permission.CanDeleteIncidentSeverity],
     update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
 })
@@ -37,10 +34,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 export default class IncidentSeverity extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateIncidentSeverity],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [],
     })
     @TableColumn({
@@ -64,10 +58,7 @@ export default class IncidentSeverity extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateIncidentSeverity],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [],
     })
     @Index()
@@ -81,13 +72,14 @@ export default class IncidentSeverity extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateIncidentSeverity],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnPopulate: true,
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -98,10 +90,7 @@ export default class IncidentSeverity extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -114,10 +103,7 @@ export default class IncidentSeverity extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateIncidentSeverity],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
@@ -130,10 +116,7 @@ export default class IncidentSeverity extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateIncidentSeverity],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [],
     })
     @TableColumn({
@@ -157,10 +140,7 @@ export default class IncidentSeverity extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateIncidentSeverity],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -173,10 +153,7 @@ export default class IncidentSeverity extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [],
     })
     @TableColumn({
@@ -200,10 +177,7 @@ export default class IncidentSeverity extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -216,10 +190,7 @@ export default class IncidentSeverity extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateIncidentSeverity],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
     })
     @TableColumn({
@@ -227,7 +198,7 @@ export default class IncidentSeverity extends BaseModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
-        canReadOnPopulate: true
+        canReadOnPopulate: true,
     })
     @Column({
         type: ColumnType.Color,
@@ -241,10 +212,7 @@ export default class IncidentSeverity extends BaseModel {
     @UniqueColumnBy('projectId')
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateIncidentSeverity],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadIncidentSeverity,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentSeverity],
         update: [Permission.ProjectOwner, Permission.CanEditIncidentSeverity],
     })
     @TableColumn({

@@ -5,11 +5,10 @@ import Faker from './Faker';
 
 export default class Slug {
     public static getSlug(name: string | null): string {
-
         if (name === null) {
             name = Faker.generateName();
         }
-        
+
         name = String(name);
         if (!name || !name.trim()) {
             return '';

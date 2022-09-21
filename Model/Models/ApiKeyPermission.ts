@@ -30,19 +30,19 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
     create: [
         Permission.ProjectOwner,
         Permission.CanCreateProjectApiKey,
-        Permission.CanEditProjectApiKeyPermissions],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadProjectApiKey,
-        ],
+        Permission.CanEditProjectApiKeyPermissions,
+    ],
+    read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
     delete: [
         Permission.ProjectOwner,
         Permission.CanDeleteProjectApiKey,
-        Permission.CanEditProjectApiKeyPermissions],
+        Permission.CanEditProjectApiKeyPermissions,
+    ],
     update: [
         Permission.ProjectOwner,
         Permission.CanEditProjectApiKeyPermissions,
-        Permission.CanEditProjectApiKey],
+        Permission.CanEditProjectApiKey,
+    ],
 })
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/api-key-permission'))
@@ -55,14 +55,13 @@ export default class APIKeyPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateProjectApiKey,
-            Permission.CanEditProjectApiKeyPermissions],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectApiKey,
-            ],
+            Permission.CanEditProjectApiKeyPermissions,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [
             Permission.ProjectOwner,
-            Permission.CanEditProjectApiKeyPermissions],
+            Permission.CanEditProjectApiKeyPermissions,
+        ],
     })
     @TableColumn({
         manyToOneRelationColumn: 'apiKeyId',
@@ -87,11 +86,9 @@ export default class APIKeyPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateProjectApiKey,
-            Permission.CanEditProjectApiKeyPermissions],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectApiKey,
-            ],
+            Permission.CanEditProjectApiKeyPermissions,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @TableColumn({
@@ -117,11 +114,9 @@ export default class APIKeyPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateProjectApiKey,
-            Permission.CanEditProjectApiKeyPermissions],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectApiKey,
-            ],
+            Permission.CanEditProjectApiKeyPermissions,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @Index()
@@ -137,11 +132,9 @@ export default class APIKeyPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateProjectApiKey,
-            Permission.CanEditProjectApiKeyPermissions],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectApiKey,
-            ],
+            Permission.CanEditProjectApiKeyPermissions,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @Index()
@@ -155,10 +148,7 @@ export default class APIKeyPermission extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectApiKey,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @TableColumn({
@@ -182,10 +172,7 @@ export default class APIKeyPermission extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectApiKey,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -198,10 +185,7 @@ export default class APIKeyPermission extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectApiKey],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectApiKey,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [],
     })
     @TableColumn({
@@ -240,15 +224,14 @@ export default class APIKeyPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateProjectApiKey,
-            Permission.CanEditProjectApiKeyPermissions],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectApiKey,
-            ],
+            Permission.CanEditProjectApiKeyPermissions,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [
             Permission.ProjectOwner,
             Permission.CanEditProjectApiKeyPermissions,
-            Permission.CanEditProjectApiKey],
+            Permission.CanEditProjectApiKey,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @UniqueColumnBy('apiKeyId')
@@ -263,15 +246,14 @@ export default class APIKeyPermission extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateProjectApiKey,
-            Permission.CanEditProjectApiKeyPermissions],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectApiKey,
-            ],
+            Permission.CanEditProjectApiKeyPermissions,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [
             Permission.ProjectOwner,
             Permission.CanEditProjectApiKeyPermissions,
-            Permission.CanEditProjectApiKey],
+            Permission.CanEditProjectApiKey,
+        ],
     })
     @TableColumn({
         required: false,

@@ -127,8 +127,8 @@ export default class AccessTokenService {
                 },
                 populate: {
                     labels: {
-                        _id: true
-                    }
+                        _id: true,
+                    },
                 },
                 limit: LIMIT_MAX,
                 skip: 0,

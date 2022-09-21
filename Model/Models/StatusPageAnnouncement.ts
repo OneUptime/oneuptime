@@ -31,14 +31,13 @@ import StatusPage from './StatusPage';
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
-        Permission.CanCreateStatusPageAnnouncement],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadStatusPageAnnouncement,
-        ],
+        Permission.CanCreateStatusPageAnnouncement,
+    ],
+    read: [Permission.ProjectOwner, Permission.CanReadStatusPageAnnouncement],
     delete: [
         Permission.ProjectOwner,
-        Permission.CanDeleteStatusPageAnnouncement],
+        Permission.CanDeleteStatusPageAnnouncement,
+    ],
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
 })
 @CrudApiEndpoint(new Route('/status-page-announcement'))
@@ -51,11 +50,12 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageAnnouncement],
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [],
     })
     @TableColumn({
@@ -80,11 +80,12 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageAnnouncement],
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [],
     })
     @Index()
@@ -99,11 +100,12 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageAnnouncement],
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [],
     })
     @TableColumn({
@@ -133,14 +135,16 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageAnnouncement],
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [
             Permission.ProjectOwner,
-            Permission.CanEditStatusPageAnnouncement],
+            Permission.CanEditStatusPageAnnouncement,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -158,14 +162,16 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageAnnouncement],
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [
             Permission.ProjectOwner,
-            Permission.CanEditStatusPageAnnouncement],
+            Permission.CanEditStatusPageAnnouncement,
+        ],
     })
     @Column({
         nullable: false,
@@ -181,14 +187,16 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageAnnouncement],
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [
             Permission.ProjectOwner,
-            Permission.CanEditStatusPageAnnouncement],
+            Permission.CanEditStatusPageAnnouncement,
+        ],
     })
     @Column({
         nullable: false,
@@ -199,14 +207,16 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageAnnouncement],
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [
             Permission.ProjectOwner,
-            Permission.CanEditStatusPageAnnouncement],
+            Permission.CanEditStatusPageAnnouncement,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.Markdown })
     @Column({
@@ -218,11 +228,12 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageAnnouncement],
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [],
     })
     @TableColumn({
@@ -247,11 +258,12 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
-            Permission.CanCreateStatusPageAnnouncement],
+            Permission.CanCreateStatusPageAnnouncement,
+        ],
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -267,7 +279,7 @@ export default class StatusPageAnnouncement extends BaseModel {
         read: [
             Permission.ProjectOwner,
             Permission.CanReadStatusPageAnnouncement,
-            ],
+        ],
         update: [],
     })
     @TableColumn({

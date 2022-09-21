@@ -21,10 +21,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadProjectIncident,
-        ],
+    read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectIncident],
     update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
 })
@@ -36,10 +33,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 export default class IncidentStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
         update: [],
     })
     @TableColumn({
@@ -63,10 +57,7 @@ export default class IncidentStateTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
         update: [],
     })
     @Index()
@@ -80,10 +71,7 @@ export default class IncidentStateTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
         update: [],
     })
     @TableColumn({
@@ -107,10 +95,7 @@ export default class IncidentStateTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
         update: [],
     })
     @Index()
@@ -124,10 +109,7 @@ export default class IncidentStateTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
         update: [],
     })
     @TableColumn({
@@ -151,10 +133,7 @@ export default class IncidentStateTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -204,10 +183,7 @@ export default class IncidentStateTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
     @TableColumn({
@@ -230,10 +206,7 @@ export default class IncidentStateTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectIncident],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectIncident,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
     @Index()

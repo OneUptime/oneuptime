@@ -109,7 +109,6 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Incident Severity',
                     },
-                    ,
                     {
                         field: {
                             labels: true,
@@ -358,7 +357,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     />
                                 );
                             },
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}

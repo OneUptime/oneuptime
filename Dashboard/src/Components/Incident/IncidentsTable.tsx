@@ -25,7 +25,6 @@ export interface ComponentProps {
     noItemsMessage?: string | undefined;
     title?: string | undefined;
     description?: string | undefined;
-
 }
 
 const IncidentsTable: FunctionComponent<ComponentProps> = (
@@ -44,7 +43,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 icon: IconProp.Alert,
                 title: props.title || 'Incidents',
                 description:
-                    props.description || 'Here is a list of incidents for this project.',
+                    props.description ||
+                    'Here is a list of incidents for this project.',
             }}
             noItemsMessage={props.noItemsMessage || 'No incidents found.'}
             formFields={[
@@ -89,8 +89,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         monitors: true,
                     },
                     title: 'Monitors affected',
-                    description:
-                        'Select monitors affected by this incident.',
+                    description: 'Select monitors affected by this incident.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
                         type: Monitor,
@@ -166,7 +165,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     filterEntityType: IncidentState,
                     filterQuery: {
                         projectId: props.currentProject?._id,
-
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -179,14 +177,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                     color={
                                         (
                                             item[
-                                            'currentIncidentState'
+                                                'currentIncidentState'
                                             ] as JSONObject
                                         )['color'] as Color
                                     }
                                     text={
                                         (
                                             item[
-                                            'currentIncidentState'
+                                                'currentIncidentState'
                                             ] as JSONObject
                                         )['name'] as string
                                     }
@@ -222,14 +220,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                     color={
                                         (
                                             item[
-                                            'incidentSeverity'
+                                                'incidentSeverity'
                                             ] as JSONObject
                                         )['color'] as Color
                                     }
                                     text={
                                         (
                                             item[
-                                            'incidentSeverity'
+                                                'incidentSeverity'
                                             ] as JSONObject
                                         )['name'] as string
                                     }
@@ -264,8 +262,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             <MonitorsElement
                                 monitors={
                                     Monitor.fromJSON(
-                                        (item['monitors'] as JSONArray) ||
-                                        [],
+                                        (item['monitors'] as JSONArray) || [],
                                         Monitor
                                     ) as Array<Monitor>
                                 }
@@ -314,7 +311,6 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 },
             ]}
         />
-
     );
 };
 

@@ -104,8 +104,8 @@ router.post(
                     data: BaseModel.toJSON(user, User) as PartialEntity<User>,
                     select: {
                         email: true,
-                        _id: true, 
-                        name: true, 
+                        _id: true,
+                        name: true,
                         isMasterAdmin: true,
                     },
                     props: {

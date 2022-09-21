@@ -12,10 +12,12 @@ import Project from 'Model/Models/Project';
 import Monitor from 'Model/Models/Monitor';
 
 export interface ComponentProps {
-    project?: Project | undefined
+    project?: Project | undefined;
 }
 
-const DashboardSideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+const DashboardSideMenu: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <SideMenu>
             <SideMenuSection title="Overview">
@@ -32,23 +34,25 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (props: ComponentPr
                     countQuery={{
                         projectId: props.project?._id,
                         currentIncidentState: {
-                            isResolvedState: false
-                        }
+                            isResolvedState: false,
+                        },
                     }}
                 />
                 <SideMenuItem<Monitor>
                     link={{
                         title: 'Inoperational Monitors',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route
+                            RouteMap[
+                                PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.Activity}
                     countQuery={{
                         projectId: props.project?._id,
                         currentMonitorStatus: {
-                            isOperationalState: false
-                        }
+                            isOperationalState: false,
+                        },
                     }}
                     modelType={Monitor}
                     badgeType={BadgeType.DANGER}

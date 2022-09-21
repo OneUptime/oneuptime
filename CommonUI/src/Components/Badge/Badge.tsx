@@ -6,15 +6,15 @@ export enum BadgeType {
     WARNING,
 }
 
-
 export interface ComponentProps {
-    badgeCount: number
+    badgeCount: number;
     badgeType?: undefined | BadgeType;
 }
 
-const Badge: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
-
-    let className = 'bg-success';
+const Badge: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
+    let className: string = 'bg-success';
 
     if (props.badgeType === BadgeType.DANGER) {
         className = 'bg-danger';
@@ -25,11 +25,13 @@ const Badge: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactE
     }
 
     if (props.badgeCount) {
-        return (<span className={`mt-1 badge ${className} float-end`}>
-            {props.badgeCount}
-        </span>)
+        return (
+            <span className={`mt-1 badge ${className} float-end`}>
+                {props.badgeCount}
+            </span>
+        );
     }
-    return <></>
+    return <></>;
 };
 
 export default Badge;

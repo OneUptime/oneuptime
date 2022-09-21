@@ -340,12 +340,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
         if (createBy.data.getSlugifyColumn()) {
             (createBy.data as any)[
                 createBy.data.getSaveSlugToColumn() as string
-            ] = Slug.getSlug((createBy.data as any)[
-                createBy.data.getSlugifyColumn() as string
-            ] ? 
+            ] = Slug.getSlug(
                 (createBy.data as any)[
                     createBy.data.getSlugifyColumn() as string
-                ] as string : null
+                ]
+                    ? ((createBy.data as any)[
+                          createBy.data.getSlugifyColumn() as string
+                      ] as string)
+                    : null
             );
         }
 
@@ -428,12 +430,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         _createdBy = this.generateSlug(_createdBy);
 
-        debugger;
-
         let data: TBaseModel = _createdBy.data;
-
-        console.log("HERE");
-        console.log(BaseModel.toJSON(data, this.entityType));
 
         // add tenantId if present.
         const tenantColumnName: string | null = data.getTenantColumn();
@@ -917,7 +914,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async updateOneByIdAndFetch(
-        updateById: UpdateByIDAndFetch<TBaseModel>,
+        updateById: UpdateByIDAndFetch<TBaseModel>
     ): Promise<TBaseModel | null> {
         await this.updateOneById(updateById);
         return this.findOneById({

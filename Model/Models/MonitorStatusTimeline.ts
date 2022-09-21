@@ -22,10 +22,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadProjectMonitor,
-        ],
+    read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectMonitor],
     update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
 })
@@ -38,10 +35,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 export default class MonitorStatusTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @TableColumn({
@@ -65,10 +59,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @Index()
@@ -82,10 +73,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @TableColumn({
@@ -109,10 +97,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @Index()
@@ -126,10 +111,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @TableColumn({
@@ -153,10 +135,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -206,10 +185,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @TableColumn({
@@ -232,10 +208,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @Index()

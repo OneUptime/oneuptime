@@ -18,14 +18,22 @@ export default class FileModel extends BaseModel {
         return true;
     }
 
-    @TableColumn({ required: true, type: TableColumnType.File, canReadOnPopulate: true })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.File,
+        canReadOnPopulate: true,
+    })
     @Column({
         nullable: false,
         type: ColumnType.File,
     })
     public file?: Buffer = undefined;
 
-    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnPopulate: true,
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -33,7 +41,11 @@ export default class FileModel extends BaseModel {
     })
     public name?: string = undefined;
 
-    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnPopulate: true,
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -41,7 +53,12 @@ export default class FileModel extends BaseModel {
     })
     public type?: MimeType = undefined;
 
-    @TableColumn({ required: true, unique: true, type: TableColumnType.Slug, canReadOnPopulate: true })
+    @TableColumn({
+        required: true,
+        unique: true,
+        type: TableColumnType.Slug,
+        canReadOnPopulate: true,
+    })
     @Column({
         nullable: false,
         type: ColumnType.Slug,
@@ -53,7 +70,7 @@ export default class FileModel extends BaseModel {
         required: true,
         isDefaultValueColumn: true,
         type: TableColumnType.Slug,
-        canReadOnPopulate: true
+        canReadOnPopulate: true,
     })
     @Column({
         nullable: false,

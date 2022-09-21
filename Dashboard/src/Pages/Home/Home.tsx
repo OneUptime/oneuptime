@@ -23,17 +23,25 @@ const Home: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.HOME] as Route,
                 },
             ]}
-            sideMenu={<DashboardSideMenu project={props.currentProject || undefined} />}
+            sideMenu={
+                <DashboardSideMenu
+                    project={props.currentProject || undefined}
+                />
+            }
         >
-            <IncidentsTable currentProject={props.currentProject || undefined} viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route} query={{
-                projectId: props.currentProject?._id,
-                currentIncidentState: {
-                    isResolvedState: false
-                }
-            }} noItemsMessage='Nice work! No unresolved incidents so far.'
-                title='Unresolved Incidents'
-                description='Here is a list of all the unresolved incidents for this project.' />
-
+            <IncidentsTable
+                currentProject={props.currentProject || undefined}
+                viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
+                query={{
+                    projectId: props.currentProject?._id,
+                    currentIncidentState: {
+                        isResolvedState: false,
+                    },
+                }}
+                noItemsMessage="Nice work! No unresolved incidents so far."
+                title="Unresolved Incidents"
+                description="Here is a list of all the unresolved incidents for this project."
+            />
         </Page>
     );
 };

@@ -13,7 +13,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
     return (
         <Page
             title={'Incidents'}
-            sideMenu={<SideMenu project={props.currentProject || undefined}/>}
+            sideMenu={<SideMenu project={props.currentProject || undefined} />}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -25,9 +25,13 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 },
             ]}
         >
-            <IncidentsTable currentProject={props.currentProject || undefined} viewPageRoute={props.pageRoute} query={{
-                projectId: props.currentProject?._id
-            }}  />
+            <IncidentsTable
+                currentProject={props.currentProject || undefined}
+                viewPageRoute={props.pageRoute}
+                query={{
+                    projectId: props.currentProject?._id,
+                }}
+            />
         </Page>
     );
 };

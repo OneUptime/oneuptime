@@ -121,20 +121,23 @@ export default class ModelPermission {
             requestType
         );
 
-        const excludedColumns: Array<string> = ModelPermission.getExcludedColumns();
+        const excludedColumns: Array<string> =
+            ModelPermission.getExcludedColumns();
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
         for (const key of Object.keys(data)) {
-
             if ((data as any)[key] === undefined) {
                 continue;
             }
 
             if (excludedColumns.includes(key)) {
-                continue; 
+                continue;
             }
 
-            if (!permissionColumns.columns.includes(key) && tableColumns.includes(key)) {
+            if (
+                !permissionColumns.columns.includes(key) &&
+                tableColumns.includes(key)
+            ) {
                 throw new BadDataException(
                     `User is not allowed to ${requestType} on ${key} column of ${model.singularName}`
                 );
@@ -184,30 +187,36 @@ export default class ModelPermission {
                 }
             }
 
-
-            /// Implement Related Permissions. 
+            /// Implement Related Permissions.
             if (model.canAccessIfCanReadOn) {
+                const tableColumnMetadata: TableColumnMetadata =
+                    model.getTableColumnMetadata(model.canAccessIfCanReadOn);
 
-                const tableColumnMetadata = model.getTableColumnMetadata(model.canAccessIfCanReadOn);
-
-                if (tableColumnMetadata && tableColumnMetadata.modelType && (tableColumnMetadata.type === TableColumnType.Entity || tableColumnMetadata.type === TableColumnType.EntityArray)) {
-
+                if (
+                    tableColumnMetadata &&
+                    tableColumnMetadata.modelType &&
+                    (tableColumnMetadata.type === TableColumnType.Entity ||
+                        tableColumnMetadata.type ===
+                            TableColumnType.EntityArray)
+                ) {
                     const accessControlIds: Array<ObjectID> =
                         this.getAccessControlIdsForQuery(
                             tableColumnMetadata.modelType,
                             {},
                             {
-                                _id: true
+                                _id: true,
                             },
                             props
                         );
 
                     if (accessControlIds.length > 0) {
-                        const tableColumnMetadataModel = new tableColumnMetadata.modelType();
+                        const tableColumnMetadataModel: BaseModel =
+                            new tableColumnMetadata.modelType();
 
                         (query as any)[model.canAccessIfCanReadOn as string] = {
-                            [tableColumnMetadataModel.getAccessControlColumn() as string]: accessControlIds
-                        }
+                            [tableColumnMetadataModel.getAccessControlColumn() as string]:
+                                accessControlIds,
+                        };
                     }
                 }
             }
@@ -439,7 +448,6 @@ export default class ModelPermission {
                 }
             }
         }
-        
 
         return labelIds;
     }
@@ -480,7 +488,8 @@ export default class ModelPermission {
             return i.permission;
         });
 
-        const excludedColumns: Array<string> = ModelPermission.getExcludedColumns();
+        const excludedColumns: Array<string> =
+            ModelPermission.getExcludedColumns();
 
         for (const key in populate) {
             if (typeof populate[key] === Typeof.Object) {
@@ -499,8 +508,6 @@ export default class ModelPermission {
 
                 const relatedModel: BaseModel =
                     new tableColumnMetadata.modelType();
-                
-                
 
                 if (
                     tableColumnMetadata.type === TableColumnType.Entity ||
@@ -517,7 +524,8 @@ export default class ModelPermission {
                             );
                         }
 
-                        const getRelatedTableColumnMetadata = relatedModel.getTableColumnMetadata(innerKey);
+                        const getRelatedTableColumnMetadata: TableColumnMetadata =
+                            relatedModel.getTableColumnMetadata(innerKey);
 
                         if (!getRelatedTableColumnMetadata) {
                             throw new BadDataException(
@@ -525,7 +533,10 @@ export default class ModelPermission {
                             );
                         }
 
-                        if (!getRelatedTableColumnMetadata.canReadOnPopulate && !excludedColumns.includes(innerKey)) {
+                        if (
+                            !getRelatedTableColumnMetadata.canReadOnPopulate &&
+                            !excludedColumns.includes(innerKey)
+                        ) {
                             throw new BadDataException(
                                 `Column ${innerKey} on ${relatedModel.singularName} does not support read on populate.`
                             );
@@ -576,13 +587,7 @@ export default class ModelPermission {
     }
 
     private static getExcludedColumns(): string[] {
-        return [
-            '_id',
-            'createdAt',
-            'deletedAt',
-            'updatedAt',
-            'version'
-        ];
+        return ['_id', 'createdAt', 'deletedAt', 'updatedAt', 'version'];
     }
 
     private static checkQueryPermission<TBaseModel extends BaseModel>(
@@ -604,7 +609,8 @@ export default class ModelPermission {
 
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
-        const excludedColumns: Array<string> = ModelPermission.getExcludedColumns();;
+        const excludedColumns: Array<string> =
+            ModelPermission.getExcludedColumns();
 
         // Now we need to check all columns.
 
@@ -737,7 +743,8 @@ export default class ModelPermission {
 
         const tableColumns: Array<string> = model.getTableColumns().columns;
 
-        const excludedColumns: Array<string> = ModelPermission.getExcludedColumns();;
+        const excludedColumns: Array<string> =
+            ModelPermission.getExcludedColumns();
 
         for (const key in select) {
             if (excludedColumns.includes(key)) {

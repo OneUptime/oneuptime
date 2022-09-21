@@ -667,8 +667,9 @@ const BasicForm: Function = <T extends Object>(
             content &&
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
-            (entity[field.validation?.toMatchField] as string).toString().trim() !==
-                content.trim()
+            (entity[field.validation?.toMatchField] as string)
+                .toString()
+                .trim() !== content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -961,7 +962,9 @@ const BasicForm: Function = <T extends Object>(
                                                     props.isLoading
                                                 );
                                             }
-                                            return <div key={Math.random()}></div>;
+                                            return (
+                                                <div key={Math.random()}></div>
+                                            );
                                         }
                                     )}
                             </div>
@@ -993,7 +996,11 @@ const BasicForm: Function = <T extends Object>(
                                                         props.isLoading
                                                     );
                                                 }
-                                                return <div key={Math.random()}></div>;
+                                                return (
+                                                    <div
+                                                        key={Math.random()}
+                                                    ></div>
+                                                );
                                             }
                                         )}
                                 </div>

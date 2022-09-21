@@ -21,10 +21,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadProjectLabel,
-        ],
+    read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectLabel],
     update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
 })
@@ -37,10 +34,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 export default class Label extends AccessControlModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [],
     })
     @TableColumn({
@@ -64,10 +58,7 @@ export default class Label extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [],
     })
     @Index()
@@ -81,13 +72,14 @@ export default class Label extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText, canReadOnPopulate: true })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.ShortText,
+        canReadOnPopulate: true,
+    })
     @Column({
         nullable: false,
         type: ColumnType.ShortText,
@@ -98,10 +90,7 @@ export default class Label extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -114,10 +103,7 @@ export default class Label extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
@@ -130,10 +116,7 @@ export default class Label extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [],
     })
     @TableColumn({
@@ -157,10 +140,7 @@ export default class Label extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -173,10 +153,7 @@ export default class Label extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [],
     })
     @TableColumn({
@@ -200,10 +177,7 @@ export default class Label extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -216,10 +190,7 @@ export default class Label extends AccessControlModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectLabel],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectLabel,
-            ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectLabel],
         update: [Permission.ProjectOwner, Permission.CanEditProjectLabel],
     })
     @TableColumn({
@@ -227,7 +198,7 @@ export default class Label extends AccessControlModel {
         required: true,
         unique: false,
         type: TableColumnType.Color,
-        canReadOnPopulate: true
+        canReadOnPopulate: true,
     })
     @Column({
         type: ColumnType.Color,

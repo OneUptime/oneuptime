@@ -335,10 +335,9 @@ export default class BaseAPI<
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
-        const item: PartialEntity<TBaseModel> =
-            JSONFunctions.deserialize(
-                body['data'] as JSONObject
-            ) as PartialEntity<TBaseModel>;
+        const item: PartialEntity<TBaseModel> = JSONFunctions.deserialize(
+            body['data'] as JSONObject
+        ) as PartialEntity<TBaseModel>;
 
         delete item['_id'];
         delete item['createdAt'];

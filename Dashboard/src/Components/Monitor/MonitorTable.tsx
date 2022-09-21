@@ -23,7 +23,6 @@ export interface ComponentProps {
     noItemsMessage?: string | undefined;
     title?: string | undefined;
     description?: string | undefined;
-
 }
 
 const MonitorsTable: FunctionComponent<ComponentProps> = (
@@ -41,7 +40,9 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             cardProps={{
                 icon: IconProp.Activity,
                 title: props.title || 'Monitors',
-                description: props.description || 'Here is a list of monitors for this project.',
+                description:
+                    props.description ||
+                    'Here is a list of monitors for this project.',
             }}
             noItemsMessage={props.noItemsMessage || 'No monitors found.'}
             formFields={[
@@ -144,14 +145,14 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                                 color={
                                     (
                                         item[
-                                        'currentMonitorStatus'
+                                            'currentMonitorStatus'
                                         ] as JSONObject
                                     )['color'] as Color
                                 }
                                 text={
                                     (
                                         item[
-                                        'currentMonitorStatus'
+                                            'currentMonitorStatus'
                                         ] as JSONObject
                                     )['name'] as string
                                 }
@@ -192,7 +193,6 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 },
             ]}
         />
-
     );
 };
 

@@ -12,10 +12,12 @@ import Project from 'Model/Models/Project';
 import CountModelSideMenuItem from 'CommonUI/src/Components/SideMenu/CountModelSideMenuItem';
 
 export interface ComponentProps {
-    project?: Project | undefined
+    project?: Project | undefined;
 }
 
-const DashboardSideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+const DashboardSideMenu: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <SideMenu>
             <SideMenuSection title="Overview">
@@ -42,8 +44,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (props: ComponentPr
                     countQuery={{
                         projectId: props.project?._id,
                         currentIncidentState: {
-                            isResolvedState: false
-                        }
+                            isResolvedState: false,
+                        },
                     }}
                 />
             </SideMenuSection>

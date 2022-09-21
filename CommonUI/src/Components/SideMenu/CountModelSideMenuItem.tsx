@@ -8,12 +8,10 @@ import { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
 import { IconProp } from '../Icon/Icon';
 
-
-export interface ComponentProps<TBaseModel extends BaseModel>  {
+export interface ComponentProps<TBaseModel extends BaseModel> {
     link: Link;
-    modelType?: { new(): TBaseModel } | undefined;
-    badge?: undefined | number;
-    badgeType?: BadgeType | undefined
+    modelType?: { new (): TBaseModel } | undefined;
+    badgeType?: BadgeType | undefined;
     countQuery?: Query<TBaseModel> | undefined;
     requestOptions?: RequestOptions | undefined;
     icon?: undefined | IconProp;
@@ -24,13 +22,11 @@ export interface ComponentProps<TBaseModel extends BaseModel>  {
 const CountModelSideMenuItem: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ) => {
-
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [count, setCount] = useState<number>(0);
 
     const fetchCount: Function = async () => {
-
         if (!props.modelType) {
             return;
         }
@@ -39,11 +35,8 @@ const CountModelSideMenuItem: Function = <TBaseModel extends BaseModel>(
             return;
         }
 
-
         setError('');
         setIsLoading(true);
-
-
 
         if (props.onCountFetchInit) {
             props.onCountFetchInit();
@@ -61,7 +54,7 @@ const CountModelSideMenuItem: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -77,8 +70,15 @@ const CountModelSideMenuItem: Function = <TBaseModel extends BaseModel>(
         setIsLoading(false);
     }, []);
 
-    return <SideMenuItem link={props.link} badge={!isLoading && !error ? count : undefined} badgeType={props.badgeType} icon={props.icon} className={props.className}   />
-    
+    return (
+        <SideMenuItem
+            link={props.link}
+            badge={!isLoading && !error ? count : undefined}
+            badgeType={props.badgeType}
+            icon={props.icon}
+            className={props.className}
+        />
+    );
 };
 
 export default CountModelSideMenuItem;

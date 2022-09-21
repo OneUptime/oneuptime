@@ -23,11 +23,18 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.MONITORS] as Route,
                 },
             ]}
-            sideMenu={<DashboardSideMenu project={props.currentProject || undefined} />}
+            sideMenu={
+                <DashboardSideMenu
+                    project={props.currentProject || undefined}
+                />
+            }
         >
-             <MonitorTable currentProject={props.currentProject || undefined} viewPageRoute={RouteMap[PageMap.MONITORS] as Route} query={{
-                projectId: props.currentProject?._id,
-            }}
+            <MonitorTable
+                currentProject={props.currentProject || undefined}
+                viewPageRoute={RouteMap[PageMap.MONITORS] as Route}
+                query={{
+                    projectId: props.currentProject?._id,
+                }}
             />
         </Page>
     );
