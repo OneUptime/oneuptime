@@ -46,6 +46,7 @@ import MimeType from 'Common/Types/File/MimeType';
 import FileModel from 'Common/Models/FileModel';
 import Phone from 'Common/Types/Phone';
 import Domain from 'Common/Types/Domain';
+import Typeof from 'Common/Types/Typeof';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -909,7 +910,7 @@ const BasicForm: Function = <T extends Object>(
                                 const fieldName: string = field.overideFieldKey
                                     ? field.overideFieldKey
                                     : (Object.keys(field.field)[0] as string);
-                                if ((values as any)[fieldName]) {
+                                if ((values as any)[fieldName] && typeof (values as any)[fieldName] === Typeof.String) {
                                     (values as any)[fieldName] =
                                         new HashedString(
                                             (values as any)[fieldName],

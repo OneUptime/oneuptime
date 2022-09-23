@@ -4,6 +4,7 @@ import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
+    useRef,
     useState,
 } from 'react';
 
@@ -28,6 +29,12 @@ const Input: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [value, setValue] = useState<string>('');
     const [displayValue, setDisplayValue] = useState<string>('');
+    const ref = useRef(null);
+    
+    useEffect(() => {
+        const input = ref.current;
+        if (input) (input as any).value = displayValue;
+     }, [ref, displayValue]);
 
     useEffect(() => {
         if (props.type === 'date' || props.type === 'datetime-local') {
@@ -90,6 +97,8 @@ const Input: FunctionComponent<ComponentProps> = (
                 ></div>
             )}
             <input
+                autoFocus={true}
+                ref={ref}
                 data-testid={props.dataTestId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                     const value: string = e.target.value;
@@ -113,7 +122,7 @@ const Input: FunctionComponent<ComponentProps> = (
                     }
                 }}
                 tabIndex={props.tabIndex}
-                value={displayValue}
+                //value={displayValue}
                 readOnly={props.readOnly || false}
                 type={props.type || 'text'}
                 placeholder={props.placeholder}
