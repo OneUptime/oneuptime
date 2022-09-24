@@ -31,7 +31,6 @@ import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BaseModel from 'Common/Models/BaseModel';
-import PartialEntity from 'Common/Types/Database/PartialEntity';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -48,6 +47,8 @@ router.post(
             }
 
             const data: JSONObject = req.body['data'];
+
+            debugger;
 
             const user: User = User.fromJSON(data as JSONObject, User) as User;
 
@@ -102,7 +103,7 @@ router.post(
             if (alreadySavedUser) {
                 savedUser = await UserService.updateOneByIdAndFetch({
                     id: alreadySavedUser.id!,
-                    data: BaseModel.toJSON(user, User) as PartialEntity<User>,
+                    data: user,
                     select: {
                         email: true,
                         _id: true,

@@ -956,7 +956,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             query: {
                 _id: updateById.id.toString() as any,
             },
-            data: updateById.data,
+            data: updateById.data as any,
             props: updateById.props,
         });
     }

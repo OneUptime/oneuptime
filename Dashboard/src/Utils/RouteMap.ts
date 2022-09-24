@@ -11,11 +11,11 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
     [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational/`
+        `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`
     ),
 
     [PageMap.INCIDENTS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/`
+        `/dashboard/${RouteParams.ProjectID}/incidents`
     ),
 
     [PageMap.UNRESOLVED_INCIDENTS]: new Route(
@@ -47,7 +47,7 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.STATUS_PAGES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/`
+        `/dashboard/${RouteParams.ProjectID}/status-pages`
     ),
 
     [PageMap.STATUS_PAGE_VIEW]: new Route(
@@ -109,7 +109,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/`),
 
     [PageMap.MONITORS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/`
+        `/dashboard/${RouteParams.ProjectID}/monitors`
     ),
 
     [PageMap.MONITORS_INOPERATIONAL]: new Route(
