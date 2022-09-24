@@ -579,14 +579,14 @@ export default class BaseModel extends BaseEntity {
     ): boolean {
         let userPermissions: Array<Permission> = [];
 
-        if (instaceOfUserTenantAccessPermission(userProjectPermissions)) {
+        if (instaceOfUserTenantAccessPermission(userProjectPermissions) && userProjectPermissions.permissions && Array.isArray(userProjectPermissions.permissions)) {
             userPermissions = userProjectPermissions.permissions.map(
                 (item: UserPermission) => {
                     return item.permission;
                 }
             );
         } else {
-            userPermissions = userProjectPermissions;
+            userPermissions = userProjectPermissions as Array<Permission>;
         }
 
         return Boolean(

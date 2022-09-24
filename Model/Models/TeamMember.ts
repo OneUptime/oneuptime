@@ -25,7 +25,7 @@ import User from './User';
         Permission.CanCreateProjectTeam,
         Permission.CanInviteProjectTeamMembers,
     ],
-    read: [Permission.ProjectOwner, Permission.CanReadProjectTeam],
+    read: [Permission.ProjectOwner, Permission.CanReadProjectTeam, Permission.CurrentUser],
     delete: [
         Permission.ProjectOwner,
         Permission.CanDeleteProjectTeam,
@@ -54,7 +54,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam, Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -82,7 +82,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam, Permission.CurrentUser],
         update: [],
     })
     @Index()
@@ -100,7 +100,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam, Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -127,8 +127,9 @@ export default class TeamMember extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
+
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam, Permission.CurrentUser],
         update: [],
     })
     @Index()
@@ -174,7 +175,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam, Permission.CurrentUser],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID, required: true })
@@ -265,7 +266,7 @@ export default class TeamMember extends BaseModel {
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectTeam, Permission.CurrentUser],
         update: [Permission.CurrentUser],
     })
     @TableColumn({
