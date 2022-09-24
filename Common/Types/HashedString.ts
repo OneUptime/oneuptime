@@ -4,7 +4,7 @@ import DatabaseProperty from './Database/DatabaseProperty';
 import BadOperationException from './Exception/BadOperationException';
 import ObjectID from './ObjectID';
 import CryptoJS from 'crypto-js';
-import { JSONFunctions, JSONObject, JSONValue } from './JSON';
+import { JSONFunctions, JSONValue } from './JSON';
 import BadDataException from './Exception/BadDataException';
 
 export default class HashedString extends DatabaseProperty {
