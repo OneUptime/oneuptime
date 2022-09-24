@@ -395,6 +395,23 @@ export default class BaseModel extends BaseEntity {
         );
     }
 
+    public isHashedStringColumn(columnName: string): boolean {
+        const tableColumnType: TableColumnMetadata = getTableColumn(
+            this,
+            columnName
+        );
+
+        if (!tableColumnType) {
+            throw new BadDataException(
+                'TableColumnMetadata not found for ' + columnName + ' column'
+            );
+        }
+
+        return Boolean(
+            tableColumnType.type === TableColumnType.HashedString
+        );
+    }
+
     public isFileColumn(columnName: string): boolean {
         const tableColumnType: TableColumnMetadata = getTableColumn(
             this,

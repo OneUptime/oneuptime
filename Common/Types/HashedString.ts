@@ -4,6 +4,8 @@ import DatabaseProperty from './Database/DatabaseProperty';
 import BadOperationException from './Exception/BadOperationException';
 import ObjectID from './ObjectID';
 import CryptoJS from 'crypto-js';
+import { JSONFunctions, JSONObject, JSONValue } from './JSON';
+import BadDataException from './Exception/BadDataException';
 
 export default class HashedString extends DatabaseProperty {
     private isHashed: boolean = false;
@@ -80,5 +82,19 @@ export default class HashedString extends DatabaseProperty {
 
     public static fromString(value: string): HashedString {
         return new HashedString(value, false);
+    }
+
+    public static isHashedString(value: JSONValue): boolean { 
+        return JSONFunctions.deserializeValue(value) instanceof HashedString;
+    }
+
+    public static asHashedString(value: JSONValue): HashedString { 
+        value = JSONFunctions.deserializeValue(value);
+
+        if (value instanceof HashedString) {
+            return value;
+        }
+        
+        throw new BadDataException(`${value} is not of type HashedString`);
     }
 }

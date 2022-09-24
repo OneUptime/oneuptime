@@ -413,6 +413,29 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     (data as any)[columnName] = itemsArray;
                 }
             }
+
+
+            if (this.model.isHashedStringColumn(columnName)) {
+
+                const columnValue: JSONValue = (data as any)[columnName];
+
+                console.log("HASHED COLUJMN")
+                console.log(columnValue);
+
+                if (
+                    data &&
+                    columnName &&
+                    columnValue &&
+                    columnValue instanceof HashedString) {
+                    
+                    if (!columnValue.isValueHashed()) {
+                        columnValue.hashValue(EncryptionSecret);
+                    }
+                    
+                    (data as any)[columnName] = columnValue.toString();
+                }
+
+            }
         }
 
         // check createByUserId.
@@ -659,7 +682,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     ): Promise<Array<TBaseModel>> {
         try {
 
-           
+
 
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {

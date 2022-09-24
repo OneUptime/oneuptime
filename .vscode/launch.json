@@ -7,6 +7,7 @@
         {
             "name": "Node.js - Debug Current File",
             "type": "node",
+            "restart": true,
             "request": "launch",
             "program": "${file}"
         },
@@ -20,7 +21,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -32,7 +34,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -44,7 +47,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -56,7 +60,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -68,7 +73,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -80,7 +86,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -92,7 +99,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -104,7 +112,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -116,7 +125,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -128,7 +138,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -140,7 +151,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -152,7 +164,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -164,7 +177,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -176,7 +190,8 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "address": "0.0.0.0",
@@ -188,11 +203,13 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
         },
         {
             "name": "CommonServer: Debug Tests",
             "type": "node",
+            "restart": true,
             "request": "launch",
             "cwd": "${workspaceRoot}/CommonServer",
             "runtimeExecutable": "npm",
@@ -200,11 +217,11 @@
                 "run-script",
                 "debug:test"
             ],
-            "port": 9229
         },
         {
             "name": "Accounts: Debug Local Files",
             "type": "node",
+            "restart": true,
             "request": "launch",
             "cwd": "${workspaceRoot}/Accounts",
             "runtimeExecutable": "npm",
@@ -212,7 +229,6 @@
                 "run-script",
                 "dev"
             ],
-            "port": 9229
         }
     ]
 }
