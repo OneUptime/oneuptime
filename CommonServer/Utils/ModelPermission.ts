@@ -461,7 +461,7 @@ export default class ModelPermission {
     } {
         for (const key in populate) {
             if (typeof populate[key] === Typeof.Object) {
-                (select as any)[key] = (populate as any)[key];
+                (select as any)[key] = { ...(populate as any)[key], _id: true };
 
                 (populate as any)[key] = true;
             } else {

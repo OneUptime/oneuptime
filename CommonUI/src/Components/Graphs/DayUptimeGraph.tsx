@@ -157,7 +157,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         }
 
         return (
-            <Tooltip text={toolTipText || '100% Operational'}>
+            <Tooltip key={dayNumber} text={toolTipText || '100% Operational'}>
                 <div
                     className="uptime-bar"
                     style={{ backgroundColor: color.toString() }}
