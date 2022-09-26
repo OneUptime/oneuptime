@@ -18,19 +18,18 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import UserColumn from 'Common/Types/Database/UserColumn';
+import CurrentUserCanAccessRecordBy from 'Common/Types/Database/CurrentUserCanAccessRecordBy';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TableAccessControl({
     create: [Permission.Public],
     read: [
-        Permission.LoggedInUser,
-        Permission.ProjectMember,
+        Permission.CurrentUser,
         Permission.ProjectAdmin,
         Permission.ProjectOwner,
     ],
-    delete: [Permission.LoggedInUser],
-    update: [Permission.LoggedInUser],
+    delete: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
 })
 @CrudApiEndpoint(new Route('/user'))
 @SlugifyColumn('name', 'slug')
@@ -38,19 +37,18 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
     name: 'User',
 })
 @SingularPluralName('User', 'Users')
-@UserColumn('_id')
+@CurrentUserCanAccessRecordBy('_id')
 class User extends UserModel {
     @ColumnAccessControl({
         create: [Permission.Public],
         read: [
-            Permission.LoggedInUser,
-            Permission.ProjectMember,
+            Permission.CurrentUser,
             Permission.ProjectAdmin,
             Permission.ProjectOwner,
         ],
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
-    @TableColumn({ type: TableColumnType.Name })
+    @TableColumn({ type: TableColumnType.Name, canReadOnPopulate: true })
     @Column({
         type: ColumnType.Name,
         length: ColumnLength.Name,
@@ -63,19 +61,19 @@ class User extends UserModel {
     @ColumnAccessControl({
         create: [Permission.Public],
         read: [
-            Permission.LoggedInUser,
-            Permission.ProjectMember,
+            Permission.CurrentUser,
             Permission.ProjectAdmin,
             Permission.ProjectOwner,
         ],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({
         title: 'Email',
         required: true,
         unique: true,
         type: TableColumnType.Email,
+        canReadOnPopulate: true,
     })
     @Column({
         type: ColumnType.Email,
@@ -88,9 +86,9 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.LoggedInUser],
+        read: [Permission.CurrentUser],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Email })
     @Column({
@@ -105,7 +103,7 @@ class User extends UserModel {
     @Index()
     @ColumnAccessControl({
         create: [Permission.User],
-        read: [Permission.ProjectMember],
+        read: [],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -119,9 +117,9 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.LoggedInUser],
+        read: [Permission.CurrentUser],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({
         title: 'Password',
@@ -139,7 +137,7 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.LoggedInUser],
+        read: [Permission.CurrentUser],
 
         update: [],
     })
@@ -152,9 +150,9 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.LoggedInUser],
+        read: [Permission.CurrentUser],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -167,9 +165,9 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.LoggedInUser],
+        read: [Permission.CurrentUser],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -182,9 +180,9 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.LoggedInUser],
+        read: [Permission.CurrentUser],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -197,9 +195,9 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.LoggedInUser],
+        read: [Permission.CurrentUser],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -212,9 +210,9 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [Permission.Public],
-        read: [Permission.LoggedInUser],
+        read: [Permission.CurrentUser],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Phone })
     @Column({
@@ -229,13 +227,12 @@ class User extends UserModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.LoggedInUser,
-            Permission.ProjectMember,
+            Permission.CurrentUser,
             Permission.ProjectAdmin,
             Permission.ProjectOwner,
         ],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortURL })
     @Column({
@@ -250,13 +247,12 @@ class User extends UserModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.LoggedInUser,
-            Permission.ProjectMember,
+            Permission.CurrentUser,
             Permission.ProjectAdmin,
             Permission.ProjectOwner,
         ],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({
         isDefaultValueColumn: true,
@@ -304,7 +300,7 @@ class User extends UserModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.LoggedInUser],
+        read: [Permission.CurrentUser],
 
         update: [],
     })
@@ -378,13 +374,12 @@ class User extends UserModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.LoggedInUser,
-            Permission.ProjectMember,
+            Permission.CurrentUser,
             Permission.ProjectAdmin,
             Permission.ProjectOwner,
         ],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -498,13 +493,12 @@ class User extends UserModel {
     @ColumnAccessControl({
         create: [],
         read: [
-            Permission.LoggedInUser,
-            Permission.ProjectMember,
+            Permission.CurrentUser,
             Permission.ProjectAdmin,
             Permission.ProjectOwner,
         ],
 
-        update: [Permission.LoggedInUser],
+        update: [Permission.CurrentUser],
     })
     @TableColumn({ type: TableColumnType.Phone })
     @Column({

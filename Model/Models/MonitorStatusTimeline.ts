@@ -16,15 +16,13 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import MonitorStatus from './MonitorStatus';
 import Monitor from './Monitor';
+import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
+@CanAccessIfCanReadOn('monitor')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadProjectMonitor,
-        Permission.ProjectMember,
-    ],
+    read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectMonitor],
     update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
 })
@@ -37,11 +35,7 @@ import Monitor from './Monitor';
 export default class MonitorStatusTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @TableColumn({
@@ -65,11 +59,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @Index()
@@ -83,11 +73,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @TableColumn({
@@ -111,11 +97,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @Index()
@@ -129,11 +111,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @TableColumn({
@@ -157,11 +135,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -198,7 +172,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember],
+        read: [],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -211,11 +185,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @TableColumn({
@@ -238,11 +208,7 @@ export default class MonitorStatusTimeline extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectMonitor],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadProjectMonitor,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectMonitor],
         update: [Permission.ProjectOwner, Permission.CanEditProjectMonitor],
     })
     @Index()

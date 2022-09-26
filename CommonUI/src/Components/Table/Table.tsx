@@ -8,6 +8,7 @@ import SortOrder from 'Common/Types/Database/SortOrder';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
+import { DragDropContext, DropResult } from 'react-beautiful-dnd';
 
 export interface ComponentProps {
     data: Array<JSONObject>;
@@ -31,6 +32,10 @@ export interface ComponentProps {
     isTableFilterLoading?: undefined | boolean;
     filterError?: string | undefined;
     onFilterChanged?: undefined | ((filterData: FilterData) => void);
+    enableDragAndDrop?: boolean | undefined;
+    dragDropIndexField?: string | undefined;
+    dragDropIdField?: string | undefined;
+    onDragDrop?: ((id: string, newIndex: number) => void) | undefined;
 }
 
 const Table: FunctionComponent<ComponentProps> = (
@@ -93,38 +98,56 @@ const Table: FunctionComponent<ComponentProps> = (
                 data={props.data}
                 columns={props.columns}
                 actionButtons={props.actionButtons}
+                enableDragAndDrop={props.enableDragAndDrop}
+                dragAndDropScope={`${props.id}-dnd`}
+                dragDropIdField={props.dragDropIdField}
+                dragDropIndexField={props.dragDropIndexField}
             />
         );
     };
 
     return (
-        <div className="table-responsive">
-            <table className="table mb-0 table">
-                <TableHeader
-                    id={`${props.id}-header`}
-                    columns={props.columns}
-                    onSortChanged={props.onSortChanged}
-                    showFilter={props.showFilter || false}
-                    onFilterChanged={props.onFilterChanged || undefined}
-                    isTableFilterLoading={props.isTableFilterLoading}
-                    filterError={props.filterError}
-                    onTableFilterRefreshClick={props.onTableFilterRefreshClick}
-                />
-                {getTablebody()}
-            </table>
-            {!props.disablePagination && (
-                <Pagination
-                    singularLabel={props.singularLabel}
-                    pluralLabel={props.pluralLabel}
-                    currentPageNumber={props.currentPageNumber}
-                    totalItemsCount={props.totalItemsCount}
-                    itemsOnPage={props.itemsOnPage}
-                    onNavigateToPage={props.onNavigateToPage}
-                    isLoading={props.isLoading}
-                    isError={Boolean(props.error)}
-                />
-            )}
-        </div>
+        <DragDropContext
+            onDragEnd={(result: DropResult) => {
+                result.destination?.index &&
+                    props.onDragDrop &&
+                    props.onDragDrop(
+                        result.draggableId,
+                        result.destination.index
+                    );
+            }}
+        >
+            <div className="table-responsive">
+                <table className="table mb-0 table">
+                    <TableHeader
+                        id={`${props.id}-header`}
+                        columns={props.columns}
+                        onSortChanged={props.onSortChanged}
+                        showFilter={props.showFilter || false}
+                        onFilterChanged={props.onFilterChanged || undefined}
+                        isTableFilterLoading={props.isTableFilterLoading}
+                        filterError={props.filterError}
+                        enableDragAndDrop={props.enableDragAndDrop}
+                        onTableFilterRefreshClick={
+                            props.onTableFilterRefreshClick
+                        }
+                    />
+                    {getTablebody()}
+                </table>
+                {!props.disablePagination && (
+                    <Pagination
+                        singularLabel={props.singularLabel}
+                        pluralLabel={props.pluralLabel}
+                        currentPageNumber={props.currentPageNumber}
+                        totalItemsCount={props.totalItemsCount}
+                        itemsOnPage={props.itemsOnPage}
+                        onNavigateToPage={props.onNavigateToPage}
+                        isLoading={props.isLoading}
+                        isError={Boolean(props.error)}
+                    />
+                )}
+            </div>
+        </DragDropContext>
     );
 };
 

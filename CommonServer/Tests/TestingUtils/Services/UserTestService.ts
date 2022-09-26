@@ -1,5 +1,5 @@
 import User from 'Model/Models/User';
-import Faker from 'Common/Tests/TestingUtils/Faker';
+import Faker from 'Common/Utils/Faker';
 import CompanySize from 'Common/Types/Company/CompanySize';
 import JobRole from 'Common/Types/Company/JobRole';
 import PostgresDatabase from '../../../Infrastructure/PostgresDatabase';

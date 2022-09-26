@@ -18,9 +18,9 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import Sort from '../Types/Database/Sort';
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../Types/Database/Populate';
+import PartialEntity from 'Common/Types/Database/PartialEntity';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -149,7 +149,7 @@ export default class BaseAPI<
         const props: DatabaseCommonInteractionProps = {
             tenantId: undefined,
             userGlobalAccessPermission: undefined,
-            userProjectAccessPermission: undefined,
+            userTenantAccessPermission: undefined,
             userId: undefined,
             userType: undefined,
             isMultiTenantRequest: undefined,
@@ -168,10 +168,10 @@ export default class BaseAPI<
             ).userGlobalAccessPermission;
         }
 
-        if ((req as OneUptimeRequest).userProjectAccessPermission) {
-            props.userProjectAccessPermission = (
+        if ((req as OneUptimeRequest).userTenantAccessPermission) {
+            props.userTenantAccessPermission = (
                 req as OneUptimeRequest
-            ).userProjectAccessPermission;
+            ).userTenantAccessPermission;
         }
 
         if ((req as OneUptimeRequest).tenantId) {
@@ -335,10 +335,9 @@ export default class BaseAPI<
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
 
-        const item: QueryDeepPartialEntity<TBaseModel> =
-            JSONFunctions.deserialize(
-                body['data'] as JSONObject
-            ) as QueryDeepPartialEntity<TBaseModel>;
+        const item: PartialEntity<TBaseModel> = JSONFunctions.deserialize(
+            body['data'] as JSONObject
+        ) as PartialEntity<TBaseModel>;
 
         delete item['_id'];
         delete item['createdAt'];

@@ -2,37 +2,60 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
-import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
+import SideMenuItem from 'CommonUI/src/Components/SideMenu/CountModelSideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
+import { BadgeType } from 'CommonUI/src/Components/Badge/Badge';
+import Incident from 'Model/Models/Incident';
+import Project from 'Model/Models/Project';
+import Monitor from 'Model/Models/Monitor';
 
-const DashboardSideMenu: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+    project?: Project | undefined;
+}
+
+const DashboardSideMenu: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <SideMenu>
-            <SideMenuSection title="Sample">
-                <SideMenuItem
+            <SideMenuSection title="Overview">
+                <SideMenuItem<Incident>
                     link={{
-                        title: 'Home',
-                        to: new Route('/:projectSlug/home'),
+                        title: 'Unresolved Incidents',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.HOME] as Route
+                        ),
                     }}
-                    icon={IconProp.Home}
-                    badge={14}
+                    icon={IconProp.Alert}
+                    badgeType={BadgeType.DANGER}
+                    modelType={Incident}
+                    countQuery={{
+                        projectId: props.project?._id,
+                        currentIncidentState: {
+                            isResolvedState: false,
+                        },
+                    }}
                 />
-                <SideMenuItem
+                <SideMenuItem<Monitor>
                     link={{
-                        title: 'Home',
-                        to: new Route('/:projectSlug/home'),
+                        title: 'Inoperational Monitors',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                            ] as Route
+                        ),
                     }}
-                    icon={IconProp.Home}
-                    showAlert={true}
-                />
-
-                <SideMenuItem
-                    link={{
-                        title: 'Home',
-                        to: new Route('/:projectSlug/home'),
+                    icon={IconProp.Activity}
+                    countQuery={{
+                        projectId: props.project?._id,
+                        currentMonitorStatus: {
+                            isOperationalState: false,
+                        },
                     }}
-                    icon={IconProp.Home}
-                    showWarning={true}
+                    modelType={Monitor}
+                    badgeType={BadgeType.DANGER}
                 />
             </SideMenuSection>
         </SideMenu>

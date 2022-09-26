@@ -17,15 +17,13 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import StatusPage from './StatusPage';
+import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
+@CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-    read: [
-        Permission.ProjectOwner,
-        Permission.CanReadStatusPageGroup,
-        Permission.ProjectMember,
-    ],
+    read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
     delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageGroup],
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
 })
@@ -38,11 +36,7 @@ import StatusPage from './StatusPage';
 export default class StatusPageGroup extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [],
     })
     @TableColumn({
@@ -66,11 +60,7 @@ export default class StatusPageGroup extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [],
     })
     @Index()
@@ -84,11 +74,7 @@ export default class StatusPageGroup extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [],
     })
     @TableColumn({
@@ -112,11 +98,7 @@ export default class StatusPageGroup extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [],
     })
     @Index()
@@ -130,11 +112,7 @@ export default class StatusPageGroup extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
@@ -148,11 +126,7 @@ export default class StatusPageGroup extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -165,11 +139,7 @@ export default class StatusPageGroup extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
@@ -182,11 +152,7 @@ export default class StatusPageGroup extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [],
     })
     @TableColumn({
@@ -210,11 +176,7 @@ export default class StatusPageGroup extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -227,11 +189,7 @@ export default class StatusPageGroup extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
-        read: [
-            Permission.ProjectOwner,
-            Permission.CanReadStatusPageGroup,
-            Permission.ProjectMember,
-        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
         update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
     })
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })

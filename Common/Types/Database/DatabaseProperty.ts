@@ -29,6 +29,7 @@ export default class DatabaseProperty {
         if (
             value &&
             (value as any)._type === 'raw' &&
+            (value as any)._objectLiteralParameters &&
             Object.keys((value as any)._objectLiteralParameters).length > 0
         ) {
             const returnVal: string | number | null = (value as any)
@@ -40,6 +41,11 @@ export default class DatabaseProperty {
             }
             return returnVal;
         }
+
+        if (value && (value as any)._type === 'raw') {
+            return value as any;
+        }
+
         return this.toDatabase(value);
     }
 

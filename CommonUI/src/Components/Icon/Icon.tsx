@@ -11,9 +11,11 @@ import {
     FiCheckCircle,
     FiSearch,
     FiHelpCircle,
+    FiDisc,
     FiPower,
     FiImage,
     FiGlobe,
+    FiMoreVertical,
     FiCreditCard,
     FiUser,
     FiChevronDown,
@@ -21,6 +23,7 @@ import {
     FiChevronLeft,
     FiChevronUp,
     FiCircle,
+    FiSend,
     FiMail,
     FiBarChart2,
     FiSlack,
@@ -46,7 +49,9 @@ import {
     FiFilter,
     FiEdit2,
     FiEyeOff,
+    FiFileText,
     FiList,
+    FiLink2,
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -69,6 +74,7 @@ export enum ThickProp {
 export enum IconProp {
     File,
     User,
+    Disc,
     Settings,
     Notification,
     Help,
@@ -88,6 +94,7 @@ export enum IconProp {
     List,
     CheckCircle,
     Search,
+    TextFile,
     Globe,
     Logout,
     Billing,
@@ -95,6 +102,7 @@ export enum IconProp {
     Slack,
     Time,
     Terminal,
+    Drag,
     Error,
     Code,
     Report,
@@ -119,6 +127,8 @@ export enum IconProp {
     False,
     Text,
     Circle,
+    Webhook,
+    SendMessage,
 }
 
 export interface ComponentProps {
@@ -143,10 +153,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
     return (
         <div
             style={{
-                cursor: 'pointer',
                 ...style,
             }}
-            className={className ? className : ''}
+            className={className ? className : 'pointer'}
             onClick={() => {
                 onClick && onClick();
             }}
@@ -507,6 +516,46 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Text && (
                 <FiType
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Drag && (
+                <FiMoreVertical
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Webhook && (
+                <FiLink2
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.SendMessage && (
+                <FiSend
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.Disc && (
+                <FiDisc
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+            {icon === IconProp.TextFile && (
+                <FiFileText
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}

@@ -8,10 +8,20 @@ import ObjectID from 'Common/Types/ObjectID';
 
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
+
+    [PageMap.INIT_PROJECT]: new Route(`/dashboard/${RouteParams.ProjectID}`),
+
     [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
+    [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`
+    ),
 
     [PageMap.INCIDENTS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/`
+        `/dashboard/${RouteParams.ProjectID}/incidents`
+    ),
+
+    [PageMap.UNRESOLVED_INCIDENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/incidents/unresolved`
     ),
 
     [PageMap.INCIDENT_VIEW]: new Route(
@@ -39,7 +49,7 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.STATUS_PAGES]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/`
+        `/dashboard/${RouteParams.ProjectID}/status-pages`
     ),
 
     [PageMap.STATUS_PAGE_VIEW]: new Route(
@@ -62,8 +72,16 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/domains`
     ),
 
-    [PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/subscribers`
+    [PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/email-subscribers`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/sms-subscribers`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/webhook-subscribers`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: new Route(
@@ -72,6 +90,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.STATUS_PAGE_VIEW_EMBEDDED]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/embedded`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/subscriber-settings`
     ),
 
     [PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS]: new Route(
@@ -89,7 +111,11 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.LOGS]: new Route(`/dashboard/${RouteParams.ProjectID}/logs/`),
 
     [PageMap.MONITORS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/monitors/`
+        `/dashboard/${RouteParams.ProjectID}/monitors`
+    ),
+
+    [PageMap.MONITORS_INOPERATIONAL]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitors/inoperational`
     ),
 
     [PageMap.MONITOR_VIEW]: new Route(
@@ -175,19 +201,20 @@ export class RouteUtil {
     public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
         // populate projectid
         const project: Project | null = ProjectUtil.getCurrentProject();
+        const tempRoute: Route = new Route(route.toString());
 
         if (project && project._id) {
-            route = route.addRouteParam(RouteParams.ProjectID, project._id);
+            route = tempRoute.addRouteParam(RouteParams.ProjectID, project._id);
         }
 
         if (modelId) {
-            route = route.addRouteParam(
+            route = tempRoute.addRouteParam(
                 RouteParams.ModelID,
                 modelId.toString()
             );
         }
 
-        return route;
+        return tempRoute;
     }
 }
 

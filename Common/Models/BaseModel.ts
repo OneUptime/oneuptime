@@ -23,10 +23,10 @@ import PositiveNumber from '../Types/PositiveNumber';
 import Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
 import Permission, {
-    instaceOfUserProjectAccessPermission,
+    instaceOfUserTenantAccessPermission,
     PermissionHelper,
     UserPermission,
-    UserProjectAccessPermission,
+    UserTenantAccessPermission,
 } from '../Types/Permission';
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
@@ -70,7 +70,7 @@ export default class BaseModel extends BaseEntity {
     public deleteRecordPermissions!: Array<Permission>;
     public updateRecordPermissions!: Array<Permission>;
 
-    public userColumn!: string | null;
+    public currentUserCanAccessColumnBy!: string | null;
     public labelsColumn!: string | null;
     public slugifyColumn!: string | null;
     public saveSlugToColumn!: string | null;
@@ -88,6 +88,8 @@ export default class BaseModel extends BaseEntity {
     public tenantColumn!: string | null;
 
     public accessControlColumn!: string | null;
+
+    public canAccessIfCanReadOn!: string | null;
 
     public constructor(id?: ObjectID) {
         super();
@@ -251,7 +253,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public getUserColumn(): string | null {
-        return this.userColumn;
+        return this.currentUserCanAccessColumnBy;
     }
 
     public getLabelsColumn(): string | null {
@@ -393,6 +395,21 @@ export default class BaseModel extends BaseEntity {
         );
     }
 
+    public isHashedStringColumn(columnName: string): boolean {
+        const tableColumnType: TableColumnMetadata = getTableColumn(
+            this,
+            columnName
+        );
+
+        if (!tableColumnType) {
+            throw new BadDataException(
+                'TableColumnMetadata not found for ' + columnName + ' column'
+            );
+        }
+
+        return Boolean(tableColumnType.type === TableColumnType.HashedString);
+    }
+
     public isFileColumn(columnName: string): boolean {
         const tableColumnType: TableColumnMetadata = getTableColumn(
             this,
@@ -514,7 +531,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public hasCreatePermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         columnName?: string
     ): boolean {
         let modelPermission: Array<Permission> = this.createRecordPermissions;
@@ -531,7 +548,7 @@ export default class BaseModel extends BaseEntity {
     }
 
     public hasReadPermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         columnName?: string
     ): boolean {
         let modelPermission: Array<Permission> = this.readRecordPermissions;
@@ -548,14 +565,14 @@ export default class BaseModel extends BaseEntity {
     }
 
     public hasDeletePermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>
     ): boolean {
         const modelPermission: Array<Permission> = this.deleteRecordPermissions;
         return this.hasPermissions(userProjectPermissions, modelPermission);
     }
 
     public hasUpdatePermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         columnName?: string
     ): boolean {
         let modelPermission: Array<Permission> = this.updateRecordPermissions;
@@ -572,19 +589,23 @@ export default class BaseModel extends BaseEntity {
     }
 
     private hasPermissions(
-        userProjectPermissions: UserProjectAccessPermission | Array<Permission>,
+        userProjectPermissions: UserTenantAccessPermission | Array<Permission>,
         modelPermissions: Array<Permission>
     ): boolean {
         let userPermissions: Array<Permission> = [];
 
-        if (instaceOfUserProjectAccessPermission(userProjectPermissions)) {
+        if (
+            instaceOfUserTenantAccessPermission(userProjectPermissions) &&
+            userProjectPermissions.permissions &&
+            Array.isArray(userProjectPermissions.permissions)
+        ) {
             userPermissions = userProjectPermissions.permissions.map(
                 (item: UserPermission) => {
                     return item.permission;
                 }
             );
         } else {
-            userPermissions = userProjectPermissions;
+            userPermissions = userProjectPermissions as Array<Permission>;
         }
 
         return Boolean(

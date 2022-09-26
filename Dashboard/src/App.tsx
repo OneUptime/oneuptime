@@ -10,14 +10,19 @@ import {
 import MasterPage from './Components/MasterPage/MasterPage';
 // Pages
 import Init from './Pages/Init/Init';
+
 import Home from './Pages/Home/Home';
+import NotOperationalMonitors from './Pages/Home/NotOperationalMonitors';
+
 import useAsyncEffect from 'use-async-effect';
 
 import StatusPages from './Pages/StatusPages/StatusPages';
 import StatusPagesView from './Pages/StatusPages/View/Index';
 import StatusPagesViewDelete from './Pages/StatusPages/View/Delete';
 import StatusPagesViewBranding from './Pages/StatusPages/View/Branding';
-import StatusPagesViewSubscribers from './Pages/StatusPages/View/Subscribers';
+import StatusPagesViewEmailSubscribers from './Pages/StatusPages/View/EmailSubscribers';
+import StatusPagesViewSMSSubscribers from './Pages/StatusPages/View/SMSSubscribers';
+import StatusPagesViewWebhookSubscribers from './Pages/StatusPages/View/WebhookSubscribers';
 import StatusPagesViewEmbedded from './Pages/StatusPages/View/Embedded';
 import StatusPagesViewDomains from './Pages/StatusPages/View/Domains';
 import StatusPagesViewResources from './Pages/StatusPages/View/Resources';
@@ -25,6 +30,7 @@ import StatusPagesViewAnnouncement from './Pages/StatusPages/View/Announcements'
 import StatusPagesViewAdvancedOptions from './Pages/StatusPages/View/AdvancedOptions';
 import StatusPagesViewCustomHtmlCss from './Pages/StatusPages/View/CustomHtmlCss';
 import StatusPagesViewGroups from './Pages/StatusPages/View/Groups';
+import StatusPageViewSubscriberSettings from './Pages/StatusPages/View/SubscriberSettings';
 
 import Incidents from './Pages/Incidents/Incidents';
 import IncidentView from './Pages/Incidents/View/Index';
@@ -32,6 +38,7 @@ import IncidentViewDelete from './Pages/Incidents/View/Delete';
 import IncidentViewStateTimeline from './Pages/Incidents/View/StateTimeline';
 import IncidentInternalNote from './Pages/Incidents/View/InternalNote';
 import IncidentPublicNote from './Pages/Incidents/View/PublicNote';
+import UnresolvedIncidents from './Pages/Incidents/Unresolved';
 
 import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -61,6 +68,7 @@ import MonitorView from './Pages/Monitor/View/Index';
 import MonitorViewDelete from './Pages/Monitor/View/Delete';
 import MonitorViewStatusTimeline from './Pages/Monitor/View/StatusTimeline';
 import MonitorIncidents from './Pages/Monitor/View/Incidents';
+import MonitorInoperational from './Pages/Monitor/NotOperationalMonitors';
 
 // Import CSS
 import 'CommonUI/src/Styles/theme.scss';
@@ -69,6 +77,7 @@ import Logout from './Pages/Logout/Logout';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Project from 'Model/Models/Project';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import PageNotFound from './Pages/PageNotFound/PageNotFound';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -154,10 +163,35 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
+
+                <PageRoute
+                    path={RouteMap[PageMap.INIT_PROJECT]?.toString()}
+                    element={
+                        <Init
+                            pageRoute={RouteMap[PageMap.INIT_PROJECT] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                {/* Home */}
+
                 <PageRoute
                     path={RouteMap[PageMap.HOME]?.toString()}
                     element={
                         <Home
+                            pageRoute={RouteMap[PageMap.HOME] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                    ]?.toString()}
+                    element={
+                        <NotOperationalMonitors
                             pageRoute={RouteMap[PageMap.HOME] as Route}
                             currentProject={selectedProject}
                         />
@@ -170,6 +204,20 @@ const App: FunctionComponent = () => {
                     element={
                         <MonitorPage
                             pageRoute={RouteMap[PageMap.MONITORS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.MONITORS_INOPERATIONAL]?.toString()}
+                    element={
+                        <MonitorInoperational
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.MONITORS_INOPERATIONAL
+                                ] as Route
+                            }
                             currentProject={selectedProject}
                         />
                     }
@@ -233,6 +281,18 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.STATUS_PAGES]?.toString()}
                     element={
                         <StatusPages
+                            pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                    ]?.toString()}
+                    element={
+                        <StatusPageViewSubscriberSettings
                             pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
                             currentProject={selectedProject}
                         />
@@ -315,13 +375,45 @@ const App: FunctionComponent = () => {
 
                 <PageRoute
                     path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
+                        PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                     ]?.toString()}
                     element={
-                        <StatusPagesViewSubscribers
+                        <StatusPagesViewEmailSubscribers
                             pageRoute={
                                 RouteMap[
-                                    PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
+                                    PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewSMSSubscribers
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewWebhookSubscribers
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -414,6 +506,18 @@ const App: FunctionComponent = () => {
                     element={
                         <Incidents
                             pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.UNRESOLVED_INCIDENTS]?.toString()}
+                    element={
+                        <UnresolvedIncidents
+                            pageRoute={
+                                RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route
+                            }
                             currentProject={selectedProject}
                         />
                     }
@@ -670,6 +774,17 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.LOGOUT]?.toString()}
                     element={
                         <Logout
+                            pageRoute={RouteMap[PageMap.LOGOUT] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                {/* 👇️ only match this when no other routes match */}
+                <PageRoute
+                    path="*"
+                    element={
+                        <PageNotFound
                             pageRoute={RouteMap[PageMap.LOGOUT] as Route}
                             currentProject={selectedProject}
                         />

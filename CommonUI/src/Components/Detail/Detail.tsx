@@ -44,6 +44,14 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             );
         }
 
+        if (field.fieldType === FieldType.Boolean) {
+            if (data) {
+                data = 'Yes';
+            } else {
+                data = 'No';
+            }
+        }
+
         if (field.fieldType === FieldType.DateTime) {
             data = OneUptimeDate.getDateAsLocalFormattedString(
                 data as string,

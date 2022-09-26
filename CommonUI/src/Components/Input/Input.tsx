@@ -1,8 +1,10 @@
 import Color from 'Common/Types/Color';
+import OneUptimeDate from 'Common/Types/Date';
 import React, {
     FunctionComponent,
     ReactElement,
     useEffect,
+    useRef,
     useState,
 } from 'react';
 
@@ -14,7 +16,7 @@ export interface ComponentProps {
     onChange?: undefined | ((value: string) => void);
     value?: string | undefined;
     readOnly?: boolean | undefined;
-    type?: 'text' | 'number' | 'date';
+    type?: 'text' | 'number' | 'date' | 'datetime-local';
     leftCircleColor?: Color | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -26,6 +28,35 @@ const Input: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [value, setValue] = useState<string>('');
+    const [displayValue, setDisplayValue] = useState<string>('');
+    const ref: any = useRef<any>(null);
+
+    useEffect(() => {
+        const input: any = ref.current;
+        if (input) {
+            (input as any).value = displayValue;
+        }
+    }, [ref, displayValue]);
+
+    useEffect(() => {
+        if (props.type === 'date' || props.type === 'datetime-local') {
+            if (value && !value.includes(' - ')) {
+                // " - " is for InBetween dates.
+                const date: Date = OneUptimeDate.fromString(value);
+                let dateString: string = '';
+                if (props.type === 'datetime-local') {
+                    dateString = OneUptimeDate.toDateTimeLocalString(date);
+                } else {
+                    dateString = OneUptimeDate.asDateForDatabaseQuery(date);
+                }
+                setDisplayValue(dateString);
+            } else if (!value.includes(' - ')) {
+                setDisplayValue('');
+            }
+        } else {
+            setDisplayValue(value);
+        }
+    });
 
     useEffect(() => {
         if (props.initialValue) {
@@ -68,15 +99,32 @@ const Input: FunctionComponent<ComponentProps> = (
                 ></div>
             )}
             <input
+                autoFocus={true}
+                ref={ref}
                 data-testid={props.dataTestId}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    setValue(e.target.value);
-                    if (props.onChange) {
-                        props.onChange(e.target.value);
+                    const value: string = e.target.value;
+
+                    if (
+                        (props.type === 'date' ||
+                            props.type === 'datetime-local') &&
+                        value
+                    ) {
+                        const date: Date = OneUptimeDate.fromString(value);
+                        const dateString: string = OneUptimeDate.toString(date);
+                        setValue(dateString);
+                        if (props.onChange) {
+                            props.onChange(dateString);
+                        }
+                    } else {
+                        setValue(value);
+                        if (props.onChange) {
+                            props.onChange(value);
+                        }
                     }
                 }}
                 tabIndex={props.tabIndex}
-                value={value}
+                //value={displayValue}
                 readOnly={props.readOnly || false}
                 type={props.type || 'text'}
                 placeholder={props.placeholder}

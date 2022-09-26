@@ -43,6 +43,28 @@ export default class OneUptimeDate {
             .toDate();
     }
 
+    public static timezoneOffsetDate(date: Date): Date {
+        return this.addRemoveMinutes(date, date.getTimezoneOffset());
+    }
+
+    public static toDateTimeLocalString(date: Date): string {
+        const ten: Function = (i: number): string => {
+                return (i < 10 ? '0' : '') + i;
+            },
+            YYYY: number = date.getFullYear(),
+            MM: number = ten(date.getMonth() + 1),
+            DD: number = ten(date.getDate()),
+            HH: number = ten(date.getHours()),
+            II: number = ten(date.getMinutes()),
+            SS: number = ten(date.getSeconds());
+
+        return YYYY + '-' + MM + '-' + DD + 'T' + HH + ':' + II + ':' + SS;
+    }
+
+    public static addRemoveMinutes(date: Date, minutes: number): Date {
+        return moment(date).add(minutes, 'minutes').toDate();
+    }
+
     public static getSecondsInDays(days: PositiveNumber | number): number {
         if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);

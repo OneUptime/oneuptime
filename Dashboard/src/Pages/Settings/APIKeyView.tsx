@@ -21,6 +21,7 @@ import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -171,6 +172,9 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         field: {
                             permission: true,
                         },
+                        onChange: async (_value: any, form: any) => {
+                            await form.setFieldValue('labels', [], true);
+                        },
                         title: 'Permission',
                         fieldType: FormFieldSchemaType.Dropdown,
                         required: true,
@@ -206,6 +210,24 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         title: 'Permission',
                         type: FieldType.Text,
                         isFilterable: true,
+                        showIf: (
+                            values: FormValues<ApiKeyPermission>
+                        ): boolean => {
+                            if (!values['permission']) {
+                                return false;
+                            }
+
+                            if (
+                                values['permission'] &&
+                                !PermissionHelper.isAccessControlPermission(
+                                    values['permission'] as Permission
+                                )
+                            ) {
+                                return false;
+                            }
+
+                            return true;
+                        },
                         getElement: (item: JSONObject): ReactElement => {
                             return (
                                 <p>
@@ -235,6 +257,21 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             value: '_id',
                         },
                         getElement: (item: JSONObject): ReactElement => {
+                            if (
+                                item &&
+                                item['permission'] &&
+                                !PermissionHelper.isAccessControlPermission(
+                                    item['permission'] as Permission
+                                )
+                            ) {
+                                return (
+                                    <p>
+                                        Labels can not be attached to this
+                                        permission.
+                                    </p>
+                                );
+                            }
+
                             return (
                                 <LabelsElement
                                     labels={

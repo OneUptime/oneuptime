@@ -5,9 +5,10 @@ import Route from 'Common/Types/API/Route';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import DashboardSideMenu from './SideMenu';
+import IncidentsTable from '../../Components/Incident/IncidentsTable';
 
 const Home: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
@@ -22,9 +23,25 @@ const Home: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.HOME] as Route,
                 },
             ]}
-            sideMenu={<DashboardSideMenu />}
+            sideMenu={
+                <DashboardSideMenu
+                    project={props.currentProject || undefined}
+                />
+            }
         >
-            <div> Home Page</div>
+            <IncidentsTable
+                currentProject={props.currentProject || undefined}
+                viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
+                query={{
+                    projectId: props.currentProject?._id,
+                    currentIncidentState: {
+                        isResolvedState: false,
+                    },
+                }}
+                noItemsMessage="Nice work! No unresolved incidents so far."
+                title="Unresolved Incidents"
+                description="Here is a list of all the unresolved incidents for this project."
+            />
         </Page>
     );
 };

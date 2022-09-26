@@ -12,8 +12,8 @@ import Permission from 'Common/Types/Permission';
 })
 @CrudApiEndpoint(new Route('/file'))
 @TableAccessControl({
-    create: [Permission.LoggedInUser],
-    read: [Permission.LoggedInUser],
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
     delete: [],
     update: [],
 })

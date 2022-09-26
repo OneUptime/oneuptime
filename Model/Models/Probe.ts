@@ -29,7 +29,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 @SingularPluralName('Probe', 'Probes')
 @TableAccessControl({
     create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
-    read: [Permission.ProjectMember, Permission.Public],
+    read: [Permission.Public],
     delete: [Permission.ProjectOwner, Permission.CanDeleteProjectProbe],
     update: [Permission.ProjectOwner, Permission.CanEditProjectProbe],
 })
@@ -54,10 +54,14 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
-        read: [Permission.ProjectMember, Permission.Public],
+        read: [Permission.Public],
         update: [Permission.ProjectOwner, Permission.CanEditProjectProbe],
     })
-    @TableColumn({ required: true, type: TableColumnType.Name })
+    @TableColumn({
+        required: true,
+        type: TableColumnType.Name,
+        canReadOnPopulate: true,
+    })
     @Column({
         nullable: false,
         type: ColumnType.Name,
@@ -67,7 +71,7 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
-        read: [Permission.ProjectMember, Permission.Public],
+        read: [Permission.Public],
         update: [Permission.ProjectOwner, Permission.CanEditProjectProbe],
     })
     @TableColumn({ required: false, type: TableColumnType.Name })
@@ -80,7 +84,7 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember, Permission.Public],
+        read: [Permission.Public],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -93,7 +97,7 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember, Permission.Public],
+        read: [Permission.Public],
         update: [],
     })
     @TableColumn({ required: true, type: TableColumnType.Version })
@@ -107,7 +111,7 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectMember, Permission.Public],
+        read: [Permission.Public],
         update: [],
     })
     @TableColumn({
@@ -126,7 +130,7 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
-        read: [Permission.ProjectMember, Permission.Public],
+        read: [Permission.Public],
         update: [Permission.ProjectOwner, Permission.CanEditProjectProbe],
     })
     @TableColumn({ type: TableColumnType.ShortURL })
@@ -140,7 +144,7 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
-        read: [Permission.ProjectMember, Permission.Public],
+        read: [Permission.Public],
         update: [],
     })
     @TableColumn({
@@ -165,7 +169,7 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
-        read: [Permission.ProjectMember, Permission.Public],
+        read: [Permission.Public],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -212,7 +216,7 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
-        read: [Permission.ProjectOwner, Permission.ProjectMember],
+        read: [Permission.ProjectOwner],
         update: [],
     })
     @TableColumn({ type: TableColumnType.Entity, modelType: User })
@@ -232,7 +236,7 @@ export default class Probe extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
-        read: [Permission.ProjectOwner, Permission.ProjectMember],
+        read: [Permission.ProjectOwner],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })

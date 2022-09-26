@@ -98,10 +98,15 @@ router.post(
 
             let savedUser: User | null = null;
             if (alreadySavedUser) {
-                // @ts-ignore
                 savedUser = await UserService.updateOneByIdAndFetch({
                     id: alreadySavedUser.id!,
                     data: user,
+                    select: {
+                        email: true,
+                        _id: true,
+                        name: true,
+                        isMasterAdmin: true,
+                    },
                     props: {
                         isRoot: true,
                     },

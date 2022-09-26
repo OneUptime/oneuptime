@@ -46,6 +46,7 @@ import MimeType from 'Common/Types/File/MimeType';
 import FileModel from 'Common/Models/FileModel';
 import Phone from 'Common/Types/Phone';
 import Domain from 'Common/Types/Domain';
+import Typeof from 'Common/Types/Typeof';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -85,6 +86,8 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
             return 'number';
         case FormFieldSchemaType.Date:
             return 'date';
+        case FormFieldSchemaType.DateTime:
+            return 'datetime-local';
         case FormFieldSchemaType.LongText:
             return 'textarea';
         case FormFieldSchemaType.Color:
@@ -97,6 +100,8 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
 const BasicForm: Function = <T extends Object>(
     props: ComponentProps<T>
 ): ReactElement => {
+    const [currentValue, setCurrentValue] = useState<FormValues<T>>({});
+
     const getFormField: Function = (
         field: DataField<T>,
         index: number,
@@ -123,6 +128,10 @@ const BasicForm: Function = <T extends Object>(
             ? field.overideFieldKey
             : (Object.keys(field.field)[0] as string);
 
+        if (field.showIf && !field.showIf(currentValue)) {
+            return <></>;
+        }
+
         return (
             <div className="mb-3" key={index}>
                 <label className="form-Label form-label justify-space-between width-max">
@@ -147,10 +156,16 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: any) => {
                             return (
                                 <ColorPicker
-                                    onChange={async (color: Color) => {
+                                    onChange={async (value: Color) => {
+                                        setCurrentValue({
+                                            ...currentValue,
+                                            [fieldName]: value,
+                                        });
+                                        field.onChange &&
+                                            field.onChange(value, form);
                                         await form.setFieldValue(
                                             fieldName,
-                                            color,
+                                            value,
                                             true
                                         );
                                     }}
@@ -188,6 +203,12 @@ const BasicForm: Function = <T extends Object>(
                                             | Array<DropdownValue>
                                             | null
                                     ) => {
+                                        setCurrentValue({
+                                            ...currentValue,
+                                            [fieldName]: value,
+                                        });
+                                        field.onChange &&
+                                            field.onChange(value, form);
                                         await form.setFieldValue(
                                             fieldName,
                                             value,
@@ -225,10 +246,16 @@ const BasicForm: Function = <T extends Object>(
                                 <>
                                     <TextArea
                                         tabIndex={index}
-                                        onChange={async (text: string) => {
+                                        onChange={async (value: string) => {
+                                            setCurrentValue({
+                                                ...currentValue,
+                                                [fieldName]: value,
+                                            });
+                                            field.onChange &&
+                                                field.onChange(value, form);
                                             await form.setFieldValue(
                                                 fieldName,
-                                                text,
+                                                value,
                                                 true
                                             );
                                         }}
@@ -261,10 +288,16 @@ const BasicForm: Function = <T extends Object>(
                                 <>
                                     <Markdown
                                         tabIndex={index}
-                                        onChange={async (text: string) => {
+                                        onChange={async (value: string) => {
+                                            setCurrentValue({
+                                                ...currentValue,
+                                                [fieldName]: value,
+                                            });
+                                            field.onChange &&
+                                                field.onChange(value, form);
                                             await form.setFieldValue(
                                                 fieldName,
-                                                text,
+                                                value,
                                                 true
                                             );
                                         }}
@@ -312,10 +345,16 @@ const BasicForm: Function = <T extends Object>(
                                 <>
                                     <CodeEditor
                                         tabIndex={index}
-                                        onChange={async (text: string) => {
+                                        onChange={async (value: string) => {
+                                            setCurrentValue({
+                                                ...currentValue,
+                                                [fieldName]: value,
+                                            });
+                                            field.onChange &&
+                                                field.onChange(value, form);
                                             await form.setFieldValue(
                                                 fieldName,
-                                                text,
+                                                value,
                                                 true
                                             );
                                         }}
@@ -378,7 +417,15 @@ const BasicForm: Function = <T extends Object>(
                                                     fileResult = null;
                                                 }
                                             }
-
+                                            setCurrentValue({
+                                                ...currentValue,
+                                                fieldName: fileResult,
+                                            });
+                                            field.onChange &&
+                                                field.onChange(
+                                                    fileResult,
+                                                    form
+                                                );
                                             await form.setFieldValue(
                                                 fieldName,
                                                 fileResult,
@@ -423,10 +470,16 @@ const BasicForm: Function = <T extends Object>(
                             return (
                                 <>
                                     <Toggle
-                                        onChange={async (text: boolean) => {
+                                        onChange={async (value: boolean) => {
+                                            setCurrentValue({
+                                                ...currentValue,
+                                                [fieldName]: value,
+                                            });
+                                            field.onChange &&
+                                                field.onChange(value, form);
                                             await form.setFieldValue(
                                                 fieldName,
-                                                text,
+                                                value,
                                                 true
                                             );
                                         }}
@@ -462,6 +515,7 @@ const BasicForm: Function = <T extends Object>(
                     field.fieldType === FormFieldSchemaType.Password ||
                     field.fieldType === FormFieldSchemaType.EncryptedText ||
                     field.fieldType === FormFieldSchemaType.Date ||
+                    field.fieldType === FormFieldSchemaType.DateTime ||
                     field.fieldType === FormFieldSchemaType.Port ||
                     field.fieldType === FormFieldSchemaType.Phone ||
                     field.fieldType === FormFieldSchemaType.Domain ||
@@ -478,10 +532,14 @@ const BasicForm: Function = <T extends Object>(
                                     dataTestId={fieldType}
                                     className="form-control"
                                     type={fieldType as 'text'}
-                                    onChange={(text: string) => {
+                                    onChange={(value: string) => {
+                                        setCurrentValue({
+                                            ...currentValue,
+                                            [fieldName]: value,
+                                        });
                                         form.setFieldValue(
                                             fieldName,
-                                            text,
+                                            value,
                                             true
                                         );
                                     }}
@@ -610,8 +668,9 @@ const BasicForm: Function = <T extends Object>(
             content &&
             field.validation?.toMatchField &&
             entity[field.validation?.toMatchField] &&
-            (entity[field.validation?.toMatchField] as string).trim() !==
-                content.trim()
+            (entity[field.validation?.toMatchField] as string)
+                .toString()
+                .trim() !== content.trim()
         ) {
             return `${field.title} should match ${field.validation?.toMatchField}`;
         }
@@ -851,7 +910,11 @@ const BasicForm: Function = <T extends Object>(
                                 const fieldName: string = field.overideFieldKey
                                     ? field.overideFieldKey
                                     : (Object.keys(field.field)[0] as string);
-                                if ((values as any)[fieldName]) {
+                                if (
+                                    (values as any)[fieldName] &&
+                                    typeof (values as any)[fieldName] ===
+                                        Typeof.String
+                                ) {
                                     (values as any)[fieldName] =
                                         new HashedString(
                                             (values as any)[fieldName],
@@ -904,7 +967,9 @@ const BasicForm: Function = <T extends Object>(
                                                     props.isLoading
                                                 );
                                             }
-                                            return <div key={i}></div>;
+                                            return (
+                                                <div key={Math.random()}></div>
+                                            );
                                         }
                                     )}
                             </div>
@@ -936,7 +1001,11 @@ const BasicForm: Function = <T extends Object>(
                                                         props.isLoading
                                                     );
                                                 }
-                                                return <div key={i}></div>;
+                                                return (
+                                                    <div
+                                                        key={Math.random()}
+                                                    ></div>
+                                                );
                                             }
                                         )}
                                 </div>

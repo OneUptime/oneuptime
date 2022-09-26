@@ -6,7 +6,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import Permission, {
     UserGlobalAccessPermission,
     UserPermission,
-    UserProjectAccessPermission,
+    UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import TeamPermission from 'Model/Models/TeamPermission';
 import TeamPermissionService from './TeamPermissionService';
@@ -49,7 +49,7 @@ export default class AccessTokenService {
             globalPermissions: [
                 Permission.Public,
                 Permission.User,
-                Permission.LoggedInUser,
+                Permission.CurrentUser,
             ],
             _type: 'UserGlobalAccessPermission',
         };
@@ -73,7 +73,9 @@ export default class AccessTokenService {
         );
 
         if (!json) {
-            return null;
+            return await AccessTokenService.refreshUserGlobalAccessPermission(
+                userId
+            );
         }
 
         const accessPermission: UserGlobalAccessPermission =
@@ -84,10 +86,10 @@ export default class AccessTokenService {
         return accessPermission;
     }
 
-    public static async refreshUserProjectAccessPermission(
+    public static async refreshUserTenantAccessPermission(
         userId: ObjectID,
         projectId: ObjectID
-    ): Promise<UserProjectAccessPermission | null> {
+    ): Promise<UserTenantAccessPermission | null> {
         // query for all projects user belongs to.
         const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
             query: {
@@ -125,6 +127,11 @@ export default class AccessTokenService {
                     permission: true,
                     labels: true,
                 },
+                populate: {
+                    labels: {
+                        _id: true,
+                    },
+                },
                 limit: LIMIT_MAX,
                 skip: 0,
                 props: {
@@ -149,7 +156,7 @@ export default class AccessTokenService {
         }
 
         userPermissions.push({
-            permission: Permission.LoggedInUser,
+            permission: Permission.CurrentUser,
             labelIds: [],
             _type: 'UserPermission',
         });
@@ -160,10 +167,10 @@ export default class AccessTokenService {
             _type: 'UserPermission',
         });
 
-        const permission: UserProjectAccessPermission = {
+        const permission: UserTenantAccessPermission = {
             projectId,
             permissions: userPermissions,
-            _type: 'UserProjectAccessPermission',
+            _type: 'UserTenantAccessPermission',
         };
 
         await GlobalCache.setJSON(
@@ -175,18 +182,25 @@ export default class AccessTokenService {
         return permission;
     }
 
-    public static async getUserProjectAccessPermission(
+    public static async getUserTenantAccessPermission(
         userId: ObjectID,
         projectId: ObjectID
-    ): Promise<UserProjectAccessPermission | null> {
-        const json: UserProjectAccessPermission | null =
+    ): Promise<UserTenantAccessPermission | null> {
+        const json: UserTenantAccessPermission | null =
             (await GlobalCache.getJSON(
                 PermissionNamespace.ProjectPermission,
                 userId.toString() + projectId.toString()
-            )) as UserProjectAccessPermission;
+            )) as UserTenantAccessPermission;
 
         if (json) {
-            json._type = 'UserProjectAccessPermission';
+            json._type = 'UserTenantAccessPermission';
+        }
+
+        if (!json) {
+            return await AccessTokenService.refreshUserTenantAccessPermission(
+                userId,
+                projectId
+            );
         }
 
         return json;

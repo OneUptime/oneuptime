@@ -37,7 +37,7 @@ export class Service extends DatabaseService<Model> {
             await AccessTokenService.refreshUserGlobalAccessPermission(
                 member.userId!
             );
-            await AccessTokenService.refreshUserProjectAccessPermission(
+            await AccessTokenService.refreshUserTenantAccessPermission(
                 member.userId!,
                 createBy.data.projectId!
             );

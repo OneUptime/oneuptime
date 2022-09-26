@@ -28,7 +28,6 @@ import ConfirmModal from '../Modal/ConfirmModal';
 import Permission, {
     PermissionHelper,
     UserPermission,
-    UserProjectAccessPermission,
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
@@ -77,6 +76,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showRefreshButton?: undefined | boolean;
     showFilterButton?: undefined | boolean;
     isViewable?: undefined | boolean;
+    enableDragAndDrop?: boolean | undefined;
     viewPageRoute?: undefined | Route;
     onViewPage?: (item: TBaseModel) => Promise<Route>;
     query?: Query<TBaseModel>;
@@ -99,6 +99,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onBeforeView?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     sortBy?: string | undefined;
     sortOrder?: SortOrder | undefined;
+    dragDropIdField?: string | undefined;
+    dragDropIndexField?: string | undefined;
     orderedStatesListProps?: {
         titleField: string;
         descriptionField?: string | undefined;
@@ -320,6 +322,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const fetchItems: Function = async () => {
+        if (isLoading) {
+            return;
+        }
+
         setError('');
         setIsLoading(true);
 
@@ -403,6 +409,18 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             ? Object.keys(props.selectMoreFields)
             : [];
 
+        if (props.dragDropIndexField) {
+            selectMoreFields.push(props.dragDropIndexField);
+        }
+
+        if (
+            props.dragDropIdField &&
+            !Object.keys(selectFields).includes(props.dragDropIdField) &&
+            !selectMoreFields.includes(props.dragDropIdField)
+        ) {
+            selectMoreFields.push(props.dragDropIdField);
+        }
+
         for (const moreField of selectMoreFields) {
             if (model.getTableColumnMetadata(moreField)) {
                 (selectFields as Dictionary<boolean>)[moreField] = true;
@@ -442,18 +460,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const setHeaderButtons: Function = (): void => {
         // add header buttons.
         const headerbuttons: Array<CardButtonSchema> = [];
-        const userProjectPermissions: UserProjectAccessPermission | null =
-            PermissionUtil.getProjectPermissions();
 
-        if (!userProjectPermissions) {
-            throw new BadDataException(
-                'UserProjectAccessPermissions not found'
-            );
+        const permissions: Array<Permission> | null =
+            PermissionUtil.getAllPermissions();
+
+        let hasPermissionToCreate: boolean = false;
+
+        if (permissions) {
+            hasPermissionToCreate = model.hasCreatePermissions(permissions);
         }
-
-        const hasPermissionToCreate: boolean = model.hasCreatePermissions(
-            userProjectPermissions
-        );
 
         // because ordered list add button is inside the table and not on the card header.
         if (
@@ -652,17 +667,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        const userProjectPermissions: UserProjectAccessPermission | null =
-            PermissionUtil.getProjectPermissions();
+        const permissions: Array<Permission> | null =
+            PermissionUtil.getAllPermissions();
 
         if (
-            userProjectPermissions &&
-            ((props.isDeleteable &&
-                model.hasDeletePermissions(userProjectPermissions)) ||
-                (props.isEditable &&
-                    model.hasUpdatePermissions(userProjectPermissions)) ||
-                (props.isViewable &&
-                    model.hasReadPermissions(userProjectPermissions)))
+            permissions &&
+            ((props.isDeleteable && model.hasDeletePermissions(permissions)) ||
+                (props.isEditable && model.hasUpdatePermissions(permissions)) ||
+                (props.isViewable && model.hasReadPermissions(permissions)))
         ) {
             columns.push({
                 title: 'Actions',
@@ -676,8 +688,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     }, []);
 
     const setActionSchema: Function = () => {
-        const userProjectPermissions: UserProjectAccessPermission | null =
-            PermissionUtil.getProjectPermissions();
+        const permissions: Array<Permission> =
+            PermissionUtil.getAllPermissions();
 
         const actionsSchema: Array<ActionButtonSchema> = [];
 
@@ -688,11 +700,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        if (userProjectPermissions) {
-            if (
-                props.isViewable &&
-                model.hasReadPermissions(userProjectPermissions)
-            ) {
+        if (permissions) {
+            if (props.isViewable && model.hasReadPermissions(permissions)) {
                 actionsSchema.push({
                     title: props.viewButtonText || 'View',
                     buttonStyleType: ButtonStyleType.OUTLINE,
@@ -746,10 +755,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 });
             }
 
-            if (
-                props.isEditable &&
-                model.hasUpdatePermissions(userProjectPermissions)
-            ) {
+            if (props.isEditable && model.hasUpdatePermissions(permissions)) {
                 actionsSchema.push({
                     title: props.editButtonText || 'Edit',
                     buttonStyleType: ButtonStyleType.NORMAL,
@@ -783,10 +789,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 });
             }
 
-            if (
-                props.isDeleteable &&
-                model.hasDeletePermissions(userProjectPermissions)
-            ) {
+            if (props.isDeleteable && model.hasDeletePermissions(permissions)) {
                 actionsSchema.push({
                     title: props.deleteButtonText || 'Delete',
                     icon: IconProp.Trash,
@@ -878,12 +881,32 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 error={error}
                 currentPageNumber={currentPageNumber}
                 isLoading={isLoading}
+                enableDragAndDrop={props.enableDragAndDrop}
+                dragDropIdField={'_id'}
+                dragDropIndexField={props.dragDropIndexField}
                 totalItemsCount={totalItemsCount}
                 data={BaseModel.toJSONObjectArray(data, props.modelType)}
                 filterError={tableFilterError}
                 id={props.id}
                 columns={tableColumns}
                 itemsOnPage={itemsOnPage}
+                onDragDrop={async (id: string, newOrder: number) => {
+                    if (!props.dragDropIndexField) {
+                        return;
+                    }
+
+                    setIsLoading(true);
+
+                    await ModelAPI.updateById(
+                        props.modelType,
+                        new ObjectID(id),
+                        {
+                            [props.dragDropIndexField]: newOrder,
+                        }
+                    );
+
+                    fetchItems();
+                }}
                 disablePagination={props.disablePagination || false}
                 isTableFilterLoading={isTableFilterFetchLoading}
                 onNavigateToPage={async (

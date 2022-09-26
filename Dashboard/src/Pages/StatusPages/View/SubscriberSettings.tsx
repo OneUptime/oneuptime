@@ -6,9 +6,12 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -43,22 +46,50 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Status Page',
+                    title: 'Subscriber Settings',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                        ] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
-                modelType={StatusPage}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
-                    );
+            <CardModelDetail<StatusPage>
+                cardProps={{
+                    title: 'Subscriber Settings',
+                    description: 'Subscriber settings for this status page.',
+                    icon: IconProp.Settings,
+                }}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            enableSubscribers: true,
+                        },
+                        title: 'Enable Subscribers',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        required: false,
+                        placeholder:
+                            'Can subscribers subscribe to this status page?',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                enableSubscribers: true,
+                            },
+                            fieldType: FieldType.Boolean,
+                            title: 'Enable Subscribers',
+                        },
+                    ],
+                    modelId: modelId,
                 }}
             />
         </Page>

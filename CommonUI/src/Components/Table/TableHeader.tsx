@@ -44,6 +44,7 @@ export interface ComponentProps {
     isTableFilterLoading?: undefined | boolean;
     filterError?: string | undefined;
     onTableFilterRefreshClick?: undefined | (() => void);
+    enableDragAndDrop?: undefined | boolean;
 }
 
 const TableHeader: FunctionComponent<ComponentProps> = (
@@ -62,6 +63,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
     return (
         <thead id={props.id}>
             <tr>
+                {props.enableDragAndDrop && <th></th>}
                 {props.columns.map((column: Column, i: number) => {
                     const canSort: boolean =
                         !column.disableSort && Boolean(column.key);
@@ -100,7 +102,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                 className="flex"
                                 style={{
                                     justifyContent:
-                                        i === props.columns.length - 1
+                                        column.type === FieldType.Actions
                                             ? 'end'
                                             : 'start',
                                 }}

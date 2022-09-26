@@ -20,12 +20,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import {
-    DataSource,
-    FindOperator,
-    Repository,
-    SelectQueryBuilder,
-} from 'typeorm';
+import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import { EncryptionSecret } from '../Config';
@@ -33,34 +28,21 @@ import HashedString from 'Common/Types/HashedString';
 import UpdateByID from '../Types/Database/UpdateByID';
 import Columns from 'Common/Types/Database/Columns';
 import FindOneByID from '../Types/Database/FindOneByID';
-import Permission, {
-    PermissionHelper,
-    UserPermission,
-} from 'Common/Types/Permission';
-import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Dictionary from 'Common/Types/Dictionary';
-import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import QueryHelper from '../Types/Database/QueryHelper';
 import { getUniqueColumnsBy } from 'Common/Types/Database/UniqueColumnBy';
-import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
-import LessThan from 'Common/Types/Database/LessThan';
-import GreaterThan from 'Common/Types/Database/GreaterThan';
-import GreaterThanOrEqual from 'Common/Types/Database/GreaterThanOrEqual';
-import LessThanOrEqual from 'Common/Types/Database/LessThanOrEqual';
-import InBetween from 'Common/Types/Database/InBetween';
-
-enum DatabaseRequestType {
-    Create = 'create',
-    Read = 'read',
-    Update = 'update',
-    Delete = 'delete',
-}
+import ModelPermission, {
+    CheckReadPermissionType,
+} from '../Utils/ModelPermission';
+import Select from '../Types/Database/Select';
+import Populate from '../Types/Database/Populate';
+import UpdateByIDAndFetch from '../Types/Database/UpdateByIDAndFetch';
 
 export interface OnCreate<TBaseModel extends BaseModel> {
     createBy: CreateBy<TBaseModel>;
@@ -363,18 +345,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
             ] = Slug.getSlug(
                 (createBy.data as any)[
                     createBy.data.getSlugifyColumn() as string
-                ] as string
+                ]
+                    ? ((createBy.data as any)[
+                          createBy.data.getSlugifyColumn() as string
+                      ] as string)
+                    : null
             );
         }
 
         return createBy;
     }
 
-    private SanitizeCreateOrUpdate(
+    private async sanitizeCreateOrUpdate(
         data: TBaseModel | QueryDeepPartialEntity<TBaseModel>,
         props: DatabaseCommonInteractionProps,
         isUpdate: boolean = false
-    ): TBaseModel | QueryDeepPartialEntity<TBaseModel> {
+    ): Promise<TBaseModel | QueryDeepPartialEntity<TBaseModel>> {
         const columns: Columns = this.model.getTableColumns();
 
         for (const columnName of columns.columns) {
@@ -417,11 +403,40 @@ class DatabaseService<TBaseModel extends BaseModel> {
                                 new tableColumnMetadata.modelType();
                             basemodelItem._id = item.toString();
                             itemsArray.push(basemodelItem);
+                        } else if (
+                            item &&
+                            typeof item === Typeof.Object &&
+                            (item as JSONObject)['_id'] &&
+                            typeof (item as JSONObject)['_id'] === Typeof.String
+                        ) {
+                            const basemodelItem: BaseModel =
+                                new tableColumnMetadata.modelType();
+                            basemodelItem._id = (
+                                (item as JSONObject)['_id'] as string
+                            ).toString();
+                            itemsArray.push(basemodelItem);
                         } else if (item instanceof BaseModel) {
                             itemsArray.push(item);
                         }
                     }
                     (data as any)[columnName] = itemsArray;
+                }
+            }
+
+            if (this.model.isHashedStringColumn(columnName)) {
+                const columnValue: JSONValue = (data as any)[columnName];
+
+                if (
+                    data &&
+                    columnName &&
+                    columnValue &&
+                    columnValue instanceof HashedString
+                ) {
+                    if (!columnValue.isValueHashed()) {
+                        await columnValue.hashValue(EncryptionSecret);
+                    }
+
+                    (data as any)[columnName] = columnValue.toString();
                 }
             }
         }
@@ -467,17 +482,22 @@ class DatabaseService<TBaseModel extends BaseModel> {
         // hash data
         data = await this.hash(data);
 
-        data = this.asCreateableByPermissions(createBy);
+        ModelPermission.checkCreatePermissions(
+            this.entityType,
+            data,
+            _createdBy.props
+        );
+
         createBy.data = data;
 
         // check uniqueColumns by:
         createBy = await this.checkUniqueColumnBy(createBy);
 
         // serialize.
-        createBy.data = this.SanitizeCreateOrUpdate(
+        createBy.data = (await this.sanitizeCreateOrUpdate(
             createBy.data,
             createBy.props
-        ) as TBaseModel;
+        )) as TBaseModel;
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
@@ -539,461 +559,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return Promise.resolve(createBy);
     }
 
-    public getPermissions(
-        props: DatabaseCommonInteractionProps,
-        type: DatabaseRequestType
-    ): Array<UserPermission> {
-        if (!props.userGlobalAccessPermission) {
-            throw new NotAuthorizedException(`Permissions not found.`);
-        }
-
-        let isPublicAllowed: boolean = false;
-        let modelPermissions: Array<Permission> = [];
-
-        if (type === DatabaseRequestType.Create) {
-            modelPermissions = this.model.createRecordPermissions;
-        }
-
-        if (type === DatabaseRequestType.Update) {
-            modelPermissions = this.model.updateRecordPermissions;
-        }
-
-        if (type === DatabaseRequestType.Delete) {
-            modelPermissions = this.model.deleteRecordPermissions;
-        }
-
-        if (type === DatabaseRequestType.Read) {
-            modelPermissions = this.model.readRecordPermissions;
-        }
-
-        isPublicAllowed = modelPermissions.includes(Permission.Public);
-
-        if (!isPublicAllowed && !props.userId) {
-            // this means the record is not publicly createable and the user is not logged in.
-            throw new NotAuthorizedException(
-                `A user should be logged in to ${type} record of type ${this.entityType.name}.`
-            );
-        }
-
-        if (
-            props.userGlobalAccessPermission &&
-            !props.userGlobalAccessPermission.globalPermissions.includes(
-                Permission.Public
-            )
-        ) {
-            props.userGlobalAccessPermission.globalPermissions.push(
-                Permission.Public
-            ); // add public permission if not already.
-        }
-
-        let userPermissions: Array<UserPermission> = [];
-
-        if (!props.tenantId && props.userGlobalAccessPermission) {
-            /// take gloabl permissions.
-            userPermissions =
-                props.userGlobalAccessPermission.globalPermissions.map(
-                    (permission: Permission) => {
-                        return {
-                            permission: permission,
-                            labelIds: [],
-                            _type: 'UserPermission',
-                        };
-                    }
-                );
-        } else if (props.tenantId && props.userProjectAccessPermission) {
-            /// take project based permissions because this is a project request.
-            userPermissions = props.userProjectAccessPermission.permissions;
-        } else {
-            throw new NotAuthorizedException(`Permissions not found.`);
-        }
-
-        if (
-            props.tenantId &&
-            props.userProjectAccessPermission &&
-            !PermissionHelper.doesPermissionsIntersect(
-                props.userProjectAccessPermission.permissions.map(
-                    (userPermission: UserPermission) => {
-                        return userPermission.permission;
-                    }
-                ) || [],
-                modelPermissions
-            )
-        ) {
-            throw new NotAuthorizedException(
-                `You do not have permissions to ${type} ${
-                    this.model.singularName
-                }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-                    modelPermissions
-                ).join(',')}`
-            );
-        }
-
-        return userPermissions;
-    }
-
-    public asCreateableByPermissions(
-        createBy: CreateBy<TBaseModel>
-    ): TBaseModel {
-        // If system is making this query then let the query run!
-        if (createBy.props.isRoot) {
-            return createBy.data;
-        }
-
-        const userPermissions: Array<UserPermission> = this.getPermissions(
-            createBy.props,
-            DatabaseRequestType.Create
-        );
-
-        const data: TBaseModel = this.keepColumns(
-            this.getCreateableColumnsByPermissions(userPermissions || []),
-            createBy.data
-        );
-
-        return data;
-    }
-
-    public asFindByByPermissions(
-        findBy: FindBy<TBaseModel>
-    ): FindBy<TBaseModel> {
-        if (findBy.props.isRoot) {
-            return findBy;
-        }
-
-        let columns: Columns = new Columns([]);
-
-        const userPermissions: Array<UserPermission> = this.getPermissions(
-            findBy.props,
-            DatabaseRequestType.Read
-        );
-
-        const intersectingPermissions: Array<Permission> =
-            PermissionHelper.getIntersectingPermissions(
-                userPermissions.map((i: UserPermission) => {
-                    return i.permission;
-                }),
-                this.model.readRecordPermissions
-            );
-
-        columns = this.getReadColumnsByPermissions(userPermissions || []);
-        const tableColumns: Array<string> =
-            this.model.getTableColumns().columns;
-
-        const excludedColumns: Array<string> = [
-            '_id',
-            'createdAt',
-            'deletedAt',
-            'updatedAt',
-        ];
-
-        // Now we need to check all columns.
-
-        for (const key in findBy.query) {
-            if (excludedColumns.includes(key)) {
-                continue;
-            }
-
-            if (!columns.columns.includes(key)) {
-                if (!tableColumns.includes(key)) {
-                    throw new BadDataException(
-                        `Invalid column on ${this.model.singularName} - ${key}.`
-                    );
-                }
-
-                throw new NotAuthorizedException(
-                    `You do not have permissions to query on - ${key}. You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                        this.model.getColumnAccessControlFor(key)
-                            ? this.model.getColumnAccessControlFor(key)!.read
-                            : []
-                    ).join(',')}`
-                );
-            }
-        }
-
-        for (const key in findBy.select) {
-            if (excludedColumns.includes(key)) {
-                continue;
-            }
-
-            if (!columns.columns.includes(key)) {
-                if (!tableColumns.includes(key)) {
-                    throw new BadDataException(
-                        `${key} column does not exist on ${this.model.singularName}`
-                    );
-                }
-
-                throw new NotAuthorizedException(
-                    `You do not have permissions to select on - ${key}.
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                        this.model.getColumnAccessControlFor(key)
-                            ? this.model.getColumnAccessControlFor(key)!.read
-                            : []
-                    ).join(',')}`
-                );
-            }
-        }
-
-        const tenantColumn: string | null = this.model.getTenantColumn();
-
-        if (
-            findBy.props.isMultiTenantRequest &&
-            !this.model.canQueryMultiTenant()
-        ) {
-            throw new BadDataException(
-                `isMultiTenantRequest not allowed on ${this.model.singularName}`
-            );
-        }
-
-        // If this model has a tenantColumn, and request has tenantId, and is multiTenantQuery null then add tenantId to query.
-        if (
-            tenantColumn &&
-            findBy.props.tenantId &&
-            !findBy.props.isMultiTenantRequest
-        ) {
-            (findBy.query as any)[tenantColumn] = findBy.props.tenantId;
-        } else if (
-            this.model.isUserQueryWithoutTenantAllowed() &&
-            this.model.getUserColumn() &&
-            findBy.props.userId
-        ) {
-            (findBy.query as any)[this.model.getUserColumn() as string] =
-                findBy.props.userId;
-        } else if (
-            tenantColumn &&
-            !findBy.props.tenantId &&
-            findBy.props.userGlobalAccessPermission
-        ) {
-            (findBy.query as any)[tenantColumn] = QueryHelper.in(
-                findBy.props.userGlobalAccessPermission?.projectIds
-            );
-        }
-
-        if (
-            this.model.userColumn &&
-            findBy.props.userId &&
-            intersectingPermissions.length === 0 &&
-            this.model.readRecordPermissions.includes(Permission.LoggedInUser)
-        ) {
-            (findBy.query as any)[this.model.userColumn] = findBy.props.userId;
-        }
-
-        if (this.model.isPermissionIf) {
-            for (const key in this.model.isPermissionIf) {
-                const permission: Permission = key as Permission;
-
-                if (
-                    userPermissions
-                        .map((i: UserPermission) => {
-                            return i.permission;
-                        })
-                        ?.includes(permission) &&
-                    this.model.isPermissionIf[permission]
-                ) {
-                    const columnName: string = Object.keys(
-                        this.model.isPermissionIf[permission] as any
-                    )[0] as string;
-                    (findBy.query as any)[columnName] = (
-                        this.model.isPermissionIf[permission] as any
-                    )[columnName];
-                }
-            }
-        }
-
-        return findBy;
-    }
-
-    public asUpdateByByPermissions(
-        updateBy: UpdateBy<TBaseModel>
-    ): UpdateBy<TBaseModel> {
-        if (updateBy.props.isRoot) {
-            return updateBy;
-        }
-
-        const findBy: FindBy<TBaseModel> = this.asFindByByPermissions({
-            query: updateBy.query,
-            props: updateBy.props,
-            select: {},
-            populate: {},
-            limit: 0,
-            skip: 0,
-        });
-
-        updateBy.query = findBy.query;
-
-        const userPermissions: Array<UserPermission> = this.getPermissions(
-            updateBy.props,
-            DatabaseRequestType.Update
-        );
-
-        let updateColumns: Columns = new Columns([]);
-
-        updateColumns = this.getUpdateColumnsByPermissions(
-            userPermissions || []
-        );
-
-        for (const key in updateBy.data) {
-            if (!updateColumns.columns.includes(key)) {
-                throw new NotAuthorizedException(
-                    `You do not have permissions to update this record at - ${key}. 
-                    You need any one of these permissions: ${PermissionHelper.getPermissionTitles(
-                        this.model.getColumnAccessControlFor(key)
-                            ? this.model.getColumnAccessControlFor(key)!.update
-                            : []
-                    ).join(',')}`
-                );
-            }
-        }
-
-        return updateBy;
-    }
-
-    public asDeleteByPermissions(
-        deleteBy: DeleteBy<TBaseModel>
-    ): DeleteBy<TBaseModel> {
-        if (deleteBy.props.isRoot) {
-            return deleteBy;
-        }
-
-        const userPermissions: Array<UserPermission> = this.getPermissions(
-            deleteBy.props,
-            DatabaseRequestType.Delete
-        );
-        const intersectingPermissions: Array<Permission> =
-            PermissionHelper.getIntersectingPermissions(
-                userPermissions.map((i: UserPermission) => {
-                    return i.permission;
-                }),
-                this.model.deleteRecordPermissions
-            );
-        const tenantColumn: string | null = this.model.getTenantColumn();
-        if (tenantColumn && deleteBy.props.tenantId) {
-            (deleteBy.query as any)[tenantColumn] = deleteBy.props.tenantId;
-        }
-
-        if (
-            this.model.userColumn &&
-            intersectingPermissions.length === 0 &&
-            this.model.deleteRecordPermissions.includes(Permission.LoggedInUser)
-        ) {
-            (deleteBy.query as any)[this.model.userColumn] =
-                deleteBy.props.userId;
-        }
-
-        return deleteBy;
-    }
-
-    public getCreateableColumnsByPermissions(
-        userPermissions: Array<UserPermission>
-    ): Columns {
-        const permissions: Array<Permission> = userPermissions.map(
-            (item: UserPermission) => {
-                return item.permission;
-            }
-        );
-
-        const accessControl: Dictionary<ColumnAccessControl> =
-            this.model.getColumnAccessControlForAllColumns();
-
-        const columns: Array<string> = [];
-
-        for (const key in accessControl) {
-            if (
-                accessControl[key]?.create &&
-                PermissionHelper.doesPermissionsIntersect(
-                    permissions,
-                    accessControl[key]?.create || []
-                )
-            ) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getReadColumnsByPermissions(
-        userPermissions: Array<UserPermission>
-    ): Columns {
-        const accessControl: Dictionary<ColumnAccessControl> =
-            this.model.getColumnAccessControlForAllColumns();
-
-        const columns: Array<string> = [];
-
-        const permissions: Array<Permission> = userPermissions.map(
-            (item: UserPermission) => {
-                return item.permission;
-            }
-        );
-
-        for (const key in accessControl) {
-            if (
-                accessControl[key]?.read &&
-                PermissionHelper.doesPermissionsIntersect(
-                    permissions,
-                    accessControl[key]?.read || []
-                )
-            ) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    public getUpdateColumnsByPermissions(
-        userPermissions: Array<UserPermission>
-    ): Columns {
-        const accessControl: Dictionary<ColumnAccessControl> =
-            this.model.getColumnAccessControlForAllColumns();
-
-        const columns: Array<string> = [];
-
-        const permissions: Array<Permission> = userPermissions.map(
-            (item: UserPermission) => {
-                return item.permission;
-            }
-        );
-
-        for (const key in accessControl) {
-            if (
-                accessControl[key]?.update &&
-                PermissionHelper.doesPermissionsIntersect(
-                    permissions,
-                    accessControl[key]?.update || []
-                )
-            ) {
-                columns.push(key);
-            }
-        }
-
-        return new Columns(columns);
-    }
-
-    private keepColumns(columnsToKeep: Columns, data: TBaseModel): TBaseModel {
-        if (!columnsToKeep) {
-            return data;
-        }
-
-        for (const key of Object.keys(this)) {
-            const columns: Columns = data.getTableColumns();
-
-            if (
-                !(
-                    columnsToKeep &&
-                    columnsToKeep.columns.length > 0 &&
-                    columnsToKeep.columns.includes(key)
-                ) &&
-                columns.hasColumn(key) &&
-                (this as any)[key]
-            ) {
-                throw new BadDataException(
-                    `User is not allowed to create on ${key} column of ${this.model.singularName}`
-                );
-            }
-        }
-
-        return data;
-    }
-
     public async countBy({
         query,
         skip,
@@ -1017,16 +582,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 limit = new PositiveNumber(limit);
             }
 
-            let findBy: FindBy<TBaseModel> = {
+            const findBy: FindBy<TBaseModel> = {
                 query,
                 skip,
                 limit,
                 props,
             };
 
-            findBy = this.asFindByByPermissions(findBy);
+            const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
+                await ModelPermission.checkReadPermission(
+                    this.entityType,
+                    query,
+                    null,
+                    null,
+                    props
+                );
 
-            findBy.query = this.serializeQuery(query);
+            findBy.query = checkReadPermissionType.query;
 
             const count: number = await this.getRepository().count({
                 where: findBy.query as any,
@@ -1041,90 +613,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             await this.onCountError(error as Exception);
             throw this.getException(error as Exception);
         }
-    }
-
-    private serializeQuery(query: Query<TBaseModel>): Query<TBaseModel> {
-        for (const key in query) {
-            const tableColumnMetadata: TableColumnMetadata =
-                this.model.getTableColumnMetadata(key);
-
-            if (
-                query[key] &&
-                (query[key] as any)._value &&
-                Array.isArray((query[key] as any)._value) &&
-                (query[key] as any)._value.length > 0
-            ) {
-                let counter: number = 0;
-                for (const item of (query[key] as any)._value) {
-                    if (item instanceof ObjectID) {
-                        ((query[key] as any)._value as any)[counter] = (
-                            (query[key] as any)._value as any
-                        )[counter].toString();
-                    }
-                    counter++;
-                }
-            } else if (query[key] && query[key] instanceof ObjectID) {
-                query[key] = QueryHelper.equalTo(
-                    (query[key] as ObjectID).toString() as any
-                ) as any;
-            } else if (query[key] && query[key] instanceof Search) {
-                query[key] = QueryHelper.search(
-                    (query[key] as Search).toString() as any
-                ) as any;
-            } else if (query[key] && query[key] instanceof LessThan) {
-                query[key] = QueryHelper.lessThan(
-                    (query[key] as LessThan).toString() as any
-                ) as any;
-            } else if (query[key] && query[key] instanceof InBetween) {
-                query[key] = QueryHelper.inBetween(
-                    (query[key] as InBetween).startValue as any,
-                    (query[key] as InBetween).endValue as any
-                ) as any;
-            } else if (query[key] && query[key] instanceof GreaterThan) {
-                query[key] = QueryHelper.greaterThan(
-                    (query[key] as GreaterThan).toString() as any
-                ) as any;
-            } else if (query[key] && query[key] instanceof GreaterThanOrEqual) {
-                query[key] = QueryHelper.greaterThanEqualTo(
-                    (query[key] as GreaterThanOrEqual).toString() as any
-                ) as any;
-            } else if (query[key] && query[key] instanceof LessThanOrEqual) {
-                query[key] = QueryHelper.lessThanEqualTo(
-                    (query[key] as LessThanOrEqual).toString() as any
-                ) as any;
-            } else if (
-                query[key] &&
-                Array.isArray(query[key]) &&
-                tableColumnMetadata.type !== TableColumnType.EntityArray
-            ) {
-                query[key] = QueryHelper.in(
-                    query[key] as any
-                ) as FindOperator<any> as any;
-            }
-
-            if (
-                tableColumnMetadata &&
-                tableColumnMetadata.manyToOneRelationColumn &&
-                typeof query[key] === Typeof.String
-            ) {
-                (query as any)[tableColumnMetadata.manyToOneRelationColumn] =
-                    query[key] as string;
-                delete query[key];
-            }
-
-            if (
-                tableColumnMetadata &&
-                tableColumnMetadata.modelType &&
-                tableColumnMetadata.type === TableColumnType.EntityArray &&
-                Array.isArray(query[key])
-            ) {
-                (query as any)[key] = {
-                    _id: QueryHelper.in(query[key] as Array<string>),
-                };
-            }
-        }
-
-        return query;
     }
 
     public async deleteOneBy(
@@ -1142,11 +630,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const onDelete: OnDelete<TBaseModel> = await this.onBeforeDelete(
                 deleteBy
             );
-            let beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
+            const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
             const carryForward: any = onDelete.carryForward;
 
-            beforeDeleteBy = this.asDeleteByPermissions(beforeDeleteBy);
+            beforeDeleteBy.query = await ModelPermission.checkDeletePermission(
+                this.entityType,
+                beforeDeleteBy.query,
+                deleteBy.props
+            );
 
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeDeleteBy.query,
@@ -1201,10 +693,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 };
             }
             const onFind: OnFind<TBaseModel> = await this.onBeforeFind(findBy);
-            let onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
+            const onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
             const carryForward: any = onFind.carryForward;
-
-            onBeforeFind = this.asFindByByPermissions(findBy);
 
             if (
                 !onBeforeFind.select ||
@@ -1221,8 +711,21 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 (onBeforeFind.select as any)['createdAt'] = true;
             }
 
-            onBeforeFind.query = this.serializeQuery(onBeforeFind.query);
-            onBeforeFind = this.serializePopulate(onBeforeFind);
+            const result: {
+                query: Query<TBaseModel>;
+                select: Select<TBaseModel> | null;
+                populate: Populate<TBaseModel> | null;
+            } = await ModelPermission.checkReadPermission(
+                this.entityType,
+                onBeforeFind.query,
+                onBeforeFind.select || null,
+                onBeforeFind.populate || null,
+                onBeforeFind.props
+            );
+
+            onBeforeFind.query = result.query;
+            onBeforeFind.select = result.select || undefined;
+            onBeforeFind.populate = result.populate || undefined;
 
             if (!(onBeforeFind.skip instanceof PositiveNumber)) {
                 onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
@@ -1329,105 +832,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return items;
     }
 
-    private serializePopulate(
-        onBeforeFind: FindBy<TBaseModel>
-    ): FindBy<TBaseModel> {
-        for (const key in onBeforeFind.populate) {
-            if (typeof onBeforeFind.populate[key] === Typeof.Object) {
-                const tableColumnMetadata: TableColumnMetadata =
-                    this.model.getTableColumnMetadata(key);
-
-                if (!tableColumnMetadata.modelType) {
-                    throw new BadDataException(
-                        'Populate not supported on ' +
-                            key +
-                            ' of ' +
-                            this.model.singularName +
-                            ' because this column modelType is not found.'
-                    );
-                }
-
-                const relatedModel: BaseModel =
-                    new tableColumnMetadata.modelType();
-
-                if (
-                    tableColumnMetadata.type === TableColumnType.Entity ||
-                    tableColumnMetadata.type === TableColumnType.EntityArray
-                ) {
-                    for (const innerKey in (onBeforeFind.populate as any)[
-                        key
-                    ]) {
-                        // check for permissions.
-                        if (
-                            typeof (onBeforeFind.populate as any)[key][
-                                innerKey
-                            ] === Typeof.Object
-                        ) {
-                            throw new BadDataException(
-                                'Nested populate not supported'
-                            );
-                        }
-
-                        // check if the user has permission to read this column
-                        if (onBeforeFind.props.userProjectAccessPermission) {
-                            const hasPermission: boolean =
-                                relatedModel.hasReadPermissions(
-                                    onBeforeFind.props
-                                        .userProjectAccessPermission,
-                                    innerKey
-                                );
-
-                            if (!hasPermission) {
-                                let readPermissions: Array<Permission> = [];
-                                if (
-                                    relatedModel.getColumnAccessControlFor(
-                                        innerKey
-                                    )
-                                ) {
-                                    readPermissions =
-                                        relatedModel.getColumnAccessControlFor(
-                                            innerKey
-                                        )!.read;
-                                }
-
-                                throw new NotAuthorizedException(
-                                    `You do not have permissions to read ${key}.${innerKey} on ${
-                                        onBeforeFind.limit === 1
-                                            ? this.model.singularName
-                                            : this.model.pluralName
-                                    }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-                                        readPermissions
-                                    ).join(',')}`
-                                );
-                            }
-                        }
-                    }
-
-                    (onBeforeFind.select as any)[key] = (
-                        onBeforeFind.populate as any
-                    )[key];
-                    (onBeforeFind.populate as any)[key] = true;
-                } else {
-                    throw new BadDataException(
-                        'Populate not supported on ' +
-                            key +
-                            ' of ' +
-                            this.model.singularName +
-                            ' because this column is not of type Entity or EntityArray'
-                    );
-                }
-            } else {
-                // if you want to populate the whole object, you only do the id because of security.
-                (onBeforeFind.select as any)[key] = {
-                    _id: true,
-                } as any;
-                (onBeforeFind.populate as any)[key] = true;
-            }
-        }
-
-        return onBeforeFind;
-    }
-
     public async findOneBy(
         findOneBy: FindOneBy<TBaseModel>
     ): Promise<TBaseModel | null> {
@@ -1461,23 +865,26 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const onUpdate: OnUpdate<TBaseModel> = await this.onBeforeUpdate(
                 updateBy
             );
-            let beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
+
+            const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
             const carryForward: any = onUpdate.carryForward;
 
-            beforeUpdateBy = this.asUpdateByByPermissions(beforeUpdateBy);
-
-            const query: Query<TBaseModel> = this.serializeQuery(
-                beforeUpdateBy.query
+            beforeUpdateBy.query = await ModelPermission.checkUpdatePermissions(
+                this.entityType,
+                beforeUpdateBy.query,
+                beforeUpdateBy.data,
+                beforeUpdateBy.props
             );
+
             const data: QueryDeepPartialEntity<TBaseModel> =
-                this.SanitizeCreateOrUpdate(
+                (await this.sanitizeCreateOrUpdate(
                     beforeUpdateBy.data,
                     updateBy.props,
                     true
-                ) as QueryDeepPartialEntity<TBaseModel>;
+                )) as QueryDeepPartialEntity<TBaseModel>;
 
             const items: Array<TBaseModel> = await this._findBy({
-                query,
+                query: beforeUpdateBy.query,
                 skip: 0,
                 limit: LIMIT_MAX,
                 populate: {},
@@ -1536,17 +943,19 @@ class DatabaseService<TBaseModel extends BaseModel> {
             query: {
                 _id: updateById.id.toString() as any,
             },
-            data: updateById.data,
+            data: updateById.data as any,
             props: updateById.props,
         });
     }
 
     public async updateOneByIdAndFetch(
-        updateById: UpdateByID<TBaseModel>
+        updateById: UpdateByIDAndFetch<TBaseModel>
     ): Promise<TBaseModel | null> {
         await this.updateOneById(updateById);
         return this.findOneById({
             id: updateById.id,
+            select: updateById.select,
+            populate: updateById.populate,
             props: updateById.props,
         });
     }

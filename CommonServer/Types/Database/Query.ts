@@ -16,4 +16,8 @@ export declare type FindWhere<Entity> = {
 
 declare type Query<TBaseModel extends BaseModel> = FindWhere<TBaseModel>;
 
+export declare type OrQuery<TBaseModel extends BaseModel> = Array<
+    Query<TBaseModel>
+>;
+
 export default Query;

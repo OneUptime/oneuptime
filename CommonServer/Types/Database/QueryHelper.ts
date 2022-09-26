@@ -24,6 +24,18 @@ export default class QueryHelper {
         );
     }
 
+    public static isNull(): any {
+        return Raw((alias: string) => {
+            return `${alias} IS NULL`;
+        });
+    }
+
+    public static notNull(): any {
+        return Raw((alias: string) => {
+            return `${alias} IS NOT NULL`;
+        });
+    }
+
     public static search(name: string): FindOperator<any> {
         name = name.toLowerCase().trim();
         const rid: string = Text.generateRandomText(10);

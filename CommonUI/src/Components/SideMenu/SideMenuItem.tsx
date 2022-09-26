@@ -4,12 +4,14 @@ import Navigation from '../../Utils/Navigation';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import UILink from '../Link/Link';
 import { Red, Yellow } from 'Common/Types/BrandColors';
+import Badge, { BadgeType } from '../Badge/Badge';
 
 export interface ComponentProps {
     link: Link;
     showAlert?: undefined | boolean;
     showWarning?: undefined | boolean;
     badge?: undefined | number;
+    badgeType?: BadgeType | undefined;
     icon?: undefined | IconProp;
     className?: undefined | string;
 }
@@ -50,12 +52,14 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
             </div>
             <div>
                 {props.badge ? (
-                    <span className="mt-1 badge bg-success float-end">
-                        {props.badge}
-                    </span>
+                    <Badge
+                        badgeCount={props.badge}
+                        badgeType={props.badgeType}
+                    />
                 ) : (
                     <></>
                 )}
+
                 {props.showAlert ? (
                     <>
                         <Icon

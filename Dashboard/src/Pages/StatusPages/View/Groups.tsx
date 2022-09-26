@@ -6,12 +6,17 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
+import StatusPageGroup from 'Model/Models/StatusPageGroup';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import SortOrder from 'Common/Types/Database/SortOrder';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam(1)?.toString().substring(1) || ''
@@ -43,23 +48,89 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Status Page',
+                    title: 'Resource Groups',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelDelete
-                modelType={StatusPage}
-                modelId={modelId}
-                onDeleteSuccess={() => {
-                    Navigation.navigate(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
-                    );
+            <ModelTable<StatusPageGroup>
+                modelType={StatusPageGroup}
+                id="status-page-group"
+                isDeleteable={true}
+                sortBy="order"
+                sortOrder={SortOrder.Ascending}
+                isCreateable={true}
+                isViewable={false}
+                query={{
+                    statusPageId: modelId,
+                    projectId: props.currentProject?._id,
                 }}
+                enableDragAndDrop={true}
+                dragDropIndexField="order"
+                onBeforeCreate={(
+                    item: StatusPageGroup
+                ): Promise<StatusPageGroup> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
+                    item.statusPageId = modelId;
+                    item.projectId = props.currentProject.id;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    icon: IconProp.Folder,
+                    title: 'Resource Groups',
+                    description:
+                        'Here are different groups for your status page resources.',
+                }}
+                noItemsMessage={
+                    'No status page group created for this status page.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Group Name',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'Resource Group Name',
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Group Description',
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: true,
+                        placeholder: 'Resource Group Description',
+                    },
+                ]}
+                showRefreshButton={true}
+                showFilterButton={true}
+                viewPageRoute={props.pageRoute}
+                columns={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                ]}
             />
         </Page>
     );

@@ -6,7 +6,7 @@ import Populate from './Populate';
 
 export default interface FindOneByID<TBaseModel extends BaseModel> {
     id: ObjectID;
-    select?: Select<TBaseModel>;
-    populate?: Populate<TBaseModel>;
+    select?: Select<TBaseModel> | undefined;
+    populate?: Populate<TBaseModel> | undefined;
     props: DatabaseCommonInteractionProps;
 }

@@ -1,10 +1,11 @@
 import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
-import {
+import Permission, {
     PermissionHelper,
     PermissionProps,
     UserGlobalAccessPermission,
-    UserProjectAccessPermission,
+    UserPermission,
+    UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import { DropdownOption } from '../Components/Dropdown/Dropdown';
 
@@ -20,7 +21,32 @@ export default class PermissionUtil {
         return globalPermissions as UserGlobalAccessPermission;
     }
 
-    public static getProjectPermissions(): UserProjectAccessPermission | null {
+    public static getAllPermissions(): Array<Permission> {
+        let permissions: Array<Permission> = [];
+
+        const globalPermissions: UserGlobalAccessPermission | null =
+            this.getGlobalPermissions();
+
+        if (globalPermissions) {
+            permissions = [...globalPermissions.globalPermissions];
+        }
+
+        const projectPermissions: UserTenantAccessPermission | null =
+            this.getProjectPermissions();
+
+        if (projectPermissions) {
+            permissions = [
+                ...permissions,
+                ...projectPermissions.permissions.map((i: UserPermission) => {
+                    return i.permission;
+                }),
+            ];
+        }
+
+        return permissions;
+    }
+
+    public static getProjectPermissions(): UserTenantAccessPermission | null {
         if (!LocalStorage.getItem('project_permissions')) {
             return null;
         }
@@ -28,15 +54,15 @@ export default class PermissionUtil {
             'project_permissions'
         ) as JSONObject;
 
-        const userProjectAccessPermission: UserProjectAccessPermission =
-            permissions as UserProjectAccessPermission;
-        userProjectAccessPermission._type = 'UserProjectAccessPermission';
-        return userProjectAccessPermission;
+        const userTenantAccessPermission: UserTenantAccessPermission =
+            permissions as UserTenantAccessPermission;
+        userTenantAccessPermission._type = 'UserTenantAccessPermission';
+        return userTenantAccessPermission;
     }
 
     public static projectPermissionsAsDropdownOptions(): Array<DropdownOption> {
         const permissions: Array<PermissionProps> =
-            PermissionHelper.getProjectPermissionProps();
+            PermissionHelper.getTenantPermissionProps();
 
         return permissions.map((permissionProp: PermissionProps) => {
             return {
@@ -53,7 +79,7 @@ export default class PermissionUtil {
     }
 
     public static setProjectPermissions(
-        permissions: UserProjectAccessPermission
+        permissions: UserTenantAccessPermission
     ): void {
         LocalStorage.setItem('project_permissions', permissions);
     }

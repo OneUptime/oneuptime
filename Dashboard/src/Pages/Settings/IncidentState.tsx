@@ -47,7 +47,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Alert,
+                    icon: IconProp.Disc,
                     title: 'Incident State',
                     description:
                         'Incidents have multiple states like - created, acknowledged and resolved. You can more states help you manage incidents here.',

@@ -31,32 +31,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <SideMenuItem
                     link={{
-                        title: 'Resources and Monitors',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_RESOURCES
-                            ] as Route,
-                            props.modelId
-                        ),
-                    }}
-                    icon={IconProp.Activity}
-                />
-
-                <SideMenuItem
-                    link={{
-                        title: 'Subscribers',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_SUBSCRIBERS
-                            ] as Route,
-                            props.modelId
-                        ),
-                    }}
-                    icon={IconProp.User}
-                />
-
-                <SideMenuItem
-                    link={{
                         title: 'Annoucements',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
@@ -66,6 +40,84 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.SMS}
+                />
+            </SideMenuSection>
+
+            <SideMenuSection title="Resources">
+                <SideMenuItem
+                    link={{
+                        title: 'Monitors',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_RESOURCES
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Activity}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Groups',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Folder}
+                />
+            </SideMenuSection>
+
+            <SideMenuSection title="Subscribers">
+                <SideMenuItem
+                    link={{
+                        title: 'Email Subscribers',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Email}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'SMS Subscribers',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.SendMessage}
+                />
+
+                <SideMenuItem
+                    link={{
+                        title: 'Webhook Subscribers',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Webhook}
+                />
+
+                <SideMenuItem
+                    link={{
+                        title: 'Subscriber Settings',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Settings}
                 />
             </SideMenuSection>
 
@@ -124,18 +176,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
-                        title: 'Groups',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS] as Route,
-                            props.modelId
-                        ),
-                    }}
-                    icon={IconProp.Folder}
-                />
-
-                <SideMenuItem
-                    link={{
-                        title: 'Advanced Options',
+                        title: 'Advanced Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS

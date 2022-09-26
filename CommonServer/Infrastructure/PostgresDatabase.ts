@@ -11,7 +11,7 @@ import {
 import Entities from 'Model/Models/Index';
 import AppEnvironment from 'Common/Types/AppEnvironment';
 import DatabaseType from 'Common/Types/DatabaseType';
-import Faker from 'Common/Tests/TestingUtils/Faker';
+import Faker from 'Common/Utils/Faker';
 import logger from '../Utils/Logger';
 
 export default class Database {
@@ -26,7 +26,7 @@ export default class Database {
             password: DatabasePassword,
             database: DatabaseName,
             entities: Entities,
-            logging: 'all',
+            //logging: 'all',
             synchronize:
                 Env === AppEnvironment.Test ||
                 Env === AppEnvironment.Development,

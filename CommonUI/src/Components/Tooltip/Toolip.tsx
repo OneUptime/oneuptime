@@ -10,7 +10,11 @@ export interface ComponentProps {
 const Tooltip: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return <Tippy content={<span>{props.text}</span>}>{props.children}</Tippy>;
+    return (
+        <Tippy key={Math.random()} content={<span>{props.text}</span>}>
+            {props.children}
+        </Tippy>
+    );
 };
 
 export default Tooltip;
