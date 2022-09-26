@@ -1,4 +1,3 @@
-
 import {
     AccountsHostname,
     DashboardHostname,
@@ -288,7 +287,6 @@ router.post(
             const user: User = User.fromJSON(data as JSONObject, User) as User;
 
             console.log(user.password);
-            
 
             await user.password?.hashValue(EncryptionSecret);
 

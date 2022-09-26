@@ -407,9 +407,7 @@ export default class BaseModel extends BaseEntity {
             );
         }
 
-        return Boolean(
-            tableColumnType.type === TableColumnType.HashedString
-        );
+        return Boolean(tableColumnType.type === TableColumnType.HashedString);
     }
 
     public isFileColumn(columnName: string): boolean {
@@ -596,7 +594,11 @@ export default class BaseModel extends BaseEntity {
     ): boolean {
         let userPermissions: Array<Permission> = [];
 
-        if (instaceOfUserTenantAccessPermission(userProjectPermissions) && userProjectPermissions.permissions && Array.isArray(userProjectPermissions.permissions)) {
+        if (
+            instaceOfUserTenantAccessPermission(userProjectPermissions) &&
+            userProjectPermissions.permissions &&
+            Array.isArray(userProjectPermissions.permissions)
+        ) {
             userPermissions = userProjectPermissions.permissions.map(
                 (item: UserPermission) => {
                     return item.permission;

@@ -9,7 +9,9 @@ import UserType from '../UserType';
 export default interface DatabaseCommonInteractionProps {
     userId?: ObjectID | undefined;
     userGlobalAccessPermission?: UserGlobalAccessPermission | undefined;
-    userTenantAccessPermission?: Dictionary<UserTenantAccessPermission> | undefined;
+    userTenantAccessPermission?:
+        | Dictionary<UserTenantAccessPermission>
+        | undefined;
     userType?: UserType | undefined;
     tenantId?: ObjectID | undefined;
     isRoot?: boolean | undefined;

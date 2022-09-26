@@ -910,7 +910,11 @@ const BasicForm: Function = <T extends Object>(
                                 const fieldName: string = field.overideFieldKey
                                     ? field.overideFieldKey
                                     : (Object.keys(field.field)[0] as string);
-                                if ((values as any)[fieldName] && typeof (values as any)[fieldName] === Typeof.String) {
+                                if (
+                                    (values as any)[fieldName] &&
+                                    typeof (values as any)[fieldName] ===
+                                        Typeof.String
+                                ) {
                                     (values as any)[fieldName] =
                                         new HashedString(
                                             (values as any)[fieldName],

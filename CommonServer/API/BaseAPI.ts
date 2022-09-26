@@ -308,7 +308,7 @@ export default class BaseAPI<
             props: this.getDatabaseCommonInteractionProps(req),
         });
 
-        console.log("ITEM");
+        console.log('ITEM');
         console.log(item);
 
         return Response.sendEntityResponse(req, res, item, this.entityType);

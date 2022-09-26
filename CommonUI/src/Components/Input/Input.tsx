@@ -30,11 +30,13 @@ const Input: FunctionComponent<ComponentProps> = (
     const [value, setValue] = useState<string>('');
     const [displayValue, setDisplayValue] = useState<string>('');
     const ref = useRef(null);
-    
+
     useEffect(() => {
         const input = ref.current;
-        if (input) (input as any).value = displayValue;
-     }, [ref, displayValue]);
+        if (input) {
+            (input as any).value = displayValue;
+        }
+    }, [ref, displayValue]);
 
     useEffect(() => {
         if (props.type === 'date' || props.type === 'datetime-local') {

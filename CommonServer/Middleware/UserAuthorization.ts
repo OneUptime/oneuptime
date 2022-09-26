@@ -87,7 +87,7 @@ export default class UserMiddleware {
             data: { lastActive: OneUptimeDate.getCurrentDate() },
         });
 
-        let userGlobalAccessPermission: UserGlobalAccessPermission | null =
+        const userGlobalAccessPermission: UserGlobalAccessPermission | null =
             await AccessTokenService.getUserGlobalAccessPermission(
                 oneuptimeRequest.userAuthorization.userId
             );
@@ -99,7 +99,7 @@ export default class UserMiddleware {
 
         if (tenantId) {
             // get project level permissions if projectid exists in request.
-            let userTenantAccessPermission: UserTenantAccessPermission | null =
+            const userTenantAccessPermission: UserTenantAccessPermission | null =
                 await AccessTokenService.getUserTenantAccessPermission(
                     oneuptimeRequest.userAuthorization.userId,
                     tenantId
@@ -107,25 +107,27 @@ export default class UserMiddleware {
 
             if (userTenantAccessPermission) {
                 oneuptimeRequest.userTenantAccessPermission = {};
-                oneuptimeRequest.userTenantAccessPermission[tenantId.toString()] =
-                    userTenantAccessPermission;
+                oneuptimeRequest.userTenantAccessPermission[
+                    tenantId.toString()
+                ] = userTenantAccessPermission;
             }
         }
 
         if (req.headers['is-multi-tenant-query']) {
             oneuptimeRequest.userTenantAccessPermission = {};
-            for (const projectId of userGlobalAccessPermission?.projectIds || []) {
+            for (const projectId of userGlobalAccessPermission?.projectIds ||
+                []) {
                 // get project level permissions if projectid exists in request.
-                let userTenantAccessPermission: UserTenantAccessPermission | null =
+                const userTenantAccessPermission: UserTenantAccessPermission | null =
                     await AccessTokenService.getUserTenantAccessPermission(
                         oneuptimeRequest.userAuthorization.userId,
                         projectId
                     );
 
                 if (userTenantAccessPermission) {
-                    
-                    oneuptimeRequest.userTenantAccessPermission[projectId.toString()] =
-                        userTenantAccessPermission;
+                    oneuptimeRequest.userTenantAccessPermission[
+                        projectId.toString()
+                    ] = userTenantAccessPermission;
                 }
             }
         }
@@ -149,7 +151,7 @@ export default class UserMiddleware {
                     req.headers &&
                     req.headers['global-permissions-hash'] &&
                     req.headers['global-permissions-hash'] ===
-                    globalPermissionsHash
+                        globalPermissionsHash
                 )
             ) {
                 res.set('project-permissions', globalValue);
@@ -158,10 +160,16 @@ export default class UserMiddleware {
         }
 
         // set project permissions hash.
-        if (oneuptimeRequest.userTenantAccessPermission && tenantId && oneuptimeRequest.userTenantAccessPermission[tenantId.toString()]) {
+        if (
+            oneuptimeRequest.userTenantAccessPermission &&
+            tenantId &&
+            oneuptimeRequest.userTenantAccessPermission[tenantId.toString()]
+        ) {
             const projectValue: string = JSON.stringify(
                 JSONFunctions.serialize(
-                    oneuptimeRequest.userTenantAccessPermission[tenantId.toString()]!
+                    oneuptimeRequest.userTenantAccessPermission[
+                        tenantId.toString()
+                    ]!
                 )
             );
             const projectPermissionsHash: string = await HashedString.hashValue(
@@ -174,7 +182,7 @@ export default class UserMiddleware {
                     req.headers &&
                     req.headers['project-permissions-hash'] &&
                     req.headers['project-permissions-hash'] ===
-                    projectPermissionsHash
+                        projectPermissionsHash
                 )
             ) {
                 res.set('project-permissions', projectValue);

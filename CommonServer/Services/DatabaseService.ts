@@ -64,11 +64,11 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new(): TBaseModel };
+    private entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
 
     public constructor(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -345,8 +345,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data.getSlugifyColumn() as string
                 ]
                     ? ((createBy.data as any)[
-                        createBy.data.getSlugifyColumn() as string
-                    ] as string)
+                          createBy.data.getSlugifyColumn() as string
+                      ] as string)
                     : null
             );
         }
@@ -401,10 +401,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
                                 new tableColumnMetadata.modelType();
                             basemodelItem._id = item.toString();
                             itemsArray.push(basemodelItem);
-                        } else if (item && typeof item === Typeof.Object && (item as JSONObject)["_id"] && typeof (item as JSONObject)["_id"] === Typeof.String) {
+                        } else if (
+                            item &&
+                            typeof item === Typeof.Object &&
+                            (item as JSONObject)['_id'] &&
+                            typeof (item as JSONObject)['_id'] === Typeof.String
+                        ) {
                             const basemodelItem: BaseModel =
                                 new tableColumnMetadata.modelType();
-                            basemodelItem._id = ((item as JSONObject)["_id"] as string).toString();
+                            basemodelItem._id = (
+                                (item as JSONObject)['_id'] as string
+                            ).toString();
                             itemsArray.push(basemodelItem);
                         } else if (item instanceof BaseModel) {
                             itemsArray.push(item);
@@ -414,27 +421,24 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 }
             }
 
-
             if (this.model.isHashedStringColumn(columnName)) {
-
                 const columnValue: JSONValue = (data as any)[columnName];
 
-                console.log("HASHED COLUJMN")
+                console.log('HASHED COLUJMN');
                 console.log(columnValue);
 
                 if (
                     data &&
                     columnName &&
                     columnValue &&
-                    columnValue instanceof HashedString) {
-                    
+                    columnValue instanceof HashedString
+                ) {
                     if (!columnValue.isValueHashed()) {
                         columnValue.hashValue(EncryptionSecret);
                     }
-                    
+
                     (data as any)[columnName] = columnValue.toString();
                 }
-
             }
         }
 
@@ -586,13 +590,14 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 props,
             };
 
-            const checkReadPermissionType = await (ModelPermission.checkReadPermission(
-                this.entityType,
-                query,
-                null,
-                null,
-                props
-            ));
+            const checkReadPermissionType =
+                await ModelPermission.checkReadPermission(
+                    this.entityType,
+                    query,
+                    null,
+                    null,
+                    props
+                );
 
             findBy.query = checkReadPermissionType.query;
 
@@ -683,9 +688,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
         findBy: FindBy<TBaseModel>
     ): Promise<Array<TBaseModel>> {
         try {
-
-
-
             if (!findBy.sort || Object.keys(findBy.sort).length === 0) {
                 findBy.sort = {
                     createdAt: SortOrder.Descending,
@@ -726,8 +728,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
             onBeforeFind.select = result.select || undefined;
             onBeforeFind.populate = result.populate || undefined;
 
-            console.log("QUERY");
-            console.log(onBeforeFind)
+            console.log('QUERY');
+            console.log(onBeforeFind);
 
             if (!(onBeforeFind.skip instanceof PositiveNumber)) {
                 onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
@@ -746,7 +748,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 select: onBeforeFind.select as any,
             });
 
-            console.log("FIND ONE BY");
+            console.log('FIND ONE BY');
             console.log(items);
 
             let decryptedItems: Array<TBaseModel> = [];
@@ -793,10 +795,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -846,8 +848,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
         const documents: Array<TBaseModel> = await this._findBy(findBy);
 
-
-
         if (documents && documents[0]) {
             return documents[0];
         }
@@ -873,8 +873,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 updateBy
             );
 
-
-
             const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
             const carryForward: any = onUpdate.carryForward;
 
@@ -885,7 +883,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 beforeUpdateBy.props
             );
 
-            console.log("DATA");
+            console.log('DATA');
             console.log(updateBy.data);
 
             const data: QueryDeepPartialEntity<TBaseModel> =
@@ -903,8 +901,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 select: {},
                 props: beforeUpdateBy.props,
             });
-
-
 
             debugger;
             for (let item of items) {
