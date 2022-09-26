@@ -1,3 +1,4 @@
+import Dictionary from '../Dictionary';
 import ObjectID from '../ObjectID';
 import {
     UserGlobalAccessPermission,
@@ -8,7 +9,7 @@ import UserType from '../UserType';
 export default interface DatabaseCommonInteractionProps {
     userId?: ObjectID | undefined;
     userGlobalAccessPermission?: UserGlobalAccessPermission | undefined;
-    userTenantAccessPermission?: UserTenantAccessPermission | undefined;
+    userTenantAccessPermission?: Dictionary<UserTenantAccessPermission> | undefined;
     userType?: UserType | undefined;
     tenantId?: ObjectID | undefined;
     isRoot?: boolean | undefined;

@@ -73,13 +73,16 @@ export default class AccessTokenService {
         );
 
         if (!json) {
-            return null;
+            return await AccessTokenService.refreshUserGlobalAccessPermission(
+                userId
+            );;
         }
 
         const accessPermission: UserGlobalAccessPermission =
             json as UserGlobalAccessPermission;
 
         accessPermission._type = 'UserGlobalAccessPermission';
+
 
         return accessPermission;
     }
@@ -192,6 +195,13 @@ export default class AccessTokenService {
 
         if (json) {
             json._type = 'UserTenantAccessPermission';
+        }
+
+        if (!json) {
+            return await AccessTokenService.refreshUserTenantAccessPermission(
+                userId,
+                projectId
+            );
         }
 
         return json;

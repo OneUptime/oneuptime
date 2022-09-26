@@ -9,6 +9,7 @@ import {
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import UserType from 'Common/Types/UserType';
+import Dictionary from 'Common/Types/Dictionary';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
@@ -35,7 +36,7 @@ export interface OneUptimeRequest extends express.Request {
     userAuthorization?: JSONWebTokenData;
     tenantId?: ObjectID;
     userGlobalAccessPermission?: UserGlobalAccessPermission;
-    userTenantAccessPermission?: UserTenantAccessPermission;
+    userTenantAccessPermission?: Dictionary<UserTenantAccessPermission>; // tenantId <-> UserTenantAccessPermission
 }
 
 export interface OneUptimeResponse extends express.Response {

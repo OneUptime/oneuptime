@@ -586,13 +586,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 props,
             };
 
-            findBy.query = ModelPermission.checkReadPermission(
+            const checkReadPermissionType = await (ModelPermission.checkReadPermission(
                 this.entityType,
                 query,
                 null,
                 null,
                 props
-            ).query;
+            ));
+
+            findBy.query = checkReadPermissionType.query;
 
             const count: number = await this.getRepository().count({
                 where: findBy.query as any,
@@ -628,7 +630,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             const carryForward: any = onDelete.carryForward;
 
-            beforeDeleteBy.query = ModelPermission.checkDeletePermission(
+            beforeDeleteBy.query = await ModelPermission.checkDeletePermission(
                 this.entityType,
                 beforeDeleteBy.query,
                 deleteBy.props
@@ -712,7 +714,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 query: Query<TBaseModel>;
                 select: Select<TBaseModel> | null;
                 populate: Populate<TBaseModel> | null;
-            } = ModelPermission.checkReadPermission(
+            } = await ModelPermission.checkReadPermission(
                 this.entityType,
                 onBeforeFind.query,
                 onBeforeFind.select || null,
@@ -876,7 +878,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
             const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
             const carryForward: any = onUpdate.carryForward;
 
-            beforeUpdateBy.query = ModelPermission.checkUpdatePermissions(
+            beforeUpdateBy.query = await ModelPermission.checkUpdatePermissions(
                 this.entityType,
                 beforeUpdateBy.query,
                 beforeUpdateBy.data,
