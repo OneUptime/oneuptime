@@ -3,11 +3,27 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
+    "tasks": [
+        {
+            "type": "docker-run",
+            "label": "docker-run: debug",
+            "dependsOn": [
+                "docker-build"
+            ],
+            "dockerRun": {
+                "command": "nest start --debug 0.0.0.0:9229"
+            },
+            "node": {
+                "enableDebugging": true
+            }
+        }
+    ],
     "configurations": [
         {
             "name": "Node.js - Debug Current File",
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true,
             "request": "launch",
             "program": "${file}"
         },
@@ -23,6 +39,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -36,6 +53,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -49,6 +67,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -62,6 +81,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -75,6 +95,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -88,6 +109,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -101,6 +123,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -114,6 +137,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -127,6 +151,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -140,6 +165,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -153,6 +179,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -166,6 +193,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -179,6 +207,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -192,6 +221,7 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "address": "0.0.0.0",
@@ -205,11 +235,13 @@
             ],
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
             "name": "CommonServer: Debug Tests",
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true,
             "request": "launch",
             "cwd": "${workspaceRoot}/CommonServer",
             "runtimeExecutable": "npm",
@@ -222,6 +254,7 @@
             "name": "Accounts: Debug Local Files",
             "type": "node",
             "restart": true,
+            "autoAttachChildProcesses": true,
             "request": "launch",
             "cwd": "${workspaceRoot}/Accounts",
             "runtimeExecutable": "npm",

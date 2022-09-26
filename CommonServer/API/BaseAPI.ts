@@ -203,6 +203,7 @@ export default class BaseAPI<
             );
         }
 
+
         let query: Query<BaseModel> = {};
         let select: Select<BaseModel> = {};
         let populate: Populate<BaseModel> = {};
@@ -230,6 +231,7 @@ export default class BaseAPI<
 
         const databaseProps: DatabaseCommonInteractionProps =
             this.getDatabaseCommonInteractionProps(req);
+
 
         const list: Array<BaseModel> = await this.service.findBy({
             query,

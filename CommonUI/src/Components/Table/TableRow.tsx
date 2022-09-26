@@ -59,7 +59,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                 key={i}
                                 style={{
                                     textAlign:
-                                        i === props.columns.length - 1
+                                        column.type === FieldType.Actions
                                             ? 'right'
                                             : 'left',
                                 }}

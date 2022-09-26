@@ -10,7 +10,6 @@ import Loader, { LoaderType } from '../Loader/Loader';
 import { VeryLightGrey } from 'Common/Types/BrandColors';
 import Permission, {
     PermissionHelper,
-    UserPermission,
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
@@ -89,23 +88,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     const setDetailFields: Function = (): void => {
         // set fields.
 
-        let userPermissions: Array<Permission> =
-            PermissionUtil.getGlobalPermissions()?.globalPermissions || [];
-        if (
-            PermissionUtil.getProjectPermissions() &&
-            PermissionUtil.getProjectPermissions()?.permissions &&
-            PermissionUtil.getProjectPermissions()!.permissions.length > 0
-        ) {
-            userPermissions = userPermissions.concat(
-                PermissionUtil.getProjectPermissions()!.permissions.map(
-                    (i: UserPermission) => {
-                        return i.permission;
-                    }
-                )
-            );
-        }
-
-        userPermissions.push(Permission.Public);
+        let userPermissions: Array<Permission> = PermissionUtil.getAllPermissions();
 
         const accessControl: Dictionary<ColumnAccessControl> =
             model.getColumnAccessControlForAllColumns();

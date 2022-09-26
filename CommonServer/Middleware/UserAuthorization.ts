@@ -145,18 +145,6 @@ export default class UserMiddleware {
             );
             res.set('global-permissions', globalValue);
             res.set('global-permissions-hash', globalPermissionsHash);
-
-            if (
-                !(
-                    req.headers &&
-                    req.headers['global-permissions-hash'] &&
-                    req.headers['global-permissions-hash'] ===
-                        globalPermissionsHash
-                )
-            ) {
-                res.set('project-permissions', globalValue);
-                res.set('project-permissions-hash', globalPermissionsHash);
-            }
         }
 
         // set project permissions hash.

@@ -28,7 +28,6 @@ import ConfirmModal from '../Modal/ConfirmModal';
 import Permission, {
     PermissionHelper,
     UserPermission,
-    UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
@@ -461,16 +460,17 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const setHeaderButtons: Function = (): void => {
         // add header buttons.
         const headerbuttons: Array<CardButtonSchema> = [];
-        const userProjectPermissions: UserTenantAccessPermission | null =
-            PermissionUtil.getProjectPermissions();
 
-        if (!userProjectPermissions) {
-            throw new BadDataException('UserTenantAccessPermissions not found');
+        const permissions: Array<Permission> | null =
+            PermissionUtil.getAllPermissions();
+
+        let hasPermissionToCreate: boolean = false; 
+
+        if (permissions) {
+            hasPermissionToCreate = model.hasCreatePermissions(
+                permissions
+            );
         }
-
-        const hasPermissionToCreate: boolean = model.hasCreatePermissions(
-            userProjectPermissions
-        );
 
         // because ordered list add button is inside the table and not on the card header.
         if (
@@ -669,17 +669,17 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        const userProjectPermissions: UserTenantAccessPermission | null =
-            PermissionUtil.getProjectPermissions();
+        const permissions: Array<Permission> | null =
+            PermissionUtil.getAllPermissions();
 
         if (
-            userProjectPermissions &&
+            permissions &&
             ((props.isDeleteable &&
-                model.hasDeletePermissions(userProjectPermissions)) ||
+                model.hasDeletePermissions(permissions)) ||
                 (props.isEditable &&
-                    model.hasUpdatePermissions(userProjectPermissions)) ||
+                    model.hasUpdatePermissions(permissions)) ||
                 (props.isViewable &&
-                    model.hasReadPermissions(userProjectPermissions)))
+                    model.hasReadPermissions(permissions)))
         ) {
             columns.push({
                 title: 'Actions',
@@ -693,8 +693,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     }, []);
 
     const setActionSchema: Function = () => {
-        const userProjectPermissions: UserTenantAccessPermission | null =
-            PermissionUtil.getProjectPermissions();
+        const permissions: Array<Permission> =
+            PermissionUtil.getAllPermissions();
 
         const actionsSchema: Array<ActionButtonSchema> = [];
 
@@ -705,10 +705,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        if (userProjectPermissions) {
+        if (permissions) {
             if (
                 props.isViewable &&
-                model.hasReadPermissions(userProjectPermissions)
+                model.hasReadPermissions(permissions)
             ) {
                 actionsSchema.push({
                     title: props.viewButtonText || 'View',
@@ -765,7 +765,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             if (
                 props.isEditable &&
-                model.hasUpdatePermissions(userProjectPermissions)
+                model.hasUpdatePermissions(permissions)
             ) {
                 actionsSchema.push({
                     title: props.editButtonText || 'Edit',
@@ -802,7 +802,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
             if (
                 props.isDeleteable &&
-                model.hasDeletePermissions(userProjectPermissions)
+                model.hasDeletePermissions(permissions)
             ) {
                 actionsSchema.push({
                     title: props.deleteButtonText || 'Delete',

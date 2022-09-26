@@ -1,6 +1,6 @@
 import LocalStorage from './LocalStorage';
 import { JSONObject } from 'Common/Types/JSON';
-import {
+import Permission, {
     PermissionHelper,
     PermissionProps,
     UserGlobalAccessPermission,
@@ -18,6 +18,25 @@ export default class PermissionUtil {
         ) as JSONObject;
 
         return globalPermissions as UserGlobalAccessPermission;
+    }
+
+    public static getAllPermissions(): Array<Permission> {
+
+        let permissions: Array<Permission> = []; 
+
+        const globalPermissions: UserGlobalAccessPermission | null = this.getGlobalPermissions();
+
+        if (globalPermissions) {
+            permissions = [...globalPermissions.globalPermissions];
+        }
+
+        const projectPermissions: UserTenantAccessPermission | null = this.getProjectPermissions(); 
+
+        if (projectPermissions) {
+            permissions = [...permissions, ...projectPermissions.permissions.map((i)=> i.permission)];
+        }
+
+        return permissions;
     }
 
     public static getProjectPermissions(): UserTenantAccessPermission | null {
