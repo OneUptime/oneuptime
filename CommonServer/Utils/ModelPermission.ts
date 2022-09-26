@@ -625,7 +625,7 @@ export default class ModelPermission {
     }
 
     private static getExcludedColumns(): string[] {
-        const returnArr = [
+        const returnArr: Array<string> = [
             '_id',
             'createdAt',
             'deletedAt',
@@ -720,8 +720,16 @@ export default class ModelPermission {
 
             const queries: Array<Query<TBaseModel>> = [];
 
-            for (const projectId of props.userGlobalAccessPermission
-                ?.projectIds) {
+            let projectIDs: Array<ObjectID> = [];
+
+            if (
+                props.userGlobalAccessPermission &&
+                props.userGlobalAccessPermission.projectIds
+            ) {
+                projectIDs = props.userGlobalAccessPermission?.projectIds;
+            }
+
+            for (const projectId of projectIDs) {
                 if (!props.userId) {
                     continue;
                 }

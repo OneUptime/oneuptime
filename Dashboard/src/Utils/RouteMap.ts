@@ -199,7 +199,7 @@ export class RouteUtil {
     public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
         // populate projectid
         const project: Project | null = ProjectUtil.getCurrentProject();
-        const tempRoute = new Route(route.toString());
+        const tempRoute: Route = new Route(route.toString());
 
         if (project && project._id) {
             route = tempRoute.addRouteParam(RouteParams.ProjectID, project._id);

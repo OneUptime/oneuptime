@@ -37,7 +37,9 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
-import ModelPermission from '../Utils/ModelPermission';
+import ModelPermission, {
+    CheckReadPermissionType,
+} from '../Utils/ModelPermission';
 import Select from '../Types/Database/Select';
 import Populate from '../Types/Database/Populate';
 import UpdateByIDAndFetch from '../Types/Database/UpdateByIDAndFetch';
@@ -354,11 +356,11 @@ class DatabaseService<TBaseModel extends BaseModel> {
         return createBy;
     }
 
-    private sanitizeCreateOrUpdate(
+    private async sanitizeCreateOrUpdate(
         data: TBaseModel | QueryDeepPartialEntity<TBaseModel>,
         props: DatabaseCommonInteractionProps,
         isUpdate: boolean = false
-    ): TBaseModel | QueryDeepPartialEntity<TBaseModel> {
+    ): Promise<TBaseModel | QueryDeepPartialEntity<TBaseModel>> {
         const columns: Columns = this.model.getTableColumns();
 
         for (const columnName of columns.columns) {
@@ -424,9 +426,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             if (this.model.isHashedStringColumn(columnName)) {
                 const columnValue: JSONValue = (data as any)[columnName];
 
-                console.log('HASHED COLUJMN');
-                console.log(columnValue);
-
                 if (
                     data &&
                     columnName &&
@@ -434,7 +433,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     columnValue instanceof HashedString
                 ) {
                     if (!columnValue.isValueHashed()) {
-                        columnValue.hashValue(EncryptionSecret);
+                        await columnValue.hashValue(EncryptionSecret);
                     }
 
                     (data as any)[columnName] = columnValue.toString();
@@ -495,10 +494,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         createBy = await this.checkUniqueColumnBy(createBy);
 
         // serialize.
-        createBy.data = this.sanitizeCreateOrUpdate(
+        createBy.data = (await this.sanitizeCreateOrUpdate(
             createBy.data,
             createBy.props
-        ) as TBaseModel;
+        )) as TBaseModel;
 
         try {
             createBy.data = await this.getRepository().save(createBy.data);
@@ -590,7 +589,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 props,
             };
 
-            const checkReadPermissionType =
+            const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
                 await ModelPermission.checkReadPermission(
                     this.entityType,
                     query,
@@ -728,9 +727,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             onBeforeFind.select = result.select || undefined;
             onBeforeFind.populate = result.populate || undefined;
 
-            console.log('QUERY');
-            console.log(onBeforeFind);
-
             if (!(onBeforeFind.skip instanceof PositiveNumber)) {
                 onBeforeFind.skip = new PositiveNumber(onBeforeFind.skip);
             }
@@ -747,9 +743,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 relations: onBeforeFind.populate as any,
                 select: onBeforeFind.select as any,
             });
-
-            console.log('FIND ONE BY');
-            console.log(items);
 
             let decryptedItems: Array<TBaseModel> = [];
 
@@ -883,15 +876,12 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 beforeUpdateBy.props
             );
 
-            console.log('DATA');
-            console.log(updateBy.data);
-
             const data: QueryDeepPartialEntity<TBaseModel> =
-                this.sanitizeCreateOrUpdate(
+                (await this.sanitizeCreateOrUpdate(
                     beforeUpdateBy.data,
                     updateBy.props,
                     true
-                ) as QueryDeepPartialEntity<TBaseModel>;
+                )) as QueryDeepPartialEntity<TBaseModel>;
 
             const items: Array<TBaseModel> = await this._findBy({
                 query: beforeUpdateBy.query,
@@ -902,7 +892,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 props: beforeUpdateBy.props,
             });
 
-            debugger;
             for (let item of items) {
                 item = {
                     ...item,
