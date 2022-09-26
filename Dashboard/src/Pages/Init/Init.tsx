@@ -12,11 +12,11 @@ const Init: FunctionComponent<PageComponentProps> = (
         // set slug to latest project and redirect to home.
 
         if (props.currentProject && props.currentProject._id) {
-            Navigation.navigate(new Route('/dashboard/' + props.currentProject._id + '/home'));
+            Navigation.navigate(
+                new Route('/dashboard/' + props.currentProject._id + '/home')
+            );
         }
-
     }, [props.currentProject]);
-
 
     return (
         <Page title={''} breadcrumbLinks={[]}>

@@ -8,9 +8,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
 import { VeryLightGrey } from 'Common/Types/BrandColors';
-import Permission, {
-    PermissionHelper,
-} from 'Common/Types/Permission';
+import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
 import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import Field from './Field';
@@ -88,7 +86,8 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     const setDetailFields: Function = (): void => {
         // set fields.
 
-        let userPermissions: Array<Permission> = PermissionUtil.getAllPermissions();
+        const userPermissions: Array<Permission> =
+            PermissionUtil.getAllPermissions();
 
         const accessControl: Dictionary<ColumnAccessControl> =
             model.getColumnAccessControlForAllColumns();

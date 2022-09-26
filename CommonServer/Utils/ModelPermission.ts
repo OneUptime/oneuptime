@@ -28,6 +28,7 @@ import Search from 'Common/Types/Database/Search';
 import { FindOperator } from 'typeorm';
 import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import logger from './Logger';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -37,7 +38,7 @@ export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
 
 export default class ModelPermission {
     public static async checkDeletePermission<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): Promise<Query<TBaseModel>> {
@@ -60,7 +61,7 @@ export default class ModelPermission {
     }
 
     public static async checkUpdatePermissions<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
         data: QueryDeepPartialEntity<TBaseModel>,
         props: DatabaseCommonInteractionProps
@@ -91,7 +92,7 @@ export default class ModelPermission {
     }
 
     public static checkCreatePermissions<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         data: TBaseModel,
         props: DatabaseCommonInteractionProps
     ): void {
@@ -115,7 +116,7 @@ export default class ModelPermission {
     }
 
     private static checkDataColumnPermissions<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         data: TBaseModel,
         props: DatabaseCommonInteractionProps,
         requestType: DatabaseRequestType
@@ -173,7 +174,7 @@ export default class ModelPermission {
     }
 
     public static async checkReadPermission<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
         select: Select<TBaseModel> | null,
         populate: Populate<TBaseModel> | null,
@@ -182,8 +183,6 @@ export default class ModelPermission {
         const model: BaseModel = new modelType();
 
         if (!props.isRoot) {
-
-
             // add tenant scope.
             query = await this.addTenantScopeToQuery(
                 modelType,
@@ -192,7 +191,6 @@ export default class ModelPermission {
                 populate,
                 props
             );
-
 
             if (!props.isMultiTenantRequest) {
                 // We will check for this permission in recursive function.
@@ -204,13 +202,9 @@ export default class ModelPermission {
                     DatabaseRequestType.Read
                 );
 
-
-
-
                 // We will check for this permission in recursive function.
                 // check query permissions.
                 this.checkQueryPermission(modelType, query, props);
-
 
                 if (model.getAccessControlColumn()) {
                     const accessControlIds: Array<ObjectID> =
@@ -222,23 +216,25 @@ export default class ModelPermission {
                         );
 
                     if (accessControlIds.length > 0) {
-                        (query as any)[model.getAccessControlColumn() as string] =
-                            accessControlIds;
+                        (query as any)[
+                            model.getAccessControlColumn() as string
+                        ] = accessControlIds;
                     }
                 }
-            
 
                 /// Implement Related Permissions.
                 if (model.canAccessIfCanReadOn) {
                     const tableColumnMetadata: TableColumnMetadata =
-                        model.getTableColumnMetadata(model.canAccessIfCanReadOn);
+                        model.getTableColumnMetadata(
+                            model.canAccessIfCanReadOn
+                        );
 
                     if (
                         tableColumnMetadata &&
                         tableColumnMetadata.modelType &&
                         (tableColumnMetadata.type === TableColumnType.Entity ||
                             tableColumnMetadata.type ===
-                            TableColumnType.EntityArray)
+                                TableColumnType.EntityArray)
                     ) {
                         const accessControlIds: Array<ObjectID> =
                             this.getAccessControlIdsForQuery(
@@ -254,7 +250,9 @@ export default class ModelPermission {
                             const tableColumnMetadataModel: BaseModel =
                                 new tableColumnMetadata.modelType();
 
-                            (query as any)[model.canAccessIfCanReadOn as string] = {
+                            (query as any)[
+                                model.canAccessIfCanReadOn as string
+                            ] = {
                                 [tableColumnMetadataModel.getAccessControlColumn() as string]:
                                     accessControlIds,
                             };
@@ -288,14 +286,12 @@ export default class ModelPermission {
     }
 
     private static serializeQuery<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         query: Query<TBaseModel>
     ): Query<TBaseModel> {
         const model: BaseModel = new modelType();
 
         query = query as Query<TBaseModel>;
-
-
 
         for (const key in query) {
             const tableColumnMetadata: TableColumnMetadata =
@@ -433,7 +429,7 @@ export default class ModelPermission {
     }
 
     private static getAccessControlIdsForQuery<TBaseModel extends BaseModel>(
-        modelType: { new(): BaseModel },
+        modelType: { new (): BaseModel },
         query: Query<TBaseModel>,
         select: Select<TBaseModel> | null,
         props: DatabaseCommonInteractionProps
@@ -480,7 +476,7 @@ export default class ModelPermission {
                     for (const accessControlPermission of accessControlPermissions) {
                         if (
                             accessControlPermission.permission ===
-                            readPermissions &&
+                                readPermissions &&
                             accessControlPermission.labelIds.length > 0
                         ) {
                             labelIds = [
@@ -522,7 +518,7 @@ export default class ModelPermission {
     }
 
     private static checkPopulatePermission<TBaseModel extends BaseModel>(
-        modelType: { new(): BaseModel },
+        modelType: { new (): BaseModel },
         populate: Populate<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): void {
@@ -544,10 +540,10 @@ export default class ModelPermission {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -609,7 +605,8 @@ export default class ModelPermission {
                                 }
 
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to read ${key}.${innerKey} on ${model.singularName
+                                    `You do not have permissions to read ${key}.${innerKey} on ${
+                                        model.singularName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                                         readPermissions
                                     ).join(',')}`
@@ -620,10 +617,10 @@ export default class ModelPermission {
                 } else {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        model.singularName +
-                        ' because this column is not of type Entity or EntityArray'
+                            key +
+                            ' of ' +
+                            model.singularName +
+                            ' because this column is not of type Entity or EntityArray'
                     );
                 }
             }
@@ -643,7 +640,7 @@ export default class ModelPermission {
     }
 
     private static checkQueryPermission<TBaseModel extends BaseModel>(
-        modelType: { new(): BaseModel },
+        modelType: { new (): BaseModel },
         query: Query<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): void {
@@ -690,7 +687,7 @@ export default class ModelPermission {
     }
 
     private static async addTenantScopeToQuery<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         query: Query<TBaseModel>,
         select: Select<TBaseModel> | null,
         populate: Populate<TBaseModel> | null,
@@ -736,7 +733,6 @@ export default class ModelPermission {
             }
 
             for (const projectId of projectIDs) {
-
                 if (!props.userId) {
                     continue;
                 }
@@ -756,14 +752,19 @@ export default class ModelPermission {
                                     props.userTenantAccessPermission,
                             }
                         );
-                    queries.push(
-                        { ...checkReadPermissionType.query as Query<TBaseModel> }
-                    );
-                } catch (e) { }
+                    queries.push({
+                        ...(checkReadPermissionType.query as Query<TBaseModel>),
+                    });
+                } catch (e) {
+                    // do nothing here. Ignore.
+                    logger.error(e);
+                }
             }
 
             if (queries.length === 0) {
-                throw new NotAuthorizedException("Does not have permission to read " + model.singularName);
+                throw new NotAuthorizedException(
+                    'Does not have permission to read ' + model.singularName
+                );
             }
 
             return queries as any;
@@ -773,7 +774,7 @@ export default class ModelPermission {
     }
 
     private static getModelColumnsByPermissions<TBaseModel extends BaseModel>(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         userPermissions: Array<UserPermission>,
         requestType: DatabaseRequestType
     ): Columns {
@@ -823,7 +824,7 @@ export default class ModelPermission {
     }
 
     private static checkSelectPermission<TBaseModel extends BaseModel>(
-        modelType: { new(): BaseModel },
+        modelType: { new (): BaseModel },
         select: Select<TBaseModel>,
         props: DatabaseCommonInteractionProps
     ): void {
@@ -869,7 +870,7 @@ export default class ModelPermission {
     }
 
     private static getModelPermissions(
-        modelType: { new(): BaseModel },
+        modelType: { new (): BaseModel },
         type: DatabaseRequestType
     ): Array<Permission> {
         let modelPermissions: Array<Permission> = [];
@@ -895,7 +896,7 @@ export default class ModelPermission {
     }
 
     private static isPublicPermissionAllowed(
-        modelType: { new(): BaseModel },
+        modelType: { new (): BaseModel },
         type: DatabaseRequestType
     ): boolean {
         let isPublicAllowed: boolean = false;
@@ -906,7 +907,7 @@ export default class ModelPermission {
     }
 
     private static checkModelLevelPermissions(
-        modelType: { new(): BaseModel },
+        modelType: { new (): BaseModel },
         props: DatabaseCommonInteractionProps,
         type: DatabaseRequestType
     ): void {
@@ -915,7 +916,8 @@ export default class ModelPermission {
         if (!this.isPublicPermissionAllowed(modelType, type) && !props.userId) {
             // this means the record is not publicly createable and the user is not logged in.
             throw new NotAuthorizedException(
-                `A user should be logged in to ${type} record of ${new modelType().singularName
+                `A user should be logged in to ${type} record of ${
+                    new modelType().singularName
                 }.`
             );
         }
@@ -937,7 +939,8 @@ export default class ModelPermission {
             )
         ) {
             throw new NotAuthorizedException(
-                `You do not have permissions to ${type} ${new modelType().singularName
+                `You do not have permissions to ${type} ${
+                    new modelType().singularName
                 }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                     modelPermissions
                 ).join(',')}`

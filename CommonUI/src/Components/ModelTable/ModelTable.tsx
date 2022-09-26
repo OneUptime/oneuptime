@@ -464,12 +464,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         const permissions: Array<Permission> | null =
             PermissionUtil.getAllPermissions();
 
-        let hasPermissionToCreate: boolean = false; 
+        let hasPermissionToCreate: boolean = false;
 
         if (permissions) {
-            hasPermissionToCreate = model.hasCreatePermissions(
-                permissions
-            );
+            hasPermissionToCreate = model.hasCreatePermissions(permissions);
         }
 
         // because ordered list add button is inside the table and not on the card header.
@@ -674,12 +672,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         if (
             permissions &&
-            ((props.isDeleteable &&
-                model.hasDeletePermissions(permissions)) ||
-                (props.isEditable &&
-                    model.hasUpdatePermissions(permissions)) ||
-                (props.isViewable &&
-                    model.hasReadPermissions(permissions)))
+            ((props.isDeleteable && model.hasDeletePermissions(permissions)) ||
+                (props.isEditable && model.hasUpdatePermissions(permissions)) ||
+                (props.isViewable && model.hasReadPermissions(permissions)))
         ) {
             columns.push({
                 title: 'Actions',
@@ -706,10 +701,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
 
         if (permissions) {
-            if (
-                props.isViewable &&
-                model.hasReadPermissions(permissions)
-            ) {
+            if (props.isViewable && model.hasReadPermissions(permissions)) {
                 actionsSchema.push({
                     title: props.viewButtonText || 'View',
                     buttonStyleType: ButtonStyleType.OUTLINE,
@@ -763,10 +755,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 });
             }
 
-            if (
-                props.isEditable &&
-                model.hasUpdatePermissions(permissions)
-            ) {
+            if (props.isEditable && model.hasUpdatePermissions(permissions)) {
                 actionsSchema.push({
                     title: props.editButtonText || 'Edit',
                     buttonStyleType: ButtonStyleType.NORMAL,
@@ -800,10 +789,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 });
             }
 
-            if (
-                props.isDeleteable &&
-                model.hasDeletePermissions(permissions)
-            ) {
+            if (props.isDeleteable && model.hasDeletePermissions(permissions)) {
                 actionsSchema.push({
                     title: props.deleteButtonText || 'Delete',
                     icon: IconProp.Trash,

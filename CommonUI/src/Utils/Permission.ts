@@ -4,6 +4,7 @@ import Permission, {
     PermissionHelper,
     PermissionProps,
     UserGlobalAccessPermission,
+    UserPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import { DropdownOption } from '../Components/Dropdown/Dropdown';
@@ -21,19 +22,25 @@ export default class PermissionUtil {
     }
 
     public static getAllPermissions(): Array<Permission> {
+        let permissions: Array<Permission> = [];
 
-        let permissions: Array<Permission> = []; 
-
-        const globalPermissions: UserGlobalAccessPermission | null = this.getGlobalPermissions();
+        const globalPermissions: UserGlobalAccessPermission | null =
+            this.getGlobalPermissions();
 
         if (globalPermissions) {
             permissions = [...globalPermissions.globalPermissions];
         }
 
-        const projectPermissions: UserTenantAccessPermission | null = this.getProjectPermissions(); 
+        const projectPermissions: UserTenantAccessPermission | null =
+            this.getProjectPermissions();
 
         if (projectPermissions) {
-            permissions = [...permissions, ...projectPermissions.permissions.map((i)=> i.permission)];
+            permissions = [
+                ...permissions,
+                ...projectPermissions.permissions.map((i: UserPermission) => {
+                    return i.permission;
+                }),
+            ];
         }
 
         return permissions;

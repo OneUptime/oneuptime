@@ -744,12 +744,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 select: onBeforeFind.select as any,
             });
 
-            if (findBy.props.isMultiTenantRequest) {
-                console.log("HELP!")
-                console.log(onBeforeFind.query)
-                console.log(items);
-            }
-
             let decryptedItems: Array<TBaseModel> = [];
 
             for (const item of items) {
