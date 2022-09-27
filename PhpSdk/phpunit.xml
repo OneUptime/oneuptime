@@ -1,7 +1,0 @@
-<phpunit bootstrap="tests/bootstrap.php" backupStaticAttributes="false" backupGlobals="false" colors="true" convertErrorsToExceptions="true" convertNoticesToExceptions="true" convertWarningsToExceptions="true">
-    <testsuites>
-        <testsuite name="Logger">
-            <directory>tests/OneUptime</directory>
-        </testsuite>
-    </testsuites>
-</phpunit>
