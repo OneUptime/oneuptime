@@ -12,6 +12,9 @@ export interface ComponentProps {
     error: string;
     onProjectSelected: (project: Project) => void;
     onProjectRequestAccepted: () => void;
+    selectedProject: Project | null;
+    showProjectModal: boolean;
+    onProjectModalClose: () => void;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -25,9 +28,12 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                     projects={props.projects}
                     onProjectSelected={props.onProjectSelected}
                     onProjectRequestAccepted={props.onProjectRequestAccepted}
+                    selectedProject={props.selectedProject}
+                    showProjectModal={props.showProjectModal}
+                    onProjectModalClose={props.onProjectModalClose}
                 />
             }
-            navBar={<NavBar />}
+            navBar={<NavBar show={props.projects.length > 0} />}
             isLoading={props.isLoading}
             error={props.error}
         >

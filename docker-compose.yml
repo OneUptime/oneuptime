@@ -46,7 +46,7 @@ services:
         depends_on:
             - redis
             - haraka
-            - script-runner
+
     identity:
         ports:
             - '3087:3087'
@@ -168,20 +168,7 @@ services:
         environment: *common-variables
         image: oneuptime/licensing:latest
     
-    data-ingestor:
-        ports:
-            - '3200:3200'
-        image: oneuptime/data-ingestor:latest
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./DataIngestor/.env
-        environment: *common-variables
-        depends_on:
-            - script-runner
-            - dashboard-api
-            - realtime
-            
+   
     realtime:
         ports:
             - '3300:3300'
@@ -226,7 +213,6 @@ services:
             PROBE_KEY: test-key
         depends_on:
             - dashboard-api
-            - data-ingestor
             
     probe2:
         image: oneuptime/probe:latest
@@ -240,7 +226,6 @@ services:
             PROBE_KEY: test-key
         depends_on:
             - dashboard-api
-            - data-ingestor
             
     api-docs:
         ports:
@@ -259,15 +244,7 @@ services:
         env_file:
             - ./Haraka/.env
         
-    script-runner:
-        ports:
-            - '3009:3009'
-        image: oneuptime/script-runner:latest
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./ScriptRunner/.env
-        environment: *common-variables
+    
            
     mail:
         ports:
@@ -281,41 +258,6 @@ services:
         depends_on:
             - haraka
             - postgres
-            
-    application-scanner:
-        ports:
-            - '3005:3005'
-        image: oneuptime/application-scanner:latest
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./ApplicationScanner/.env
-        environment: *common-variables
-        depends_on:
-            - dashboard-api
-            
-    container-scanner:
-        ports:
-            - '3055:3055'
-        image: oneuptime/container-scanner:latest
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./ContainerScanner/.env
-        environment: *common-variables
-        depends_on:
-            - dashboard-api
-    lighthouse-runner:
-        ports:
-            - '3015:3015'
-        image: oneuptime/lighthouse-runner:latest
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./LighthouseRunner/.env
-        environment: *common-variables
-        depends_on:
-            - dashboard-api
             
     nginx:
         depends_on:
