@@ -207,22 +207,6 @@ services:
         build:
             context: .
             dockerfile: ./Licensing/Dockerfile
-
-    data-ingestor:
-        ports:
-            - '3200:3200'
-        build:
-            context: .
-            dockerfile: ./DataIngestor/Dockerfile
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./DataIngestor/.env
-        environment: *common-variables
-        depends_on:
-            - script-runner
-            - dashboard-api
-            - realtime
             
     realtime:
         ports:
@@ -275,7 +259,7 @@ services:
             PROBE_KEY: test-key
         depends_on:
             - dashboard-api
-            - data-ingestor
+            
     probe2:
         build:
             context: .
@@ -290,7 +274,6 @@ services:
             PROBE_KEY: test-key
         depends_on:
             - dashboard-api
-            - data-ingestor
             
     api-docs:
         ports:
@@ -313,32 +296,7 @@ services:
                 PORT: '2525'
         env_file:
             - ./Haraka/.env
-            
-    script-runner:
-        ports:
-            - '3009:3009'
-        build:
-            context: .
-            dockerfile: ./ScriptRunner/Dockerfile
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./ScriptRunner/.env
-        environment: *common-variables
-           
-    application-scanner:
-        ports:
-            - '3005:3005'
-        build:
-            context: .
-            dockerfile: ./ApplicationScanner/Dockerfile
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./ApplicationScanner/.env
-        environment: *common-variables
-        depends_on:
-            - dashboard-api
+        
             
     mail:
         ports:
@@ -354,34 +312,6 @@ services:
         depends_on:
             - haraka
             - postgres
-
-    container-scanner:
-        ports:
-            - '3055:3055'
-        build:
-            context: .
-            dockerfile: ./ContainerScanner/Dockerfile
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./ContainerScanner/.env
-        environment: *common-variables
-        depends_on:
-            - dashboard-api
-            
-    lighthouse-runner:
-        ports:
-            - '3015:3015'
-        build:
-            context: .
-            dockerfile: ./LighthouseRunner/Dockerfile
-        env_file:
-            - ./Common/.env
-            - ./CommonServer/.env
-            - ./LighthouseRunner/.env
-        environment: *common-variables
-        depends_on:
-            - dashboard-api
         
     nginx:
         depends_on:

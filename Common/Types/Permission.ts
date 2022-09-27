@@ -105,6 +105,12 @@ enum Permission {
     CanReadIncidentState = 'CanReadIncidentState',
     CanDeleteIncidentState = 'CanDeleteIncidentState',
 
+    // Incident Status Permissions (Owner + Admin Permission by default)
+    CanCreateIncidentStateTimeline = 'CanCreateIncidentStateTimeline',
+    CanEditIncidentStateTimeline = 'CanEditIncidentStateTimeline',
+    CanReadIncidentStateTimeline = 'CanReadIncidentStateTimeline',
+    CanDeleteIncidentStateTimeline = 'CanDeleteIncidentStateTimeline',
+
     // MonitorStatus Permissions (Owner + Admin Permission by default)
     CanCreateProjectMonitorStatus = 'CanCreateProjectMonitorStatus',
     CanEditProjectMonitorStatus = 'CanEditProjectMonitorStatus',
@@ -116,12 +122,6 @@ enum Permission {
     CanEditStatusPageAnnouncement = 'CanEditStatusPageAnnouncement',
     CanReadStatusPageAnnouncement = 'CanReadStatusPageAnnouncement',
     CanDeleteStatusPageAnnouncement = 'CanDeleteStatusPageAnnouncement',
-
-    // IncidentState Permissions (Owner + Admin Permission by default)
-    CanCreateProjectIncidentState = 'CanCreateProjectIncidentState',
-    CanEditProjectIncidentState = 'CanEditProjectIncidentState',
-    CanReadProjectIncidentState = 'CanReadProjectIncidentState',
-    CanDeleteProjectIncidentState = 'CanDeleteProjectIncidentState',
 
     // Resource Permissions (Team Permission)
     CanCreateIncidentInternalNote = 'CanCreateIncidentInternalNote',
@@ -483,6 +483,39 @@ export class PermissionHelper {
             },
 
             {
+                permission: Permission.CanCreateIncidentStateTimeline,
+                title: 'Can Create Incident State Timeline',
+                description:
+                    'A user assigned this permission can create incident state history of an incident in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteIncidentStateTimeline,
+                title: 'Can Delete Incident State Timeline',
+                description:
+                    'A user assigned this permission  can delete incident state history of an incident in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditIncidentStateTimeline,
+                title: 'Can Edit Incident State Timeline',
+                description:
+                    'A user assigned this permission can edit incident state history of an incident in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadIncidentStateTimeline,
+                title: 'Can Read Incident State Timeline',
+                description:
+                    'A user assigned this permission can read incident state history of an incident in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
                 permission: Permission.CanCreateProjectMonitorStatus,
                 title: 'Can Create Monitor Status',
                 description:
@@ -577,39 +610,6 @@ export class PermissionHelper {
                 title: 'Can Read Monitor Status',
                 description:
                     'A user assigned this permission  can read monitor statuses of this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: false,
-            },
-
-            {
-                permission: Permission.CanCreateProjectIncidentState,
-                title: 'Can Create Incident State',
-                description:
-                    'A user assigned this permission can create incident state in this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: false,
-            },
-            {
-                permission: Permission.CanDeleteProjectIncidentState,
-                title: 'Can Delete Incident State',
-                description:
-                    'A user assigned this permission  can delete incident state in this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: false,
-            },
-            {
-                permission: Permission.CanEditProjectIncidentState,
-                title: 'Can Edit Incident State',
-                description:
-                    'A user assigned this permission can edit incident state in this project.',
-                isAssignableToTenant: true,
-                isAccessControlPermission: false,
-            },
-            {
-                permission: Permission.CanReadProjectIncidentState,
-                title: 'Can Read Incident State',
-                description:
-                    'A user assigned this permission  can read incident state in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

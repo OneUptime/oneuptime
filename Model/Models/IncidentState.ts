@@ -20,10 +20,10 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateProjectIncidentState],
-    read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectIncidentState],
-    update: [Permission.ProjectOwner, Permission.CanEditProjectIncidentState],
+    create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+    read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteIncidentState],
+    update: [Permission.ProjectOwner, Permission.CanEditIncidentState],
 })
 @CrudApiEndpoint(new Route('/incident-state'))
 @SlugifyColumn('name', 'slug')
@@ -33,11 +33,8 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 })
 export default class IncidentState extends BaseModel {
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
         update: [],
     })
     @TableColumn({
@@ -60,11 +57,8 @@ export default class IncidentState extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
         update: [],
     })
     @Index()
@@ -77,15 +71,9 @@ export default class IncidentState extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncidentState,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
+        update: [Permission.ProjectOwner, Permission.CanEditIncidentState],
     })
     @TableColumn({
         required: true,
@@ -102,7 +90,7 @@ export default class IncidentState extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -114,15 +102,9 @@ export default class IncidentState extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncidentState,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
+        update: [Permission.ProjectOwner, Permission.CanEditIncidentState],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -133,11 +115,8 @@ export default class IncidentState extends BaseModel {
     public description?: string = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
         update: [],
     })
     @TableColumn({
@@ -160,11 +139,8 @@ export default class IncidentState extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -177,7 +153,7 @@ export default class IncidentState extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
         update: [],
     })
     @TableColumn({
@@ -201,7 +177,7 @@ export default class IncidentState extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -213,15 +189,9 @@ export default class IncidentState extends BaseModel {
     public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncidentState,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
+        update: [Permission.ProjectOwner, Permission.CanEditIncidentState],
     })
     @TableColumn({
         title: 'Color',
@@ -240,15 +210,9 @@ export default class IncidentState extends BaseModel {
     public color?: Color = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncidentState,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
+        update: [Permission.ProjectOwner, Permission.CanEditIncidentState],
     })
     @TableColumn({
         isDefaultValueColumn: false,
@@ -262,15 +226,9 @@ export default class IncidentState extends BaseModel {
     public isCreatedState?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncidentState,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
+        update: [Permission.ProjectOwner, Permission.CanEditIncidentState],
     })
     @TableColumn({
         isDefaultValueColumn: false,
@@ -284,15 +242,9 @@ export default class IncidentState extends BaseModel {
     public isAcknowledgedState?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncidentState,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
+        update: [Permission.ProjectOwner, Permission.CanEditIncidentState],
     })
     @TableColumn({
         isDefaultValueColumn: false,
@@ -307,15 +259,9 @@ export default class IncidentState extends BaseModel {
 
     @UniqueColumnBy('projectId')
     @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectIncidentState,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectIncidentState],
-        update: [
-            Permission.ProjectOwner,
-            Permission.CanEditProjectIncidentState,
-        ],
+        create: [Permission.ProjectOwner, Permission.CanCreateIncidentState],
+        read: [Permission.ProjectOwner, Permission.CanReadIncidentState],
+        update: [Permission.ProjectOwner, Permission.CanEditIncidentState],
     })
     @TableColumn({
         isDefaultValueColumn: false,

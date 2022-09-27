@@ -1,8 +1,0 @@
-/out
-/target
-/.idea
-JavaSDK.iml
-.classpath
-.project
-/.settings/org.eclipse.*
-pom.xml.versionsBackup
