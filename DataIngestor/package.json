@@ -1,0 +1,37 @@
+{
+    "name": "data-ingestor",
+    "version": "3.0.0",
+    "description": "A project to handle all probe related processing",
+    "main": "index.ts",
+    "scripts": {
+        "start": "ts-node Index.ts",
+        "compile": "tsc",
+        "dev": "nodemon",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "type": "module",
+    "dependencies": {
+        "axios": "^0.26.1",
+        "CommonServer": "file:../CommonServer",
+"Common": "file:../Common",
+"Model": "file:../Model",
+        "cors": "^2.8.5",
+        "cross-env": "^7.0.3",
+        "dotenv": "^16.0.0",
+        "express": "^4.17.3",
+        "lodash": "^4.17.21",
+        "moment": "^2.29.1",
+        "mongodb": "^4.4.1",
+        "p-iteration": "^1.1.8",
+        "uuid": "^8.3.2",
+        "winston": "^3.6.0",
+        "winston-slack-webhook-transport": "^2.1.0"
+    },
+    "devDependencies": {
+        "ts-node-dev": "^1.1.8"
+    }
+}

@@ -1,0 +1,35 @@
+{
+    // PLEASE DO NOT REMOVE THIS CONFIGURATION FILE FROM GIT REPO
+
+
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "command": "npm run-script debug-staging-test",
+            "name": "Debug Smoke Tests",
+            "request": "launch",
+            "type": "node-terminal"
+        },
+        {
+            "command": "export HEADLESS=false && export HTTP_TEST_SERVER_URL=https://staging-test-server.oneuptime.com && export HOME_URL=https://staging.oneuptime.com && export ACCOUNTS_URL=https://staging.oneuptime.com/accounts && export ADMIN_DASHBOARD_URL=https://staging.oneuptime.com/admin && export DASHBOARD_URL=https://staging.oneuptime.com/dashboard && export BACKEND_URL=https://staging.oneuptime.com/api && export STATUSPAGE_URL=https://staging.oneuptime.com/StatusPage && export APIDOCS_URL=https://staging.oneuptime.com/docs && jest ./saas-tests/accounts/*.test.js",
+            "name": "Debug Single File: Staging test",
+            "request": "launch",
+            "type": "node-terminal"
+        },
+        {
+            "command": "export HEADLESS=false && jest  ./saas-tests/AdminDashboard/Project.test.js",
+            "name": "Debug Single File: Local SaaS test",
+            "request": "launch",
+            "type": "node-terminal"
+        },
+        {
+            "command": "export HEADLESS=true && jest  ./saas-tests/AdminDashboard/Project.test.js",
+            "name": "Debug Headless Single File: Local SaaS test",
+            "request": "launch",
+            "type": "node-terminal"
+        }
+    ]
+}

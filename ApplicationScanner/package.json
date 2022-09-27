@@ -1,0 +1,40 @@
+{
+    "name": "applicationscanner",
+    "version": "3.0.0",
+    "description": "",
+    "main": "index.ts",
+    "scripts": {
+        "compile": "tsc",
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "start": "ts-node --max-http-header-size=80000 index.ts",
+        "dev": "node --inspect=0.0.0.0 --max-http-header-size=80000 index.ts",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true"
+    },
+    "author": "OneUptime Limited.",
+    "license": "MIT",
+    "devDependencies": {
+        "depcheck": "^1.4.3",
+        "ts-node-dev": "^1.1.8"
+    },
+    "type": "module",
+    "dependencies": {
+        "@types/node": "^17.0.23",
+        "axios": "^0.26.1",
+        "Common": "file:../Common",
+"Model": "file:../Model",
+        "CommonServer": "file:../CommonServer",
+        "cors": "^2.8.5",
+        "dotenv": "^16.0.0",
+        "express": "^4.17.3",
+        "node-cron": "^3.0.0",
+        "node-fetch": "^3.2.3",
+        "node-ssh": "^12.0.4",
+        "ping": "^0.4.1",
+        "simple-git": "^3.4.0",
+        "ssh2": "^1.7.0",
+        "uuid": "^8.3.2",
+        "winston": "^3.6.0",
+        "winston-slack-transport": "^2.0.0"
+    }
+}
