@@ -123,7 +123,6 @@ enum Permission {
     CanReadStatusPageAnnouncement = 'CanReadStatusPageAnnouncement',
     CanDeleteStatusPageAnnouncement = 'CanDeleteStatusPageAnnouncement',
 
-
     // Resource Permissions (Team Permission)
     CanCreateIncidentInternalNote = 'CanCreateIncidentInternalNote',
     CanEditIncidentInternalNote = 'CanEditIncidentInternalNote',
@@ -483,8 +482,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
             {
                 permission: Permission.CanCreateIncidentStateTimeline,
                 title: 'Can Create Incident State Timeline',
@@ -517,8 +514,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
 
             {
                 permission: Permission.CanCreateProjectMonitorStatus,
@@ -618,8 +613,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-            
 
             {
                 permission: Permission.CanCreateProjectDomain,

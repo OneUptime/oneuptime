@@ -593,8 +593,6 @@ export default class ModelPermission {
                                     userPermissions,
                                     innerKey
                                 );
-                            
-                            
 
                             if (!hasPermission) {
                                 let readPermissions: Array<Permission> = [];
@@ -610,7 +608,9 @@ export default class ModelPermission {
                                 }
 
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to read ${relatedModel.singularName} on ${
+                                    `You do not have permissions to read ${
+                                        relatedModel.singularName
+                                    } on ${
                                         model.singularName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                                         readPermissions
@@ -737,14 +737,12 @@ export default class ModelPermission {
                 projectIDs = props.userGlobalAccessPermission?.projectIds;
             }
 
-            let lastException: Error | null = null; 
+            let lastException: Error | null = null;
 
             for (const projectId of projectIDs) {
                 if (!props.userId) {
                     continue;
                 }
-
-              
 
                 try {
                     const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
@@ -772,7 +770,8 @@ export default class ModelPermission {
 
             if (queries.length === 0) {
                 throw new NotAuthorizedException(
-                    lastException?.message || 'Does not have permission to read ' + model.singularName
+                    lastException?.message ||
+                        'Does not have permission to read ' + model.singularName
                 );
             }
 
