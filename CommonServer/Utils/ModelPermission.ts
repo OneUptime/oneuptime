@@ -28,7 +28,6 @@ import Search from 'Common/Types/Database/Search';
 import { FindOperator } from 'typeorm';
 import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import logger from './Logger';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -583,6 +582,10 @@ export default class ModelPermission {
                             );
                         }
 
+                        if (getRelatedTableColumnMetadata.canReadOnPopulate) {
+                            continue;
+                        }
+
                         // check if the user has permission to read this column
                         if (userPermissions) {
                             const hasPermission: boolean =
@@ -590,6 +593,8 @@ export default class ModelPermission {
                                     userPermissions,
                                     innerKey
                                 );
+                            
+                            
 
                             if (!hasPermission) {
                                 let readPermissions: Array<Permission> = [];
@@ -605,11 +610,11 @@ export default class ModelPermission {
                                 }
 
                                 throw new NotAuthorizedException(
-                                    `You do not have permissions to read ${key}.${innerKey} on ${
+                                    `You do not have permissions to read ${relatedModel.singularName} on ${
                                         model.singularName
                                     }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                                         readPermissions
-                                    ).join(',')}`
+                                    ).join(', ')}`
                                 );
                             }
                         }
@@ -680,7 +685,7 @@ export default class ModelPermission {
                         model.getColumnAccessControlFor(key)
                             ? model.getColumnAccessControlFor(key)!.read
                             : []
-                    ).join(',')}`
+                    ).join(', ')}`
                 );
             }
         }
@@ -732,10 +737,14 @@ export default class ModelPermission {
                 projectIDs = props.userGlobalAccessPermission?.projectIds;
             }
 
+            let lastException: Error | null = null; 
+
             for (const projectId of projectIDs) {
                 if (!props.userId) {
                     continue;
                 }
+
+              
 
                 try {
                     const checkReadPermissionType: CheckReadPermissionType<TBaseModel> =
@@ -757,13 +766,13 @@ export default class ModelPermission {
                     });
                 } catch (e) {
                     // do nothing here. Ignore.
-                    logger.error(e);
+                    lastException = e as Error;
                 }
             }
 
             if (queries.length === 0) {
                 throw new NotAuthorizedException(
-                    'Does not have permission to read ' + model.singularName
+                    lastException?.message || 'Does not have permission to read ' + model.singularName
                 );
             }
 
@@ -863,7 +872,7 @@ export default class ModelPermission {
                         model.getColumnAccessControlFor(key)
                             ? model.getColumnAccessControlFor(key)!.read
                             : []
-                    ).join(',')}`
+                    ).join(', ')}`
                 );
             }
         }
@@ -943,7 +952,7 @@ export default class ModelPermission {
                     new modelType().singularName
                 }. You need one of these permissions: ${PermissionHelper.getPermissionTitles(
                     modelPermissions
-                ).join(',')}`
+                ).join(', ')}`
             );
         }
     }
