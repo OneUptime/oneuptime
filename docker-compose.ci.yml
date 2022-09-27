@@ -259,7 +259,7 @@ services:
             PROBE_KEY: test-key
         depends_on:
             - dashboard-api
-            - data-ingestor
+            
     probe2:
         build:
             context: .
@@ -274,7 +274,6 @@ services:
             PROBE_KEY: test-key
         depends_on:
             - dashboard-api
-            - data-ingestor
             
     api-docs:
         ports:
