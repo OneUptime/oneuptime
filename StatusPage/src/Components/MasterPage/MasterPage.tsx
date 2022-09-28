@@ -16,12 +16,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     return (
         <MasterPage
             footer={<Footer />}
-            header={
-                <Header
-                   
-                />
-            }
-            navBar={<NavBar  />}
+            header={<Header />}
+            navBar={<NavBar />}
             isLoading={props.isLoading || false}
             error={props.error || ''}
         >

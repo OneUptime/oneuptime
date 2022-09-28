@@ -266,7 +266,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <>
-            <StatusPagePreviewLink modelId={modelId} />
+                <StatusPagePreviewLink modelId={modelId} />
                 {isLoading ? <ComponentLoader /> : <></>}
 
                 {error ? <ErrorMessage error={error} /> : <></>}

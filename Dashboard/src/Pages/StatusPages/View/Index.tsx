@@ -52,9 +52,8 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
             <StatusPagePreviewLink modelId={modelId} />
-            
+
             {/* StatusPage View  */}
             <CardModelDetail
                 cardProps={{

@@ -12,7 +12,6 @@ const RouteMap: Dictionary<Route> = {
 
 export class RouteUtil {
     public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
-       
         const tempRoute: Route = new Route(route.toString());
 
         if (modelId) {

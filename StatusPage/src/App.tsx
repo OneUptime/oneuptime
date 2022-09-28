@@ -1,28 +1,18 @@
 import React, { FunctionComponent } from 'react';
 import Route from 'Common/Types/API/Route';
-import {
-    Routes,
-    Route as PageRoute,
-} from 'react-router-dom';
+import { Routes, Route as PageRoute } from 'react-router-dom';
 import MasterPage from './Components/MasterPage/MasterPage';
 
-
-
-import PageNotFound from "./Pages/NotFound/PageNotFound";
-import Overview from "./Pages/NotFound/Overview";
+import PageNotFound from './Pages/NotFound/PageNotFound';
+import Overview from './Pages/Overview/Overview';
 
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
-
 const App: FunctionComponent = () => {
-
     return (
-        <MasterPage
-
-        >
+        <MasterPage>
             <Routes>
-
                 <PageRoute
                     path="*"
                     element={

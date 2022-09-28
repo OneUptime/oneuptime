@@ -26,20 +26,17 @@ const Link: FunctionComponent<ComponentProps> = (
         children = props.children;
     }
 
-    const linkProps: JSONObject = {
-        
-    }; 
+    const linkProps: JSONObject = {};
 
     if (props.openInNewTab) {
-        linkProps["target"] = "_blank";
-        linkProps["href"] = props.to?.toString();
+        linkProps['target'] = '_blank';
+        linkProps['href'] = props.to?.toString();
     }
 
     return (
         <a
             className={`pointer ${props.className || ''}`}
             onClick={() => {
-
                 if (props.openInNewTab) {
                     return;
                 }

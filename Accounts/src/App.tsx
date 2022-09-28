@@ -42,14 +42,7 @@ function App(): ReactElement {
                     element={<VerifyEmail />}
                 />
                 {/* 👇️ only match this when no other routes match */}
-                <Route
-                    path="*"
-                    element={
-                        <NotFound
-
-                        />
-                    }
-                />
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </div>
     );

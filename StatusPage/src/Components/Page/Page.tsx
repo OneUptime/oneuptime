@@ -1,4 +1,3 @@
-
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {

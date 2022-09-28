@@ -60,7 +60,6 @@ export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
 
-
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
