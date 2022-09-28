@@ -105,7 +105,14 @@ const App: FunctionComponent = () => {
     const onProjectSelected: (project: Project) => void = (
         project: Project
     ): void => {
+        
         setSelectedProject(project);
+
+        if (projects.filter((i: Project) => {
+            return i && i._id === project._id;
+        }).length === 0) { 
+            setProjects([...projects, project]);
+        }
 
         const currentRoute: Route = Navigation.getCurrentRoute();
 
@@ -157,6 +164,9 @@ const App: FunctionComponent = () => {
             selectedProject={selectedProject}
             onProjectSelected={onProjectSelected}
             onProjectRequestAccepted={() => {
+                fetchProjects();
+            }}
+            onProjectRequestRejected={() => { 
                 fetchProjects();
             }}
             showProjectModal={showProjectModal}
@@ -644,6 +654,12 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_DANGERZONE]?.toString()}
                     element={
                         <SettingsDangerZone
+                            onProjectDeleted={() => {
+                                setSelectedProject(null);
+                                setProjects([]);
+                                fetchProjects(); 
+                                Navigation.navigate(RouteMap[PageMap.INIT]!);
+                            }}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
                             }

@@ -83,4 +83,10 @@ export default class PermissionUtil {
     ): void {
         LocalStorage.setItem('project_permissions', permissions);
     }
+
+    public static clearProjectPermissions(
+        
+    ): void {
+        LocalStorage.setItem('project_permissions', null);
+    }
 }

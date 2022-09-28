@@ -5,7 +5,7 @@ export interface ComponentProps {
     logo: string; 
 }
 
-const SquareLogo: FunctionComponent<ComponentProps> = (
+const Logo: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return <img onClick={() => {
@@ -13,4 +13,4 @@ const SquareLogo: FunctionComponent<ComponentProps> = (
     }} src={props.logo} height={30} />
 };
 
-export default SquareLogo;
+export default Logo;

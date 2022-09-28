@@ -13,12 +13,12 @@ const Welcome: FunctionComponent<ComponentProps> = (
 
     return (
         <Page
-            title={'Welcome to OneUptime'}
+            title={'Welcome to OneUptime.'}
             breadcrumbLinks={[
     
             ]}
         >
-            <p>Welcome to OneUptime. Thank you for signing up! TO get started please create a new project.</p>
+            <p>Welcome to OneUptime. Thank you for signing up! To get started please create a new project.</p>
             <Button onClick={() => {
                 props.onClickShowProjectModal();
             }} title="Create New Project" buttonSize={ButtonSize.Normal} buttonStyle={ButtonStyleType.PRIMARY} />

@@ -14,12 +14,13 @@ import User from 'CommonUI/src/Utils/User';
 import ProjectInvitationsModal from './ProjectInvitationsModal';
 import ActiveIncidentsModal from './ActiveIncidentsModal';
 import Incident from 'Model/Models/Incident';
-import Logo from './SquareLogo';
+import Logo from './Logo';
 
 export interface ComponentProps {
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
     onProjectRequestAccepted: () => void;
+    onProjectRequestRejected: () => void;
     selectedProject: Project | null;
     showProjectModal: boolean;
     onProjectModalClose: () => void; 
@@ -33,6 +34,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
     const [showActiveIncidentsModal, setShowActiveIncidentsModal] =
         useState<boolean>(false);
+    
+    const [projectCountRefreshToggle, setProjectCountRefreshToggle] = useState<boolean>(true);
 
     return (
         <>
@@ -65,6 +68,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 requestOptions={{
                                     isMultiTenantRequest: true,
                                 }}
+                                refreshToggle={projectCountRefreshToggle}
                                 onClick={() => {
                                     setShowProjectInvitationModal(true);
                                 }}
@@ -105,6 +109,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     }}
                     onRequestAccepted={() => {
                         props.onProjectRequestAccepted();
+                        setProjectCountRefreshToggle(!projectCountRefreshToggle);
+                    }}
+                    onRequestRejected={() => {
+                        props.onProjectRequestRejected();
+                        setProjectCountRefreshToggle(!projectCountRefreshToggle);
                     }}
                 />
             )}

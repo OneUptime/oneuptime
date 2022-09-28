@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import SquareLogo from "CommonUI/src/Components/Header/SquareLogo";
+import FullLogo from "CommonUI/src/Components/Header/Logo";
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
 
 export interface ComponentProps {
@@ -9,9 +9,9 @@ export interface ComponentProps {
 const Logo: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return <SquareLogo onClick={() => {
+    return <div className='flex items-center' style={{marginLeft: "-25px"}}><FullLogo onClick={() => {
         props.onClick && props.onClick();
-    }} logo={`/dashboard/public/${OneUptimeLogo}`} />
+    }} logo={`/dashboard/public/${OneUptimeLogo}`} /></div>
 };
 
 export default Logo;

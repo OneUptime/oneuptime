@@ -20,4 +20,8 @@ export default class ProjectUtil {
         }
         LocalStorage.setItem('current_project', project);
     }
+
+    public static clearCurrentProject(): void {
+        LocalStorage.setItem('current_project', null);
+    }
 }

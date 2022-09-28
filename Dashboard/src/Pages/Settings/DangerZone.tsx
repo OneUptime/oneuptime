@@ -9,10 +9,15 @@ import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import Project from 'Model/Models/Project';
 import ObjectID from 'Common/Types/ObjectID';
-import Navigation from 'CommonUI/src/Utils/Navigation';
+import ProjectUtil from 'CommonUI/src/Utils/Project';
+import PermissionUtil from 'CommonUI/src/Utils/Permission';
 
-const Settings: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+export interface ComponentProps extends PageComponentProps { 
+    onProjectDeleted: () => void; 
+}
+
+const Settings: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
 ): ReactElement => {
     return (
         <Page
@@ -43,7 +48,9 @@ const Settings: FunctionComponent<PageComponentProps> = (
                 modelType={Project}
                 modelId={new ObjectID(props.currentProject?._id || '')}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(new Route('/dashboard'));
+                    ProjectUtil.clearCurrentProject();
+                    PermissionUtil.clearProjectPermissions();
+                    props.onProjectDeleted();
                 }}
             />
         </Page>

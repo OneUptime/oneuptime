@@ -25,6 +25,8 @@ import User from 'Model/Models/User';
 import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import { Green, Yellow } from 'Common/Types/BrandColors';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -157,6 +159,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
+                deleteButtonText="Remove Member"
                 showFilterButton={true}
                 viewPageRoute={props.pageRoute}
                 columns={[
@@ -188,9 +191,28 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             hasAcceptedInvitation: true,
                         },
-                        title: 'Invitation Accepted',
+                        title: 'Invitation Status',
                         type: FieldType.Boolean,
                         isFilterable: true,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (item['hasAcceptedInvitation']) {
+                                return (
+                                    <Pill
+                                        text='Invitation Accepted'
+                                        color={Green}
+                                    />
+                                );
+                            } else {
+                                return (
+                                    <Pill
+                                        text='Invitation Sent'
+                                        color={Yellow}
+                                    />
+                                );
+                            }
+
+                            return <></>;
+                        },
                     },
                 ]}
             />
