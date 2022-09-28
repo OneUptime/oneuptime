@@ -26,7 +26,7 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         fetchCount();
-    },[props.refreshToggle])
+    }, [props.refreshToggle]);
 
     const fetchCount: Function = async () => {
         setError('');

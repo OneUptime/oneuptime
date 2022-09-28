@@ -16,13 +16,12 @@ export interface ComponentProps {
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
     showProjectModal: boolean;
-    onProjectModalClose: () => void; 
+    onProjectModalClose: () => void;
 }
 
 const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [showModel, setShowModel] = useState<boolean>(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(
         null
@@ -79,21 +78,22 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         }
     }, [props.projects]);
 
-
     return (
         <>
-            {props.projects.length !== 0 && <ProjectPicker
-                selectedProjectName={selectedProject?.name || ''}
-                selectedProjectIcon={IconProp.Folder}
-                projects={props.projects}
-                onCreateProjectButtonClicked={() => {
-                    setShowModel(true);
-                    props.onProjectModalClose();
-                }}
-                onProjectSelected={(project: Project) => {
-                    setSelectedProject(project);
-                }}
-            />}
+            {props.projects.length !== 0 && (
+                <ProjectPicker
+                    selectedProjectName={selectedProject?.name || ''}
+                    selectedProjectIcon={IconProp.Folder}
+                    projects={props.projects}
+                    onCreateProjectButtonClicked={() => {
+                        setShowModel(true);
+                        props.onProjectModalClose();
+                    }}
+                    onProjectSelected={(project: Project) => {
+                        setSelectedProject(project);
+                    }}
+                />
+            )}
             {showModel ? (
                 <ModelFormModal<Project>
                     modelType={Project}

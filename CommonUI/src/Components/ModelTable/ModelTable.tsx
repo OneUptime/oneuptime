@@ -196,12 +196,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     }, [tableColumns]);
 
     const deleteItem: Function = async (item: TBaseModel) => {
-
         if (!item.id) {
-            throw new BadDataException("item.id cannot be null");
+            throw new BadDataException('item.id cannot be null');
         }
 
-        setIsLoading(true); 
+        setIsLoading(true);
 
         try {
             await ModelAPI.deleteItem<TBaseModel>(
@@ -209,7 +208,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 item.id,
                 props.deleteRequestOptions
             );
-            
+
             props.onItemDeleted && props.onItemDeleted(item);
 
             if (data.length === 1 && currentPageNumber > 1) {
@@ -1180,9 +1179,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             currentDeleteableItem &&
                             currentDeleteableItem['_id']
                         ) {
-                            
                             deleteItem(
-                                BaseModel.fromJSON(currentDeleteableItem, props.modelType)
+                                BaseModel.fromJSON(
+                                    currentDeleteableItem,
+                                    props.modelType
+                                )
                             );
                             setShowDeleteConfirmModal(false);
                         }

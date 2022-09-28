@@ -23,7 +23,7 @@ export interface ComponentProps {
     onProjectRequestRejected: () => void;
     selectedProject: Project | null;
     showProjectModal: boolean;
-    onProjectModalClose: () => void; 
+    onProjectModalClose: () => void;
 }
 
 const DashboardHeader: FunctionComponent<ComponentProps> = (
@@ -34,22 +34,29 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
     const [showActiveIncidentsModal, setShowActiveIncidentsModal] =
         useState<boolean>(false);
-    
-    const [projectCountRefreshToggle, setProjectCountRefreshToggle] = useState<boolean>(true);
+
+    const [projectCountRefreshToggle, setProjectCountRefreshToggle] =
+        useState<boolean>(true);
 
     return (
         <>
             <Header
                 leftComponents={
                     <>
-                        {props.projects.length === 0  && <Logo onClick={()=>{}}/>}
+                        {props.projects.length === 0 && (
+                            <Logo onClick={() => {}} />
+                        )}
                         <ProjectPicker
                             showProjectModal={props.showProjectModal}
                             onProjectModalClose={props.onProjectModalClose}
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
                         />
-                        <SearchBox key={2} selectedProject={props.selectedProject} onChange={(_value: string) => {}}  />
+                        <SearchBox
+                            key={2}
+                            selectedProject={props.selectedProject}
+                            onChange={(_value: string) => {}}
+                        />
                         <div
                             style={{
                                 marginLeft: '15px',
@@ -109,11 +116,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     }}
                     onRequestAccepted={() => {
                         props.onProjectRequestAccepted();
-                        setProjectCountRefreshToggle(!projectCountRefreshToggle);
+                        setProjectCountRefreshToggle(
+                            !projectCountRefreshToggle
+                        );
                     }}
                     onRequestRejected={() => {
                         props.onProjectRequestRejected();
-                        setProjectCountRefreshToggle(!projectCountRefreshToggle);
+                        setProjectCountRefreshToggle(
+                            !projectCountRefreshToggle
+                        );
                     }}
                 />
             )}

@@ -198,20 +198,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             if (item['hasAcceptedInvitation']) {
                                 return (
                                     <Pill
-                                        text='Invitation Accepted'
+                                        text="Invitation Accepted"
                                         color={Green}
                                     />
                                 );
-                            } else {
-                                return (
-                                    <Pill
-                                        text='Invitation Sent'
-                                        color={Yellow}
-                                    />
-                                );
                             }
-
-                            return <></>;
+                            return (
+                                <Pill text="Invitation Sent" color={Yellow} />
+                            );
                         },
                     },
                 ]}

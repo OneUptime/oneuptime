@@ -8,9 +8,9 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 
-export interface ComponentProps extends PageComponentProps { 
-    isLoadingProjects: boolean; 
-    projects: Array<Project>
+export interface ComponentProps extends PageComponentProps {
+    isLoadingProjects: boolean;
+    projects: Array<Project>;
 }
 
 const Init: FunctionComponent<ComponentProps> = (
@@ -30,9 +30,7 @@ const Init: FunctionComponent<ComponentProps> = (
         // set slug to latest project and redirect to home.
 
         if (!props.isLoadingProjects && props.projects.length === 0) {
-            Navigation.navigate(
-                RouteMap[PageMap.WELCOME] as Route
-            );
+            Navigation.navigate(RouteMap[PageMap.WELCOME] as Route);
         }
     }, [props.projects]);
 

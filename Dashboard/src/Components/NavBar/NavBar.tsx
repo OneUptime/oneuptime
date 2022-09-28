@@ -13,12 +13,13 @@ export interface ComponentProps {
     show: boolean;
 }
 
-const DashboardNavbar: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
-    
+const DashboardNavbar: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     if (!props.show) {
         return <></>;
     }
-    
+
     return (
         <NavBar
             rightContent={

@@ -6,7 +6,6 @@ import PageMap from './PageMap';
 import RouteParams from './RouteParams';
 import ObjectID from 'Common/Types/ObjectID';
 
-
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),
 

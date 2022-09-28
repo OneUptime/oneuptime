@@ -12,8 +12,8 @@ import ObjectID from 'Common/Types/ObjectID';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
 
-export interface ComponentProps extends PageComponentProps { 
-    onProjectDeleted: () => void; 
+export interface ComponentProps extends PageComponentProps {
+    onProjectDeleted: () => void;
 }
 
 const Settings: FunctionComponent<ComponentProps> = (

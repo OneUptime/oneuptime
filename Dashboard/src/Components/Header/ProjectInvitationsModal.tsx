@@ -14,7 +14,7 @@ import ObjectID from 'Common/Types/ObjectID';
 export interface ComponentProps {
     onClose: () => void;
     onRequestAccepted: () => void;
-    onRequestRejected: () => void; 
+    onRequestRejected: () => void;
 }
 
 const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (

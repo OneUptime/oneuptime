@@ -7,16 +7,14 @@ export interface ComponentProps {
     selectedProject: Project | null;
 }
 
-const Search: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
-
-
+const Search: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     if (!props.selectedProject) {
-        return <></>
+        return <></>;
     }
 
-    return (
-        <SearchBox key={2} onChange={props.onChange}  />
-    );
+    return <SearchBox key={2} onChange={props.onChange} />;
 };
 
 export default Search;
