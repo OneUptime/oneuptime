@@ -14,6 +14,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     requestOptions?: RequestOptions | undefined;
     onCountFetchInit?: (() => void) | undefined;
     onClick?: (() => void) | undefined;
+    refreshToggle?: boolean | undefined;
 }
 
 const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
@@ -22,6 +23,10 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [count, setCount] = useState<number>(0);
+
+    useEffect(() => {
+        fetchCount();
+    }, [props.refreshToggle]);
 
     const fetchCount: Function = async () => {
         setError('');

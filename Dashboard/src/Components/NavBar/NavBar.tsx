@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import NavBar from 'CommonUI/src/Components/Navbar/NavBar';
 import NavBarMenu from 'CommonUI/src/Components/Navbar/NavBarMenu';
 import NavBarItem from 'CommonUI/src/Components/Navbar/NavBarItem';
@@ -9,7 +9,17 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 
-const DashboardNavbar: FunctionComponent = () => {
+export interface ComponentProps {
+    show: boolean;
+}
+
+const DashboardNavbar: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
+    if (!props.show) {
+        return <></>;
+    }
+
     return (
         <NavBar
             rightContent={

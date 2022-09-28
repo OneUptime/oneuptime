@@ -78,6 +78,7 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Project from 'Model/Models/Project';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
+import Welcome from './Pages/Onboarding/Welcome';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -89,6 +90,7 @@ const App: FunctionComponent = () => {
     }
 
     const [isLoading, setLoading] = useState<boolean>(false);
+    const [showProjectModal, setShowProjectModal] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [projects, setProjects] = useState<Array<Project>>([]);
 
@@ -100,6 +102,14 @@ const App: FunctionComponent = () => {
         project: Project
     ): void => {
         setSelectedProject(project);
+
+        if (
+            projects.filter((i: Project) => {
+                return i && i._id === project._id;
+            }).length === 0
+        ) {
+            setProjects([...projects, project]);
+        }
 
         const currentRoute: Route = Navigation.getCurrentRoute();
 
@@ -148,9 +158,17 @@ const App: FunctionComponent = () => {
             isLoading={isLoading}
             projects={projects}
             error={error}
+            selectedProject={selectedProject}
             onProjectSelected={onProjectSelected}
             onProjectRequestAccepted={() => {
                 fetchProjects();
+            }}
+            onProjectRequestRejected={() => {
+                fetchProjects();
+            }}
+            showProjectModal={showProjectModal}
+            onProjectModalClose={() => {
+                setShowProjectModal(false);
             }}
         >
             <Routes>
@@ -160,6 +178,8 @@ const App: FunctionComponent = () => {
                         <Init
                             pageRoute={RouteMap[PageMap.INIT] as Route}
                             currentProject={selectedProject}
+                            projects={projects}
+                            isLoadingProjects={isLoading}
                         />
                     }
                 />
@@ -170,6 +190,21 @@ const App: FunctionComponent = () => {
                         <Init
                             pageRoute={RouteMap[PageMap.INIT_PROJECT] as Route}
                             currentProject={selectedProject}
+                            projects={projects}
+                            isLoadingProjects={isLoading}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.WELCOME]?.toString()}
+                    element={
+                        <Welcome
+                            pageRoute={RouteMap[PageMap.WELCOME] as Route}
+                            currentProject={selectedProject}
+                            onClickShowProjectModal={() => {
+                                setShowProjectModal(true);
+                            }}
                         />
                     }
                 />
@@ -615,6 +650,12 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.SETTINGS_DANGERZONE]?.toString()}
                     element={
                         <SettingsDangerZone
+                            onProjectDeleted={() => {
+                                setSelectedProject(null);
+                                setProjects([]);
+                                fetchProjects();
+                                Navigation.navigate(RouteMap[PageMap.INIT]!);
+                            }}
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
                             }

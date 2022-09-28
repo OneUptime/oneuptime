@@ -1,10 +1,9 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
-import SearchBox from 'CommonUI/src/Components/Header/SearchBox';
+import SearchBox from './SearchBox';
 import Notifications from './Notifications';
 import Help from './Help';
 import UserProfile from './UserProfile';
 import ProjectPicker from './ProjectPicker';
-// import ObjectID from 'Common/Types/ObjectID';
 
 import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Model/Models/Project';
@@ -15,11 +14,16 @@ import User from 'CommonUI/src/Utils/User';
 import ProjectInvitationsModal from './ProjectInvitationsModal';
 import ActiveIncidentsModal from './ActiveIncidentsModal';
 import Incident from 'Model/Models/Incident';
+import Logo from './Logo';
 
 export interface ComponentProps {
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
     onProjectRequestAccepted: () => void;
+    onProjectRequestRejected: () => void;
+    selectedProject: Project | null;
+    showProjectModal: boolean;
+    onProjectModalClose: () => void;
 }
 
 const DashboardHeader: FunctionComponent<ComponentProps> = (
@@ -31,16 +35,28 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [showActiveIncidentsModal, setShowActiveIncidentsModal] =
         useState<boolean>(false);
 
+    const [projectCountRefreshToggle, setProjectCountRefreshToggle] =
+        useState<boolean>(true);
+
     return (
         <>
             <Header
                 leftComponents={
                     <>
+                        {props.projects.length === 0 && (
+                            <Logo onClick={() => {}} />
+                        )}
                         <ProjectPicker
+                            showProjectModal={props.showProjectModal}
+                            onProjectModalClose={props.onProjectModalClose}
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
                         />
-                        <SearchBox key={2} onChange={(_value: string) => {}} />
+                        <SearchBox
+                            key={2}
+                            selectedProject={props.selectedProject}
+                            onChange={(_value: string) => {}}
+                        />
                         <div
                             style={{
                                 marginLeft: '15px',
@@ -59,6 +75,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 requestOptions={{
                                     isMultiTenantRequest: true,
                                 }}
+                                refreshToggle={projectCountRefreshToggle}
                                 onClick={() => {
                                     setShowProjectInvitationModal(true);
                                 }}
@@ -99,6 +116,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     }}
                     onRequestAccepted={() => {
                         props.onProjectRequestAccepted();
+                        setProjectCountRefreshToggle(
+                            !projectCountRefreshToggle
+                        );
+                    }}
+                    onRequestRejected={() => {
+                        props.onProjectRequestRejected();
+                        setProjectCountRefreshToggle(
+                            !projectCountRefreshToggle
+                        );
                     }}
                 />
             )}

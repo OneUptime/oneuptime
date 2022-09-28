@@ -15,6 +15,8 @@ import ProjectUtil from 'CommonUI/src/Utils/Project';
 export interface ComponentProps {
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
+    showProjectModal: boolean;
+    onProjectModalClose: () => void;
 }
 
 const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
@@ -24,6 +26,12 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     const [selectedProject, setSelectedProject] = useState<Project | null>(
         null
     );
+
+    useEffect(() => {
+        if (props.showProjectModal) {
+            setShowModel(true);
+        }
+    }, [props.showProjectModal]);
 
     useEffect(() => {
         const currentProject: Project | null = ProjectUtil.getCurrentProject();
@@ -72,23 +80,27 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 
     return (
         <>
-            <ProjectPicker
-                selectedProjectName={selectedProject?.name || ''}
-                selectedProjectIcon={IconProp.Folder}
-                projects={props.projects}
-                onCreateProjectButtonClicked={() => {
-                    setShowModel(true);
-                }}
-                onProjectSelected={(project: Project) => {
-                    setSelectedProject(project);
-                }}
-            />
+            {props.projects.length !== 0 && (
+                <ProjectPicker
+                    selectedProjectName={selectedProject?.name || ''}
+                    selectedProjectIcon={IconProp.Folder}
+                    projects={props.projects}
+                    onCreateProjectButtonClicked={() => {
+                        setShowModel(true);
+                        props.onProjectModalClose();
+                    }}
+                    onProjectSelected={(project: Project) => {
+                        setSelectedProject(project);
+                    }}
+                />
+            )}
             {showModel ? (
                 <ModelFormModal<Project>
                     modelType={Project}
                     title="Create New Project"
                     onClose={() => {
                         setShowModel(false);
+                        props.onProjectModalClose();
                     }}
                     submitButtonText="Create Project"
                     onSuccess={(project: Project) => {
@@ -97,6 +109,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                             props.onProjectSelected(project);
                         }
                         setShowModel(false);
+                        props.onProjectModalClose();
                     }}
                     formProps={{
                         saveRequestOptions: {

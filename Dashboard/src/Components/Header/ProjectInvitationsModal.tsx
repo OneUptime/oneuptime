@@ -14,6 +14,7 @@ import ObjectID from 'Common/Types/ObjectID';
 export interface ComponentProps {
     onClose: () => void;
     onRequestAccepted: () => void;
+    onRequestRejected: () => void;
 }
 
 const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
@@ -46,6 +47,9 @@ const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
                         isMultiTenantRequest: true,
                     }}
                     isEditable={false}
+                    onItemDeleted={() => {
+                        props.onRequestRejected();
+                    }}
                     showRefreshButton={true}
                     isCreateable={false}
                     isViewable={false}

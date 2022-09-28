@@ -94,6 +94,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     refreshToggle?: boolean | undefined;
     fetchRequestOptions?: RequestOptions | undefined;
     deleteRequestOptions?: RequestOptions | undefined;
+    onItemDeleted?: ((item: TBaseModel) => void) | undefined;
     onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     onBeforeDelete?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     onBeforeView?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
@@ -194,14 +195,22 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         }
     }, [tableColumns]);
 
-    const deleteItem: Function = async (id: ObjectID) => {
+    const deleteItem: Function = async (item: TBaseModel) => {
+        if (!item.id) {
+            throw new BadDataException('item.id cannot be null');
+        }
+
         setIsLoading(true);
+
         try {
             await ModelAPI.deleteItem<TBaseModel>(
                 props.modelType,
-                id,
+                item.id,
                 props.deleteRequestOptions
             );
+
+            props.onItemDeleted && props.onItemDeleted(item);
+
             if (data.length === 1 && currentPageNumber > 1) {
                 setCurrentPageNumber(currentPageNumber - 1);
             }
@@ -1171,8 +1180,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             currentDeleteableItem['_id']
                         ) {
                             deleteItem(
-                                new ObjectID(
-                                    currentDeleteableItem['_id'].toString()
+                                BaseModel.fromJSON(
+                                    currentDeleteableItem,
+                                    props.modelType
                                 )
                             );
                             setShowDeleteConfirmModal(false);

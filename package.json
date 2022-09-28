@@ -2,7 +2,7 @@
     "name": "app",
     "version": "3.0.2",
     "description": "One Complete SRE and DevOps platform.",
-    "main": "index.ts",
+    "main": "ts",
     "type": "module",
     "dependencies": {
         "@types/lodash": "^4.14.182",
