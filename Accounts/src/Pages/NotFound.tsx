@@ -20,7 +20,7 @@ const LoginPage: FunctionComponent = () => {
                                             </h5>
                                             <p className="text-muted mt-2 mb-0">
                                                 Page you&apos;re looking for is
-                                                not found.{' '} <br/> <br/> <br/>
+                                                not found. <br /> <br /> <br />
                                             </p>
                                             <p className="text-muted mb-0">
                                                 Don&apos;t have an account?{' '}
