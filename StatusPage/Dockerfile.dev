@@ -69,8 +69,8 @@ RUN npm install
 RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules/.cache
 
 # Expose ports.
-#   - 3005:  StatusPage
-EXPOSE 3005
+#   - 3105:  StatusPage
+EXPOSE 3105
 
 #Run the app
 CMD [ "npm", "run", "dev" ]

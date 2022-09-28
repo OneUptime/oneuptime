@@ -1,7 +1,7 @@
 {
     "name": "accounts",
     "version": "0.1.0",
-    "private": true,
+    "private": false,
     "dependencies": {
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
