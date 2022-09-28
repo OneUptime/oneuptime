@@ -12,6 +12,7 @@ import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import StatusPagePreviewLink from './StatusPagePreviewLink';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -55,6 +56,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <StatusPagePreviewLink modelId={modelId} />
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Title and Description',

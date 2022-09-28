@@ -14,6 +14,7 @@ import Domain from 'Model/Models/Domain';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import StatusPagePreviewLink from './StatusPagePreviewLink';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -57,6 +58,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <StatusPagePreviewLink modelId={modelId} />
             <ModelTable<StatusPageDomain>
                 modelType={StatusPageDomain}
                 query={{

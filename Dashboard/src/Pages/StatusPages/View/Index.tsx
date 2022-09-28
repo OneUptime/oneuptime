@@ -15,6 +15,7 @@ import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
+import StatusPagePreviewLink from './StatusPagePreviewLink';
 
 const StatusPageView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -51,6 +52,9 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+
+            <StatusPagePreviewLink modelId={modelId} />
+            
             {/* StatusPage View  */}
             <CardModelDetail
                 cardProps={{

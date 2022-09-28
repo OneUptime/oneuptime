@@ -52,6 +52,7 @@ import {
     FiFileText,
     FiList,
     FiLink2,
+    FiExternalLink
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -129,6 +130,7 @@ export enum IconProp {
     Circle,
     Webhook,
     SendMessage,
+    ExternalLink
 }
 
 export interface ComponentProps {
@@ -556,6 +558,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.TextFile && (
                 <FiFileText
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+{icon === IconProp.ExternalLink && (
+                <FiExternalLink
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}
