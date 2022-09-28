@@ -4,16 +4,17 @@
     "private": true,
     "dependencies": {
         "Common": "file:../Common",
-"Model": "file:../Model",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
         "crypto-js": "^4.1.1",
         "formik": "^2.2.9",
+        "Model": "file:../Model",
         "react": "^18.1.0",
         "react-dom": "^18.1.0",
         "react-router": "^6.3.0",
         "react-router-dom": "^6.3.0",
         "react-scripts": "5.0.1",
+        "the-new-css-reset": "^1.7.3",
         "typescript": "^4.6.4"
     },
     "scripts": {
