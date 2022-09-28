@@ -3,7 +3,6 @@ import Route from 'Common/Types/API/Route';
 import Link from 'CommonUI/src/Components/Link/Link';
 
 const LoginPage: FunctionComponent = () => {
-
     return (
         <div className="auth-page">
             <div className="container-fluid p-0">
@@ -21,7 +20,7 @@ const LoginPage: FunctionComponent = () => {
                                             </h5>
                                             <p className="text-muted mt-2 mb-0">
                                                 Page you&apos;re looking for is
-                                                not found.{' '}
+                                                not found.{' '} <br/> <br/> <br/>
                                             </p>
                                             <p className="text-muted mb-0">
                                                 Don&apos;t have an account?{' '}
