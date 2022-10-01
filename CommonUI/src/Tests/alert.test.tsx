@@ -32,7 +32,7 @@ describe('alert tests', () => {
     test('it should show icon when alert type is equal to warning', () => {
         render(<Alert type={AlertType.WARNING} />);
         expect(Icon).toBeInTheDocument;
-  }); 
+    }); 
     test('it should show icon when alert type is equal to danger', () => {
         render(<Alert type={AlertType.DANGER} />);
         expect(Icon).toBeInTheDocument;
