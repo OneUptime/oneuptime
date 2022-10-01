@@ -7,7 +7,6 @@ export enum AlertType {
     DANGER,
     WARNING,
 }
-
 export interface ComponentProps {
     strongTitle?: undefined | string;
     title?: undefined | string;
