@@ -45,12 +45,12 @@ describe('alert tests', () => {
         const testId: HTMLElement = screen.getByTestId('test-id');
         expect(testId).toHaveClass('alert-danger');
     });
-    test('it should have a title displayed in document', () => {
+    test('it should have a title content displayed in document', () => {
         render(<Alert title="title" />);
         expect(screen.getByText('title')).toBeInTheDocument;
         expect(screen.getByText('title')).toHaveTextContent('title');
     });
-    test('it should have a strong text displayed in document ', () => {
+    test('it should have a strong text content displayed in document ', () => {
         render(<Alert strongTitle="strong" />);
         expect(screen.getByText('strong')).toBeInTheDocument;
         expect(screen.getByText('strong')).toHaveTextContent('strong');
