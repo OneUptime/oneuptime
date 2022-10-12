@@ -22,11 +22,10 @@ describe('alert tests', () => {
         expect(handleClose).toBeCalled;
     });
     test('it should show icon when alert type is equal to success', () => {
-        render(<Alert  type={AlertType.SUCCESS} />);
+        render(<Alert type={AlertType.SUCCESS} />);
         expect(Icon).toBeInTheDocument;
         const testId: HTMLElement = screen.getByTestId('test-id');
         expect(testId).toHaveClass('alert-success');
-
     });
     test('it should show icon when alert type is equal to info', () => {
         render(<Alert type={AlertType.INFO} />);

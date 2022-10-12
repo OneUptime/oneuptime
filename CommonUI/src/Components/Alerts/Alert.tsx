@@ -46,7 +46,7 @@ const Alert: FunctionComponent<ComponentProps> = (
         <div className="row">
             <div className="col-xl-12">
                 <div
-                 data-testid="test-id"
+                    data-testid="test-id"
                     className={`alert-label-icon flex label-arrow alert ${cssClass} alert-dismissible fade show ${
                         props.onClick ? 'pointer' : ''
                     }`}
