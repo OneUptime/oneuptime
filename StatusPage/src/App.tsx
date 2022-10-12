@@ -11,6 +11,7 @@ import AnnouncementList from './Pages/Announcement/List';
 import AnnouncementDetail from './Pages/Announcement/Detail';
 import ScheduledEventList from './Pages/ScheduledEvent/List';
 import ScheduledEventDetail from './Pages/ScheduledEvent/Detail';
+import Subscribe from './Pages/Subscribe/Subscribe';
 
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
@@ -23,7 +24,7 @@ const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
     Navigation.setParams(useParams());
-    
+
     return (
         <MasterPage>
             <Routes>
@@ -94,6 +95,15 @@ const App: FunctionComponent = () => {
                     }
                 />
 
+                <PageRoute
+                    path={RouteMap[PageMap.SUBSCRIBE]?.toString()}
+                    element={
+                        <Subscribe
+                            pageRoute={RouteMap[PageMap.SUBSCRIBE] as Route}
+                        />
+                    }
+                />
+
 
 
                 {/* Preview */}
@@ -103,6 +113,15 @@ const App: FunctionComponent = () => {
                     element={
                         <Overview
                             pageRoute={RouteMap[PageMap.PREVIEW_OVERVIEW] as Route}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.PREVIEW_SUBSCRIBE]?.toString()}
+                    element={
+                        <Subscribe
+                            pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route}
                         />
                     }
                 />

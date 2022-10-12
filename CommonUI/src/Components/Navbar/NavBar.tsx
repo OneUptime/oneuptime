@@ -11,7 +11,9 @@ const Navbar: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <div className="topnav active">
+            <div className="topnav active" style={{
+                zIndex: 9999
+            }}>
                 <div className="container-fluid active" style={{
                     maxWidth: props.maxWidth
                 }}>

@@ -22,13 +22,22 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     return (
         <NavBar
             rightContent={
-                <NavBarItem
-                    title="RSS"
-                    icon={IconProp.RSS}
-                    route={RouteUtil.populateRouteParams(
-                        props.isPreview ? RouteMap[PageMap.PREVIEW_RSS] as Route : RouteMap[PageMap.RSS] as Route
-                    )}
-                ></NavBarItem>
+                <>
+                    <NavBarItem
+                        title="Subscribe"
+                        icon={IconProp.Email}
+                        route={RouteUtil.populateRouteParams(
+                            props.isPreview ? RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route : RouteMap[PageMap.SUBSCRIBE] as Route
+                        )}
+                    ></NavBarItem>
+                    <NavBarItem
+                        title="RSS"
+                        icon={IconProp.RSS}
+                        route={RouteUtil.populateRouteParams(
+                            props.isPreview ? RouteMap[PageMap.PREVIEW_RSS] as Route : RouteMap[PageMap.RSS] as Route
+                        )}
+                    ></NavBarItem>
+                </>
             }
             maxWidth="880px"
         >
@@ -59,7 +68,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                     props.isPreview ? RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route : RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route
                 )}
             ></NavBarItem>
-                       
+
         </NavBar>
     );
 };
