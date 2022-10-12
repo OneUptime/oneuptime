@@ -70,8 +70,8 @@ COPY ./StatusPage /usr/src/app
 RUN npm run build
 
 # Expose ports.
-#   - 3005:  StatusPage
-EXPOSE 3005
+#   - 3105:  StatusPage
+EXPOSE 3105
 
 #Run the app
 CMD [ "npm", "start" ]

@@ -2,6 +2,7 @@
 
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
+import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Navigation from '../../Utils/Navigation';
 
@@ -11,6 +12,7 @@ export interface ComponentProps {
     to: Route | URL | null | undefined;
     onClick?: undefined | (() => void);
     onNavigateComplete?: (() => void) | undefined;
+    openInNewTab?: boolean | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
@@ -24,10 +26,21 @@ const Link: FunctionComponent<ComponentProps> = (
         children = props.children;
     }
 
+    const linkProps: JSONObject = {};
+
+    if (props.openInNewTab) {
+        linkProps['target'] = '_blank';
+        linkProps['href'] = props.to?.toString();
+    }
+
     return (
         <a
             className={`pointer ${props.className || ''}`}
             onClick={() => {
+                if (props.openInNewTab) {
+                    return;
+                }
+
                 if (props.to) {
                     Navigation.navigate(props.to);
                 }
@@ -40,6 +53,7 @@ const Link: FunctionComponent<ComponentProps> = (
                     props.onNavigateComplete();
                 }
             }}
+            {...linkProps}
         >
             {children}
         </a>

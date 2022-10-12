@@ -24,6 +24,8 @@ export const IDENTITY_ROUTE: Route = new Route(env('IDENTITY_ROUTE'));
 
 export const FILE_ROUTE: Route = new Route(env('FILE_ROUTE'));
 
+export const STATUS_PAGE_ROUTE: Route = new Route(env('STATUS_PAGE_ROUTE'));
+
 export const DASHBOARD_ROUTE: Route = new Route(env('DASHBOARD_ROUTE'));
 
 export const INTEGRATION_ROUTE: Route = new Route(env('INTEGRATION_ROUTE'));
@@ -51,6 +53,10 @@ export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
 );
 
 export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(
+    window.location.hostname
+);
+
+export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
     window.location.hostname
 );
 
@@ -86,6 +92,12 @@ export const IDENTITY_URL: URL = new URL(
     HTTP_PROTOCOL,
     IDENTITY_HOSTNAME,
     IDENTITY_ROUTE
+);
+
+export const STATUS_PAGE_URL: URL = new URL(
+    HTTP_PROTOCOL,
+    STATUS_PAGE_HOSTNAME,
+    STATUS_PAGE_ROUTE
 );
 
 export const FILE_URL: URL = new URL(HTTP_PROTOCOL, FILE_HOSTNAME, FILE_ROUTE);

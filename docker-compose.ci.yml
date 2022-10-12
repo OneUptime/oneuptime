@@ -141,6 +141,22 @@ services:
         depends_on:
             - dashboard-api
             - accounts
+
+    status-page:
+        ports:
+            - '3105:3105'
+        build:
+            context: .
+            dockerfile: ./StatusPage/Dockerfile
+        env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
+            - ./Dashboard/.env
+        environment: *common-variables
+        depends_on:
+            - dashboard-api
+
+
     home:
         ports:
             - '1444:1444'
@@ -152,22 +168,6 @@ services:
         build:
             context: .
             dockerfile: ./Home/Dockerfile
-
-    status-page:
-        ports:
-            - '3006:3006'
-        build:
-            context: .
-            dockerfile: ./status-page/Dockerfile
-        env_file:
-            - ./Common/.env
-            - ./CommonUI/.env
-            - ./StatusPage/.env
-        environment: *common-variables
-        depends_on:
-            - dashboard-api
-            - accounts
-            - dashboard
             
     admin-dashboard:
         ports:

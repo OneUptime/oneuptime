@@ -6,7 +6,8 @@
     "type": "module",
     "dependencies": {
         "@types/lodash": "^4.14.182",
-        "eslint-plugin-progress": "^0.0.1"
+        "eslint-plugin-progress": "^0.0.1",
+        "the-new-css-reset": "^1.7.3"
     },
     "devDependencies": {
         "@babel/core": "^7.17.8",

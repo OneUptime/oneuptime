@@ -14,6 +14,7 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import SortOrder from 'Common/Types/Database/SortOrder';
+import StatusPagePreviewLink from './StatusPagePreviewLink';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -57,6 +58,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
+            <StatusPagePreviewLink modelId={modelId} />
             <ModelTable<StatusPageGroup>
                 modelType={StatusPageGroup}
                 id="status-page-group"

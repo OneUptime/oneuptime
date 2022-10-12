@@ -7,6 +7,7 @@ import {
     useParams,
 } from 'react-router-dom';
 import LoginPage from './Pages/Login';
+import NotFound from './Pages/NotFound';
 import SsoLoginPage from './Pages/SsoLogin';
 import ForgotPasswordPage from './Pages/ForgotPassword';
 import RegisterPage from './Pages/Register';
@@ -40,6 +41,8 @@ function App(): ReactElement {
                     path="/accounts/verify-email/:token"
                     element={<VerifyEmail />}
                 />
+                {/* 👇️ only match this when no other routes match */}
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </div>
     );

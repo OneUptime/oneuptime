@@ -137,6 +137,34 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+    
+
+    status-page:
+        ports:
+            - '3105:3105'
+        build:
+            network: host
+            context: .
+            dockerfile: ./StatusPage/Dockerfile.dev
+        env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
+            - ./StatusPage/.env
+        environment: *common-variables
+        depends_on:
+            - accounts
+            - dashboard-api
+        volumes:
+            - ./StatusPage:/usr/src/app
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
 
     dashboard-api:
         ports:
@@ -172,6 +200,10 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+    
+
+    
+        
 
     identity:
         ports:
