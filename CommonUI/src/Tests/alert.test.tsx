@@ -22,28 +22,39 @@ describe('alert tests', () => {
         expect(handleClose).toBeCalled;
     });
     test('it should show icon when alert type is equal to success', () => {
-        render(<Alert type={AlertType.SUCCESS} />);
+        render(<Alert  type={AlertType.SUCCESS} />);
         expect(Icon).toBeInTheDocument;
+        const testId: HTMLElement = screen.getByTestId('test-id');
+        expect(testId).toHaveClass('alert-success');
+
     });
     test('it should show icon when alert type is equal to info', () => {
         render(<Alert type={AlertType.INFO} />);
         expect(Icon).toBeInTheDocument;
+        const testId: HTMLElement = screen.getByTestId('test-id');
+        expect(testId).toHaveClass('alert-info');
     });
     test('it should show icon when alert type is equal to warning', () => {
         render(<Alert type={AlertType.WARNING} />);
         expect(Icon).toBeInTheDocument;
+        const testId: HTMLElement = screen.getByTestId('test-id');
+        expect(testId).toHaveClass('alert-warning');
     });
     test('it should show icon when alert type is equal to danger', () => {
         render(<Alert type={AlertType.DANGER} />);
         expect(Icon).toBeInTheDocument;
+        const testId: HTMLElement = screen.getByTestId('test-id');
+        expect(testId).toHaveClass('alert-danger');
     });
     test('it should have a title displayed in document', () => {
         render(<Alert title="title" />);
         expect(screen.getByText('title')).toBeInTheDocument;
+        expect(screen.getByText('title')).toHaveTextContent('title');
     });
     test('it should have a strong text displayed in document ', () => {
         render(<Alert strongTitle="strong" />);
         expect(screen.getByText('strong')).toBeInTheDocument;
+        expect(screen.getByText('strong')).toHaveTextContent('strong');
     });
     test('it should handle onClick event', () => {
         const handleClick: (() => void) | undefined = jest.fn();
