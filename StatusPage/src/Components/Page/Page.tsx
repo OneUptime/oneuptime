@@ -9,8 +9,14 @@ const Page: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="page-content">
-            <div className="container-fluid">
+        <div className="page-content" style={{
+            marginLeft: "0px",
+            paddingLeft: "5px"
+        }}>
+            <div className="container-fluid" style={{
+                margin: "0px",
+                padding: "0px"
+            }}>
                 <div className="row">
                     <div className="col-12">
                         <div className="page-title-box d-sm-flex align-items-center justify-content-between">

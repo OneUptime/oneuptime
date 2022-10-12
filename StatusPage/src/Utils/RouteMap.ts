@@ -12,6 +12,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.ANNOUNCEMENT_LIST]: new Route(`/announcements`),
     [PageMap.SCHEDULED_EVENT_LIST]: new Route(`/scheduled-events`),
     [PageMap.SCHEDULED_EVENT_DETAIL]: new Route(`/scheduled-events/:id`),
+    [PageMap.RSS]: new Route(`/rss`),
 
     [PageMap.PREVIEW_OVERVIEW]: new Route(`/status-page/${RouteParams.StatusPageId}`),
     [PageMap.PREVIEW_INCIDENT_LIST]: new Route(`/status-page/${RouteParams.StatusPageId}/incidents`),
@@ -20,7 +21,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.PREVIEW_ANNOUNCEMENT_LIST]: new Route(`/status-page/${RouteParams.StatusPageId}/announcements`),
     [PageMap.PREVIEW_SCHEDULED_EVENT_LIST]: new Route(`/status-page/${RouteParams.StatusPageId}/scheduled-events`),
     [PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL]: new Route(`/status-page/${RouteParams.StatusPageId}/scheduled-events/:id`),
-
+    [PageMap.PREVIEW_RSS]: new Route(`/status-page/${RouteParams.StatusPageId}/rss`),
 
     [PageMap.NOT_FOUND]: new Route(`status-page/not-found`),
 };

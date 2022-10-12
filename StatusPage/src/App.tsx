@@ -1,6 +1,6 @@
 import React, { FunctionComponent } from 'react';
 import Route from 'Common/Types/API/Route';
-import { Routes, Route as PageRoute } from 'react-router-dom';
+import { Routes, Route as PageRoute, useNavigate, useLocation, useParams } from 'react-router-dom';
 import MasterPage from './Components/MasterPage/MasterPage';
 
 import PageNotFound from './Pages/NotFound/PageNotFound';
@@ -16,8 +16,14 @@ import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
 import 'CommonUI/src/Styles/theme.scss';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const App: FunctionComponent = () => {
+
+    Navigation.setNavigateHook(useNavigate());
+    Navigation.setLocation(useLocation());
+    Navigation.setParams(useParams());
+    
     return (
         <MasterPage>
             <Routes>

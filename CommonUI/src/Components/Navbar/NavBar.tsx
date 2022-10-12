@@ -3,6 +3,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     rightContent?: undefined | ReactElement | Array<ReactElement>;
+    maxWidth?: string | undefined;
 }
 
 const Navbar: FunctionComponent<ComponentProps> = (
@@ -11,7 +12,9 @@ const Navbar: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <div className="topnav active">
-                <div className="container-fluid active">
+                <div className="container-fluid active" style={{
+                    maxWidth: props.maxWidth
+                }}>
                     <nav
                         className="navbar navbar-light navbar-expand-lg topnav-menu active"
                         id="navigation"

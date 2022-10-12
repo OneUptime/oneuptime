@@ -17,9 +17,16 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         <MasterPage
             footer={<Footer />}
             header={<Header />}
-            navBar={<NavBar />}
+            navBar={<NavBar show={true} isPreview={true} />}
             isLoading={props.isLoading || false}
             error={props.error || ''}
+            mainContentStyle={{
+                display: "flex",
+                alignItems: "center",
+                margin: "auto",
+                maxWidth: "880px",
+                marginLeft: "auto !important"
+            }}
         >
             {props.children}
         </MasterPage>

@@ -33,6 +33,7 @@ import {
     FiCode,
     FiPieChart,
     FiUsers,
+    FiRss,
     FiLock,
     FiKey,
     FiType,
@@ -117,6 +118,7 @@ export enum IconProp {
     Success,
     Trash,
     Close,
+    RSS,
     Add,
     Label,
     Refresh,
@@ -566,6 +568,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.ExternalLink && (
                 <FiExternalLink
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
+{icon === IconProp.RSS && (
+                <FiRss
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : ''}
