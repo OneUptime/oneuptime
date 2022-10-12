@@ -6,8 +6,23 @@ import ObjectID from 'Common/Types/ObjectID';
 
 const RouteMap: Dictionary<Route> = {
     [PageMap.OVERVIEW]: new Route(`/`),
-    [PageMap.PREVIEW]: new Route(`/dashboard/${RouteParams.StatusPageId}`),
-    [PageMap.NOT_FOUND]: new Route(`/not-found`),
+    [PageMap.INCIDENT_LIST]: new Route(`/incidents`),
+    [PageMap.INCIDENT_DETAIL]: new Route(`/incidents/:id`),
+    [PageMap.ANNOUNCEMENT_DETAIL]: new Route(`/announcements/:id`),
+    [PageMap.ANNOUNCEMENT_LIST]: new Route(`/announcements`),
+    [PageMap.SCHEDULED_EVENT_LIST]: new Route(`/scheduled-events`),
+    [PageMap.SCHEDULED_EVENT_DETAIL]: new Route(`/scheduled-events/:id`),
+
+    [PageMap.PREVIEW_OVERVIEW]: new Route(`/status-page/${RouteParams.StatusPageId}`),
+    [PageMap.PREVIEW_INCIDENT_LIST]: new Route(`/status-page/${RouteParams.StatusPageId}/incidents`),
+    [PageMap.PREVIEW_INCIDENT_DETAIL]: new Route(`/status-page/${RouteParams.StatusPageId}/incidents/:id`),
+    [PageMap.PREVIEW_ANNOUNCEMENT_DETAIL]: new Route(`/status-page/${RouteParams.StatusPageId}/announcements/:id`),
+    [PageMap.PREVIEW_ANNOUNCEMENT_LIST]: new Route(`/status-page/${RouteParams.StatusPageId}/announcements`),
+    [PageMap.PREVIEW_SCHEDULED_EVENT_LIST]: new Route(`/status-page/${RouteParams.StatusPageId}/scheduled-events`),
+    [PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL]: new Route(`/status-page/${RouteParams.StatusPageId}/scheduled-events/:id`),
+
+
+    [PageMap.NOT_FOUND]: new Route(`status-page/not-found`),
 };
 
 export class RouteUtil {
