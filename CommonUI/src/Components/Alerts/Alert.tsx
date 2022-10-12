@@ -7,13 +7,13 @@ export enum AlertType {
     DANGER,
     WARNING,
 }
-
 export interface ComponentProps {
     strongTitle?: undefined | string;
     title?: undefined | string;
     onClose?: undefined | (() => void);
     type?: undefined | AlertType;
     onClick?: (() => void) | undefined;
+    dataTestId?: string;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -47,6 +47,7 @@ const Alert: FunctionComponent<ComponentProps> = (
         <div className="row">
             <div className="col-xl-12">
                 <div
+                    data-testid={props.dataTestId}
                     className={`alert-label-icon flex label-arrow alert ${cssClass} alert-dismissible fade show ${
                         props.onClick ? 'pointer' : ''
                     }`}
