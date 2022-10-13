@@ -4,6 +4,7 @@ import Icon, { IconProp } from '../Icon/Icon';
 export interface ComponentProps {
     text: string;
     isCopyable?: boolean;
+    dataTestId?: string;
 }
 
 const HiddenText: FunctionComponent<ComponentProps> = (
@@ -14,7 +15,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
 
     if (!showText) {
         return (
-            <p
+            <p  data-testid={props.dataTestId}
                 className="pointer underline"
                 onClick={() => {
                     setShowText(true);
