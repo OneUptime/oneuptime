@@ -26,10 +26,25 @@ import StatusPageSubscriberService, {
     Service as StatusPageSubscriberServiceType,
 } from 'CommonServer/Services/StatusPageSubscriberService';
 
+
+import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
+import StatusPageFooterLinkService, {
+    Service as StatusPageFooterLinkServiceType,
+} from 'CommonServer/Services/StatusPageFooterLinkService';
+
+
+import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
+import StatusPageHeaderLinkService, {
+    Service as StatusPageHeaderLinkServiceType,
+} from 'CommonServer/Services/StatusPageHeaderLinkService';
+
+
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageAnnouncementService, {
     Service as StatusPageAnnouncementServiceType,
 } from 'CommonServer/Services/StatusPageAnnouncementService';
+
+
 
 import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
 import EmailVerificationTokenService, {
@@ -252,6 +267,29 @@ app.use(
         ApiKeyPermissionService
     ).getRouter()
 );
+
+
+app.use(
+    new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(StatusPageHeaderLink, StatusPageHeaderLinkService).getRouter()
+);
+
+app.use(
+    new BaseAPI<StatusPageFooterLink, StatusPageFooterLinkServiceType>(StatusPageFooterLink, StatusPageFooterLinkService).getRouter()
+);
+
+
+
+app.use(
+    new BaseAPI<ApiKey, ApiKeyServiceType>(ApiKey, ApiKeyService).getRouter()
+);
+app.use(
+    new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
+        ApiKeyPermission,
+        ApiKeyPermissionService
+    ).getRouter()
+);
+
+
 
 app.use(
     new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(

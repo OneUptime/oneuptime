@@ -12,30 +12,29 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import StatusPage from './StatusPage';
-import Domain from './Domain';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
+import URL from 'Common/Types/API/URL';
 
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-    read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageDomain],
-    update: [Permission.ProjectOwner, Permission.CanEditStatusPageDomain],
+    create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+    read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
+    delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageFooterLink],
+    update: [Permission.ProjectOwner, Permission.CanEditStatusPageFooterLink],
 })
-@CrudApiEndpoint(new Route('/status-page-domain'))
-@SingularPluralName('Status Page Domain', 'Status Page Domains')
+@CrudApiEndpoint(new Route('/status-page-footer-link'))
+@SingularPluralName('Status Page Footer Link', 'Status Page Footer Links')
 @Entity({
-    name: 'StatusPageDomain',
+    name: 'StatusPageFooterLink',
 })
-export default class StatusPageDomain extends BaseModel {
+export default class StatusPageFooterLink extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
         update: [],
     })
     @TableColumn({
@@ -58,8 +57,8 @@ export default class StatusPageDomain extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
         update: [],
     })
     @Index()
@@ -71,47 +70,10 @@ export default class StatusPageDomain extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
-        update: [],
-    })
-    @TableColumn({
-        manyToOneRelationColumn: 'domainId',
-        type: TableColumnType.Entity,
-        modelType: Domain,
-    })
-    @ManyToOne(
-        (_type: string) => {
-            return Domain;
-        },
-        {
-            eager: false,
-            nullable: true,
-            onDelete: 'CASCADE',
-            orphanedRowAction: 'nullify',
-        }
-    )
-    @JoinColumn({ name: 'domainId' })
-    public domain?: Domain = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
-        update: [],
-    })
-    @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
-    @Column({
-        type: ColumnType.ObjectID,
-        nullable: false,
-        transformer: ObjectID.getDatabaseTransformer(),
-    })
-    public domainId?: ObjectID = undefined;
-
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
         update: [],
     })
     @TableColumn({
@@ -134,8 +96,8 @@ export default class StatusPageDomain extends BaseModel {
     public statusPage?: StatusPage = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
         update: [],
     })
     @Index()
@@ -148,9 +110,9 @@ export default class StatusPageDomain extends BaseModel {
     public statusPageId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageDomain],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageFooterLink],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -158,25 +120,25 @@ export default class StatusPageDomain extends BaseModel {
         type: ColumnType.ShortText,
         length: ColumnLength.ShortText,
     })
-    public subdomain?: string = undefined;
+    public title?: string = undefined;
 
-    @UniqueColumnBy('projectId')
     @ColumnAccessControl({
-        create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
-        update: [],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageFooterLink],
     })
-    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @TableColumn({ required: true, type: TableColumnType.ShortURL })
     @Column({
         nullable: false,
-        type: ColumnType.ShortText,
-        length: ColumnLength.ShortText,
+        type: ColumnType.ShortURL,
+        length: ColumnLength.ShortURL,
+        transformer: URL.getDatabaseTransformer()
     })
-    public fullDomain?: string = undefined;
+    public link?: URL = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
         update: [],
     })
     @TableColumn({
@@ -199,8 +161,8 @@ export default class StatusPageDomain extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -213,7 +175,7 @@ export default class StatusPageDomain extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
         update: [],
     })
     @TableColumn({
@@ -234,4 +196,15 @@ export default class StatusPageDomain extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageFooterLink],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageFooterLink],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
+    @Column({
+        type: ColumnType.Number,
+    })
+    public order?: number = undefined;
 }

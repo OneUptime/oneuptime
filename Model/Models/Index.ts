@@ -22,6 +22,9 @@ import StatusPageDomain from './StatusPageDomain';
 import StatusPageResource from './StatusPageResource';
 import StatusPageAnnouncement from './StatusPageAnnouncement';
 import StatusPageSubscriber from './StatusPageSubscriber';
+import StatusPageFooterLink from './StatusPageFooterLink';
+import StatusPageHeaderLink from './StatusPageHeaderLink';
+
 
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
@@ -76,4 +79,6 @@ export default [
     IncidentSeverity,
     StatusPageAnnouncement,
     StatusPageSubscriber,
+    StatusPageFooterLink,
+    StatusPageHeaderLink
 ];

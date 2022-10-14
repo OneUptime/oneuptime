@@ -6,11 +6,13 @@ const StatusPageHeader: FunctionComponent = (): ReactElement => {
     return (<header id="page-topbar" style={{
         maxWidth: "880px",
         paddingLeft: "5px",
-        margin: "auto"
+        margin: "auto",
+        zIndex: 0
     }}>
         <div className="navbar-header" style={{
             padding: "0px",
-            margin: "5px"
+            margin: "5px",
+            
         }}>
             <div className="d-flex"><Logo onClick={() => {
 

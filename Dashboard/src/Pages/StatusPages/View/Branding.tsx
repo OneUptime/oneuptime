@@ -13,9 +13,13 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
+import SortOrder from 'Common/Types/Database/SortOrder';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam(1)?.toString().substring(1) || ''
@@ -188,6 +192,84 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+
+            <ModelTable<StatusPageHeaderLink>
+                modelType={StatusPageHeaderLink}
+                id="status-page-header-link"
+                isDeleteable={true}
+                sortBy="order"
+                sortOrder={SortOrder.Ascending}
+                isCreateable={true}
+                isViewable={false}
+                query={{
+                    statusPageId: modelId,
+                    projectId: props.currentProject?._id,
+                }}
+                enableDragAndDrop={true}
+                dragDropIndexField="order"
+                onBeforeCreate={(
+                    item: StatusPageHeaderLink
+                ): Promise<StatusPageHeaderLink> => {
+                    if (!props.currentProject || !props.currentProject.id) {
+                        throw new BadDataException('Project ID cannot be null');
+                    }
+                    item.statusPageId = modelId;
+                    item.projectId = props.currentProject.id;
+                    return Promise.resolve(item);
+                }}
+                cardProps={{
+                    icon: IconProp.Link,
+                    title: 'Header Links',
+                    description:
+                        'Header Links for your status page',
+                }}
+                noItemsMessage={
+                    'No status header link for this status page.'
+                }
+                formFields={[
+                    {
+                        field: {
+                            title: true,
+                        },
+                        title: 'Title',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'Title',
+                    },
+                    {
+                        field: {
+                            link: true,
+                        },
+                        title: 'Link',
+                        fieldType: FormFieldSchemaType.URL,
+                        required: true,
+                        placeholder: 'https://link.com',
+                    },
+                ]}
+                showRefreshButton={true}
+                showFilterButton={true}
+                viewPageRoute={props.pageRoute}
+                columns={[
+                    {
+                        field: {
+                            title: true,
+                        },
+                        title: 'Title',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            link: true,
+                        },
+                        title: 'Link',
+                        type: FieldType.URL,
+                        isFilterable: true,
+                    },
+                ]}
+            />
+
         </Page>
     );
 };

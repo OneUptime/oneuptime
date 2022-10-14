@@ -75,6 +75,19 @@ enum Permission {
     CanReadProjectDomain = 'CanReadProjectDomain',
 
     // Probe Permissions (Owner Permission)
+    CanCreateStatusPageHeaderLink = 'CanCreateStatusPageHeaderLink',
+    CanDeleteStatusPageHeaderLink = 'CanDeleteStatusPageHeaderLink',
+    CanEditStatusPageHeaderLink = 'CanEditStatusPageHeaderLink',
+    CanReadStatusPageHeaderLink = 'CanReadStatusPageHeaderLink',
+
+
+    // Probe Permissions (Owner Permission)
+    CanCreateStatusPageFooterLink = 'CanCreateStatusPageFooterLink',
+    CanDeleteStatusPageFooterLink = 'CanDeleteStatusPageFooterLink',
+    CanEditStatusPageFooterLink = 'CanEditStatusPageFooterLink',
+    CanReadStatusPageFooterLink = 'CanReadStatusPageFooterLink',
+
+    // Probe Permissions (Owner Permission)
     CanCreateStatusPageResource = 'CanCreateStatusPageResource',
     CanDeleteStatusPageResource = 'CanDeleteStatusPageResource',
     CanEditStatusPageResource = 'CanEditStatusPageResource',
@@ -646,6 +659,76 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
+
+
+            {
+                permission: Permission.CanCreateStatusPageHeaderLink,
+                title: 'Can Create Header Link',
+                description:
+                    'A user assigned this permission can create Header Link in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageHeaderLink,
+                title: 'Can Delete Header Link',
+                description:
+                    'A user assigned this permission  can delete Header Link in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditStatusPageHeaderLink,
+                title: 'Can Edit Header Link',
+                description:
+                    'A user assigned this permission can edit Header Link in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadStatusPageHeaderLink,
+                title: 'Can Read Header Link',
+                description:
+                    'A user assigned this permission  can read Header Link in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateStatusPageFooterLink,
+                title: 'Can Create Footer Link',
+                description:
+                    'A user assigned this permission can create Footer Link in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteStatusPageFooterLink,
+                title: 'Can Delete Footer Link',
+                description:
+                    'A user assigned this permission  can delete Footer Link in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditStatusPageFooterLink,
+                title: 'Can Edit Footer Link',
+                description:
+                    'A user assigned this permission can edit Footer Link in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadStatusPageFooterLink,
+                title: 'Can Read Footer Link',
+                description:
+                    'A user assigned this permission  can read Footer Link in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
 
             {
                 permission: Permission.CanCreateStatusPageResource,

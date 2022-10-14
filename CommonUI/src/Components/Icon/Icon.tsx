@@ -133,6 +133,7 @@ export enum IconProp {
     Webhook,
     SendMessage,
     ExternalLink,
+    Link
 }
 
 export interface ComponentProps {
@@ -542,6 +543,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 />
             )}
 
+            {icon === IconProp.Link && (
+                <FiLink2
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
             {icon === IconProp.SendMessage && (
                 <FiSend
                     size={size}
@@ -574,7 +583,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 />
             )}
 
-{icon === IconProp.RSS && (
+            {icon === IconProp.RSS && (
                 <FiRss
                     size={size}
                     strokeWidth={thick ? thick : ''}
