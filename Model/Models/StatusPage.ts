@@ -518,7 +518,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public bannerBackgroundColor?: Color = undefined;
 
@@ -534,7 +535,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public headerBackgroundColor?: Color = undefined;
 
@@ -550,7 +552,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public headerTextColor?: Color = undefined;
 
@@ -566,7 +569,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public footerBackgroundColor?: Color = undefined;
 
@@ -581,7 +585,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public footerTextColor?: Color = undefined;
 
@@ -596,7 +601,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public pageBackgroundColor?: Color = undefined;
 
@@ -611,7 +617,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public pageTextColor?: Color = undefined;
 
@@ -627,7 +634,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public navBarTextColor?: Color = undefined;
 
@@ -642,7 +650,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public navBarBackgroundColor?: Color = undefined;
 
@@ -657,7 +666,8 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
     @Column({
         type: ColumnType.Color,
-        nullable: true
+        nullable: true,
+        transformer: Color.getDatabaseTransformer()
     })
     public pageDescriptionText?: Color = undefined;
 
@@ -703,6 +713,7 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,
+        nullable: true
     })
     public copyrightText?: string = undefined;
 

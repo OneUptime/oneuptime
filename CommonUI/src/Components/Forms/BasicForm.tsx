@@ -159,7 +159,7 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: any) => {
                             return (
                                 <ColorPicker
-                                    onChange={async (value: Color) => {
+                                    onChange={async (value: Color | null) => {
                                         setCurrentValue({
                                             ...currentValue,
                                             [fieldName]: value,

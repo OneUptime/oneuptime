@@ -52,9 +52,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Status Page',
+                    title: 'Footer Style',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route,
                         modelId
                     ),
                 },

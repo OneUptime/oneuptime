@@ -190,7 +190,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Color,
                             title: 'Page Background Color',
-                            placeholder: 'White',
+                            placeholder: '#ffffff',
                         },
                         {
                             field: {
@@ -198,7 +198,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             },
                             fieldType: FieldType.Color,
                             title: 'Page Text Color',
-                            placeholder: 'Black',
+                            placeholder: '#000000',
                         },
                     ],
                     modelId: modelId,

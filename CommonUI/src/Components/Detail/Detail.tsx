@@ -11,6 +11,8 @@ import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import FileModel from 'Common/Models/FileModel';
+import Input from '../Input/Input';
+import Color from 'Common/Types/Color';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -22,6 +24,11 @@ export interface ComponentProps {
 const Detail: Function = (props: ComponentProps): ReactElement => {
     const getMarkdownViewer: Function = (text: string): ReactElement => {
         return <MarkdownViewer text={text} />;
+    };
+
+
+    const getColorField: Function  = (color: Color): ReactElement => {
+        return <Input disabled={true} leftCircleColor={color} value={color.toString()} />
     };
 
     const getField: Function = (field: Field, index: number): ReactElement => {
@@ -57,6 +64,14 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 data as string,
                 false
             );
+        }
+
+        if (data && field.fieldType === FieldType.Color) {
+            data = getColorField(data);
+        }
+
+        if (!data && field.fieldType === FieldType.Color && field.placeholder) {
+            data = getColorField(new Color(field.placeholder));
         }
 
         if (field.fieldType === FieldType.ImageFile) {
