@@ -29,7 +29,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
     return (
         <div>
             <div className="flex">
-                <div
+                <div 
                     style={{
                         marginRight: '5px',
                     }}
@@ -37,6 +37,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                     {props.text}
                 </div>{' '}
                 <Icon
+                    data-testid={props.dataTestId}
                     icon={IconProp.Hide}
                     className="pointer"
                     onClick={() => {

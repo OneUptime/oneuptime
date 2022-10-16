@@ -139,6 +139,7 @@ export interface ComponentProps {
     thick?: ThickProp;
     onClick?: (() => void) | undefined;
     style?: CSSProperties | undefined;
+    dataTestId?: string;
 }
 
 const Icon: FunctionComponent<ComponentProps> = ({
@@ -149,9 +150,11 @@ const Icon: FunctionComponent<ComponentProps> = ({
     thick = ThickProp.Normal,
     onClick,
     style,
+    dataTestId
 }: ComponentProps): ReactElement => {
     return (
         <div
+            data-testid={dataTestId}
             style={{
                 ...style,
             }}
