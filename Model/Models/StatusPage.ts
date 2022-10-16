@@ -697,7 +697,7 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
         type: ColumnType.Boolean,
-        default: false,
+        default: true,
     })
     public showFooter?: boolean = undefined;
 
