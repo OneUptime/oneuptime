@@ -28,7 +28,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageDomain],
 })
 @CrudApiEndpoint(new Route('/status-page-domain'))
-@SingularPluralName('Status Page Domain', 'Status Page Domains')
+@SingularPluralName('Domain', 'Domains')
 @Entity({
     name: 'StatusPageDomain',
 })

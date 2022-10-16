@@ -26,6 +26,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import Label from './Label';
 import File from './File';
+import Color from 'Common/Types/Color';
 
 @AccessControlColumn('labels')
 @TenantColumn('projectId')
@@ -487,7 +488,7 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
         type: ColumnType.Boolean,
-        default: false,
+        default: true,
     })
     public isPublicStatusPage?: boolean = undefined;
 
@@ -505,4 +506,314 @@ export default class StatusPage extends BaseModel {
         default: false,
     })
     public enableSubscribers?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public bannerBackgroundColor?: Color = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public headerBackgroundColor?: Color = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public headerTextColor?: Color = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public footerBackgroundColor?: Color = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public footerTextColor?: Color = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public pageBackgroundColor?: Color = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public pageTextColor?: Color = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public navBarTextColor?: Color = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public navBarBackgroundColor?: Color = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Color })
+    @Column({
+        type: ColumnType.Color,
+        nullable: true
+    })
+    public pageDescriptionText?: Color = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showHeader?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public showFooter?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+    })
+    public copyrightText?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showNavbar?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showOverviewPage?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showIncidentsPage?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showRssPage?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showSubscribePage?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showAnouncementsPage?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateProjectStatusPage,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showScheduledMaintenancePage?: boolean = undefined;
+
 }
