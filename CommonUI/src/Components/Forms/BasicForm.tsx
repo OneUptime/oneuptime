@@ -47,6 +47,7 @@ import FileModel from 'Common/Models/FileModel';
 import Phone from 'Common/Types/Phone';
 import Domain from 'Common/Types/Domain';
 import Typeof from 'Common/Types/Typeof';
+import URL from 'Common/Types/API/URL';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -691,6 +692,16 @@ const BasicForm: Function = <T extends Object>(
         if (field.fieldType === FormFieldSchemaType.Port) {
             try {
                 new Port(content);
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.URL) {
+            try {
+                URL.fromString(content);
             } catch (e: unknown) {
                 if (e instanceof Exception) {
                     return e.getMessage();
