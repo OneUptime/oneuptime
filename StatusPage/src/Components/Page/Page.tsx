@@ -11,7 +11,8 @@ const Page: FunctionComponent<ComponentProps> = (
     return (
         <div className="page-content" style={{
             marginLeft: "0px",
-            paddingLeft: "5px"
+            paddingLeft: "5px",
+            marginTop: "0px"
         }}>
             <div className="container-fluid" style={{
                 margin: "0px",

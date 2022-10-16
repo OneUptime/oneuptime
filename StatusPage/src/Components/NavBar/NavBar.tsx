@@ -21,6 +21,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
     return (
         <NavBar
+            navBarStyle={{
+                marginTop: "0px",
+                position: "unset"
+            }}
             rightContent={
                 <>
                     <NavBarItem

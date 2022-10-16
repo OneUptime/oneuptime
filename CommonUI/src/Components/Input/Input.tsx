@@ -8,6 +8,8 @@ import React, {
     useState,
 } from 'react';
 
+export type InputType = 'text' | 'number' | 'date' | 'datetime-local' | 'url';
+
 export interface ComponentProps {
     initialValue?: undefined | string;
     onClick?: undefined | (() => void);
@@ -16,7 +18,7 @@ export interface ComponentProps {
     onChange?: undefined | ((value: string) => void);
     value?: string | undefined;
     readOnly?: boolean | undefined;
-    type?: 'text' | 'number' | 'date' | 'datetime-local';
+    type?: InputType;
     leftCircleColor?: Color | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;

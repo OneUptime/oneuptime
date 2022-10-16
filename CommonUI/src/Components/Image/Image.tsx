@@ -4,6 +4,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 export interface ComponentProps {
     onClick: () => void;
     imageUrl: URL | Route;
+    height?: number | undefined;
 }
 
 const Image: FunctionComponent<ComponentProps> = (
@@ -15,7 +16,7 @@ const Image: FunctionComponent<ComponentProps> = (
                 props.onClick && props.onClick();
             }}
             src={props.imageUrl.toString()}
-            height={30}
+            height={props.height}
         />
     );
 };

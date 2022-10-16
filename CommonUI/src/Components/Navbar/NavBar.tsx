@@ -4,6 +4,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     rightContent?: undefined | ReactElement | Array<ReactElement>;
     maxWidth?: string | undefined;
+    navBarStyle?: React.CSSProperties | undefined;
 }
 
 const Navbar: FunctionComponent<ComponentProps> = (
@@ -12,7 +13,8 @@ const Navbar: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <div className="topnav active" style={{
-                zIndex: 1000
+                zIndex: 1000,
+                ...props.navBarStyle
             }}>
                 <div className="container-fluid active" style={{
                     maxWidth: props.maxWidth

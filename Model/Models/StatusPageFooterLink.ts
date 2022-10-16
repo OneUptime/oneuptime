@@ -27,7 +27,7 @@ import URL from 'Common/Types/API/URL';
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageFooterLink],
 })
 @CrudApiEndpoint(new Route('/status-page-footer-link'))
-@SingularPluralName('Status Page Footer Link', 'Status Page Footer Links')
+@SingularPluralName('Footer Link', 'Footer Links')
 @Entity({
     name: 'StatusPageFooterLink',
 })
