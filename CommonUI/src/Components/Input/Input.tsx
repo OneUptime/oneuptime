@@ -24,6 +24,7 @@ export interface ComponentProps {
     onBlur?: (() => void) | undefined;
     dataTestId?: string;
     tabIndex?: number | undefined;
+    onEnterPress?: (() => void) | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -127,6 +128,11 @@ const Input: FunctionComponent<ComponentProps> = (
                 }}
                 tabIndex={props.tabIndex}
                 //value={displayValue}
+                onKeyDown={props.onEnterPress ? (event: any) => {
+                    if (event.key === 'Enter') {
+                        props.onEnterPress && props.onEnterPress();
+                    }
+                } : undefined}
                 readOnly={props.readOnly || false}
                 type={props.type || 'text'}
                 placeholder={props.placeholder}

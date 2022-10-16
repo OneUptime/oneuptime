@@ -545,6 +545,9 @@ const BasicForm: Function = <T extends Object>(
                                                 true
                                             );
                                         }}
+                                        onEnterPress={() => {
+                                            form.submitForm();
+                                        }}
                                         onBlur={() => {
                                             form.setFieldTouched(fieldName, true);
                                         }}
