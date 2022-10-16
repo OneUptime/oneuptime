@@ -14,6 +14,7 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import TotalItemsBy from 'Common/Types/Database/TotalItemsBy';
 import StatusPage from './StatusPage';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import URL from 'Common/Types/API/URL';
@@ -31,6 +32,7 @@ import URL from 'Common/Types/API/URL';
 @Entity({
     name: 'StatusPageHeaderLink',
 })
+@TotalItemsBy("statusPageId", 3, "This status page cannot have more than 3 header links")
 export default class StatusPageHeaderLink extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],

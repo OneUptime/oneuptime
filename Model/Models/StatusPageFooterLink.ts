@@ -17,6 +17,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import StatusPage from './StatusPage';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import URL from 'Common/Types/API/URL';
+import TotalItemsBy from 'Common/Types/Database/TotalItemsBy';
 
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
@@ -31,6 +32,7 @@ import URL from 'Common/Types/API/URL';
 @Entity({
     name: 'StatusPageFooterLink',
 })
+@TotalItemsBy("statusPageId", 3, "This status page cannot have more than 3 footer links")
 export default class StatusPageFooterLink extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateStatusPageFooterLink],

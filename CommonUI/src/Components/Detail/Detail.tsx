@@ -101,10 +101,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             );
         }
 
-        if (
-            (data && field.fieldType === FieldType.HTML) ||
+        if (data && (
+            (field.fieldType === FieldType.HTML) ||
             field.fieldType === FieldType.CSS ||
-            field.fieldType === FieldType.JavaScript
+            field.fieldType === FieldType.JavaScript)
         ) {
             let codeType: CodeType = CodeType.HTML;
 
@@ -138,10 +138,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 style={
                     props.showDetailsInNumberOfColumns
                         ? {
-                              width:
-                                  100 / props.showDetailsInNumberOfColumns +
-                                  '%',
-                          }
+                            width:
+                                100 / props.showDetailsInNumberOfColumns +
+                                '%',
+                        }
                         : {}
                 }
             >
@@ -183,11 +183,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 
     return (
         <div
-            className={`${
-                props.showDetailsInNumberOfColumns
+            className={`${props.showDetailsInNumberOfColumns
                     ? `justify-space-between`
                     : ``
-            }`}
+                }`}
         >
             {props.fields &&
                 props.fields.length > 0 &&
