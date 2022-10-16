@@ -174,7 +174,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <SideMenuItem
                     link={{
-                        title: 'Header Style',
+                        title: 'Header',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route,
                             props.modelId
@@ -185,7 +185,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <SideMenuItem
                     link={{
-                        title: 'Footer Style',
+                        title: 'Footer',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route,
                             props.modelId
@@ -196,7 +196,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <SideMenuItem
                     link={{
-                        title: 'Navigation Menu Style',
+                        title: 'Navigation Menu',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE] as Route,
                             props.modelId

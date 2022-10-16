@@ -503,7 +503,7 @@ export default class StatusPage extends BaseModel {
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
         type: ColumnType.Boolean,
-        default: false,
+        default: true,
     })
     public enableSubscribers?: boolean = undefined;
 
@@ -779,21 +779,6 @@ export default class StatusPage extends BaseModel {
         default: true,
     })
     public showRssPage?: boolean = undefined;
-
-    @ColumnAccessControl({
-        create: [
-            Permission.ProjectOwner,
-            Permission.CanCreateProjectStatusPage,
-        ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
-    })
-    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        default: true,
-    })
-    public showSubscribePage?: boolean = undefined;
 
 
     @ColumnAccessControl({
