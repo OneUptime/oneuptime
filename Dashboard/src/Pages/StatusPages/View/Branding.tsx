@@ -63,6 +63,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     description: 'This will also be used for SEO.',
                     icon: IconProp.Text,
                 }}
+                editButtonText={'Edit'}
                 isEditable={true}
                 formFields={[
                     {
@@ -117,6 +118,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Image,
                 }}
                 isEditable={true}
+                editButtonText={'Edit Favicon'}
                 formFields={[
 
                     {
@@ -155,8 +157,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Page Colors',
                     description: 'Page background color and text colors for your status page',
-                    icon: IconProp.Image,
+                    icon: IconProp.Layers,
                 }}
+                editButtonText={'Edit Colors'}
                 isEditable={true}
                 formFields={[
 
@@ -204,6 +207,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
+
+
+            
 
 
 

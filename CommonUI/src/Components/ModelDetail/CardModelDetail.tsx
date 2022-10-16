@@ -21,6 +21,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardProps;
     modelDetailProps: ModeDetailProps<TBaseModel>;
     isEditable?: undefined | boolean;
+    editButtonText?: undefined | string; 
     formFields?: undefined | Fields<TBaseModel>;
 }
 
@@ -53,7 +54,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
         if (props.isEditable && hasPermissionToEdit) {
             setCardButtons([
                 {
-                    title: `Edit ${model.singularName}`,
+                    title: props.editButtonText || `Edit ${model.singularName}`,
                     buttonStyle: ButtonStyleType.OUTLINE,
                     onClick: () => {
                         setShowModal(true);

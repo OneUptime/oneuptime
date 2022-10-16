@@ -72,6 +72,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Image,
                 }}
                 isEditable={true}
+                editButtonText={'Edit Images'}
                 formFields={[
                     {
                         field: {
@@ -202,31 +203,34 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
 
+
             <CardModelDetail<StatusPage>
                 cardProps={{
-                    title: 'Title and Description',
-                    description: 'This will also be used for SEO.',
-                    icon: IconProp.Text,
+                    title: 'Header Colors',
+                    description: 'Header background color and text colors for your status page',
+                    icon: IconProp.Layers,
                 }}
+                editButtonText={'Edit Colors'}
                 isEditable={true}
                 formFields={[
+
                     {
                         field: {
-                            pageTitle: true,
+                            headerBackgroundColor: true,
                         },
-                        title: 'Page Title',
-                        fieldType: FormFieldSchemaType.Text,
+                        title: 'Header Background Color',
+                        fieldType: FormFieldSchemaType.Color,
                         required: false,
-                        placeholder: 'Please enter page title here.',
+                        placeholder: '#ffffff',
                     },
                     {
                         field: {
-                            pageDescription: true,
+                            headerTextColor: true,
                         },
-                        title: 'Page Description',
-                        fieldType: FormFieldSchemaType.LongText,
+                        title: 'Header Text Color',
+                        fieldType: FormFieldSchemaType.Color,
                         required: false,
-                        placeholder: 'Please enter page description here.',
+                        placeholder: '#000000',
                     },
                 ]}
                 modelDetailProps={{
@@ -236,25 +240,98 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                pageTitle: true,
+                                headerBackgroundColor: true
                             },
-                            fieldType: FieldType.Text,
-                            title: 'Page Title',
-                            placeholder: 'No page title entered so far.',
+                            fieldType: FieldType.Color,
+                            title: 'Header Background Color',
+                            placeholder: '#ffffff',
                         },
                         {
                             field: {
-                                pageDescription: true,
+                                headerTextColor: true
                             },
-                            fieldType: FieldType.Text,
-                            title: 'Page Description',
-                            placeholder: 'No page description entered so far.',
+                            fieldType: FieldType.Color,
+                            title: 'Header Text Color',
+                            placeholder: '#000000',
                         },
                     ],
                     modelId: modelId,
                 }}
             />
 
+            <CardModelDetail<StatusPage>
+                cardProps={{
+                    title: 'Cover Image Colors',
+                    description: 'Banner background color color for your status page',
+                    icon: IconProp.Layers,
+                }}
+                editButtonText={'Edit Colors'}
+                isEditable={true}
+                formFields={[
+
+                    {
+                        field: {
+                            bannerBackgroundColor: true,
+                        },
+                        title: 'Cover Image Background Color',
+                        fieldType: FormFieldSchemaType.Color,
+                        required: false,
+                        placeholder: '#ffffff',
+                    }
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                bannerBackgroundColor: true
+                            },
+                            fieldType: FieldType.Color,
+                            title: 'Cover Image Background Color',
+                            placeholder: '#ffffff',
+                        }
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+            <CardModelDetail<StatusPage>
+                cardProps={{
+                    title: 'Advanced Header Settings',
+                    description: 'Advanced settings for your status page header',
+                    icon: IconProp.Settings,
+                }}
+                editButtonText={'Edit Settings'}
+                isEditable={true}
+                formFields={[
+
+                    {
+                        field: {
+                            showHeader: true,
+                        },
+                        title: 'Show Header on Status Page',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        required: false,
+                    }
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                showHeader: true
+                            },
+                            fieldType: FieldType.Boolean,
+                            title: 'Show Header on Status Page',
+                        }
+                    ],
+                    modelId: modelId,
+                }}
+            />
 
 
         </Page>
