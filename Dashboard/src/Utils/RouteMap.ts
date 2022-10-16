@@ -86,6 +86,18 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/webhook-subscribers`
     ),
 
+    [PageMap.STATUS_PAGE_VIEW_HEADER_STYLE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/header-style`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/footer-style`
+    ),
+
+    [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/navbar-style`
+    ),
+
     [PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/announcements`
     ),

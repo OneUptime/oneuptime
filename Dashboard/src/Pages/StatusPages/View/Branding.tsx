@@ -13,14 +13,9 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
-import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
-import SortOrder from 'Common/Types/Database/SortOrder';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam(1)?.toString().substring(1) || ''
@@ -52,9 +47,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Status Page',
+                    title: 'Essential Branding',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_BRANDING] as Route,
                         modelId
                     ),
                 },
@@ -117,30 +112,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
             <CardModelDetail<StatusPage>
                 cardProps={{
-                    title: 'Logo, Cover and Favicon',
-                    description: 'These will show up on your status page.',
+                    title: 'Favicon',
+                    description: 'Favicon will be used for SEO.',
                     icon: IconProp.Image,
                 }}
                 isEditable={true}
                 formFields={[
-                    {
-                        field: {
-                            logoFile: true,
-                        },
-                        title: 'Logo',
-                        fieldType: FormFieldSchemaType.ImageFile,
-                        required: false,
-                        placeholder: 'Please upload logo here.',
-                    },
-                    {
-                        field: {
-                            coverImageFile: true,
-                        },
-                        title: 'Cover',
-                        fieldType: FormFieldSchemaType.ImageFile,
-                        required: false,
-                        placeholder: 'Please cover logo here.',
-                    },
+
                     {
                         field: {
                             faviconFile: true,
@@ -158,28 +136,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                logoFile: {
-                                    file: true,
-                                    type: true,
-                                },
-                            },
-                            fieldType: FieldType.ImageFile,
-                            title: 'Logo',
-                            placeholder: 'No logo uploaded.',
-                        },
-                        {
-                            field: {
-                                coverImageFile: {
-                                    file: true,
-                                    type: true,
-                                },
-                            },
-                            fieldType: FieldType.ImageFile,
-                            title: 'Cover Image',
-                            placeholder: 'No cover uploaded.',
-                        },
-                        {
-                            field: {
                                 faviconFile: {
                                     file: true,
                                     type: true,
@@ -195,158 +151,62 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
 
-            <ModelTable<StatusPageHeaderLink>
-                modelType={StatusPageHeaderLink}
-                id="status-page-header-link"
-                isDeleteable={true}
-                sortBy="order"
-                sortOrder={SortOrder.Ascending}
-                isCreateable={true}
-                isViewable={false}
-                query={{
-                    statusPageId: modelId,
-                    projectId: props.currentProject?._id,
-                }}
-                enableDragAndDrop={true}
-                dragDropIndexField="order"
-                onBeforeCreate={(
-                    item: StatusPageHeaderLink
-                ): Promise<StatusPageHeaderLink> => {
-                    if (!props.currentProject || !props.currentProject.id) {
-                        throw new BadDataException('Project ID cannot be null');
-                    }
-                    item.statusPageId = modelId;
-                    item.projectId = props.currentProject.id;
-                    return Promise.resolve(item);
-                }}
+            <CardModelDetail<StatusPage>
                 cardProps={{
-                    icon: IconProp.Link,
-                    title: 'Header Links',
-                    description:
-                        'Header Links for your status page',
+                    title: 'Page Colors',
+                    description: 'Page background color and text colors for your status page',
+                    icon: IconProp.Image,
                 }}
-                noItemsMessage={
-                    'No status header link for this status page.'
-                }
+                isEditable={true}
                 formFields={[
+
                     {
                         field: {
-                            title: true,
+                            pageBackgroundColor: true,
                         },
-                        title: 'Title',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        placeholder: 'Title',
+                        title: 'Page Background Color',
+                        fieldType: FormFieldSchemaType.Color,
+                        required: false,
+                        placeholder: '#ffffff',
                     },
                     {
                         field: {
-                            link: true,
+                            pageTextColor: true,
                         },
-                        title: 'Link',
-                        fieldType: FormFieldSchemaType.URL,
-                        required: true,
-                        placeholder: 'https://link.com',
-                    },
-                ]}
-                showRefreshButton={true}
-                showFilterButton={true}
-                viewPageRoute={props.pageRoute}
-                columns={[
-                    {
-                        field: {
-                            title: true,
-                        },
-                        title: 'Title',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                    {
-                        field: {
-                            link: true,
-                        },
-                        title: 'Link',
-                        type: FieldType.URL,
-                        isFilterable: true,
+                        title: 'Page Text Color',
+                        fieldType: FormFieldSchemaType.Color,
+                        required: false,
+                        placeholder: '#000000',
                     },
                 ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                pageBackgroundColor: true
+                            },
+                            fieldType: FieldType.Color,
+                            title: 'Page Background Color',
+                            placeholder: 'White',
+                        },
+                        {
+                            field: {
+                                pageTextColor: true
+                            },
+                            fieldType: FieldType.Color,
+                            title: 'Page Text Color',
+                            placeholder: 'Black',
+                        },
+                    ],
+                    modelId: modelId,
+                }}
             />
 
 
-            <ModelTable<StatusPageFooterLink>
-                modelType={StatusPageFooterLink}
-                id="status-page-Footer-link"
-                isDeleteable={true}
-                sortBy="order"
-                sortOrder={SortOrder.Ascending}
-                isCreateable={true}
-                isViewable={false}
-                query={{
-                    statusPageId: modelId,
-                    projectId: props.currentProject?._id,
-                }}
-                enableDragAndDrop={true}
-                dragDropIndexField="order"
-                onBeforeCreate={(
-                    item: StatusPageFooterLink
-                ): Promise<StatusPageFooterLink> => {
-                    if (!props.currentProject || !props.currentProject.id) {
-                        throw new BadDataException('Project ID cannot be null');
-                    }
-                    item.statusPageId = modelId;
-                    item.projectId = props.currentProject.id;
-                    return Promise.resolve(item);
-                }}
-                cardProps={{
-                    icon: IconProp.Link,
-                    title: 'Footer Links',
-                    description:
-                        'Footer Links for your status page',
-                }}
-                noItemsMessage={
-                    'No status footer link for this status page.'
-                }
-                formFields={[
-                    {
-                        field: {
-                            title: true,
-                        },
-                        title: 'Title',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        placeholder: 'Title',
-                    },
-                    {
-                        field: {
-                            link: true,
-                        },
-                        title: 'Link',
-                        fieldType: FormFieldSchemaType.URL,
-                        required: true,
-                        placeholder: 'https://link.com',
-                    },
-                ]}
-                showRefreshButton={true}
-                showFilterButton={true}
-                viewPageRoute={props.pageRoute}
-                columns={[
-                    {
-                        field: {
-                            title: true,
-                        },
-                        title: 'Title',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                    },
-                    {
-                        field: {
-                            link: true,
-                        },
-                        title: 'Link',
-                        type: FieldType.URL,
-                        isFilterable: true,
-                    },
-                ]}
-            />
+
 
         </Page>
     );

@@ -54,6 +54,7 @@ import {
     FiList,
     FiLink2,
     FiExternalLink,
+    FiLayers
 } from 'react-icons/fi';
 
 export enum SizeProp {
@@ -133,7 +134,8 @@ export enum IconProp {
     Webhook,
     SendMessage,
     ExternalLink,
-    Link
+    Link,
+    Layers
 }
 
 export interface ComponentProps {
@@ -590,6 +592,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
                     color={color ? color.toString() : ''}
                 />
             )}
+            {icon === IconProp.Layers && (
+                <FiLayers
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : ''}
+                />
+            )}
+
         </div>
     );
 };
