@@ -49,6 +49,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
             {props.isCopyable && (
                 <div>
                     <span
+                        data-testid={props.dataTestId}
                         className="pointer underline"
                         onClick={async () => {
                             await navigator.clipboard.writeText(props.text);

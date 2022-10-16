@@ -54,12 +54,11 @@ describe('tests for HiddenText component', () => {
         const testId: HTMLElement = screen.getByTestId('test-id');
         expect(testId).toHaveClass('pointer');
     });
-    // test('it should have a title content displayed in document', () => {
-    //     render(<HiddenText text="title" />);
-    //     expect(screen.getByText('title')).toBeInTheDocument;
-    //     expect(screen.getByText('title')).toHaveTextContent('title');
-    // });
-    
+    test('it should have a class of  pointer underline', () => { 
+        render(<HiddenText text='text' dataTestId="test-id" isCopyable={true} />);
+        const testId: HTMLElement = screen.getByTestId('test-id');
+        expect(testId).toHaveClass('pointer underline');
+    });
 });
    
  
