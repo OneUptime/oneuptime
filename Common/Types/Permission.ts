@@ -111,6 +111,46 @@ enum Permission {
     CanReadProjectLabel = 'CanReadProjectLabel',
     CanDeleteProjectLabel = 'CanDeleteProjectLabel',
     CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
+    
+
+
+
+
+
+    // Scheduled Maintenance
+
+    // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
+    CanCreateScheduledMaintenanceState = 'CanCreateScheduledMaintenanceState',
+    CanEditScheduledMaintenanceState = 'CanEditScheduledMaintenanceState',
+    CanReadScheduledMaintenanceState = 'CanReadScheduledMaintenanceState',
+    CanDeleteScheduledMaintenanceState = 'CanDeleteScheduledMaintenanceState',
+
+    // Scheduled Maintenance Status Permissions (Owner + Admin Permission by default)
+    CanCreateScheduledMaintenanceStateTimeline = 'CanCreateScheduledMaintenanceStateTimeline',
+    CanEditScheduledMaintenanceStateTimeline = 'CanEditScheduledMaintenanceStateTimeline',
+    CanReadScheduledMaintenanceStateTimeline = 'CanReadScheduledMaintenanceStateTimeline',
+    CanDeleteScheduledMaintenanceStateTimeline = 'CanDeleteScheduledMaintenanceStateTimeline',
+
+
+    // Resource Permissions (Team Permission)
+    CanCreateScheduledMaintenanceInternalNote = 'CanCreateScheduledMaintenanceInternalNote',
+    CanEditScheduledMaintenanceInternalNote = 'CanEditScheduledMaintenanceInternalNote',
+    CanDeleteScheduledMaintenanceInternalNote = 'CanDeleteScheduledMaintenanceInternalNote',
+    CanReadScheduledMaintenanceInternalNote = 'CanReadScheduledMaintenanceInternalNote',
+
+    CanCreateScheduledMaintenancePublicNote = 'CanCreateScheduledMaintenancePublicNote',
+    CanEditScheduledMaintenancePublicNote = 'CanEditScheduledMaintenancePublicNote',
+    CanDeleteScheduledMaintenancePublicNote = 'CanDeleteScheduledMaintenancePublicNote',
+    CanReadScheduledMaintenancePublicNote = 'CanReadScheduledMaintenancePublicNote',
+
+
+     // Probe Permissions (Owner Permission)
+     CanCreateProjectScheduledMaintenance = 'CanCreateProjectScheduledMaintenance',
+     CanDeleteProjectScheduledMaintenance = 'CanDeleteProjectScheduledMaintenance',
+     CanEditProjectScheduledMaintenance = 'CanEditProjectScheduledMaintenance',
+     CanReadProjectScheduledMaintenance = 'CanReadProjectScheduledMaintenance',
+
+
 
     // Incident Status Permissions (Owner + Admin Permission by default)
     CanCreateIncidentState = 'CanCreateIncidentState',
@@ -1237,6 +1277,193 @@ export class PermissionHelper {
                 title: 'Can Read Status Page Subscriber',
                 description:
                     'A user assigned this permission  can read subscriber on status page of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            // Scheduled Maintenance Permissions. 
+
+
+            {
+                permission: Permission.CanCreateScheduledMaintenanceState,
+                title: 'Can Create Scheduled Maintenance State',
+                description:
+                    'A user assigned this permission can create Scheduled Maintenance states this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteScheduledMaintenanceState,
+                title: 'Can Delete Scheduled Maintenance State',
+                description:
+                    'A user assigned this permission  can delete Scheduled Maintenance states of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditScheduledMaintenanceState,
+                title: 'Can Edit Scheduled Maintenance State',
+                description:
+                    'A user assigned this permission can edit Scheduled Maintenance states of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadScheduledMaintenanceState,
+                title: 'Can Read Scheduled Maintenance State',
+                description:
+                    'A user assigned this permission  can read Scheduled Maintenance states of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateProjectScheduledMaintenance,
+                title: 'Can Create Scheduled Maintenance',
+                description:
+                    'A user assigned this permission can create Scheduled Maintenance this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanDeleteProjectScheduledMaintenance,
+                title: 'Can Delete Scheduled Maintenance',
+                description:
+                    'A user assigned this permission  can delete Scheduled Maintenance of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanEditProjectScheduledMaintenance,
+                title: 'Can Edit Scheduled Maintenance',
+                description:
+                    'A user assigned this permission can edit Scheduled Maintenance of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+            {
+                permission: Permission.CanReadProjectScheduledMaintenance,
+                title: 'Can Read Scheduled Maintenance',
+                description:
+                    'A user assigned this permission  can read Scheduled Maintenance of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: true,
+            },
+
+            {
+                permission: Permission.CanCreateScheduledMaintenanceStateTimeline,
+                title: 'Can Create Scheduled Maintenance State Timeline',
+                description:
+                    'A user assigned this permission can create Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteScheduledMaintenanceStateTimeline,
+                title: 'Can Delete Scheduled Maintenance State Timeline',
+                description:
+                    'A user assigned this permission  can delete Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditScheduledMaintenanceStateTimeline,
+                title: 'Can Edit Scheduled Maintenance State Timeline',
+                description:
+                    'A user assigned this permission can edit Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadScheduledMaintenanceStateTimeline,
+                title: 'Can Read Scheduled Maintenance State Timeline',
+                description:
+                    'A user assigned this permission can read Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateScheduledMaintenanceInternalNote,
+                title: 'Can Create Scheduled Maintenance Internal Note',
+                description:
+                    'A user assigned this permission can create Scheduled Maintenance Internal Note this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteScheduledMaintenanceInternalNote,
+                title: 'Can Delete Scheduled Maintenance Internal Note',
+                description:
+                    'A user assigned this permission  can delete Scheduled Maintenance Internal Note of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditScheduledMaintenanceInternalNote,
+                title: 'Can Edit Scheduled Maintenance Internal Note',
+                description:
+                    'A user assigned this permission can edit Scheduled Maintenance Internal Note of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadScheduledMaintenanceInternalNote,
+                title: 'Can Read Scheduled Maintenance Internal Note',
+                description:
+                    'A user assigned this permission  can read Scheduled Maintenance Internal Note of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateScheduledMaintenancePublicNote,
+                title: 'Can Create Scheduled Maintenance Status Page Note',
+                description:
+                    'A user assigned this permission can create Scheduled Maintenance Status Page Note this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteScheduledMaintenancePublicNote,
+                title: 'Can Delete Scheduled Maintenance Status Page Note',
+                description:
+                    'A user assigned this permission  can delete Scheduled Maintenance Status Page Note of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditScheduledMaintenancePublicNote,
+                title: 'Can Edit Scheduled Maintenance Status Page Note',
+                description:
+                    'A user assigned this permission can edit Scheduled Maintenance Status Page Note of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadScheduledMaintenancePublicNote,
+                title: 'Can Read Scheduled Maintenance Status Page Note',
+                description:
+                    'A user assigned this permission  can read Scheduled Maintenance Status Page Note of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
