@@ -494,11 +494,11 @@ const BasicForm: Function = <T extends Object>(
                                         }}
                                         initialValue={
                                             initialValues &&
-                                                (initialValues as any)[fieldName]
+                                                ((initialValues as any)[fieldName] && ((initialValues as any)[fieldName] === true || (initialValues as any)[fieldName] === false))
                                                 ? (initialValues as any)[
                                                 fieldName
                                                 ]
-                                                : false
+                                                : field.defaultValue || false
                                         }
                                     />
                                 </>
@@ -556,7 +556,7 @@ const BasicForm: Function = <T extends Object>(
                                             initialValues &&
                                                 (initialValues as any)[fieldName]
                                                 ? (initialValues as any)[fieldName]
-                                                : ''
+                                                : field.defaultValue || ''
                                         }
                                         placeholder={field.placeholder || ''}
                                     />

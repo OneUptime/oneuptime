@@ -249,6 +249,54 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanCreateStatusPageResource,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+    })
+    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @Column({
+        nullable: true,
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+    })
+    public displayTooltip?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageResource,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showCurrentStatus?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageResource,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public showStatusHistoryChart?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageResource,
+        ],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
         update: [],
     })
     @TableColumn({
