@@ -3,6 +3,8 @@
 // 
 
 .table {
+  --bs-table-border-color: #cfcfcf;
+  
   th {
       font-weight: $font-weight-bold;
   }
