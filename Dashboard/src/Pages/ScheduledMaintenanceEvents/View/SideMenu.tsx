@@ -22,7 +22,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                            RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
                             props.modelId
                         ),
                     }}
@@ -33,7 +33,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'State Timeline',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
                             ] as Route,
                             props.modelId
                         ),
@@ -42,12 +42,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
-            <SideMenuSection title="Incident Notes">
+            <SideMenuSection title="Scheduled Maintenance Notes">
                 <SideMenuItem
                     link={{
                         title: 'Private Notes',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
+                            RouteMap[PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE] as Route,
                             props.modelId
                         ),
                     }}
@@ -57,7 +57,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Public Notes',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route,
+                            RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE] as Route,
                             props.modelId
                         ),
                     }}
@@ -68,9 +68,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
-                        title: 'Delete Incident',
+                        title: 'Delete Scheduled Maintenance',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route,
+                            RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE] as Route,
                             props.modelId
                         ),
                     }}

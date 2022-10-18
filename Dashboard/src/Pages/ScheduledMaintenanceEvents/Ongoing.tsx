@@ -4,15 +4,15 @@ import PageComponentProps from '../PageComponentProps';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
-import IncidentsTable from '../../Components/Incident/IncidentsTable';
+import ScheduledMaintenanceTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
 import SideMenu from './SideMenu';
 
-const IncidentsPage: FunctionComponent<PageComponentProps> = (
+const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
-            title={'Incidents'}
+            title={'ScheduledMaintenances'}
             sideMenu={<SideMenu project={props.currentProject || undefined} />}
             breadcrumbLinks={[
                 {
@@ -20,30 +20,30 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {
-                    title: 'Incidents',
-                    to: RouteMap[PageMap.INCIDENTS] as Route,
+                    title: 'Scheduled Maintenance Events',
+                    to: RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
                 },
                 {
-                    title: 'Unresolved Incidents',
-                    to: RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route,
+                    title: 'Ongoing Scheduled Maintenance',
+                    to: RouteMap[PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route,
                 },
             ]}
         >
-            <IncidentsTable
+            <ScheduledMaintenanceTable
                 currentProject={props.currentProject || undefined}
-                viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
+                viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
                 query={{
                     projectId: props.currentProject?._id,
-                    currentIncidentState: {
-                        isResolvedState: false,
+                    currentScheduledMaintenanceState: {
+                        isOngoingState: false,
                     },
                 }}
-                noItemsMessage="Nice work! No unresolved incidents so far."
-                title="Unresolved Incidents"
-                description="Here is a list of all the unresolved incidents for this project."
+                noItemsMessage="No ongoing events so far."
+                title="Ongoing Scheduled Maintenances"
+                description="Here is a list of all the ongoing events for this project."
             />
         </Page>
     );
 };
 
-export default IncidentsPage;
+export default ScheduledMaintenancesPage;

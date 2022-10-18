@@ -8,7 +8,7 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import Incident from 'Model/Models/Incident';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 
 const IncidentDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -19,7 +19,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-            title={'Incidents'}
+            title={'Scheduled Maintenance Event'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -29,23 +29,23 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Incidents',
+                    title: 'Scheduled Maintenance Events',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENTS] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
                         modelId
                     ),
                 },
                 {
-                    title: 'View Incident',
+                    title: 'View Scheduled Maintenance Event',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
                         modelId
                     ),
                 },
                 {
-                    title: 'Delete Incident',
+                    title: 'Delete Scheduled Maintenance',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE] as Route,
                         modelId
                     ),
                 },
@@ -53,10 +53,10 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <ModelDelete
-                modelType={Incident}
+                modelType={ScheduledMaintenance}
                 modelId={modelId}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(RouteMap[PageMap.INCIDENTS] as Route);
+                    Navigation.navigate(RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route);
                 }}
             />
         </Page>

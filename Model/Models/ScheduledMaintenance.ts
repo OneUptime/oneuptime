@@ -262,8 +262,7 @@ export default class ScheduledMaintenance extends BaseModel {
             referencedColumnName: '_id',
         },
     })
-    public stausPages?: Array<StatusPage> = undefined; // visible on which status page? 
-
+    public statusPages?: Array<StatusPage> = undefined; // visible on which status page? 
 
 
     @ColumnAccessControl({
@@ -383,7 +382,7 @@ export default class ScheduledMaintenance extends BaseModel {
         nullable: false,
         type: ColumnType.Date,
     })
-    public startAt?: Date = undefined;
+    public startsAt?: Date = undefined;
 
     @TableColumn({
         title: 'End At',
@@ -399,5 +398,5 @@ export default class ScheduledMaintenance extends BaseModel {
         nullable: false,
         type: ColumnType.Date,
     })
-    public endAt?: Date = undefined;
+    public endsAt?: Date = undefined;
 }

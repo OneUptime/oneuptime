@@ -7,7 +7,7 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
+import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import ModelTable, {
     ShowTableAs,
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -28,7 +28,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-            title={'Incidents'}
+        title={'Scheduled Maintenance Event'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -38,47 +38,47 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Incidents',
+                    title: 'Scheduled Maintenance Events',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENTS] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
                         modelId
                     ),
                 },
                 {
-                    title: 'View Incident',
+                    title: 'View Scheduled Maintenance Event',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
                         modelId
                     ),
                 },
                 {
-                    title: 'Internal Notes',
+                    title: 'Public Notes',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelTable<IncidentPublicNote>
-                modelType={IncidentPublicNote}
-                id="table-incident-internal-note"
+            <ModelTable<ScheduledMaintenancePublicNote>
+                modelType={ScheduledMaintenancePublicNote}
+                id="table-scheduled-maintenance-internal-note"
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}
                 isViewable={false}
                 query={{
-                    incidentId: modelId,
+                    scheduledMaintenanceId: modelId,
                     projectId: props.currentProject?._id,
                 }}
                 onBeforeCreate={(
-                    item: IncidentPublicNote
-                ): Promise<IncidentPublicNote> => {
+                    item: ScheduledMaintenancePublicNote
+                ): Promise<ScheduledMaintenancePublicNote> => {
                     if (!props.currentProject || !props.currentProject.id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
-                    item.incidentId = modelId;
+                    item.scheduledMaintenanceId = modelId;
                     item.projectId = props.currentProject.id;
                     return Promise.resolve(item);
                 }}
@@ -86,23 +86,23 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.User,
                     title: 'Public Notes',
                     description:
-                        'Here are public notes for this incident. This will show up on the status page.',
+                        'Here are public notes for this scheduled maintenance. This will show up on the status page.',
                 }}
                 noItemsMessage={
-                    'No public notes created for this incident so far.'
+                    'No public notes created for this scheduled maintenance so far.'
                 }
                 formFields={[
                     {
                         field: {
                             note: true,
                         },
-                        title: 'Public Incident Note',
+                        title: 'Public Scheduled Maintenance Note',
                         description:
                             'This is in markdown. This note is private to your team members and is not visible to public.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
                         placeholder:
-                            'Add a private note to this incident here.',
+                            'Add a private note to this scheduled maintenance here.',
                     },
                 ]}
                 showRefreshButton={true}

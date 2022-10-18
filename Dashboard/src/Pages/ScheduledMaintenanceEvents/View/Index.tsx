@@ -13,22 +13,23 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Incident from 'Model/Models/Incident';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import MonitorsElement from '../../../Components/Monitor/Monitors';
 import Monitor from 'Model/Models/Monitor';
-import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import ChangeIncidentState, {
-    IncidentType,
-} from '../../../Components/Incident/ChangeState';
+import ChangeScheduledMaintenanceState, {
+    StateType,
+} from '../../../Components/ScheduledMaintenance/ChangeState';
 import BaseModel from 'Common/Models/BaseModel';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Label from 'Model/Models/Label';
 import LabelsElement from '../../../Components/Label/Labels';
+import StatusPage from 'Model/Models/StatusPage';
+import StatusPagesElement from '../../../Components/StatusPage/StatusPagesLabel';
 
-const IncidentView: FunctionComponent<PageComponentProps> = (
+const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
@@ -37,7 +38,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-            title={'Incidents'}
+            title={'Scheduled Maintenance Event'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -47,28 +48,28 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Incidents',
+                    title: 'Scheduled Maintenance Events',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENTS] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
                         modelId
                     ),
                 },
                 {
-                    title: 'View Incident',
+                    title: 'View Scheduled Maintenance Event',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            {/* Incident View  */}
+            {/* ScheduledMaintenance View  */}
             <CardModelDetail
                 cardProps={{
-                    title: 'Incident Details',
-                    description: "Here's more details for this monitor.",
-                    icon: IconProp.Activity,
+                    title: 'Scheduled Maintenance Details',
+                    description: "Here's more details for this event.",
+                    icon: IconProp.Clock,
                 }}
                 isEditable={true}
                 formFields={[
@@ -76,10 +77,10 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         field: {
                             title: true,
                         },
-                        title: 'Incident Title',
+                        title: 'Scheduled Maintenance Title',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Incident Title',
+                        placeholder: 'Scheduled Maintenance Title',
                         validation: {
                             minLength: 2,
                         },
@@ -93,21 +94,55 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
-
                     {
                         field: {
-                            incidentSeverity: true,
+                            startsAt: true,
                         },
-                        title: 'Incident Severity',
-                        description: 'What type of incident is this?',
-                        fieldType: FormFieldSchemaType.Dropdown,
+                        title: 'Event Starts At',
+                        description: 'This is in your local timezone',
+                        fieldType: FormFieldSchemaType.DateTime,
+                        required: true,
+                        placeholder: 'Pick Date and Time',
+                    },
+                    {
+                        field: {
+                            endsAt: true,
+                        },
+                        title: 'Ends At',
+                        description: 'This is in your local timezone',
+                        fieldType: FormFieldSchemaType.DateTime,
+                        required: true,
+                        placeholder: 'Pick Date and Time',
+                    },
+                    {
+                        field: {
+                            monitors: true,
+                        },
+                        title: 'Monitors affected (Optional)',
+                        description: 'Select monitors affected by this scheduled maintenance.',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
                         dropdownModal: {
-                            type: IncidentSeverity,
+                            type: Monitor,
                             labelField: 'name',
                             valueField: '_id',
                         },
                         required: true,
-                        placeholder: 'Incident Severity',
+                        placeholder: 'Monitors affected',
+                    },
+                    {
+                        field: {
+                            statusPages: true,
+                        },
+                        title: 'Show event on these status pages (Optional)',
+                        description: 'Select status pages to show this event on',
+                        fieldType: FormFieldSchemaType.MultiSelectDropdown,
+                        dropdownModal: {
+                            type: StatusPage,
+                            labelField: 'name',
+                            valueField: '_id',
+                        },
+                        required: true,
+                        placeholder: 'Select Status Pages',
                     },
                     {
                         field: {
@@ -128,13 +163,13 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 ]}
                 modelDetailProps={{
                     onBeforeFetch: async (): Promise<JSONObject> => {
-                        // get ack incident.
+                        // get ack scheduledMaintenance.
 
-                        const incidentTimelines: ListResult<IncidentStateTimeline> =
+                        const scheduledMaintenanceTimelines: ListResult<ScheduledMaintenanceStateTimeline> =
                             await ModelAPI.getList(
-                                IncidentStateTimeline,
+                                ScheduledMaintenanceStateTimeline,
                                 {
-                                    incidentId: modelId,
+                                    scheduledMaintenanceId: modelId,
                                 },
                                 99,
                                 0,
@@ -149,32 +184,33 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         name: true,
                                         email: true,
                                     },
-                                    incidentState: {
+                                    scheduledMaintenanceState: {
                                         name: true,
                                         isResolvedState: true,
-                                        isAcknowledgedState: true,
+                                        isOngoingState: true,
+                                        isScheduledState: true
                                     },
                                 }
                             );
 
-                        return incidentTimelines;
+                        return scheduledMaintenanceTimelines;
                     },
                     showDetailsInNumberOfColumns: 2,
-                    modelType: Incident,
-                    id: 'model-detail-incidents',
+                    modelType: ScheduledMaintenance,
+                    id: 'model-detail-scheduledMaintenances',
                     fields: [
                         {
                             field: {
                                 _id: true,
                             },
-                            title: 'Incident ID',
+                            title: 'Scheduled Maintenance ID',
                             fieldType: FieldType.ObjectID,
                         },
                         {
                             field: {
                                 title: true,
                             },
-                            title: 'Incident Title',
+                            title: 'Scheduled Maintenance Title',
                             fieldType: FieldType.Text,
                         },
                         {
@@ -186,7 +222,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                currentIncidentState: {
+                                currentScheduledMaintenanceState: {
                                     color: true,
                                     name: true,
                                 },
@@ -194,9 +230,9 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             title: 'Current State',
                             fieldType: FieldType.Entity,
                             getElement: (item: JSONObject): ReactElement => {
-                                if (!item['currentIncidentState']) {
+                                if (!item['currentScheduledMaintenanceState']) {
                                     throw new BadDataException(
-                                        'Incident Status not found'
+                                        'Scheduled Maintenance Status not found'
                                     );
                                 }
 
@@ -205,50 +241,14 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                    'currentScheduledMaintenanceState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'currentIncidentState'
-                                                ] as JSONObject
-                                            )['name'] as string
-                                        }
-                                    />
-                                );
-                            },
-                        },
-                        {
-                            field: {
-                                incidentSeverity: {
-                                    color: true,
-                                    name: true,
-                                },
-                            },
-                            title: 'Incident Severity',
-                            fieldType: FieldType.Entity,
-                            getElement: (item: JSONObject): ReactElement => {
-                                if (!item['incidentSeverity']) {
-                                    throw new BadDataException(
-                                        'Incident Severity not found'
-                                    );
-                                }
-
-                                return (
-                                    <Pill
-                                        color={
-                                            (
-                                                item[
-                                                    'incidentSeverity'
-                                                ] as JSONObject
-                                            )['color'] as Color
-                                        }
-                                        text={
-                                            (
-                                                item[
-                                                    'incidentSeverity'
+                                                    'currentScheduledMaintenanceState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -272,6 +272,30 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                             Monitor.fromJSON(
                                                 (item[
                                                     'monitors'
+                                                ] as JSONArray) || [],
+                                                Monitor
+                                            ) as Array<Monitor>
+                                        }
+                                    />
+                                );
+                            },
+                        },
+                        {
+                            field: {
+                                statusPages: {
+                                    name: true,
+                                    _id: true,
+                                },
+                            },
+                            title: 'Shown on Status Pages',
+                            fieldType: FieldType.Text,
+                            getElement: (item: JSONObject): ReactElement => {
+                                return (
+                                    <StatusPagesElement
+                                        statusPages={
+                                            Monitor.fromJSON(
+                                                (item[
+                                                    'statusPages'
                                                 ] as JSONArray) || [],
                                                 Monitor
                                             ) as Array<Monitor>
@@ -311,7 +335,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         {
-                            title: 'Acknowledge Incident',
+                            title: 'Change State to Ongoing',
                             fieldType: FieldType.Text,
                             getElement: (
                                 _item: JSONObject,
@@ -319,14 +343,14 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 fetchItems: Function
                             ): ReactElement => {
                                 return (
-                                    <ChangeIncidentState
-                                        incidentId={modelId}
-                                        incidentTimeline={
+                                    <ChangeScheduledMaintenanceState
+                                        scheduledMaintenanceId={modelId}
+                                        scheduledMaintenanceTimeline={
                                             onBeforeFetchData[
                                                 'data'
                                             ] as Array<BaseModel>
                                         }
-                                        incidentType={IncidentType.Ack}
+                                        stateType={StateType.Ongoing}
                                         onActionComplete={() => {
                                             fetchItems();
                                         }}
@@ -335,7 +359,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                             },
                         },
                         {
-                            title: 'Resolve Incident',
+                            title: 'Change State to Completed',
                             fieldType: FieldType.Text,
                             getElement: (
                                 _item: JSONObject,
@@ -343,14 +367,14 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                 fetchItems: Function
                             ): ReactElement => {
                                 return (
-                                    <ChangeIncidentState
-                                        incidentId={modelId}
-                                        incidentTimeline={
+                                    <ChangeScheduledMaintenanceState
+                                        scheduledMaintenanceId={modelId}
+                                        scheduledMaintenanceTimeline={
                                             onBeforeFetchData[
                                                 'data'
                                             ] as Array<BaseModel>
                                         }
-                                        incidentType={IncidentType.Resolve}
+                                        stateType={StateType.Completed}
                                         onActionComplete={() => {
                                             fetchItems();
                                         }}
@@ -366,4 +390,4 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default IncidentView;
+export default ScheduledMaintenanceView;

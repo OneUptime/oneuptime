@@ -4,15 +4,15 @@ import PageComponentProps from '../PageComponentProps';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
-import IncidentsTable from '../../Components/Incident/IncidentsTable';
 import SideMenu from './SideMenu';
+import ScheduledMaintenancesTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
 
-const IncidentsPage: FunctionComponent<PageComponentProps> = (
+const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
-            title={'Incidents'}
+            title={'Scheduled Maintenance'}
             sideMenu={<SideMenu project={props.currentProject || undefined} />}
             breadcrumbLinks={[
                 {
@@ -20,12 +20,12 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {
-                    title: 'Incidents',
-                    to: RouteMap[PageMap.INCIDENTS] as Route,
+                    title: 'Scheduled Maintenance',
+                    to: RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
                 },
             ]}
         >
-            <IncidentsTable
+            <ScheduledMaintenancesTable
                 currentProject={props.currentProject || undefined}
                 viewPageRoute={props.pageRoute}
                 query={{
@@ -36,4 +36,4 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default IncidentsPage;
+export default ScheduledMaintenancesPage;

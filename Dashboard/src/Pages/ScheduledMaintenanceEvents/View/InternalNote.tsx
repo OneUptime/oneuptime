@@ -7,7 +7,7 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
+import ScheduledMaintenanceInternalNote from 'Model/Models/ScheduledMaintenanceInternalNote';
 import ModelTable, {
     ShowTableAs,
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -19,7 +19,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
 
-const IncidentDelete: FunctionComponent<PageComponentProps> = (
+const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = new ObjectID(
@@ -28,7 +28,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-            title={'Incidents'}
+        title={'Scheduled Maintenance Event'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -38,70 +38,70 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Incidents',
+                    title: 'Scheduled Maintenance Events',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENTS] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
                         modelId
                     ),
                 },
                 {
-                    title: 'View Incident',
+                    title: 'View Scheduled Maintenance Event',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
                         modelId
                     ),
                 },
                 {
                     title: 'Private Notes',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <ModelTable<IncidentInternalNote>
-                modelType={IncidentInternalNote}
-                id="table-incident-internal-note"
+            <ModelTable<ScheduledMaintenanceInternalNote>
+                modelType={ScheduledMaintenanceInternalNote}
+                id="table-scheduled-maintenance-internal-note"
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}
                 isViewable={false}
                 query={{
-                    incidentId: modelId,
+                    scheduledMaintenanceId: modelId,
                     projectId: props.currentProject?._id,
                 }}
                 onBeforeCreate={(
-                    item: IncidentInternalNote
-                ): Promise<IncidentInternalNote> => {
+                    item: ScheduledMaintenanceInternalNote
+                ): Promise<ScheduledMaintenanceInternalNote> => {
                     if (!props.currentProject || !props.currentProject.id) {
                         throw new BadDataException('Project ID cannot be null');
                     }
-                    item.incidentId = modelId;
+                    item.scheduledMaintenanceId = modelId;
                     item.projectId = props.currentProject.id;
                     return Promise.resolve(item);
                 }}
                 cardProps={{
                     icon: IconProp.Lock,
                     title: 'Private Notes',
-                    description: 'Here are private notes for this incident.',
+                    description: 'Here are private notes for this scheduled maintenance.',
                 }}
                 noItemsMessage={
-                    'No private notes created for this incident so far.'
+                    'No private notes created for this scheduled maintenance so far.'
                 }
                 formFields={[
                     {
                         field: {
                             note: true,
                         },
-                        title: 'Private Incident Note',
+                        title: 'Private Scheduled Maintenance Note',
                         description:
                             'This is in markdown. This note is private to your team members and is not visible to public.',
                         fieldType: FormFieldSchemaType.Markdown,
                         required: true,
                         placeholder:
-                            'Add a private note to this incident here.',
+                            'Add a private note to this scheduled maintenance here.',
                     },
                 ]}
                 showRefreshButton={true}
@@ -152,4 +152,4 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default IncidentDelete;
+export default ScheduledMaintenanceDelete;

@@ -40,7 +40,7 @@ export class Service extends DatabaseService<Model> {
 
         if (!incidentState || !incidentState.id) {
             throw new BadDataException(
-                'Created state not found for this project. Please add an operational status'
+                'Created incident state not found for this project. Please add created incident state from settings.'
             );
         }
 
