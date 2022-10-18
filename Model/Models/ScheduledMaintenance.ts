@@ -45,7 +45,7 @@ import StatusPage from './StatusPage';
 @Entity({
     name: 'ScheduledMaintenance',
 })
-@SingularPluralName('ScheduledMaintenance', 'ScheduledMaintenances')
+@SingularPluralName('Scheduled Maintenance Event', 'Scheduled Maintenance Events')
 export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectScheduledMaintenance],
@@ -77,7 +77,7 @@ export default class ScheduledMaintenance extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, canReadOnPopulate: true})
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -360,7 +360,7 @@ export default class ScheduledMaintenance extends BaseModel {
         update: [Permission.ProjectOwner, Permission.CanEditProjectScheduledMaintenance],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: false })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

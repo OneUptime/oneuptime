@@ -172,7 +172,7 @@ export default class Probe extends BaseModel {
         read: [Permission.Public],
         update: [],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, required: true, canReadOnPopulate: true})
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,
