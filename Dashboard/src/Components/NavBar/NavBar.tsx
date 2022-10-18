@@ -57,12 +57,14 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ></NavBarItem>
 
             <NavBarItem
-                title="On-Call Duty"
+                title="Scheduled Maintenance"
                 route={RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.ON_CALL_DUTY] as Route
+                    RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
                 )}
-                icon={IconProp.Call}
+                icon={IconProp.Clock}
             ></NavBarItem>
+
+
 
             <NavBarItem
                 title="Status Pages"
@@ -89,6 +91,13 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                             )}
                             icon={IconProp.Error}
                         />
+                        <NavBarMenuItem
+                            title="On-Call Duty"
+                            route={RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.ON_CALL_DUTY] as Route
+                            )}
+                            icon={IconProp.Call}
+                        ></NavBarMenuItem>
                     </NavBarMenuColumn>
                     <NavBarMenuColumn title="Advanced">
                         <NavBarMenuItem

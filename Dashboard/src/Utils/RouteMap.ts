@@ -18,6 +18,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`
     ),
 
+    [PageMap.MONITOR_VIEW_INCIDENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/incidents`
+    ),
+
     [PageMap.INCIDENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents`
     ),
@@ -34,9 +38,7 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/state-timeline`
     ),
 
-    [PageMap.MONITOR_VIEW_INCIDENTS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/incidents`
-    ),
+  
 
     [PageMap.INCIDENT_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
@@ -49,6 +51,39 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.INCIDENT_PUBLIC_NOTE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/public-notes`
     ),
+
+
+    
+    [PageMap.SCHEDULED_MAINTENANCE_EVENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events`
+    ),
+
+    [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/ongoing`
+    ),
+
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/state-timeline`
+    ),
+
+  
+
+    [PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/delete`
+    ),
+
+    [PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/internal-notes`
+    ),
+
+    [PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/public-notes`
+    ),
+
 
     [PageMap.STATUS_PAGES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages`
@@ -184,6 +219,10 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SETTINGS_INCIDENTS_STATE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/incidents-state`
+    ),
+
+    [PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/scheduled-maintenance-state`
     ),
 
     [PageMap.SETTINGS_INCIDENTS_SEVERITY]: new Route(

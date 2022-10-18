@@ -43,6 +43,15 @@ import IncidentInternalNote from './Pages/Incidents/View/InternalNote';
 import IncidentPublicNote from './Pages/Incidents/View/PublicNote';
 import UnresolvedIncidents from './Pages/Incidents/Unresolved';
 
+
+import ScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents';
+import ScheduledMaintenanceEventView from './Pages/ScheduledMaintenanceEvents/View/Index';
+import ScheduledMaintenanceEventViewDelete from './Pages/ScheduledMaintenanceEvents/View/Delete';
+import ScheduledMaintenanceEventViewStateTimeline from './Pages/ScheduledMaintenanceEvents/View/StateTimeline';
+import ScheduledMaintenanceEventInternalNote from './Pages/ScheduledMaintenanceEvents/View/InternalNote';
+import ScheduledMaintenanceEventPublicNote from './Pages/ScheduledMaintenanceEvents/View/PublicNote';
+import OngoingScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/Ongoing';
+
 import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap from './Utils/RouteMap';
@@ -59,6 +68,7 @@ import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
 import SettingsMonitors from './Pages/Settings/MonitorStatus';
 import SettingsIncidents from './Pages/Settings/IncidentState';
+import SettingsScheduledMaintenanceState from './Pages/Settings/ScheduledMaintenanceState';
 import SettingsDomains from './Pages/Settings/Domains';
 import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
 
@@ -674,6 +684,105 @@ const App: FunctionComponent = () => {
                     }
                 />
 
+
+
+                {/* Scheduled Events */}
+
+
+
+
+
+
+
+
+                <PageRoute
+                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEvents
+                            pageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]?.toString()}
+                    element={
+                        <OngoingScheduledMaintenanceEvents
+                            pageRoute={
+                                RouteMap[PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventView
+                            pageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventViewDelete
+                            pageRoute={
+                                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                    ]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventViewStateTimeline
+                            pageRoute={
+                                RouteMap[
+                                PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventInternalNote
+                            pageRoute={
+                                RouteMap[
+                                PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventPublicNote
+                            pageRoute={
+                                RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+
+
                 {/* Logs */}
 
                 <PageRoute
@@ -741,6 +850,22 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                 PageMap.SETTINGS_INCIDENTS_STATE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                    ]?.toString()}
+                    element={
+                        <SettingsScheduledMaintenanceState
+                            pageRoute={
+                                RouteMap[
+                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                                 ] as Route
                             }
                             currentProject={selectedProject}
