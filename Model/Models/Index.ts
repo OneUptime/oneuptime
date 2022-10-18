@@ -42,6 +42,14 @@ import IncidentPublicNote from './IncidentPublicNote';
 import IncidentInternalNote from './IncidentInternalNote';
 import IncidentSeverity from './IncidentSeverity';
 
+
+// ScheduledMaintenances
+import ScheduledMaintenance from './ScheduledMaintenance';
+import ScheduledMaintenanceState from './ScheduledMaintenanceState';
+import ScheduledMaintenanceStateTimeline from './ScheduledMaintenanceStateTimeline';
+import ScheduledMaintenancePublicNote from './ScheduledMaintenancePublicNote';
+import ScheduledMaintenanceInternalNote from './ScheduledMaintenanceInternalNote';
+
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 
@@ -80,5 +88,11 @@ export default [
     StatusPageAnnouncement,
     StatusPageSubscriber,
     StatusPageFooterLink,
-    StatusPageHeaderLink
+    StatusPageHeaderLink,
+
+    ScheduledMaintenanceState,
+    ScheduledMaintenance,
+    ScheduledMaintenanceStateTimeline,
+    ScheduledMaintenancePublicNote,
+    ScheduledMaintenanceInternalNote,
 ];

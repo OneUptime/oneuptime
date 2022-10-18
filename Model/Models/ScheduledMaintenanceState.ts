@@ -223,7 +223,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
         type: ColumnType.Boolean,
         default: false,
     })
-    public isCreatedState?: boolean = undefined;
+    public isScheduledState?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
@@ -239,7 +239,7 @@ export default class ScheduledMaintenanceState extends BaseModel {
         type: ColumnType.Boolean,
         default: false,
     })
-    public isAcknowledgedState?: boolean = undefined;
+    public isOngoingState?: boolean = undefined;
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],

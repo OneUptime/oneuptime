@@ -29,6 +29,7 @@ import MonitorStatus from './MonitorStatus';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import Label from './Label';
+import StatusPage from './StatusPage';
 
 @AccessControlColumn('labels')
 @MultiTenentQueryAllowed(true)
@@ -233,6 +234,38 @@ export default class ScheduledMaintenance extends BaseModel {
     })
     public monitors?: Array<Monitor> = undefined; // monitors affected by this scheduledMaintenance.
 
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectScheduledMaintenance],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectScheduledMaintenance],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectScheduledMaintenance],
+    })
+    @TableColumn({
+        required: false,
+        type: TableColumnType.EntityArray,
+        modelType: StatusPage,
+    })
+    @ManyToMany(
+        () => {
+            return StatusPage;
+        },
+        { eager: false }
+    )
+    @JoinTable({
+        name: 'ScheduledMaintenanceStatusPage',
+        inverseJoinColumn: {
+            name: 'statusPageId',
+            referencedColumnName: '_id',
+        },
+        joinColumn: {
+            name: 'scheduledMaintenanceId',
+            referencedColumnName: '_id',
+        },
+    })
+    public stausPages?: Array<StatusPage> = undefined; // visible on which status page? 
+
+
+
     @ColumnAccessControl({
         create: [Permission.ProjectOwner, Permission.CanCreateProjectScheduledMaintenance],
         read: [Permission.ProjectOwner, Permission.CanReadProjectScheduledMaintenance],
@@ -331,8 +364,40 @@ export default class ScheduledMaintenance extends BaseModel {
     @TableColumn({ type: TableColumnType.ObjectID, required: true })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: false,
+        nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public changeMonitorStatusToId?: ObjectID = undefined;
+
+    @TableColumn({
+        title: 'Start At',
+        type: TableColumnType.Date,
+        required: true,
+    })
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectScheduledMaintenance],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectScheduledMaintenance],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectScheduledMaintenance],
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.Date,
+    })
+    public startAt?: Date = undefined;
+
+    @TableColumn({
+        title: 'End At',
+        type: TableColumnType.Date,
+        required: true,
+    })
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectScheduledMaintenance],
+        read: [Permission.ProjectOwner, Permission.CanReadProjectScheduledMaintenance],
+        update: [Permission.ProjectOwner, Permission.CanEditProjectScheduledMaintenance],
+    })
+    @Column({
+        nullable: false,
+        type: ColumnType.Date,
+    })
+    public endAt?: Date = undefined;
 }
