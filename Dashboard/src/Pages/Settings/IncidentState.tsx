@@ -34,7 +34,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.SETTINGS] as Route,
                 },
                 {
-                    title: 'Incidents',
+                    title: 'Incident State',
                     to: RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route,
                 },
             ]}

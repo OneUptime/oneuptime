@@ -12,7 +12,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     return (
         <Page
-            title={'ScheduledMaintenances'}
+            title={'Scheduled Maintenance Events'}
             sideMenu={<SideMenu project={props.currentProject || undefined} />}
             breadcrumbLinks={[
                 {
@@ -35,7 +35,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                 query={{
                     projectId: props.currentProject?._id,
                     currentScheduledMaintenanceState: {
-                        isOngoingState: false,
+                        isOngoingState: true,
                     },
                 }}
                 noItemsMessage="No ongoing events so far."

@@ -17,6 +17,7 @@ import Route from 'Common/Types/API/Route';
 import Project from 'Model/Models/Project';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../StatusPage/StatusPagesLabel';
+import MonitorStatus from 'Model/Models/MonitorStatus';
 
 export interface ComponentProps {
     query?: Query<ScheduledMaintenance> | undefined;
@@ -106,6 +107,22 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                 },
                 {
                     field: {
+                        changeMonitorStatusTo: true,
+                    },
+                    title: 'Change Monitor Status to (optional)',
+                    description:
+                        'This will change the status of all the monitors attached when the event starts.',
+                    fieldType: FormFieldSchemaType.Dropdown,
+                    dropdownModal: {
+                        type: MonitorStatus,
+                        labelField: 'name',
+                        valueField: '_id',
+                    },
+                    required: false,
+                    placeholder: 'Monitor Status',
+                },
+                {
+                    field: {
                         statusPages: true,
                     },
                     title: 'Show event on these status pages (Optional)',
@@ -144,7 +161,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     field: {
                         _id: true,
                     },
-                    title: 'ScheduledMaintenance ID',
+                    title: 'Scheduled Maintenance ID',
                     type: FieldType.Text,
                     isFilterable: true,
                 },

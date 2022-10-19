@@ -4,15 +4,15 @@ import PageComponentProps from '../PageComponentProps';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
+import ScheduledMaintenanceTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
 import SideMenu from './SideMenu';
-import ScheduledMaintenancesTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
 
 const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
-            title={'Scheduled Maintenance Events'}
+            title={'Home'}
             sideMenu={<SideMenu project={props.currentProject || undefined} />}
             breadcrumbLinks={[
                 {
@@ -20,17 +20,27 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {
-                    title: 'Scheduled Maintenance',
-                    to: RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
+                    title: 'Home',
+                    to: RouteMap[PageMap.HOME] as Route,
+                },
+                {
+                    title: 'Ongoing Scheduled Maintenance',
+                    to: RouteMap[PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route,
                 },
             ]}
         >
-            <ScheduledMaintenancesTable
+            <ScheduledMaintenanceTable
                 currentProject={props.currentProject || undefined}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
                 query={{
                     projectId: props.currentProject?._id,
+                    currentScheduledMaintenanceState: {
+                        isOngoingState: true,
+                    },
                 }}
+                noItemsMessage="No ongoing events so far."
+                title="Ongoing Scheduled Maintenances"
+                description="Here is a list of all the ongoing events for this project."
             />
         </Page>
     );

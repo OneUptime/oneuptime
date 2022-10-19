@@ -8,7 +8,7 @@ import DashboardSideMenu from './SideMenu';
 import ModelTable, {
     ShowTableAs,
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
-import IncidentState from 'Model/Models/IncidentState';
+import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -18,7 +18,7 @@ import Color from 'Common/Types/Color';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
-const IncidentsPage: FunctionComponent<PageComponentProps> = (
+const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     return (
@@ -34,42 +34,42 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.SETTINGS] as Route,
                 },
                 {
-                    title: 'Incidents',
-                    to: RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route,
+                    title: 'Scheduled Maintenance State',
+                    to: RouteMap[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-            <ModelTable<IncidentState>
-                modelType={IncidentState}
-                id="incident-state-table"
+            <ModelTable<ScheduledMaintenanceState>
+                modelType={ScheduledMaintenanceState}
+                id="ScheduledMaintenance-state-table"
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Disc,
-                    title: 'Incident State',
+                    icon: IconProp.Clock,
+                    title: 'Scheduled Maintenance State',
                     description:
-                        'Incidents have multiple states like - created, acknowledged and resolved. You can more states help you manage incidents here.',
+                        'Scheduled Maintenance events have multiple states like - scheduled, ongoing and completed. You can more states help you manage Scheduled Maintenance events here.',
                 }}
                 sortBy="order"
                 sortOrder={SortOrder.Ascending}
-                onBeforeDelete={(item: IncidentState) => {
-                    if (item.isCreatedState) {
+                onBeforeDelete={(item: ScheduledMaintenanceState) => {
+                    if (item.isScheduledState) {
                         throw new BadDataException(
-                            'This incident cannot be deleted because its the created incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
+                            'This Scheduled Maintenance cannot be deleted because its the scheduled state of for this project. Scheduled, Ongoing, Completed states cannot be deleted.'
                         );
                     }
 
-                    if (item.isAcknowledgedState) {
+                    if (item.isOngoingState) {
                         throw new BadDataException(
-                            'This incident cannot be deleted because its the acknowledged incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
+                            'This Scheduled Maintenance cannot be deleted because its the scheduled state of for this project. Scheduled, Ongoing, Completed states cannot be deleted.'
                         );
                     }
 
                     if (item.isResolvedState) {
                         throw new BadDataException(
-                            'This incident cannot be deleted because its the resolved incident state of for this project. Created, Acknowledged, Resolved incident states cannot be deleted.'
+                            'This Scheduled Maintenance cannot be deleted because its the scheduled state of for this project. Scheduled, Ongoing, Completed states cannot be deleted.'
                         );
                     }
 
@@ -77,8 +77,8 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 }}
                 selectMoreFields={{
                     color: true,
-                    isCreatedState: true,
-                    isAcknowledgedState: true,
+                    isScheduledState: true,
+                    isOngoingState: true,
                     isResolvedState: true,
                     order: true,
                 }}
@@ -106,7 +106,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         type: FieldType.Text,
                     },
                 ]}
-                noItemsMessage={'No incident state found.'}
+                noItemsMessage={'No Scheduled Maintenance state found.'}
                 viewPageRoute={props.pageRoute}
                 formFields={[
                     {
@@ -116,7 +116,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         fieldType: FormFieldSchemaType.Text,
                         required: true,
-                        placeholder: 'Investigating',
+                        placeholder: 'Monitoring',
                         validation: {
                             minLength: 2,
                         },
@@ -129,7 +129,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder:
-                            'This incident state happens when the incident is investigated',
+                            'This Scheduled Maintenance state happens when the event is been monitored',
                     },
                     {
                         field: {
@@ -139,7 +139,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Color,
                         required: true,
                         placeholder:
-                            'Please select color for this incident state.',
+                            'Please select color for this Scheduled Maintenance state.',
                     },
                 ]}
                 showRefreshButton={true}
@@ -155,4 +155,4 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
     );
 };
 
-export default IncidentsPage;
+export default ScheduledMaintenancesPage;

@@ -17,6 +17,9 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`
     ),
+    [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/home/scheduled-maintenance-ongoing`
+    ),
 
     [PageMap.MONITOR_VIEW_INCIDENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/monitor/${RouteParams.ModelID}/incidents`

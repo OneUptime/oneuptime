@@ -13,6 +13,7 @@ import Init from './Pages/Init/Init';
 
 import Home from './Pages/Home/Home';
 import NotOperationalMonitors from './Pages/Home/NotOperationalMonitors';
+import OngoingScheduledEvents from './Pages/Home/OngingScheduledMaintenance';
 
 import useAsyncEffect from 'use-async-effect';
 
@@ -240,7 +241,19 @@ const App: FunctionComponent = () => {
                     ]?.toString()}
                     element={
                         <NotOperationalMonitors
-                            pageRoute={RouteMap[PageMap.HOME] as Route}
+                            pageRoute={RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                    ]?.toString()}
+                    element={
+                        <OngoingScheduledEvents
+                            pageRoute={RouteMap[PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route}
                             currentProject={selectedProject}
                         />
                     }
