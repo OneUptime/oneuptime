@@ -14,6 +14,7 @@ RUN apk update && apk add bash && apk add curl
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
+RUN npm install ts-node -g
 
 RUN mkdir /usr/src
 
