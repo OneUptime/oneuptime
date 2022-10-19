@@ -30,7 +30,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                 _id: createdItem.scheduledMaintenanceId?.toString(),
             },
             data: {
-                currentScheduledMaintenanceStateId: createdItem.scheduledMaintenanceStateId,
+                currentScheduledMaintenanceStateId:
+                    createdItem.scheduledMaintenanceStateId,
             },
             props: onCreate.createBy.props,
         });
@@ -86,7 +87,8 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
     ): Promise<OnDelete<ScheduledMaintenanceStateTimeline>> {
         if (onDelete.carryForward) {
             // this is scheduledMaintenanceId.
-            const scheduledMaintenanceId: ObjectID = onDelete.carryForward as ObjectID;
+            const scheduledMaintenanceId: ObjectID =
+                onDelete.carryForward as ObjectID;
 
             // get last status of this monitor.
             const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline | null =

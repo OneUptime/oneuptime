@@ -53,7 +53,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Header',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                        ] as Route,
                         modelId
                     ),
                 },
@@ -61,9 +63,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <StatusPagePreviewLink modelId={modelId} />
-
-
-
 
             <CardModelDetail<StatusPage>
                 cardProps={{
@@ -91,7 +90,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.ImageFile,
                         required: false,
                         placeholder: 'Please cover logo here.',
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -119,12 +118,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.ImageFile,
                             title: 'Cover Image',
                             placeholder: 'No cover uploaded.',
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}
             />
-
 
             <ModelTable<StatusPageHeaderLink>
                 modelType={StatusPageHeaderLink}
@@ -153,12 +151,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     icon: IconProp.Link,
                     title: 'Header Links',
-                    description:
-                        'Header Links for your status page',
+                    description: 'Header Links for your status page',
                 }}
-                noItemsMessage={
-                    'No status header link for this status page.'
-                }
+                noItemsMessage={'No status header link for this status page.'}
                 formFields={[
                     {
                         field: {
@@ -202,18 +197,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-
-
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Header Colors',
-                    description: 'Header background color and text colors for your status page',
+                    description:
+                        'Header background color and text colors for your status page',
                     icon: IconProp.Layers,
                 }}
                 editButtonText={'Edit Colors'}
                 isEditable={true}
                 formFields={[
-
                     {
                         field: {
                             headerBackgroundColor: true,
@@ -240,7 +233,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                headerBackgroundColor: true
+                                headerBackgroundColor: true,
                             },
                             fieldType: FieldType.Color,
                             title: 'Header Background Color',
@@ -248,7 +241,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                headerTextColor: true
+                                headerTextColor: true,
                             },
                             fieldType: FieldType.Color,
                             title: 'Header Text Color',
@@ -262,13 +255,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Cover Image Colors',
-                    description: 'Banner background color color for your status page',
+                    description:
+                        'Banner background color color for your status page',
                     icon: IconProp.Layers,
                 }}
                 editButtonText={'Edit Colors'}
                 isEditable={true}
                 formFields={[
-
                     {
                         field: {
                             bannerBackgroundColor: true,
@@ -277,7 +270,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Color,
                         required: false,
                         placeholder: '#ffffff',
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -286,12 +279,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                bannerBackgroundColor: true
+                                bannerBackgroundColor: true,
                             },
                             fieldType: FieldType.Color,
                             title: 'Cover Image Background Color',
                             placeholder: '#ffffff',
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}
@@ -300,13 +293,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Advanced Header Settings',
-                    description: 'Advanced settings for your status page header',
+                    description:
+                        'Advanced settings for your status page header',
                     icon: IconProp.Settings,
                 }}
                 editButtonText={'Edit Settings'}
                 isEditable={true}
                 formFields={[
-
                     {
                         field: {
                             showHeader: true,
@@ -314,7 +307,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Show Header on Status Page',
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: false,
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -323,17 +316,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                showHeader: true
+                                showHeader: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Show Header on Status Page',
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}
             />
-
-
         </Page>
     );
 };

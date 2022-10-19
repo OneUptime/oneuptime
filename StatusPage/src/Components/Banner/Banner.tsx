@@ -16,7 +16,9 @@ const Banner: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                     props.onClick && props.onClick();
                 }}
-                imageUrl={Route.fromString(`/status-page/public/${PlaceholderBanner}`)}
+                imageUrl={Route.fromString(
+                    `/status-page/public/${PlaceholderBanner}`
+                )}
             />
         </div>
     );

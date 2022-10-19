@@ -17,7 +17,9 @@ const Logo: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                     props.onClick && props.onClick();
                 }}
-                imageUrl={Route.fromString(`/dashboard/public/${OneUptimeLogo}`)}
+                imageUrl={Route.fromString(
+                    `/dashboard/public/${OneUptimeLogo}`
+                )}
             />
         </div>
     );

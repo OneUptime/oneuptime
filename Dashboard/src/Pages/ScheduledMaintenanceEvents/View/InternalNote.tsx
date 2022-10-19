@@ -28,7 +28,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-        title={'Scheduled Maintenance Event'}
+            title={'Scheduled Maintenance Event'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -54,7 +54,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Private Notes',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE] as Route,
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                        ] as Route,
                         modelId
                     ),
                 },
@@ -85,7 +87,8 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     icon: IconProp.Lock,
                     title: 'Private Notes',
-                    description: 'Here are private notes for this scheduled maintenance.',
+                    description:
+                        'Here are private notes for this scheduled maintenance.',
                 }}
                 noItemsMessage={
                     'No private notes created for this scheduled maintenance so far.'

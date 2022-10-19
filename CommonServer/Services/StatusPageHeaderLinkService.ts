@@ -1,6 +1,10 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageHeaderLink';
-import DatabaseService, { OnCreate, OnDelete, OnUpdate } from './DatabaseService';
+import DatabaseService, {
+    OnCreate,
+    OnDelete,
+    OnUpdate,
+} from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Query from '../Types/Database/Query';
@@ -17,21 +21,17 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-
     protected override async onBeforeCreate(
         createBy: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
         if (!createBy.data.statusPageId) {
-            throw new BadDataException(
-                'statusPageId is required'
-            );
+            throw new BadDataException('statusPageId is required');
         }
 
         if (!createBy.data.order) {
             const query: Query<Model> = {
                 statusPageId: createBy.data.statusPageId,
             };
-
 
             const count: PositiveNumber = await this.countBy({
                 query: query,

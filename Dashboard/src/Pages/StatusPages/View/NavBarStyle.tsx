@@ -49,7 +49,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Navbar',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                        ] as Route,
                         modelId
                     ),
                 },
@@ -57,19 +59,17 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <StatusPagePreviewLink modelId={modelId} />
-            
-
 
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Navigation Menu Colors',
-                    description: 'Navigation Menu background color and text colors for your status page',
+                    description:
+                        'Navigation Menu background color and text colors for your status page',
                     icon: IconProp.Layers,
                 }}
                 editButtonText={'Edit Colors'}
                 isEditable={true}
                 formFields={[
-
                     {
                         field: {
                             navBarBackgroundColor: true,
@@ -96,7 +96,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                navBarBackgroundColor: true
+                                navBarBackgroundColor: true,
                             },
                             fieldType: FieldType.Color,
                             title: 'Navigation Menu Background Color',
@@ -104,7 +104,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                navBarTextColor: true
+                                navBarTextColor: true,
                             },
                             fieldType: FieldType.Color,
                             title: 'Header Text Color',
@@ -115,8 +115,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-
-
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Page Settings',
@@ -126,7 +124,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 editButtonText={'Edit Page Settings'}
                 isEditable={true}
                 formFields={[
-
                     {
                         field: {
                             showOverviewPage: true,
@@ -175,7 +172,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: false,
                     },
-
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -184,47 +180,46 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                showOverviewPage: true
+                                showOverviewPage: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Show Overview Page',
                         },
                         {
                             field: {
-                                showIncidentsPage: true
+                                showIncidentsPage: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Show Incidents Page',
                         },
                         {
                             field: {
-                                showScheduledMaintenancePage: true
+                                showScheduledMaintenancePage: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Show Scheduled Maintenance Page',
                         },
                         {
                             field: {
-                                showAnouncementsPage: true
+                                showAnouncementsPage: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Show Announcements Page',
                         },
                         {
                             field: {
-                                enableSubscribers: true
+                                enableSubscribers: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Enable Subscribers',
                         },
                         {
                             field: {
-                                showRssPage: true
+                                showRssPage: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Enable RSS',
                         },
-
                     ],
                     modelId: modelId,
                 }}
@@ -233,13 +228,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Advanced Navigation Menu Settings',
-                    description: 'Advanced settings for your status page navigation menu.',
+                    description:
+                        'Advanced settings for your status page navigation menu.',
                     icon: IconProp.Settings,
                 }}
                 editButtonText={'Edit Settings'}
                 isEditable={true}
                 formFields={[
-
                     {
                         field: {
                             showNavbar: true,
@@ -247,7 +242,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Show Navigation Menu on Status Page',
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: false,
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -256,16 +251,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                showNavbar: true
+                                showNavbar: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Show Navigation Menu on Status Page',
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}
             />
-            
         </Page>
     );
 };

@@ -33,7 +33,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     const handleChange: Function = (color: string): void => {
         setColor(color);
         if (!color) {
-            return  props.onChange(null);
+            return props.onChange(null);
         }
         props.onChange(new Color(color));
     };

@@ -64,8 +64,6 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Clock}
             ></NavBarItem>
 
-
-
             <NavBarItem
                 title="Status Pages"
                 icon={IconProp.CheckCircle}

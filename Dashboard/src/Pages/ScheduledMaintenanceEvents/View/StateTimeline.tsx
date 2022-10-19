@@ -53,7 +53,9 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Status Timeline',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE] as Route,
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                        ] as Route,
                         modelId
                     ),
                 },
@@ -129,14 +131,18 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                             return (
                                 <Pill
                                     color={
-                                        (item['scheduledMaintenanceState'] as JSONObject)[
-                                            'color'
-                                        ] as Color
+                                        (
+                                            item[
+                                                'scheduledMaintenanceState'
+                                            ] as JSONObject
+                                        )['color'] as Color
                                     }
                                     text={
-                                        (item['scheduledMaintenanceState'] as JSONObject)[
-                                            'name'
-                                        ] as string
+                                        (
+                                            item[
+                                                'scheduledMaintenanceState'
+                                            ] as JSONObject
+                                        )['name'] as string
                                     }
                                 />
                             );

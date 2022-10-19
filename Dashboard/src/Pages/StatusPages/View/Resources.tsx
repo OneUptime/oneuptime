@@ -178,7 +178,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Tooltip (Optional)',
                         fieldType: FormFieldSchemaType.LongText,
                         required: false,
-                        description: 'This will show up as tooltip beside the resource on your status page.',
+                        description:
+                            'This will show up as tooltip beside the resource on your status page.',
                         placeholder: 'Tooltip',
                     },
                     {
@@ -189,7 +190,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: false,
                         defaultValue: true,
-                        description: 'Current Resource Status will be shown beside this resource on your status page.',
+                        description:
+                            'Current Resource Status will be shown beside this resource on your status page.',
                     },
                     {
                         field: {
@@ -198,8 +200,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Show Status History Chart',
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: false,
-                        description: 'Show resource status history for the past 90 days. ',
-                        defaultValue: true
+                        description:
+                            'Show resource status history for the past 90 days. ',
+                        defaultValue: true,
                     },
                 ]}
                 showRefreshButton={true}

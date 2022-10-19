@@ -24,18 +24,27 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
         Permission.ProjectOwner,
         Permission.CanCreateScheduledMaintenanceStateTimeline,
     ],
-    read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceStateTimeline],
+    read: [
+        Permission.ProjectOwner,
+        Permission.CanReadScheduledMaintenanceStateTimeline,
+    ],
     delete: [
         Permission.ProjectOwner,
         Permission.CanDeleteScheduledMaintenanceStateTimeline,
     ],
-    update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenanceStateTimeline],
+    update: [
+        Permission.ProjectOwner,
+        Permission.CanEditScheduledMaintenanceStateTimeline,
+    ],
 })
 @CrudApiEndpoint(new Route('/scheduled-maintenance-state-timeline'))
 @Entity({
     name: 'ScheduledMaintenanceStateTimeline',
 })
-@SingularPluralName('ScheduledMaintenance State Tiemline', 'ScheduledMaintenance State Timelines')
+@SingularPluralName(
+    'ScheduledMaintenance State Tiemline',
+    'ScheduledMaintenance State Timelines'
+)
 export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [
@@ -79,7 +88,11 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true, canReadOnPopulate: true})
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnPopulate: true,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

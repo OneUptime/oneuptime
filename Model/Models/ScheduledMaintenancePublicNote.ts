@@ -19,10 +19,22 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @CanAccessIfCanReadOn('scheduledMaintenance')
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenancePublicNote],
-    read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenancePublicNote],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteScheduledMaintenancePublicNote],
-    update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenancePublicNote],
+    create: [
+        Permission.ProjectOwner,
+        Permission.CanCreateScheduledMaintenancePublicNote,
+    ],
+    read: [
+        Permission.ProjectOwner,
+        Permission.CanReadScheduledMaintenancePublicNote,
+    ],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.CanDeleteScheduledMaintenancePublicNote,
+    ],
+    update: [
+        Permission.ProjectOwner,
+        Permission.CanEditScheduledMaintenancePublicNote,
+    ],
 })
 @CrudApiEndpoint(new Route('/scheduled-maintenance-public-note'))
 @Entity({
@@ -35,7 +47,10 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateScheduledMaintenancePublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenancePublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenancePublicNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -62,11 +77,18 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateScheduledMaintenancePublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenancePublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenancePublicNote,
+        ],
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true, canReadOnPopulate: true})
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnPopulate: true,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -79,7 +101,10 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateScheduledMaintenancePublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenancePublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenancePublicNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -106,7 +131,10 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateScheduledMaintenancePublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenancePublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenancePublicNote,
+        ],
         update: [],
     })
     @Index()
@@ -123,7 +151,10 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateScheduledMaintenancePublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenancePublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenancePublicNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -150,7 +181,10 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateScheduledMaintenancePublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenancePublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenancePublicNote,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -203,8 +237,14 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateScheduledMaintenancePublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenancePublicNote],
-        update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenancePublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenancePublicNote,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditScheduledMaintenancePublicNote,
+        ],
     })
     @TableColumn({ type: TableColumnType.Markdown })
     @Column({

@@ -25,7 +25,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'All Events',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
+                            RouteMap[
+                                PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.List}
@@ -35,7 +37,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Ongoing Events',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route
+                            RouteMap[
+                                PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.Clock}

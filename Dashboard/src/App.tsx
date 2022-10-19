@@ -44,7 +44,6 @@ import IncidentInternalNote from './Pages/Incidents/View/InternalNote';
 import IncidentPublicNote from './Pages/Incidents/View/PublicNote';
 import UnresolvedIncidents from './Pages/Incidents/Unresolved';
 
-
 import ScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents';
 import ScheduledMaintenanceEventView from './Pages/ScheduledMaintenanceEvents/View/Index';
 import ScheduledMaintenanceEventViewDelete from './Pages/ScheduledMaintenanceEvents/View/Delete';
@@ -156,7 +155,7 @@ const App: FunctionComponent = () => {
         } catch (err) {
             setError(
                 (err as HTTPErrorResponse).message ||
-                'Server Error. Please try again'
+                    'Server Error. Please try again'
             );
         }
 
@@ -241,7 +240,11 @@ const App: FunctionComponent = () => {
                     ]?.toString()}
                     element={
                         <NotOperationalMonitors
-                            pageRoute={RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                                ] as Route
+                            }
                             currentProject={selectedProject}
                         />
                     }
@@ -253,7 +256,12 @@ const App: FunctionComponent = () => {
                     ]?.toString()}
                     element={
                         <OngoingScheduledEvents
-                            pageRoute={RouteMap[PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                ] as Route
+                            }
                             currentProject={selectedProject}
                         />
                     }
@@ -276,7 +284,7 @@ const App: FunctionComponent = () => {
                         <MonitorInoperational
                             pageRoute={
                                 RouteMap[
-                                PageMap.MONITORS_INOPERATIONAL
+                                    PageMap.MONITORS_INOPERATIONAL
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -314,7 +322,7 @@ const App: FunctionComponent = () => {
                         <MonitorViewStatusTimeline
                             pageRoute={
                                 RouteMap[
-                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                    PageMap.MONITOR_VIEW_STATUS_TIMELINE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -328,7 +336,7 @@ const App: FunctionComponent = () => {
                         <MonitorIncidents
                             pageRoute={
                                 RouteMap[
-                                PageMap.MONITOR_VIEW_INCIDENTS
+                                    PageMap.MONITOR_VIEW_INCIDENTS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -378,7 +386,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewDelete
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_DELETE
+                                    PageMap.STATUS_PAGE_VIEW_DELETE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -394,7 +402,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewBranding
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_BRANDING
+                                    PageMap.STATUS_PAGE_VIEW_BRANDING
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -410,7 +418,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewCustomHtmlCss
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                                    PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -426,7 +434,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewAdvancedOptions
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                                    PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -442,7 +450,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewEmailSubscribers
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                    PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -458,7 +466,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewSMSSubscribers
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                                    PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -474,7 +482,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewHeaderStyle
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                                    PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -490,14 +498,13 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewFooterStyle
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                                    PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
                                 ] as Route
                             }
                             currentProject={selectedProject}
                         />
                     }
                 />
-
 
                 <PageRoute
                     path={RouteMap[
@@ -507,7 +514,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewNavBarStyle
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                                    PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -523,7 +530,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewWebhookSubscribers
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                                    PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -539,7 +546,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewEmbedded
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                                    PageMap.STATUS_PAGE_VIEW_EMBEDDED
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -555,7 +562,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewResources
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_RESOURCES
+                                    PageMap.STATUS_PAGE_VIEW_RESOURCES
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -571,7 +578,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewDomains
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_DOMAINS
+                                    PageMap.STATUS_PAGE_VIEW_DOMAINS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -585,7 +592,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewGroups
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_GROUPS
+                                    PageMap.STATUS_PAGE_VIEW_GROUPS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -601,7 +608,7 @@ const App: FunctionComponent = () => {
                         <StatusPagesViewAnnouncement
                             pageRoute={
                                 RouteMap[
-                                PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                                    PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -663,7 +670,7 @@ const App: FunctionComponent = () => {
                         <IncidentViewStateTimeline
                             pageRoute={
                                 RouteMap[
-                                PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                                    PageMap.INCIDENT_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -677,7 +684,7 @@ const App: FunctionComponent = () => {
                         <IncidentInternalNote
                             pageRoute={
                                 RouteMap[
-                                PageMap.INCIDENT_INTERNAL_NOTE
+                                    PageMap.INCIDENT_INTERNAL_NOTE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -697,33 +704,18 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-
-
                 {/* Scheduled Events */}
 
-
-
-
-
-
-
-
                 <PageRoute
-                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS]?.toString()}
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                    ]?.toString()}
                     element={
                         <ScheduledMaintenanceEvents
-                            pageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
-                            currentProject={selectedProject}
-                        />
-                    }
-                />
-
-                <PageRoute
-                    path={RouteMap[PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS]?.toString()}
-                    element={
-                        <OngoingScheduledMaintenanceEvents
                             pageRoute={
-                                RouteMap[PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                                ] as Route
                             }
                             currentProject={selectedProject}
                         />
@@ -731,21 +723,47 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW]?.toString()}
+                    path={RouteMap[
+                        PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                    ]?.toString()}
                     element={
-                        <ScheduledMaintenanceEventView
-                            pageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route}
+                        <OngoingScheduledMaintenanceEvents
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                ] as Route
+                            }
                             currentProject={selectedProject}
                         />
                     }
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE]?.toString()}
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_VIEW
+                    ]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventView
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_VIEW
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                    ]?.toString()}
                     element={
                         <ScheduledMaintenanceEventViewDelete
                             pageRoute={
-                                RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE] as Route
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                                ] as Route
                             }
                             currentProject={selectedProject}
                         />
@@ -760,7 +778,8 @@ const App: FunctionComponent = () => {
                         <ScheduledMaintenanceEventViewStateTimeline
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                                    PageMap
+                                        .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -769,12 +788,14 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE]?.toString()}
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                    ]?.toString()}
                     element={
                         <ScheduledMaintenanceEventInternalNote
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                                    PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -783,18 +804,20 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]?.toString()}
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                    ]?.toString()}
                     element={
                         <ScheduledMaintenanceEventPublicNote
                             pageRoute={
-                                RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE] as Route
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                                ] as Route
                             }
                             currentProject={selectedProject}
                         />
                     }
                 />
-
-
 
                 {/* Logs */}
 
@@ -846,7 +869,7 @@ const App: FunctionComponent = () => {
                         <SettingsMonitors
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_MONITORS_STATUS
+                                    PageMap.SETTINGS_MONITORS_STATUS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -862,7 +885,7 @@ const App: FunctionComponent = () => {
                         <SettingsIncidents
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_INCIDENTS_STATE
+                                    PageMap.SETTINGS_INCIDENTS_STATE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -878,7 +901,7 @@ const App: FunctionComponent = () => {
                         <SettingsScheduledMaintenanceState
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -894,7 +917,7 @@ const App: FunctionComponent = () => {
                         <SettingsIncidentSeverity
                             pageRoute={
                                 RouteMap[
-                                PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                    PageMap.SETTINGS_INCIDENTS_SEVERITY
                                 ] as Route
                             }
                             currentProject={selectedProject}

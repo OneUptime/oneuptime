@@ -28,7 +28,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page
-        title={'Scheduled Maintenance Event'}
+            title={'Scheduled Maintenance Event'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -54,7 +54,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Public Notes',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE] as Route,
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                        ] as Route,
                         modelId
                     ),
                 },

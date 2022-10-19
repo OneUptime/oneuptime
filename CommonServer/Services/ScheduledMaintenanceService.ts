@@ -44,7 +44,8 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        createBy.data.currentScheduledMaintenanceStateId = scheduledMaintenanceState.id;
+        createBy.data.currentScheduledMaintenanceStateId =
+            scheduledMaintenanceState.id;
 
         return { createBy, carryForward: null };
     }
@@ -80,24 +81,25 @@ export class Service extends DatabaseService<Model> {
         scheduledMaintenanceStateId: ObjectID,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
-
         await this.updateBy({
             data: {
-                currentScheduledMaintenanceStateId: scheduledMaintenanceStateId.id
+                currentScheduledMaintenanceStateId:
+                    scheduledMaintenanceStateId.id,
             },
             query: {
-                _id: scheduledMaintenanceId.toString()!
+                _id: scheduledMaintenanceId.toString()!,
             },
             props: {
-                isRoot: true
-            }
+                isRoot: true,
+            },
         });
 
         const statusTimeline: ScheduledMaintenanceStateTimeline =
             new ScheduledMaintenanceStateTimeline();
 
         statusTimeline.scheduledMaintenanceId = scheduledMaintenanceId;
-        statusTimeline.scheduledMaintenanceStateId = scheduledMaintenanceStateId;
+        statusTimeline.scheduledMaintenanceStateId =
+            scheduledMaintenanceStateId;
         statusTimeline.projectId = projectId;
 
         await ScheduledMaintenanceStateTimelineService.create({

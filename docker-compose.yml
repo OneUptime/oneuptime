@@ -41,7 +41,9 @@ services:
         image: oneuptime/dashboard-api:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./DashboardAPI/.env
         environment: *common-variables
         depends_on:
@@ -54,7 +56,9 @@ services:
         image: oneuptime/identity:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Identity/.env
         environment: *common-variables
         depends_on:
@@ -68,7 +72,9 @@ services:
         image: oneuptime/alert:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Alert/.env
         environment: *common-variables
         depends_on:
@@ -81,7 +87,9 @@ services:
         image: oneuptime/integration:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Integration/.env
         environment: *common-variables
         depends_on:
@@ -94,6 +102,7 @@ services:
         image: oneuptime/accounts:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./Accounts/.env
         environment: *common-variables
@@ -106,6 +115,7 @@ services:
         image: oneuptime/dashboard:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./Dashboard/.env
         environment: *common-variables
@@ -117,6 +127,7 @@ services:
             - '1444:1444'
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./Home/.env
         environment: *common-variables
@@ -128,6 +139,7 @@ services:
         image: oneuptime/status-page:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./StatusPage/.env
         environment: *common-variables
@@ -142,6 +154,7 @@ services:
         image: oneuptime/admin-dashboard:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./AdminDashboard/.env
         environment: *common-variables
@@ -154,7 +167,9 @@ services:
             - '3010:3010'
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./HttpTestServer/.env
         environment: *common-variables
         image: oneuptime/http-test-server:latest
@@ -164,7 +179,9 @@ services:
             - '3004:3004'
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Licensing/.env
         environment: *common-variables
         image: oneuptime/licensing:latest
@@ -176,7 +193,9 @@ services:
         image: oneuptime/realtime:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Realtime/.env
         environment: *common-variables
 
@@ -187,7 +206,9 @@ services:
         image: oneuptime/helmchart:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./HelmChart/.env
         environment: *common-variables
 
@@ -198,7 +219,9 @@ services:
         image: oneuptime/probe-api:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./ProbeAPI/.env
         environment: *common-variables
             
@@ -206,7 +229,9 @@ services:
         image: oneuptime/probe:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Probe/.env
         environment: 
             <<: *common-variables
@@ -219,7 +244,9 @@ services:
         image: oneuptime/probe:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Probe/.env
         environment: 
             <<: *common-variables
@@ -234,6 +261,7 @@ services:
         image: oneuptime/api-docs:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./ApiDocs/.env
         environment: *common-variables
@@ -253,7 +281,9 @@ services:
         image: oneuptime/mail:latest
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Mail/.env
         environment: *common-variables
         depends_on:

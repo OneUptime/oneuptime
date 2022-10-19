@@ -1,7 +1,7 @@
 import logger from 'CommonServer/Utils/Logger';
 import cron from 'node-cron';
 import { EVERY_MINUTE } from '../../Utils/CronTime';
-import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService'
+import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
@@ -11,31 +11,33 @@ import ScheduledMaintenanceStateService from 'CommonServer/Services/ScheduledMai
 
 cron.schedule(EVERY_MINUTE, async () => {
     try {
-
-        // get all scheduled events of all the projects. 
-        const events: Array<ScheduledMaintenance> = await ScheduledMaintenanceService.findBy({
-            query: {
-                currentScheduledMaintenanceState: {
-                    isScheduledState: true,
-                } as any,
-                startsAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate())
-            },
-            props: {
-                isRoot: true
-            },
-            limit: LIMIT_MAX,
-            skip: 0,
-            select: {
-                _id: true,
-                projectId: true,
-                changeMonitorStatusToId: true
-            },
-            populate: {
-                monitors: {
-                    _id: true
-                }
-            }
-        });
+        // get all scheduled events of all the projects.
+        const events: Array<ScheduledMaintenance> =
+            await ScheduledMaintenanceService.findBy({
+                query: {
+                    currentScheduledMaintenanceState: {
+                        isScheduledState: true,
+                    } as any,
+                    startsAt: QueryHelper.lessThan(
+                        OneUptimeDate.getCurrentDate()
+                    ),
+                },
+                props: {
+                    isRoot: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                select: {
+                    _id: true,
+                    projectId: true,
+                    changeMonitorStatusToId: true,
+                },
+                populate: {
+                    monitors: {
+                        _id: true,
+                    },
+                },
+            });
 
         // change their state to Ongoing.
 
@@ -58,15 +60,21 @@ cron.schedule(EVERY_MINUTE, async () => {
                 continue;
             }
 
-
-            await ScheduledMaintenanceService.changeScheduledMaintenanceState(event.projectId!, event.id!, scheduledMaintenanceState.id, {
-                isRoot: true
-            })
+            await ScheduledMaintenanceService.changeScheduledMaintenanceState(
+                event.projectId!,
+                event.id!,
+                scheduledMaintenanceState.id,
+                {
+                    isRoot: true,
+                }
+            );
 
             // change attached monitor states.
-            await ScheduledMaintenanceService.changeAttachedMonitorStates(event, { isRoot: true })
+            await ScheduledMaintenanceService.changeAttachedMonitorStates(
+                event,
+                { isRoot: true }
+            );
         }
-
     } catch (err) {
         logger.error(err);
     }

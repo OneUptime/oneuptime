@@ -3,8 +3,7 @@ import Redis from 'CommonServer/Infrastructure/Redis';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 
-
-// Worker import. 
+// Worker import.
 import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
 
 const APP_NAME: string = 'workers';

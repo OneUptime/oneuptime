@@ -15,15 +15,33 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.RSS]: new Route(`/rss`),
     [PageMap.SUBSCRIBE]: new Route(`/subscribe`),
 
-    [PageMap.PREVIEW_OVERVIEW]: new Route(`/status-page/${RouteParams.StatusPageId}`),
-    [PageMap.PREVIEW_INCIDENT_LIST]: new Route(`/status-page/${RouteParams.StatusPageId}/incidents`),
-    [PageMap.PREVIEW_INCIDENT_DETAIL]: new Route(`/status-page/${RouteParams.StatusPageId}/incidents/:id`),
-    [PageMap.PREVIEW_ANNOUNCEMENT_DETAIL]: new Route(`/status-page/${RouteParams.StatusPageId}/announcements/:id`),
-    [PageMap.PREVIEW_ANNOUNCEMENT_LIST]: new Route(`/status-page/${RouteParams.StatusPageId}/announcements`),
-    [PageMap.PREVIEW_SCHEDULED_EVENT_LIST]: new Route(`/status-page/${RouteParams.StatusPageId}/scheduled-events`),
-    [PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL]: new Route(`/status-page/${RouteParams.StatusPageId}/scheduled-events/:id`),
-    [PageMap.PREVIEW_RSS]: new Route(`/status-page/${RouteParams.StatusPageId}/rss`),
-    [PageMap.PREVIEW_SUBSCRIBE]: new Route(`/status-page/${RouteParams.StatusPageId}/subscribe`),
+    [PageMap.PREVIEW_OVERVIEW]: new Route(
+        `/status-page/${RouteParams.StatusPageId}`
+    ),
+    [PageMap.PREVIEW_INCIDENT_LIST]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/incidents`
+    ),
+    [PageMap.PREVIEW_INCIDENT_DETAIL]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/incidents/:id`
+    ),
+    [PageMap.PREVIEW_ANNOUNCEMENT_DETAIL]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/announcements/:id`
+    ),
+    [PageMap.PREVIEW_ANNOUNCEMENT_LIST]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/announcements`
+    ),
+    [PageMap.PREVIEW_SCHEDULED_EVENT_LIST]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/scheduled-events`
+    ),
+    [PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/scheduled-events/:id`
+    ),
+    [PageMap.PREVIEW_RSS]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/rss`
+    ),
+    [PageMap.PREVIEW_SUBSCRIBE]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/subscribe`
+    ),
 
     [PageMap.NOT_FOUND]: new Route(`status-page/not-found`),
 };

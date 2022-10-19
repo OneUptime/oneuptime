@@ -18,7 +18,7 @@ const StatusPageFooter: FunctionComponent = () => {
                 {
                     title: 'Powered by OneUptime',
                     to: URL.fromString('https://oneuptime.com'),
-                    openInNewTab: true
+                    openInNewTab: true,
                 },
             ]}
         />

@@ -14,7 +14,6 @@ export interface ComponentProps {
 const DashboardNavbar: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     if (!props.show) {
         return <></>;
     }
@@ -22,8 +21,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     return (
         <NavBar
             navBarStyle={{
-                marginTop: "0px",
-                position: "unset"
+                marginTop: '0px',
+                position: 'unset',
             }}
             rightContent={
                 <>
@@ -31,14 +30,18 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                         title="Subscribe"
                         icon={IconProp.Email}
                         route={RouteUtil.populateRouteParams(
-                            props.isPreview ? RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route : RouteMap[PageMap.SUBSCRIBE] as Route
+                            props.isPreview
+                                ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route)
+                                : (RouteMap[PageMap.SUBSCRIBE] as Route)
                         )}
                     ></NavBarItem>
                     <NavBarItem
                         title="RSS"
                         icon={IconProp.RSS}
                         route={RouteUtil.populateRouteParams(
-                            props.isPreview ? RouteMap[PageMap.PREVIEW_RSS] as Route : RouteMap[PageMap.RSS] as Route
+                            props.isPreview
+                                ? (RouteMap[PageMap.PREVIEW_RSS] as Route)
+                                : (RouteMap[PageMap.RSS] as Route)
                         )}
                     ></NavBarItem>
                 </>
@@ -48,31 +51,40 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             <NavBarItem
                 title="Overview"
                 route={RouteUtil.populateRouteParams(
-                    props.isPreview ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
+                    props.isPreview
+                        ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                        : (RouteMap[PageMap.OVERVIEW] as Route)
                 )}
             ></NavBarItem>
 
             <NavBarItem
                 title="Incidents"
                 route={RouteUtil.populateRouteParams(
-                    props.isPreview ? RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route : RouteMap[PageMap.INCIDENT_LIST] as Route
+                    props.isPreview
+                        ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
+                        : (RouteMap[PageMap.INCIDENT_LIST] as Route)
                 )}
             ></NavBarItem>
 
             <NavBarItem
                 title="Announcements"
                 route={RouteUtil.populateRouteParams(
-                    props.isPreview ? RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route : RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route
+                    props.isPreview
+                        ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
+                        : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route)
                 )}
             ></NavBarItem>
 
             <NavBarItem
                 title="Scheduled Maintenance"
                 route={RouteUtil.populateRouteParams(
-                    props.isPreview ? RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route : RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route
+                    props.isPreview
+                        ? (RouteMap[
+                              PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                          ] as Route)
+                        : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                 )}
             ></NavBarItem>
-
         </NavBar>
     );
 };

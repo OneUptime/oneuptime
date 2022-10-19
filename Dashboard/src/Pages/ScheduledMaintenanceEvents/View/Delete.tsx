@@ -45,7 +45,9 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Delete Scheduled Maintenance',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE] as Route,
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                        ] as Route,
                         modelId
                     ),
                 },
@@ -56,7 +58,9 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 modelType={ScheduledMaintenance}
                 modelId={modelId}
                 onDeleteSuccess={() => {
-                    Navigation.navigate(RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route);
+                    Navigation.navigate(
+                        RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
+                    );
                 }}
             />
         </Page>

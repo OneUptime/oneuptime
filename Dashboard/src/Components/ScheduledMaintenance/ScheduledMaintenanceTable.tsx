@@ -47,7 +47,9 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     props.description ||
                     'Here is a list of scheduled maintenance events for this project.',
             }}
-            noItemsMessage={props.noItemsMessage || 'No scheduled Maintenance Event found.'}
+            noItemsMessage={
+                props.noItemsMessage || 'No scheduled Maintenance Event found.'
+            }
             formFields={[
                 {
                     field: {
@@ -95,7 +97,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         monitors: true,
                     },
                     title: 'Monitors affected (Optional)',
-                    description: 'Select monitors affected by this scheduled maintenance.',
+                    description:
+                        'Select monitors affected by this scheduled maintenance.',
                     fieldType: FormFieldSchemaType.MultiSelectDropdown,
                     dropdownModal: {
                         type: Monitor,
@@ -216,7 +219,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         return <></>;
                     },
                 },
-               
+
                 {
                     field: {
                         monitors: {
@@ -273,7 +276,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                             <StatusPagesElement
                                 statusPages={
                                     StatusPage.fromJSON(
-                                        (item['statusPages'] as JSONArray) || [],
+                                        (item['statusPages'] as JSONArray) ||
+                                            [],
                                         StatusPage
                                     ) as Array<StatusPage>
                                 }

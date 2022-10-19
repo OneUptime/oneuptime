@@ -34,9 +34,8 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [isLoading, setIsLaoding] = useState<boolean>(false);
-    const [scheduledMaintenanceTimeline, setScheduledMaintenanceTimeline] = useState<
-        ScheduledMaintenanceStateTimeline | undefined
-    >(undefined);
+    const [scheduledMaintenanceTimeline, setScheduledMaintenanceTimeline] =
+        useState<ScheduledMaintenanceStateTimeline | undefined>(undefined);
 
     useEffect(() => {
         for (const event of props.scheduledMaintenanceTimeline) {
@@ -68,7 +67,9 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     ) {
         return (
             <div>
-                <UserElement user={scheduledMaintenanceTimeline.createdByUser} />
+                <UserElement
+                    user={scheduledMaintenanceTimeline.createdByUser}
+                />
                 {OneUptimeDate.getDateAsLocalFormattedString(
                     scheduledMaintenanceTimeline.createdAt
                 )}
@@ -143,14 +144,18 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                 }
 
                 if (!stateId) {
-                    throw new BadDataException('Scheduled Maintenance State not found.');
+                    throw new BadDataException(
+                        'Scheduled Maintenance State not found.'
+                    );
                 }
 
                 const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
                     new ScheduledMaintenanceStateTimeline();
                 scheduledMaintenanceStateTimeline.projectId = projectId;
-                scheduledMaintenanceStateTimeline.scheduledMaintenanceId = props.scheduledMaintenanceId;
-                scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId = stateId;
+                scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
+                    props.scheduledMaintenanceId;
+                scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
+                    stateId;
 
                 await ModelAPI.create(
                     scheduledMaintenanceStateTimeline,

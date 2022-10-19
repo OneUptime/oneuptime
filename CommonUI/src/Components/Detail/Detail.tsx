@@ -26,9 +26,14 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
         return <MarkdownViewer text={text} />;
     };
 
-
-    const getColorField: Function  = (color: Color): ReactElement => {
-        return <Input disabled={true} leftCircleColor={color} value={color.toString()} />
+    const getColorField: Function = (color: Color): ReactElement => {
+        return (
+            <Input
+                disabled={true}
+                leftCircleColor={color}
+                value={color.toString()}
+            />
+        );
     };
 
     const getField: Function = (field: Field, index: number): ReactElement => {
@@ -116,10 +121,11 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             );
         }
 
-        if (data && (
-            (field.fieldType === FieldType.HTML) ||
-            field.fieldType === FieldType.CSS ||
-            field.fieldType === FieldType.JavaScript)
+        if (
+            data &&
+            (field.fieldType === FieldType.HTML ||
+                field.fieldType === FieldType.CSS ||
+                field.fieldType === FieldType.JavaScript)
         ) {
             let codeType: CodeType = CodeType.HTML;
 
@@ -153,10 +159,10 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 style={
                     props.showDetailsInNumberOfColumns
                         ? {
-                            width:
-                                100 / props.showDetailsInNumberOfColumns +
-                                '%',
-                        }
+                              width:
+                                  100 / props.showDetailsInNumberOfColumns +
+                                  '%',
+                          }
                         : {}
                 }
             >
@@ -198,10 +204,11 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 
     return (
         <div
-            className={`${props.showDetailsInNumberOfColumns
+            className={`${
+                props.showDetailsInNumberOfColumns
                     ? `justify-space-between`
                     : ``
-                }`}
+            }`}
         >
             {props.fields &&
                 props.fields.length > 0 &&

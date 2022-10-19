@@ -34,7 +34,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Annoucements',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                                PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
                             ] as Route,
                             props.modelId
                         ),
@@ -49,7 +49,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Monitors',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_RESOURCES
+                                PageMap.STATUS_PAGE_VIEW_RESOURCES
                             ] as Route,
                             props.modelId
                         ),
@@ -74,7 +74,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Email Subscribers',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                             ] as Route,
                             props.modelId
                         ),
@@ -86,7 +86,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'SMS Subscribers',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
                             ] as Route,
                             props.modelId
                         ),
@@ -99,7 +99,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Webhook Subscribers',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                                PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                             ] as Route,
                             props.modelId
                         ),
@@ -112,7 +112,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Subscriber Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                                PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
                             ] as Route,
                             props.modelId
                         ),
@@ -127,7 +127,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Essential Branding',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_BRANDING
+                                PageMap.STATUS_PAGE_VIEW_BRANDING
                             ] as Route,
                             props.modelId
                         ),
@@ -140,7 +140,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Embedded Status Page',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                                PageMap.STATUS_PAGE_VIEW_EMBEDDED
                             ] as Route,
                             props.modelId
                         ),
@@ -153,7 +153,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'HTML, CSS & JavaScript',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                                PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
                             ] as Route,
                             props.modelId
                         ),
@@ -176,7 +176,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Header',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.STATUS_PAGE_VIEW_HEADER_STYLE] as Route,
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                            ] as Route,
                             props.modelId
                         ),
                     }}
@@ -187,7 +189,9 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Footer',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route,
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                            ] as Route,
                             props.modelId
                         ),
                     }}
@@ -198,13 +202,14 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Navigation Menu',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE] as Route,
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                            ] as Route,
                             props.modelId
                         ),
                     }}
                     icon={IconProp.Layers}
                 />
-
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
@@ -213,7 +218,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Advanced Settings',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                                PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
                             ] as Route,
                             props.modelId
                         ),

@@ -49,7 +49,7 @@ const Input: FunctionComponent<ComponentProps> = (
         if (props.leftCircleColor) {
             setColor(props.leftCircleColor.toString());
         }
-    }, [props.leftCircleColor])
+    }, [props.leftCircleColor]);
 
     useEffect(() => {
         if (props.type === 'date' || props.type === 'datetime-local') {
@@ -110,7 +110,7 @@ const Input: FunctionComponent<ComponentProps> = (
                         borderRadius: '300px',
                         boxShadow: 'rgb(149 157 165 / 20%) 0px 8px 24px',
                         marginRight: '7px',
-                        borderStyle: "solid"
+                        borderStyle: 'solid',
                     }}
                 ></div>
             )}
@@ -140,11 +140,15 @@ const Input: FunctionComponent<ComponentProps> = (
                     }
                 }}
                 tabIndex={props.tabIndex}
-                onKeyDown={props.onEnterPress ? (event: any) => {
-                    if (event.key === 'Enter') {
-                        props.onEnterPress && props.onEnterPress();
-                    }
-                } : undefined}
+                onKeyDown={
+                    props.onEnterPress
+                        ? (event: any) => {
+                              if (event.key === 'Enter') {
+                                  props.onEnterPress && props.onEnterPress();
+                              }
+                          }
+                        : undefined
+                }
                 readOnly={props.readOnly || props.disabled || false}
                 type={props.type || 'text'}
                 placeholder={props.placeholder}
@@ -159,13 +163,19 @@ const Input: FunctionComponent<ComponentProps> = (
                     }
                 }}
             />
-            {color && !props.disabled &&  (<Icon icon={IconProp.Close} color={Grey} onClick={() => {
-                setValue('');
-                setColor('#000000')
-                if (props.onChange) {
-                    props.onChange('');
-                }
-            }} />)}
+            {color && !props.disabled && (
+                <Icon
+                    icon={IconProp.Close}
+                    color={Grey}
+                    onClick={() => {
+                        setValue('');
+                        setColor('#000000');
+                        if (props.onChange) {
+                            props.onChange('');
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

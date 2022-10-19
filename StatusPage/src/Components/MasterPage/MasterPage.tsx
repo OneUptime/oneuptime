@@ -21,11 +21,11 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             isLoading={props.isLoading || false}
             error={props.error || ''}
             mainContentStyle={{
-                display: "flex",
-                alignItems: "center",
-                margin: "auto",
-                maxWidth: "880px",
-                marginLeft: "auto !important"
+                display: 'flex',
+                alignItems: 'center',
+                margin: 'auto',
+                maxWidth: '880px',
+                marginLeft: 'auto !important',
             }}
         >
             {props.children}

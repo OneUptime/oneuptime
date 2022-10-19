@@ -136,7 +136,7 @@ export enum IconProp {
     ExternalLink,
     Link,
     Layers,
-    Clock
+    Clock,
 }
 
 export interface ComponentProps {
@@ -172,175 +172,175 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Home
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.More && (
                 <Grid
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Activity && (
                 <Activity
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Alert && (
                 <AlertOctagon
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Call && (
                 <PhoneCall
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Settings && (
                 <Settings
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Notification && (
                 <Bell
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.CheckCircle && (
                 <CheckCircle
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Search && (
                 <Search
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Help && (
                 <HelpCircle
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any as any}
+                    color={color ? color.toString() : (undefined as any as any)}
                 />
             )}
             {icon === IconProp.Logout && (
                 <Power
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Billing && (
                 <CreditCard
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.User && (
                 <User
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.ChevronDown && (
                 <ChevronDown
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.ChevronLeft && (
                 <ChevronLeft
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.ChevronRight && (
                 <ChevronRight
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.ChevronUp && (
                 <ChevronUp
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Email && (
                 <Mail
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Slack && (
                 <Slack
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Time && (
                 <Clock
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Terminal && (
                 <Terminal
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Error && (
                 <AlertTriangle
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Code && (
                 <Code
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Report && (
                 <PieChart
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Team && (
                 <Users
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -348,7 +348,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Lock
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -356,7 +356,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Key
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -364,7 +364,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Folder
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -372,7 +372,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Share2
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -380,105 +380,105 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <MessageSquare
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Info && (
                 <Info
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Success && (
                 <Check
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Trash && (
                 <Trash
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Close && (
                 <X
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Add && (
                 <Plus
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Label && (
                 <Tag
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Refresh && (
                 <RefreshCcw
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Filter && (
                 <Filter
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Edit && (
                 <Edit2
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Hide && (
                 <EyeOff
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Check && (
                 <Check
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.True && (
                 <Check
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.False && (
                 <X
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.List && (
                 <List
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -486,7 +486,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <User
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -494,7 +494,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Circle
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -502,7 +502,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <BarChart2
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -510,7 +510,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Globe
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -518,7 +518,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Image
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -526,7 +526,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Type
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -534,7 +534,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <MoreVertical
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -542,7 +542,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Link2
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -550,7 +550,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Link2
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -558,7 +558,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Send
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -566,7 +566,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Disc
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -574,7 +574,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <FileText
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -582,7 +582,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <ExternalLink
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
 
@@ -590,24 +590,23 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 <Rss
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Layers && (
                 <Layers
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
             {icon === IconProp.Clock && (
                 <Clock
                     size={size}
                     strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString(): undefined as any}
+                    color={color ? color.toString() : (undefined as any)}
                 />
             )}
-
         </div>
     );
 };

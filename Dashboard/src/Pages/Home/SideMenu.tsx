@@ -39,10 +39,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         },
                     }}
                 />
-                
             </SideMenuSection>
             <SideMenuSection title="Monitors">
-                
                 <SideMenuItem<Monitor>
                     link={{
                         title: 'Inoperational Monitors',
@@ -64,13 +62,13 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
             <SideMenuSection title="Scheduled Maintenance">
-                
                 <SideMenuItem<Monitor>
                     link={{
                         title: 'Ongoing Events',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                PageMap
+                                    .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                             ] as Route
                         ),
                     }}

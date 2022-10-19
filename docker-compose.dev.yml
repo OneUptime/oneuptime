@@ -41,7 +41,9 @@ services:
             dockerfile: ./Mail/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Mail/.env
         environment: *common-variables
         depends_on:
@@ -68,7 +70,9 @@ services:
             - 8443:8443
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./SAML/.env
         volumes:
             - ./SAML/users.php:/var/www/simplesamlphp/config/authsources.php
@@ -92,6 +96,7 @@ services:
             dockerfile: ./Accounts/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./Accounts/.env
         environment: *common-variables
@@ -120,6 +125,7 @@ services:
             dockerfile: ./Dashboard/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./Accounts/.env
         environment: *common-variables
@@ -148,6 +154,7 @@ services:
             dockerfile: ./StatusPage/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./StatusPage/.env
         environment: *common-variables
@@ -176,7 +183,9 @@ services:
             dockerfile: ./DashboardAPI/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./DashboardAPI/.env
         environment: *common-variables
         depends_on:
@@ -213,7 +222,9 @@ services:
             dockerfile: ./Workers/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Workers/.env
         environment: *common-variables
         depends_on:
@@ -250,7 +261,9 @@ services:
             dockerfile: ./Identity/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Identity/.env
         environment: *common-variables
         depends_on:
@@ -286,7 +299,9 @@ services:
             dockerfile: ./File/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./File/.env
         environment: *common-variables
         depends_on:
@@ -314,7 +329,9 @@ services:
             - '9235:9229' # Debugging port.
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Home/.env
         environment: *common-variables
         build:

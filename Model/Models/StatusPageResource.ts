@@ -71,7 +71,11 @@ export default class StatusPageResource extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true, canReadOnPopulate: true})
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnPopulate: true,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -259,7 +263,6 @@ export default class StatusPageResource extends BaseModel {
     })
     public displayTooltip?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -274,7 +277,6 @@ export default class StatusPageResource extends BaseModel {
         default: true,
     })
     public showCurrentStatus?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [

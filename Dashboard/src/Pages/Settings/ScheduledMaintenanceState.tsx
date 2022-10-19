@@ -35,7 +35,9 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'Scheduled Maintenance State',
-                    to: RouteMap[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE] as Route,
+                    to: RouteMap[
+                        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                    ] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

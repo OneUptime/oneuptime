@@ -41,8 +41,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/state-timeline`
     ),
 
-  
-
     [PageMap.INCIDENT_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/delete`
     ),
@@ -55,8 +53,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}/public-notes`
     ),
 
-
-    
     [PageMap.SCHEDULED_MAINTENANCE_EVENTS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events`
     ),
@@ -73,8 +69,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/state-timeline`
     ),
 
-  
-
     [PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/delete`
     ),
@@ -86,7 +80,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/scheduled-maintenance-events/${RouteParams.ModelID}/public-notes`
     ),
-
 
     [PageMap.STATUS_PAGES]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages`

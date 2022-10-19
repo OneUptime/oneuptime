@@ -80,7 +80,6 @@ enum Permission {
     CanEditStatusPageHeaderLink = 'CanEditStatusPageHeaderLink',
     CanReadStatusPageHeaderLink = 'CanReadStatusPageHeaderLink',
 
-
     // Probe Permissions (Owner Permission)
     CanCreateStatusPageFooterLink = 'CanCreateStatusPageFooterLink',
     CanDeleteStatusPageFooterLink = 'CanDeleteStatusPageFooterLink',
@@ -111,11 +110,6 @@ enum Permission {
     CanReadProjectLabel = 'CanReadProjectLabel',
     CanDeleteProjectLabel = 'CanDeleteProjectLabel',
     CanAddLabelsToProjectResources = 'CanAddLabelsToProjectResources',
-    
-
-
-
-
 
     // Scheduled Maintenance
 
@@ -131,7 +125,6 @@ enum Permission {
     CanReadScheduledMaintenanceStateTimeline = 'CanReadScheduledMaintenanceStateTimeline',
     CanDeleteScheduledMaintenanceStateTimeline = 'CanDeleteScheduledMaintenanceStateTimeline',
 
-
     // Resource Permissions (Team Permission)
     CanCreateScheduledMaintenanceInternalNote = 'CanCreateScheduledMaintenanceInternalNote',
     CanEditScheduledMaintenanceInternalNote = 'CanEditScheduledMaintenanceInternalNote',
@@ -143,14 +136,11 @@ enum Permission {
     CanDeleteScheduledMaintenancePublicNote = 'CanDeleteScheduledMaintenancePublicNote',
     CanReadScheduledMaintenancePublicNote = 'CanReadScheduledMaintenancePublicNote',
 
-
-     // Probe Permissions (Owner Permission)
-     CanCreateProjectScheduledMaintenance = 'CanCreateProjectScheduledMaintenance',
-     CanDeleteProjectScheduledMaintenance = 'CanDeleteProjectScheduledMaintenance',
-     CanEditProjectScheduledMaintenance = 'CanEditProjectScheduledMaintenance',
-     CanReadProjectScheduledMaintenance = 'CanReadProjectScheduledMaintenance',
-
-
+    // Probe Permissions (Owner Permission)
+    CanCreateProjectScheduledMaintenance = 'CanCreateProjectScheduledMaintenance',
+    CanDeleteProjectScheduledMaintenance = 'CanDeleteProjectScheduledMaintenance',
+    CanEditProjectScheduledMaintenance = 'CanEditProjectScheduledMaintenance',
+    CanReadProjectScheduledMaintenance = 'CanReadProjectScheduledMaintenance',
 
     // Incident Status Permissions (Owner + Admin Permission by default)
     CanCreateIncidentState = 'CanCreateIncidentState',
@@ -700,7 +690,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateStatusPageHeaderLink,
                 title: 'Can Create Header Link',
@@ -734,7 +723,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateStatusPageFooterLink,
                 title: 'Can Create Footer Link',
@@ -767,8 +755,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
 
             {
                 permission: Permission.CanCreateStatusPageResource,
@@ -1281,25 +1267,7 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            // Scheduled Maintenance Permissions. 
-
+            // Scheduled Maintenance Permissions.
 
             {
                 permission: Permission.CanCreateScheduledMaintenanceState,
@@ -1333,7 +1301,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateProjectScheduledMaintenance,
@@ -1369,7 +1336,8 @@ export class PermissionHelper {
             },
 
             {
-                permission: Permission.CanCreateScheduledMaintenanceStateTimeline,
+                permission:
+                    Permission.CanCreateScheduledMaintenanceStateTimeline,
                 title: 'Can Create Scheduled Maintenance State Timeline',
                 description:
                     'A user assigned this permission can create Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
@@ -1377,7 +1345,8 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteScheduledMaintenanceStateTimeline,
+                permission:
+                    Permission.CanDeleteScheduledMaintenanceStateTimeline,
                 title: 'Can Delete Scheduled Maintenance State Timeline',
                 description:
                     'A user assigned this permission  can delete Scheduled Maintenance state history of an Scheduled Maintenance in this project.',
@@ -1401,9 +1370,9 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
-                permission: Permission.CanCreateScheduledMaintenanceInternalNote,
+                permission:
+                    Permission.CanCreateScheduledMaintenanceInternalNote,
                 title: 'Can Create Scheduled Maintenance Internal Note',
                 description:
                     'A user assigned this permission can create Scheduled Maintenance Internal Note this project.',
@@ -1411,7 +1380,8 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
             {
-                permission: Permission.CanDeleteScheduledMaintenanceInternalNote,
+                permission:
+                    Permission.CanDeleteScheduledMaintenanceInternalNote,
                 title: 'Can Delete Scheduled Maintenance Internal Note',
                 description:
                     'A user assigned this permission  can delete Scheduled Maintenance Internal Note of this project.',

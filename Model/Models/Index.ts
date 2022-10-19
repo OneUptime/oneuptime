@@ -25,7 +25,6 @@ import StatusPageSubscriber from './StatusPageSubscriber';
 import StatusPageFooterLink from './StatusPageFooterLink';
 import StatusPageHeaderLink from './StatusPageHeaderLink';
 
-
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
 
@@ -41,7 +40,6 @@ import IncidentStateTimeline from './IncidentStateTimeline';
 import IncidentPublicNote from './IncidentPublicNote';
 import IncidentInternalNote from './IncidentInternalNote';
 import IncidentSeverity from './IncidentSeverity';
-
 
 // ScheduledMaintenances
 import ScheduledMaintenance from './ScheduledMaintenance';

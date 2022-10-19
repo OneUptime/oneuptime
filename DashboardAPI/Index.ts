@@ -26,25 +26,20 @@ import StatusPageSubscriberService, {
     Service as StatusPageSubscriberServiceType,
 } from 'CommonServer/Services/StatusPageSubscriberService';
 
-
 import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
 import StatusPageFooterLinkService, {
     Service as StatusPageFooterLinkServiceType,
 } from 'CommonServer/Services/StatusPageFooterLinkService';
-
 
 import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
 import StatusPageHeaderLinkService, {
     Service as StatusPageHeaderLinkServiceType,
 } from 'CommonServer/Services/StatusPageHeaderLinkService';
 
-
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageAnnouncementService, {
     Service as StatusPageAnnouncementServiceType,
 } from 'CommonServer/Services/StatusPageAnnouncementService';
-
-
 
 import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
 import EmailVerificationTokenService, {
@@ -136,7 +131,6 @@ import ScheduledMaintenancePublicNoteService, {
     Service as ScheduledMaintenancePublicNoteServiceType,
 } from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
 
-
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService, {
     Service as IncidentStateServiceType,
@@ -161,7 +155,6 @@ import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import IncidentPublicNoteService, {
     Service as IncidentPublicNoteServiceType,
 } from 'CommonServer/Services/IncidentPublicNoteService';
-
 
 import Domain from 'Model/Models/Domain';
 import DomainService, {
@@ -240,10 +233,10 @@ app.use(
 );
 
 app.use(
-    new BaseAPI<ScheduledMaintenanceState, ScheduledMaintenanceStateServiceType>(
+    new BaseAPI<
         ScheduledMaintenanceState,
-        ScheduledMaintenanceStateService
-    ).getRouter()
+        ScheduledMaintenanceStateServiceType
+    >(ScheduledMaintenanceState, ScheduledMaintenanceStateService).getRouter()
 );
 
 app.use(
@@ -279,7 +272,10 @@ app.use(
 );
 
 app.use(
-    new BaseAPI<ScheduledMaintenanceStateTimeline, ScheduledMaintenanceStateTimelineServiceType>(
+    new BaseAPI<
+        ScheduledMaintenanceStateTimeline,
+        ScheduledMaintenanceStateTimelineServiceType
+    >(
         ScheduledMaintenanceStateTimeline,
         ScheduledMaintenanceStateTimelineService
     ).getRouter()
@@ -316,16 +312,19 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
-    new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(StatusPageHeaderLink, StatusPageHeaderLinkService).getRouter()
+    new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(
+        StatusPageHeaderLink,
+        StatusPageHeaderLinkService
+    ).getRouter()
 );
 
 app.use(
-    new BaseAPI<StatusPageFooterLink, StatusPageFooterLinkServiceType>(StatusPageFooterLink, StatusPageFooterLinkService).getRouter()
+    new BaseAPI<StatusPageFooterLink, StatusPageFooterLinkServiceType>(
+        StatusPageFooterLink,
+        StatusPageFooterLinkService
+    ).getRouter()
 );
-
-
 
 app.use(
     new BaseAPI<ApiKey, ApiKeyServiceType>(ApiKey, ApiKeyService).getRouter()
@@ -336,8 +335,6 @@ app.use(
         ApiKeyPermissionService
     ).getRouter()
 );
-
-
 
 app.use(
     new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(
@@ -384,19 +381,24 @@ app.use(
 );
 
 app.use(
-    new BaseAPI<ScheduledMaintenancePublicNote, ScheduledMaintenancePublicNoteServiceType>(
+    new BaseAPI<
+        ScheduledMaintenancePublicNote,
+        ScheduledMaintenancePublicNoteServiceType
+    >(
         ScheduledMaintenancePublicNote,
         ScheduledMaintenancePublicNoteService
     ).getRouter()
 );
 
 app.use(
-    new BaseAPI<ScheduledMaintenanceInternalNote, ScheduledMaintenanceInternalNoteServiceType>(
+    new BaseAPI<
+        ScheduledMaintenanceInternalNote,
+        ScheduledMaintenanceInternalNoteServiceType
+    >(
         ScheduledMaintenanceInternalNote,
         ScheduledMaintenanceInternalNoteService
     ).getRouter()
 );
-
 
 app.use(
     new BaseAPI<IncidentPublicNote, IncidentPublicNoteServiceType>(

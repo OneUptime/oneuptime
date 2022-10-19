@@ -12,13 +12,19 @@ const Navbar: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <div className="topnav active" style={{
-                zIndex: 1000,
-                ...props.navBarStyle
-            }}>
-                <div className="container-fluid active" style={{
-                    maxWidth: props.maxWidth
-                }}>
+            <div
+                className="topnav active"
+                style={{
+                    zIndex: 1000,
+                    ...props.navBarStyle,
+                }}
+            >
+                <div
+                    className="container-fluid active"
+                    style={{
+                        maxWidth: props.maxWidth,
+                    }}
+                >
                     <nav
                         className="navbar navbar-light navbar-expand-lg topnav-menu active"
                         id="navigation"

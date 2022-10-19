@@ -98,7 +98,9 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     link={{
                         title: 'Event State',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE] as Route
+                            RouteMap[
+                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                            ] as Route
                         ),
                     }}
                     icon={IconProp.Clock}

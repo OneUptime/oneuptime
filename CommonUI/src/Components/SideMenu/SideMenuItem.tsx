@@ -35,7 +35,11 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                             <Icon
                                 icon={props.icon}
                                 thick={ThickProp.LessThick}
-                                color={Navigation.isOnThisPage(props.link.to) ? Black : null}
+                                color={
+                                    Navigation.isOnThisPage(props.link.to)
+                                        ? Black
+                                        : null
+                                }
                             />
                         </>
                     ) : (

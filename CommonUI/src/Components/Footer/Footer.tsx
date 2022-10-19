@@ -34,7 +34,9 @@ const Footer: FunctionComponent<ComponentProps> = (
                                                         <UILink
                                                             className="ms-1 underline-on-hover"
                                                             to={link.to}
-                                                            openInNewTab={link.openInNewTab}
+                                                            openInNewTab={
+                                                                link.openInNewTab
+                                                            }
                                                         >
                                                             {link.title}
                                                         </UILink>

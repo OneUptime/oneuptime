@@ -25,13 +25,17 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'Ongoing Scheduled Maintenance',
-                    to: RouteMap[PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route,
+                    to: RouteMap[
+                        PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                    ] as Route,
                 },
             ]}
         >
             <ScheduledMaintenanceTable
                 currentProject={props.currentProject || undefined}
-                viewPageRoute={RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route}
+                viewPageRoute={
+                    RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
+                }
                 query={{
                     projectId: props.currentProject?._id,
                     currentScheduledMaintenanceState: {

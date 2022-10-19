@@ -36,7 +36,7 @@
         "uninstall": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q)",
         "delete-all-local-branches": "git branch | grep -v 'master' | xargs git branch -D",
         "lint": "ejslint home/views/*.ejs && eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore ",
-        "fix-lint": " node --max_old_space_size=8192 ./node_modules/.bin/eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore --fix ",
+        "fix-lint": " node --max_old_space_size=18192 ./node_modules/.bin/eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore --fix ",
         "fix": "npm run fix-lint",
         "build": "docker-compose --env-file ./docker-enterprise.env build",
         "build-ci": "docker-compose  --env-file ./docker-enterprise.env -f docker-compose.ci.yml build $npm_config_services",

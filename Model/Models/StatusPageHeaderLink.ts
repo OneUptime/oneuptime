@@ -32,10 +32,17 @@ import URL from 'Common/Types/API/URL';
 @Entity({
     name: 'StatusPageHeaderLink',
 })
-@TotalItemsBy("statusPageId", 3, "This status page cannot have more than 3 header links")
+@TotalItemsBy(
+    'statusPageId',
+    3,
+    'This status page cannot have more than 3 header links'
+)
 export default class StatusPageHeaderLink extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageHeaderLink,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageHeaderLink],
         update: [],
     })
@@ -59,12 +66,19 @@ export default class StatusPageHeaderLink extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageHeaderLink,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageHeaderLink],
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true, canReadOnPopulate: true})
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnPopulate: true,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -72,9 +86,11 @@ export default class StatusPageHeaderLink extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageHeaderLink,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageHeaderLink],
         update: [],
     })
@@ -98,7 +114,10 @@ export default class StatusPageHeaderLink extends BaseModel {
     public statusPage?: StatusPage = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageHeaderLink,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageHeaderLink],
         update: [],
     })
@@ -112,9 +131,15 @@ export default class StatusPageHeaderLink extends BaseModel {
     public statusPageId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageHeaderLink,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageHeaderLink],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageHeaderLink],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditStatusPageHeaderLink,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -125,21 +150,30 @@ export default class StatusPageHeaderLink extends BaseModel {
     public title?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageHeaderLink,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageHeaderLink],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageHeaderLink],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditStatusPageHeaderLink,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortURL })
     @Column({
         nullable: false,
         type: ColumnType.ShortURL,
         length: ColumnLength.ShortURL,
-        transformer: URL.getDatabaseTransformer()
+        transformer: URL.getDatabaseTransformer(),
     })
     public link?: URL = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageHeaderLink,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageHeaderLink],
         update: [],
     })
@@ -163,7 +197,10 @@ export default class StatusPageHeaderLink extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageHeaderLink,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageHeaderLink],
         update: [],
     })
@@ -199,11 +236,16 @@ export default class StatusPageHeaderLink extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
 
-
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageHeaderLink],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateStatusPageHeaderLink,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageHeaderLink],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageHeaderLink],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditStatusPageHeaderLink,
+        ],
     })
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
     @Column({

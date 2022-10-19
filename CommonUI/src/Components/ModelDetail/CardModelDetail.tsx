@@ -21,7 +21,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardProps;
     modelDetailProps: ModeDetailProps<TBaseModel>;
     isEditable?: undefined | boolean;
-    editButtonText?: undefined | string; 
+    editButtonText?: undefined | string;
     formFields?: undefined | Fields<TBaseModel>;
 }
 

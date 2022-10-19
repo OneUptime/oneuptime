@@ -120,7 +120,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 editButtonText={'Edit Favicon'}
                 formFields={[
-
                     {
                         field: {
                             faviconFile: true,
@@ -152,17 +151,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }}
             />
 
-
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Page Colors',
-                    description: 'Page background color and text colors for your status page',
+                    description:
+                        'Page background color and text colors for your status page',
                     icon: IconProp.Layers,
                 }}
                 editButtonText={'Edit Colors'}
                 isEditable={true}
                 formFields={[
-
                     {
                         field: {
                             pageBackgroundColor: true,
@@ -189,7 +187,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                pageBackgroundColor: true
+                                pageBackgroundColor: true,
                             },
                             fieldType: FieldType.Color,
                             title: 'Page Background Color',
@@ -197,7 +195,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                pageTextColor: true
+                                pageTextColor: true,
                             },
                             fieldType: FieldType.Color,
                             title: 'Page Text Color',
@@ -207,13 +205,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-
-
-            
-
-
-
-
         </Page>
     );
 };

@@ -20,10 +20,22 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-    read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteScheduledMaintenanceState],
-    update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenanceState],
+    create: [
+        Permission.ProjectOwner,
+        Permission.CanCreateScheduledMaintenanceState,
+    ],
+    read: [
+        Permission.ProjectOwner,
+        Permission.CanReadScheduledMaintenanceState,
+    ],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.CanDeleteScheduledMaintenanceState,
+    ],
+    update: [
+        Permission.ProjectOwner,
+        Permission.CanEditScheduledMaintenanceState,
+    ],
 })
 @CrudApiEndpoint(new Route('/scheduled-maintenance-state'))
 @SlugifyColumn('name', 'slug')
@@ -33,8 +45,14 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 })
 export default class ScheduledMaintenanceState extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
         update: [],
     })
     @TableColumn({
@@ -57,12 +75,22 @@ export default class ScheduledMaintenanceState extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true, canReadOnPopulate: true})
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnPopulate: true,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -71,9 +99,18 @@ export default class ScheduledMaintenanceState extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
-        update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditScheduledMaintenanceState,
+        ],
     })
     @TableColumn({
         required: true,
@@ -90,7 +127,10 @@ export default class ScheduledMaintenanceState extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -102,9 +142,18 @@ export default class ScheduledMaintenanceState extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
-        update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditScheduledMaintenanceState,
+        ],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -115,8 +164,14 @@ export default class ScheduledMaintenanceState extends BaseModel {
     public description?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
         update: [],
     })
     @TableColumn({
@@ -139,8 +194,14 @@ export default class ScheduledMaintenanceState extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -153,7 +214,10 @@ export default class ScheduledMaintenanceState extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
         update: [],
     })
     @TableColumn({
@@ -177,7 +241,10 @@ export default class ScheduledMaintenanceState extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -189,9 +256,18 @@ export default class ScheduledMaintenanceState extends BaseModel {
     public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
-        update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditScheduledMaintenanceState,
+        ],
     })
     @TableColumn({
         title: 'Color',
@@ -210,9 +286,18 @@ export default class ScheduledMaintenanceState extends BaseModel {
     public color?: Color = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
-        update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditScheduledMaintenanceState,
+        ],
     })
     @TableColumn({
         isDefaultValueColumn: false,
@@ -226,9 +311,18 @@ export default class ScheduledMaintenanceState extends BaseModel {
     public isScheduledState?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
-        update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditScheduledMaintenanceState,
+        ],
     })
     @TableColumn({
         isDefaultValueColumn: false,
@@ -242,9 +336,18 @@ export default class ScheduledMaintenanceState extends BaseModel {
     public isOngoingState?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
-        update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditScheduledMaintenanceState,
+        ],
     })
     @TableColumn({
         isDefaultValueColumn: false,
@@ -259,9 +362,18 @@ export default class ScheduledMaintenanceState extends BaseModel {
 
     @UniqueColumnBy('projectId')
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateScheduledMaintenanceState],
-        read: [Permission.ProjectOwner, Permission.CanReadScheduledMaintenanceState],
-        update: [Permission.ProjectOwner, Permission.CanEditScheduledMaintenanceState],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateScheduledMaintenanceState,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadScheduledMaintenanceState,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.CanEditScheduledMaintenanceState,
+        ],
     })
     @TableColumn({
         isDefaultValueColumn: false,

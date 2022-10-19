@@ -79,7 +79,11 @@ export default class StatusPage extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true, canReadOnPopulate: true})
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnPopulate: true,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,
@@ -519,11 +523,10 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public bannerBackgroundColor?: Color = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -536,11 +539,10 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public headerBackgroundColor?: Color = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -553,11 +555,10 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public headerTextColor?: Color = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -570,7 +571,7 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public footerBackgroundColor?: Color = undefined;
 
@@ -586,7 +587,7 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public footerTextColor?: Color = undefined;
 
@@ -602,7 +603,7 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public pageBackgroundColor?: Color = undefined;
 
@@ -618,10 +619,9 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public pageTextColor?: Color = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -635,7 +635,7 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public navBarTextColor?: Color = undefined;
 
@@ -651,7 +651,7 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public navBarBackgroundColor?: Color = undefined;
 
@@ -667,7 +667,7 @@ export default class StatusPage extends BaseModel {
     @Column({
         type: ColumnType.Color,
         nullable: true,
-        transformer: Color.getDatabaseTransformer()
+        transformer: Color.getDatabaseTransformer(),
     })
     public pageDescriptionText?: Color = undefined;
 
@@ -701,7 +701,6 @@ export default class StatusPage extends BaseModel {
     })
     public showFooter?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -710,13 +709,15 @@ export default class StatusPage extends BaseModel {
         read: [Permission.ProjectOwner, Permission.CanReadProjectStatusPage],
         update: [Permission.ProjectOwner, Permission.CanEditProjectStatusPage],
     })
-    @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.ShortText })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        type: TableColumnType.ShortText,
+    })
     @Column({
         type: ColumnType.ShortText,
-        nullable: true
+        nullable: true,
     })
     public copyrightText?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -733,7 +734,6 @@ export default class StatusPage extends BaseModel {
     })
     public showNavbar?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -748,7 +748,6 @@ export default class StatusPage extends BaseModel {
         default: true,
     })
     public showOverviewPage?: boolean = undefined;
-
 
     @ColumnAccessControl({
         create: [
@@ -780,7 +779,6 @@ export default class StatusPage extends BaseModel {
     })
     public showRssPage?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -796,7 +794,6 @@ export default class StatusPage extends BaseModel {
     })
     public showAnouncementsPage?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -811,5 +808,4 @@ export default class StatusPage extends BaseModel {
         default: true,
     })
     public showScheduledMaintenancePage?: boolean = undefined;
-
 }

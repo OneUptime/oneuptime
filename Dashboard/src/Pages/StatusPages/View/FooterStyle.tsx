@@ -53,7 +53,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Footer',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                        ] as Route,
                         modelId
                     ),
                 },
@@ -79,7 +81,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Text,
                         required: false,
                         placeholder: 'Acme, Inc.',
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -93,12 +95,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Text,
                             title: 'Copyright Info',
                             placeholder: 'No copyright info entered so far.',
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}
             />
-
 
             <ModelTable<StatusPageFooterLink>
                 modelType={StatusPageFooterLink}
@@ -127,12 +128,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     icon: IconProp.Link,
                     title: 'Footer Links',
-                    description:
-                        'Footer Links for your status page',
+                    description: 'Footer Links for your status page',
                 }}
-                noItemsMessage={
-                    'No status footer link for this status page.'
-                }
+                noItemsMessage={'No status footer link for this status page.'}
                 formFields={[
                     {
                         field: {
@@ -176,17 +174,16 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
             />
 
-
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Footer Colors',
-                    description: 'Footer background color and text colors for your status page',
+                    description:
+                        'Footer background color and text colors for your status page',
                     icon: IconProp.Layers,
                 }}
                 editButtonText={'Edit Colors'}
                 isEditable={true}
                 formFields={[
-
                     {
                         field: {
                             footerBackgroundColor: true,
@@ -213,7 +210,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                footerBackgroundColor: true
+                                footerBackgroundColor: true,
                             },
                             fieldType: FieldType.Color,
                             title: 'Footer Background Color',
@@ -221,7 +218,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
-                                footerTextColor: true
+                                footerTextColor: true,
                             },
                             fieldType: FieldType.Color,
                             title: 'Footer Text Color',
@@ -235,13 +232,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <CardModelDetail<StatusPage>
                 cardProps={{
                     title: 'Advanced Footer Settings',
-                    description: 'Advanced settings for your status page footer',
+                    description:
+                        'Advanced settings for your status page footer',
                     icon: IconProp.Settings,
                 }}
                 editButtonText={'Edit Settings'}
                 isEditable={true}
                 formFields={[
-
                     {
                         field: {
                             showFooter: true,
@@ -249,7 +246,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Show Footer on Status Page',
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: false,
-                    }
+                    },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -258,16 +255,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                showFooter: true
+                                showFooter: true,
                             },
                             fieldType: FieldType.Boolean,
                             title: 'Show Footer on Status Page',
-                        }
+                        },
                     ],
                     modelId: modelId,
                 }}
             />
-
         </Page>
     );
 };
