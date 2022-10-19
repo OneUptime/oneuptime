@@ -52,6 +52,21 @@ services:
             - redis
             - postgres
     
+    workers:
+        ports:
+            - '3452:3452'
+        build:
+            context: .
+            dockerfile: ./Workers/Dockerfile
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Workers/.env
+        environment: *common-variables
+        depends_on:
+            - postgres
+            - mail
+    
     file:
         ports:
             - '3125:3125'

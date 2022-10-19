@@ -4,14 +4,26 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "ts-node Index.ts",
+    "compile": "tsc",
+    "dev": "nodemon",
+    "audit": "npm audit --audit-level=low",
+    "dep-check": "depcheck ./ --skip-missing=true",
+    "test": "jest"
   },
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "node-cron": "^3.0.2",
+    "@types/node-cron": "^3.0.4",
     "Common": "file:../Common",
+    "CommonServer": "file:../CommonServer",
     "Model": "file:../Model",
-    "CommonServer": "file:../CommonServer"
+    "node-cron": "^3.0.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.5.0",
+    "@types/node": "^17.0.31",
+    "jest": "^28.1.0",
+    "ts-jest": "^28.0.2"
   }
 }

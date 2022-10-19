@@ -217,11 +217,9 @@ services:
             - ./Workers/.env
         environment: *common-variables
         depends_on:
-            - redis
             - postgres
             - mail
         links:
-            - redis
             - postgres
             - mail
         volumes:

@@ -49,42 +49,29 @@ export class Service extends DatabaseService<Model> {
         return { createBy, carryForward: null };
     }
 
-    protected override async onCreateSuccess(
-        onCreate: OnCreate<Model>,
-        createdItem: Model
-    ): Promise<Model> {
-        if (!createdItem.projectId) {
+    public async changeAttachedMonitorStates(
+        item: Model,
+        props: DatabaseCommonInteractionProps
+    ): Promise<void> {
+        if (!item.projectId) {
             throw new BadDataException('projectId is required');
         }
 
-        if (!createdItem.id) {
+        if (!item.id) {
             throw new BadDataException('id is required');
         }
 
-        if (!createdItem.currentScheduledMaintenanceStateId) {
-            throw new BadDataException('currentScheduledMaintenanceStateId is required');
-        }
-
-        if (createdItem.changeMonitorStatusToId && createdItem.projectId) {
+        if (item.changeMonitorStatusToId && item.projectId) {
             // change status of all the monitors.
             await MonitorService.changeMonitorStatus(
-                createdItem.projectId,
-                createdItem.monitors?.map((monitor: Monitor) => {
+                item.projectId,
+                item.monitors?.map((monitor: Monitor) => {
                     return new ObjectID(monitor._id || '');
                 }) || [],
-                createdItem.changeMonitorStatusToId,
-                onCreate.createBy.props
+                item.changeMonitorStatusToId,
+                props
             );
         }
-
-        await this.changeScheduledMaintenanceState(
-            createdItem.projectId,
-            createdItem.id,
-            createdItem.currentScheduledMaintenanceStateId,
-            onCreate.createBy.props
-        );
-
-        return createdItem;
     }
 
     public async changeScheduledMaintenanceState(
@@ -93,6 +80,19 @@ export class Service extends DatabaseService<Model> {
         scheduledMaintenanceStateId: ObjectID,
         props: DatabaseCommonInteractionProps
     ): Promise<void> {
+
+        await this.updateBy({
+            data: {
+                currentScheduledMaintenanceStateId: scheduledMaintenanceStateId.id
+            },
+            query: {
+                _id: scheduledMaintenanceId.toString()!
+            },
+            props: {
+                isRoot: true
+            }
+        });
+
         const statusTimeline: ScheduledMaintenanceStateTimeline =
             new ScheduledMaintenanceStateTimeline();
 
