@@ -174,7 +174,7 @@ export default class Probe extends BaseModel {
     })
     @TableColumn({
         type: TableColumnType.ObjectID,
-        required: true,
+        required: false,
         canReadOnPopulate: true,
     })
     @Column({
