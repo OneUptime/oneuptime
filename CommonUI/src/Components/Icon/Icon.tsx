@@ -147,7 +147,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     icon,
     className,
     color,
-    thick = ThickProp.Normal,
+    thick =ThickProp.Normal,
     onClick,
     style,
 }: ComponentProps): ReactElement => {

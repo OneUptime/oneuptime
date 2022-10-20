@@ -12,11 +12,10 @@ const HiddenText: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [showText, setShowText] = useState<boolean>(false);
     const [copiedToClipboard, setCopyToClipboard] = useState<boolean>(false);
-
     if (!showText) {
         return (
             <p 
-                role='paragraph'
+                role="paragraph"
                 className="pointer underline"
                 onClick={() => {
                     setShowText(true);
@@ -26,13 +25,12 @@ const HiddenText: FunctionComponent<ComponentProps> = (
             </p>
         );
     }
-
     return (
         <div >
             <div className="flex">
-                <div 
+             <div 
                     style={{
-                        marginRight: '5px',
+                     marginRight: '5px',
                     }}
                 >
                     {props.text}
@@ -54,7 +52,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                         onClick={async () => {
                             await navigator.clipboard.writeText(props.text); 
                             setCopyToClipboard(true);
-                        }}
+                    }}
                     >
                         {' '}
                         {copiedToClipboard
