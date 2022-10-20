@@ -11,7 +11,7 @@ const Banner: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="flex items-center" style={{ marginLeft: '-25px' }}>
+        <div className="flex items-center">
             <Image
                 onClick={() => {
                     props.onClick && props.onClick();

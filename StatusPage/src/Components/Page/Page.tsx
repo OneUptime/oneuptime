@@ -15,6 +15,7 @@ const Page: FunctionComponent<ComponentProps> = (
                 marginLeft: '0px',
                 paddingLeft: '5px',
                 marginTop: '0px',
+                width: "100%"
             }}
         >
             <div
@@ -22,6 +23,7 @@ const Page: FunctionComponent<ComponentProps> = (
                 style={{
                     margin: '0px',
                     padding: '0px',
+                    maxWidth: '100%'
                 }}
             >
                 <div className="row">

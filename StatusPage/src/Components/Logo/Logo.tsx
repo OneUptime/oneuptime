@@ -11,7 +11,7 @@ const Logo: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="flex items-center" style={{ marginLeft: '-25px' }}>
+        <div className="flex items-center">
             <FullLogo
                 height={30}
                 onClick={() => {

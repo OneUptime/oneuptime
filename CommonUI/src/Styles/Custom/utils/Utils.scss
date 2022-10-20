@@ -384,3 +384,38 @@
     background-color: $color-white;
 }
 
+.accordian-left-elements{
+    display: flex;
+}
+
+
+.accordian-group{
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 5px;
+    margin:0px;
+}
+
+.accordian-children{ 
+    padding: 20px;
+}
+
+.accordian-right-element{ 
+    margin-right: 10px;
+}
+
+.accordian-header{ 
+    display: flex;
+    justify-content: space-between;
+}
+
+.accordian-row{
+    border-bottom-width: 1px;
+    border-style: solid;
+    border-top-width: 0px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin: 0px;
+}
