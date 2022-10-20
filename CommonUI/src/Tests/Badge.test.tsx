@@ -8,7 +8,7 @@ describe('Badge', () => {
     test('it should render all props', () => {
         render(
         <Badge 
-        badgeCount={1}
+        badgeCount={2}
         badgeType={BadgeType.SUCCESS}
         />
         );
