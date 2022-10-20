@@ -44,6 +44,13 @@
   }
 }
 
+.alert-large{
+  font-size: 22px;
+  padding: 20px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
 .alert{
   padding-top: 8px;
   padding-bottom: 8px;
@@ -53,6 +60,12 @@
   --bs-alert-color: white;
   --bs-alert-bg: #fd625e;
   --bs-alert-border-color: #fd625e;
+}
+
+.alert-success {
+  --bs-alert-color: white;
+  --bs-alert-bg: #2ab57d;
+  --bs-alert-border-color: #2ab57d;
 }
 
 .alert-info {

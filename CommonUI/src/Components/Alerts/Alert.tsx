@@ -9,12 +9,21 @@ export enum AlertType {
     WARNING,
 }
 
+export enum AlertSize {
+    Normal,
+    Large,
+}
+
+
+
 export interface ComponentProps {
     strongTitle?: undefined | string;
     title?: undefined | string;
     onClose?: undefined | (() => void);
     type?: undefined | AlertType;
     onClick?: (() => void) | undefined;
+    doNotShowIcon?: boolean | undefined;
+    size?: undefined | AlertSize;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -44,11 +53,18 @@ const Alert: FunctionComponent<ComponentProps> = (
         cssClass = 'alert-warning';
     }
 
+
+    let sizeCssClass: string = '';
+
+    if (props.size && props.size === AlertSize.Large) {
+        sizeCssClass = 'alert-large';
+    }
+
     return (
         <div className="row">
             <div className="col-xl-12">
                 <div
-                    className={`alert-label-icon flex label-arrow alert ${cssClass} alert-dismissible fade show ${
+                    className={`alert-label-icon flex label-arrow alert ${cssClass}  ${sizeCssClass}  alert-dismissible fade show ${
                         props.onClick ? 'pointer' : ''
                     }`}
                     role="alert"
@@ -68,7 +84,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                             <span aria-hidden="true">×</span>
                         </button>
                     )}
-                    <span style={{ marginLeft: '-45px', height: '10px' }}>
+                    {!props.doNotShowIcon && <span style={{ marginLeft: '-45px', height: '10px' }}>
                         {AlertType.DANGER === type && (
                             <Icon
                                 thick={ThickProp.LessThick}
@@ -102,7 +118,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                             />
                         )}
                         &nbsp;&nbsp;
-                    </span>
+                    </span>}
                     <div
                         className={`flex ${props.onClick ? 'pointer' : ''}`}
                         style={{
