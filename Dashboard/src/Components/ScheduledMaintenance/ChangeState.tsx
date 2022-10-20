@@ -62,13 +62,13 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
 
     if (
         scheduledMaintenanceTimeline &&
-        scheduledMaintenanceTimeline.createdByUser &&
         scheduledMaintenanceTimeline.createdAt
     ) {
         return (
             <div>
                 <UserElement
                     user={scheduledMaintenanceTimeline.createdByUser}
+                    prefix="Changed by"
                 />
                 {OneUptimeDate.getDateAsLocalFormattedString(
                     scheduledMaintenanceTimeline.createdAt
@@ -83,8 +83,8 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
             buttonSize={ButtonSize.Small}
             title={
                 props.stateType === StateType.Ongoing
-                    ? 'Acknowledge ScheduledMaintenance'
-                    : 'Resolve ScheduledMaintenance'
+                    ? 'Mark as Ongoing'
+                    : 'Mark as Complete'
             }
             icon={
                 props.stateType === StateType.Ongoing
