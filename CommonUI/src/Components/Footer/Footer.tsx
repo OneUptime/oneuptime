@@ -5,6 +5,7 @@ import UILink from '../Link/Link';
 export interface ComponentProps {
     copyright: string;
     links: Array<Link>;
+    style?: React.CSSProperties | undefined;
 }
 
 const Footer: FunctionComponent<ComponentProps> = (
@@ -13,7 +14,7 @@ const Footer: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <footer className="footer">
-                <div className="container-fluid">
+                <div className="container-fluid" style={props.style}>
                     <div className="row">
                         {props.copyright && (
                             <div className="col-md-6">

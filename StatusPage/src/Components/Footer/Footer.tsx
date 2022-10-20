@@ -6,6 +6,11 @@ const StatusPageFooter: FunctionComponent = () => {
     return (
         <Footer
             copyright="OneUptime Limited."
+            style={{
+                maxWidth: "880px",
+                paddingLeft: "0px",
+                paddingRight: "0px"
+            }}
             links={[
                 {
                     title: 'Help and Support',
