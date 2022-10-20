@@ -117,7 +117,11 @@ export default class TeamPermission extends BaseModel {
         update: [],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({
+        type: TableColumnType.ObjectID,
+        required: true,
+        canReadOnPopulate: true,
+    })
     @Column({
         type: ColumnType.ObjectID,
         nullable: false,

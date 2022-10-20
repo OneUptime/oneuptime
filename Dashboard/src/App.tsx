@@ -13,6 +13,7 @@ import Init from './Pages/Init/Init';
 
 import Home from './Pages/Home/Home';
 import NotOperationalMonitors from './Pages/Home/NotOperationalMonitors';
+import OngoingScheduledEvents from './Pages/Home/OngingScheduledMaintenance';
 
 import useAsyncEffect from 'use-async-effect';
 
@@ -29,6 +30,9 @@ import StatusPagesViewResources from './Pages/StatusPages/View/Resources';
 import StatusPagesViewAnnouncement from './Pages/StatusPages/View/Announcements';
 import StatusPagesViewAdvancedOptions from './Pages/StatusPages/View/AdvancedOptions';
 import StatusPagesViewCustomHtmlCss from './Pages/StatusPages/View/CustomHtmlCss';
+import StatusPagesViewHeaderStyle from './Pages/StatusPages/View/HeaderStyle';
+import StatusPagesViewFooterStyle from './Pages/StatusPages/View/FooterStyle';
+import StatusPagesViewNavBarStyle from './Pages/StatusPages/View/NavBarStyle';
 import StatusPagesViewGroups from './Pages/StatusPages/View/Groups';
 import StatusPageViewSubscriberSettings from './Pages/StatusPages/View/SubscriberSettings';
 
@@ -39,6 +43,14 @@ import IncidentViewStateTimeline from './Pages/Incidents/View/StateTimeline';
 import IncidentInternalNote from './Pages/Incidents/View/InternalNote';
 import IncidentPublicNote from './Pages/Incidents/View/PublicNote';
 import UnresolvedIncidents from './Pages/Incidents/Unresolved';
+
+import ScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/ScheduledMaintenanceEvents';
+import ScheduledMaintenanceEventView from './Pages/ScheduledMaintenanceEvents/View/Index';
+import ScheduledMaintenanceEventViewDelete from './Pages/ScheduledMaintenanceEvents/View/Delete';
+import ScheduledMaintenanceEventViewStateTimeline from './Pages/ScheduledMaintenanceEvents/View/StateTimeline';
+import ScheduledMaintenanceEventInternalNote from './Pages/ScheduledMaintenanceEvents/View/InternalNote';
+import ScheduledMaintenanceEventPublicNote from './Pages/ScheduledMaintenanceEvents/View/PublicNote';
+import OngoingScheduledMaintenanceEvents from './Pages/ScheduledMaintenanceEvents/Ongoing';
 
 import Logs from './Pages/Logs/Logs';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -56,6 +68,7 @@ import SettingsTeams from './Pages/Settings/Teams';
 import SettingsTeamView from './Pages/Settings/TeamView';
 import SettingsMonitors from './Pages/Settings/MonitorStatus';
 import SettingsIncidents from './Pages/Settings/IncidentState';
+import SettingsScheduledMaintenanceState from './Pages/Settings/ScheduledMaintenanceState';
 import SettingsDomains from './Pages/Settings/Domains';
 import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
 
@@ -227,7 +240,28 @@ const App: FunctionComponent = () => {
                     ]?.toString()}
                     element={
                         <NotOperationalMonitors
-                            pageRoute={RouteMap[PageMap.HOME] as Route}
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                    ]?.toString()}
+                    element={
+                        <OngoingScheduledEvents
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                ] as Route
+                            }
                             currentProject={selectedProject}
                         />
                     }
@@ -442,6 +476,54 @@ const App: FunctionComponent = () => {
 
                 <PageRoute
                     path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewHeaderStyle
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewFooterStyle
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                    ]?.toString()}
+                    element={
+                        <StatusPagesViewNavBarStyle
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
                         PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                     ]?.toString()}
                     element={
@@ -622,6 +704,121 @@ const App: FunctionComponent = () => {
                     }
                 />
 
+                {/* Scheduled Events */}
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                    ]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEvents
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                    ]?.toString()}
+                    element={
+                        <OngoingScheduledMaintenanceEvents
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_VIEW
+                    ]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventView
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_VIEW
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                    ]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventViewDelete
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                    ]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventViewStateTimeline
+                            pageRoute={
+                                RouteMap[
+                                    PageMap
+                                        .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                    ]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventInternalNote
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                    ]?.toString()}
+                    element={
+                        <ScheduledMaintenanceEventPublicNote
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
                 {/* Logs */}
 
                 <PageRoute
@@ -689,6 +886,22 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.SETTINGS_INCIDENTS_STATE
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                    ]?.toString()}
+                    element={
+                        <SettingsScheduledMaintenanceState
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                                 ] as Route
                             }
                             currentProject={selectedProject}

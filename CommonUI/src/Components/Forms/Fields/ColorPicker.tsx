@@ -10,7 +10,7 @@ import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import Input from '../../Input/Input';
 
 export interface ComponentProps {
-    onChange: (value: Color) => void;
+    onChange: (value: Color | null) => void;
     initialValue?: undefined | Color;
     placeholder: string;
     onFocus?: (() => void) | undefined;
@@ -32,13 +32,16 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
 
     const handleChange: Function = (color: string): void => {
         setColor(color);
+        if (!color) {
+            return props.onChange(null);
+        }
         props.onChange(new Color(color));
     };
 
     return (
         <div>
             <Input
-                leftCircleColor={new Color(color || '#000000')}
+                leftCircleColor={new Color(color || props.placeholder)}
                 placeholder={props.placeholder}
                 className="pointer form-control white-background-on-readonly"
                 value={color}
@@ -47,6 +50,11 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                 tabIndex={props.tabIndex}
                 onClick={() => {
                     setIsComponentVisible(!isComponentVisible);
+                }}
+                onChange={(value: string) => {
+                    if (!value) {
+                        return handleChange('');
+                    }
                 }}
                 onFocus={props.onFocus || undefined}
             />

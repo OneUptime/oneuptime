@@ -37,7 +37,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import Exception from 'Common/Types/Exception/Exception';
 import HashedString from 'Common/Types/HashedString';
-import Input from '../Input/Input';
+import Input, { InputType } from '../Input/Input';
 import Markdown from '../Markdown.tsx/MarkdownEditor';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
@@ -47,6 +47,7 @@ import FileModel from 'Common/Models/FileModel';
 import Phone from 'Common/Types/Phone';
 import Domain from 'Common/Types/Domain';
 import Typeof from 'Common/Types/Typeof';
+import URL from 'Common/Types/API/URL';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -92,6 +93,8 @@ function getFieldType(fieldType: FormFieldSchemaType): string {
             return 'textarea';
         case FormFieldSchemaType.Color:
             return 'color';
+        case FormFieldSchemaType.URL:
+            return 'url';
         default:
             return 'text';
     }
@@ -156,7 +159,7 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: any) => {
                             return (
                                 <ColorPicker
-                                    onChange={async (value: Color) => {
+                                    onChange={async (value: Color | null) => {
                                         setCurrentValue({
                                             ...currentValue,
                                             [fieldName]: value,
@@ -491,11 +494,17 @@ const BasicForm: Function = <T extends Object>(
                                         }}
                                         initialValue={
                                             initialValues &&
-                                            (initialValues as any)[fieldName]
+                                            (initialValues as any)[fieldName] &&
+                                            ((initialValues as any)[
+                                                fieldName
+                                            ] === true ||
+                                                (initialValues as any)[
+                                                    fieldName
+                                                ] === false)
                                                 ? (initialValues as any)[
                                                       fieldName
                                                   ]
-                                                : false
+                                                : field.defaultValue || false
                                         }
                                     />
                                 </>
@@ -531,7 +540,7 @@ const BasicForm: Function = <T extends Object>(
                                     tabIndex={index}
                                     dataTestId={fieldType}
                                     className="form-control"
-                                    type={fieldType as 'text'}
+                                    type={fieldType as InputType}
                                     onChange={(value: string) => {
                                         setCurrentValue({
                                             ...currentValue,
@@ -543,6 +552,9 @@ const BasicForm: Function = <T extends Object>(
                                             true
                                         );
                                     }}
+                                    onEnterPress={async () => {
+                                        await form.submitForm();
+                                    }}
                                     onBlur={() => {
                                         form.setFieldTouched(fieldName, true);
                                     }}
@@ -550,7 +562,7 @@ const BasicForm: Function = <T extends Object>(
                                         initialValues &&
                                         (initialValues as any)[fieldName]
                                             ? (initialValues as any)[fieldName]
-                                            : ''
+                                            : field.defaultValue || ''
                                     }
                                     placeholder={field.placeholder || ''}
                                 />
@@ -690,6 +702,16 @@ const BasicForm: Function = <T extends Object>(
         if (field.fieldType === FormFieldSchemaType.Port) {
             try {
                 new Port(content);
+            } catch (e: unknown) {
+                if (e instanceof Exception) {
+                    return e.getMessage();
+                }
+            }
+        }
+
+        if (field.fieldType === FormFieldSchemaType.URL) {
+            try {
+                URL.fromString(content);
             } catch (e: unknown) {
                 if (e instanceof Exception) {
                     return e.getMessage();

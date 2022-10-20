@@ -10,6 +10,7 @@ import { BadgeType } from 'CommonUI/src/Components/Badge/Badge';
 import Incident from 'Model/Models/Incident';
 import Project from 'Model/Models/Project';
 import Monitor from 'Model/Models/Monitor';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 
 export interface ComponentProps {
     project?: Project | undefined;
@@ -20,7 +21,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <SideMenu>
-            <SideMenuSection title="Overview">
+            <SideMenuSection title="Incidents">
                 <SideMenuItem<Incident>
                     link={{
                         title: 'Unresolved Incidents',
@@ -38,6 +39,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         },
                     }}
                 />
+            </SideMenuSection>
+            <SideMenuSection title="Monitors">
                 <SideMenuItem<Monitor>
                     link={{
                         title: 'Inoperational Monitors',
@@ -56,6 +59,28 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     modelType={Monitor}
                     badgeType={BadgeType.DANGER}
+                />
+            </SideMenuSection>
+            <SideMenuSection title="Scheduled Maintenance">
+                <SideMenuItem<Monitor>
+                    link={{
+                        title: 'Ongoing Events',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap
+                                    .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.Clock}
+                    countQuery={{
+                        projectId: props.project?._id,
+                        currentScheduledMaintenanceState: {
+                            isOngoingState: true,
+                        },
+                    }}
+                    modelType={ScheduledMaintenance}
+                    badgeType={BadgeType.WARNING}
                 />
             </SideMenuSection>
         </SideMenu>

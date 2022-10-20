@@ -165,11 +165,44 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             displayDescription: true,
                         },
-                        title: 'Group Description (Optional)',
+                        title: 'Description (Optional)',
                         fieldType: FormFieldSchemaType.LongText,
                         required: false,
                         description: 'This will be visible on the status page.',
                         placeholder: 'Display Description.',
+                    },
+                    {
+                        field: {
+                            displayTooltip: true,
+                        },
+                        title: 'Tooltip (Optional)',
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: false,
+                        description:
+                            'This will show up as tooltip beside the resource on your status page.',
+                        placeholder: 'Tooltip',
+                    },
+                    {
+                        field: {
+                            showCurrentStatus: true,
+                        },
+                        title: 'Show Current Resource Status',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        required: false,
+                        defaultValue: true,
+                        description:
+                            'Current Resource Status will be shown beside this resource on your status page.',
+                    },
+                    {
+                        field: {
+                            showStatusHistoryChart: true,
+                        },
+                        title: 'Show Status History Chart',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        required: false,
+                        description:
+                            'Show resource status history for the past 90 days. ',
+                        defaultValue: true,
                     },
                 ]}
                 showRefreshButton={true}

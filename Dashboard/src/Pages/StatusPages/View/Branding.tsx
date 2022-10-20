@@ -47,9 +47,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Delete Status Page',
+                    title: 'Essential Branding',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE] as Route,
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_BRANDING] as Route,
                         modelId
                     ),
                 },
@@ -63,6 +63,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     description: 'This will also be used for SEO.',
                     icon: IconProp.Text,
                 }}
+                editButtonText={'Edit'}
                 isEditable={true}
                 formFields={[
                     {
@@ -112,30 +113,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
 
             <CardModelDetail<StatusPage>
                 cardProps={{
-                    title: 'Logo, Cover and Favicon',
-                    description: 'These will show up on your status page.',
+                    title: 'Favicon',
+                    description: 'Favicon will be used for SEO.',
                     icon: IconProp.Image,
                 }}
                 isEditable={true}
+                editButtonText={'Edit Favicon'}
                 formFields={[
-                    {
-                        field: {
-                            logoFile: true,
-                        },
-                        title: 'Logo',
-                        fieldType: FormFieldSchemaType.ImageFile,
-                        required: false,
-                        placeholder: 'Please upload logo here.',
-                    },
-                    {
-                        field: {
-                            coverImageFile: true,
-                        },
-                        title: 'Cover',
-                        fieldType: FormFieldSchemaType.ImageFile,
-                        required: false,
-                        placeholder: 'Please cover logo here.',
-                    },
                     {
                         field: {
                             faviconFile: true,
@@ -153,28 +137,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     fields: [
                         {
                             field: {
-                                logoFile: {
-                                    file: true,
-                                    type: true,
-                                },
-                            },
-                            fieldType: FieldType.ImageFile,
-                            title: 'Logo',
-                            placeholder: 'No logo uploaded.',
-                        },
-                        {
-                            field: {
-                                coverImageFile: {
-                                    file: true,
-                                    type: true,
-                                },
-                            },
-                            fieldType: FieldType.ImageFile,
-                            title: 'Cover Image',
-                            placeholder: 'No cover uploaded.',
-                        },
-                        {
-                            field: {
                                 faviconFile: {
                                     file: true,
                                     type: true,
@@ -183,6 +145,61 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.ImageFile,
                             title: 'Favicon',
                             placeholder: 'No favicon uploaded.',
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+            <CardModelDetail<StatusPage>
+                cardProps={{
+                    title: 'Page Colors',
+                    description:
+                        'Page background color and text colors for your status page',
+                    icon: IconProp.Layers,
+                }}
+                editButtonText={'Edit Colors'}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            pageBackgroundColor: true,
+                        },
+                        title: 'Page Background Color',
+                        fieldType: FormFieldSchemaType.Color,
+                        required: false,
+                        placeholder: '#ffffff',
+                    },
+                    {
+                        field: {
+                            pageTextColor: true,
+                        },
+                        title: 'Page Text Color',
+                        fieldType: FormFieldSchemaType.Color,
+                        required: false,
+                        placeholder: '#000000',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 1,
+                    modelType: StatusPage,
+                    id: 'model-detail-status-page',
+                    fields: [
+                        {
+                            field: {
+                                pageBackgroundColor: true,
+                            },
+                            fieldType: FieldType.Color,
+                            title: 'Page Background Color',
+                            placeholder: '#ffffff',
+                        },
+                        {
+                            field: {
+                                pageTextColor: true,
+                            },
+                            fieldType: FieldType.Color,
+                            title: 'Page Text Color',
+                            placeholder: '#000000',
                         },
                     ],
                     modelId: modelId,

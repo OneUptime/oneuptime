@@ -39,4 +39,5 @@ export default interface Field<TEntity> {
     onChange?: ((value: any, form: any) => void) | undefined;
     fieldType?: FormFieldSchemaType;
     overideFieldKey?: string;
+    defaultValue?: boolean | string | undefined;
 }

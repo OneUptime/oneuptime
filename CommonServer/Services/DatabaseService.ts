@@ -8,7 +8,7 @@ import DeleteBy from '../Types/Database/DeleteBy';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import FindBy from '../Types/Database/FindBy';
 import UpdateBy from '../Types/Database/UpdateBy';
-import Query from '../Types/Database/Query';
+import Query, { FindWhere } from '../Types/Database/Query';
 import CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
@@ -476,6 +476,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
             throw new BadDataException('Data is not valid');
         }
 
+        // check total items by.
+
+        await this.checkTotalItemsBy(_createdBy);
+
         // Encrypt data
         data = this.encrypt(data);
 
@@ -512,6 +516,41 @@ class DatabaseService<TBaseModel extends BaseModel> {
         } catch (error) {
             await this.onCreateError(error as Exception);
             throw this.getException(error as Exception);
+        }
+    }
+
+    private async checkTotalItemsBy(
+        createdBy: CreateBy<TBaseModel>
+    ): Promise<void> {
+        const totalItemsColumnName: string | null =
+            this.model.getTotalItemsByColumnName();
+        const totalItemsNumber: number | null =
+            this.model.getTotalItemsNumber();
+        const errorMessage: string | null =
+            this.model.getTotalItemsByErrorMessage();
+
+        if (
+            totalItemsColumnName &&
+            totalItemsNumber &&
+            errorMessage &&
+            createdBy.data.getColumnValue(totalItemsColumnName)
+        ) {
+            const count: PositiveNumber = await this.countBy({
+                query: {
+                    [totalItemsColumnName]:
+                        createdBy.data.getColumnValue(totalItemsColumnName),
+                } as FindWhere<TBaseModel>,
+
+                skip: 0,
+                limit: LIMIT_MAX,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (count.positiveNumber > totalItemsNumber - 1) {
+                throw new BadDataException(errorMessage);
+            }
         }
     }
 

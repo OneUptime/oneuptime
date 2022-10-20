@@ -1,3 +1,4 @@
+import { White } from 'Common/Types/BrandColors';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 
@@ -74,6 +75,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                                 thick={ThickProp.LessThick}
                                 icon={IconProp.Error}
                                 size={SizeProp.Large}
+                                color={White}
                             />
                         )}
                         {AlertType.WARNING === type && (
@@ -81,6 +83,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                                 thick={ThickProp.LessThick}
                                 icon={IconProp.Alert}
                                 size={SizeProp.Large}
+                                color={White}
                             />
                         )}
                         {AlertType.SUCCESS === type && (
@@ -88,6 +91,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                                 thick={ThickProp.LessThick}
                                 icon={IconProp.Success}
                                 size={SizeProp.Large}
+                                color={White}
                             />
                         )}
                         {AlertType.INFO === type && (
@@ -95,6 +99,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                                 thick={ThickProp.LessThick}
                                 icon={IconProp.Info}
                                 size={SizeProp.Large}
+                                color={White}
                             />
                         )}
                         &nbsp;&nbsp;

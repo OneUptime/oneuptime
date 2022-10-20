@@ -93,6 +93,19 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.TextFile}
                 />
             </SideMenuSection>
+            <SideMenuSection title="Scheduled Maintenance">
+                <SideMenuItem
+                    link={{
+                        title: 'Event State',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                            ] as Route
+                        ),
+                    }}
+                    icon={IconProp.Clock}
+                />
+            </SideMenuSection>
             <SideMenuSection title="Team">
                 <SideMenuItem
                     link={{

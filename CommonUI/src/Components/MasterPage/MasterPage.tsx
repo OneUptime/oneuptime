@@ -9,6 +9,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     isLoading: boolean;
     error: string;
+    mainContentStyle?: React.CSSProperties | undefined;
 }
 
 const MasterPage: FunctionComponent<ComponentProps> = (
@@ -35,7 +36,9 @@ const MasterPage: FunctionComponent<ComponentProps> = (
             <div id="layout-wrapper">
                 {props.header && props.header}
                 {props.navBar && props.navBar}
-                <div className="main-content">{props.children}</div>
+                <div className="main-content" style={props.mainContentStyle}>
+                    {props.children}
+                </div>
                 {props.footer && props.footer}
             </div>
         </React.Fragment>

@@ -17,12 +17,14 @@ import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import { Yellow, Green, Red, Moroon } from 'Common/Types/BrandColors';
+import { Yellow, Green, Red, Moroon, Black } from 'Common/Types/BrandColors';
 import MonitorStatusService from './MonitorStatusService';
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import IncidentSeverityService from './IncidentSeverityService';
+import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -79,6 +81,66 @@ export class Service extends DatabaseService<Model> {
         return Promise.resolve({ createBy: data, carryForward: null });
     }
 
+    private async addDefaultScheduledMaintenanceState(
+        createdItem: Model
+    ): Promise<Model> {
+        let createdScheduledMaintenanceState: ScheduledMaintenanceState =
+            new ScheduledMaintenanceState();
+        createdScheduledMaintenanceState.name = 'Scheduled';
+        createdScheduledMaintenanceState.description =
+            'When an event is scheduled, it belongs to this state';
+        createdScheduledMaintenanceState.color = Black;
+        createdScheduledMaintenanceState.isScheduledState = true;
+        createdScheduledMaintenanceState.projectId = createdItem.id!;
+        createdScheduledMaintenanceState.order = 1;
+
+        createdScheduledMaintenanceState =
+            await ScheduledMaintenanceStateService.create({
+                data: createdScheduledMaintenanceState,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        let ongoingScheduledMaintenanceState: ScheduledMaintenanceState =
+            new ScheduledMaintenanceState();
+        ongoingScheduledMaintenanceState.name = 'Ongoing';
+        ongoingScheduledMaintenanceState.description =
+            'When an event is ongoing, it belongs to this state.';
+        ongoingScheduledMaintenanceState.color = Yellow;
+        ongoingScheduledMaintenanceState.isOngoingState = true;
+        ongoingScheduledMaintenanceState.projectId = createdItem.id!;
+        ongoingScheduledMaintenanceState.order = 2;
+
+        ongoingScheduledMaintenanceState =
+            await ScheduledMaintenanceStateService.create({
+                data: ongoingScheduledMaintenanceState,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        let completedScheduledMaintenanceState: ScheduledMaintenanceState =
+            new ScheduledMaintenanceState();
+        completedScheduledMaintenanceState.name = 'Completed';
+        completedScheduledMaintenanceState.description =
+            'When an event is completed, it belongs to this state.';
+        completedScheduledMaintenanceState.color = Green;
+        completedScheduledMaintenanceState.isResolvedState = true;
+        completedScheduledMaintenanceState.projectId = createdItem.id!;
+        completedScheduledMaintenanceState.order = 3;
+
+        completedScheduledMaintenanceState =
+            await ScheduledMaintenanceStateService.create({
+                data: completedScheduledMaintenanceState,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        return createdItem;
+    }
+
     protected override async onCreateSuccess(
         _onCreate: OnCreate<Model>,
         createdItem: Model
@@ -86,6 +148,9 @@ export class Service extends DatabaseService<Model> {
         createdItem = await this.addDefaultProjectTeams(createdItem);
         createdItem = await this.addDefaultMonitorStatus(createdItem);
         createdItem = await this.addDefaultIncidentState(createdItem);
+        createdItem = await this.addDefaultScheduledMaintenanceState(
+            createdItem
+        );
         createdItem = await this.addDefaultIncidentSeverity(createdItem);
 
         return createdItem;

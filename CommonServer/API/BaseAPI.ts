@@ -26,10 +26,10 @@ export default class BaseAPI<
     TBaseModel extends BaseModel,
     TBaseService extends DatabaseService<BaseModel>
 > {
-    private entityType: { new (): TBaseModel };
+    public entityType: { new (): TBaseModel };
 
     public router: ExpressRouter;
-    private service: TBaseService;
+    public service: TBaseService;
 
     public constructor(type: { new (): TBaseModel }, service: TBaseService) {
         this.entityType = type;

@@ -52,9 +52,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Internal Notes',
+                    title: 'Public Notes',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.INCIDENT_INTERNAL_NOTE] as Route,
+                        RouteMap[PageMap.INCIDENT_PUBLIC_NOTE] as Route,
                         modelId
                     ),
                 },

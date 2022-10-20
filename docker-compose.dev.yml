@@ -41,7 +41,9 @@ services:
             dockerfile: ./Mail/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Mail/.env
         environment: *common-variables
         depends_on:
@@ -68,7 +70,9 @@ services:
             - 8443:8443
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./SAML/.env
         volumes:
             - ./SAML/users.php:/var/www/simplesamlphp/config/authsources.php
@@ -92,6 +96,7 @@ services:
             dockerfile: ./Accounts/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./Accounts/.env
         environment: *common-variables
@@ -120,6 +125,7 @@ services:
             dockerfile: ./Dashboard/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./Accounts/.env
         environment: *common-variables
@@ -148,6 +154,7 @@ services:
             dockerfile: ./StatusPage/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonUI/.env
             - ./StatusPage/.env
         environment: *common-variables
@@ -176,7 +183,9 @@ services:
             dockerfile: ./DashboardAPI/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./DashboardAPI/.env
         environment: *common-variables
         depends_on:
@@ -189,6 +198,43 @@ services:
             - mail
         volumes:
             - ./DashboardAPI:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+    
+
+
+    workers:
+        ports:
+            - '3452:3452'
+            - '9654:9229' # Debugging port.
+        build:
+            network: host
+            context: .
+            dockerfile: ./Workers/Dockerfile.dev
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonServer/.env
+            - ./CommonServer/secret.env
+            - ./Workers/.env
+        environment: *common-variables
+        depends_on:
+            - postgres
+            - mail
+        links:
+            - postgres
+            - mail
+        volumes:
+            - ./Workers:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
             - /usr/src/app/node_modules/
@@ -215,7 +261,9 @@ services:
             dockerfile: ./Identity/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Identity/.env
         environment: *common-variables
         depends_on:
@@ -251,7 +299,9 @@ services:
             dockerfile: ./File/Dockerfile.dev
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./File/.env
         environment: *common-variables
         depends_on:
@@ -279,7 +329,9 @@ services:
             - '9235:9229' # Debugging port.
         env_file:
             - ./Common/.env
+            - ./Common/secret.env
             - ./CommonServer/.env
+            - ./CommonServer/secret.env
             - ./Home/.env
         environment: *common-variables
         build:

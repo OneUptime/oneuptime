@@ -3,7 +3,7 @@ import React, { FunctionComponent } from 'react';
 import Navigation from '../../Utils/Navigation';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import UILink from '../Link/Link';
-import { Red, Yellow } from 'Common/Types/BrandColors';
+import { Black, Red, Yellow } from 'Common/Types/BrandColors';
 import Badge, { BadgeType } from '../Badge/Badge';
 
 export interface ComponentProps {
@@ -35,6 +35,11 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                             <Icon
                                 icon={props.icon}
                                 thick={ThickProp.LessThick}
+                                color={
+                                    Navigation.isOnThisPage(props.link.to)
+                                        ? Black
+                                        : null
+                                }
                             />
                         </>
                     ) : (

@@ -77,6 +77,11 @@ export default class BaseModel extends BaseEntity {
     public singularName!: string | null;
     public pluralName!: string | null;
 
+    // total items  by
+    public totalItemsByColumnnName!: string | null;
+    public totalItemsNumber!: number | null;
+    public totalItemsErrorMessage!: string | null;
+
     public isPermissionIf: Dictionary<JSONObject> = {};
 
     public isMultiTenantRequestAllowed!: boolean | null;
@@ -217,6 +222,18 @@ export default class BaseModel extends BaseEntity {
 
     public setSlugifyColumn(columnName: string): void {
         this.slugifyColumn = columnName;
+    }
+
+    public getTotalItemsByColumnName(): string | null {
+        return this.totalItemsByColumnnName;
+    }
+
+    public getTotalItemsByErrorMessage(): string | null {
+        return this.totalItemsErrorMessage;
+    }
+
+    public getTotalItemsNumber(): number | null {
+        return this.totalItemsNumber;
     }
 
     public getRequiredColumns(): Columns {

@@ -1,3 +1,4 @@
+import { Grey } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
 import OneUptimeDate from 'Common/Types/Date';
 import React, {
@@ -7,6 +8,9 @@ import React, {
     useRef,
     useState,
 } from 'react';
+import Icon, { IconProp } from '../Icon/Icon';
+
+export type InputType = 'text' | 'number' | 'date' | 'datetime-local' | 'url';
 
 export interface ComponentProps {
     initialValue?: undefined | string;
@@ -16,18 +20,21 @@ export interface ComponentProps {
     onChange?: undefined | ((value: string) => void);
     value?: string | undefined;
     readOnly?: boolean | undefined;
-    type?: 'text' | 'number' | 'date' | 'datetime-local';
+    disabled?: boolean | undefined;
+    type?: InputType;
     leftCircleColor?: Color | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
     dataTestId?: string;
     tabIndex?: number | undefined;
+    onEnterPress?: (() => void) | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const [value, setValue] = useState<string>('');
+    const [color, setColor] = useState<string | null>(null);
     const [displayValue, setDisplayValue] = useState<string>('');
     const ref: any = useRef<any>(null);
 
@@ -37,6 +44,12 @@ const Input: FunctionComponent<ComponentProps> = (
             (input as any).value = displayValue;
         }
     }, [ref, displayValue]);
+
+    useEffect(() => {
+        if (props.leftCircleColor) {
+            setColor(props.leftCircleColor.toString());
+        }
+    }, [props.leftCircleColor]);
 
     useEffect(() => {
         if (props.type === 'date' || props.type === 'datetime-local') {
@@ -86,15 +99,18 @@ const Input: FunctionComponent<ComponentProps> = (
                 props.onFocus && props.onFocus();
             }}
         >
-            {props.leftCircleColor && (
+            {color && (
                 <div
                     style={{
-                        backgroundColor: props.leftCircleColor.toString(),
+                        backgroundColor: color.toString(),
                         height: '20px',
+                        borderWidth: '1px',
+                        borderColor: Grey.toString(),
                         width: '20px',
                         borderRadius: '300px',
                         boxShadow: 'rgb(149 157 165 / 20%) 0px 8px 24px',
                         marginRight: '7px',
+                        borderStyle: 'solid',
                     }}
                 ></div>
             )}
@@ -124,8 +140,16 @@ const Input: FunctionComponent<ComponentProps> = (
                     }
                 }}
                 tabIndex={props.tabIndex}
-                //value={displayValue}
-                readOnly={props.readOnly || false}
+                onKeyDown={
+                    props.onEnterPress
+                        ? (event: any) => {
+                              if (event.key === 'Enter') {
+                                  props.onEnterPress && props.onEnterPress();
+                              }
+                          }
+                        : undefined
+                }
+                readOnly={props.readOnly || props.disabled || false}
                 type={props.type || 'text'}
                 placeholder={props.placeholder}
                 className="form-control white-background-on-readonly"
@@ -139,6 +163,19 @@ const Input: FunctionComponent<ComponentProps> = (
                     }
                 }}
             />
+            {color && !props.disabled && (
+                <Icon
+                    icon={IconProp.Close}
+                    color={Grey}
+                    onClick={() => {
+                        setValue('');
+                        setColor('#000000');
+                        if (props.onChange) {
+                            props.onChange('');
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

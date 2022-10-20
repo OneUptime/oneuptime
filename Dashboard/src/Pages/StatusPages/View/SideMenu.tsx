@@ -171,6 +171,45 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Globe}
                 />
+
+                <SideMenuItem
+                    link={{
+                        title: 'Header',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Layers}
+                />
+
+                <SideMenuItem
+                    link={{
+                        title: 'Footer',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Layers}
+                />
+
+                <SideMenuItem
+                    link={{
+                        title: 'Navigation Menu',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Layers}
+                />
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">

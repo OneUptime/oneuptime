@@ -26,6 +26,16 @@ import StatusPageSubscriberService, {
     Service as StatusPageSubscriberServiceType,
 } from 'CommonServer/Services/StatusPageSubscriberService';
 
+import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
+import StatusPageFooterLinkService, {
+    Service as StatusPageFooterLinkServiceType,
+} from 'CommonServer/Services/StatusPageFooterLinkService';
+
+import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
+import StatusPageHeaderLinkService, {
+    Service as StatusPageHeaderLinkServiceType,
+} from 'CommonServer/Services/StatusPageHeaderLinkService';
+
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageAnnouncementService, {
     Service as StatusPageAnnouncementServiceType,
@@ -95,6 +105,31 @@ import MonitorTimelineStatus from 'Model/Models/MonitorStatusTimeline';
 import MonitorTimelineStatusService, {
     Service as MonitorTimelineStatusServiceType,
 } from 'CommonServer/Services/MonitorStatusTimelineService';
+
+import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import ScheduledMaintenanceStateService, {
+    Service as ScheduledMaintenanceStateServiceType,
+} from 'CommonServer/Services/ScheduledMaintenanceStateService';
+
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import ScheduledMaintenanceService, {
+    Service as ScheduledMaintenanceServiceType,
+} from 'CommonServer/Services/ScheduledMaintenanceService';
+
+import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import ScheduledMaintenanceStateTimelineService, {
+    Service as ScheduledMaintenanceStateTimelineServiceType,
+} from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
+
+import ScheduledMaintenanceInternalNote from 'Model/Models/ScheduledMaintenanceInternalNote';
+import ScheduledMaintenanceInternalNoteService, {
+    Service as ScheduledMaintenanceInternalNoteServiceType,
+} from 'CommonServer/Services/ScheduledMaintenanceInternalNoteService';
+
+import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
+import ScheduledMaintenancePublicNoteService, {
+    Service as ScheduledMaintenancePublicNoteServiceType,
+} from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
 
 import IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService, {
@@ -198,6 +233,13 @@ app.use(
 );
 
 app.use(
+    new BaseAPI<
+        ScheduledMaintenanceState,
+        ScheduledMaintenanceStateServiceType
+    >(ScheduledMaintenanceState, ScheduledMaintenanceStateService).getRouter()
+);
+
+app.use(
     new BaseAPI<StatusPageResource, StatusPageResourceServiceType>(
         StatusPageResource,
         StatusPageResourceService
@@ -230,6 +272,16 @@ app.use(
 );
 
 app.use(
+    new BaseAPI<
+        ScheduledMaintenanceStateTimeline,
+        ScheduledMaintenanceStateTimelineServiceType
+    >(
+        ScheduledMaintenanceStateTimeline,
+        ScheduledMaintenanceStateTimelineService
+    ).getRouter()
+);
+
+app.use(
     new BaseAPI<StatusPageSubscriber, StatusPageSubscriberServiceType>(
         StatusPageSubscriber,
         StatusPageSubscriberService
@@ -240,6 +292,37 @@ app.use(
     new BaseAPI<Incident, IncidentServiceType>(
         Incident,
         IncidentService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<ScheduledMaintenance, ScheduledMaintenanceServiceType>(
+        ScheduledMaintenance,
+        ScheduledMaintenanceService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<ApiKey, ApiKeyServiceType>(ApiKey, ApiKeyService).getRouter()
+);
+app.use(
+    new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
+        ApiKeyPermission,
+        ApiKeyPermissionService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(
+        StatusPageHeaderLink,
+        StatusPageHeaderLinkService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<StatusPageFooterLink, StatusPageFooterLinkServiceType>(
+        StatusPageFooterLink,
+        StatusPageFooterLinkService
     ).getRouter()
 );
 
@@ -294,6 +377,26 @@ app.use(
     new BaseAPI<StatusPage, StatusPageServiceType>(
         StatusPage,
         StatusPageService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<
+        ScheduledMaintenancePublicNote,
+        ScheduledMaintenancePublicNoteServiceType
+    >(
+        ScheduledMaintenancePublicNote,
+        ScheduledMaintenancePublicNoteService
+    ).getRouter()
+);
+
+app.use(
+    new BaseAPI<
+        ScheduledMaintenanceInternalNote,
+        ScheduledMaintenanceInternalNoteServiceType
+    >(
+        ScheduledMaintenanceInternalNote,
+        ScheduledMaintenanceInternalNoteService
     ).getRouter()
 );
 

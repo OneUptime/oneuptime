@@ -15,6 +15,11 @@ const StatusPageFooter: FunctionComponent = () => {
                     title: 'Legal',
                     to: URL.fromString('https://oneuptime.com/legal'),
                 },
+                {
+                    title: 'Powered by OneUptime',
+                    to: URL.fromString('https://oneuptime.com'),
+                    openInNewTab: true,
+                },
             ]}
         />
     );

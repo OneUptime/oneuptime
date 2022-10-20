@@ -71,9 +71,23 @@
         },
         {
             "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/realtime",
+            "localRoot": "${workspaceFolder}/Realtime",
             "name": "Realtime: Debug with Docker",
             "port": 9250,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "0.0.0.0",
+            "localRoot": "${workspaceFolder}/Workers",
+            "name": "Workers: Debug with Docker",
+            "port": 9654,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [

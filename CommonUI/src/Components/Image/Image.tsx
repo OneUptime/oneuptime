@@ -1,11 +1,13 @@
+import Route from 'Common/Types/API/Route';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     onClick: () => void;
-    logo: string;
+    imageUrl: URL | Route;
+    height?: number | undefined;
 }
 
-const Logo: FunctionComponent<ComponentProps> = (
+const Image: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
@@ -13,10 +15,10 @@ const Logo: FunctionComponent<ComponentProps> = (
             onClick={() => {
                 props.onClick && props.onClick();
             }}
-            src={props.logo}
-            height={30}
+            src={props.imageUrl.toString()}
+            height={props.height}
         />
     );
 };
 
-export default Logo;
+export default Image;
