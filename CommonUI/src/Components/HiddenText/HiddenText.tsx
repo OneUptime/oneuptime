@@ -15,7 +15,8 @@ const HiddenText: FunctionComponent<ComponentProps> = (
 
     if (!showText) {
         return (
-            <p  data-testid={props.dataTestId}
+            <p 
+                role='paragraph'
                 className="pointer underline"
                 onClick={() => {
                     setShowText(true);
@@ -27,7 +28,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div>
+        <div >
             <div className="flex">
                 <div 
                     style={{
@@ -37,7 +38,6 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                     {props.text}
                 </div>{' '}
                 <Icon
-                    data-testid={props.dataTestId}
                     icon={IconProp.Hide}
                     className="pointer"
                     onClick={() => {
@@ -52,7 +52,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                         data-testid={props.dataTestId}
                         className="pointer underline"
                         onClick={async () => {
-                            await navigator.clipboard.writeText(props.text);
+                            await navigator.clipboard.writeText(props.text); 
                             setCopyToClipboard(true);
                         }}
                     >
