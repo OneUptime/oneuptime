@@ -67,7 +67,7 @@ describe('tests for HiddenText component', () => {
 
     test('it should have a paragraph and its role attribute', () => {
         render(<HiddenText text="text" />);
-        const testId = screen.getByRole('paragraph');
+        const testId:HTMLElement = screen.getByRole('paragraph');
         expect(testId).toHaveAttribute('role', 'paragraph');
     });
 });
