@@ -12,9 +12,6 @@ const ActiveEvent: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (<div className="active-event-box">
         <div className="active-event-box-header">
-            {/* <div className="active-event-box-header-icon">
-                <Icon icon={IconProp.Alert} thick={ThickProp.Thick} />
-            </div> */}
             <div className="active-event-box-header-title">
                 Active Incident
             </div>
@@ -27,7 +24,7 @@ const ActiveEvent: FunctionComponent<ComponentProps> = (
                 Description
             </p>
         </div>
-        <div className="active-event-box-body">
+        <div className="active-event-box-body" style={{marginTop: "0px", paddingTop: "0px"}}>
             <div className="active-event-box-body-description"> <span className="bold">Current Status</span> - Currernt Status Description</div>
             <div className="active-event-box-body-timestamp">12 Oct 2020</div>
         </div>

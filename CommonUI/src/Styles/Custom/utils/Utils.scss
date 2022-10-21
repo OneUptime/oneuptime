@@ -455,6 +455,8 @@
     font-size: 15px;
     font-weight: 800;
     border-radius: 5px;
+    margin-left: -2px;
+    margin-right: -2px;
 }
 
 .active-event-box-header-icon {
@@ -465,6 +467,8 @@
 .active-event-box-header-title {
     color: $color-white;
     margin-left: 10px;
+    border-width: 0px;
+    border-color: $color-red;
 }
 
 .active-event-box-body {
