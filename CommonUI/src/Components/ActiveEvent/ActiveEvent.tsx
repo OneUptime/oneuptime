@@ -1,4 +1,3 @@
-// import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 
