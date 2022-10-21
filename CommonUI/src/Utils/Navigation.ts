@@ -1,6 +1,7 @@
 import Route from 'Common/Types/API/Route';
 import { NavigateFunction, Location, Params } from 'react-router-dom';
 import URL from 'Common/Types/API/URL';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 abstract class Navigation {
     private static navigateHook: NavigateFunction;
@@ -23,11 +24,25 @@ abstract class Navigation {
         return this.params;
     }
 
-    public static getParamByName(param: string): string | null {
-        if (!this.params || !this.params[param]) {
-            return null;
+    public static getParamByName(paramName: string, routeTemplate: Route): string | null {
+        const currentPath = this.location.pathname.split('/');
+
+        if (!paramName.startsWith(":")) {
+            paramName = ":" + paramName;
         }
-        return this.params[param] as string;
+
+        const routeParamTemplateIndex = routeTemplate.toString().split('/').indexOf(paramName);
+
+        if (routeParamTemplateIndex === -1) {
+            throw new BadDataException(`Param ${paramName} not found in template ${routeTemplate.toString()}`);
+        }
+        
+        if (currentPath[routeParamTemplateIndex]) {
+            return currentPath[routeParamTemplateIndex] as string;
+        }
+
+        return null;
+    
     }
 
     public static getLastParam(getFromLastRoute?: number): Route | null {

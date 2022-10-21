@@ -104,6 +104,7 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
+
                     const objectId: ObjectID = new ObjectID(
                         req.params['id'] as string
                     );
@@ -158,7 +159,9 @@ export default class StatusPageAPI extends BaseAPI<
                             id: objectId,
                             select,
                             populate,
-                            props: this.getDatabaseCommonInteractionProps(req),
+                            props: {
+                                isRoot: true
+                            },
                         });
 
                     if (!item) {

@@ -86,11 +86,6 @@ import MonitorService, {
     Service as MonitorServiceType,
 } from 'CommonServer/Services/MonitorService';
 
-import StatusPage from 'Model/Models/StatusPage';
-import StatusPageService, {
-    Service as StatusPageServiceType,
-} from 'CommonServer/Services/StatusPageService';
-
 import OnCallDuty from 'Model/Models/OnCallDuty';
 import OnCallDutyService, {
     Service as OnCallDutyServiceType,
@@ -180,6 +175,11 @@ import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService, {
     Service as StatusPageDomainServiceType,
 } from 'CommonServer/Services/StatusPageDomainService';
+
+
+// Import API 
+
+import StatusPageAPI from 'CommonServer/API/StatusPageAPI'
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -374,10 +374,7 @@ app.use(
 );
 
 app.use(
-    new BaseAPI<StatusPage, StatusPageServiceType>(
-        StatusPage,
-        StatusPageService
-    ).getRouter()
+    new StatusPageAPI().getRouter()
 );
 
 app.use(

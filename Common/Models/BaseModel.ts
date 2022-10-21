@@ -303,6 +303,11 @@ export default class BaseModel extends BaseEntity {
                     tableColumnMetadata.modelType &&
                     tableColumnMetadata.type === TableColumnType.Entity
                 ) {
+
+                    if (json[key] && Array.isArray(json[key]) && (json[key] as Array<any>).length > 0) {
+                        json[key] = (json[key] as Array<any>)[0]
+                    }
+
                     (baseModel as any)[key] =
                         new tableColumnMetadata.modelType().fromJSON(
                             json[key] as JSONObject,
@@ -313,6 +318,11 @@ export default class BaseModel extends BaseEntity {
                     tableColumnMetadata.modelType &&
                     tableColumnMetadata.type === TableColumnType.EntityArray
                 ) {
+
+                    if (json[key] && !Array.isArray(json[key])) {
+                        json[key] = [json[key]];
+                    }
+
                     (baseModel as any)[key] =
                         new tableColumnMetadata.modelType().fromJSONArray(
                             json[key] as JSONArray,

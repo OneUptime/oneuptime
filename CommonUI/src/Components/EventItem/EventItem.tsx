@@ -21,7 +21,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
         </div>
         <div className="active-event-box-body" style={{marginTop: "0px", paddingTop: "0px"}}>
             <div className="active-event-box-body-description"> <span className="bold">Current Status</span> - Currernt Status Description</div>
-            <div className="active-event-box-body-timestamp">Current Status on 12 Oct 2020. <span><a className='underline' style={{
+            <div className="active-event-box-body-timestamp">Current Status on 12 Oct 2020. <span><a className='underline pointer' style={{
                 color: Blue.toString()
             }}>Incident Details</a></span></div>
         </div>

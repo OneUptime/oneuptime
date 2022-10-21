@@ -243,7 +243,7 @@ export default class API {
             }
 
             this.handleError(errorResponse);
-            return errorResponse;
+            throw errorResponse;
         }
     }
 

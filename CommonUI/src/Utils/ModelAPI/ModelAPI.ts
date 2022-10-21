@@ -30,6 +30,7 @@ export interface RequestOptions {
 }
 
 export default class ModelAPI {
+
     public static async create<TBaseModel extends BaseModel>(
         model: TBaseModel,
         modelType: { new (): TBaseModel },
