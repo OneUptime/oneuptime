@@ -124,6 +124,24 @@ export class JSONFunctions {
         return JSON.stringify(val);
     }
 
+    public static getJSONValueInPath(obj: JSONObject, path: string): JSONValue | null {
+        const paths: Array<string> = path.split(".");
+        let returnValue = obj as JSONObject;
+        for (const p of paths) {
+            if (!p) {
+                continue; 
+            }
+
+            if (returnValue && returnValue[p as string]!) {
+                returnValue = returnValue[p] as JSONObject;
+            } else {
+                return null;
+            }
+        }
+
+        return returnValue as JSONValue;
+    }
+
     // this funciton serializes JSON with Common Objects to JSON that can be stringified.
     public static serialize(val: JSONObject): JSONObject {
         const newVal: JSONObject = {};

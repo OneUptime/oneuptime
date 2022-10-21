@@ -3,7 +3,7 @@ import Link from 'Common/Types/Link';
 import UILink from '../Link/Link';
 
 export interface ComponentProps {
-    copyright: string;
+    copyright?: string | undefined;
     links: Array<Link>;
     style?: React.CSSProperties | undefined;
 }

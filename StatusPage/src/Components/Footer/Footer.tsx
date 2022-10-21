@@ -1,25 +1,27 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Footer from 'CommonUI/src/Components/Footer/Footer';
 import URL from 'Common/Types/API/URL';
+import Link from 'Common/Types/Link';
 
-const StatusPageFooter: FunctionComponent = () => {
+export interface ComponentProps {
+    copyright?: string | undefined;
+    links: Array<Link>;
+    style?: React.CSSProperties | undefined;
+}
+
+const StatusPageFooter: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <Footer
-            copyright="OneUptime Limited."
+            copyright={props.copyright}
             style={{
                 maxWidth: "880px",
                 paddingLeft: "0px",
                 paddingRight: "0px"
             }}
             links={[
-                {
-                    title: 'Help and Support',
-                    to: URL.fromString('https://oneuptime.com/support'),
-                },
-                {
-                    title: 'Legal',
-                    to: URL.fromString('https://oneuptime.com/legal'),
-                },
+                ...props.links,
                 {
                     title: 'Powered by OneUptime',
                     to: URL.fromString('https://oneuptime.com'),

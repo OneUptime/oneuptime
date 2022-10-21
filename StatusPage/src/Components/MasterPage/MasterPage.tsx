@@ -11,7 +11,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import useAsyncEffect from 'use-async-effect';
-import { JSONObject } from 'Common/Types/JSON';
+import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import RouteParams from '../../Utils/RouteParams';
@@ -30,7 +30,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [, setMasterPageData] = useState<JSONObject | null>(null);
+    const [masterPageData, setMasterPageData] = useState<JSONObject | null>(null);
 
     const getId = async (): Promise<ObjectID> => {
         const id: string | null = Navigation.getParamByName(RouteParams.StatusPageId, RouteMap[PageMap.PREVIEW_OVERVIEW]!);
@@ -72,22 +72,22 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
     return (
         <MasterPage
-            footer={<Footer />}
-            header={<Header links={[
-                {
-                    title: 'Help and Support',
-                    to: URL.fromString('https://oneuptime.com/support'),
-                },
-                {
-                    title: 'Legal',
-                    to: URL.fromString('https://oneuptime.com/legal'),
-                },
-                {
-                    title: 'Powered by OneUptime',
-                    to: URL.fromString('https://oneuptime.com'),
+            footer={<Footer
+                copyright={JSONFunctions.getJSONValueInPath(masterPageData || {}, "stausPage.copyrightText") as string || ''}
+                links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "footerLinks") as Array<JSONObject> || []).map((link) => {
+                    return {
+                        title: link['title'] as string,
+                        to: link['link'] as URL,
+                        openInNewTab: true,
+                    }
+                })} />}
+            header={<Header links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "headerLinks") as Array<JSONObject> || []).map((link) => {
+                return {
+                    title: link['title'] as string,
+                    to: link['link'] as URL,
                     openInNewTab: true,
-                },
-            ]} />}
+                }
+            })} />}
             navBar={<NavBar show={true} isPreview={true} />}
             isLoading={props.isLoading || false}
             error={props.error || ''}
