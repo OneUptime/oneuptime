@@ -487,3 +487,19 @@
 .active-event-box-body-timestamp {
     color: $color-light-grey;
 }
+
+.event-history-box{
+    padding: 10px;
+    border-radius: 5px; 
+    border-color: $color-light-grey;
+    border-style: solid;
+    border-width: 1px;
+    margin-bottom: "20px"
+}
+
+.bottom-grey-border{
+    border-color: $color-light-grey;
+    border-style: solid;
+    border-width: 0px;
+    border-bottom-width: 1px;
+}

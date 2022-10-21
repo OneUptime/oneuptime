@@ -1,4 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
+import EventItem from '../EventItem/EventItem';
 
 
 
@@ -15,18 +16,7 @@ const ActiveEvent: FunctionComponent<ComponentProps> = (
                 Active Incident
             </div>
         </div>
-        <div className="active-event-box-body">
-            <h2 className="active-event-box-body-title">
-                Incident Title
-            </h2>
-            <p className="active-event-box-body-description">
-                Description
-            </p>
-        </div>
-        <div className="active-event-box-body" style={{marginTop: "0px", paddingTop: "0px"}}>
-            <div className="active-event-box-body-description"> <span className="bold">Current Status</span> - Currernt Status Description</div>
-            <div className="active-event-box-body-timestamp">12 Oct 2020</div>
-        </div>
+        <EventItem />
     </div>)
 };
 

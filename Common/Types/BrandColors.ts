@@ -1,6 +1,5 @@
 import Color from './Color';
 
-export const Blue: Color = new Color('#7a7fdc');
 export const Black: Color = new Color('#000000');
 export const White: Color = new Color('#ffffff');
 export const Indigo: Color = new Color('#564ab1');
@@ -16,3 +15,4 @@ export const VeryLightGrey: Color = new Color('#c2c2c2');
 export const Grey: Color = new Color('#575757');
 export const LightGrey: Color = new Color('#908B8B');
 export const Moroon: Color = new Color('#b70400');
+export const Blue: Color = new Color('#3686be');
