@@ -139,15 +139,13 @@ export interface ComponentProps {
     thick?: ThickProp;
     onClick?: (() => void) | undefined;
     style?: CSSProperties | undefined;
-   
 }
-
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
     icon,
     className,
     color,
-    thick =ThickProp.Normal,
+    thick = ThickProp.Normal,
     onClick,
     style,
 }: ComponentProps): ReactElement => {
