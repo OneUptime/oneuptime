@@ -8,10 +8,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     return (
         <Page >
-            
             <EventItem/>
-            
-
         </Page>
     );
 };
