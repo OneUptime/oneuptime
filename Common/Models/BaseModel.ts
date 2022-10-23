@@ -324,7 +324,7 @@ export default class BaseModel extends BaseEntity {
                     }
 
                     (baseModel as any)[key] =
-                        new tableColumnMetadata.modelType().fromJSONArray(
+                        BaseModel.fromJSONArray(
                             json[key] as JSONArray,
                             tableColumnMetadata.modelType
                         );
@@ -368,7 +368,7 @@ export default class BaseModel extends BaseEntity {
         return BaseModel._fromJSON<T>(json, type);
     }
 
-    public fromJSONArray<T extends BaseModel>(
+    public static fromJSONArray<T extends BaseModel>(
         json: Array<JSONObject>,
         type: { new (): T }
     ): Array<T> {

@@ -13,6 +13,7 @@ export interface ComponentProps {
     onClick?: undefined | (() => void);
     onNavigateComplete?: (() => void) | undefined;
     openInNewTab?: boolean | undefined;
+    style?: React.CSSProperties | undefined;
 }
 
 const Link: FunctionComponent<ComponentProps> = (
@@ -36,6 +37,7 @@ const Link: FunctionComponent<ComponentProps> = (
     return (
         <a
             className={`pointer ${props.className || ''}`}
+            style={props.style}
             onClick={() => {
                 if (props.openInNewTab) {
                     return;

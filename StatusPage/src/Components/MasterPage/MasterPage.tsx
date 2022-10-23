@@ -17,6 +17,7 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import RouteParams from '../../Utils/RouteParams';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -31,6 +32,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [masterPageData, setMasterPageData] = useState<JSONObject | null>(null);
+    const [statusPageId, setStatusPageId] = useState<ObjectID | null>(null);
 
     const getId = async (): Promise<ObjectID> => {
         const id: string | null = Navigation.getParamByName(RouteParams.StatusPageId, RouteMap[PageMap.PREVIEW_OVERVIEW]!);
@@ -45,6 +47,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         try {
             setIsLoading(true);
             const id = await getId();
+            setStatusPageId(id)
+            LocalStorage.setItem('statusPageId', id);
             const response = await BaseAPI.post<JSONObject>(URL.fromString(DASHBOARD_API_URL.toString()).addRoute(`/status-page/master-page/${id.toString()}`), {}, {});
             setMasterPageData(response.data);
             setIsLoading(false);
@@ -73,7 +77,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     return (
         <MasterPage
             footer={<Footer
-                copyright={JSONFunctions.getJSONValueInPath(masterPageData || {}, "stausPage.copyrightText") as string || ''}
+                copyright={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.copyrightText") as string || ''}
                 links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "footerLinks") as Array<JSONObject> || []).map((link) => {
                     return {
                         title: link['title'] as string,
@@ -99,7 +103,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 marginLeft: 'auto !important',
             }}
         >
-            {props.children}
+            {React.cloneElement(props.children as any, { statusPageId: statusPageId })}
         </MasterPage>
     );
 };

@@ -15,7 +15,7 @@ export interface ComponentProps {
     endDate: Date
 }
 
-const Banner: FunctionComponent<ComponentProps> = (
+const MonitorOverview: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (<div>
@@ -41,4 +41,4 @@ const Banner: FunctionComponent<ComponentProps> = (
     </div >)
 };
 
-export default Banner;
+export default MonitorOverview;

@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 
 
 export interface ComponentProps {
-    children: Array<ReactElement>
+    children: Array<ReactElement> | ReactElement
 }
 
 const AccordianGroup: FunctionComponent<ComponentProps> = (
