@@ -5,7 +5,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import net, { Socket } from 'net';
 export interface PingResponse {
     isAlive: boolean;
-    responseTimeInMS?: PositiveNumber[];
+    responseTimeInMS?: PositiveNumber;
 }
 export interface PingOptions {
     port?: PositiveNumber;
