@@ -15,7 +15,7 @@ describe('Loader tests', () => {
                 loaderType={LoaderType.Bar}
             />
         );
-        expect(BarLoader).toBeInTheDocument;
+        expect(BarLoader).toBeCalled;
     });
     test('it should render if beats loader show up', () => {
         render(
@@ -25,6 +25,6 @@ describe('Loader tests', () => {
                 loaderType={LoaderType.Beats}
             />
         );
-        expect(BeatLoader).toBeInTheDocument;
+        expect(BeatLoader).toBeCalled;
     });
 });
