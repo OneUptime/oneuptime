@@ -45,6 +45,10 @@ import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import Incident from 'Model/Models/Incident';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import IncidentStateTimelineService from '../Services/IncidentStateTimelineService';
+import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import ScheduledMaintenanceStateTimelineService from '../Services/ScheduledMaintenanceStateTimelineService';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -294,7 +298,12 @@ export default class StatusPageAPI extends BaseAPI<
                         },
                         select: {
                             name: true,
-                            color: true
+                            color: true,
+                            priority: true,
+                            isOperationalState: true
+                        },
+                        sort: {
+                            priority: SortOrder.Ascending,
                         },
                         skip: 0,
                         limit: LIMIT_PER_PROJECT,
@@ -452,7 +461,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 incidentId: true,
                             },
                             sort: {
-                                createdAt: SortOrder.Ascending
+                                createdAt: SortOrder.Descending // new note first
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
@@ -462,8 +471,30 @@ export default class StatusPageAPI extends BaseAPI<
                         });
                     }
 
+                    let incidentStateTimelines: Array<IncidentStateTimeline> = [];
 
-                    // check if statsu page has actuve announcement.
+                    if (incidentsOnStausPage.length > 0) {
+                        incidentStateTimelines = await IncidentStateTimelineService.findBy({
+                            query: {
+                                incidentId: QueryHelper.in(incidentsOnStausPage),
+                            },
+                            select: {
+                                _id: true,
+                                createdAt: true,
+                                incidentId: true,
+                            },
+                            sort: {
+                                createdAt: SortOrder.Descending // new note first
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+                    }
+
+                    // check if status page has actuve announcement.
 
                     const today: Date = OneUptimeDate.getCurrentDate();
 
@@ -549,6 +580,30 @@ export default class StatusPageAPI extends BaseAPI<
                         });
                     }
 
+
+                    let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> = [];
+
+                    if (activeScheduledMaintenanceEventsOnStausPage.length > 0) {
+                        scheduledMaintenanceStateTimelines = await ScheduledMaintenanceStateTimelineService.findBy({
+                            query: {
+                                scheduledMaintenanceId: QueryHelper.in(activeScheduledMaintenanceEventsOnStausPage),
+                            },
+                            select: {
+                                _id: true,
+                                createdAt: true,
+                                scheduledMaintenanceId: true,
+                            },
+                            sort: {
+                                createdAt: SortOrder.Descending // new note first
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+                    }
+
                     const response: JSONObject = {
                         scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(scheduledMaintenanceEventsPublicNotes, ScheduledMaintenancePublicNote),
                         activeScheduledMaintenanceEvents: BaseModel.toJSONArray(activeScheduledMaintenanceEvents, ScheduledMaintenance),
@@ -559,6 +614,8 @@ export default class StatusPageAPI extends BaseAPI<
                         resourceGroups: BaseModel.toJSONArray(groups, StatusPageGroup),
                         monitorStatuses: BaseModel.toJSONArray(monitorStatuses, MonitorStatus),
                         statusPageResources: BaseModel.toJSONArray(statusPageResources, StatusPageResource),
+                        incidentStateTimelines: BaseModel.toJSONArray(incidentStateTimelines, IncidentStateTimeline),
+                        scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(scheduledMaintenanceStateTimelines, ScheduledMaintenanceStateTimeline)
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);

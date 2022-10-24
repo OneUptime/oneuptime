@@ -27,8 +27,16 @@ import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import MonitorOverview from '../../Components/Monitor/MonitorOverview';
-import { Green } from 'Common/Types/BrandColors';
+import { Blue, Green, Red, Yellow } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
+import Dictionary from 'Common/Types/Dictionary';
+import IncidentGroup from '../../Types/IncidentGroup';
+import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
+import Route from 'Common/Types/API/Route';
+import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGRoup';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -46,8 +54,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [resourceGroups, setResourceGroups] = useState<Array<StatusPageGroup>>([]);
     const [monitorStatuses, setMonitorStatuses] = useState<Array<MonitorStatus>>([]);
     const [statusPageResources, setStatusPageResources] = useState<Array<StatusPageResource>>([]);
+    const [incidentStateTimelines, setIncidentStateTimelines] = useState<Array<IncidentStateTimeline>>([]);
+    const [scheduledMaintenanceStateTimelines, setScheduledMaintenanceStateTimelines] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
     const endDate: Date = OneUptimeDate.getCurrentDate();
+    const [currentStatus, setCurrentStatus] = useState<MonitorStatus | null>(null);
 
 
     useAsyncEffect(async () => {
@@ -71,6 +82,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const resourceGroups = BaseModel.fromJSONArray(data['resourceGroups'] as JSONArray || [], StatusPageGroup);
             const monitorStatuses = BaseModel.fromJSONArray(data['monitorStatuses'] as JSONArray || [], MonitorStatus);
             const statusPageResources = BaseModel.fromJSONArray(data['statusPageResources'] as JSONArray || [], StatusPageResource);
+            const incidentStateTimelines = BaseModel.fromJSONArray(data['incidentStateTimelines'] as JSONArray || [], IncidentStateTimeline);
+            const scheduledMaintenanceStateTimelines = BaseModel.fromJSONArray(data['scheduledMaintenanceStateTimelines'] as JSONArray || [], ScheduledMaintenanceStateTimeline);
+
 
             // save data. set()
             setScheduledMaintenanceEventsPublicNotes(scheduledMaintenanceEventsPublicNotes)
@@ -82,9 +96,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
             setResourceGroups(resourceGroups)
             setMonitorStatuses(monitorStatuses)
             setStatusPageResources(statusPageResources)
+            setIncidentStateTimelines(incidentStateTimelines);
+            setScheduledMaintenanceStateTimelines(scheduledMaintenanceStateTimelines);
 
             // Parse Data.
-
+            setCurrentStatus(getOverallMonitorStatus(statusPageResources, monitorStatuses));
 
             setIsLoading(false);
         } catch (err) {
@@ -100,6 +116,31 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
     }, []);
 
+    const getOverallMonitorStatus = (statusPageResources: Array<StatusPageResource>, monitorStatuses: Array<MonitorStatus>): MonitorStatus | null => {
+
+
+        let currentStatus: MonitorStatus | null = monitorStatuses.length > 0 && monitorStatuses[0] ? monitorStatuses[0] : null;
+        const dict: Dictionary<number> = {};
+
+        for (const resource of statusPageResources) {
+            if (resource.monitor?.currentMonitorStatusId) {
+                if (!Object.keys(dict).includes(resource.monitor?.currentMonitorStatusId.toString() || '')) {
+                    dict[resource.monitor?.currentMonitorStatusId.toString()] = 1;
+                } else {
+                    dict[resource.monitor?.currentMonitorStatusId.toString()]++;
+                }
+            }
+        }
+
+        for (const monitorStatus of monitorStatuses) {
+            if (monitorStatus._id && dict[monitorStatus._id]) {
+                currentStatus = monitorStatus;
+            }
+        }
+
+        return currentStatus;
+    };
+
 
     if (isLoading) {
         return <PageLoader isVisible={true} />
@@ -114,7 +155,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
         for (const resource of statusPageResources) {
             if (
-                (resource.statusPageGroupId && resource.statusPageGroupId.toString() && group && group._id?.toString()) ||
+                (resource.statusPageGroupId && resource.statusPageGroupId.toString() && group && group._id?.toString() && group._id?.toString() === resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
 
             ) {
@@ -145,15 +186,81 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 ));
             }
 
-           
+
         }
 
         if (elements.length === 0) {
-            elements.push(<p>No Resources in this group.</p>)
+            elements.push(<p className='text-center'>No resources in this group.</p>)
         }
 
         return elements;
     };
+
+    const getActiveIncidents = (): Array<IncidentGroup> => {
+        const groups: Array<IncidentGroup> = [];
+
+        for (const activeIncident of activeIncidents) {
+
+            if (!activeIncident.currentIncidentState) {
+                throw new BadDataException("Incident State not found.");
+            }
+
+            const timeline: IncidentStateTimeline | undefined = incidentStateTimelines.find((timeline) => {
+                return timeline.incidentId?.toString() === activeIncident._id;
+            })
+
+            if (!timeline) {
+                throw new BadDataException("Incident Timeline not found.");
+            }
+
+            const group: IncidentGroup = {
+                incident: activeIncident,
+                incidentState: activeIncident.currentIncidentState,
+                publicNote: incidentPublicNotes.find((publicNote) => {
+                    return publicNote.incidentId?.toString() === activeIncident._id;
+                }),
+                incidentSeverity: activeIncident.incidentSeverity!,
+                incidentStateTimeline: timeline
+            }
+
+            groups.push(group);
+        }
+
+        return groups;
+    }
+
+    const getOngoingScheduledEvents = (): Array<ScheduledMaintenanceGroup> => {
+        const groups: Array<ScheduledMaintenanceGroup> = [];
+
+        for (const activeEvent of activeScheduledMaintenanceEvents) {
+
+            if (!activeEvent.currentScheduledMaintenanceState) {
+                throw new BadDataException("Scheduled Maintenance State not found.");
+            }
+
+            const timeline: ScheduledMaintenanceStateTimeline | undefined = scheduledMaintenanceStateTimelines.find((timeline) => {
+                return timeline.scheduledMaintenanceId?.toString() === activeEvent._id;
+            });
+
+
+            if (!timeline) {
+                throw new BadDataException("Incident Timeline not found.");
+            }
+
+            const group: ScheduledMaintenanceGroup = {
+                scheduledMaintenance: activeEvent,
+                scheduledMaintenanceState: activeEvent.currentScheduledMaintenanceState,
+                publicNote: scheduledMaintenanceEventsPublicNotes.find((publicNote) => {
+                    return publicNote.scheduledMaintenanceId?.toString() === activeEvent._id;
+                }),
+                scheduledMaintenanceStateTimeline: timeline
+            }
+
+            groups.push(group);
+        }
+
+        return groups;
+    }
 
 
     // const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
@@ -168,19 +275,72 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             {!isLoading && !error ? <div>
                 {/* Load Active Anouncement */}
-                <ActiveEvent />
+                {activeAnnouncements.map((announcement) => {
+                    return (<ActiveEvent
+                        cardTitle={'Announcement'}
+                        cardTitleRight={''}
+                        cardColor={Blue}
+                        eventTitle={announcement.title || ''}
+                        eventDescription={announcement.description || ''}
+                        currentEventStatus={'Posted On'}
+                        currentEventStatusDateTime={announcement.showAnnouncementAt!}
+                        currentEventStatusNote={''}
+                        eventType={'Anouncement'}
+                    />)
+                })}
+
+
 
                 {/* Load Active Incident */}
 
+                {getActiveIncidents().map((incidentGroup) => {
+                    return (<ActiveEvent
+                        cardTitle={'Active Incident'}
+                        cardTitleRight={incidentGroup.incidentSeverity.name || ''}
+                        cardColor={incidentGroup.incidentSeverity.color || Red}
+                        eventTitle={incidentGroup.incident.title || ''}
+                        eventDescription={incidentGroup.incident.description || ''}
+                        currentEventStatus={incidentGroup.incidentState.name || ''}
+                        currentEventStatusDateTime={incidentGroup.incidentStateTimeline.createdAt!}
+                        currentEventStatusNote={incidentGroup.publicNote?.note! || ''}
+                        eventType={'Incident'}
+                        eventViewRoute={RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.INCIDENT_DETAIL] as Route,
+                            incidentGroup.incident.id!
+                        )}
+                    />)
+                })}
+
+
+
                 {/* Load Active ScheduledEvent */}
 
+                {getOngoingScheduledEvents().map((scheduledEventGroup) => {
+                    return (<ActiveEvent
+                        cardTitle={'Ongoing Scheduled Maintenance'}
+                        cardTitleRight={''}
+                        cardColor={Yellow}
+                        eventTitle={scheduledEventGroup.scheduledMaintenance.title || ''}
+                        eventDescription={scheduledEventGroup.scheduledMaintenance.description || ''}
+                        currentEventStatus={scheduledEventGroup.scheduledMaintenanceState.name || ''}
+                        currentEventStatusDateTime={scheduledEventGroup.scheduledMaintenanceStateTimeline.createdAt!}
+                        currentEventStatusNote={scheduledEventGroup.publicNote?.note! || ''}
+                        eventType={'Scheduled Maintenance'}
+                        eventViewRoute={RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route,
+                            scheduledEventGroup.scheduledMaintenance.id!
+                        )}
+                    />)
+                })}
+
+
                 <div>
-                    <Alert
-                        title='All Systems Operatonal'
-                        type={AlertType.SUCCESS}
+                    {currentStatus && <Alert
+                        title={`${currentStatus.isOperationalState ? `All` : 'Some'} Resources are ${currentStatus.name}`}
+                        color={currentStatus.color}
                         doNotShowIcon={true}
                         size={AlertSize.Large}
-                    />
+                    />}
                 </div>
 
                 {resourceGroups.length > 0 ?
@@ -189,9 +349,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             {statusPageResources.filter((resources) => !resources.statusPageGroupId).length > 0 ? <Accordian key={Math.random()} title={undefined} isLastElement={resourceGroups.length === 0}>
                                 {getMonitorOverviewListInGroup(null)}
                             </Accordian> : <></>}
-                            <div key={Math.random()}>
+                            <div key={Math.random()} style={{
+                                padding: "0px"
+                            }}>
                                 {resourceGroups.map((resourceGroup, i) => {
-                                    return (<Accordian key={i} isLastElement={resourceGroups.length -1 === i} title={resourceGroup.name!}>
+                                    return (<Accordian key={i} isLastElement={resourceGroups.length - 1 === i} title={resourceGroup.name!}>
                                         {getMonitorOverviewListInGroup(resourceGroup)}
                                     </Accordian>)
                                 })}

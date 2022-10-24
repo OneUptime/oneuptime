@@ -1,29 +1,41 @@
+import Route from 'Common/Types/API/Route';
 import { Blue } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
 import React, { FunctionComponent, ReactElement } from 'react';
+import Link from '../Link/Link';
 
 
 
 export interface ComponentProps {
-
+    eventTitle: string;
+    eventDescription?: string | undefined;
+    currentEventStatus: string;
+    currentEventStatusDateTime: Date;
+    currentEventStatusNote?: string | undefined;
+    eventType: string;
+    eventViewRoute?: Route | undefined
 }
 
 const EventItem: FunctionComponent<ComponentProps> = (
-    _props: ComponentProps
+    props: ComponentProps
 ): ReactElement => {
     return (<div>
         <div className="active-event-box-body" style={{ marginBottom: "0px", paddingBottom: "0px" }}>
             <h2 className="active-event-box-body-title">
-                Incident Title
+                {props.eventTitle}
             </h2>
-            <p className="active-event-box-body-description">
+            {props.eventDescription && <p className="active-event-box-body-description">
                 Description
-            </p>
+            </p>}
         </div>
-        <div className="active-event-box-body" style={{marginTop: "0px", paddingTop: "0px"}}>
-            <div className="active-event-box-body-description"> <span className="bold">Current Status</span> - Currernt Status Description</div>
-            <div className="active-event-box-body-timestamp">Current Status on 12 Oct 2020. <span><a className='underline pointer' style={{
+        <div className="active-event-box-body" style={{ marginTop: "0px", paddingTop: "0px" }}>
+            {props.currentEventStatusNote && <div className="active-event-box-body-description"> <span className="bold">{props.currentEventStatus} - </span>{props.currentEventStatusNote || ''}</div>}
+            <div className="active-event-box-body-timestamp">{props.currentEventStatus} on {OneUptimeDate.getDateAsLocalFormattedString(
+                props.currentEventStatusDateTime,
+                false
+            )}. {props.eventViewRoute ? <span><Link className='underline pointer' to={props.eventViewRoute} style={{
                 color: Blue.toString()
-            }}>Incident Details</a></span></div>
+            }}><>{props.eventType} Details</></Link></span> : <></>}</div>
         </div>
     </div>)
 };

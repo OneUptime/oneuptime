@@ -1,4 +1,5 @@
-import { White } from 'Common/Types/BrandColors';
+import { Black, White } from 'Common/Types/BrandColors';
+import Color, { RGB } from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 
@@ -24,6 +25,7 @@ export interface ComponentProps {
     onClick?: (() => void) | undefined;
     doNotShowIcon?: boolean | undefined;
     size?: undefined | AlertSize;
+    color?: undefined | Color;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -60,13 +62,19 @@ const Alert: FunctionComponent<ComponentProps> = (
         sizeCssClass = 'alert-large';
     }
 
+    const rgb: RGB = Color.colorToRgb(props.color || Black);
+
     return (
         <div className="row">
             <div className="col-xl-12">
                 <div
-                    className={`alert-label-icon flex label-arrow alert ${cssClass}  ${sizeCssClass}  alert-dismissible fade show ${
-                        props.onClick ? 'pointer' : ''
-                    }`}
+                    className={`alert-label-icon flex label-arrow alert ${cssClass}  ${sizeCssClass}  alert-dismissible fade show ${props.onClick ? 'pointer' : ''
+                        }`}
+                    style={props.color ? {
+                        backgroundColor: props.color?.toString(), color: rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114 > 186
+                            ? '#000000'
+                            : '#ffffff',
+                    } : {}}
                     role="alert"
                     onClick={() => {
                         props.onClick && props.onClick();

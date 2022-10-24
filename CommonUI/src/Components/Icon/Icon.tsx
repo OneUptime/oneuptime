@@ -55,7 +55,7 @@ import {
     Link2,
     ExternalLink,
     Layers,
-    Codesandbox
+    Codesandbox,
 } from 'react-feather';
 
 export enum SizeProp {
