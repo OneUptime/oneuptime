@@ -25,7 +25,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 {props.eventTitle}
             </h2>
             {props.eventDescription && <p className="active-event-box-body-description">
-                Description
+                {props.eventDescription}
             </p>}
         </div>
         <div className="active-event-box-body" style={{ marginTop: "0px", paddingTop: "0px" }}>
