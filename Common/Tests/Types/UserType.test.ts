@@ -1,7 +1,6 @@
-import UserType from "../../Types/UserType";
+import UserType from '../../Types/UserType';
 
-describe('enum UserType',() =>{
-
+describe('enum UserType', () => {
     test('UserType.API should be API', () => {
         expect(UserType.API).toEqual('API');
     });
@@ -14,4 +13,4 @@ describe('enum UserType',() =>{
     test('UserType.Public should be Public', () => {
         expect(UserType.Public).toEqual('Public');
     });
-})
+});
