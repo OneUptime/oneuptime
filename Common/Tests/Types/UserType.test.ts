@@ -1,10 +1,17 @@
-import UserType from '../../Types/UserType';
+import UserType from "../../Types/UserType";
 
-describe('enum UserType', () => {
-    test('each user type should have a corresponding type', () => {
-        expect(UserType['API']).toEqual('API');
-        expect(UserType['User']).toEqual('User');
-        expect(UserType['MasterAdmin']).toEqual('MasterAdmin');
-        expect(UserType['Public']).toEqual('Public');
+describe('enum UserType',() =>{
+
+    test('UserType.API should be API', () => {
+        expect(UserType.API).toEqual('API');
     });
-});
+    test('UserType.User should be User', () => {
+        expect(UserType.User).toEqual('User');
+    });
+    test('UserType.MasterAdmin should be MasterAdmin', () => {
+        expect(UserType.MasterAdmin).toEqual('MasterAdmin');
+    });
+    test('UserType.Public should be Public', () => {
+        expect(UserType.Public).toEqual('Public');
+    });
+})
