@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement, useEffect, useState } from 'rea
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 
 export interface ComponentProps {
-    title: string;
+    title?: string | undefined;
     description?: string | undefined;
     onClose?: undefined | (() => void);
     onClick?: (() => void) | undefined;
@@ -17,6 +17,14 @@ const Accordian: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
 
     const [isOpen, setIsOpen] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (!props.title) {
+            setIsOpen(true)
+        } else {
+            setIsOpen(false)
+        }
+    },[props.title])
 
     useEffect(() => {
         props.onClick && props.onClick();
@@ -43,7 +51,7 @@ const Accordian: FunctionComponent<ComponentProps> = (
                     }}
                 >
                     <div className='accordian-left-elements'>
-                        <span style={{ height: '10px' }}>
+                        {props.title && <span style={{ height: '10px' }}>
                             {isOpen && (
                                 <Icon
                                     thick={ThickProp.LessThick}
@@ -59,8 +67,8 @@ const Accordian: FunctionComponent<ComponentProps> = (
                                 />
                             )}
 
-                        </span>
-                        <div
+                        </span>}
+                        {props.title && <div
                             className={`flex ${props.onClick ? 'pointer' : ''}`}
                             style={{
                                 marginLeft: '5px',
@@ -73,7 +81,7 @@ const Accordian: FunctionComponent<ComponentProps> = (
                             <div>
                                 {props.description}
                             </div>
-                        </div>
+                        </div>}
                     </div>
                     <div className='accordian-right-element'>
                         {props.rightElement}

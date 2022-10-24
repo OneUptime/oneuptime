@@ -41,7 +41,6 @@ import ScheduledMaintenanceService from '../Services/ScheduledMaintenanceService
 import ScheduledMaintenancePublicNoteService from '../Services/ScheduledMaintenancePublicNoteService';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import Monitor from 'Model/Models/Monitor';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import Incident from 'Model/Models/Incident';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
@@ -316,6 +315,9 @@ export default class StatusPageAPI extends BaseAPI<
                             order: true,
                             description: true
                         },
+                        sort: {
+                            order: SortOrder.Ascending
+                        },
                         skip: 0,
                         limit: LIMIT_PER_PROJECT,
                         props: {
@@ -352,13 +354,17 @@ export default class StatusPageAPI extends BaseAPI<
                     const monitorsOnStatusPage = statusPageResources.map((monitor) => {
                         return monitor.monitorId!;
                     })
+
                     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
                     const endDate: Date = OneUptimeDate.getCurrentDate();
 
                     let monitorStatusTimelines: Array<MonitorStatusTimeline> = [];
 
                     if (monitorsOnStatusPage.length > 0) {
-                        await MonitorStatusTimelineService.findBy({
+                        console.log(monitorsOnStatusPage);
+
+
+                        monitorStatusTimelines = await MonitorStatusTimelineService.findBy({
                             query: {
                                 monitorId: QueryHelper.in(monitorsOnStatusPage),
                                 createdAt: QueryHelper.inBetween(startDate, endDate)
@@ -383,6 +389,8 @@ export default class StatusPageAPI extends BaseAPI<
                                 isRoot: true,
                             }
                         });
+
+                        console.log(monitorStatusTimelines);
                     }
 
 
@@ -550,7 +558,7 @@ export default class StatusPageAPI extends BaseAPI<
                         monitorStatusTimelines: BaseModel.toJSONArray(monitorStatusTimelines, MonitorStatusTimeline),
                         resourceGroups: BaseModel.toJSONArray(groups, StatusPageGroup),
                         monitorStatuses: BaseModel.toJSONArray(monitorStatuses, MonitorStatus),
-                        statusPageResources: BaseModel.toJSONArray(statusPageResources, Monitor),
+                        statusPageResources: BaseModel.toJSONArray(statusPageResources, StatusPageResource),
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);

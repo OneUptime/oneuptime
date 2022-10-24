@@ -18,7 +18,7 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
             style={{
                 maxWidth: "880px",
                 paddingLeft: "0px",
-                paddingRight: "0px"
+                paddingRight: "0px",
             }}
             links={[
                 ...props.links,

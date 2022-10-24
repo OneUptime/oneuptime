@@ -68,7 +68,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const incidentPublicNotes = BaseModel.fromJSONArray(data['incidentPublicNotes'] as JSONArray || [], IncidentPublicNote);
             const activeIncidents = BaseModel.fromJSONArray(data['activeIncidents'] as JSONArray || [], Incident);
             const monitorStatusTimelines = BaseModel.fromJSONArray(data['monitorStatusTimelines'] as JSONArray || [], MonitorStatusTimeline);
-            const resourceGroups = BaseModel.fromJSONArray(data['groups'] as JSONArray || [], StatusPageGroup);
+            const resourceGroups = BaseModel.fromJSONArray(data['resourceGroups'] as JSONArray || [], StatusPageGroup);
             const monitorStatuses = BaseModel.fromJSONArray(data['monitorStatuses'] as JSONArray || [], MonitorStatus);
             const statusPageResources = BaseModel.fromJSONArray(data['statusPageResources'] as JSONArray || [], StatusPageResource);
 
@@ -133,16 +133,23 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
                 elements.push((
                     <MonitorOverview
+                        key={Math.random()}
                         monitorName={resource.displayName || resource.monitor?.name! || ''}
                         description={resource.displayDescription || ''}
                         tooltip={resource.displayTooltip || ''}
                         monitorStatus={currentStatus}
-                        monitorStatusTimeline={monitorStatusTimelines.filter((timeline) => timeline.monitorId?.toString() === resource.monitorId?.toString())}
+                        monitorStatusTimeline={[...monitorStatusTimelines].filter((timeline) => timeline.monitorId?.toString() === resource.monitorId?.toString())}
                         startDate={startDate}
                         endDate={endDate}
                     />
                 ));
             }
+
+           
+        }
+
+        if (elements.length === 0) {
+            elements.push(<p>No Resources in this group.</p>)
         }
 
         return elements;
@@ -179,11 +186,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 {resourceGroups.length > 0 ?
                     <div>
                         <AccordianGroup>
-                            {resourceGroups.map((resourceGroup) => {
-                                return (<Accordian title={resourceGroup.name!}>
-                                    {getMonitorOverviewListInGroup(resourceGroup)}
-                                </Accordian>)
-                            })}
+                            {statusPageResources.filter((resources) => !resources.statusPageGroupId).length > 0 ? <Accordian key={Math.random()} title={undefined} isLastElement={resourceGroups.length === 0}>
+                                {getMonitorOverviewListInGroup(null)}
+                            </Accordian> : <></>}
+                            <div key={Math.random()}>
+                                {resourceGroups.map((resourceGroup, i) => {
+                                    return (<Accordian key={i} isLastElement={resourceGroups.length -1 === i} title={resourceGroup.name!}>
+                                        {getMonitorOverviewListInGroup(resourceGroup)}
+                                    </Accordian>)
+                                })}
+                            </div>
                         </AccordianGroup>
                     </div> : <></>
                 }

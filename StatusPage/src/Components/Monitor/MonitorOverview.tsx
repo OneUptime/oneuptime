@@ -18,16 +18,16 @@ export interface ComponentProps {
 const MonitorOverview: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return (<div>
-        <div style={{
-            marginTop: "20px",
-            marginBottom: "20px"
-        }}>
-            <div className='justify-space-between' style={{ marginBottom: "5px" }}>
-                <div className='bold font16'>{props.monitorName}</div>
+    return (<div style={{
+        marginTop: "20px",
+        marginBottom: "20px"
+    }}>
+        <div >
+            <div className='justify-space-between' style={{ marginBottom: "3px" }}>
+                <div><div className='bold font16'>{props.monitorName}</div></div>
                 <div className='bold font16' style={{ color: props.monitorStatus?.color?.toString() || Green.toString() }}>{props.monitorStatus?.name || 'Operational'}</div>
             </div>
-            <div>{props.description}</div>
+            <div style={{ marginBottom: "3px" }}>{props.description}</div>
         </div>
         <div>
             <MonitorUptimeGraph
@@ -36,6 +36,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                 startDate={props.startDate}
                 endDate={props.endDate}
                 isLoading={false}
+                height={30}
             />
         </div>
     </div >)

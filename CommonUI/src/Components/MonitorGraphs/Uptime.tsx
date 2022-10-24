@@ -21,6 +21,7 @@ export interface ComponentProps {
     isLoading?: boolean | undefined;
     onRefreshClick?: (() => void) | undefined
     error?: string | undefined;
+    height?: number | undefined;
 }
 
 const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -72,6 +73,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
             endDate={props.endDate}
             events={events}
             defaultLabel={'Operational'}
+            height={props.height}
         />
     );
 };

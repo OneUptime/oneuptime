@@ -26,7 +26,7 @@ export default class Database {
             password: DatabasePassword,
             database: DatabaseName,
             entities: Entities,
-            //logging: 'all',
+            logging: 'all',
             synchronize:
                 Env === AppEnvironment.Test ||
                 Env === AppEnvironment.Development,
