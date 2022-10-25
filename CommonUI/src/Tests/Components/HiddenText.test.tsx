@@ -1,73 +1,66 @@
 import React from 'react';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import HiddenText from '../../Components/HiddenText/HiddenText';
-import Icon from '../../Components/Icon/Icon';
+
 describe('tests for HiddenText component', () => {
-    it('it should click paragraph and show text in document', async () => {
-        act(() => {
-            render(<HiddenText text="text" />);
+    test('it should click hidden-text and reveal text in document', async () => {
+        render(<HiddenText text="Special" />);
+        const hiddenText: HTMLElement = screen.getByRole('hidden-text');
+        fireEvent.click(hiddenText);
+
+        await waitFor(() => {
+            expect(screen.getByRole('revealed-text')).toBeInTheDocument();
         });
-        const paragraph: HTMLElement = screen.getByRole('paragraph');
-        await act(async () => {
-            fireEvent.click(paragraph);
-        });
-        expect(screen.getByText('text')).toBeInTheDocument();
-    });
-    it('it should call function after clicking paragraph', async () => {
-        const setShowText: () => true = jest.fn();
-        act(() => {
-            render(<HiddenText text="text" />);
-        });
-        const paragraph: HTMLElement = screen.getByRole('paragraph');
-        await act(async () => {
-            fireEvent.click(paragraph);
-        });
-        expect(setShowText).toBeCalled();
-    });
-    it('it should click paragraph and copy to clipboard', async () => {
-        act(() => {
-            render(
-                <HiddenText
-                    text="text"
-                    isCopyable={true}
-                    dataTestId="test-id"
-                />
-            );
-        });
-        const paragraph: HTMLElement = screen.getByRole('paragraph');
-        await act(async () => {
-            fireEvent.click(paragraph);
-        });
-        expect(screen.getByTestId('test-id')).toHaveTextContent(
-            'Copy to Clipboard'
+
+        expect(screen.queryByRole('hidden-text')).toBeFalsy();
+        expect(screen.queryByRole('revealed-text')).toHaveTextContent(
+            'Special'
         );
     });
-    it('it should call function after clicking paragraph', async () => {
-        const setCopyToClipboard: () => false = jest.fn();
-        act(() => {
-            render(<HiddenText text="text" isCopyable={true} />);
+
+    test('it should not show copy to clipboard if isCopyable is false', async () => {
+        render(<HiddenText text="text" isCopyable={false} />);
+        const hiddenText: HTMLElement = screen.getByRole('hidden-text');
+        fireEvent.click(hiddenText);
+
+        await waitFor(() => {
+            expect(screen.getByRole('revealed-text')).toBeInTheDocument();
         });
-        const paragraph: HTMLElement = screen.getByRole('paragraph');
-        await act(async () => {
-            fireEvent.click(paragraph);
-        });
-        expect(setCopyToClipboard).toBeCalled();
-    });
-    test('it should show icon in the document', () => {
-        render(<HiddenText text="text" />);
-        expect(Icon).toBeInTheDocument()
-    });
-    test('it should show paragraph in the document and its content ', () => {
-        render(<HiddenText dataTestId="test-id" text="text" />);
-        const testId: HTMLElement = screen.getByRole('paragraph');
-        expect(testId).toBeInTheDocument()
-        expect(testId).toHaveTextContent('Click here to reveal');
+
+        expect(screen.queryByRole('hidden-text')).toBeFalsy();
+        expect(screen.queryByRole('copy-to-clipboard')).toBeFalsy();
     });
 
-    test('it should have a paragraph and its role attribute', () => {
-        render(<HiddenText text="text" />);
-        const testId: HTMLElement = screen.getByRole('paragraph');
-        expect(testId).toHaveAttribute('role', 'paragraph');
+    test('it should click hidden-text and reveal icon', async () => {
+        render(<HiddenText text="text" isCopyable={true} />);
+        const hiddenText: HTMLElement = screen.getByRole('hidden-text');
+        fireEvent.click(hiddenText);
+        await waitFor(() => {
+            expect(screen.getByRole('revealed-text')).toBeInTheDocument();
+        });
+        expect(screen.queryByRole('icon')).toBeTruthy();
+    });
+
+    test('it should click hidden-text and copy to clipboard', async () => {
+        render(<HiddenText text="text" isCopyable={true} />);
+        const hiddenText: HTMLElement = screen.getByRole('hidden-text');
+        fireEvent.click(hiddenText);
+        await waitFor(() => {
+            expect(screen.getByRole('revealed-text')).toBeInTheDocument();
+        });
+
+        expect(screen.getByRole('copy-to-clipboard')).toHaveTextContent(
+            'Copy to Clipboard'
+        );
+
+        const copy: HTMLElement = screen.getByRole('copy-to-clipboard');
+        fireEvent.click(copy);
+
+        await waitFor(() => {
+            expect(screen.getByRole('copy-to-clipboard')).toHaveTextContent(
+                'Copied to Clipboard'
+            );
+        });
     });
 });

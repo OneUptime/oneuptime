@@ -1,8 +1,6 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import BarLoader from 'react-spinners/BarLoader';
-import BeatLoader from 'react-spinners/BeatLoader';
 import Loader, { LoaderType } from '../../Components/Loader/Loader';
 import Color from 'Common/Types/Color';
 
@@ -15,7 +13,8 @@ describe('Loader tests', () => {
                 loaderType={LoaderType.Bar}
             />
         );
-        expect(BarLoader).toBeInTheDocument();
+        const barLoader: HTMLElement = screen.getByRole('bar-loader');
+        expect(barLoader).toBeInTheDocument();
     });
     test('it should render if beats loader show up', () => {
         render(
@@ -25,6 +24,7 @@ describe('Loader tests', () => {
                 loaderType={LoaderType.Beats}
             />
         );
-        expect(BeatLoader).toBeInTheDocument()
+        const beatLoader: HTMLElement = screen.getByRole('beat-loader');
+        expect(beatLoader).toBeInTheDocument();
     });
 });

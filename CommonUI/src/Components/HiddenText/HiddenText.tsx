@@ -4,7 +4,6 @@ import Icon, { IconProp } from '../Icon/Icon';
 export interface ComponentProps {
     text: string;
     isCopyable?: boolean;
-    dataTestId?: string;
 }
 
 const HiddenText: FunctionComponent<ComponentProps> = (
@@ -12,10 +11,11 @@ const HiddenText: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [showText, setShowText] = useState<boolean>(false);
     const [copiedToClipboard, setCopyToClipboard] = useState<boolean>(false);
+
     if (!showText) {
         return (
             <p
-                role="paragraph"
+                role="hidden-text"
                 className="pointer underline"
                 onClick={() => {
                     setShowText(true);
@@ -25,6 +25,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
             </p>
         );
     }
+
     return (
         <div>
             <div className="flex">
@@ -32,6 +33,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                     style={{
                         marginRight: '5px',
                     }}
+                    role="revealed-text"
                 >
                     {props.text}
                 </div>{' '}
@@ -47,16 +49,16 @@ const HiddenText: FunctionComponent<ComponentProps> = (
             {props.isCopyable && (
                 <div>
                     <span
-                        data-testid={props.dataTestId}
                         className="pointer underline"
                         onClick={async () => {
-                            await navigator.clipboard.writeText(props.text);
                             setCopyToClipboard(true);
+                            await navigator.clipboard.writeText(props.text);
                         }}
+                        role="copy-to-clipboard"
                     >
                         {' '}
                         {copiedToClipboard
-                            ? 'Copied to clipboard'
+                            ? 'Copied to Clipboard'
                             : 'Copy to Clipboard'}{' '}
                     </span>
                 </div>

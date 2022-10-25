@@ -14,7 +14,7 @@
     "testEnvironment": "jsdom",
     "collectCoverage": true,
     "coverageReporters": ["text", "html"],
-    "testRegex": ".src/Tests/(.*).test.(tsx||ts)",
+    "testRegex": "./src/Tests/(.*).test.(tsx||ts)",
     "collectCoverageFrom": ["./**/*.(tsx||ts)"],
     "coverageThreshold": {
         "global": {

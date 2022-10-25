@@ -2,16 +2,17 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import Badge, { BadgeType } from '../../Components/Badge/Badge';
-import Icon from '../../Components/Icon/Icon';
 
 describe('Badge', () => {
     test('it should render all props', () => {
         render(<Badge badgeCount={2} badgeType={BadgeType.SUCCESS} />);
-        expect(Icon).toBeInTheDocument()
+        const badge: HTMLElement = screen.getByRole('badge');
+        expect(badge).toBeInTheDocument();
     });
-    test('it should show icon when badgetype is equal to success', () => {
+    test('it should show badge when badgetype is equal to success', () => {
         render(<Badge badgeCount={1} badgeType={BadgeType.SUCCESS} />);
-        expect(Icon).toBeInTheDocument()
+        const badge: HTMLElement = screen.getByRole('badge');
+        expect(badge).toBeInTheDocument();
         const testId: HTMLElement = screen.getByText(1);
         expect(testId).toHaveClass('bg-success');
     });
@@ -49,5 +50,10 @@ describe('Badge', () => {
         render(<Badge badgeCount={2} badgeType={BadgeType.WARNING} />);
         const testId: HTMLElement = screen.getByText(2);
         expect(testId).toHaveTextContent('2');
+    });
+
+    test('should not show a badge when the count is 0', () => {
+        render(<Badge badgeCount={0} badgeType={BadgeType.WARNING} />);
+        expect(screen.queryByRole('badge')).toBeFalsy();
     });
 });

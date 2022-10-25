@@ -10,7 +10,6 @@ import Fields from '../../Components/Forms/Types/Fields';
 import { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
 import '@testing-library/jest-dom/extend-expect';
 
-
 describe('BasicForm test', () => {
     const fields: Fields<FormValues<any>> = [
         {
@@ -57,8 +56,8 @@ describe('BasicForm test', () => {
         const forgotPasswordText: HTMLElement = screen.getByTestId(
             'login-forgot-password'
         );
-        expect(inputEmail).toBeInTheDocument()
-        expect(inputPassword).toBeInTheDocument()
+        expect(inputEmail).toBeInTheDocument();
+        expect(inputPassword).toBeInTheDocument();
         expect(footer).toHaveTextContent('Footer');
         expect(forgotPasswordText).toHaveTextContent('Forgot password?');
     });

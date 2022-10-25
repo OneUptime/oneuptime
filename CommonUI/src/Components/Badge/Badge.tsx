@@ -26,7 +26,10 @@ const Badge: FunctionComponent<ComponentProps> = (
 
     if (props.badgeCount) {
         return (
-            <span className={`mt-1 badge ${className} float-end`}>
+            <span
+                role={'badge'}
+                className={`mt-1 badge ${className} float-end`}
+            >
                 {props.badgeCount}
             </span>
         );

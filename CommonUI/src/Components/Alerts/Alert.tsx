@@ -59,6 +59,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                 >
                     {props.onClose && (
                         <button
+                            role={'alert-close-button'}
                             type="button"
                             className="close"
                             onClick={() => {

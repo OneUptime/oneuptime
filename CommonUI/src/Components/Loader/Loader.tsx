@@ -20,11 +20,19 @@ const Loader: FunctionComponent<ComponentProps> = ({
     loaderType = LoaderType.Bar,
 }: ComponentProps) => {
     if (loaderType === LoaderType.Bar) {
-        return <BarLoader height={4} width={size} color={color.toString()} />;
+        return (
+            <div role="bar-loader">
+                <BarLoader height={4} width={size} color={color.toString()} />
+            </div>
+        );
     }
 
     if (loaderType === LoaderType.Beats) {
-        return <BeatLoader size={size} color={color.toString()} />;
+        return (
+            <div role="beat-loader">
+                <BeatLoader size={size} color={color.toString()} />
+            </div>
+        );
     }
 
     return <></>;
