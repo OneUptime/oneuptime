@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import BarLoader from 'react-spinners/BarLoader';
 import BeatLoader from 'react-spinners/BeatLoader';
-import Loader, { LoaderType } from '../Components/Loader/Loader';
+import Loader, { LoaderType } from '../../Components/Loader/Loader';
 import Color from 'Common/Types/Color';
 
 describe('Loader tests', () => {

@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import Alert, { AlertType } from '../Components/Alerts/Alert';
-import Icon from '../Components/Icon/Icon';
+import Alert, { AlertType } from '../../Components/Alerts/Alert';
+import Icon from '../../Components/Icon/Icon';
 
 describe('alert tests', () => {
     test('it should render all props passed', () => {

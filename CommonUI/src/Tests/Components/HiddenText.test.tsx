@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import HiddenText from '../Components/HiddenText/HiddenText';
-import Icon from '../Components/Icon/Icon';
+import HiddenText from '../../Components/HiddenText/HiddenText';
+import Icon from '../../Components/Icon/Icon';
 describe('tests for HiddenText component', () => {
     it('it should click paragraph and show text in document', async () => {
         act(() => {
