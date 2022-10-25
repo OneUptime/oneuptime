@@ -4,6 +4,7 @@ import Icon, { IconProp } from '../Icon/Icon';
 export interface ComponentProps {
     text: string;
     isCopyable?: boolean;
+    dataTestId?: string;
 }
 
 const HiddenText: FunctionComponent<ComponentProps> = (
@@ -11,10 +12,10 @@ const HiddenText: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [showText, setShowText] = useState<boolean>(false);
     const [copiedToClipboard, setCopyToClipboard] = useState<boolean>(false);
-
     if (!showText) {
         return (
             <p
+                role="paragraph"
                 className="pointer underline"
                 onClick={() => {
                     setShowText(true);
@@ -24,7 +25,6 @@ const HiddenText: FunctionComponent<ComponentProps> = (
             </p>
         );
     }
-
     return (
         <div>
             <div className="flex">
@@ -47,6 +47,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
             {props.isCopyable && (
                 <div>
                     <span
+                        data-testid={props.dataTestId}
                         className="pointer underline"
                         onClick={async () => {
                             await navigator.clipboard.writeText(props.text);

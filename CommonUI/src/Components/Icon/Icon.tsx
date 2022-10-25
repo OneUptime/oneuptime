@@ -148,7 +148,6 @@ export interface ComponentProps {
     onClick?: (() => void) | undefined;
     style?: CSSProperties | undefined;
 }
-
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
     icon,
