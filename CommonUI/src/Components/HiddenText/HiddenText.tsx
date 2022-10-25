@@ -52,7 +52,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                         className="pointer underline"
                         onClick={async () => {
                             setCopyToClipboard(true);
-                            await navigator.clipboard.writeText(props.text);
+                            await navigator.clipboard?.writeText(props.text);
                         }}
                         role="copy-to-clipboard"
                     >
