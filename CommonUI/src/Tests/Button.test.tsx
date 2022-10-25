@@ -23,12 +23,12 @@ describe('Button', () => {
         const title: HTMLElement = screen.getByText('sample title');
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(title).toBeInTheDocument;
-        expect(testId).toBeInTheDocument;
+        expect(title).toBeInTheDocument()
+        expect(testId).toBeInTheDocument()
         expect(testId).toHaveAttribute('type', 'button');
         expect(testId).toHaveAttribute('disabled');
         expect(testId).toHaveClass('btn');
-        expect(Icon).toBeInTheDocument;
+        expect(Icon).toBeInTheDocument()
     });
 
     test('it should have shortcutKey Setting', () => {
@@ -189,6 +189,6 @@ describe('Button', () => {
         render(<Button dataTestId="test-id" onClick={handleClick} />);
         const testId: HTMLElement = screen.getByTestId('test-id');
         fireEvent.click(testId);
-        expect(handleClick).toBeCalled;
+        expect(handleClick).toBeCalled();
     });
 });

@@ -7,11 +7,11 @@ import Icon from '../Components/Icon/Icon';
 describe('Badge', () => {
     test('it should render all props', () => {
         render(<Badge badgeCount={2} badgeType={BadgeType.SUCCESS} />);
-        expect(Icon).toBeInTheDocument;
+        expect(Icon).toBeInTheDocument()
     });
     test('it should show icon when badgetype is equal to success', () => {
         render(<Badge badgeCount={1} badgeType={BadgeType.SUCCESS} />);
-        expect(Icon).toBeInTheDocument;
+        expect(Icon).toBeInTheDocument()
         const testId: HTMLElement = screen.getByText(1);
         expect(testId).toHaveClass('bg-success');
     });

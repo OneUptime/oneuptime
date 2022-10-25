@@ -55,8 +55,8 @@ describe('BasicForm test', () => {
         const forgotPasswordText: HTMLElement = screen.getByTestId(
             'login-forgot-password'
         );
-        expect(inputEmail).toBeInTheDocument;
-        expect(inputPassword).toBeInTheDocument;
+        expect(inputEmail).toBeInTheDocument()
+        expect(inputPassword).toBeInTheDocument()
         expect(footer).toHaveTextContent('Footer');
         expect(forgotPasswordText).toHaveTextContent('Forgot password?');
     });

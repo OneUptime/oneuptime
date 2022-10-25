@@ -166,6 +166,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
             onClick={() => {
                 onClick && onClick();
             }}
+            role="icon"
         >
             {icon === IconProp.Home && (
                 <Home

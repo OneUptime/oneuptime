@@ -23,7 +23,7 @@ describe('tests for HiddenText component', () => {
         await act(async () => {
             fireEvent.click(paragraph);
         });
-        expect(setShowText).toBeCalled;
+        expect(setShowText).toBeCalled();
     });
     it('it should click paragraph and copy to clipboard', async () => {
         act(() => {
@@ -52,16 +52,16 @@ describe('tests for HiddenText component', () => {
         await act(async () => {
             fireEvent.click(paragraph);
         });
-        expect(setCopyToClipboard).toBeCalled;
+        expect(setCopyToClipboard).toBeCalled();
     });
     test('it should show icon in the document', () => {
         render(<HiddenText text="text" />);
-        expect(Icon).toBeInTheDocument;
+        expect(Icon).toBeInTheDocument()
     });
     test('it should show paragraph in the document and its content ', () => {
         render(<HiddenText dataTestId="test-id" text="text" />);
         const testId: HTMLElement = screen.getByRole('paragraph');
-        expect(testId).toBeInTheDocument;
+        expect(testId).toBeInTheDocument()
         expect(testId).toHaveTextContent('Click here to reveal');
     });
 
