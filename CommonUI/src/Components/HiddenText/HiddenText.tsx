@@ -15,6 +15,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
     if (!showText) {
         return (
             <p
+                role="hidden-text"
                 className="pointer underline"
                 onClick={() => {
                     setShowText(true);
@@ -32,6 +33,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                     style={{
                         marginRight: '5px',
                     }}
+                    role="revealed-text"
                 >
                     {props.text}
                 </div>{' '}
@@ -49,13 +51,14 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                     <span
                         className="pointer underline"
                         onClick={async () => {
-                            await navigator.clipboard.writeText(props.text);
                             setCopyToClipboard(true);
+                            await navigator.clipboard?.writeText(props.text);
                         }}
+                        role="copy-to-clipboard"
                     >
                         {' '}
                         {copiedToClipboard
-                            ? 'Copied to clipboard'
+                            ? 'Copied to Clipboard'
                             : 'Copy to Clipboard'}{' '}
                     </span>
                 </div>

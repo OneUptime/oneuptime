@@ -5,7 +5,7 @@ import renderer, {
     ReactTestInstance,
     ReactTestRenderer,
 } from 'react-test-renderer';
-import Breadcrumbs from '../Components/Breadcrumbs/Breadcrumbs';
+import Breadcrumbs from '../../Components/Breadcrumbs/Breadcrumbs';
 import Link from 'Common/Types/Link';
 describe('Breadcrumbs', () => {
     test('Should render correctly and also contain "Home" and "Projects" string', () => {

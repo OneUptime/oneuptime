@@ -4,10 +4,10 @@ import '@testing-library/jest-dom/extend-expect';
 import Button, {
     ButtonSize,
     ButtonStyleType,
-} from '../Components/Button/Button';
-import ButtonType from '../Components/Button/ButtonTypes';
-import ShortcutKey from '../Components/ShortcutKey/ShortcutKey';
-import Icon from '../Components/Icon/Icon';
+} from '../../Components/Button/Button';
+import ButtonType from '../../Components/Button/ButtonTypes';
+import ShortcutKey from '../../Components/ShortcutKey/ShortcutKey';
+import { IconProp } from '../../Components/Icon/Icon';
 
 describe('Button', () => {
     test('it should render correctly with title and icon', () => {
@@ -18,17 +18,19 @@ describe('Button', () => {
                 disabled={true}
                 type={ButtonType.Button}
                 showIconOnRight={true}
+                icon={IconProp.Add}
             />
         );
         const title: HTMLElement = screen.getByText('sample title');
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(title).toBeInTheDocument;
-        expect(testId).toBeInTheDocument;
+        expect(title).toBeInTheDocument();
+        expect(testId).toBeInTheDocument();
         expect(testId).toHaveAttribute('type', 'button');
         expect(testId).toHaveAttribute('disabled');
         expect(testId).toHaveClass('btn');
-        expect(Icon).toBeInTheDocument;
+        const icon: HTMLElement = screen.getByRole('icon');
+        expect(icon).toBeInTheDocument();
     });
 
     test('it should have shortcutKey Setting', () => {
@@ -181,7 +183,7 @@ describe('Button', () => {
         render(<Button dataTestId="test-id" disabled={false} />);
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).not.toBeDisabled;
+        expect(testId).not.toBeDisabled();
     });
 
     test('it should handle onClick event', () => {
@@ -189,6 +191,6 @@ describe('Button', () => {
         render(<Button dataTestId="test-id" onClick={handleClick} />);
         const testId: HTMLElement = screen.getByTestId('test-id');
         fireEvent.click(testId);
-        expect(handleClick).toBeCalled;
+        expect(handleClick).toBeCalled();
     });
 });

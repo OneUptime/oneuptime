@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
 import { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
 import userEvent from '@testing-library/user-event';
-import Toast, { ToastType } from '../Components/Toast/Toast';
+import Toast, { ToastType } from '../../Components/Toast/Toast';
 import OneUptimeDate from 'Common/Types/Date';
 
 describe('Test for Toast.tsx', () => {
@@ -128,6 +128,6 @@ describe('Test for Toast.tsx', () => {
             screen.getByTestId('toast-button');
         await user.click(loginButton);
 
-        expect(screen.queryByTestId('toast-main')).toBeFalsy;
+        expect(screen.queryByTestId('toast-main')).toBeFalsy();
     });
 });

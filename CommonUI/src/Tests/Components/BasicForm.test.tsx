@@ -2,13 +2,14 @@ import * as React from 'react';
 
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import BasicForm from '../Components/Forms/BasicForm';
-import FormFieldSchemaType from '../Components/Forms/Types/FormFieldSchemaType';
+import BasicForm from '../../Components/Forms/BasicForm';
+import FormFieldSchemaType from '../../Components/Forms/Types/FormFieldSchemaType';
 import Route from 'Common/Types/API/Route';
-import FormValues from '../Components/Forms/Types/FormValues';
-import Fields from '../Components/Forms/Types/Fields';
+import FormValues from '../../Components/Forms/Types/FormValues';
+import Fields from '../../Components/Forms/Types/Fields';
 import { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
 import '@testing-library/jest-dom/extend-expect';
+
 describe('BasicForm test', () => {
     const fields: Fields<FormValues<any>> = [
         {
@@ -55,8 +56,8 @@ describe('BasicForm test', () => {
         const forgotPasswordText: HTMLElement = screen.getByTestId(
             'login-forgot-password'
         );
-        expect(inputEmail).toBeInTheDocument;
-        expect(inputPassword).toBeInTheDocument;
+        expect(inputEmail).toBeInTheDocument();
+        expect(inputPassword).toBeInTheDocument();
         expect(footer).toHaveTextContent('Footer');
         expect(forgotPasswordText).toHaveTextContent('Forgot password?');
     });

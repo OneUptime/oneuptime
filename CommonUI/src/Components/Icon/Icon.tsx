@@ -150,7 +150,6 @@ export interface ComponentProps {
     onClick?: (() => void) | undefined;
     style?: CSSProperties | undefined;
 }
-
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
     icon,
@@ -169,6 +168,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
             onClick={() => {
                 onClick && onClick();
             }}
+            role="icon"
         >
             {icon === IconProp.Home && (
                 <Home
