@@ -26,22 +26,8 @@ export default class DatabaseProperty {
     protected static _toDatabase(
         value: DatabaseProperty | FindOperator<DatabaseProperty>
     ): string | number | null {
-        if (
-            value &&
-            (value as any)._type === 'raw' &&
-            (value as any)._objectLiteralParameters &&
-            Object.keys((value as any)._objectLiteralParameters).length > 0
-        ) {
-            const returnVal: string | number | null = (value as any)
-                ._objectLiteralParameters[
-                (Object.keys((value as any)._objectLiteralParameters) as any)[0]
-            ] as any;
-            if (Array.isArray(returnVal) && returnVal.length > 0) {
-                return returnVal[0];
-            }
-            return returnVal;
-        }
-
+       
+        // if its a RAW query. Return a raw query. 
         if (value && (value as any)._type === 'raw') {
             return value as any;
         }

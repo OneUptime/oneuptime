@@ -449,6 +449,9 @@ export default class StatusPageAPI extends BaseAPI<
                         return incident._id!;
                     })
 
+                    console.log("INCIEENT IN STATUS PAGE");
+                    console.log(incidentsOnStausPage)
+
                     let incidentPublicNotes: Array<IncidentPublicNote> = [];
 
                     if (incidentsOnStausPage.length > 0) {
