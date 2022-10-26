@@ -1,23 +1,18 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import EventHistoryDayList from './EventHistoryDayList';
-import NoEventDay from './NoEventDay';
-
-
+import EventHistoryDayList, {ComponentProps as EventHistoryDayListComponentProps} from './EventHistoryDayList';
 
 export interface ComponentProps {
-    // startDate: Date;
-    // endDate: Date;
+    items: Array<EventHistoryDayListComponentProps>
 
 }
 
 const ActiveEvent: FunctionComponent<ComponentProps> = (
-    _props: ComponentProps
+    props: ComponentProps
 ): ReactElement => {
     return (<div className="event-history-box">
-        <NoEventDay/>
-        <EventHistoryDayList />
-        <EventHistoryDayList />
-        <EventHistoryDayList/>
+        {props.items.map((item) => {
+            return <EventHistoryDayList {...item} />
+        })}
     </div>)
 };
 

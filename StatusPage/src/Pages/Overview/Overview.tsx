@@ -3,7 +3,7 @@ import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import Accordian from 'CommonUI/src/Components/Accordian/Accordian';
 import AccordianGroup from 'CommonUI/src/Components/Accordian/AccordianGroup';
-import Alert, { AlertSize, AlertType } from 'CommonUI/src/Components/Alerts/Alert';
+import Alert, { AlertSize } from 'CommonUI/src/Components/Alerts/Alert';
 import ActiveEvent from 'CommonUI/src/Components/ActiveEvent/ActiveEvent';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
@@ -36,7 +36,7 @@ import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenance
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
-import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGRoup';
+import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
