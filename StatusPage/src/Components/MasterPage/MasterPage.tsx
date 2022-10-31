@@ -18,6 +18,7 @@ import RouteParams from '../../Utils/RouteParams';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import BaseModel from 'Common/Models/BaseModel';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -76,8 +77,10 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
     return (
         <MasterPage
+
             footer={<Footer
                 copyright={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.copyrightText") as string || ''}
+
                 links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "footerLinks") as Array<JSONObject> || []).map((link) => {
                     return {
                         title: link['title'] as string,
@@ -85,13 +88,16 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                         openInNewTab: true,
                     }
                 })} />}
-            header={<Header links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "headerLinks") as Array<JSONObject> || []).map((link) => {
-                return {
-                    title: link['title'] as string,
-                    to: link['link'] as URL,
-                    openInNewTab: true,
-                }
-            })} />}
+            header={<Header
+                logo={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.logoFile") as BaseModel || undefined}
+                banner={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.coverImageFile") as BaseModel || undefined}
+                links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "headerLinks") as Array<JSONObject> || []).map((link) => {
+                    return {
+                        title: link['title'] as string,
+                        to: link['link'] as URL,
+                        openInNewTab: true,
+                    }
+                })} />}
             navBar={<NavBar show={true} isPreview={true} />}
             isLoading={props.isLoading || false}
             error={props.error || ''}

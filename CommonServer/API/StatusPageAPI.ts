@@ -177,7 +177,20 @@ export default class StatusPageAPI extends BaseAPI<
                         enableSubscribers: true,
                     };
 
-                    const populate: Populate<StatusPage> = {};
+                    const populate: Populate<StatusPage> = {
+                        coverImageFile: {
+                            file: true as any,
+                            _id: true,
+                            type: true,
+                            name: true,
+                        } as any, 
+                        logoFile: {
+                            file: true as any,
+                            _id: true,
+                            type: true,
+                            name: true,
+                        } as any, 
+                    };
 
                     const item: StatusPage | null =
                         await this.service.findOneById({
@@ -411,7 +424,8 @@ export default class StatusPageAPI extends BaseAPI<
                                 monitors: QueryHelper.in(monitorsOnStatusPage),
                                 currentIncidentState: {
                                     isResolvedState: false
-                                } as any
+                                } as any,
+                                projectId: statusPage.projectId!
                             },
                             select: {
                                 createdAt: true,
@@ -458,6 +472,7 @@ export default class StatusPageAPI extends BaseAPI<
                         incidentPublicNotes = await IncidentPublicNoteService.findBy({
                             query: {
                                 incidentId: QueryHelper.in(incidentsOnStausPage),
+                                projectId: statusPage.projectId!
                             },
                             select: {
                                 note: true,
@@ -480,6 +495,7 @@ export default class StatusPageAPI extends BaseAPI<
                         incidentStateTimelines = await IncidentStateTimelineService.findBy({
                             query: {
                                 incidentId: QueryHelper.in(incidentsOnStausPage),
+                                projectId: statusPage.projectId!
                             },
                             select: {
                                 _id: true,
@@ -505,7 +521,8 @@ export default class StatusPageAPI extends BaseAPI<
                         query: {
                             statusPages: QueryHelper.in([objectId]),
                             showAnnouncementAt: QueryHelper.lessThan(today),
-                            endAnnouncementAt: QueryHelper.greaterThan(today)
+                            endAnnouncementAt: QueryHelper.greaterThan(today),
+                            projectId: statusPage.projectId!
                         },
                         select: {
                             createdAt: true,
@@ -528,6 +545,7 @@ export default class StatusPageAPI extends BaseAPI<
                             startsAt: QueryHelper.lessThan(today),
                             endsAt: QueryHelper.greaterThan(today),
                             statusPages: QueryHelper.in([objectId]),
+                            projectId: statusPage.projectId!
 
                         },
                         select: {
@@ -535,6 +553,7 @@ export default class StatusPageAPI extends BaseAPI<
                             title: true,
                             description: true,
                             _id: true,
+                            endsAt: true
 
                         },
                         sort: {
@@ -567,6 +586,7 @@ export default class StatusPageAPI extends BaseAPI<
                         scheduledMaintenanceEventsPublicNotes = await ScheduledMaintenancePublicNoteService.findBy({
                             query: {
                                 scheduledMaintenanceId: QueryHelper.in(activeScheduledMaintenanceEventsOnStausPage),
+                                projectId: statusPage.projectId!
                             },
                             select: {
                                 note: true,
@@ -590,6 +610,7 @@ export default class StatusPageAPI extends BaseAPI<
                         scheduledMaintenanceStateTimelines = await ScheduledMaintenanceStateTimelineService.findBy({
                             query: {
                                 scheduledMaintenanceId: QueryHelper.in(activeScheduledMaintenanceEventsOnStausPage),
+                                projectId: statusPage.projectId!
                             },
                             select: {
                                 _id: true,

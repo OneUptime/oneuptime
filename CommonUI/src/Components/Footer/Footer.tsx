@@ -2,9 +2,13 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Link from 'Common/Types/Link';
 import UILink from '../Link/Link';
 
+export interface FooterLink extends Link {
+    showOnRightIfNoCopyright?: boolean | undefined;
+}
+
 export interface ComponentProps {
     copyright?: string | undefined;
-    links: Array<Link>;
+    links: Array<FooterLink>;
     style?: React.CSSProperties | undefined;
 }
 
@@ -15,7 +19,7 @@ const Footer: FunctionComponent<ComponentProps> = (
         <React.Fragment>
             <footer className="footer">
                 <div className="container-fluid" style={props.style}>
-                    <div className="row">
+                    {props.copyright && <div className="row">
                         {props.copyright && (
                             <div className="col-md-6">
                                 <p>
@@ -24,7 +28,7 @@ const Footer: FunctionComponent<ComponentProps> = (
                                 </p>
                             </div>
                         )}
-                        {props.links && props.links.length > 1 && (
+                        {props.links && props.links.length > 0 && (
                             <div className="col-md-6" key={'links'}>
                                 <div className="text-sm-end d-none d-sm-block">
                                     {props.links &&
@@ -49,7 +53,63 @@ const Footer: FunctionComponent<ComponentProps> = (
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </div>}
+
+
+
+                    {!props.copyright && <div className="row">
+                        {props.links && props.links.filter((link)=> !link.showOnRightIfNoCopyright).length > 0 && (
+                            <div className="col-md-6">
+                                <p>
+                                {props.links &&
+                                        props.links.filter((link)=> !link.showOnRightIfNoCopyright).map(
+                                            (link: Link, i: number) => {
+                                                return (
+                                                    <span key={i}>
+                                                        <UILink
+                                                            className="ms-1 underline-on-hover"
+                                                            to={link.to}
+                                                            openInNewTab={
+                                                                link.openInNewTab
+                                                            }
+                                                        >
+                                                            {link.title}
+                                                        </UILink>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                                    </span>
+                                                );
+                                            }
+                                        )}
+                                </p>
+                            </div>
+                        )}
+                        {props.links && props.links.filter((link)=> link.showOnRightIfNoCopyright).length > 0 && (
+                            <div className="col-md-6" key={'links'}>
+                                <div className="text-sm-end d-none d-sm-block">
+                                    {props.links &&
+                                        props.links.filter((link)=> link.showOnRightIfNoCopyright).map(
+                                            (link: Link, i: number) => {
+                                                return (
+                                                    <span key={i}>
+                                                        <UILink
+                                                            className="ms-1 underline-on-hover"
+                                                            to={link.to}
+                                                            openInNewTab={
+                                                                link.openInNewTab
+                                                            }
+                                                        >
+                                                            {link.title}
+                                                        </UILink>
+                                                        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                                    </span>
+                                                );
+                                            }
+                                        )}
+                                </div>
+                            </div>
+                        )}
+                    </div>}
+
                 </div>
             </footer>
         </React.Fragment>

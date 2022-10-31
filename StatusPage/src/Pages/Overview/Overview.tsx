@@ -275,14 +275,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             {!isLoading && !error ? <div>
                 {/* Load Active Anouncement */}
-                {activeAnnouncements.map((announcement) => {
+                {activeAnnouncements.map((announcement, i) => {
                     return (<ActiveEvent
+                        key={i}
                         cardTitle={'Announcement'}
                         cardTitleRight={''}
                         cardColor={Blue}
                         eventTitle={announcement.title || ''}
                         eventDescription={announcement.description || ''}
-                        currentEventStatus={'Posted On'}
+                        currentEventStatus={'Announced'}
                         currentEventStatusDateTime={announcement.showAnnouncementAt!}
                         currentEventStatusNote={''}
                         eventType={'Anouncement'}
@@ -293,8 +294,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
                 {/* Load Active Incident */}
 
-                {getActiveIncidents().map((incidentGroup) => {
+                {getActiveIncidents().map((incidentGroup, i) => {
                     return (<ActiveEvent
+                        key={i}
                         cardTitle={'Active Incident'}
                         cardTitleRight={incidentGroup.incidentSeverity.name || ''}
                         cardColor={incidentGroup.incidentSeverity.color || Red}
@@ -315,15 +317,18 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
                 {/* Load Active ScheduledEvent */}
 
-                {getOngoingScheduledEvents().map((scheduledEventGroup) => {
+                {getOngoingScheduledEvents().map((scheduledEventGroup, i) => {
                     return (<ActiveEvent
-                        cardTitle={'Ongoing Scheduled Maintenance'}
-                        cardTitleRight={''}
+                        key={i}
+                        cardTitle={'Scheduled Maintenance'}
+                        cardTitleRight={'Ongoing Event'}
+                        footerEventStatus={'Ends'}
                         cardColor={Yellow}
                         eventTitle={scheduledEventGroup.scheduledMaintenance.title || ''}
                         eventDescription={scheduledEventGroup.scheduledMaintenance.description || ''}
                         currentEventStatus={scheduledEventGroup.scheduledMaintenanceState.name || ''}
                         currentEventStatusDateTime={scheduledEventGroup.scheduledMaintenanceStateTimeline.createdAt!}
+                        footerDateTime={scheduledEventGroup.scheduledMaintenance.endsAt!}
                         currentEventStatusNote={scheduledEventGroup.publicNote?.note! || ''}
                         eventType={'Scheduled Maintenance'}
                         eventViewRoute={RouteUtil.populateRouteParams(

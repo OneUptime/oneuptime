@@ -13,19 +13,25 @@ export interface ComponentProps {
     currentEventStatusDateTime: Date;
     currentEventStatusNote?: string | undefined;
     eventType: string; 
-    eventViewRoute?: Route | undefined
+    eventViewRoute?: Route | undefined;
+    footerEventStatus?: string | undefined; 
+    footerDateTime?: Date | undefined; 
 }
 
 const ActiveEvent: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return (<div className="active-event-box">
-        <div className="active-event-box-header">
+    return (<div className="active-event-box" style={{
+        borderColor: props.cardColor.toString()
+    }}>
+        <div className="active-event-box-header" style={{
+            backgroundColor: props.cardColor.toString()
+        }}>
             <div className="active-event-box-header-title flex justify-space-between">
                 <div>
                     {props.cardTitle}
                 </div>
-                <div>
+                <div className="active-event-box-right-title">
                     {props.cardTitleRight}
                 </div>
             </div>

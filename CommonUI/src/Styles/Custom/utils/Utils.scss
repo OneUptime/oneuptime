@@ -459,6 +459,7 @@
     border-radius: 5px;
     margin-left: -2px;
     margin-right: -2px;
+    margin-top: -1px;
 }
 
 .active-event-box-header-icon {
@@ -471,6 +472,7 @@
     margin-left: 10px;
     border-width: 0px;
     border-color: $color-red;
+    width: 100%;
 }
 
 .active-event-box-body {
@@ -504,4 +506,9 @@
     border-style: solid;
     border-width: 0px;
     border-bottom-width: 1px;
+}
+
+.active-event-box-right-title{
+    opacity: 0.6;
+    font-size: 13px;
 }

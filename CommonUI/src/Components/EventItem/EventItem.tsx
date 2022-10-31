@@ -13,7 +13,10 @@ export interface ComponentProps {
     currentEventStatusDateTime: Date;
     currentEventStatusNote?: string | undefined;
     eventType: string;
-    eventViewRoute?: Route | undefined
+    eventViewRoute?: Route | undefined;
+    footerEventStatus?: string | undefined; 
+    footerDateTime?: Date | undefined; 
+
 }
 
 const EventItem: FunctionComponent<ComponentProps> = (
@@ -30,8 +33,8 @@ const EventItem: FunctionComponent<ComponentProps> = (
         </div>
         <div className="active-event-box-body" style={{ marginTop: "0px", paddingTop: "0px" }}>
             {props.currentEventStatusNote && <div className="active-event-box-body-description"> <span className="bold">{props.currentEventStatus} - </span>{props.currentEventStatusNote || ''}</div>}
-            <div className="active-event-box-body-timestamp">{props.currentEventStatus} on {OneUptimeDate.getDateAsLocalFormattedString(
-                props.currentEventStatusDateTime,
+            <div className="active-event-box-body-timestamp">{props.footerEventStatus || props.currentEventStatus} at {OneUptimeDate.getDateAsLocalFormattedString(
+                props.footerDateTime || props.currentEventStatusDateTime,
                 false
             )}. {props.eventViewRoute ? <span><Link className='underline pointer' to={props.eventViewRoute} style={{
                 color: Blue.toString()

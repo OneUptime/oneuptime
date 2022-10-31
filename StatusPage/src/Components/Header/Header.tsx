@@ -3,9 +3,12 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Banner from '../Banner/Banner';
 import Logo from '../Logo/Logo';
 import UILink from 'CommonUI/src/Components/Link/Link';
+import File from 'Model/Models/File';
 
 export interface ComponentProps {
     links: Array<Link>;
+    logo?: File | undefined,
+    banner?: File | undefined;
 }
 
 const StatusPageHeader: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
@@ -20,7 +23,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (props: ComponentPro
                 position: 'unset',
             }}
         >
-            <Banner />
+            {props.banner && <Banner file={props.banner} />}
             <div
                 className="navbar-header"
                 style={{
@@ -31,7 +34,7 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (props: ComponentPro
                 }}
             >
                 <div className="d-flex">
-                    <Logo onClick={() => { }} />
+                    {props.logo && <Logo file={props.logo} onClick={() => { }} />}
                 </div>
                 {props.links && props.links.length > 1 && (
                     <div className="col-md-6" key={'links'}>
