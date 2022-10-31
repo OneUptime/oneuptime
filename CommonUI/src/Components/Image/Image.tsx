@@ -10,6 +10,21 @@ export interface ComponentProps {
     file?: File | undefined;
 }
 
+export class ImageFunctions {
+    public static getImageURL(file: File): string{
+        const blob: Blob = new Blob(
+            [file.file as Uint8Array],
+            {
+                type: (file as File)
+                    .type as string,
+            }
+        );
+
+        const url: string = URL.createObjectURL(blob);
+        return url;
+    }
+}
+
 const Image: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
@@ -29,15 +44,9 @@ const Image: FunctionComponent<ComponentProps> = (
 
     if (props.file && props.file.file && props.file.type) {
 
-        const blob: Blob = new Blob(
-            [props.file.file as Uint8Array],
-            {
-                type: (props.file as File)
-                    .type as string,
-            }
-        );
+       
 
-        const url: string = URL.createObjectURL(blob);
+        const url: string = ImageFunctions.getImageURL(props.file);
 
         return (
             <img

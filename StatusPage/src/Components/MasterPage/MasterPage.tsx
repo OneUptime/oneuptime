@@ -19,6 +19,8 @@ import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import BaseModel from 'Common/Models/BaseModel';
+import File from 'Model/Models/File';
+import { ImageFunctions } from 'CommonUI/src/Components/Image/Image';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -52,6 +54,18 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             LocalStorage.setItem('statusPageId', id);
             const response = await BaseAPI.post<JSONObject>(URL.fromString(DASHBOARD_API_URL.toString()).addRoute(`/status-page/master-page/${id.toString()}`), {}, {});
             setMasterPageData(response.data);
+
+
+            // setfavicon.
+            const favIcon = JSONFunctions.getJSONValueInPath(response.data || {}, "statusPage.faviconFile") as File;
+            if (favIcon && favIcon.file) {
+                let link = document.createElement('link');
+                link.rel = 'icon';
+                (document as any).getElementsByTagName('head')[0].appendChild(link);
+                link.href = ImageFunctions.getImageURL(favIcon);
+            }
+
+
             setIsLoading(false);
         } catch (err) {
             try {

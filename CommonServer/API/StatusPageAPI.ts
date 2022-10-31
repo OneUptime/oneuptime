@@ -184,6 +184,12 @@ export default class StatusPageAPI extends BaseAPI<
                             type: true,
                             name: true,
                         } as any, 
+                        faviconFile: {
+                            file: true as any,
+                            _id: true,
+                            type: true,
+                            name: true,
+                        } as any, 
                         logoFile: {
                             file: true as any,
                             _id: true,
