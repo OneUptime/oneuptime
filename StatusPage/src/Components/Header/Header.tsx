@@ -33,12 +33,14 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (props: ComponentPro
                     justifyContent: "space-between"
                 }}
             >
-                <div className="d-flex">
-                    {props.logo && <Logo file={props.logo} onClick={() => { }} />}
-                </div>
+                {props.logo && <div className="d-flex">
+                    <Logo file={props.logo} onClick={() => { }} />
+                </div>}
                 {props.links && props.links.length > 1 && (
-                    <div className="col-md-6" key={'links'}>
-                        <div className="text-sm-end d-none d-sm-block">
+                    <div className="col-md-6" key={'links'} style={{
+                        textAlign: props.logo ? "right": "left"
+                    }}>
+                        <div>
                             {props.links &&
                                 props.links.map(
                                     (link: Link, i: number) => {

@@ -26,6 +26,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     isLoading?: boolean | undefined;
     error?: string | undefined;
+    onLoadComplete: (masterPage: JSONObject) => void; 
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -65,7 +66,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 link.href = ImageFunctions.getImageURL(favIcon);
             }
 
-
+            props.onLoadComplete(response.data);
             setIsLoading(false);
         } catch (err) {
             try {
@@ -123,7 +124,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 marginLeft: 'auto !important',
             }}
         >
-            {React.cloneElement(props.children as any, { statusPageId: statusPageId })}
+            {React.cloneElement(props.children as any, {
+                statusPageId: statusPageId,
+            })}
         </MasterPage>
     );
 };

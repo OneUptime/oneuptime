@@ -39,7 +39,7 @@ import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 
 const Overview: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
 
 
@@ -103,6 +103,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             setCurrentStatus(getOverallMonitorStatus(statusPageResources, monitorStatuses));
 
             setIsLoading(false);
+            props.onLoadComplete();
         } catch (err) {
             try {
                 setError(
@@ -262,6 +263,41 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return groups;
     }
 
+    const getRightAccordianElement = (group: StatusPageGroup): ReactElement => {
+
+        let currentStatus: MonitorStatus = new MonitorStatus();
+        currentStatus.name = 'Operational';
+        currentStatus.color = Green;
+        let hasReosurce = false; 
+
+        for (const resource of statusPageResources) {
+            if (
+                (resource.statusPageGroupId && resource.statusPageGroupId.toString() && group && group._id?.toString() && group._id?.toString() === resource.statusPageGroupId.toString()) ||
+                (!resource.statusPageGroupId && !group)
+
+            ) {
+                hasReosurce = true; 
+                let currentMonitorStatus = monitorStatuses.find((status) => {
+                    return status._id?.toString() === resource.monitor?.currentMonitorStatusId?.toString()
+                });
+
+                if (currentStatus && currentStatus.priority && currentMonitorStatus?.priority && currentMonitorStatus?.priority > currentStatus.priority || !currentStatus.priority) {
+                    currentStatus = currentMonitorStatus!;
+                }
+            }
+
+
+        }
+
+        if (hasReosurce) {
+            return (<div className='bold font16' style={{ color: currentStatus?.color?.toString() || Green.toString() }}>
+                {currentStatus?.name || 'Operational'}
+            </div>)
+        } else {
+            return <></>;
+        }
+    }
+
 
     // const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
     // const endDate: Date = OneUptimeDate.getCurrentDate();
@@ -348,24 +384,24 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     />}
                 </div>
 
-                {resourceGroups.length > 0 ?
-                    <div>
-                        <AccordianGroup>
-                            {statusPageResources.filter((resources) => !resources.statusPageGroupId).length > 0 ? <Accordian key={Math.random()} title={undefined} isLastElement={resourceGroups.length === 0}>
-                                {getMonitorOverviewListInGroup(null)}
-                            </Accordian> : <></>}
-                            <div key={Math.random()} style={{
-                                padding: "0px"
-                            }}>
-                                {resourceGroups.map((resourceGroup, i) => {
-                                    return (<Accordian key={i} isLastElement={resourceGroups.length - 1 === i} title={resourceGroup.name!}>
-                                        {getMonitorOverviewListInGroup(resourceGroup)}
-                                    </Accordian>)
-                                })}
-                            </div>
-                        </AccordianGroup>
-                    </div> : <></>
-                }
+
+                <div>
+                    <AccordianGroup>
+                        {statusPageResources.filter((resources) => !resources.statusPageGroupId).length > 0 ? <Accordian key={Math.random()} title={undefined} isLastElement={resourceGroups.length === 0}>
+                            {getMonitorOverviewListInGroup(null)}
+                        </Accordian> : <></>}
+                        <div key={Math.random()} style={{
+                            padding: "0px"
+                        }}>
+                            {resourceGroups.length > 0 && resourceGroups.map((resourceGroup, i) => {
+                                return (<Accordian key={i} rightElement={getRightAccordianElement(resourceGroup)} isInitiallyExpanded={resourceGroup.isExpandedByDefault} isLastElement={resourceGroups.length - 1 === i} title={resourceGroup.name!}>
+                                    {getMonitorOverviewListInGroup(resourceGroup)}
+                                </Accordian>)
+                            })}
+                        </div>
+                    </AccordianGroup>
+                </div>
+
             </div> : <></>}
 
 

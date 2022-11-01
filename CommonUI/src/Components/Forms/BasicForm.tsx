@@ -409,8 +409,9 @@ const BasicForm: Function = <T extends Object>(
                                             );
 
                                             if (
-                                                field.fieldType ===
-                                                    FormFieldSchemaType.File &&
+                                                (field.fieldType ===
+                                                    FormFieldSchemaType.File || field.fieldType ===
+                                                    FormFieldSchemaType.ImageFile) &&
                                                 Array.isArray(fileResult)
                                             ) {
                                                 if (fileResult.length > 0) {

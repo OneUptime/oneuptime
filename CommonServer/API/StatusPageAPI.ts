@@ -341,7 +341,8 @@ export default class StatusPageAPI extends BaseAPI<
                         select: {
                             name: true,
                             order: true,
-                            description: true
+                            description: true,
+                            isExpandedByDefault: true
                         },
                         sort: {
                             order: SortOrder.Ascending

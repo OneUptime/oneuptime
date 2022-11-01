@@ -12,7 +12,7 @@ const Logo: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div className="flex items-center">
-            <Image file={props.file} onClick={props.onClick} height={30} />
+            <Image file={props.file} onClick={props.onClick} height={50} />
         </div>
     );
 };

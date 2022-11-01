@@ -10,6 +10,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     rightElement?: ReactElement | undefined;
     isLastElement?: boolean | undefined;
+    isInitiallyExpanded?: boolean | undefined;
 }
 
 const Accordian: FunctionComponent<ComponentProps> = (
@@ -19,9 +20,15 @@ const Accordian: FunctionComponent<ComponentProps> = (
     const [isOpen, setIsOpen] = useState<boolean>(false);
 
     useEffect(() => {
+        if (props.isInitiallyExpanded) {
+            setIsOpen(true);
+        }
+    }, [props.isInitiallyExpanded ])
+
+    useEffect(() => {
         if (!props.title) {
             setIsOpen(true)
-        } else {
+        } else if(!props.isInitiallyExpanded){
             setIsOpen(false)
         }
     },[props.title])
@@ -83,9 +90,9 @@ const Accordian: FunctionComponent<ComponentProps> = (
                             </div>
                         </div>}
                     </div>
-                    <div className='accordian-right-element'>
+                    {!isOpen && <div className='accordian-right-element'>
                         {props.rightElement}
-                    </div>
+                    </div>}
                 </div>
                 {isOpen && <div className='accordian-children'>
                     {props.children}
