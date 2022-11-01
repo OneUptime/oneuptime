@@ -26,7 +26,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     isLoading?: boolean | undefined;
     error?: string | undefined;
-    onLoadComplete: (masterPage: JSONObject) => void; 
+    onLoadComplete: (masterPage: JSONObject) => void;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -37,6 +37,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string | null>(null);
     const [masterPageData, setMasterPageData] = useState<JSONObject | null>(null);
     const [statusPageId, setStatusPageId] = useState<ObjectID | null>(null);
+    const [headerHtml, setHeaderHtml] = useState<null | string>(null)
+    const [footerHtml, setFooterHTML] = useState<null | string>(null)
 
     const getId = async (): Promise<ObjectID> => {
         const id: string | null = Navigation.getParamByName(RouteParams.StatusPageId, RouteMap[PageMap.PREVIEW_OVERVIEW]!);
@@ -66,6 +68,26 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 link.href = ImageFunctions.getImageURL(favIcon);
             }
 
+            // setcss.
+            const css = JSONFunctions.getJSONValueInPath(response.data || {}, "statusPage.customCSS") as string;
+            if (css) {
+                let style = document.createElement('style');
+                style.innerText = css;
+                (document as any).getElementsByTagName('head')[0].appendChild(style);
+            }
+
+            const headHtml = JSONFunctions.getJSONValueInPath(response.data || {}, "statusPage.headerHTML") as string;
+            const footHTML = JSONFunctions.getJSONValueInPath(response.data || {}, "statusPage.footerHTML") as string;
+            
+            
+            if (headHtml) {
+                setHeaderHtml(headHtml);
+            }
+            
+            if (footHTML) {
+                setFooterHTML(footHTML);
+            }
+
             props.onLoadComplete(response.data);
             setIsLoading(false);
         } catch (err) {
@@ -82,6 +104,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     }, []);
 
 
+
     if (isLoading) {
         return <PageLoader isVisible={true} />
     }
@@ -90,10 +113,12 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         return <ErrorMessage error={error} />
     }
 
+    console.log(headerHtml);
+
     return (
         <MasterPage
 
-            footer={<Footer
+            footer={!footerHtml ? <Footer
                 copyright={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.copyrightText") as string || ''}
 
                 links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "footerLinks") as Array<JSONObject> || []).map((link) => {
@@ -102,8 +127,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                         to: link['link'] as URL,
                         openInNewTab: true,
                     }
-                })} />}
-            header={<Header
+                })} /> : <div dangerouslySetInnerHTML={{ __html: footerHtml as string }} />}
+            header={!headerHtml ? <Header
                 logo={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.logoFile") as BaseModel || undefined}
                 banner={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.coverImageFile") as BaseModel || undefined}
                 links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "headerLinks") as Array<JSONObject> || []).map((link) => {
@@ -112,7 +137,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                         to: link['link'] as URL,
                         openInNewTab: true,
                     }
-                })} />}
+                })} /> : <div dangerouslySetInnerHTML={{ __html: headerHtml as string }} />}
             navBar={<NavBar show={true} isPreview={true} />}
             isLoading={props.isLoading || false}
             error={props.error || ''}
