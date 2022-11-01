@@ -183,19 +183,19 @@ export default class StatusPageAPI extends BaseAPI<
                             _id: true,
                             type: true,
                             name: true,
-                        } as any, 
+                        } as any,
                         faviconFile: {
                             file: true as any,
                             _id: true,
                             type: true,
                             name: true,
-                        } as any, 
+                        } as any,
                         logoFile: {
                             file: true as any,
                             _id: true,
                             type: true,
                             name: true,
-                        } as any, 
+                        } as any,
                     };
 
                     const item: StatusPage | null =
@@ -655,5 +655,285 @@ export default class StatusPageAPI extends BaseAPI<
                 }
             }
         );
+
+
+        this.router.post(
+            `/${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/incidents/:id`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    const objectId: ObjectID = new ObjectID(
+                        req.params['id'] as string
+                    );
+
+                    if (
+                        !(await this.service.hasReadAccess(
+                            objectId,
+                            this.getDatabaseCommonInteractionProps(req)
+                        ))
+                    ) {
+                        throw new NotAuthorizedException(
+                            'You are not authorize to access this status page'
+                        );
+                    }
+
+                    const statusPage = await StatusPageService.findOneBy({
+                        query: {
+                            _id: objectId.toString(),
+                        },
+                        select: {
+                            _id: true,
+                            projectId: true,
+                        },
+                        props: {
+                            isRoot: true
+                        },
+                    });
+
+                    if (!statusPage) {
+                        throw new BadDataException("Status Page not found");
+                    }
+
+
+
+                    // get monitors on status page.
+                    const statusPageResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
+                        query: {
+                            statusPageId: objectId,
+                        },
+                        select: {
+                            statusPageGroupId: true,
+                            monitorId: true,
+                            displayTooltip: true,
+                            displayDescription: true,
+                            displayName: true,
+                        },
+                        populate: {
+                            monitor: {
+                                _id: true,
+                                currentMonitorStatusId: true
+                            }
+                        },
+                        skip: 0,
+                        limit: LIMIT_PER_PROJECT,
+                        props: {
+                            isRoot: true,
+                        }
+                    });
+
+                    // get monitor status charts.
+                    const monitorsOnStatusPage = statusPageResources.map((monitor) => {
+                        return monitor.monitorId!;
+                    })
+
+                    const today: Date = OneUptimeDate.getCurrentDate();
+                    const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
+
+
+                    // check if status page has active incident.
+                    let incidents: Array<Incident> = [];
+                    if (monitorsOnStatusPage.length > 0) {
+                        incidents = await IncidentService.findBy({
+                            query: {
+                                monitors: QueryHelper.in(monitorsOnStatusPage),
+                                projectId: statusPage.projectId!,
+                                createdAt: QueryHelper.inBetween(last14Days, today)
+                            },
+                            select: {
+                                createdAt: true,
+                                title: true,
+                                description: true,
+                                _id: true,
+
+                            },
+                            sort: {
+                                createdAt: SortOrder.Descending,
+                            },
+                            populate: {
+                                incidentSeverity: {
+                                    name: true,
+                                    color: true,
+                                },
+                                currentIncidentState: {
+                                    name: true,
+                                    color: true
+                                },
+                                monitors: {
+                                    _id: true,
+                                }
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+                    }
+
+
+                    const incidentsOnStausPage = incidents.map((incident) => {
+                        return incident._id!;
+                    })
+
+                    let incidentPublicNotes: Array<IncidentPublicNote> = [];
+
+                    if (incidentsOnStausPage.length > 0) {
+                        incidentPublicNotes = await IncidentPublicNoteService.findBy({
+                            query: {
+                                incidentId: QueryHelper.in(incidentsOnStausPage),
+                                projectId: statusPage.projectId!
+                            },
+                            select: {
+                                note: true,
+                                incidentId: true,
+                            },
+                            sort: {
+                                createdAt: SortOrder.Descending // new note first
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+                    }
+
+                    let incidentStateTimelines: Array<IncidentStateTimeline> = [];
+
+                    if (incidentsOnStausPage.length > 0) {
+                        incidentStateTimelines = await IncidentStateTimelineService.findBy({
+                            query: {
+                                incidentId: QueryHelper.in(incidentsOnStausPage),
+                                projectId: statusPage.projectId!
+                            },
+                            select: {
+                                _id: true,
+                                createdAt: true,
+                                incidentId: true,
+                            },
+                            sort: {
+                                createdAt: SortOrder.Descending // new note first
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+                    }
+
+                    const response: JSONObject = {
+                        incidentPublicNotes: BaseModel.toJSONArray(incidentPublicNotes, IncidentPublicNote),
+                        incidents: BaseModel.toJSONArray(incidents, Incident),
+                        statusPageResources: BaseModel.toJSONArray(statusPageResources, StatusPageResource),
+                        incidentStateTimelines: BaseModel.toJSONArray(incidentStateTimelines, IncidentStateTimeline),
+                    };
+
+                    return Response.sendJsonObjectResponse(req, res, response);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
+
+
+        this.router.post(
+            `/${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/announcements/:id`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    const objectId: ObjectID = new ObjectID(
+                        req.params['id'] as string
+                    );
+
+                    if (
+                        !(await this.service.hasReadAccess(
+                            objectId,
+                            this.getDatabaseCommonInteractionProps(req)
+                        ))
+                    ) {
+                        throw new NotAuthorizedException(
+                            'You are not authorize to access this status page'
+                        );
+                    }
+
+                    const statusPage = await StatusPageService.findOneBy({
+                        query: {
+                            _id: objectId.toString(),
+                        },
+                        select: {
+                            _id: true,
+                            projectId: true,
+                        },
+                        props: {
+                            isRoot: true
+                        },
+                    });
+
+                    if (!statusPage) {
+                        throw new BadDataException("Status Page not found");
+                    }
+
+
+                    // check if status page has actuve announcement.
+
+                    const today: Date = OneUptimeDate.getCurrentDate();
+                    const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
+
+                    const announcements = await StatusPageAnnouncementService.findBy({
+                        query: {
+                            statusPages: QueryHelper.in([objectId]),
+                            showAnnouncementAt: QueryHelper.inBetween(last14Days, today),
+                            projectId: statusPage.projectId!
+                        },
+                        select: {
+                            createdAt: true,
+                            title: true,
+                            description: true,
+                            _id: true,
+
+                        },
+                        skip: 0,
+                        limit: LIMIT_PER_PROJECT,
+                        props: {
+                            isRoot: true,
+                        }
+                    });
+
+                    const count = await StatusPageAnnouncementService.countBy({
+                        query: {
+                            statusPages: QueryHelper.in([objectId]),
+                            showAnnouncementAt: QueryHelper.inBetween(last14Days, today),
+                            projectId: statusPage.projectId!
+                        },
+                        skip: 0,
+                        limit: LIMIT_PER_PROJECT,
+                        props: {
+                            isRoot: true,
+                        }
+                    });
+
+                    return Response.sendEntityArrayResponse(req, res, announcements, count, StatusPageAnnouncement);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
     }
+
+
+
 }
