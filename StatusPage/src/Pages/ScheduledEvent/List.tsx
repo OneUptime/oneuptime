@@ -64,13 +64,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
             }
-            const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
-                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                    `/status-page/scheduled-maintenance-events/${id.toString()}`
-                ),
-                {},
-                {}
-            );
+            const response: HTTPResponse<JSONObject> =
+                await BaseAPI.post<JSONObject>(
+                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                        `/status-page/scheduled-maintenance-events/${id.toString()}`
+                    ),
+                    {},
+                    {}
+                );
             const data = response.data;
 
             const scheduledMaintenanceEventsPublicNotes =

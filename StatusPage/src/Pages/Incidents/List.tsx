@@ -25,7 +25,6 @@ import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/sr
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import Incident from 'Model/Models/Incident';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import { Red } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
@@ -63,31 +62,35 @@ const Overview: FunctionComponent<PageComponentProps> = (
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
             }
-            const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
-                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                    `/status-page/incidents/${id.toString()}`
-                ),
-                {},
-                {}
-            );
+            const response: HTTPResponse<JSONObject> =
+                await BaseAPI.post<JSONObject>(
+                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                        `/status-page/incidents/${id.toString()}`
+                    ),
+                    {},
+                    {}
+                );
             const data: JSONObject = response.data;
 
-            const incidentPublicNotes: Array<IncidentPublicNote> = BaseModel.fromJSONArray(
-                (data['incidentPublicNotes'] as JSONArray) || [],
-                IncidentPublicNote
-            );
-            const incidents : Array<Incident> = BaseModel.fromJSONArray(
+            const incidentPublicNotes: Array<IncidentPublicNote> =
+                BaseModel.fromJSONArray(
+                    (data['incidentPublicNotes'] as JSONArray) || [],
+                    IncidentPublicNote
+                );
+            const incidents: Array<Incident> = BaseModel.fromJSONArray(
                 (data['incidents'] as JSONArray) || [],
                 Incident
             );
-            const statusPageResources: Array<StatusPageResource>  = BaseModel.fromJSONArray(
-                (data['statusPageResources'] as JSONArray) || [],
-                StatusPageResource
-            );
-            const incidentStateTimelines: Array<IncidentStateTimeline>  = BaseModel.fromJSONArray(
-                (data['incidentStateTimelines'] as JSONArray) || [],
-                IncidentStateTimeline
-            );
+            const statusPageResources: Array<StatusPageResource> =
+                BaseModel.fromJSONArray(
+                    (data['statusPageResources'] as JSONArray) || [],
+                    StatusPageResource
+                );
+            const incidentStateTimelines: Array<IncidentStateTimeline> =
+                BaseModel.fromJSONArray(
+                    (data['incidentStateTimelines'] as JSONArray) || [],
+                    IncidentStateTimeline
+                );
 
             // save data. set()
             setIncidentPublicNotes(incidentPublicNotes);
@@ -124,7 +127,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
         const days: Dictionary<EventHistoryDayListComponentProps> = {};
 
         for (const incident of incidents) {
-            const dayString: string = OneUptimeDate.getDateString(incident.createdAt!);
+            const dayString: string = OneUptimeDate.getDateString(
+                incident.createdAt!
+            );
 
             if (!days[dayString]) {
                 days[dayString] = {

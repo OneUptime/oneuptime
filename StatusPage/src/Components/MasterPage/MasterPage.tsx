@@ -22,7 +22,6 @@ import BaseModel from 'Common/Models/BaseModel';
 import File from 'Model/Models/File';
 import { ImageFunctions } from 'CommonUI/src/Components/Image/Image';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import Link from 'Common/Types/Link';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -61,13 +60,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             const id: ObjectID = await getId();
             setStatusPageId(id);
             LocalStorage.setItem('statusPageId', id);
-            const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
-                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                    `/status-page/master-page/${id.toString()}`
-                ),
-                {},
-                {}
-            );
+            const response: HTTPResponse<JSONObject> =
+                await BaseAPI.post<JSONObject>(
+                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                        `/status-page/master-page/${id.toString()}`
+                    ),
+                    {},
+                    {}
+                );
             setMasterPageData(response.data);
 
             // setfavicon.
@@ -76,7 +76,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 'statusPage.faviconFile'
             ) as File | null;
             if (favIcon && favIcon.file) {
-                const link = document.createElement('link');
+                const link: any = document.createElement('link');
                 link.rel = 'icon';
                 (document as any)
                     .getElementsByTagName('head')[0]
@@ -91,7 +91,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             ) as string | null;
 
             if (css) {
-                const style = document.createElement('style');
+                const style: any = document.createElement('style');
                 style.innerText = css;
                 (document as any)
                     .getElementsByTagName('head')[0]

@@ -1,8 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 
-const NoEventDay: FunctionComponent = (
-    
-): ReactElement => {
+const NoEventDay: FunctionComponent = (): ReactElement => {
     return (
         <div
             className="flex bottom-grey-border"

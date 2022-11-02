@@ -391,13 +391,14 @@ export default class StatusPageAPI extends BaseAPI<
                             }
                         );
 
-                    const monitorsOnStatusPageForTimeline: Array<ObjectID> = statusPageResources
-                        .filter((monitor: StatusPageResource) => {
-                            return monitor.showStatusHistoryChart;
-                        })
-                        .map((monitor: StatusPageResource) => {
-                            return monitor.monitorId!;
-                        });
+                    const monitorsOnStatusPageForTimeline: Array<ObjectID> =
+                        statusPageResources
+                            .filter((monitor: StatusPageResource) => {
+                                return monitor.showStatusHistoryChart;
+                            })
+                            .map((monitor: StatusPageResource) => {
+                                return monitor.monitorId!;
+                            });
 
                     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
                     const endDate: Date = OneUptimeDate.getCurrentDate();
@@ -601,9 +602,11 @@ export default class StatusPageAPI extends BaseAPI<
                         });
 
                     const activeScheduledMaintenanceEventsOnStausPage: Array<ObjectID> =
-                        activeScheduledMaintenanceEvents.map((event: ScheduledMaintenance) => {
-                            return event.id!;
-                        });
+                        activeScheduledMaintenanceEvents.map(
+                            (event: ScheduledMaintenance) => {
+                                return event.id!;
+                            }
+                        );
 
                     let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
                         [];
@@ -1044,9 +1047,11 @@ export default class StatusPageAPI extends BaseAPI<
                         });
 
                     const scheduledMaintenanceEventsOnStausPage: Array<ObjectID> =
-                        scheduledMaintenanceEvents.map((event: ScheduledMaintenance) => {
-                            return event.id!;
-                        });
+                        scheduledMaintenanceEvents.map(
+                            (event: ScheduledMaintenance) => {
+                                return event.id!;
+                            }
+                        );
 
                     let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
                         [];

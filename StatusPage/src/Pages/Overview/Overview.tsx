@@ -38,6 +38,7 @@ import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -94,59 +95,60 @@ const Overview: FunctionComponent<PageComponentProps> = (
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
             }
-            const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
-                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                    `/status-page/overview/${id.toString()}`
-                ),
-                {},
-                {}
-            );
+            const response: HTTPResponse<JSONObject> =
+                await BaseAPI.post<JSONObject>(
+                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                        `/status-page/overview/${id.toString()}`
+                    ),
+                    {},
+                    {}
+                );
             const data = response.data;
 
-            const scheduledMaintenanceEventsPublicNotes =
+            const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
                 BaseModel.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
-            const activeScheduledMaintenanceEvents = BaseModel.fromJSONArray(
+            const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> = BaseModel.fromJSONArray(
                 (data['activeScheduledMaintenanceEvents'] as JSONArray) || [],
                 ScheduledMaintenance
             );
-            const activeAnnouncements = BaseModel.fromJSONArray(
+            const activeAnnouncements: Array<StatusPageAnnouncement> = BaseModel.fromJSONArray(
                 (data['activeAnnouncements'] as JSONArray) || [],
                 StatusPageAnnouncement
             );
-            const incidentPublicNotes = BaseModel.fromJSONArray(
+            const incidentPublicNotes : Array<IncidentPublicNote>= BaseModel.fromJSONArray(
                 (data['incidentPublicNotes'] as JSONArray) || [],
                 IncidentPublicNote
             );
-            const activeIncidents = BaseModel.fromJSONArray(
+            const activeIncidents: Array<Incident> = BaseModel.fromJSONArray(
                 (data['activeIncidents'] as JSONArray) || [],
                 Incident
             );
-            const monitorStatusTimelines = BaseModel.fromJSONArray(
+            const monitorStatusTimelines: Array<MonitorStatusTimeline> = BaseModel.fromJSONArray(
                 (data['monitorStatusTimelines'] as JSONArray) || [],
                 MonitorStatusTimeline
             );
-            const resourceGroups = BaseModel.fromJSONArray(
+            const resourceGroups: Array<StatusPageGroup> = BaseModel.fromJSONArray(
                 (data['resourceGroups'] as JSONArray) || [],
                 StatusPageGroup
             );
-            const monitorStatuses = BaseModel.fromJSONArray(
+            const monitorStatuses: Array<MonitorStatus> = BaseModel.fromJSONArray(
                 (data['monitorStatuses'] as JSONArray) || [],
                 MonitorStatus
             );
-            const statusPageResources = BaseModel.fromJSONArray(
+            const statusPageResources: Array<StatusPageResource> = BaseModel.fromJSONArray(
                 (data['statusPageResources'] as JSONArray) || [],
                 StatusPageResource
             );
-            const incidentStateTimelines = BaseModel.fromJSONArray(
+            const incidentStateTimelines: Array<IncidentStateTimeline> = BaseModel.fromJSONArray(
                 (data['incidentStateTimelines'] as JSONArray) || [],
                 IncidentStateTimeline
             );
-            const scheduledMaintenanceStateTimelines = BaseModel.fromJSONArray(
+            const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> = BaseModel.fromJSONArray(
                 (data['scheduledMaintenanceStateTimelines'] as JSONArray) || [],
                 ScheduledMaintenanceStateTimeline
             );
@@ -234,7 +236,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-    const getMonitorOverviewListInGroup = (
+    const getMonitorOverviewListInGroup: Function = (
         group: StatusPageGroup | null
     ): Array<ReactElement> => {
         const elements: Array<ReactElement> = [];
@@ -275,7 +277,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         monitorStatus={currentStatus}
                         monitorStatusTimeline={[
                             ...monitorStatusTimelines,
-                        ].filter((timeline) => {
+                        ].filter((timeline: MonitorStatusTimeline) => {
                             return (
                                 timeline.monitorId?.toString() ===
                                 resource.monitorId?.toString()
@@ -301,7 +303,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return elements;
     };
 
-    const getActiveIncidents = (): Array<IncidentGroup> => {
+    const getActiveIncidents: Function  = (): Array<IncidentGroup> => {
         const groups: Array<IncidentGroup> = [];
 
         for (const activeIncident of activeIncidents) {
@@ -323,7 +325,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const group: IncidentGroup = {
                 incident: activeIncident,
                 incidentState: activeIncident.currentIncidentState,
-                publicNote: incidentPublicNotes.find((publicNote) => {
+                publicNote: incidentPublicNotes.find((publicNote: IncidentPublicNote) => {
                     return (
                         publicNote.incidentId?.toString() === activeIncident._id
                     );
@@ -338,7 +340,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return groups;
     };
 
-    const getOngoingScheduledEvents = (): Array<ScheduledMaintenanceGroup> => {
+    const getOngoingScheduledEvents: Function  = (): Array<ScheduledMaintenanceGroup> => {
         const groups: Array<ScheduledMaintenanceGroup> = [];
 
         for (const activeEvent of activeScheduledMaintenanceEvents) {
@@ -365,7 +367,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 scheduledMaintenanceState:
                     activeEvent.currentScheduledMaintenanceState,
                 publicNote: scheduledMaintenanceEventsPublicNotes.find(
-                    (publicNote) => {
+                    (publicNote: ScheduledMaintenancePublicNote) => {
                         return (
                             publicNote.scheduledMaintenanceId?.toString() ===
                             activeEvent._id
@@ -381,7 +383,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return groups;
     };
 
-    const getRightAccordianElement = (group: StatusPageGroup): ReactElement => {
+    const getRightAccordianElement: Function  = (group: StatusPageGroup): ReactElement => {
         let currentStatus: MonitorStatus = new MonitorStatus();
         currentStatus.name = 'Operational';
         currentStatus.color = Green;
@@ -398,7 +400,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 (!resource.statusPageGroupId && !group)
             ) {
                 hasReosurce = true;
-                const currentMonitorStatus = monitorStatuses.find((status) => {
+                const currentMonitorStatus = monitorStatuses.find((status: MonitorStatus) => {
                     return (
                         status._id?.toString() ===
                         resource.monitor?.currentMonitorStatusId?.toString()
@@ -435,7 +437,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return <></>;
     };
 
-    const getScheduledEventGroupEventTimeline = (
+    const getScheduledEventGroupEventTimeline: Function  = (
         scheduledEventGroup: ScheduledMaintenanceGroup
     ): Array<TimelineItem> => {
         const timeline = [];
@@ -461,7 +463,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return timeline;
     };
 
-    const getIncidentGroupEventTimeline = (
+    const getIncidentGroupEventTimeline: Function  = (
         incidentGroup: IncidentGroup
     ): Array<TimelineItem> => {
         const timeline = [];

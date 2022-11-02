@@ -55,23 +55,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
             }
-            const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
-                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                    `/status-page/announcements/${id.toString()}`
-                ),
-                {},
-                {}
-            );
+            const response: HTTPResponse<JSONObject> =
+                await BaseAPI.post<JSONObject>(
+                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                        `/status-page/announcements/${id.toString()}`
+                    ),
+                    {},
+                    {}
+                );
             const data: JSONObject = response.data;
 
-            const announcements = BaseModel.fromJSONArray(
+            const announcements: Array<StatusPageAnnouncement> = BaseModel.fromJSONArray(
                 (data['announcements'] as JSONArray) || [],
                 StatusPageAnnouncement
             );
-            const statusPageResources: Array<StatusPageResource> = BaseModel.fromJSONArray(
-                (data['statusPageResources'] as JSONArray) || [],
-                StatusPageResource
-            );
+            const statusPageResources: Array<StatusPageResource> =
+                BaseModel.fromJSONArray(
+                    (data['statusPageResources'] as JSONArray) || [],
+                    StatusPageResource
+                );
 
             // save data. set()
 

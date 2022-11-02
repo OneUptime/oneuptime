@@ -29,21 +29,22 @@ const Tabs: FunctionComponent<ComponentProps> = (
         <ul className="nav nav-tabs">
             {props.tabs &&
                 props.tabs.length > 0 &&
-                props.tabs.map((tab: string) => {
+                props.tabs.map((tab: string, i: number) => {
                     return (
                         <li
+                            key={i}
                             className="nav-item"
                             onClick={() => {
                                 setCurrentTab(tab);
                             }}
                         >
-                            <a
+                            <div
                                 className={`${
                                     currentTab === tab ? 'active' : ''
                                 } nav-link pointer`}
                             >
                                 {tab}
-                            </a>
+                            </div>
                         </li>
                     );
                 })}

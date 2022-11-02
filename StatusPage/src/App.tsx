@@ -43,10 +43,11 @@ const App: FunctionComponent = () => {
     return (
         <MasterPage
             onLoadComplete={(masterpage: JSONObject) => {
-                const javascript: string | null = JSONFunctions.getJSONValueInPath(
-                    masterpage || {},
-                    'statusPage.customJavaScript'
-                ) as string | null;
+                const javascript: string | null =
+                    JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage.customJavaScript'
+                    ) as string | null;
                 if (javascript) {
                     setJavaScript(javascript);
                 }
