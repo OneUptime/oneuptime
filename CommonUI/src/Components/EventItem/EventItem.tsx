@@ -51,7 +51,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 {props.footerEventStatus && props.footerDateTime ? <span>{props.footerEventStatus} at {OneUptimeDate.getDateAsLocalFormattedString(
                     props.footerDateTime,
                     false
-                )}.</span> : <></>}
+                )}. </span> : <></>}
                 
                 {props.eventViewRoute ? <span><Link className='underline pointer' to={props.eventViewRoute} style={{
                     color: Blue.toString()

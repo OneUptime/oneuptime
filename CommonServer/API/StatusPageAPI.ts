@@ -1103,7 +1103,8 @@ export default class StatusPageAPI extends BaseAPI<
                             title: true,
                             description: true,
                             _id: true,
-
+                            showAnnouncementAt: true, 
+                            endAnnouncementAt: true
                         },
                         skip: 0,
                         limit: LIMIT_PER_PROJECT,
@@ -1112,11 +1113,25 @@ export default class StatusPageAPI extends BaseAPI<
                         }
                     });
 
-                    const count = await StatusPageAnnouncementService.countBy({
+
+
+                     // get monitors on status page.
+                     const statusPageResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
                         query: {
-                            statusPages: QueryHelper.in([objectId]),
-                            showAnnouncementAt: QueryHelper.inBetween(last14Days, today),
-                            projectId: statusPage.projectId!
+                            statusPageId: objectId,
+                        },
+                        select: {
+                            statusPageGroupId: true,
+                            monitorId: true,
+                            displayTooltip: true,
+                            displayDescription: true,
+                            displayName: true,
+                        },
+                        populate: {
+                            monitor: {
+                                _id: true,
+                                currentMonitorStatusId: true
+                            }
                         },
                         skip: 0,
                         limit: LIMIT_PER_PROJECT,
@@ -1125,7 +1140,12 @@ export default class StatusPageAPI extends BaseAPI<
                         }
                     });
 
-                    return Response.sendEntityArrayResponse(req, res, announcements, count, StatusPageAnnouncement);
+                    const response: JSONObject = {
+                        announcements: BaseModel.toJSONArray(announcements, StatusPageAnnouncement),
+                        statusPageResources: BaseModel.toJSONArray(statusPageResources, StatusPageResource),
+                    };
+
+                    return Response.sendJsonObjectResponse(req, res, response);
                 } catch (err) {
                     next(err);
                 }
