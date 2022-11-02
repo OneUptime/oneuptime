@@ -858,6 +858,186 @@ export default class StatusPageAPI extends BaseAPI<
         this.router.post(
             `/${new this.entityType()
                 .getCrudApiPath()
+                ?.toString()}/scheduled-maintenance-events/:statusPageId`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    const objectId: ObjectID = new ObjectID(
+                        req.params['statusPageId'] as string
+                    );
+
+                    if (
+                        !(await this.service.hasReadAccess(
+                            objectId,
+                            this.getDatabaseCommonInteractionProps(req)
+                        ))
+                    ) {
+                        throw new NotAuthorizedException(
+                            'You are not authorize to access this status page'
+                        );
+                    }
+
+                    const statusPage = await StatusPageService.findOneBy({
+                        query: {
+                            _id: objectId.toString(),
+                        },
+                        select: {
+                            _id: true,
+                            projectId: true,
+                        },
+                        props: {
+                            isRoot: true
+                        },
+                    });
+
+                    if (!statusPage) {
+                        throw new BadDataException("Status Page not found");
+                    }
+
+
+
+                    // get monitors on status page.
+                    const statusPageResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
+                        query: {
+                            statusPageId: objectId,
+                        },
+                        select: {
+                            statusPageGroupId: true,
+                            monitorId: true,
+                            displayTooltip: true,
+                            displayDescription: true,
+                            displayName: true,
+                        },
+                        populate: {
+                            monitor: {
+                                _id: true,
+                                currentMonitorStatusId: true
+                            }
+                        },
+                        skip: 0,
+                        limit: LIMIT_PER_PROJECT,
+                        props: {
+                            isRoot: true,
+                        }
+                    });
+
+                  
+                    // check if status page has active scheduled events.
+                    const today: Date = OneUptimeDate.getCurrentDate();
+                    const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
+
+
+                    const scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
+                        query: {
+                            startsAt: QueryHelper.inBetween(last14Days, today),
+                            statusPages: QueryHelper.in([objectId]),
+                            projectId: statusPage.projectId!
+
+                        },
+                        select: {
+                            createdAt: true,
+                            title: true,
+                            description: true,
+                            _id: true,
+                            endsAt: true,
+                            startsAt: true
+
+                        },
+                        sort: {
+                            createdAt: SortOrder.Descending,
+                        },
+                        populate: {
+                            currentScheduledMaintenanceState: {
+                                name: true,
+                                color: true
+                            },
+                            monitors: {
+                                _id: true,
+                            }
+                        },
+                        skip: 0,
+                        limit: LIMIT_PER_PROJECT,
+                        props: {
+                            isRoot: true,
+                        }
+                    });
+
+                    const scheduledMaintenanceEventsOnStausPage = scheduledMaintenanceEvents.map((event) => {
+                        return event._id!;
+                    })
+
+                    let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> = [];
+
+                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
+
+                        scheduledMaintenanceEventsPublicNotes = await ScheduledMaintenancePublicNoteService.findBy({
+                            query: {
+                                scheduledMaintenanceId: QueryHelper.in(scheduledMaintenanceEventsOnStausPage),
+                                projectId: statusPage.projectId!
+                            },
+                            select: {
+                                note: true,
+                                scheduledMaintenanceId: true,
+                            },
+                            sort: {
+                                createdAt: SortOrder.Ascending
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+                    }
+
+
+                    let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> = [];
+
+                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
+                        scheduledMaintenanceStateTimelines = await ScheduledMaintenanceStateTimelineService.findBy({
+                            query: {
+                                scheduledMaintenanceId: QueryHelper.in(scheduledMaintenanceEventsOnStausPage),
+                                projectId: statusPage.projectId!
+                            },
+                            select: {
+                                _id: true,
+                                createdAt: true,
+                                scheduledMaintenanceId: true,
+                            },
+                            sort: {
+                                createdAt: SortOrder.Descending // new note first
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            }
+                        });
+                    }
+
+                    const response: JSONObject = {
+                        scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(scheduledMaintenanceEventsPublicNotes, ScheduledMaintenancePublicNote),
+                        scheduledMaintenanceEvents: BaseModel.toJSONArray(scheduledMaintenanceEvents, ScheduledMaintenance),
+                        statusPageResources: BaseModel.toJSONArray(statusPageResources, StatusPageResource),
+                        scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(scheduledMaintenanceStateTimelines, ScheduledMaintenanceStateTimeline),
+                    };
+
+                    return Response.sendJsonObjectResponse(req, res, response);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
+
+
+        this.router.post(
+            `/${new this.entityType()
+                .getCrudApiPath()
                 ?.toString()}/announcements/:statusPageId`,
             UserMiddleware.getUserMiddleware,
             async (

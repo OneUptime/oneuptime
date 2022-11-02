@@ -6,6 +6,9 @@ import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { JSONObject } from 'Common/Types/JSON';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
+import ObjectID from 'Common/Types/ObjectID';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 
 const PageNotFound: FunctionComponent<PageComponentProps> = (
@@ -18,7 +21,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
     return (
         <Page>
             <p>Subscribe.</p>
-            
+
             <Tabs tabs={[
                 "Email",
                 "SMS",
@@ -31,6 +34,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
             {currentTab === 'Email' ? <ModelForm<StatusPageSubscriber>
                 modelType={StatusPageSubscriber}
                 id="email-form"
+                on
                 fields={[
                     {
                         field: {
@@ -46,6 +50,15 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                 ]}
                 formType={FormType.Create}
                 submitButtonText={'Subscribe'}
+                onBeforeCreate={async (item: StatusPageSubscriber) => {
+                    const id = LocalStorage.getItem('statusPageId') as ObjectID;
+                    if (!id) {
+                        throw new BadDataException("Status Page ID is required");
+                    }
+
+                    item.statusPageId = id; 
+                    return item;
+                }}
                 onSuccess={(_value: JSONObject) => {
                     //LoginUtil.login(value);
                 }}
@@ -55,6 +68,15 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
             {currentTab === 'SMS' ? <ModelForm<StatusPageSubscriber>
                 modelType={StatusPageSubscriber}
                 id="sms-form"
+                onBeforeCreate={async (item: StatusPageSubscriber) => {
+                    const id = LocalStorage.getItem('statusPageId') as ObjectID;
+                    if (!id) {
+                        throw new BadDataException("Status Page ID is required");
+                    }
+
+                    item.statusPageId = id; 
+                    return item;
+                }}
                 fields={[
                     {
                         field: {
@@ -80,6 +102,15 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
             {currentTab === 'Webhook' ? <ModelForm<StatusPageSubscriber>
                 modelType={StatusPageSubscriber}
                 id="webhook-form"
+                onBeforeCreate={async (item: StatusPageSubscriber) => {
+                    const id = LocalStorage.getItem('statusPageId') as ObjectID;
+                    if (!id) {
+                        throw new BadDataException("Status Page ID is required");
+                    }
+
+                    item.statusPageId = id; 
+                    return item;
+                }}
                 fields={[
                     {
                         field: {

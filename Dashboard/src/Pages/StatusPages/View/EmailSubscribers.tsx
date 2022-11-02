@@ -119,6 +119,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Email',
                         type: FieldType.Email,
                     },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Subscribed At',
+                        type: FieldType.DateTime,
+                    },
                 ]}
             />
         </Page>
