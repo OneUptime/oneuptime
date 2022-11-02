@@ -10,7 +10,7 @@ const ActiveEvent: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (<div className="event-history-box">
         {props.items.map((item, i) => {
-            return <EventHistoryDayList isLastItem={props.items.length -1 === i} {...item} />
+            return <EventHistoryDayList key={i} isLastItem={props.items.length -1 === i} {...item} />
         })}
     </div>)
 };

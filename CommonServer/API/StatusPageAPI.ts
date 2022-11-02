@@ -365,7 +365,7 @@ export default class StatusPageAPI extends BaseAPI<
                             displayTooltip: true,
                             displayDescription: true,
                             displayName: true,
-                            showStatusHistoryChart: true, 
+                            showStatusHistoryChart: true,
                             showCurrentStatus: true
                         },
                         populate: {
@@ -390,8 +390,8 @@ export default class StatusPageAPI extends BaseAPI<
                         .filter((monitor) => {
                             return monitor.showStatusHistoryChart
                         }).map((monitor) => {
-                        return monitor.monitorId!;
-                    })
+                            return monitor.monitorId!;
+                        })
 
                     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
                     const endDate: Date = OneUptimeDate.getCurrentDate();
@@ -554,8 +554,10 @@ export default class StatusPageAPI extends BaseAPI<
 
                     const activeScheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
                         query: {
-                            startsAt: QueryHelper.lessThan(today),
-                            endsAt: QueryHelper.greaterThan(today),
+                            
+                            currentScheduledMaintenanceState: {
+                                isOngoingState: true, 
+                            } as any,
                             statusPages: QueryHelper.in([objectId]),
                             projectId: statusPage.projectId!
 
@@ -827,7 +829,7 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                             populate: {
                                 incidentState: {
-                                    name: true, 
+                                    name: true,
                                     color: true
                                 }
                             },
@@ -925,7 +927,7 @@ export default class StatusPageAPI extends BaseAPI<
                         }
                     });
 
-                  
+
                     // check if status page has active scheduled events.
                     const today: Date = OneUptimeDate.getCurrentDate();
                     const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
@@ -1007,6 +1009,12 @@ export default class StatusPageAPI extends BaseAPI<
                                 _id: true,
                                 createdAt: true,
                                 scheduledMaintenanceId: true,
+                            },
+                            populate: {
+                                scheduledMaintenanceState: {
+                                    name: true,
+                                    color: true
+                                }
                             },
                             sort: {
                                 createdAt: SortOrder.Descending // new note first

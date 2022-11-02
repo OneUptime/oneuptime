@@ -16,8 +16,8 @@ import BaseModel from 'Common/Models/BaseModel';
 import EventHistoryList, { ComponentProps as EventHistoryListComponentProps } from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
 import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/src/Components/EventHistoryList/EventHistoryDayList';
 import StatusPageResource from 'Model/Models/StatusPageResource';
-import ScheduledMaintenance from 'Model/Models/scheduledMaintenance';
-import ScheduledMaintenancePublicNote from 'Model/Models/scheduledMaintenancePublicNote';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import { Red } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
@@ -46,7 +46,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             if (!id) {
                 throw new BadDataException("Status Page ID is required");
             }
-            const response = await BaseAPI.post<JSONObject>(URL.fromString(DASHBOARD_API_URL.toString()).addRoute(`/status-page/schedule-maintenance-events/${id.toString()}`), {}, {});
+            const response = await BaseAPI.post<JSONObject>(URL.fromString(DASHBOARD_API_URL.toString()).addRoute(`/status-page/scheduled-maintenance-events/${id.toString()}`), {}, {});
             const data = response.data;
 
 
@@ -123,10 +123,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 if (scheduledMaintenanceEventstateTimeline.scheduledMaintenanceId?.toString() === scheduledMaintenance.id?.toString()) {
 
                     timeline.push({
-                        text: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceEventstate?.name || '',
+                        text: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState?.name || '',
                         date: scheduledMaintenanceEventstateTimeline?.createdAt!,
                         isBold: true,
-                        color: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceEventstate?.color || Red
+                        color: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState?.color || Red
                     })
                 }
             }
