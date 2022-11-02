@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
 
 export interface ComponentProps {
@@ -16,22 +21,21 @@ export interface ComponentProps {
 const Accordian: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [isOpen, setIsOpen] = useState<boolean>(false);
 
     useEffect(() => {
         if (props.isInitiallyExpanded) {
             setIsOpen(true);
         }
-    }, [props.isInitiallyExpanded ])
+    }, [props.isInitiallyExpanded]);
 
     useEffect(() => {
         if (!props.title) {
-            setIsOpen(true)
-        } else if(!props.isInitiallyExpanded){
-            setIsOpen(false)
+            setIsOpen(true);
+        } else if (!props.isInitiallyExpanded) {
+            setIsOpen(false);
         }
-    },[props.title])
+    }, [props.title]);
 
     useEffect(() => {
         props.onClick && props.onClick();
@@ -46,9 +50,16 @@ const Accordian: FunctionComponent<ComponentProps> = (
     }, [isOpen]);
 
     return (
-        <div className="row accordian-row" style={props.isLastElement ? {
-            borderBottomWidth: "0px"
-        } : {}}>
+        <div
+            className="row accordian-row"
+            style={
+                props.isLastElement
+                    ? {
+                          borderBottomWidth: '0px',
+                      }
+                    : {}
+            }
+        >
             <div className="col-xl-12 accordian-body">
                 <div
                     className={`pointer accordian-header`}
@@ -57,46 +68,51 @@ const Accordian: FunctionComponent<ComponentProps> = (
                         setIsOpen(!isOpen);
                     }}
                 >
-                    <div className='accordian-left-elements'>
-                        {props.title && <span style={{ height: '10px' }}>
-                            {isOpen && (
-                                <Icon
-                                    thick={ThickProp.LessThick}
-                                    icon={IconProp.ChevronDown}
-                                    size={SizeProp.Large}
-                                />
-                            )}
-                            {!isOpen && (
-                                <Icon
-                                    thick={ThickProp.LessThick}
-                                    icon={IconProp.ChevronRight}
-                                    size={SizeProp.Large}
-                                />
-                            )}
-
-                        </span>}
-                        {props.title && <div
-                            className={`flex ${props.onClick ? 'pointer' : ''}`}
-                            style={{
-                                marginLeft: '5px',
-                                marginTop: '1px',
-                            }}
-                        >
-                            <div>
-                                <strong>{props.title}</strong>{' '}
+                    <div className="accordian-left-elements">
+                        {props.title && (
+                            <span style={{ height: '10px' }}>
+                                {isOpen && (
+                                    <Icon
+                                        thick={ThickProp.LessThick}
+                                        icon={IconProp.ChevronDown}
+                                        size={SizeProp.Large}
+                                    />
+                                )}
+                                {!isOpen && (
+                                    <Icon
+                                        thick={ThickProp.LessThick}
+                                        icon={IconProp.ChevronRight}
+                                        size={SizeProp.Large}
+                                    />
+                                )}
+                            </span>
+                        )}
+                        {props.title && (
+                            <div
+                                className={`flex ${
+                                    props.onClick ? 'pointer' : ''
+                                }`}
+                                style={{
+                                    marginLeft: '5px',
+                                    marginTop: '1px',
+                                }}
+                            >
+                                <div>
+                                    <strong>{props.title}</strong>{' '}
+                                </div>
+                                <div>{props.description}</div>
                             </div>
-                            <div>
-                                {props.description}
-                            </div>
-                        </div>}
+                        )}
                     </div>
-                    {!isOpen && <div className='accordian-right-element'>
-                        {props.rightElement}
-                    </div>}
+                    {!isOpen && (
+                        <div className="accordian-right-element">
+                            {props.rightElement}
+                        </div>
+                    )}
                 </div>
-                {isOpen && <div className='accordian-children'>
-                    {props.children}
-                </div>}
+                {isOpen && (
+                    <div className="accordian-children">{props.children}</div>
+                )}
             </div>
         </div>
     );

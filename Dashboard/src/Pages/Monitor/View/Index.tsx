@@ -35,7 +35,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam()?.toString().substring(1) || ''
     );
-    
+
     const [data, setData] = useState<Array<MonitorStatusTimeline>>([]);
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -51,7 +51,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
         setError('');
 
         try {
-           
             const monitorStatus: ListResult<MonitorStatusTimeline> =
                 await ModelAPI.getList(
                     MonitorStatusTimeline,

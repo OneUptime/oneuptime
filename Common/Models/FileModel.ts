@@ -22,9 +22,7 @@ export default class FileModel extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
-        read: [
-            Permission.CurrentUser,
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -40,9 +38,7 @@ export default class FileModel extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
-        read: [
-            Permission.CurrentUser,
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -59,9 +55,7 @@ export default class FileModel extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
-        read: [
-            Permission.CurrentUser,
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -78,9 +72,7 @@ export default class FileModel extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
-        read: [
-            Permission.CurrentUser,
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({
@@ -98,9 +90,7 @@ export default class FileModel extends BaseModel {
 
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
-        read: [
-            Permission.CurrentUser,
-        ],
+        read: [Permission.CurrentUser],
         update: [],
     })
     @TableColumn({

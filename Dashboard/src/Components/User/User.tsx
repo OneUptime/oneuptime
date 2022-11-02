@@ -6,7 +6,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     user?: User | JSONObject | undefined | null;
-    prefix?: string | undefined
+    prefix?: string | undefined;
 }
 
 const UserElement: FunctionComponent<ComponentProps> = (
@@ -26,11 +26,13 @@ const UserElement: FunctionComponent<ComponentProps> = (
                 <div>
                     <Icon icon={IconProp.Automation} thick={ThickProp.Thick} />
                 </div>
-                <div style={{
-                    marginLeft: "5px",
-                    marginBottom: "5px",
-                    marginTop: "1px"
-                }}>
+                <div
+                    style={{
+                        marginLeft: '5px',
+                        marginBottom: '5px',
+                        marginTop: '1px',
+                    }}
+                >
                     <div className="bold">
                         {props.prefix} OneUptime Automation
                     </div>
@@ -39,22 +41,33 @@ const UserElement: FunctionComponent<ComponentProps> = (
         );
     }
 
-
     return (
         <div className="flex">
             <div>
                 <Icon icon={IconProp.User} thick={ThickProp.Thick} />
             </div>
-            <div style={{
-                marginLeft: "5px",
-                marginBottom: "5px",
-                marginTop: "1px"
-            }}>
-                <div >
-                    <span className="bold">{props.prefix}</span> <span className="bold">{`${(user['name']?.toString() as string)  ||
-                        (user['email']?.toString() as string) || ''}`}</span> {user['name'] ? <span>({(user['email']?.toString() as string) || ''})</span> : <></>}
+            <div
+                style={{
+                    marginLeft: '5px',
+                    marginBottom: '5px',
+                    marginTop: '1px',
+                }}
+            >
+                <div>
+                    <span className="bold">{props.prefix}</span>{' '}
+                    <span className="bold">{`${
+                        (user['name']?.toString() as string) ||
+                        (user['email']?.toString() as string) ||
+                        ''
+                    }`}</span>{' '}
+                    {user['name'] ? (
+                        <span>
+                            ({(user['email']?.toString() as string) || ''})
+                        </span>
+                    ) : (
+                        <></>
+                    )}
                 </div>
-                
             </div>
         </div>
     );

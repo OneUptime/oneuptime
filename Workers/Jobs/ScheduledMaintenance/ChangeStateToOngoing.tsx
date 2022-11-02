@@ -1,4 +1,3 @@
-
 import { EVERY_MINUTE } from '../../Utils/CronTime';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
@@ -9,9 +8,7 @@ import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from 'CommonServer/Services/ScheduledMaintenanceStateService';
 import RunCron from '../../Utils/Cron';
 
-RunCron("ScheduledMaintenance:ChangeStateToOngoing", EVERY_MINUTE, async () => {
-
-
+RunCron('ScheduledMaintenance:ChangeStateToOngoing', EVERY_MINUTE, async () => {
     // get all scheduled events of all the projects.
     const events: Array<ScheduledMaintenance> =
         await ScheduledMaintenanceService.findBy({
@@ -19,9 +16,7 @@ RunCron("ScheduledMaintenance:ChangeStateToOngoing", EVERY_MINUTE, async () => {
                 currentScheduledMaintenanceState: {
                     isScheduledState: true,
                 } as any,
-                startsAt: QueryHelper.lessThan(
-                    OneUptimeDate.getCurrentDate()
-                ),
+                startsAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
             },
             props: {
                 isRoot: true,
@@ -71,10 +66,8 @@ RunCron("ScheduledMaintenance:ChangeStateToOngoing", EVERY_MINUTE, async () => {
         );
 
         // change attached monitor states.
-        await ScheduledMaintenanceService.changeAttachedMonitorStates(
-            event,
-            { isRoot: true }
-        );
+        await ScheduledMaintenanceService.changeAttachedMonitorStates(event, {
+            isRoot: true,
+        });
     }
-
 });

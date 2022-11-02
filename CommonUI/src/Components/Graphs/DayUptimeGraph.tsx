@@ -16,7 +16,6 @@ export interface Event {
     label: string;
     priority: number;
     color: Color;
-    
 }
 
 export interface ComponentProps {
@@ -162,7 +161,12 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             <Tooltip key={dayNumber} text={toolTipText || '100% Operational'}>
                 <div
                     className="uptime-bar"
-                    style={{ backgroundColor: color.toString(), height: `${props.height ? props.height+"px" : "55px"}` }}
+                    style={{
+                        backgroundColor: color.toString(),
+                        height: `${
+                            props.height ? props.height + 'px' : '55px'
+                        }`,
+                    }}
                 ></div>
             </Tooltip>
         );

@@ -55,7 +55,7 @@ export default class QueryHelper {
         });
         const rid: string = Text.generateRandomText(10);
 
-        console.log("IN QUERY")
+        console.log('IN QUERY');
         console.log(values);
 
         return Raw(

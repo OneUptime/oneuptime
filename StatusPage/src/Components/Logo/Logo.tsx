@@ -4,7 +4,7 @@ import File from 'Model/Models/File';
 
 export interface ComponentProps {
     onClick: () => void;
-    file: File
+    file: File;
 }
 
 const Logo: FunctionComponent<ComponentProps> = (

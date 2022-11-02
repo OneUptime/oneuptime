@@ -5,11 +5,7 @@ import Page from '../../Components/Page/Page';
 const Overview: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    return (
-        <Page >
-            {/* <EventItem /> */}
-        </Page>
-    );
+    return <Page>{/* <EventItem /> */}</Page>;
 };
 
 export default Overview;

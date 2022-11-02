@@ -16,9 +16,9 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
         <Footer
             copyright={props.copyright}
             style={{
-                maxWidth: "880px",
-                paddingLeft: "0px",
-                paddingRight: "0px",
+                maxWidth: '880px',
+                paddingLeft: '0px',
+                paddingRight: '0px',
             }}
             links={[
                 ...props.links,
@@ -26,7 +26,7 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
                     title: 'Powered by OneUptime',
                     to: URL.fromString('https://oneuptime.com'),
                     openInNewTab: true,
-                    showOnRightIfNoCopyright: true
+                    showOnRightIfNoCopyright: true,
                 },
             ]}
         />

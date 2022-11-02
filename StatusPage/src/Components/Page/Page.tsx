@@ -14,11 +14,10 @@ const Page: FunctionComponent<ComponentProps> = (
                 marginLeft: '0px',
                 paddingLeft: '5px',
                 marginTop: '0px',
-                width: "100%"
+                width: '100%',
             }}
         >
-
-                {props.children && props.children}
+            {props.children && props.children}
         </div>
     );
 };

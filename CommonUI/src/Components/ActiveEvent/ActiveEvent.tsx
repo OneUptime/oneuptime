@@ -11,32 +11,38 @@ export interface ComponentProps {
     eventDescription?: string | undefined;
     eventMiniDescription?: string | undefined;
     eventTimeline: Array<TimelineItem>;
-    eventType: string; 
+    eventType: string;
     eventViewRoute?: Route | undefined;
-    footerEventStatus?: string | undefined; 
-    footerDateTime?: Date | undefined; 
+    footerEventStatus?: string | undefined;
+    footerDateTime?: Date | undefined;
 }
 
 const ActiveEvent: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return (<div className="active-event-box" style={{
-        borderColor: props.cardColor.toString()
-    }}>
-        <div className="active-event-box-header" style={{
-            backgroundColor: props.cardColor.toString()
-        }}>
-            <div className="active-event-box-header-title flex justify-space-between">
-                <div>
-                    {props.cardTitle}
-                </div>
-                <div className="active-event-box-right-title">
-                    {props.cardTitleRight}
+    return (
+        <div
+            className="active-event-box"
+            style={{
+                borderColor: props.cardColor.toString(),
+            }}
+        >
+            <div
+                className="active-event-box-header"
+                style={{
+                    backgroundColor: props.cardColor.toString(),
+                }}
+            >
+                <div className="active-event-box-header-title flex justify-space-between">
+                    <div>{props.cardTitle}</div>
+                    <div className="active-event-box-right-title">
+                        {props.cardTitleRight}
+                    </div>
                 </div>
             </div>
+            <EventItem {...props} />
         </div>
-        <EventItem {...props} />
-    </div>)
+    );
 };
 
 export default ActiveEvent;

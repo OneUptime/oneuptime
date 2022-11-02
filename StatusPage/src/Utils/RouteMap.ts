@@ -49,9 +49,6 @@ const RouteMap: Dictionary<Route> = {
 
 export class RouteUtil {
     public static populateRouteParams(route: Route, modelId?: ObjectID): Route {
-
-
-
         const tempRoute: Route = new Route(route.toString());
 
         if (modelId) {
@@ -62,7 +59,7 @@ export class RouteUtil {
         }
 
         const id = LocalStorage.getItem('statusPageId') as ObjectID;
-        
+
         if (id) {
             route = tempRoute.addRouteParam(
                 RouteParams.StatusPageId,

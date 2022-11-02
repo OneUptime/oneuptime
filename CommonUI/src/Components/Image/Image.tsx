@@ -11,14 +11,10 @@ export interface ComponentProps {
 }
 
 export class ImageFunctions {
-    public static getImageURL(file: File): string{
-        const blob: Blob = new Blob(
-            [file.file as Uint8Array],
-            {
-                type: (file as File)
-                    .type as string,
-            }
-        );
+    public static getImageURL(file: File): string {
+        const blob: Blob = new Blob([file.file as Uint8Array], {
+            type: (file as File).type as string,
+        });
 
         const url: string = URL.createObjectURL(blob);
         return url;
@@ -28,9 +24,7 @@ export class ImageFunctions {
 const Image: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     if (props.imageUrl) {
-
         return (
             <img
                 onClick={() => {
@@ -43,9 +37,6 @@ const Image: FunctionComponent<ComponentProps> = (
     }
 
     if (props.file && props.file.file && props.file.type) {
-
-       
-
         const url: string = ImageFunctions.getImageURL(props.file);
 
         return (
@@ -57,10 +48,9 @@ const Image: FunctionComponent<ComponentProps> = (
                 height={props.height}
             />
         );
-
     }
 
-    throw new BadDataException("file or imageUrl required for <Image>");
+    throw new BadDataException('file or imageUrl required for <Image>');
 };
 
 export default Image;

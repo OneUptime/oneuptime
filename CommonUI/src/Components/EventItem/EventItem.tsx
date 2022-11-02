@@ -5,7 +5,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import Link from '../Link/Link';
 
 export interface TimelineItem {
-    date: Date,
+    date: Date;
     text: string;
     isBold?: boolean | undefined;
 }
@@ -23,41 +23,89 @@ export interface ComponentProps {
 const EventItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return (<div>
-        <div className="active-event-box-body" style={{ marginBottom: "0px", paddingBottom: "0px" }}>
-            <h2 className="active-event-box-body-title">
-                {props.eventTitle}
-            </h2>
-            {props.eventDescription && <p className="active-event-box-body-description">
-                {props.eventDescription}
-            </p>}
-            {props.eventMiniDescription && <p className="small active-event-box-body-description">
-                {props.eventMiniDescription}
-            </p>}
+    return (
+        <div>
+            <div
+                className="active-event-box-body"
+                style={{ marginBottom: '0px', paddingBottom: '0px' }}
+            >
+                <h2 className="active-event-box-body-title">
+                    {props.eventTitle}
+                </h2>
+                {props.eventDescription && (
+                    <p className="active-event-box-body-description">
+                        {props.eventDescription}
+                    </p>
+                )}
+                {props.eventMiniDescription && (
+                    <p className="small active-event-box-body-description">
+                        {props.eventMiniDescription}
+                    </p>
+                )}
+            </div>
+            <div
+                className="active-event-box-body"
+                style={{ marginTop: '0px', paddingTop: '0px' }}
+            >
+                {props.eventTimeline &&
+                    props.eventTimeline.map((item, i) => {
+                        return (
+                            <div
+                                key={i}
+                                className="active-event-box-body-description"
+                            >
+                                {' '}
+                                <span
+                                    style={{
+                                        fontWeight: item.isBold ? 500 : 400,
+                                    }}
+                                >
+                                    {item.text || ''}
+                                </span>{' '}
+                                <span className="color-grey">
+                                    {' '}
+                                    -{' '}
+                                    {`${OneUptimeDate.getDateAsFormattedString(
+                                        item.date
+                                    )}.`}
+                                </span>{' '}
+                            </div>
+                        );
+                    })}
+
+                <div className="active-event-box-body-timestamp">
+                    {props.footerEventStatus && props.footerDateTime ? (
+                        <span>
+                            {props.footerEventStatus} at{' '}
+                            {OneUptimeDate.getDateAsLocalFormattedString(
+                                props.footerDateTime,
+                                false
+                            )}
+                            .{' '}
+                        </span>
+                    ) : (
+                        <></>
+                    )}
+
+                    {props.eventViewRoute ? (
+                        <span>
+                            <Link
+                                className="underline pointer"
+                                to={props.eventViewRoute}
+                                style={{
+                                    color: Blue.toString(),
+                                }}
+                            >
+                                <>{props.eventType} Details</>
+                            </Link>
+                        </span>
+                    ) : (
+                        <></>
+                    )}
+                </div>
+            </div>
         </div>
-        <div className="active-event-box-body" style={{ marginTop: "0px", paddingTop: "0px" }}>
-
-
-            {props.eventTimeline && props.eventTimeline.map((item, i) => {
-                return (<div key={i} className="active-event-box-body-description"> <span style={{
-                    fontWeight: item.isBold ? 500 : 400,
-                }}
-                >{item.text || ''}</span> <span className='color-grey'> - {`${OneUptimeDate.getDateAsFormattedString(item.date)}.`}</span> </div>)
-            })}
-
-
-            <div className="active-event-box-body-timestamp">
-
-                {props.footerEventStatus && props.footerDateTime ? <span>{props.footerEventStatus} at {OneUptimeDate.getDateAsLocalFormattedString(
-                    props.footerDateTime,
-                    false
-                )}. </span> : <></>}
-                
-                {props.eventViewRoute ? <span><Link className='underline pointer' to={props.eventViewRoute} style={{
-                    color: Blue.toString()
-                }}><>{props.eventType} Details</></Link></span> : <></>}</div>
-        </div>
-    </div>)
+    );
 };
 
 export default EventItem;

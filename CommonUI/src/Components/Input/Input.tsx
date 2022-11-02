@@ -53,17 +53,17 @@ const Input: FunctionComponent<ComponentProps> = (
 
     useEffect(() => {
         if (props.type === 'date' || props.type === 'datetime-local') {
-            
             if (value && (value as unknown) instanceof Date) {
                 let dateString: string = '';
                 if (props.type === 'datetime-local') {
-                    dateString = OneUptimeDate.toDateTimeLocalString(value as any);
+                    dateString = OneUptimeDate.toDateTimeLocalString(
+                        value as any
+                    );
                 } else {
                     dateString = OneUptimeDate.asDateForDatabaseQuery(value);
                 }
                 setDisplayValue(dateString);
-            }
-            else if (value && !value.includes(' - ')) {
+            } else if (value && !value.includes(' - ')) {
                 // " - " is for InBetween dates.
                 const date: Date = OneUptimeDate.fromString(value);
                 let dateString: string = '';

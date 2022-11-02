@@ -112,7 +112,6 @@ export default class OneUptimeDate {
         return moment(date).add(Number(days.toNumber()), 'days').toDate();
     }
 
-
     public static getSomeDaysBeforeFromDate(
         date: Date,
         days: PositiveNumber | number
@@ -120,7 +119,9 @@ export default class OneUptimeDate {
         if (!(days instanceof PositiveNumber)) {
             days = new PositiveNumber(days);
         }
-        return moment(date).add(-1 * Number(days.toNumber()), 'days').toDate();
+        return moment(date)
+            .add(-1 * Number(days.toNumber()), 'days')
+            .toDate();
     }
 
     public static getSomeSecondsAgo(seconds: PositiveNumber | number): Date {
@@ -331,7 +332,7 @@ export default class OneUptimeDate {
         return momentDate.format(formatstring);
     }
 
-    public static getDateString(date: Date): string{
+    public static getDateString(date: Date): string {
         return this.getDateAsLocalFormattedString(date, true);
     }
 

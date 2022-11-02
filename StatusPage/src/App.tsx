@@ -31,23 +31,27 @@ const App: FunctionComponent = () => {
     Navigation.setLocation(useLocation());
     Navigation.setParams(useParams());
 
-    // js. 
+    // js.
     const [javascript, setJavaScript] = useState<string | null>(null);
 
     const onPageLoadComplete = () => {
         if (javascript) {
             eval(javascript);
         }
-    }
-
+    };
 
     return (
-        <MasterPage onLoadComplete={(masterpage: JSONObject) => {
-            const javascript = JSONFunctions.getJSONValueInPath(masterpage || {}, "statusPage.customJavaScript") as string | null;
-            if (javascript) {
-                setJavaScript(javascript);
-            }
-        }}>
+        <MasterPage
+            onLoadComplete={(masterpage: JSONObject) => {
+                const javascript = JSONFunctions.getJSONValueInPath(
+                    masterpage || {},
+                    'statusPage.customJavaScript'
+                ) as string | null;
+                if (javascript) {
+                    setJavaScript(javascript);
+                }
+            }}
+        >
             <Routes>
                 {/* Live */}
 
@@ -69,7 +73,7 @@ const App: FunctionComponent = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_EVENT_DETAIL
+                                    PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
@@ -116,7 +120,6 @@ const App: FunctionComponent = () => {
                                 onPageLoadComplete();
                             }}
                         />
-                        
                     }
                 />
 
@@ -131,7 +134,6 @@ const App: FunctionComponent = () => {
                                 onPageLoadComplete();
                             }}
                         />
-                        
                     }
                 />
 
@@ -172,7 +174,6 @@ const App: FunctionComponent = () => {
                             }}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_OVERVIEW] as Route
-
                             }
                         />
                     }
@@ -203,7 +204,7 @@ const App: FunctionComponent = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -221,7 +222,7 @@ const App: FunctionComponent = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                         />
@@ -237,7 +238,7 @@ const App: FunctionComponent = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_INCIDENT_DETAIL
+                                    PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -269,7 +270,7 @@ const App: FunctionComponent = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -287,7 +288,7 @@ const App: FunctionComponent = () => {
                             }}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
                         />

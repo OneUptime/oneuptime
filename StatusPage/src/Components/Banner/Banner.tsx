@@ -4,7 +4,7 @@ import File from 'Model/Models/File';
 
 export interface ComponentProps {
     onClick?: () => void | undefined;
-    file: File
+    file: File;
 }
 
 const Banner: FunctionComponent<ComponentProps> = (

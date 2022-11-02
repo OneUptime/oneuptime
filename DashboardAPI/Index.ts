@@ -176,10 +176,9 @@ import StatusPageDomainService, {
     Service as StatusPageDomainServiceType,
 } from 'CommonServer/Services/StatusPageDomainService';
 
+// Import API
 
-// Import API 
-
-import StatusPageAPI from 'CommonServer/API/StatusPageAPI'
+import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -373,9 +372,7 @@ app.use(
     ).getRouter()
 );
 
-app.use(
-    new StatusPageAPI().getRouter()
-);
+app.use(new StatusPageAPI().getRouter());
 
 app.use(
     new BaseAPI<

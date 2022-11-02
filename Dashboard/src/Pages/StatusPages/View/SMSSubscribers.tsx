@@ -114,7 +114,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Phone Number',
                         type: FieldType.Text,
                     },
-                
+
                     {
                         field: {
                             createdAt: true,

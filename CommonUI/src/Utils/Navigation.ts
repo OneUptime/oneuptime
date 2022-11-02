@@ -24,25 +24,32 @@ abstract class Navigation {
         return this.params;
     }
 
-    public static getParamByName(paramName: string, routeTemplate: Route): string | null {
+    public static getParamByName(
+        paramName: string,
+        routeTemplate: Route
+    ): string | null {
         const currentPath = this.location.pathname.split('/');
 
-        if (!paramName.startsWith(":")) {
-            paramName = ":" + paramName;
+        if (!paramName.startsWith(':')) {
+            paramName = ':' + paramName;
         }
 
-        const routeParamTemplateIndex = routeTemplate.toString().split('/').indexOf(paramName);
+        const routeParamTemplateIndex = routeTemplate
+            .toString()
+            .split('/')
+            .indexOf(paramName);
 
         if (routeParamTemplateIndex === -1) {
-            throw new BadDataException(`Param ${paramName} not found in template ${routeTemplate.toString()}`);
+            throw new BadDataException(
+                `Param ${paramName} not found in template ${routeTemplate.toString()}`
+            );
         }
-        
+
         if (currentPath[routeParamTemplateIndex]) {
             return currentPath[routeParamTemplateIndex] as string;
         }
 
         return null;
-    
     }
 
     public static getLastParam(getFromLastRoute?: number): Route | null {

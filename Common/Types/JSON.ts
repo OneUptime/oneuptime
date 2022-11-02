@@ -124,12 +124,15 @@ export class JSONFunctions {
         return JSON.stringify(val);
     }
 
-    public static getJSONValueInPath(obj: JSONObject, path: string): JSONValue | null {
-        const paths: Array<string> = path.split(".");
+    public static getJSONValueInPath(
+        obj: JSONObject,
+        path: string
+    ): JSONValue | null {
+        const paths: Array<string> = path.split('.');
         let returnValue = obj as JSONObject;
         for (const p of paths) {
             if (!p) {
-                continue; 
+                continue;
             }
 
             if (returnValue && returnValue[p as string]!) {

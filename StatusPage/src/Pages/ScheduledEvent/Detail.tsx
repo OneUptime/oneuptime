@@ -6,7 +6,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
-        <Page >
+        <Page>
             <p>Overview</p>
         </Page>
     );

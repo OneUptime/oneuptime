@@ -129,7 +129,6 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-
                     const objectId: ObjectID = new ObjectID(
                         req.params['statusPageId'] as string
                     );
@@ -204,7 +203,7 @@ export default class StatusPageAPI extends BaseAPI<
                             select,
                             populate,
                             props: {
-                                isRoot: true
+                                isRoot: true,
                             },
                         });
 
@@ -301,25 +300,25 @@ export default class StatusPageAPI extends BaseAPI<
                             projectId: true,
                         },
                         props: {
-                            isRoot: true
+                            isRoot: true,
                         },
                     });
 
                     if (!statusPage) {
-                        throw new BadDataException("Status Page not found");
+                        throw new BadDataException('Status Page not found');
                     }
 
-                    //get monitor statuses 
+                    //get monitor statuses
 
                     const monitorStatuses = await MonitorStatusService.findBy({
                         query: {
-                            projectId: statusPage.projectId!
+                            projectId: statusPage.projectId!,
                         },
                         select: {
                             name: true,
                             color: true,
                             priority: true,
-                            isOperationalState: true
+                            isOperationalState: true,
                         },
                         sort: {
                             priority: SortOrder.Ascending,
@@ -328,105 +327,114 @@ export default class StatusPageAPI extends BaseAPI<
                         limit: LIMIT_PER_PROJECT,
                         props: {
                             isRoot: true,
-                        }
+                        },
                     });
 
+                    // get resource groups.
 
-                    // get resource groups. 
-
-                    const groups: Array<StatusPageGroup> = await StatusPageGroupService.findBy({
-                        query: {
-                            statusPageId: objectId,
-                        },
-                        select: {
-                            name: true,
-                            order: true,
-                            description: true,
-                            isExpandedByDefault: true
-                        },
-                        sort: {
-                            order: SortOrder.Ascending
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        }
-                    });
-
-                    // get monitors on status page.
-                    const statusPageResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
-                        query: {
-                            statusPageId: objectId,
-                        },
-                        select: {
-                            statusPageGroupId: true,
-                            monitorId: true,
-                            displayTooltip: true,
-                            displayDescription: true,
-                            displayName: true,
-                            showStatusHistoryChart: true,
-                            showCurrentStatus: true
-                        },
-                        populate: {
-                            monitor: {
-                                _id: true,
-                                currentMonitorStatusId: true
-                            }
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        }
-                    });
-
-                    // get monitor status charts.
-                    const monitorsOnStatusPage = statusPageResources.map((monitor) => {
-                        return monitor.monitorId!;
-                    })
-
-                    const monitorsOnStatusPageForTimeline = statusPageResources
-                        .filter((monitor) => {
-                            return monitor.showStatusHistoryChart
-                        }).map((monitor) => {
-                            return monitor.monitorId!;
-                        })
-
-                    const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
-                    const endDate: Date = OneUptimeDate.getCurrentDate();
-
-                    let monitorStatusTimelines: Array<MonitorStatusTimeline> = [];
-
-                    if (monitorsOnStatusPageForTimeline.length > 0) {
-
-                        monitorStatusTimelines = await MonitorStatusTimelineService.findBy({
+                    const groups: Array<StatusPageGroup> =
+                        await StatusPageGroupService.findBy({
                             query: {
-                                monitorId: QueryHelper.in(monitorsOnStatusPageForTimeline),
-                                createdAt: QueryHelper.inBetween(startDate, endDate)
+                                statusPageId: objectId,
                             },
                             select: {
-                                monitorId: true,
-                                createdAt: true
+                                name: true,
+                                order: true,
+                                description: true,
+                                isExpandedByDefault: true,
                             },
                             sort: {
-                                createdAt: SortOrder.Ascending,
+                                order: SortOrder.Ascending,
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                    // get monitors on status page.
+                    const statusPageResources: Array<StatusPageResource> =
+                        await StatusPageResourceService.findBy({
+                            query: {
+                                statusPageId: objectId,
+                            },
+                            select: {
+                                statusPageGroupId: true,
+                                monitorId: true,
+                                displayTooltip: true,
+                                displayDescription: true,
+                                displayName: true,
+                                showStatusHistoryChart: true,
+                                showCurrentStatus: true,
                             },
                             populate: {
-                                monitorStatus: {
-                                    name: true,
-                                    color: true,
-                                    priority: true,
+                                monitor: {
+                                    _id: true,
+                                    currentMonitorStatusId: true,
                                 },
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
                                 isRoot: true,
-                            }
+                            },
                         });
-                    }
 
+                    // get monitor status charts.
+                    const monitorsOnStatusPage = statusPageResources.map(
+                        (monitor) => {
+                            return monitor.monitorId!;
+                        }
+                    );
+
+                    const monitorsOnStatusPageForTimeline = statusPageResources
+                        .filter((monitor) => {
+                            return monitor.showStatusHistoryChart;
+                        })
+                        .map((monitor) => {
+                            return monitor.monitorId!;
+                        });
+
+                    const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
+                    const endDate: Date = OneUptimeDate.getCurrentDate();
+
+                    let monitorStatusTimelines: Array<MonitorStatusTimeline> =
+                        [];
+
+                    if (monitorsOnStatusPageForTimeline.length > 0) {
+                        monitorStatusTimelines =
+                            await MonitorStatusTimelineService.findBy({
+                                query: {
+                                    monitorId: QueryHelper.in(
+                                        monitorsOnStatusPageForTimeline
+                                    ),
+                                    createdAt: QueryHelper.inBetween(
+                                        startDate,
+                                        endDate
+                                    ),
+                                },
+                                select: {
+                                    monitorId: true,
+                                    createdAt: true,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Ascending,
+                                },
+                                populate: {
+                                    monitorStatus: {
+                                        name: true,
+                                        color: true,
+                                        priority: true,
+                                    },
+                                },
+                                skip: 0,
+                                limit: LIMIT_PER_PROJECT,
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
+                    }
 
                     // check if status page has active incident.
                     let activeIncidents: Array<Incident> = [];
@@ -435,16 +443,15 @@ export default class StatusPageAPI extends BaseAPI<
                             query: {
                                 monitors: QueryHelper.in(monitorsOnStatusPage),
                                 currentIncidentState: {
-                                    isResolvedState: false
+                                    isResolvedState: false,
                                 } as any,
-                                projectId: statusPage.projectId!
+                                projectId: statusPage.projectId!,
                             },
                             select: {
                                 createdAt: true,
                                 title: true,
                                 description: true,
                                 _id: true,
-
                             },
                             sort: {
                                 createdAt: SortOrder.Ascending,
@@ -456,204 +463,257 @@ export default class StatusPageAPI extends BaseAPI<
                                 },
                                 currentIncidentState: {
                                     name: true,
-                                    color: true
+                                    color: true,
                                 },
                                 monitors: {
                                     _id: true,
-                                }
+                                },
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
                                 isRoot: true,
-                            }
+                            },
                         });
                     }
 
+                    const incidentsOnStausPage = activeIncidents.map(
+                        (incident) => {
+                            return incident._id!;
+                        }
+                    );
 
-                    const incidentsOnStausPage = activeIncidents.map((incident) => {
-                        return incident._id!;
-                    })
-
-                    console.log("INCIEENT IN STATUS PAGE");
-                    console.log(incidentsOnStausPage)
+                    console.log('INCIEENT IN STATUS PAGE');
+                    console.log(incidentsOnStausPage);
 
                     let incidentPublicNotes: Array<IncidentPublicNote> = [];
 
                     if (incidentsOnStausPage.length > 0) {
-                        incidentPublicNotes = await IncidentPublicNoteService.findBy({
-                            query: {
-                                incidentId: QueryHelper.in(incidentsOnStausPage),
-                                projectId: statusPage.projectId!
-                            },
-                            select: {
-                                note: true,
-                                incidentId: true,
-                            },
-                            sort: {
-                                createdAt: SortOrder.Descending // new note first
-                            },
-                            skip: 0,
-                            limit: LIMIT_PER_PROJECT,
-                            props: {
-                                isRoot: true,
-                            }
-                        });
+                        incidentPublicNotes =
+                            await IncidentPublicNoteService.findBy({
+                                query: {
+                                    incidentId:
+                                        QueryHelper.in(incidentsOnStausPage),
+                                    projectId: statusPage.projectId!,
+                                },
+                                select: {
+                                    note: true,
+                                    incidentId: true,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Descending, // new note first
+                                },
+                                skip: 0,
+                                limit: LIMIT_PER_PROJECT,
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
                     }
 
-                    let incidentStateTimelines: Array<IncidentStateTimeline> = [];
+                    let incidentStateTimelines: Array<IncidentStateTimeline> =
+                        [];
 
                     if (incidentsOnStausPage.length > 0) {
-                        incidentStateTimelines = await IncidentStateTimelineService.findBy({
-                            query: {
-                                incidentId: QueryHelper.in(incidentsOnStausPage),
-                                projectId: statusPage.projectId!
-                            },
-                            select: {
-                                _id: true,
-                                createdAt: true,
-                                incidentId: true,
-                            },
-                            sort: {
-                                createdAt: SortOrder.Descending // new note first
-                            },
-                            skip: 0,
-                            limit: LIMIT_PER_PROJECT,
-                            props: {
-                                isRoot: true,
-                            }
-                        });
+                        incidentStateTimelines =
+                            await IncidentStateTimelineService.findBy({
+                                query: {
+                                    incidentId:
+                                        QueryHelper.in(incidentsOnStausPage),
+                                    projectId: statusPage.projectId!,
+                                },
+                                select: {
+                                    _id: true,
+                                    createdAt: true,
+                                    incidentId: true,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Descending, // new note first
+                                },
+                                skip: 0,
+                                limit: LIMIT_PER_PROJECT,
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
                     }
 
                     // check if status page has actuve announcement.
 
                     const today: Date = OneUptimeDate.getCurrentDate();
 
-                    const activeAnnouncements = await StatusPageAnnouncementService.findBy({
-                        query: {
-                            statusPages: QueryHelper.in([objectId]),
-                            showAnnouncementAt: QueryHelper.lessThan(today),
-                            endAnnouncementAt: QueryHelper.greaterThan(today),
-                            projectId: statusPage.projectId!
-                        },
-                        select: {
-                            createdAt: true,
-                            title: true,
-                            description: true,
-                            _id: true,
-
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        }
-                    });
+                    const activeAnnouncements =
+                        await StatusPageAnnouncementService.findBy({
+                            query: {
+                                statusPages: QueryHelper.in([objectId]),
+                                showAnnouncementAt: QueryHelper.lessThan(today),
+                                endAnnouncementAt:
+                                    QueryHelper.greaterThan(today),
+                                projectId: statusPage.projectId!,
+                            },
+                            select: {
+                                createdAt: true,
+                                title: true,
+                                description: true,
+                                _id: true,
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     // check if status page has active scheduled events.
 
-                    const activeScheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
-                        query: {
-                            
-                            currentScheduledMaintenanceState: {
-                                isOngoingState: true, 
-                            } as any,
-                            statusPages: QueryHelper.in([objectId]),
-                            projectId: statusPage.projectId!
-
-                        },
-                        select: {
-                            createdAt: true,
-                            title: true,
-                            description: true,
-                            _id: true,
-                            endsAt: true
-
-                        },
-                        sort: {
-                            createdAt: SortOrder.Ascending,
-                        },
-                        populate: {
-                            currentScheduledMaintenanceState: {
-                                name: true,
-                                color: true
-                            },
-                            monitors: {
-                                _id: true,
-                            }
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        }
-                    });
-
-                    const activeScheduledMaintenanceEventsOnStausPage = activeScheduledMaintenanceEvents.map((event) => {
-                        return event._id!;
-                    })
-
-                    let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> = [];
-
-                    if (activeScheduledMaintenanceEventsOnStausPage.length > 0) {
-
-                        scheduledMaintenanceEventsPublicNotes = await ScheduledMaintenancePublicNoteService.findBy({
+                    const activeScheduledMaintenanceEvents =
+                        await ScheduledMaintenanceService.findBy({
                             query: {
-                                scheduledMaintenanceId: QueryHelper.in(activeScheduledMaintenanceEventsOnStausPage),
-                                projectId: statusPage.projectId!
+                                currentScheduledMaintenanceState: {
+                                    isOngoingState: true,
+                                } as any,
+                                statusPages: QueryHelper.in([objectId]),
+                                projectId: statusPage.projectId!,
                             },
                             select: {
-                                note: true,
-                                scheduledMaintenanceId: true,
+                                createdAt: true,
+                                title: true,
+                                description: true,
+                                _id: true,
+                                endsAt: true,
                             },
                             sort: {
-                                createdAt: SortOrder.Ascending
+                                createdAt: SortOrder.Ascending,
+                            },
+                            populate: {
+                                currentScheduledMaintenanceState: {
+                                    name: true,
+                                    color: true,
+                                },
+                                monitors: {
+                                    _id: true,
+                                },
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
                                 isRoot: true,
-                            }
+                            },
                         });
+
+                    const activeScheduledMaintenanceEventsOnStausPage =
+                        activeScheduledMaintenanceEvents.map((event) => {
+                            return event._id!;
+                        });
+
+                    let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
+                        [];
+
+                    if (
+                        activeScheduledMaintenanceEventsOnStausPage.length > 0
+                    ) {
+                        scheduledMaintenanceEventsPublicNotes =
+                            await ScheduledMaintenancePublicNoteService.findBy({
+                                query: {
+                                    scheduledMaintenanceId: QueryHelper.in(
+                                        activeScheduledMaintenanceEventsOnStausPage
+                                    ),
+                                    projectId: statusPage.projectId!,
+                                },
+                                select: {
+                                    note: true,
+                                    scheduledMaintenanceId: true,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Ascending,
+                                },
+                                skip: 0,
+                                limit: LIMIT_PER_PROJECT,
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
                     }
 
+                    let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
+                        [];
 
-                    let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> = [];
-
-                    if (activeScheduledMaintenanceEventsOnStausPage.length > 0) {
-                        scheduledMaintenanceStateTimelines = await ScheduledMaintenanceStateTimelineService.findBy({
-                            query: {
-                                scheduledMaintenanceId: QueryHelper.in(activeScheduledMaintenanceEventsOnStausPage),
-                                projectId: statusPage.projectId!
-                            },
-                            select: {
-                                _id: true,
-                                createdAt: true,
-                                scheduledMaintenanceId: true,
-                            },
-                            sort: {
-                                createdAt: SortOrder.Descending // new note first
-                            },
-                            skip: 0,
-                            limit: LIMIT_PER_PROJECT,
-                            props: {
-                                isRoot: true,
-                            }
-                        });
+                    if (
+                        activeScheduledMaintenanceEventsOnStausPage.length > 0
+                    ) {
+                        scheduledMaintenanceStateTimelines =
+                            await ScheduledMaintenanceStateTimelineService.findBy(
+                                {
+                                    query: {
+                                        scheduledMaintenanceId: QueryHelper.in(
+                                            activeScheduledMaintenanceEventsOnStausPage
+                                        ),
+                                        projectId: statusPage.projectId!,
+                                    },
+                                    select: {
+                                        _id: true,
+                                        createdAt: true,
+                                        scheduledMaintenanceId: true,
+                                    },
+                                    sort: {
+                                        createdAt: SortOrder.Descending, // new note first
+                                    },
+                                    skip: 0,
+                                    limit: LIMIT_PER_PROJECT,
+                                    props: {
+                                        isRoot: true,
+                                    },
+                                }
+                            );
                     }
 
                     const response: JSONObject = {
-                        scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(scheduledMaintenanceEventsPublicNotes, ScheduledMaintenancePublicNote),
-                        activeScheduledMaintenanceEvents: BaseModel.toJSONArray(activeScheduledMaintenanceEvents, ScheduledMaintenance),
-                        activeAnnouncements: BaseModel.toJSONArray(activeAnnouncements, StatusPageAnnouncement),
-                        incidentPublicNotes: BaseModel.toJSONArray(incidentPublicNotes, IncidentPublicNote),
-                        activeIncidents: BaseModel.toJSONArray(activeIncidents, Incident),
-                        monitorStatusTimelines: BaseModel.toJSONArray(monitorStatusTimelines, MonitorStatusTimeline),
-                        resourceGroups: BaseModel.toJSONArray(groups, StatusPageGroup),
-                        monitorStatuses: BaseModel.toJSONArray(monitorStatuses, MonitorStatus),
-                        statusPageResources: BaseModel.toJSONArray(statusPageResources, StatusPageResource),
-                        incidentStateTimelines: BaseModel.toJSONArray(incidentStateTimelines, IncidentStateTimeline),
-                        scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(scheduledMaintenanceStateTimelines, ScheduledMaintenanceStateTimeline)
+                        scheduledMaintenanceEventsPublicNotes:
+                            BaseModel.toJSONArray(
+                                scheduledMaintenanceEventsPublicNotes,
+                                ScheduledMaintenancePublicNote
+                            ),
+                        activeScheduledMaintenanceEvents: BaseModel.toJSONArray(
+                            activeScheduledMaintenanceEvents,
+                            ScheduledMaintenance
+                        ),
+                        activeAnnouncements: BaseModel.toJSONArray(
+                            activeAnnouncements,
+                            StatusPageAnnouncement
+                        ),
+                        incidentPublicNotes: BaseModel.toJSONArray(
+                            incidentPublicNotes,
+                            IncidentPublicNote
+                        ),
+                        activeIncidents: BaseModel.toJSONArray(
+                            activeIncidents,
+                            Incident
+                        ),
+                        monitorStatusTimelines: BaseModel.toJSONArray(
+                            monitorStatusTimelines,
+                            MonitorStatusTimeline
+                        ),
+                        resourceGroups: BaseModel.toJSONArray(
+                            groups,
+                            StatusPageGroup
+                        ),
+                        monitorStatuses: BaseModel.toJSONArray(
+                            monitorStatuses,
+                            MonitorStatus
+                        ),
+                        statusPageResources: BaseModel.toJSONArray(
+                            statusPageResources,
+                            StatusPageResource
+                        ),
+                        incidentStateTimelines: BaseModel.toJSONArray(
+                            incidentStateTimelines,
+                            IncidentStateTimeline
+                        ),
+                        scheduledMaintenanceStateTimelines:
+                            BaseModel.toJSONArray(
+                                scheduledMaintenanceStateTimelines,
+                                ScheduledMaintenanceStateTimeline
+                            ),
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -662,7 +722,6 @@ export default class StatusPageAPI extends BaseAPI<
                 }
             }
         );
-
 
         this.router.post(
             `/${new this.entityType()
@@ -699,49 +758,49 @@ export default class StatusPageAPI extends BaseAPI<
                             projectId: true,
                         },
                         props: {
-                            isRoot: true
+                            isRoot: true,
                         },
                     });
 
                     if (!statusPage) {
-                        throw new BadDataException("Status Page not found");
+                        throw new BadDataException('Status Page not found');
                     }
 
-
-
                     // get monitors on status page.
-                    const statusPageResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
-                        query: {
-                            statusPageId: objectId,
-                        },
-                        select: {
-                            statusPageGroupId: true,
-                            monitorId: true,
-                            displayTooltip: true,
-                            displayDescription: true,
-                            displayName: true,
-                        },
-                        populate: {
-                            monitor: {
-                                _id: true,
-                                currentMonitorStatusId: true
-                            }
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        }
-                    });
+                    const statusPageResources: Array<StatusPageResource> =
+                        await StatusPageResourceService.findBy({
+                            query: {
+                                statusPageId: objectId,
+                            },
+                            select: {
+                                statusPageGroupId: true,
+                                monitorId: true,
+                                displayTooltip: true,
+                                displayDescription: true,
+                                displayName: true,
+                            },
+                            populate: {
+                                monitor: {
+                                    _id: true,
+                                    currentMonitorStatusId: true,
+                                },
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     // get monitor status charts.
-                    const monitorsOnStatusPage = statusPageResources.map((monitor) => {
-                        return monitor.monitorId!;
-                    })
+                    const monitorsOnStatusPage = statusPageResources.map(
+                        (monitor) => {
+                            return monitor.monitorId!;
+                        }
+                    );
 
                     const today: Date = OneUptimeDate.getCurrentDate();
                     const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
-
 
                     // check if status page has active incident.
                     let incidents: Array<Incident> = [];
@@ -750,14 +809,16 @@ export default class StatusPageAPI extends BaseAPI<
                             query: {
                                 monitors: QueryHelper.in(monitorsOnStatusPage),
                                 projectId: statusPage.projectId!,
-                                createdAt: QueryHelper.inBetween(last14Days, today)
+                                createdAt: QueryHelper.inBetween(
+                                    last14Days,
+                                    today
+                                ),
                             },
                             select: {
                                 createdAt: true,
                                 title: true,
                                 description: true,
                                 _id: true,
-
                             },
                             sort: {
                                 createdAt: SortOrder.Descending,
@@ -769,83 +830,96 @@ export default class StatusPageAPI extends BaseAPI<
                                 },
                                 currentIncidentState: {
                                     name: true,
-                                    color: true
+                                    color: true,
                                 },
                                 monitors: {
                                     _id: true,
-                                }
+                                },
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
                                 isRoot: true,
-                            }
+                            },
                         });
                     }
 
-
                     const incidentsOnStausPage = incidents.map((incident) => {
                         return incident._id!;
-                    })
+                    });
 
                     let incidentPublicNotes: Array<IncidentPublicNote> = [];
 
                     if (incidentsOnStausPage.length > 0) {
-                        incidentPublicNotes = await IncidentPublicNoteService.findBy({
-                            query: {
-                                incidentId: QueryHelper.in(incidentsOnStausPage),
-                                projectId: statusPage.projectId!
-                            },
-                            select: {
-                                note: true,
-                                incidentId: true,
-                            },
-                            sort: {
-                                createdAt: SortOrder.Descending // new note first
-                            },
-                            skip: 0,
-                            limit: LIMIT_PER_PROJECT,
-                            props: {
-                                isRoot: true,
-                            }
-                        });
+                        incidentPublicNotes =
+                            await IncidentPublicNoteService.findBy({
+                                query: {
+                                    incidentId:
+                                        QueryHelper.in(incidentsOnStausPage),
+                                    projectId: statusPage.projectId!,
+                                },
+                                select: {
+                                    note: true,
+                                    incidentId: true,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Descending, // new note first
+                                },
+                                skip: 0,
+                                limit: LIMIT_PER_PROJECT,
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
                     }
 
-                    let incidentStateTimelines: Array<IncidentStateTimeline> = [];
+                    let incidentStateTimelines: Array<IncidentStateTimeline> =
+                        [];
 
                     if (incidentsOnStausPage.length > 0) {
-                        incidentStateTimelines = await IncidentStateTimelineService.findBy({
-                            query: {
-                                incidentId: QueryHelper.in(incidentsOnStausPage),
-                                projectId: statusPage.projectId!
-                            },
-                            select: {
-                                _id: true,
-                                createdAt: true,
-                                incidentId: true,
-                            },
-                            sort: {
-                                createdAt: SortOrder.Descending // new note first
-                            },
-                            populate: {
-                                incidentState: {
-                                    name: true,
-                                    color: true
-                                }
-                            },
-                            skip: 0,
-                            limit: LIMIT_PER_PROJECT,
-                            props: {
-                                isRoot: true,
-                            }
-                        });
+                        incidentStateTimelines =
+                            await IncidentStateTimelineService.findBy({
+                                query: {
+                                    incidentId:
+                                        QueryHelper.in(incidentsOnStausPage),
+                                    projectId: statusPage.projectId!,
+                                },
+                                select: {
+                                    _id: true,
+                                    createdAt: true,
+                                    incidentId: true,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Descending, // new note first
+                                },
+                                populate: {
+                                    incidentState: {
+                                        name: true,
+                                        color: true,
+                                    },
+                                },
+                                skip: 0,
+                                limit: LIMIT_PER_PROJECT,
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
                     }
 
                     const response: JSONObject = {
-                        incidentPublicNotes: BaseModel.toJSONArray(incidentPublicNotes, IncidentPublicNote),
+                        incidentPublicNotes: BaseModel.toJSONArray(
+                            incidentPublicNotes,
+                            IncidentPublicNote
+                        ),
                         incidents: BaseModel.toJSONArray(incidents, Incident),
-                        statusPageResources: BaseModel.toJSONArray(statusPageResources, StatusPageResource),
-                        incidentStateTimelines: BaseModel.toJSONArray(incidentStateTimelines, IncidentStateTimeline),
+                        statusPageResources: BaseModel.toJSONArray(
+                            statusPageResources,
+                            StatusPageResource
+                        ),
+                        incidentStateTimelines: BaseModel.toJSONArray(
+                            incidentStateTimelines,
+                            IncidentStateTimeline
+                        ),
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -854,8 +928,6 @@ export default class StatusPageAPI extends BaseAPI<
                 }
             }
         );
-
-
 
         this.router.post(
             `/${new this.entityType()
@@ -892,146 +964,168 @@ export default class StatusPageAPI extends BaseAPI<
                             projectId: true,
                         },
                         props: {
-                            isRoot: true
+                            isRoot: true,
                         },
                     });
 
                     if (!statusPage) {
-                        throw new BadDataException("Status Page not found");
+                        throw new BadDataException('Status Page not found');
                     }
 
-
-
                     // get monitors on status page.
-                    const statusPageResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
-                        query: {
-                            statusPageId: objectId,
-                        },
-                        select: {
-                            statusPageGroupId: true,
-                            monitorId: true,
-                            displayTooltip: true,
-                            displayDescription: true,
-                            displayName: true,
-                        },
-                        populate: {
-                            monitor: {
-                                _id: true,
-                                currentMonitorStatusId: true
-                            }
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        }
-                    });
-
+                    const statusPageResources: Array<StatusPageResource> =
+                        await StatusPageResourceService.findBy({
+                            query: {
+                                statusPageId: objectId,
+                            },
+                            select: {
+                                statusPageGroupId: true,
+                                monitorId: true,
+                                displayTooltip: true,
+                                displayDescription: true,
+                                displayName: true,
+                            },
+                            populate: {
+                                monitor: {
+                                    _id: true,
+                                    currentMonitorStatusId: true,
+                                },
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     // check if status page has active scheduled events.
                     const today: Date = OneUptimeDate.getCurrentDate();
                     const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
 
-
-                    const scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
-                        query: {
-                            startsAt: QueryHelper.inBetween(last14Days, today),
-                            statusPages: QueryHelper.in([objectId]),
-                            projectId: statusPage.projectId!
-
-                        },
-                        select: {
-                            createdAt: true,
-                            title: true,
-                            description: true,
-                            _id: true,
-                            endsAt: true,
-                            startsAt: true
-
-                        },
-                        sort: {
-                            createdAt: SortOrder.Descending,
-                        },
-                        populate: {
-                            currentScheduledMaintenanceState: {
-                                name: true,
-                                color: true
-                            },
-                            monitors: {
-                                _id: true,
-                            }
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        }
-                    });
-
-                    const scheduledMaintenanceEventsOnStausPage = scheduledMaintenanceEvents.map((event) => {
-                        return event._id!;
-                    })
-
-                    let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> = [];
-
-                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
-
-                        scheduledMaintenanceEventsPublicNotes = await ScheduledMaintenancePublicNoteService.findBy({
+                    const scheduledMaintenanceEvents =
+                        await ScheduledMaintenanceService.findBy({
                             query: {
-                                scheduledMaintenanceId: QueryHelper.in(scheduledMaintenanceEventsOnStausPage),
-                                projectId: statusPage.projectId!
+                                startsAt: QueryHelper.inBetween(
+                                    last14Days,
+                                    today
+                                ),
+                                statusPages: QueryHelper.in([objectId]),
+                                projectId: statusPage.projectId!,
                             },
                             select: {
-                                note: true,
-                                scheduledMaintenanceId: true,
+                                createdAt: true,
+                                title: true,
+                                description: true,
+                                _id: true,
+                                endsAt: true,
+                                startsAt: true,
                             },
                             sort: {
-                                createdAt: SortOrder.Ascending
-                            },
-                            skip: 0,
-                            limit: LIMIT_PER_PROJECT,
-                            props: {
-                                isRoot: true,
-                            }
-                        });
-                    }
-
-
-                    let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> = [];
-
-                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
-                        scheduledMaintenanceStateTimelines = await ScheduledMaintenanceStateTimelineService.findBy({
-                            query: {
-                                scheduledMaintenanceId: QueryHelper.in(scheduledMaintenanceEventsOnStausPage),
-                                projectId: statusPage.projectId!
-                            },
-                            select: {
-                                _id: true,
-                                createdAt: true,
-                                scheduledMaintenanceId: true,
+                                createdAt: SortOrder.Descending,
                             },
                             populate: {
-                                scheduledMaintenanceState: {
+                                currentScheduledMaintenanceState: {
                                     name: true,
-                                    color: true
-                                }
-                            },
-                            sort: {
-                                createdAt: SortOrder.Descending // new note first
+                                    color: true,
+                                },
+                                monitors: {
+                                    _id: true,
+                                },
                             },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
                                 isRoot: true,
-                            }
+                            },
                         });
+
+                    const scheduledMaintenanceEventsOnStausPage =
+                        scheduledMaintenanceEvents.map((event) => {
+                            return event._id!;
+                        });
+
+                    let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
+                        [];
+
+                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
+                        scheduledMaintenanceEventsPublicNotes =
+                            await ScheduledMaintenancePublicNoteService.findBy({
+                                query: {
+                                    scheduledMaintenanceId: QueryHelper.in(
+                                        scheduledMaintenanceEventsOnStausPage
+                                    ),
+                                    projectId: statusPage.projectId!,
+                                },
+                                select: {
+                                    note: true,
+                                    scheduledMaintenanceId: true,
+                                },
+                                sort: {
+                                    createdAt: SortOrder.Ascending,
+                                },
+                                skip: 0,
+                                limit: LIMIT_PER_PROJECT,
+                                props: {
+                                    isRoot: true,
+                                },
+                            });
+                    }
+
+                    let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
+                        [];
+
+                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
+                        scheduledMaintenanceStateTimelines =
+                            await ScheduledMaintenanceStateTimelineService.findBy(
+                                {
+                                    query: {
+                                        scheduledMaintenanceId: QueryHelper.in(
+                                            scheduledMaintenanceEventsOnStausPage
+                                        ),
+                                        projectId: statusPage.projectId!,
+                                    },
+                                    select: {
+                                        _id: true,
+                                        createdAt: true,
+                                        scheduledMaintenanceId: true,
+                                    },
+                                    populate: {
+                                        scheduledMaintenanceState: {
+                                            name: true,
+                                            color: true,
+                                        },
+                                    },
+                                    sort: {
+                                        createdAt: SortOrder.Descending, // new note first
+                                    },
+                                    skip: 0,
+                                    limit: LIMIT_PER_PROJECT,
+                                    props: {
+                                        isRoot: true,
+                                    },
+                                }
+                            );
                     }
 
                     const response: JSONObject = {
-                        scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(scheduledMaintenanceEventsPublicNotes, ScheduledMaintenancePublicNote),
-                        scheduledMaintenanceEvents: BaseModel.toJSONArray(scheduledMaintenanceEvents, ScheduledMaintenance),
-                        statusPageResources: BaseModel.toJSONArray(statusPageResources, StatusPageResource),
-                        scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(scheduledMaintenanceStateTimelines, ScheduledMaintenanceStateTimeline),
+                        scheduledMaintenanceEventsPublicNotes:
+                            BaseModel.toJSONArray(
+                                scheduledMaintenanceEventsPublicNotes,
+                                ScheduledMaintenancePublicNote
+                            ),
+                        scheduledMaintenanceEvents: BaseModel.toJSONArray(
+                            scheduledMaintenanceEvents,
+                            ScheduledMaintenance
+                        ),
+                        statusPageResources: BaseModel.toJSONArray(
+                            statusPageResources,
+                            StatusPageResource
+                        ),
+                        scheduledMaintenanceStateTimelines:
+                            BaseModel.toJSONArray(
+                                scheduledMaintenanceStateTimelines,
+                                ScheduledMaintenanceStateTimeline
+                            ),
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -1040,8 +1134,6 @@ export default class StatusPageAPI extends BaseAPI<
                 }
             }
         );
-
-
 
         this.router.post(
             `/${new this.entityType()
@@ -1078,71 +1170,79 @@ export default class StatusPageAPI extends BaseAPI<
                             projectId: true,
                         },
                         props: {
-                            isRoot: true
+                            isRoot: true,
                         },
                     });
 
                     if (!statusPage) {
-                        throw new BadDataException("Status Page not found");
+                        throw new BadDataException('Status Page not found');
                     }
-
 
                     // check if status page has actuve announcement.
 
                     const today: Date = OneUptimeDate.getCurrentDate();
                     const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
 
-                    const announcements = await StatusPageAnnouncementService.findBy({
-                        query: {
-                            statusPages: QueryHelper.in([objectId]),
-                            showAnnouncementAt: QueryHelper.inBetween(last14Days, today),
-                            projectId: statusPage.projectId!
-                        },
-                        select: {
-                            createdAt: true,
-                            title: true,
-                            description: true,
-                            _id: true,
-                            showAnnouncementAt: true, 
-                            endAnnouncementAt: true
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        }
-                    });
-
-
-
-                     // get monitors on status page.
-                     const statusPageResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
-                        query: {
-                            statusPageId: objectId,
-                        },
-                        select: {
-                            statusPageGroupId: true,
-                            monitorId: true,
-                            displayTooltip: true,
-                            displayDescription: true,
-                            displayName: true,
-                        },
-                        populate: {
-                            monitor: {
+                    const announcements =
+                        await StatusPageAnnouncementService.findBy({
+                            query: {
+                                statusPages: QueryHelper.in([objectId]),
+                                showAnnouncementAt: QueryHelper.inBetween(
+                                    last14Days,
+                                    today
+                                ),
+                                projectId: statusPage.projectId!,
+                            },
+                            select: {
+                                createdAt: true,
+                                title: true,
+                                description: true,
                                 _id: true,
-                                currentMonitorStatusId: true
-                            }
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        }
-                    });
+                                showAnnouncementAt: true,
+                                endAnnouncementAt: true,
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                    // get monitors on status page.
+                    const statusPageResources: Array<StatusPageResource> =
+                        await StatusPageResourceService.findBy({
+                            query: {
+                                statusPageId: objectId,
+                            },
+                            select: {
+                                statusPageGroupId: true,
+                                monitorId: true,
+                                displayTooltip: true,
+                                displayDescription: true,
+                                displayName: true,
+                            },
+                            populate: {
+                                monitor: {
+                                    _id: true,
+                                    currentMonitorStatusId: true,
+                                },
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     const response: JSONObject = {
-                        announcements: BaseModel.toJSONArray(announcements, StatusPageAnnouncement),
-                        statusPageResources: BaseModel.toJSONArray(statusPageResources, StatusPageResource),
+                        announcements: BaseModel.toJSONArray(
+                            announcements,
+                            StatusPageAnnouncement
+                        ),
+                        statusPageResources: BaseModel.toJSONArray(
+                            statusPageResources,
+                            StatusPageResource
+                        ),
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -1152,7 +1252,4 @@ export default class StatusPageAPI extends BaseAPI<
             }
         );
     }
-
-
-
 }

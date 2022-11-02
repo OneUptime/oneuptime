@@ -32,58 +32,82 @@ export interface ComponentProps {
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [masterPageData, setMasterPageData] = useState<JSONObject | null>(null);
+    const [masterPageData, setMasterPageData] = useState<JSONObject | null>(
+        null
+    );
     const [statusPageId, setStatusPageId] = useState<ObjectID | null>(null);
-    const [headerHtml, setHeaderHtml] = useState<null | string>(null)
-    const [footerHtml, setFooterHTML] = useState<null | string>(null)
+    const [headerHtml, setHeaderHtml] = useState<null | string>(null);
+    const [footerHtml, setFooterHTML] = useState<null | string>(null);
 
     const getId = async (): Promise<ObjectID> => {
-        const id: string | null = Navigation.getParamByName(RouteParams.StatusPageId, RouteMap[PageMap.PREVIEW_OVERVIEW]!);
+        const id: string | null = Navigation.getParamByName(
+            RouteParams.StatusPageId,
+            RouteMap[PageMap.PREVIEW_OVERVIEW]!
+        );
         if (id) {
             return new ObjectID(id);
         }
 
-        throw new BadDataException("Status Page ID not found");
+        throw new BadDataException('Status Page ID not found');
     };
 
     useAsyncEffect(async () => {
         try {
             setIsLoading(true);
             const id = await getId();
-            setStatusPageId(id)
+            setStatusPageId(id);
             LocalStorage.setItem('statusPageId', id);
-            const response = await BaseAPI.post<JSONObject>(URL.fromString(DASHBOARD_API_URL.toString()).addRoute(`/status-page/master-page/${id.toString()}`), {}, {});
+            const response = await BaseAPI.post<JSONObject>(
+                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                    `/status-page/master-page/${id.toString()}`
+                ),
+                {},
+                {}
+            );
             setMasterPageData(response.data);
 
-
             // setfavicon.
-            const favIcon = JSONFunctions.getJSONValueInPath(response.data || {}, "statusPage.faviconFile") as File;
+            const favIcon = JSONFunctions.getJSONValueInPath(
+                response.data || {},
+                'statusPage.faviconFile'
+            ) as File;
             if (favIcon && favIcon.file) {
-                let link = document.createElement('link');
+                const link = document.createElement('link');
                 link.rel = 'icon';
-                (document as any).getElementsByTagName('head')[0].appendChild(link);
+                (document as any)
+                    .getElementsByTagName('head')[0]
+                    .appendChild(link);
                 link.href = ImageFunctions.getImageURL(favIcon);
             }
 
             // setcss.
-            const css = JSONFunctions.getJSONValueInPath(response.data || {}, "statusPage.customCSS") as string;
+            const css = JSONFunctions.getJSONValueInPath(
+                response.data || {},
+                'statusPage.customCSS'
+            ) as string;
             if (css) {
-                let style = document.createElement('style');
+                const style = document.createElement('style');
                 style.innerText = css;
-                (document as any).getElementsByTagName('head')[0].appendChild(style);
+                (document as any)
+                    .getElementsByTagName('head')[0]
+                    .appendChild(style);
             }
 
-            const headHtml = JSONFunctions.getJSONValueInPath(response.data || {}, "statusPage.headerHTML") as string;
-            const footHTML = JSONFunctions.getJSONValueInPath(response.data || {}, "statusPage.footerHTML") as string;
-            
-            
+            const headHtml = JSONFunctions.getJSONValueInPath(
+                response.data || {},
+                'statusPage.headerHTML'
+            ) as string;
+            const footHTML = JSONFunctions.getJSONValueInPath(
+                response.data || {},
+                'statusPage.footerHTML'
+            ) as string;
+
             if (headHtml) {
                 setHeaderHtml(headHtml);
             }
-            
+
             if (footHTML) {
                 setFooterHTML(footHTML);
             }
@@ -94,7 +118,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -103,41 +127,84 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         }
     }, []);
 
-
-
     if (isLoading) {
-        return <PageLoader isVisible={true} />
+        return <PageLoader isVisible={true} />;
     }
 
     if (error) {
-        return <ErrorMessage error={error} />
+        return <ErrorMessage error={error} />;
     }
 
     console.log(headerHtml);
 
     return (
         <MasterPage
-
-            footer={!footerHtml ? <Footer
-                copyright={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.copyrightText") as string || ''}
-
-                links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "footerLinks") as Array<JSONObject> || []).map((link) => {
-                    return {
-                        title: link['title'] as string,
-                        to: link['link'] as URL,
-                        openInNewTab: true,
-                    }
-                })} /> : <div dangerouslySetInnerHTML={{ __html: footerHtml as string }} />}
-            header={!headerHtml ? <Header
-                logo={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.logoFile") as BaseModel || undefined}
-                banner={JSONFunctions.getJSONValueInPath(masterPageData || {}, "statusPage.coverImageFile") as BaseModel || undefined}
-                links={(JSONFunctions.getJSONValueInPath(masterPageData || {}, "headerLinks") as Array<JSONObject> || []).map((link) => {
-                    return {
-                        title: link['title'] as string,
-                        to: link['link'] as URL,
-                        openInNewTab: true,
-                    }
-                })} /> : <div dangerouslySetInnerHTML={{ __html: headerHtml as string }} />}
+            footer={
+                !footerHtml ? (
+                    <Footer
+                        copyright={
+                            (JSONFunctions.getJSONValueInPath(
+                                masterPageData || {},
+                                'statusPage.copyrightText'
+                            ) as string) || ''
+                        }
+                        links={(
+                            (JSONFunctions.getJSONValueInPath(
+                                masterPageData || {},
+                                'footerLinks'
+                            ) as Array<JSONObject>) || []
+                        ).map((link) => {
+                            return {
+                                title: link['title'] as string,
+                                to: link['link'] as URL,
+                                openInNewTab: true,
+                            };
+                        })}
+                    />
+                ) : (
+                    <div
+                        dangerouslySetInnerHTML={{
+                            __html: footerHtml as string,
+                        }}
+                    />
+                )
+            }
+            header={
+                !headerHtml ? (
+                    <Header
+                        logo={
+                            (JSONFunctions.getJSONValueInPath(
+                                masterPageData || {},
+                                'statusPage.logoFile'
+                            ) as BaseModel) || undefined
+                        }
+                        banner={
+                            (JSONFunctions.getJSONValueInPath(
+                                masterPageData || {},
+                                'statusPage.coverImageFile'
+                            ) as BaseModel) || undefined
+                        }
+                        links={(
+                            (JSONFunctions.getJSONValueInPath(
+                                masterPageData || {},
+                                'headerLinks'
+                            ) as Array<JSONObject>) || []
+                        ).map((link) => {
+                            return {
+                                title: link['title'] as string,
+                                to: link['link'] as URL,
+                                openInNewTab: true,
+                            };
+                        })}
+                    />
+                ) : (
+                    <div
+                        dangerouslySetInnerHTML={{
+                            __html: headerHtml as string,
+                        }}
+                    />
+                )
+            }
             navBar={<NavBar show={true} isPreview={true} />}
             isLoading={props.isLoading || false}
             error={props.error || ''}
