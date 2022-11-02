@@ -171,7 +171,6 @@ const App: FunctionComponent = () => {
             isLoading={isLoading}
             projects={projects}
             error={error}
-            selectedProject={selectedProject}
             onProjectSelected={onProjectSelected}
             onProjectRequestAccepted={() => {
                 fetchProjects();
