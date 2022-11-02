@@ -191,7 +191,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 eventTimeline: timeline,
                 eventType: 'Scheduled Maintenance',
                 eventViewRoute: RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route,
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route : RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route,
                     scheduledMaintenance.id!
                 ),
             });

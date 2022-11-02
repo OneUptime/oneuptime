@@ -104,7 +104,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -177,10 +177,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 eventDescription: incident.description,
                 eventTimeline: timeline,
                 eventType: 'Incident',
-                eventViewRoute: RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.INCIDENT_DETAIL] as Route,
-                    incident.id!
-                ),
+                eventViewRoute: RouteUtil.populateRouteParams(props.isPreviewPage ?
+                    RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route :
+                        RouteMap[PageMap.INCIDENT_DETAIL] as Route,
+                        incident.id!
+                    ),
             });
         }
 

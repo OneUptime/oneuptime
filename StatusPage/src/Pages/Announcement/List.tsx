@@ -129,7 +129,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 footerEventStatus: 'Announced at',
                 footerDateTime: announcement.showAnnouncementAt,
                 eventViewRoute: RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route,
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route : RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route,
                     announcement.id!
                 ),
             });
