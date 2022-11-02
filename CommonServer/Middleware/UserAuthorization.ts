@@ -71,7 +71,14 @@ export default class UserMiddleware {
             return next();
         }
 
-        oneuptimeRequest.userAuthorization = JSONWebToken.decode(accessToken);
+        try {
+            oneuptimeRequest.userAuthorization =
+                JSONWebToken.decode(accessToken);
+        } catch (err) {
+            // if the tokken is invalid or expired, it'll throw this error.
+            oneuptimeRequest.userType = UserType.Public;
+            return next();
+        }
 
         if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
             oneuptimeRequest.userType = UserType.MasterAdmin;

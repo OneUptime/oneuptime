@@ -1,6 +1,6 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
@@ -21,6 +21,13 @@ import Color from 'Common/Types/Color';
 import Card from 'CommonUI/src/Components/Card/Card';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import OneUptimeDate from 'Common/Types/Date';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import useAsyncEffect from 'use-async-effect';
+import InBetween from 'Common/Types/Database/InBetween';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import SortOrder from 'Common/Types/Database/SortOrder';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -28,6 +35,61 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
     const modelId: ObjectID = new ObjectID(
         Navigation.getLastParam()?.toString().substring(1) || ''
     );
+
+    const [data, setData] = useState<Array<MonitorStatusTimeline>>([]);
+    const [error, setError] = useState<string>('');
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
+    const endDate: Date = OneUptimeDate.getCurrentDate();
+
+    useAsyncEffect(async () => {
+        await fetchItem();
+    }, []);
+
+    const fetchItem: Function = async (): Promise<void> => {
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const monitorStatus: ListResult<MonitorStatusTimeline> =
+                await ModelAPI.getList(
+                    MonitorStatusTimeline,
+                    {
+                        createdAt: new InBetween(startDate, endDate),
+                        monitorId: modelId,
+                    },
+                    LIMIT_PER_PROJECT,
+                    0,
+                    {
+                        createdAt: true,
+                        monitorId: true,
+                    },
+                    {
+                        createdAt: SortOrder.Ascending,
+                    },
+                    {
+                        monitorStatus: {
+                            name: true,
+                            color: true,
+                            priority: true,
+                        },
+                    }
+                );
+
+            setData(monitorStatus.data);
+        } catch (err) {
+            try {
+                setError(
+                    (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
+                );
+            } catch (e) {
+                setError('Server Error. Please try again');
+            }
+        }
+
+        setIsLoading(false);
+    };
 
     return (
         <Page
@@ -203,9 +265,11 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 icon={IconProp.Graph}
             >
                 <MonitorUptimeGraph
+                    error={error}
+                    items={data}
                     startDate={OneUptimeDate.getSomeDaysAgo(90)}
                     endDate={OneUptimeDate.getCurrentDate()}
-                    monitorId={modelId}
+                    isLoading={isLoading}
                 />
             </Card>
         </Page>

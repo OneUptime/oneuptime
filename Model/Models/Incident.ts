@@ -370,10 +370,10 @@ export default class Incident extends BaseModel {
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
     @Index()
-    @TableColumn({ type: TableColumnType.ObjectID, required: true })
+    @TableColumn({ type: TableColumnType.ObjectID, required: false })
     @Column({
         type: ColumnType.ObjectID,
-        nullable: false,
+        nullable: true,
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public changeMonitorStatusToId?: ObjectID = undefined;

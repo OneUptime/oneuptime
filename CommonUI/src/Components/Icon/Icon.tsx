@@ -55,6 +55,7 @@ import {
     Link2,
     ExternalLink,
     Layers,
+    Codesandbox,
 } from 'react-feather';
 
 export enum SizeProp {
@@ -76,6 +77,7 @@ export enum ThickProp {
 
 export enum IconProp {
     File,
+    Automation,
     User,
     Disc,
     Settings,
@@ -469,6 +471,13 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.False && (
                 <X
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+            {icon === IconProp.Automation && (
+                <Codesandbox
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : (undefined as any)}

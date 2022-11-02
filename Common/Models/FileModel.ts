@@ -1,4 +1,5 @@
 import { Column } from 'typeorm';
+import ColumnAccessControl from '../Types/Database/AccessControl/ColumnAccessControl';
 import ColumnLength from '../Types/Database/ColumnLength';
 import ColumnType from '../Types/Database/ColumnType';
 import SlugifyColumn from '../Types/Database/SlugifyColumn';
@@ -6,6 +7,7 @@ import TableColumn from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
 import MimeType from '../Types/File/MimeType';
 import ObjectID from '../Types/ObjectID';
+import Permission from '../Types/Permission';
 import BaseModel from './BaseModel';
 
 @SlugifyColumn('name', 'slug')
@@ -18,6 +20,11 @@ export default class FileModel extends BaseModel {
         return true;
     }
 
+    @ColumnAccessControl({
+        create: [Permission.CurrentUser],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
     @TableColumn({
         required: true,
         type: TableColumnType.File,
@@ -29,6 +36,11 @@ export default class FileModel extends BaseModel {
     })
     public file?: Buffer = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.CurrentUser],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
@@ -41,6 +53,11 @@ export default class FileModel extends BaseModel {
     })
     public name?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.CurrentUser],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
     @TableColumn({
         required: true,
         type: TableColumnType.ShortText,
@@ -53,6 +70,11 @@ export default class FileModel extends BaseModel {
     })
     public type?: MimeType = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.CurrentUser],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
     @TableColumn({
         required: true,
         unique: true,
@@ -66,6 +88,11 @@ export default class FileModel extends BaseModel {
     })
     public slug?: string = undefined;
 
+    @ColumnAccessControl({
+        create: [Permission.CurrentUser],
+        read: [Permission.CurrentUser],
+        update: [],
+    })
     @TableColumn({
         required: true,
         isDefaultValueColumn: true,

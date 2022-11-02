@@ -1,24 +1,22 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Image from 'CommonUI/src/Components/Image/Image';
-import PlaceholderBanner from 'CommonUI/src/Images/banner/placeholder.png';
-import Route from 'Common/Types/API/Route';
+import File from 'Model/Models/File';
 
 export interface ComponentProps {
     onClick?: () => void | undefined;
+    file: File;
 }
 
 const Banner: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="flex items-center" style={{ marginLeft: '-25px' }}>
+        <div className="flex items-center">
             <Image
                 onClick={() => {
                     props.onClick && props.onClick();
                 }}
-                imageUrl={Route.fromString(
-                    `/status-page/public/${PlaceholderBanner}`
-                )}
+                file={props.file}
             />
         </div>
     );

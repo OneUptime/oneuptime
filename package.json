@@ -45,6 +45,7 @@
         "ps-dev": "npm run prerun && docker-compose -f docker-compose.dev.yml ps",
         "logs-dev": "npm run prerun && docker-compose -f docker-compose.dev.yml logs --tail=100 -f $npm_config_services",
         "force-build-dev": "docker-compose  --env-file ./docker-enterprise.env -f docker-compose.dev.yml build --no-cache $npm_config_services",
+        "kill-dev": "docker-compose  --env-file ./docker-enterprise.env -f docker-compose.dev.yml down",
         "prod": "npm run prerun && docker-compose up -d",
         "dev": "npm run prerun && npm run start-enterprise-dev $npm_config_services",
         "saas-dev": "npm run prerun && export IS_SAAS_SERVICE=true && npm run dev $npm_config_services",

@@ -54,6 +54,7 @@ export default class QueryHelper {
             return value.toString();
         });
         const rid: string = Text.generateRandomText(10);
+
         return Raw(
             (alias: string) => {
                 return `${alias} IN (:...${rid})`;

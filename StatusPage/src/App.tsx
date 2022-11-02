@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useState } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
     Routes,
@@ -24,14 +24,35 @@ import PageMap from './Utils/PageMap';
 
 import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
     Navigation.setParams(useParams());
 
+    // js.
+    const [javascript, setJavaScript] = useState<string | null>(null);
+
+    const onPageLoadComplete: Function = (): void => {
+        if (javascript) {
+            eval(javascript);
+        }
+    };
+
     return (
-        <MasterPage>
+        <MasterPage
+            onLoadComplete={(masterpage: JSONObject) => {
+                const javascript: string | null =
+                    JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage.customJavaScript'
+                    ) as string | null;
+                if (javascript) {
+                    setJavaScript(javascript);
+                }
+            }}
+        >
             <Routes>
                 {/* Live */}
 
@@ -40,6 +61,9 @@ const App: FunctionComponent = () => {
                     element={
                         <Overview
                             pageRoute={RouteMap[PageMap.OVERVIEW] as Route}
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                         />
                     }
                 />
@@ -53,6 +77,9 @@ const App: FunctionComponent = () => {
                                     PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                         />
                     }
                 />
@@ -64,6 +91,9 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route
                             }
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                         />
                     }
                 />
@@ -75,6 +105,9 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.INCIDENT_DETAIL] as Route
                             }
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                         />
                     }
                 />
@@ -84,6 +117,9 @@ const App: FunctionComponent = () => {
                     element={
                         <IncidentList
                             pageRoute={RouteMap[PageMap.INCIDENT_LIST] as Route}
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                         />
                     }
                 />
@@ -95,6 +131,9 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route
                             }
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                         />
                     }
                 />
@@ -106,6 +145,9 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route
                             }
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                         />
                     }
                 />
@@ -115,6 +157,9 @@ const App: FunctionComponent = () => {
                     element={
                         <Subscribe
                             pageRoute={RouteMap[PageMap.SUBSCRIBE] as Route}
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                         />
                     }
                 />
@@ -125,6 +170,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.PREVIEW_OVERVIEW]?.toString()}
                     element={
                         <Overview
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_OVERVIEW] as Route
                             }
@@ -136,6 +184,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.PREVIEW_SUBSCRIBE]?.toString()}
                     element={
                         <Subscribe
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route
                             }
@@ -149,6 +200,9 @@ const App: FunctionComponent = () => {
                     ]?.toString()}
                     element={
                         <ScheduledEventDetail
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
@@ -164,6 +218,9 @@ const App: FunctionComponent = () => {
                     ]?.toString()}
                     element={
                         <ScheduledEventList
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_SCHEDULED_EVENT_LIST
@@ -177,6 +234,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL]?.toString()}
                     element={
                         <IncidentDetail
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_INCIDENT_DETAIL
@@ -190,6 +250,9 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.PREVIEW_INCIDENT_LIST]?.toString()}
                     element={
                         <IncidentList
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route
                             }
@@ -203,6 +266,9 @@ const App: FunctionComponent = () => {
                     ]?.toString()}
                     element={
                         <AnnouncementDetail
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
@@ -218,6 +284,9 @@ const App: FunctionComponent = () => {
                     ]?.toString()}
                     element={
                         <AnnouncementList
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_ANNOUNCEMENT_LIST
@@ -233,6 +302,9 @@ const App: FunctionComponent = () => {
                     path="*"
                     element={
                         <PageNotFound
+                            onLoadComplete={() => {
+                                onPageLoadComplete();
+                            }}
                             pageRoute={RouteMap[PageMap.NOT_FOUND] as Route}
                         />
                     }

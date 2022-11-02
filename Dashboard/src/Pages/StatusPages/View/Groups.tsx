@@ -67,6 +67,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 sortOrder={SortOrder.Ascending}
                 isCreateable={true}
                 isViewable={false}
+                isEditable={true}
                 query={{
                     statusPageId: modelId,
                     projectId: props.currentProject?._id,
@@ -111,6 +112,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Resource Group Description',
                     },
+                    {
+                        field: {
+                            isExpandedByDefault: true,
+                        },
+                        title: 'Is this group expanded by default on the staus page?',
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        required: false,
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -130,6 +139,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            isExpandedByDefault: true,
+                        },
+                        title: 'Expanded on Status Page by Default',
+                        type: FieldType.Boolean,
                         isFilterable: true,
                     },
                 ]}

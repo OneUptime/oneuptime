@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
-import SearchBox from './SearchBox';
-import Notifications from './Notifications';
+// import SearchBox from './SearchBox';
+// import Notifications from './Notifications';
 import Help from './Help';
 import UserProfile from './UserProfile';
 import ProjectPicker from './ProjectPicker';
@@ -21,7 +21,6 @@ export interface ComponentProps {
     onProjectSelected: (project: Project) => void;
     onProjectRequestAccepted: () => void;
     onProjectRequestRejected: () => void;
-    selectedProject: Project | null;
     showProjectModal: boolean;
     onProjectModalClose: () => void;
 }
@@ -52,11 +51,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
                         />
-                        <SearchBox
+                        {/* <SearchBox
                             key={2}
                             selectedProject={props.selectedProject}
                             onChange={(_value: string) => {}}
-                        />
+                        /> */}
                         <div
                             style={{
                                 marginLeft: '15px',
@@ -102,7 +101,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 }
                 rightComponents={
                     <>
-                        <Notifications />
+                        {/* <Notifications /> */}
                         <Help />
                         <UserProfile />
                     </>

@@ -6,7 +6,8 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
-        <Page title={'Page Not Found'}>
+        <Page>
+            <h1>Page Not Found</h1>
             <p>Page you are looking for does not exist.</p>
         </Page>
     );

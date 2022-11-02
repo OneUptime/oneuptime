@@ -25,7 +25,7 @@ const DashboardUserProfile: FunctionComponent = (): ReactElement => {
                     route={new Route('/logout')}
                     icon={IconProp.User}
                 />
-                <UserProfileMenuItem
+                {/* <UserProfileMenuItem
                     title="Billing"
                     route={new Route('/logout')}
                     icon={IconProp.Billing}
@@ -34,7 +34,7 @@ const DashboardUserProfile: FunctionComponent = (): ReactElement => {
                     title="User Settings"
                     route={new Route('/logout')}
                     icon={IconProp.Settings}
-                />
+                /> */}
                 <UserProfileDropdownDivider />
                 <UserProfileMenuItem
                     title="Log out"

@@ -303,6 +303,14 @@ export default class BaseModel extends BaseEntity {
                     tableColumnMetadata.modelType &&
                     tableColumnMetadata.type === TableColumnType.Entity
                 ) {
+                    if (
+                        json[key] &&
+                        Array.isArray(json[key]) &&
+                        (json[key] as Array<any>).length > 0
+                    ) {
+                        json[key] = (json[key] as Array<any>)[0];
+                    }
+
                     (baseModel as any)[key] =
                         new tableColumnMetadata.modelType().fromJSON(
                             json[key] as JSONObject,
@@ -313,11 +321,14 @@ export default class BaseModel extends BaseEntity {
                     tableColumnMetadata.modelType &&
                     tableColumnMetadata.type === TableColumnType.EntityArray
                 ) {
-                    (baseModel as any)[key] =
-                        new tableColumnMetadata.modelType().fromJSONArray(
-                            json[key] as JSONArray,
-                            tableColumnMetadata.modelType
-                        );
+                    if (json[key] && !Array.isArray(json[key])) {
+                        json[key] = [json[key]];
+                    }
+
+                    (baseModel as any)[key] = BaseModel.fromJSONArray(
+                        json[key] as JSONArray,
+                        tableColumnMetadata.modelType
+                    );
                 } else {
                     (baseModel as any)[key] = json[key];
                 }
@@ -358,7 +369,7 @@ export default class BaseModel extends BaseEntity {
         return BaseModel._fromJSON<T>(json, type);
     }
 
-    public fromJSONArray<T extends BaseModel>(
+    public static fromJSONArray<T extends BaseModel>(
         json: Array<JSONObject>,
         type: { new (): T }
     ): Array<T> {

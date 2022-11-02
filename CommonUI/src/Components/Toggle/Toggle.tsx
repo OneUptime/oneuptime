@@ -23,6 +23,10 @@ const Toggle: FunctionComponent<ComponentProps> = (
     useEffect(() => {
         if (props.initialValue) {
             setIsChecked(props.initialValue);
+            props.onChange(true);
+        } else {
+            setIsChecked(false);
+            props.onChange(false);
         }
     }, [props.initialValue]);
 

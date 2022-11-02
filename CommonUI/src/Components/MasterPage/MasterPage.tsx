@@ -39,7 +39,9 @@ const MasterPage: FunctionComponent<ComponentProps> = (
                 <div className="main-content" style={props.mainContentStyle}>
                     {props.children}
                 </div>
-                {props.footer && props.footer}
+                <div style={{ marginTop: '20px' }}>
+                    {props.footer && props.footer}
+                </div>
             </div>
         </React.Fragment>
     );

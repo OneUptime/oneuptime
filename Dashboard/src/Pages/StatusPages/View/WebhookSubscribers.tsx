@@ -114,6 +114,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Webhook URL',
                         type: FieldType.URL,
                     },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Subscribed At',
+                        type: FieldType.DateTime,
+                    },
                 ]}
             />
         </Page>

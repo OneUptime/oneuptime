@@ -29,15 +29,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Label}
                 />
-                <SideMenuItem
+                {/* <SideMenuItem
                     link={{
                         title: 'Integrations',
                         to: new Route('/:projectSlug/home'),
                     }}
                     icon={IconProp.Integrations}
-                />
+                /> */}
             </SideMenuSection>
-            <SideMenuSection title="Templates">
+            {/* <SideMenuSection title="Templates">
                 <SideMenuItem
                     link={{
                         title: 'Email Templates',
@@ -52,7 +52,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.SMS}
                 />
-            </SideMenuSection>
+            </SideMenuSection> */}
             <SideMenuSection title="Monitors">
                 <SideMenuItem
                     link={{
@@ -85,13 +85,13 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Error}
                 />
-                <SideMenuItem
+                {/* <SideMenuItem
                     link={{
                         title: 'Incident Templates',
                         to: new Route('/:projectSlug/home'),
                     }}
                     icon={IconProp.TextFile}
-                />
+                /> */}
             </SideMenuSection>
             <SideMenuSection title="Scheduled Maintenance">
                 <SideMenuItem
@@ -136,7 +136,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.Terminal}
                 />
-                <SideMenuItem
+                {/* <SideMenuItem
                     link={{
                         title: 'SSO',
                         to: new Route('/:projectSlug/home'),
@@ -151,14 +151,14 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         ),
                     }}
                     icon={IconProp.Email}
-                />
-                <SideMenuItem
+                /> */}
+                {/* <SideMenuItem
                     link={{
                         title: 'SMS & Call Provider',
                         to: new Route('/:projectSlug/home'),
                     }}
                     icon={IconProp.Call}
-                />
+                /> */}
             </SideMenuSection>
             <SideMenuSection title="Danger Zone">
                 <SideMenuItem

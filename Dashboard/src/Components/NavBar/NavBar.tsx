@@ -1,9 +1,9 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import NavBar from 'CommonUI/src/Components/Navbar/NavBar';
-import NavBarMenu from 'CommonUI/src/Components/Navbar/NavBarMenu';
+// import NavBarMenu from 'CommonUI/src/Components/Navbar/NavBarMenu';
 import NavBarItem from 'CommonUI/src/Components/Navbar/NavBarItem';
-import NavBarMenuItem from 'CommonUI/src/Components/Navbar/NavBarMenuItem';
-import NavBarMenuColumn from 'CommonUI/src/Components/Navbar/NavBarMenuColumn';
+// import NavBarMenuItem from 'CommonUI/src/Components/Navbar/NavBarMenuItem';
+// import NavBarMenuColumn from 'CommonUI/src/Components/Navbar/NavBarMenuColumn';
 import Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import PageMap from '../../Utils/PageMap';
@@ -72,7 +72,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 )}
             ></NavBarItem>
 
-            <NavBarItem title="More" icon={IconProp.More}>
+            {/* <NavBarItem title="More" icon={IconProp.More}>
                 <NavBarMenu>
                     <NavBarMenuColumn title="More">
                         <NavBarMenuItem
@@ -114,7 +114,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                         />
                     </NavBarMenuColumn>
                 </NavBarMenu>
-            </NavBarItem>
+            </NavBarItem> */}
         </NavBar>
     );
 };

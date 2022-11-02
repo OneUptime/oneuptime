@@ -3,6 +3,7 @@ import Dictionary from 'Common/Types/Dictionary';
 import PageMap from './PageMap';
 import RouteParams from './RouteParams';
 import ObjectID from 'Common/Types/ObjectID';
+import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 
 const RouteMap: Dictionary<Route> = {
     [PageMap.OVERVIEW]: new Route(`/`),
@@ -54,6 +55,15 @@ export class RouteUtil {
             route = tempRoute.addRouteParam(
                 RouteParams.ModelID,
                 modelId.toString()
+            );
+        }
+
+        const id: ObjectID = LocalStorage.getItem('statusPageId') as ObjectID;
+
+        if (id) {
+            route = tempRoute.addRouteParam(
+                RouteParams.StatusPageId,
+                id.toString()
             );
         }
 

@@ -1,26 +1,18 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import FullLogo from 'CommonUI/src/Components/Image/Image';
-import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
-import Route from 'Common/Types/API/Route';
+import Image from 'CommonUI/src/Components/Image/Image';
+import File from 'Model/Models/File';
 
 export interface ComponentProps {
     onClick: () => void;
+    file: File;
 }
 
 const Logo: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="flex items-center" style={{ marginLeft: '-25px' }}>
-            <FullLogo
-                height={30}
-                onClick={() => {
-                    props.onClick && props.onClick();
-                }}
-                imageUrl={Route.fromString(
-                    `/status-page/public/${OneUptimeLogo}`
-                )}
-            />
+        <div className="flex items-center">
+            <Image file={props.file} onClick={props.onClick} height={50} />
         </div>
     );
 };

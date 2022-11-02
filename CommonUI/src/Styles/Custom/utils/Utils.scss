@@ -8,36 +8,36 @@
     }
 }
 
-.underline{
+.underline {
     text-decoration: underline !important;
 }
 
-.color-light-grey{
+.color-light-grey {
     color: $color-light-grey;
 }
 
-.color-grey{
+.color-grey {
     color: $color-grey;
 }
 
 .vertical-line {
     border-left: 6px solid green;
     height: 500px;
-  }
+}
 
-.bold{
+.bold {
     font-weight: bold;
 }
 
-.small-circle{
+.small-circle {
     height: 20px;
     width: 20px;
     border-radius: 20px;
 }
 
-.uptime-bar{
-    height: 55px; 
-    width: 30px; 
+.uptime-bar {
+    height: 55px;
+    width: 30px;
     background-color: $color-green;
     margin: 2px;
     border-radius: 2px;
@@ -91,37 +91,36 @@
     }
 }
 
-.white-background-on-readonly{
+.white-background-on-readonly {
     &:read-only {
         background-color: $color-white;
     }
 }
 
-.margin-10{
-   margin: 10px
+.margin-10 {
+    margin: 10px
 }
 
-.margin-5{
+.margin-5 {
     margin: 5px
- }
+}
 
- .margin-side-5{
+.margin-side-5 {
     margin-left: 5px;
     margin-right: 5px
+}
 
- }
 
-
- .margin-50{
+.margin-50 {
     margin: 50px
- }
+}
 
 
-.margin-15{
+.margin-15 {
     margin: 15px
- }
- 
-.full-page-modal{
+}
+
+.full-page-modal {
     position: absolute;
     top: 0;
     left: 0;
@@ -175,6 +174,7 @@
 
 .no-border-on-hover {
     border: none !important;
+
     &:hover {
         border: none !important;
     }
@@ -184,11 +184,11 @@
     display: flex !important;
 }
 
-.align-right{
+.align-right {
     text-align: right;
 }
 
-.padding-0{
+.padding-0 {
     padding: 0px !important;
 }
 
@@ -204,7 +204,7 @@
     padding-left: 10px;
 }
 
-.margin-30{
+.margin-30 {
     margin: 30px;
 }
 
@@ -242,11 +242,11 @@
 }
 
 
-.vertical-center{
+.vertical-center {
     margin-top: 20%;
 }
 
-.padding-15{
+.padding-15 {
     padding: 15px;
 }
 
@@ -254,7 +254,7 @@
 
 
 // Lists 
-.list-item{
+.list-item {
     border-style: solid;
     border-width: 2px;
     border-color: $color-very-light-grey;
@@ -263,18 +263,18 @@
     border-left: 0px;
 }
 
-.modal-dialog{
+.modal-dialog {
     opacity: 1;
 }
 
-.text-align-left{
+.text-align-left {
     text-align: left;
 }
 
 
 //// Ordered List
 
-.ordered-list-item{
+.ordered-list-item {
     border-style: solid;
     margin: auto;
     text-align: center;
@@ -285,7 +285,7 @@
     border-color: $color-light-grey;
 }
 
-.ordered-list-item-add-button{
+.ordered-list-item-add-button {
     border-style: dashed;
     border-radius: 500px;
     width: 300px;
@@ -312,41 +312,48 @@
     height: 100px;
     padding: 4px;
     box-sizing: border-box
-};
+}
+
+;
 
 .file-picker-thumb-inner {
     display: flex;
     min-width: 0px;
     overflow: hidden;
     margin-left: -25px;
-};
+}
+
+;
 
 .file-picker-img {
     display: block;
     width: auto;
     height: 100%
-};
+}
 
-.file-picker-placeholder{
+;
+
+.file-picker-placeholder {
     text-align: center;
     margin: 20px;
 }
 
-.file-picker-dropzone{
+.file-picker-dropzone {
     min-height: unset;
     border: 2px dashed #ced4da;
     background: #fff;
     border-radius: 6px;
     cursor: pointer;
 }
-.file-picker-delete-logo{
+
+.file-picker-delete-logo {
     cursor: pointer;
     text-align: right;
     position: relative;
     top: -15px;
     left: 80px;
     background-color: $color-red;
-    color: $color-white; 
+    color: $color-white;
     border-radius: 150px;
     padding: 5px;
     height: 25px;
@@ -355,23 +362,28 @@
 
 // no visible scrollbar
 .no-scrollbar {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* Internet Explorer 10+ */
+    scrollbar-width: none;
+    /* Firefox */
 }
-.no-scrollbar::-webkit-scrollbar { 
-    display: none;  /* Safari and Chrome */
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+    /* Safari and Chrome */
 }
 
 // drag and drop pointers
 
 .grabbable {
-    cursor: move; /* fallback if grab cursor is unsupported */
+    cursor: move;
+    /* fallback if grab cursor is unsupported */
     cursor: grab;
     cursor: -moz-grab;
     cursor: -webkit-grab;
 }
 
- /* (Optional) Apply a "closed-hand" cursor during drag operation. */
+/* (Optional) Apply a "closed-hand" cursor during drag operation. */
 .grabbable:active {
     cursor: grabbing;
     cursor: -moz-grabbing;
@@ -384,3 +396,119 @@
     background-color: $color-white;
 }
 
+.accordian-left-elements {
+    display: flex;
+}
+
+
+.accordian-group {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 5px;
+    margin: 0px;
+    margin-bottom: 20px;
+    margin-top: 20px;
+}
+
+.accordian-children {
+    padding: 20px;
+}
+
+.accordian-right-element {
+    margin-right: 10px;
+}
+
+.accordian-header {
+    display: flex;
+    font-size: 17px;
+    justify-content: space-between;
+}
+
+.accordian-row {
+    border-bottom-width: 1px;
+    border-style: solid;
+    border-top-width: 0px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    margin: 0px;
+}
+
+.font16 {
+    font-size: 16px;
+}
+
+
+// Active event. 
+.active-event-box {
+    border-color: $color-red;
+    border-radius: 5px;
+    margin-bottom: 50px;
+    border-width: 2px;
+    border-style: solid;
+    padding: 0px;
+}
+
+.active-event-box-header {
+    background-color: $color-red;
+    padding: 10px;
+    display: flex;
+    font-size: 15px;
+    font-weight: 800;
+    border-radius: 5px;
+    margin-left: -2px;
+    margin-right: -2px;
+    margin-top: -1px;
+}
+
+.active-event-box-header-icon {
+    color: $color-white;
+    margin-left: 10px;
+}
+
+.active-event-box-header-title {
+    color: $color-white;
+    margin-left: 10px;
+    border-width: 0px;
+    border-color: $color-red;
+    width: 100%;
+}
+
+.active-event-box-body {
+    padding: 20px;
+}
+
+.active-event-box-body-title {
+    font-size: 16px;
+}
+
+.active-event-box-body-description {
+    color: $color-black;
+    margin-bottom: 4px;
+}
+
+.active-event-box-body-timestamp {
+    color: $color-light-grey;
+}
+
+.event-history-box{
+    padding: 10px;
+    border-radius: 5px; 
+    border-color: $color-light-grey;
+    border-style: solid;
+    border-width: 1px;
+    margin-bottom: "20px"
+}
+
+.bottom-grey-border{
+    border-color: $color-light-grey;
+    border-style: solid;
+    border-width: 0px;
+    border-bottom-width: 1px;
+}
+
+.active-event-box-right-title{
+    opacity: 0.7;
+    font-size: 13px;
+}

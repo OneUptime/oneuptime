@@ -201,4 +201,16 @@ export default class StatusPageGroup extends BaseModel {
         type: ColumnType.Number,
     })
     public order?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageGroup],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageGroup],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageGroup],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: true,
+    })
+    public isExpandedByDefault?: boolean = undefined;
 }

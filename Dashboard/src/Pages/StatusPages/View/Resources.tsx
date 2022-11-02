@@ -97,6 +97,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 sortOrder={SortOrder.Ascending}
                 isCreateable={true}
                 isViewable={false}
+                isEditable={true}
                 query={{
                     statusPageId: modelId,
                     projectId: props.currentProject?._id,
