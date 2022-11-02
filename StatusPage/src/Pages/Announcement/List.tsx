@@ -65,10 +65,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 );
             const data: JSONObject = response.data;
 
-            const announcements: Array<StatusPageAnnouncement> = BaseModel.fromJSONArray(
-                (data['announcements'] as JSONArray) || [],
-                StatusPageAnnouncement
-            );
+            const announcements: Array<StatusPageAnnouncement> =
+                BaseModel.fromJSONArray(
+                    (data['announcements'] as JSONArray) || [],
+                    StatusPageAnnouncement
+                );
             const statusPageResources: Array<StatusPageResource> =
                 BaseModel.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],

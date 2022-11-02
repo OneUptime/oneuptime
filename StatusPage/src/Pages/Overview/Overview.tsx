@@ -103,7 +103,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {},
                     {}
                 );
-            const data = response.data;
+            const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
                 BaseModel.fromJSONArray(
@@ -112,46 +112,57 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
-            const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> = BaseModel.fromJSONArray(
-                (data['activeScheduledMaintenanceEvents'] as JSONArray) || [],
-                ScheduledMaintenance
-            );
-            const activeAnnouncements: Array<StatusPageAnnouncement> = BaseModel.fromJSONArray(
-                (data['activeAnnouncements'] as JSONArray) || [],
-                StatusPageAnnouncement
-            );
-            const incidentPublicNotes : Array<IncidentPublicNote>= BaseModel.fromJSONArray(
-                (data['incidentPublicNotes'] as JSONArray) || [],
-                IncidentPublicNote
-            );
+            const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+                BaseModel.fromJSONArray(
+                    (data['activeScheduledMaintenanceEvents'] as JSONArray) ||
+                        [],
+                    ScheduledMaintenance
+                );
+            const activeAnnouncements: Array<StatusPageAnnouncement> =
+                BaseModel.fromJSONArray(
+                    (data['activeAnnouncements'] as JSONArray) || [],
+                    StatusPageAnnouncement
+                );
+            const incidentPublicNotes: Array<IncidentPublicNote> =
+                BaseModel.fromJSONArray(
+                    (data['incidentPublicNotes'] as JSONArray) || [],
+                    IncidentPublicNote
+                );
             const activeIncidents: Array<Incident> = BaseModel.fromJSONArray(
                 (data['activeIncidents'] as JSONArray) || [],
                 Incident
             );
-            const monitorStatusTimelines: Array<MonitorStatusTimeline> = BaseModel.fromJSONArray(
-                (data['monitorStatusTimelines'] as JSONArray) || [],
-                MonitorStatusTimeline
-            );
-            const resourceGroups: Array<StatusPageGroup> = BaseModel.fromJSONArray(
-                (data['resourceGroups'] as JSONArray) || [],
-                StatusPageGroup
-            );
-            const monitorStatuses: Array<MonitorStatus> = BaseModel.fromJSONArray(
-                (data['monitorStatuses'] as JSONArray) || [],
-                MonitorStatus
-            );
-            const statusPageResources: Array<StatusPageResource> = BaseModel.fromJSONArray(
-                (data['statusPageResources'] as JSONArray) || [],
-                StatusPageResource
-            );
-            const incidentStateTimelines: Array<IncidentStateTimeline> = BaseModel.fromJSONArray(
-                (data['incidentStateTimelines'] as JSONArray) || [],
-                IncidentStateTimeline
-            );
-            const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> = BaseModel.fromJSONArray(
-                (data['scheduledMaintenanceStateTimelines'] as JSONArray) || [],
-                ScheduledMaintenanceStateTimeline
-            );
+            const monitorStatusTimelines: Array<MonitorStatusTimeline> =
+                BaseModel.fromJSONArray(
+                    (data['monitorStatusTimelines'] as JSONArray) || [],
+                    MonitorStatusTimeline
+                );
+            const resourceGroups: Array<StatusPageGroup> =
+                BaseModel.fromJSONArray(
+                    (data['resourceGroups'] as JSONArray) || [],
+                    StatusPageGroup
+                );
+            const monitorStatuses: Array<MonitorStatus> =
+                BaseModel.fromJSONArray(
+                    (data['monitorStatuses'] as JSONArray) || [],
+                    MonitorStatus
+                );
+            const statusPageResources: Array<StatusPageResource> =
+                BaseModel.fromJSONArray(
+                    (data['statusPageResources'] as JSONArray) || [],
+                    StatusPageResource
+                );
+            const incidentStateTimelines: Array<IncidentStateTimeline> =
+                BaseModel.fromJSONArray(
+                    (data['incidentStateTimelines'] as JSONArray) || [],
+                    IncidentStateTimeline
+                );
+            const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
+                BaseModel.fromJSONArray(
+                    (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
+                        [],
+                    ScheduledMaintenanceStateTimeline
+                );
 
             // save data. set()
             setScheduledMaintenanceEventsPublicNotes(
@@ -192,7 +203,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
     }, []);
 
-    const getOverallMonitorStatus = (
+    const getOverallMonitorStatus: Function = (
         statusPageResources: Array<StatusPageResource>,
         monitorStatuses: Array<MonitorStatus>
     ): MonitorStatus | null => {
@@ -251,12 +262,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
-                let currentStatus = monitorStatuses.find((status) => {
-                    return (
-                        status._id?.toString() ===
-                        resource.monitor?.currentMonitorStatusId?.toString()
-                    );
-                });
+                let currentStatus: MonitorStatus | undefined =
+                    monitorStatuses.find((status: MonitorStatus) => {
+                        return (
+                            status._id?.toString() ===
+                            resource.monitor?.currentMonitorStatusId?.toString()
+                        );
+                    });
 
                 if (!currentStatus) {
                     currentStatus = new MonitorStatus();
@@ -303,7 +315,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return elements;
     };
 
-    const getActiveIncidents: Function  = (): Array<IncidentGroup> => {
+    const getActiveIncidents: Function = (): Array<IncidentGroup> => {
         const groups: Array<IncidentGroup> = [];
 
         for (const activeIncident of activeIncidents) {
@@ -312,11 +324,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
 
             const timeline: IncidentStateTimeline | undefined =
-                incidentStateTimelines.find((timeline) => {
-                    return (
-                        timeline.incidentId?.toString() === activeIncident._id
-                    );
-                });
+                incidentStateTimelines.find(
+                    (timeline: IncidentStateTimeline) => {
+                        return (
+                            timeline.incidentId?.toString() ===
+                            activeIncident._id
+                        );
+                    }
+                );
 
             if (!timeline) {
                 throw new BadDataException('Incident Timeline not found.');
@@ -325,11 +340,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const group: IncidentGroup = {
                 incident: activeIncident,
                 incidentState: activeIncident.currentIncidentState,
-                publicNote: incidentPublicNotes.find((publicNote: IncidentPublicNote) => {
-                    return (
-                        publicNote.incidentId?.toString() === activeIncident._id
-                    );
-                }),
+                publicNote: incidentPublicNotes.find(
+                    (publicNote: IncidentPublicNote) => {
+                        return (
+                            publicNote.incidentId?.toString() ===
+                            activeIncident._id
+                        );
+                    }
+                ),
                 incidentSeverity: activeIncident.incidentSeverity!,
                 incidentStateTimeline: timeline,
             };
@@ -340,54 +358,59 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return groups;
     };
 
-    const getOngoingScheduledEvents: Function  = (): Array<ScheduledMaintenanceGroup> => {
-        const groups: Array<ScheduledMaintenanceGroup> = [];
+    const getOngoingScheduledEvents: Function =
+        (): Array<ScheduledMaintenanceGroup> => {
+            const groups: Array<ScheduledMaintenanceGroup> = [];
 
-        for (const activeEvent of activeScheduledMaintenanceEvents) {
-            if (!activeEvent.currentScheduledMaintenanceState) {
-                throw new BadDataException(
-                    'Scheduled Maintenance State not found.'
-                );
-            }
-
-            const timeline: ScheduledMaintenanceStateTimeline | undefined =
-                scheduledMaintenanceStateTimelines.find((timeline) => {
-                    return (
-                        timeline.scheduledMaintenanceId?.toString() ===
-                        activeEvent._id
+            for (const activeEvent of activeScheduledMaintenanceEvents) {
+                if (!activeEvent.currentScheduledMaintenanceState) {
+                    throw new BadDataException(
+                        'Scheduled Maintenance State not found.'
                     );
-                });
+                }
 
-            if (!timeline) {
-                throw new BadDataException('Incident Timeline not found.');
+                const timeline: ScheduledMaintenanceStateTimeline | undefined =
+                    scheduledMaintenanceStateTimelines.find(
+                        (timeline: ScheduledMaintenanceStateTimeline) => {
+                            return (
+                                timeline.scheduledMaintenanceId?.toString() ===
+                                activeEvent._id
+                            );
+                        }
+                    );
+
+                if (!timeline) {
+                    throw new BadDataException('Incident Timeline not found.');
+                }
+
+                const group: ScheduledMaintenanceGroup = {
+                    scheduledMaintenance: activeEvent,
+                    scheduledMaintenanceState:
+                        activeEvent.currentScheduledMaintenanceState,
+                    publicNote: scheduledMaintenanceEventsPublicNotes.find(
+                        (publicNote: ScheduledMaintenancePublicNote) => {
+                            return (
+                                publicNote.scheduledMaintenanceId?.toString() ===
+                                activeEvent._id
+                            );
+                        }
+                    ),
+                    scheduledMaintenanceStateTimeline: timeline,
+                };
+
+                groups.push(group);
             }
 
-            const group: ScheduledMaintenanceGroup = {
-                scheduledMaintenance: activeEvent,
-                scheduledMaintenanceState:
-                    activeEvent.currentScheduledMaintenanceState,
-                publicNote: scheduledMaintenanceEventsPublicNotes.find(
-                    (publicNote: ScheduledMaintenancePublicNote) => {
-                        return (
-                            publicNote.scheduledMaintenanceId?.toString() ===
-                            activeEvent._id
-                        );
-                    }
-                ),
-                scheduledMaintenanceStateTimeline: timeline,
-            };
+            return groups;
+        };
 
-            groups.push(group);
-        }
-
-        return groups;
-    };
-
-    const getRightAccordianElement: Function  = (group: StatusPageGroup): ReactElement => {
+    const getRightAccordianElement: Function = (
+        group: StatusPageGroup
+    ): ReactElement => {
         let currentStatus: MonitorStatus = new MonitorStatus();
         currentStatus.name = 'Operational';
         currentStatus.color = Green;
-        let hasReosurce = false;
+        let hasReosurce: boolean = false;
 
         for (const resource of statusPageResources) {
             if (
@@ -400,12 +423,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 (!resource.statusPageGroupId && !group)
             ) {
                 hasReosurce = true;
-                const currentMonitorStatus = monitorStatuses.find((status: MonitorStatus) => {
-                    return (
-                        status._id?.toString() ===
-                        resource.monitor?.currentMonitorStatusId?.toString()
-                    );
-                });
+                const currentMonitorStatus: MonitorStatus | undefined =
+                    monitorStatuses.find((status: MonitorStatus) => {
+                        return (
+                            status._id?.toString() ===
+                            resource.monitor?.currentMonitorStatusId?.toString()
+                        );
+                    });
 
                 if (
                     (currentStatus &&
@@ -437,17 +461,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return <></>;
     };
 
-    const getScheduledEventGroupEventTimeline: Function  = (
+    const getScheduledEventGroupEventTimeline: Function = (
         scheduledEventGroup: ScheduledMaintenanceGroup
     ): Array<TimelineItem> => {
-        const timeline = [];
+        const timeline: Array<TimelineItem> = [];
 
         timeline.push({
             text: scheduledEventGroup.scheduledMaintenanceState.name!,
             date: scheduledEventGroup.scheduledMaintenanceStateTimeline
                 .createdAt!,
             isBold: true,
-            color: scheduledEventGroup.scheduledMaintenanceState.color!,
         });
 
         timeline.push({
@@ -463,16 +486,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return timeline;
     };
 
-    const getIncidentGroupEventTimeline: Function  = (
+    const getIncidentGroupEventTimeline: Function = (
         incidentGroup: IncidentGroup
     ): Array<TimelineItem> => {
-        const timeline = [];
+        const timeline: Array<TimelineItem> = [];
 
         timeline.push({
             text: incidentGroup.incidentState.name!,
             date: incidentGroup.incidentStateTimeline.createdAt!,
             isBold: true,
-            color: incidentGroup.incidentState.color!,
         });
 
         if (incidentGroup.publicNote) {
@@ -501,60 +523,73 @@ const Overview: FunctionComponent<PageComponentProps> = (
             {!isLoading && !error ? (
                 <div>
                     {/* Load Active Anouncement */}
-                    {activeAnnouncements.map((announcement, i: number) => {
-                        return (
-                            <ActiveEvent
-                                key={i}
-                                cardTitle={'Announcement'}
-                                cardTitleRight={''}
-                                cardColor={Blue}
-                                eventTitle={announcement.title || ''}
-                                eventDescription={
-                                    announcement.description || ''
-                                }
-                                footerEventStatus={'Announced'}
-                                footerDateTime={
-                                    announcement.showAnnouncementAt!
-                                }
-                                eventTimeline={[]}
-                                eventType={'Anouncement'}
-                            />
-                        );
-                    })}
+                    {activeAnnouncements.map(
+                        (announcement: StatusPageAnnouncement, i: number) => {
+                            return (
+                                <ActiveEvent
+                                    key={i}
+                                    cardTitle={'Announcement'}
+                                    cardTitleRight={''}
+                                    cardColor={Blue}
+                                    eventTitle={announcement.title || ''}
+                                    eventDescription={
+                                        announcement.description || ''
+                                    }
+                                    footerEventStatus={'Announced'}
+                                    footerDateTime={
+                                        announcement.showAnnouncementAt!
+                                    }
+                                    eventTimeline={[]}
+                                    eventType={'Anouncement'}
+                                />
+                            );
+                        }
+                    )}
 
                     {/* Load Active Incident */}
 
-                    {getActiveIncidents().map((incidentGroup, i: number) => {
-                        return (
-                            <ActiveEvent
-                                key={i}
-                                cardTitle={'Active Incident'}
-                                cardTitleRight={
-                                    incidentGroup.incidentSeverity.name || ''
-                                }
-                                cardColor={
-                                    incidentGroup.incidentSeverity.color || Red
-                                }
-                                eventTitle={incidentGroup.incident.title || ''}
-                                eventDescription={
-                                    incidentGroup.incident.description || ''
-                                }
-                                eventTimeline={getIncidentGroupEventTimeline(
-                                    incidentGroup
-                                )}
-                                eventType={'Incident'}
-                                eventViewRoute={RouteUtil.populateRouteParams(
-                                    RouteMap[PageMap.INCIDENT_DETAIL] as Route,
-                                    incidentGroup.incident.id!
-                                )}
-                            />
-                        );
-                    })}
+                    {getActiveIncidents().map(
+                        (incidentGroup: IncidentGroup, i: number) => {
+                            return (
+                                <ActiveEvent
+                                    key={i}
+                                    cardTitle={'Active Incident'}
+                                    cardTitleRight={
+                                        incidentGroup.incidentSeverity.name ||
+                                        ''
+                                    }
+                                    cardColor={
+                                        incidentGroup.incidentSeverity.color ||
+                                        Red
+                                    }
+                                    eventTitle={
+                                        incidentGroup.incident.title || ''
+                                    }
+                                    eventDescription={
+                                        incidentGroup.incident.description || ''
+                                    }
+                                    eventTimeline={getIncidentGroupEventTimeline(
+                                        incidentGroup
+                                    )}
+                                    eventType={'Incident'}
+                                    eventViewRoute={RouteUtil.populateRouteParams(
+                                        RouteMap[
+                                            PageMap.INCIDENT_DETAIL
+                                        ] as Route,
+                                        incidentGroup.incident.id!
+                                    )}
+                                />
+                            );
+                        }
+                    )}
 
                     {/* Load Active ScheduledEvent */}
 
                     {getOngoingScheduledEvents().map(
-                        (scheduledEventGroup, i: number) => {
+                        (
+                            scheduledEventGroup: ScheduledMaintenanceGroup,
+                            i: number
+                        ) => {
                             return (
                                 <ActiveEvent
                                     key={i}
@@ -607,9 +642,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
                     <div>
                         <AccordianGroup>
-                            {statusPageResources.filter((resources) => {
-                                return !resources.statusPageGroupId;
-                            }).length > 0 ? (
+                            {statusPageResources.filter(
+                                (resources: StatusPageResource) => {
+                                    return !resources.statusPageGroupId;
+                                }
+                            ).length > 0 ? (
                                 <Accordian
                                     key={Math.random()}
                                     title={undefined}
@@ -628,7 +665,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             >
                                 {resourceGroups.length > 0 &&
                                     resourceGroups.map(
-                                        (resourceGroup, i: number) => {
+                                        (
+                                            resourceGroup: StatusPageGroup,
+                                            i: number
+                                        ) => {
                                             return (
                                                 <Accordian
                                                     key={i}

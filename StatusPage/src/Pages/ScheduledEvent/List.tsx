@@ -25,13 +25,14 @@ import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/sr
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
-import { Red } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -72,27 +73,31 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {},
                     {}
                 );
-            const data = response.data;
+            const data: JSONObject = response.data;
 
-            const scheduledMaintenanceEventsPublicNotes =
+            const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
                 BaseModel.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
-            const scheduledMaintenanceEvents = BaseModel.fromJSONArray(
-                (data['scheduledMaintenanceEvents'] as JSONArray) || [],
-                ScheduledMaintenance
-            );
-            const statusPageResources = BaseModel.fromJSONArray(
-                (data['statusPageResources'] as JSONArray) || [],
-                StatusPageResource
-            );
-            const scheduledMaintenanceStateTimelines = BaseModel.fromJSONArray(
-                (data['scheduledMaintenanceStateTimelines'] as JSONArray) || [],
-                ScheduledMaintenanceStateTimeline
-            );
+            const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+                BaseModel.fromJSONArray(
+                    (data['scheduledMaintenanceEvents'] as JSONArray) || [],
+                    ScheduledMaintenance
+                );
+            const statusPageResources: Array<StatusPageResource> =
+                BaseModel.fromJSONArray(
+                    (data['statusPageResources'] as JSONArray) || [],
+                    StatusPageResource
+                );
+            const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
+                BaseModel.fromJSONArray(
+                    (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
+                        [],
+                    ScheduledMaintenanceStateTimeline
+                );
 
             // save data. set()
             setscheduledMaintenanceEventsPublicNotes(
@@ -133,7 +138,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         const days: Dictionary<EventHistoryDayListComponentProps> = {};
 
         for (const scheduledMaintenance of scheduledMaintenanceEvents) {
-            const dayString = OneUptimeDate.getDateString(
+            const dayString: string = OneUptimeDate.getDateString(
                 scheduledMaintenance.createdAt!
             );
 
@@ -146,7 +151,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
             /// get timeline.
 
-            const timeline = [];
+            const timeline: Array<TimelineItem> = [];
 
             for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
                 if (
@@ -172,9 +177,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 .scheduledMaintenanceState?.name || '',
                         date: scheduledMaintenanceEventstateTimeline?.createdAt!,
                         isBold: true,
-                        color:
-                            scheduledMaintenanceEventstateTimeline
-                                .scheduledMaintenanceState?.color || Red,
                     });
                 }
             }
