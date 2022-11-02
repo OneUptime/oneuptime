@@ -129,7 +129,7 @@ export class JSONFunctions {
         path: string
     ): JSONValue | null {
         const paths: Array<string> = path.split('.');
-        let returnValue = obj as JSONObject;
+        let returnValue: JSONObject = obj as JSONObject;
         for (const p of paths) {
             if (!p) {
                 continue;

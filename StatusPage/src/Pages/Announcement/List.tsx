@@ -29,6 +29,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -48,24 +49,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
         try {
             setIsLoading(true);
 
-            const id = LocalStorage.getItem('statusPageId') as ObjectID;
+            const id: ObjectID = LocalStorage.getItem(
+                'statusPageId'
+            ) as ObjectID;
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
             }
-            const response = await BaseAPI.post<JSONObject>(
+            const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
                 URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
                     `/status-page/announcements/${id.toString()}`
                 ),
                 {},
                 {}
             );
-            const data = response.data;
+            const data: JSONObject = response.data;
 
             const announcements = BaseModel.fromJSONArray(
                 (data['announcements'] as JSONArray) || [],
                 StatusPageAnnouncement
             );
-            const statusPageResources = BaseModel.fromJSONArray(
+            const statusPageResources: Array<StatusPageResource> = BaseModel.fromJSONArray(
                 (data['statusPageResources'] as JSONArray) || [],
                 StatusPageResource
             );
@@ -104,7 +107,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         const days: Dictionary<EventHistoryDayListComponentProps> = {};
 
         for (const announcement of announcements) {
-            const dayString = OneUptimeDate.getDateString(
+            const dayString: string = OneUptimeDate.getDateString(
                 announcement.showAnnouncementAt!
             );
 

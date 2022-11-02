@@ -21,7 +21,6 @@ export interface ComponentProps {
     onProjectSelected: (project: Project) => void;
     onProjectRequestAccepted: () => void;
     onProjectRequestRejected: () => void;
-    selectedProject: Project | null;
     showProjectModal: boolean;
     onProjectModalClose: () => void;
 }

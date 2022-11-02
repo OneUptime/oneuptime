@@ -58,11 +58,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
         try {
             setIsLoading(true);
 
-            const id = LocalStorage.getItem('statusPageId') as ObjectID;
+            const id: ObjectID = LocalStorage.getItem(
+                'statusPageId'
+            ) as ObjectID;
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
             }
-            const response = await BaseAPI.post<JSONObject>(
+            const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
                 URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
                     `/status-page/scheduled-maintenance-events/${id.toString()}`
                 ),
@@ -176,7 +178,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 }
             }
 
-            timeline.sort((a, b) => {
+            timeline.sort((a: TimelineItem, b: TimelineItem) => {
                 return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
             });
 

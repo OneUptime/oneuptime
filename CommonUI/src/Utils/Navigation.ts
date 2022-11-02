@@ -28,13 +28,13 @@ abstract class Navigation {
         paramName: string,
         routeTemplate: Route
     ): string | null {
-        const currentPath = this.location.pathname.split('/');
+        const currentPath: Array<string> = this.location.pathname.split('/');
 
         if (!paramName.startsWith(':')) {
             paramName = ':' + paramName;
         }
 
-        const routeParamTemplateIndex = routeTemplate
+        const routeParamTemplateIndex: number = routeTemplate
             .toString()
             .split('/')
             .indexOf(paramName);

@@ -291,18 +291,19 @@ export default class StatusPageAPI extends BaseAPI<
                         );
                     }
 
-                    const statusPage = await StatusPageService.findOneBy({
-                        query: {
-                            _id: objectId.toString(),
-                        },
-                        select: {
-                            _id: true,
-                            projectId: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    const statusPage: StatusPage | null =
+                        await StatusPageService.findOneBy({
+                            query: {
+                                _id: objectId.toString(),
+                            },
+                            select: {
+                                _id: true,
+                                projectId: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     if (!statusPage) {
                         throw new BadDataException('Status Page not found');
@@ -310,25 +311,26 @@ export default class StatusPageAPI extends BaseAPI<
 
                     //get monitor statuses
 
-                    const monitorStatuses = await MonitorStatusService.findBy({
-                        query: {
-                            projectId: statusPage.projectId!,
-                        },
-                        select: {
-                            name: true,
-                            color: true,
-                            priority: true,
-                            isOperationalState: true,
-                        },
-                        sort: {
-                            priority: SortOrder.Ascending,
-                        },
-                        skip: 0,
-                        limit: LIMIT_PER_PROJECT,
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    const monitorStatuses: Array<MonitorStatus> =
+                        await MonitorStatusService.findBy({
+                            query: {
+                                projectId: statusPage.projectId!,
+                            },
+                            select: {
+                                name: true,
+                                color: true,
+                                priority: true,
+                                isOperationalState: true,
+                            },
+                            sort: {
+                                priority: SortOrder.Ascending,
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     // get resource groups.
 
@@ -382,17 +384,18 @@ export default class StatusPageAPI extends BaseAPI<
                         });
 
                     // get monitor status charts.
-                    const monitorsOnStatusPage = statusPageResources.map(
-                        (monitor) => {
-                            return monitor.monitorId!;
-                        }
-                    );
+                    const monitorsOnStatusPage: Array<ObjectID> =
+                        statusPageResources.map(
+                            (monitor: StatusPageResource) => {
+                                return monitor.monitorId!;
+                            }
+                        );
 
-                    const monitorsOnStatusPageForTimeline = statusPageResources
-                        .filter((monitor) => {
+                    const monitorsOnStatusPageForTimeline: Array<ObjectID> = statusPageResources
+                        .filter((monitor: StatusPageResource) => {
                             return monitor.showStatusHistoryChart;
                         })
-                        .map((monitor) => {
+                        .map((monitor: StatusPageResource) => {
                             return monitor.monitorId!;
                         });
 
@@ -477,14 +480,10 @@ export default class StatusPageAPI extends BaseAPI<
                         });
                     }
 
-                    const incidentsOnStausPage = activeIncidents.map(
-                        (incident) => {
-                            return incident._id!;
-                        }
-                    );
-
-                    console.log('INCIEENT IN STATUS PAGE');
-                    console.log(incidentsOnStausPage);
+                    const incidentsOnStausPage: Array<ObjectID> =
+                        activeIncidents.map((incident: Incident) => {
+                            return incident.id!;
+                        });
 
                     let incidentPublicNotes: Array<IncidentPublicNote> = [];
 
@@ -542,7 +541,7 @@ export default class StatusPageAPI extends BaseAPI<
 
                     const today: Date = OneUptimeDate.getCurrentDate();
 
-                    const activeAnnouncements =
+                    const activeAnnouncements: Array<StatusPageAnnouncement> =
                         await StatusPageAnnouncementService.findBy({
                             query: {
                                 statusPages: QueryHelper.in([objectId]),
@@ -566,7 +565,7 @@ export default class StatusPageAPI extends BaseAPI<
 
                     // check if status page has active scheduled events.
 
-                    const activeScheduledMaintenanceEvents =
+                    const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
                         await ScheduledMaintenanceService.findBy({
                             query: {
                                 currentScheduledMaintenanceState: {
@@ -601,9 +600,9 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                         });
 
-                    const activeScheduledMaintenanceEventsOnStausPage =
-                        activeScheduledMaintenanceEvents.map((event) => {
-                            return event._id!;
+                    const activeScheduledMaintenanceEventsOnStausPage: Array<ObjectID> =
+                        activeScheduledMaintenanceEvents.map((event: ScheduledMaintenance) => {
+                            return event.id!;
                         });
 
                     let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
@@ -749,18 +748,19 @@ export default class StatusPageAPI extends BaseAPI<
                         );
                     }
 
-                    const statusPage = await StatusPageService.findOneBy({
-                        query: {
-                            _id: objectId.toString(),
-                        },
-                        select: {
-                            _id: true,
-                            projectId: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    const statusPage: StatusPage | null =
+                        await StatusPageService.findOneBy({
+                            query: {
+                                _id: objectId.toString(),
+                            },
+                            select: {
+                                _id: true,
+                                projectId: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     if (!statusPage) {
                         throw new BadDataException('Status Page not found');
@@ -793,11 +793,12 @@ export default class StatusPageAPI extends BaseAPI<
                         });
 
                     // get monitor status charts.
-                    const monitorsOnStatusPage = statusPageResources.map(
-                        (monitor) => {
-                            return monitor.monitorId!;
-                        }
-                    );
+                    const monitorsOnStatusPage: Array<ObjectID> =
+                        statusPageResources.map(
+                            (monitor: StatusPageResource) => {
+                                return monitor.monitorId!;
+                            }
+                        );
 
                     const today: Date = OneUptimeDate.getCurrentDate();
                     const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
@@ -844,9 +845,11 @@ export default class StatusPageAPI extends BaseAPI<
                         });
                     }
 
-                    const incidentsOnStausPage = incidents.map((incident) => {
-                        return incident._id!;
-                    });
+                    const incidentsOnStausPage: Array<ObjectID> = incidents.map(
+                        (incident: Incident) => {
+                            return incident.id!;
+                        }
+                    );
 
                     let incidentPublicNotes: Array<IncidentPublicNote> = [];
 
@@ -955,18 +958,19 @@ export default class StatusPageAPI extends BaseAPI<
                         );
                     }
 
-                    const statusPage = await StatusPageService.findOneBy({
-                        query: {
-                            _id: objectId.toString(),
-                        },
-                        select: {
-                            _id: true,
-                            projectId: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    const statusPage: StatusPage | null =
+                        await StatusPageService.findOneBy({
+                            query: {
+                                _id: objectId.toString(),
+                            },
+                            select: {
+                                _id: true,
+                                projectId: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     if (!statusPage) {
                         throw new BadDataException('Status Page not found');
@@ -1002,7 +1006,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const today: Date = OneUptimeDate.getCurrentDate();
                     const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
 
-                    const scheduledMaintenanceEvents =
+                    const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
                         await ScheduledMaintenanceService.findBy({
                             query: {
                                 startsAt: QueryHelper.inBetween(
@@ -1039,9 +1043,9 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                         });
 
-                    const scheduledMaintenanceEventsOnStausPage =
-                        scheduledMaintenanceEvents.map((event) => {
-                            return event._id!;
+                    const scheduledMaintenanceEventsOnStausPage: Array<ObjectID> =
+                        scheduledMaintenanceEvents.map((event: ScheduledMaintenance) => {
+                            return event.id!;
                         });
 
                     let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
@@ -1161,18 +1165,19 @@ export default class StatusPageAPI extends BaseAPI<
                         );
                     }
 
-                    const statusPage = await StatusPageService.findOneBy({
-                        query: {
-                            _id: objectId.toString(),
-                        },
-                        select: {
-                            _id: true,
-                            projectId: true,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
+                    const statusPage: StatusPage | null =
+                        await StatusPageService.findOneBy({
+                            query: {
+                                _id: objectId.toString(),
+                            },
+                            select: {
+                                _id: true,
+                                projectId: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
 
                     if (!statusPage) {
                         throw new BadDataException('Status Page not found');
@@ -1183,7 +1188,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const today: Date = OneUptimeDate.getCurrentDate();
                     const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
 
-                    const announcements =
+                    const announcements: Array<StatusPageAnnouncement> =
                         await StatusPageAnnouncementService.findBy({
                             query: {
                                 statusPages: QueryHelper.in([objectId]),

@@ -1,7 +1,11 @@
 import logger from 'CommonServer/Utils/Logger';
 import cron from 'node-cron';
 
-const RunCron = (jobName: string, schedule: string, runFunction: Function) => {
+const RunCron: Function = (
+    jobName: string,
+    schedule: string,
+    runFunction: Function
+): void => {
     cron.schedule(schedule, async () => {
         try {
             logger.info(`Job ${jobName} Start`);

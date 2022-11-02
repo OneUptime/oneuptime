@@ -774,13 +774,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 onBeforeFind.limit = new PositiveNumber(onBeforeFind.limit);
             }
 
-            console.log('ONBEFOREFIND');
-            console.log(onBeforeFind);
-
-            if ((onBeforeFind.query as any)['incidentId']) {
-                debugger;
-            }
-
             const items: Array<TBaseModel> = await this.getRepository().find({
                 skip: onBeforeFind.skip.toNumber(),
                 take: onBeforeFind.limit.toNumber(),

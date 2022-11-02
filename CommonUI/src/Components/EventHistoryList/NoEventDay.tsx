@@ -1,9 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 
-export interface ComponentProps {}
-
-const NoEventDay: FunctionComponent<ComponentProps> = (
-    _props: ComponentProps
+const NoEventDay: FunctionComponent = (
+    
 ): ReactElement => {
     return (
         <div

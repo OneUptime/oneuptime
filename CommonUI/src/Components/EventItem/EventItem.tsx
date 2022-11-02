@@ -48,7 +48,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 style={{ marginTop: '0px', paddingTop: '0px' }}
             >
                 {props.eventTimeline &&
-                    props.eventTimeline.map((item, i) => {
+                    props.eventTimeline.map((item, i: number) => {
                         return (
                             <div
                                 key={i}

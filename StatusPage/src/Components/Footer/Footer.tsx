@@ -6,7 +6,6 @@ import Link from 'Common/Types/Link';
 export interface ComponentProps {
     copyright?: string | undefined;
     links: Array<Link>;
-    style?: React.CSSProperties | undefined;
 }
 
 const StatusPageFooter: FunctionComponent<ComponentProps> = (

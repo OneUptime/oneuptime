@@ -47,7 +47,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                     formType={FormType.Create}
                     submitButtonText={'Subscribe'}
                     onBeforeCreate={async (item: StatusPageSubscriber) => {
-                        const id = LocalStorage.getItem(
+                        const id: ObjectID = LocalStorage.getItem(
                             'statusPageId'
                         ) as ObjectID;
                         if (!id) {
@@ -73,7 +73,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                     modelType={StatusPageSubscriber}
                     id="sms-form"
                     onBeforeCreate={async (item: StatusPageSubscriber) => {
-                        const id = LocalStorage.getItem(
+                        const id: ObjectID = LocalStorage.getItem(
                             'statusPageId'
                         ) as ObjectID;
                         if (!id) {
@@ -114,7 +114,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                     modelType={StatusPageSubscriber}
                     id="webhook-form"
                     onBeforeCreate={async (item: StatusPageSubscriber) => {
-                        const id = LocalStorage.getItem(
+                        const id: ObjectID = LocalStorage.getItem(
                             'statusPageId'
                         ) as ObjectID;
                         if (!id) {

@@ -58,7 +58,7 @@ export class RouteUtil {
             );
         }
 
-        const id = LocalStorage.getItem('statusPageId') as ObjectID;
+        const id: ObjectID = LocalStorage.getItem('statusPageId') as ObjectID;
 
         if (id) {
             route = tempRoute.addRouteParam(

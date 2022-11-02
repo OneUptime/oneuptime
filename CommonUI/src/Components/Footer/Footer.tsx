@@ -62,16 +62,18 @@ const Footer: FunctionComponent<ComponentProps> = (
                     {!props.copyright && (
                         <div className="row">
                             {props.links &&
-                                props.links.filter((link) => {
+                                props.links.filter((link: FooterLink) => {
                                     return !link.showOnRightIfNoCopyright;
                                 }).length > 0 && (
                                     <div className="col-md-6">
                                         <p>
                                             {props.links &&
                                                 props.links
-                                                    .filter((link) => {
-                                                        return !link.showOnRightIfNoCopyright;
-                                                    })
+                                                    .filter(
+                                                        (link: FooterLink) => {
+                                                            return !link.showOnRightIfNoCopyright;
+                                                        }
+                                                    )
                                                     .map(
                                                         (
                                                             link: Link,
@@ -101,16 +103,18 @@ const Footer: FunctionComponent<ComponentProps> = (
                                     </div>
                                 )}
                             {props.links &&
-                                props.links.filter((link) => {
+                                props.links.filter((link: FooterLink) => {
                                     return link.showOnRightIfNoCopyright;
                                 }).length > 0 && (
                                     <div className="col-md-6" key={'links'}>
                                         <div className="text-sm-end d-none d-sm-block">
                                             {props.links &&
                                                 props.links
-                                                    .filter((link) => {
-                                                        return link.showOnRightIfNoCopyright;
-                                                    })
+                                                    .filter(
+                                                        (link: FooterLink) => {
+                                                            return link.showOnRightIfNoCopyright;
+                                                        }
+                                                    )
                                                     .map(
                                                         (
                                                             link: Link,

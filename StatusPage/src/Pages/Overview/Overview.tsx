@@ -88,11 +88,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
         try {
             setIsLoading(true);
 
-            const id = LocalStorage.getItem('statusPageId') as ObjectID;
+            const id: ObjectID = LocalStorage.getItem(
+                'statusPageId'
+            ) as ObjectID;
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
             }
-            const response = await BaseAPI.post<JSONObject>(
+            const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
                 URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
                     `/status-page/overview/${id.toString()}`
                 ),
@@ -452,7 +454,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             isBold: false,
         });
 
-        timeline.sort((a, b) => {
+        timeline.sort((a: TimelineItem, b: TimelineItem) => {
             return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
         });
 
@@ -479,7 +481,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             });
         }
 
-        timeline.sort((a, b) => {
+        timeline.sort((a: TimelineItem, b: TimelineItem) => {
             return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
         });
 
@@ -497,7 +499,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             {!isLoading && !error ? (
                 <div>
                     {/* Load Active Anouncement */}
-                    {activeAnnouncements.map((announcement, i) => {
+                    {activeAnnouncements.map((announcement, i: number) => {
                         return (
                             <ActiveEvent
                                 key={i}
@@ -520,7 +522,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
                     {/* Load Active Incident */}
 
-                    {getActiveIncidents().map((incidentGroup, i) => {
+                    {getActiveIncidents().map((incidentGroup, i: number) => {
                         return (
                             <ActiveEvent
                                 key={i}
@@ -550,7 +552,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {/* Load Active ScheduledEvent */}
 
                     {getOngoingScheduledEvents().map(
-                        (scheduledEventGroup, i) => {
+                        (scheduledEventGroup, i: number) => {
                             return (
                                 <ActiveEvent
                                     key={i}
@@ -623,29 +625,31 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 }}
                             >
                                 {resourceGroups.length > 0 &&
-                                    resourceGroups.map((resourceGroup, i) => {
-                                        return (
-                                            <Accordian
-                                                key={i}
-                                                rightElement={getRightAccordianElement(
-                                                    resourceGroup
-                                                )}
-                                                isInitiallyExpanded={
-                                                    resourceGroup.isExpandedByDefault
-                                                }
-                                                isLastElement={
-                                                    resourceGroups.length -
-                                                        1 ===
-                                                    i
-                                                }
-                                                title={resourceGroup.name!}
-                                            >
-                                                {getMonitorOverviewListInGroup(
-                                                    resourceGroup
-                                                )}
-                                            </Accordian>
-                                        );
-                                    })}
+                                    resourceGroups.map(
+                                        (resourceGroup, i: number) => {
+                                            return (
+                                                <Accordian
+                                                    key={i}
+                                                    rightElement={getRightAccordianElement(
+                                                        resourceGroup
+                                                    )}
+                                                    isInitiallyExpanded={
+                                                        resourceGroup.isExpandedByDefault
+                                                    }
+                                                    isLastElement={
+                                                        resourceGroups.length -
+                                                            1 ===
+                                                        i
+                                                    }
+                                                    title={resourceGroup.name!}
+                                                >
+                                                    {getMonitorOverviewListInGroup(
+                                                        resourceGroup
+                                                    )}
+                                                </Accordian>
+                                            );
+                                        }
+                                    )}
                             </div>
                         </AccordianGroup>
                     </div>

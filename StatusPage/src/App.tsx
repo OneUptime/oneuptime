@@ -34,7 +34,7 @@ const App: FunctionComponent = () => {
     // js.
     const [javascript, setJavaScript] = useState<string | null>(null);
 
-    const onPageLoadComplete = () => {
+    const onPageLoadComplete: Function = (): void => {
         if (javascript) {
             eval(javascript);
         }
@@ -43,7 +43,7 @@ const App: FunctionComponent = () => {
     return (
         <MasterPage
             onLoadComplete={(masterpage: JSONObject) => {
-                const javascript = JSONFunctions.getJSONValueInPath(
+                const javascript: string | null = JSONFunctions.getJSONValueInPath(
                     masterpage || {},
                     'statusPage.customJavaScript'
                 ) as string | null;

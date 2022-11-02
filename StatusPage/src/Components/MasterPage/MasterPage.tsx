@@ -21,6 +21,8 @@ import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import BaseModel from 'Common/Models/BaseModel';
 import File from 'Model/Models/File';
 import { ImageFunctions } from 'CommonUI/src/Components/Image/Image';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Link from 'Common/Types/Link';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -41,7 +43,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     const [headerHtml, setHeaderHtml] = useState<null | string>(null);
     const [footerHtml, setFooterHTML] = useState<null | string>(null);
 
-    const getId = async (): Promise<ObjectID> => {
+    const getId: Function = async (): Promise<ObjectID> => {
         const id: string | null = Navigation.getParamByName(
             RouteParams.StatusPageId,
             RouteMap[PageMap.PREVIEW_OVERVIEW]!
@@ -56,10 +58,10 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     useAsyncEffect(async () => {
         try {
             setIsLoading(true);
-            const id = await getId();
+            const id: ObjectID = await getId();
             setStatusPageId(id);
             LocalStorage.setItem('statusPageId', id);
-            const response = await BaseAPI.post<JSONObject>(
+            const response: HTTPResponse<JSONObject> = await BaseAPI.post<JSONObject>(
                 URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
                     `/status-page/master-page/${id.toString()}`
                 ),
@@ -69,10 +71,10 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             setMasterPageData(response.data);
 
             // setfavicon.
-            const favIcon = JSONFunctions.getJSONValueInPath(
+            const favIcon: File | null = JSONFunctions.getJSONValueInPath(
                 response.data || {},
                 'statusPage.faviconFile'
-            ) as File;
+            ) as File | null;
             if (favIcon && favIcon.file) {
                 const link = document.createElement('link');
                 link.rel = 'icon';
@@ -83,10 +85,11 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             }
 
             // setcss.
-            const css = JSONFunctions.getJSONValueInPath(
+            const css: string | null = JSONFunctions.getJSONValueInPath(
                 response.data || {},
                 'statusPage.customCSS'
-            ) as string;
+            ) as string | null;
+
             if (css) {
                 const style = document.createElement('style');
                 style.innerText = css;
@@ -95,14 +98,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                     .appendChild(style);
             }
 
-            const headHtml = JSONFunctions.getJSONValueInPath(
+            const headHtml: string | null = JSONFunctions.getJSONValueInPath(
                 response.data || {},
                 'statusPage.headerHTML'
-            ) as string;
-            const footHTML = JSONFunctions.getJSONValueInPath(
+            ) as string | null;
+            const footHTML: string | null = JSONFunctions.getJSONValueInPath(
                 response.data || {},
                 'statusPage.footerHTML'
-            ) as string;
+            ) as string | null;
 
             if (headHtml) {
                 setHeaderHtml(headHtml);
@@ -135,8 +138,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-    console.log(headerHtml);
-
     return (
         <MasterPage
             footer={
@@ -153,7 +154,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                                 masterPageData || {},
                                 'footerLinks'
                             ) as Array<JSONObject>) || []
-                        ).map((link) => {
+                        ).map((link: JSONObject) => {
                             return {
                                 title: link['title'] as string,
                                 to: link['link'] as URL,
@@ -189,7 +190,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                                 masterPageData || {},
                                 'headerLinks'
                             ) as Array<JSONObject>) || []
-                        ).map((link) => {
+                        ).map((link: JSONObject) => {
                             return {
                                 title: link['title'] as string,
                                 to: link['link'] as URL,

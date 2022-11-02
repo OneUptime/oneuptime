@@ -27,7 +27,7 @@ const EventHistoryDayList: FunctionComponent<ComponentProps> = (
                 {OneUptimeDate.getDateAsLocalFormattedString(props.date, true)}
             </div>
             <div style={{ padding: '10px', paddingTop: '0px' }}>
-                {props.items.map((item, i) => {
+                {props.items.map((item: ItemComponentProps, i: number) => {
                     return <EventHistoryItem key={i} {...item} />;
                 })}
             </div>
