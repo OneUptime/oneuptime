@@ -37,6 +37,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
+import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -183,6 +184,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         monitorStatusTimeline={[...monitorStatusTimelines].filter((timeline) => timeline.monitorId?.toString() === resource.monitorId?.toString())}
                         startDate={startDate}
                         endDate={endDate}
+                        showHistoryChart={resource.showStatusHistoryChart}
+                        showCurrentStatus={resource.showCurrentStatus}
                     />
                 ));
             }
@@ -191,7 +194,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         }
 
         if (elements.length === 0) {
-            elements.push(<p className='text-center'>No resources in this group.</p>)
+            elements.push(<p key={1} className='text-center'>No resources in this group.</p>)
         }
 
         return elements;
@@ -268,7 +271,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         let currentStatus: MonitorStatus = new MonitorStatus();
         currentStatus.name = 'Operational';
         currentStatus.color = Green;
-        let hasReosurce = false; 
+        let hasReosurce = false;
 
         for (const resource of statusPageResources) {
             if (
@@ -276,7 +279,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 (!resource.statusPageGroupId && !group)
 
             ) {
-                hasReosurce = true; 
+                hasReosurce = true;
                 let currentMonitorStatus = monitorStatuses.find((status) => {
                     return status._id?.toString() === resource.monitor?.currentMonitorStatusId?.toString()
                 });
@@ -296,6 +299,56 @@ const Overview: FunctionComponent<PageComponentProps> = (
         } else {
             return <></>;
         }
+    }
+
+    const getScheduledEventGroupEventTimeline = (scheduledEventGroup: ScheduledMaintenanceGroup): Array<TimelineItem> => {
+        const timeline = [];
+
+        timeline.push({
+            text: scheduledEventGroup.scheduledMaintenanceState.name!,
+            date: scheduledEventGroup.scheduledMaintenanceStateTimeline.createdAt!,
+            isBold: true,
+            color: scheduledEventGroup.scheduledMaintenanceState.color!
+        })
+
+        timeline.push({
+            text: scheduledEventGroup.publicNote?.note || '',
+            date: scheduledEventGroup.publicNote?.createdAt!,
+            isBold: false,
+        })
+
+        timeline.sort((a, b) => {
+            return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
+        })
+
+
+        return timeline;
+    }
+
+    const getIncidentGroupEventTimeline = (incidentGroup: IncidentGroup): Array<TimelineItem> => {
+        const timeline = [];
+
+        timeline.push({
+            text: incidentGroup.incidentState.name!,
+            date: incidentGroup.incidentStateTimeline.createdAt!,
+            isBold: true,
+            color: incidentGroup.incidentState.color!
+        })
+
+        if (incidentGroup.publicNote) {
+            timeline.push({
+                text: incidentGroup.publicNote?.note || '',
+                date: incidentGroup.publicNote?.createdAt!,
+                isBold: false,
+            })
+        }
+
+        timeline.sort((a, b) => {
+            return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
+        })
+
+
+        return timeline;
     }
 
 
@@ -319,9 +372,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         cardColor={Blue}
                         eventTitle={announcement.title || ''}
                         eventDescription={announcement.description || ''}
-                        currentEventStatus={'Announced'}
-                        currentEventStatusDateTime={announcement.showAnnouncementAt!}
-                        currentEventStatusNote={''}
+                        footerEventStatus={'Announced'}
+                        footerDateTime={announcement.showAnnouncementAt!}
+                        eventTimeline={[]}
                         eventType={'Anouncement'}
                     />)
                 })}
@@ -338,9 +391,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         cardColor={incidentGroup.incidentSeverity.color || Red}
                         eventTitle={incidentGroup.incident.title || ''}
                         eventDescription={incidentGroup.incident.description || ''}
-                        currentEventStatus={incidentGroup.incidentState.name || ''}
-                        currentEventStatusDateTime={incidentGroup.incidentStateTimeline.createdAt!}
-                        currentEventStatusNote={incidentGroup.publicNote?.note! || ''}
+                        eventTimeline={getIncidentGroupEventTimeline(incidentGroup)}
                         eventType={'Incident'}
                         eventViewRoute={RouteUtil.populateRouteParams(
                             RouteMap[PageMap.INCIDENT_DETAIL] as Route,
@@ -362,10 +413,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         cardColor={Yellow}
                         eventTitle={scheduledEventGroup.scheduledMaintenance.title || ''}
                         eventDescription={scheduledEventGroup.scheduledMaintenance.description || ''}
-                        currentEventStatus={scheduledEventGroup.scheduledMaintenanceState.name || ''}
-                        currentEventStatusDateTime={scheduledEventGroup.scheduledMaintenanceStateTimeline.createdAt!}
+                        eventTimeline={getScheduledEventGroupEventTimeline(scheduledEventGroup)}
                         footerDateTime={scheduledEventGroup.scheduledMaintenance.endsAt!}
-                        currentEventStatusNote={scheduledEventGroup.publicNote?.note! || ''}
                         eventType={'Scheduled Maintenance'}
                         eventViewRoute={RouteUtil.populateRouteParams(
                             RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route,

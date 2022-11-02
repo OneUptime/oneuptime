@@ -1,7 +1,7 @@
 import Route from 'Common/Types/API/Route';
 import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
-import EventItem from '../EventItem/EventItem';
+import EventItem, { TimelineItem } from '../EventItem/EventItem';
 
 export interface ComponentProps {
     cardTitle: string;
@@ -9,9 +9,8 @@ export interface ComponentProps {
     cardColor: Color;
     eventTitle: string;
     eventDescription?: string | undefined;
-    currentEventStatus: string;
-    currentEventStatusDateTime: Date;
-    currentEventStatusNote?: string | undefined;
+    eventMiniDescription?: string | undefined;
+    eventTimeline: Array<TimelineItem>;
     eventType: string; 
     eventViewRoute?: Route | undefined;
     footerEventStatus?: string | undefined; 

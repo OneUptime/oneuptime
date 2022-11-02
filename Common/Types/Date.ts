@@ -331,6 +331,10 @@ export default class OneUptimeDate {
         return momentDate.format(formatstring);
     }
 
+    public static getDateString(date: Date): string{
+        return this.getDateAsLocalFormattedString(date, true);
+    }
+
     public static isInThePast(date: string | Date): boolean {
         return moment(date).isBefore(new Date());
     }

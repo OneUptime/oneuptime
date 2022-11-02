@@ -14,7 +14,9 @@ export interface ComponentProps {
     monitorStatus: MonitorStatus;
     monitorStatusTimeline: Array<MonitorStatusTimelne>;
     startDate: Date,
-    endDate: Date
+    endDate: Date,
+    showHistoryChart?: boolean | undefined;
+    showCurrentStatus?: boolean | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -37,13 +39,13 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                         </Tooltip>
                     }
                 </div>
-                <div className='bold font16' style={{ color: props.monitorStatus?.color?.toString() || Green.toString() }}>
+                {props.showCurrentStatus && <div className='bold font16' style={{ color: props.monitorStatus?.color?.toString() || Green.toString() }}>
                     {props.monitorStatus?.name || 'Operational'}
-                </div>
+                </div>}
             </div>
             <div style={{ marginBottom: "3px" }}>{props.description}</div>
         </div>
-        <div>
+        {props.showHistoryChart && <div>
             <MonitorUptimeGraph
                 error={undefined}
                 items={props.monitorStatusTimeline || []}
@@ -52,7 +54,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                 isLoading={false}
                 height={30}
             />
-        </div>
+        </div>}
     </div >)
 };
 

@@ -121,7 +121,7 @@ export default class StatusPageAPI extends BaseAPI<
         this.router.post(
             `/${new this.entityType()
                 .getCrudApiPath()
-                ?.toString()}/master-page/:id`,
+                ?.toString()}/master-page/:statusPageId`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -131,7 +131,7 @@ export default class StatusPageAPI extends BaseAPI<
                 try {
 
                     const objectId: ObjectID = new ObjectID(
-                        req.params['id'] as string
+                        req.params['statusPageId'] as string
                     );
 
                     if (
@@ -269,7 +269,7 @@ export default class StatusPageAPI extends BaseAPI<
         this.router.post(
             `/${new this.entityType()
                 .getCrudApiPath()
-                ?.toString()}/overview/:id`,
+                ?.toString()}/overview/:statusPageId`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -278,7 +278,7 @@ export default class StatusPageAPI extends BaseAPI<
             ) => {
                 try {
                     const objectId: ObjectID = new ObjectID(
-                        req.params['id'] as string
+                        req.params['statusPageId'] as string
                     );
 
                     if (
@@ -365,6 +365,8 @@ export default class StatusPageAPI extends BaseAPI<
                             displayTooltip: true,
                             displayDescription: true,
                             displayName: true,
+                            showStatusHistoryChart: true, 
+                            showCurrentStatus: true
                         },
                         populate: {
                             monitor: {
@@ -384,18 +386,23 @@ export default class StatusPageAPI extends BaseAPI<
                         return monitor.monitorId!;
                     })
 
+                    const monitorsOnStatusPageForTimeline = statusPageResources
+                        .filter((monitor) => {
+                            return monitor.showStatusHistoryChart
+                        }).map((monitor) => {
+                        return monitor.monitorId!;
+                    })
+
                     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
                     const endDate: Date = OneUptimeDate.getCurrentDate();
 
                     let monitorStatusTimelines: Array<MonitorStatusTimeline> = [];
 
-                    if (monitorsOnStatusPage.length > 0) {
-                        console.log(monitorsOnStatusPage);
-
+                    if (monitorsOnStatusPageForTimeline.length > 0) {
 
                         monitorStatusTimelines = await MonitorStatusTimelineService.findBy({
                             query: {
-                                monitorId: QueryHelper.in(monitorsOnStatusPage),
+                                monitorId: QueryHelper.in(monitorsOnStatusPageForTimeline),
                                 createdAt: QueryHelper.inBetween(startDate, endDate)
                             },
                             select: {
@@ -418,8 +425,6 @@ export default class StatusPageAPI extends BaseAPI<
                                 isRoot: true,
                             }
                         });
-
-                        console.log(monitorStatusTimelines);
                     }
 
 
@@ -660,7 +665,7 @@ export default class StatusPageAPI extends BaseAPI<
         this.router.post(
             `/${new this.entityType()
                 .getCrudApiPath()
-                ?.toString()}/incidents/:id`,
+                ?.toString()}/incidents/:statusPageId`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -669,7 +674,7 @@ export default class StatusPageAPI extends BaseAPI<
             ) => {
                 try {
                     const objectId: ObjectID = new ObjectID(
-                        req.params['id'] as string
+                        req.params['statusPageId'] as string
                     );
 
                     if (
@@ -820,6 +825,12 @@ export default class StatusPageAPI extends BaseAPI<
                             sort: {
                                 createdAt: SortOrder.Descending // new note first
                             },
+                            populate: {
+                                incidentState: {
+                                    name: true, 
+                                    color: true
+                                }
+                            },
                             skip: 0,
                             limit: LIMIT_PER_PROJECT,
                             props: {
@@ -847,7 +858,7 @@ export default class StatusPageAPI extends BaseAPI<
         this.router.post(
             `/${new this.entityType()
                 .getCrudApiPath()
-                ?.toString()}/announcements/:id`,
+                ?.toString()}/announcements/:statusPageId`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -856,7 +867,7 @@ export default class StatusPageAPI extends BaseAPI<
             ) => {
                 try {
                     const objectId: ObjectID = new ObjectID(
-                        req.params['id'] as string
+                        req.params['statusPageId'] as string
                     );
 
                     if (

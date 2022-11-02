@@ -4,19 +4,20 @@ import OneUptimeDate from 'Common/Types/Date';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Link from '../Link/Link';
 
-
-
+export interface TimelineItem {
+    date: Date,
+    text: string;
+    isBold?: boolean | undefined;
+}
 export interface ComponentProps {
     eventTitle: string;
     eventDescription?: string | undefined;
-    currentEventStatus: string;
-    currentEventStatusDateTime: Date;
-    currentEventStatusNote?: string | undefined;
+    eventTimeline: Array<TimelineItem>;
+    eventMiniDescription?: string | undefined;
     eventType: string;
     eventViewRoute?: Route | undefined;
-    footerEventStatus?: string | undefined; 
-    footerDateTime?: Date | undefined; 
-
+    footerEventStatus?: string | undefined;
+    footerDateTime?: Date | undefined;
 }
 
 const EventItem: FunctionComponent<ComponentProps> = (
@@ -30,15 +31,31 @@ const EventItem: FunctionComponent<ComponentProps> = (
             {props.eventDescription && <p className="active-event-box-body-description">
                 {props.eventDescription}
             </p>}
+            {props.eventMiniDescription && <p className="small active-event-box-body-description">
+                {props.eventMiniDescription}
+            </p>}
         </div>
         <div className="active-event-box-body" style={{ marginTop: "0px", paddingTop: "0px" }}>
-            {props.currentEventStatusNote && <div className="active-event-box-body-description"> <span className="bold">{props.currentEventStatus} - </span>{props.currentEventStatusNote || ''}</div>}
-            <div className="active-event-box-body-timestamp">{props.footerEventStatus || props.currentEventStatus} at {OneUptimeDate.getDateAsLocalFormattedString(
-                props.footerDateTime || props.currentEventStatusDateTime,
-                false
-            )}. {props.eventViewRoute ? <span><Link className='underline pointer' to={props.eventViewRoute} style={{
-                color: Blue.toString()
-            }}><>{props.eventType} Details</></Link></span> : <></>}</div>
+
+
+            {props.eventTimeline && props.eventTimeline.map((item, i) => {
+                return (<div key={i} className="active-event-box-body-description"> <span style={{
+                    fontWeight: item.isBold ? 500 : 400,
+                }}
+                >{item.text || ''}</span> <span className='color-grey'> - {`${OneUptimeDate.getDateAsFormattedString(item.date)}.`}</span> </div>)
+            })}
+
+
+            <div className="active-event-box-body-timestamp">
+
+                {props.footerEventStatus && props.footerDateTime ? <span>{props.footerEventStatus} at {OneUptimeDate.getDateAsLocalFormattedString(
+                    props.footerDateTime,
+                    false
+                )}.</span> : <></>}
+                
+                {props.eventViewRoute ? <span><Link className='underline pointer' to={props.eventViewRoute} style={{
+                    color: Blue.toString()
+                }}><>{props.eventType} Details</></Link></span> : <></>}</div>
         </div>
     </div>)
 };

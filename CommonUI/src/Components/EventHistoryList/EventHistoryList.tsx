@@ -3,15 +3,14 @@ import EventHistoryDayList, {ComponentProps as EventHistoryDayListComponentProps
 
 export interface ComponentProps {
     items: Array<EventHistoryDayListComponentProps>
-
 }
 
 const ActiveEvent: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (<div className="event-history-box">
-        {props.items.map((item) => {
-            return <EventHistoryDayList {...item} />
+        {props.items.map((item, i) => {
+            return <EventHistoryDayList isLastItem={props.items.length -1 === i} {...item} />
         })}
     </div>)
 };
