@@ -1,7 +1,7 @@
 e2e_microk8s_enterprise_test:
     stage: BuildAndTest
     script:
-        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
         - chmod +x ./ci/scripts/setup-machine.sh
         - ./ci/scripts/setup-machine.sh enterprise
         - chmod +x ./ci/scripts/setup.sh

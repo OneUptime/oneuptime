@@ -10,7 +10,7 @@ production_realtime:
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
-        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
         - sudo docker buildx create --use
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:5.0.$CI_PIPELINE_ID --push ./realtime
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:latest --push ./realtime
@@ -41,7 +41,7 @@ staging_realtime:
         - bash ./ci/scripts/deployment-staging-setup.sh
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy realtime.
-        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
         - sudo docker buildx create --use
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:5.0.$CI_PIPELINE_ID --push ./realtime
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:test --push ./realtime

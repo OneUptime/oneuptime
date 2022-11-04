@@ -12,7 +12,7 @@ staging_InitScript:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh
         - bash ./ci/scripts/deployment-staging-setup.sh
-        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
         - sudo docker build -t oneuptime/InitScript:test ./InitScript
         - sudo docker tag oneuptime/InitScript:test oneuptime/InitScript:5.0.$CI_PIPELINE_ID
         - sudo docker push oneuptime/InitScript:5.0.$CI_PIPELINE_ID
@@ -45,7 +45,7 @@ production_InitScript:
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
-        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
         - sudo docker build -t oneuptime/InitScript:latest ./InitScript
         - sudo docker tag oneuptime/InitScript:latest oneuptime/InitScript:5.0.$CI_PIPELINE_ID
         - sudo docker push oneuptime/InitScript:5.0.$CI_PIPELINE_ID

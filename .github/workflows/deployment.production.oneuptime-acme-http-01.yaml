@@ -14,8 +14,8 @@ jobs:
       run:
         working-directory: ./oneuptime-acme-http-01
     env:
-      DOCKERHUBPASSWORD: ${{secrets.DOCKERHUBPASSWORD}}
-      DOCKERHUBUSERNAME: ${{secrets.DOCKERHUBUSERNAME}}
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
       CI_PIPELINE_ID: ${{github.run_number}}
      
       NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
