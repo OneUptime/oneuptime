@@ -22,6 +22,6 @@ jobs:
         # Build and deploy accounts.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/identity:4.0.$CI_PIPELINE_ID-test --push -f ./Identity/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/identity:5.0.$CI_PIPELINE_ID-test --push -f ./Identity/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/identity:test --push -f ./Identity/Dockerfile .
       

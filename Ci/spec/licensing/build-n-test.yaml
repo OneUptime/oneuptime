@@ -7,9 +7,9 @@ test_licensing:
         - curl -sSL https://get.docker.com/ | sh #Install docker.
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-        - sudo docker build -t oneuptime/licensing:4.0.$CI_PIPELINE_ID ./licensing
+        - sudo docker build -t oneuptime/licensing:5.0.$CI_PIPELINE_ID ./licensing
         - sudo docker ps
-        - sudo docker run --env-file ./licensing/.env --net=host oneuptime/licensing:4.0.$CI_PIPELINE_ID npm test
+        - sudo docker run --env-file ./licensing/.env --net=host oneuptime/licensing:5.0.$CI_PIPELINE_ID npm test
         - chmod +x ./ci/scripts/storehash.sh
         - ./ci/scripts/storehash.sh test_licensing licensing
         - chmod +x ./ci/scripts/cleanup.sh

@@ -30,13 +30,13 @@ jobs:
         # Build and deploy LighthouseRunner.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/LighthouseRunner:4.0.$CI_PIPELINE_ID --push -f ./LighthouseRunner/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/LighthouseRunner:5.0.$CI_PIPELINE_ID --push -f ./LighthouseRunner/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/LighthouseRunner:latest --push -f ./LighthouseRunner/Dockerfile .
       - run: chmod +x ./ci/scripts/deployment-setup.sh
       - run: bash ./ci/scripts/deployment-setup.sh
       - run: chmod +x ./ci/scripts/deployment-production-setup.sh
       - run: bash ./ci/scripts/deployment-production-setup.sh
-      - run: kubectl set image deployment/fi-lighthouse fi-lighthouse=oneuptime/LighthouseRunner:4.0.$CI_PIPELINE_ID
+      - run: kubectl set image deployment/fi-lighthouse fi-lighthouse=oneuptime/LighthouseRunner:5.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh

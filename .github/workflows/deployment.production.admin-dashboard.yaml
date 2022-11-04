@@ -29,13 +29,13 @@ jobs:
         # Build and deploy AdminDashboard.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/AdminDashboard:4.0.$CI_PIPELINE_ID --push -f ./AdminDashboard/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/AdminDashboard:5.0.$CI_PIPELINE_ID --push -f ./AdminDashboard/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/AdminDashboard:latest --push -f ./AdminDashboard/Dockerfile .
       - run: chmod +x ./ci/scripts/deployment-setup.sh
       - run: bash ./ci/scripts/deployment-setup.sh
       - run: chmod +x ./ci/scripts/deployment-production-setup.sh
       - run: bash ./ci/scripts/deployment-production-setup.sh
-      - run: kubectl set image deployment/fi-admin fi-admin=oneuptime/AdminDashboard:4.0.$CI_PIPELINE_ID
+      - run: kubectl set image deployment/fi-admin fi-admin=oneuptime/AdminDashboard:5.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh

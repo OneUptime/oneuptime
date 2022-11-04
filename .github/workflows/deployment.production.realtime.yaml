@@ -30,13 +30,13 @@ jobs:
         # Build and deploy realtime.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:4.0.$CI_PIPELINE_ID --push -f ./realtime/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:5.0.$CI_PIPELINE_ID --push -f ./realtime/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:latest --push -f ./realtime/Dockerfile .
       - run: chmod +x ./ci/scripts/deployment-setup.sh
       - run: bash ./ci/scripts/deployment-setup.sh
       - run: chmod +x ./ci/scripts/deployment-production-setup.sh
       - run: bash ./ci/scripts/deployment-production-setup.sh
-      - run: kubectl set image deployment/fi-realtime fi-realtime=oneuptime/realtime:4.0.$CI_PIPELINE_ID
+      - run: kubectl set image deployment/fi-realtime fi-realtime=oneuptime/realtime:5.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh

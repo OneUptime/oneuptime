@@ -14,8 +14,8 @@ staging_InitScript:
         - bash ./ci/scripts/deployment-staging-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build -t oneuptime/InitScript:test ./InitScript
-        - sudo docker tag oneuptime/InitScript:test oneuptime/InitScript:4.0.$CI_PIPELINE_ID
-        - sudo docker push oneuptime/InitScript:4.0.$CI_PIPELINE_ID
+        - sudo docker tag oneuptime/InitScript:test oneuptime/InitScript:5.0.$CI_PIPELINE_ID
+        - sudo docker push oneuptime/InitScript:5.0.$CI_PIPELINE_ID
         - sudo docker push oneuptime/InitScript:test
         ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a new job. .
         - sudo kubectl delete job fi-InitScript || echo "Job not found"
@@ -47,8 +47,8 @@ production_InitScript:
         - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker build -t oneuptime/InitScript:latest ./InitScript
-        - sudo docker tag oneuptime/InitScript:latest oneuptime/InitScript:4.0.$CI_PIPELINE_ID
-        - sudo docker push oneuptime/InitScript:4.0.$CI_PIPELINE_ID
+        - sudo docker tag oneuptime/InitScript:latest oneuptime/InitScript:5.0.$CI_PIPELINE_ID
+        - sudo docker push oneuptime/InitScript:5.0.$CI_PIPELINE_ID
         - sudo docker push oneuptime/InitScript:latest
         ## You cannot update a Kubernetes job. They are immutable. Delete it and run helm again which will create a a new job. .
         - sudo kubectl delete job fi-InitScript || echo "Job not found"

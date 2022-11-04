@@ -15,8 +15,8 @@ staging_JavaSDK:
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name redis -p 6379:6379 -d redis:7.0.3 redis-server
-        - sudo docker build -t oneuptime/backend:4.0.$CI_PIPELINE_ID ./backend
-        - sudo docker run --env-file ./backend/.env --net=host -d oneuptime/backend:4.0.$CI_PIPELINE_ID
+        - sudo docker build -t oneuptime/backend:5.0.$CI_PIPELINE_ID ./backend
+        - sudo docker run --env-file ./backend/.env --net=host -d oneuptime/backend:5.0.$CI_PIPELINE_ID
         - sudo docker ps
         - cd JavaSDK
         # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key ONEUPTIME default default 2024-07-16
@@ -24,12 +24,12 @@ staging_JavaSDK:
         # - gpg --keyserver hkp://pool.sks-keyservers.net --send-keys 23972C2E9738913575B32C581FEDD8E12C3929D9
         # - gpg --keyserver keyserver.ubuntu.com --send-keys 23972C2E9738913575B32C581FEDD8E12C3929D9
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
-        - mvn versions:set -DnewVersion="4.0.$CI_PIPELINE_ID-SNAPSHOT"
-        - mvn versions:set-property -Dproperty=sdk.version -DnewVersion="4.0.$CI_PIPELINE_ID"
+        - mvn versions:set -DnewVersion="5.0.$CI_PIPELINE_ID-SNAPSHOT"
+        - mvn versions:set-property -Dproperty=sdk.version -DnewVersion="5.0.$CI_PIPELINE_ID"
         - mvn clean deploy
         - git init
         - git add .
-        - git commit -m "Test Image Deploy to DockerHubment version 4.0.$CI_PIPELINE_ID-SNAPSHOT"
+        - git commit -m "Test Image Deploy to DockerHubment version 5.0.$CI_PIPELINE_ID-SNAPSHOT"
         - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/JavaSDK.git staging --force
         - cd ..
@@ -58,8 +58,8 @@ production_JavaSDK:
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name redis -p 6379:6379 -d redis:7.0.3 redis-server
-        - sudo docker build -t oneuptime/backend:4.0.$CI_PIPELINE_ID ./backend
-        - sudo docker run --env-file ./backend/.env --net=host -d oneuptime/backend:4.0.$CI_PIPELINE_ID
+        - sudo docker build -t oneuptime/backend:5.0.$CI_PIPELINE_ID ./backend
+        - sudo docker run --env-file ./backend/.env --net=host -d oneuptime/backend:5.0.$CI_PIPELINE_ID
         - sudo docker ps
         - cd JavaSDK
         # - gpg --batch --passphrase $GPG_PASSPHRASE --quick-generate-key ONEUPTIME default default 2024-07-16
@@ -69,12 +69,12 @@ production_JavaSDK:
         - git status
         - export JAVA_HOME=$(readlink -f /usr/bin/javac | sed "s:/bin/javac::")
         # - git checkout -f master
-        - mvn versions:set -DnewVersion="4.0.$CI_PIPELINE_ID"
-        - mvn versions:set-property -Dproperty=sdk.version -DnewVersion="4.0.$CI_PIPELINE_ID"
+        - mvn versions:set -DnewVersion="5.0.$CI_PIPELINE_ID"
+        - mvn versions:set-property -Dproperty=sdk.version -DnewVersion="5.0.$CI_PIPELINE_ID"
         - mvn clean deploy -P release
         - git init
         - git add .
-        - git commit -m "production deployment version 4.0.$CI_PIPELINE_ID"
+        - git commit -m "production deployment version 5.0.$CI_PIPELINE_ID"
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/JavaSDK.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh

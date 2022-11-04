@@ -29,5 +29,5 @@ jobs:
         # Build and deploy LighthouseRunner.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/nginx:4.0.$CI_PIPELINE_ID --push -f ./nginx/Dockerfile ./nginx
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/nginx:5.0.$CI_PIPELINE_ID --push -f ./nginx/Dockerfile ./nginx
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/nginx:latest --push -f ./nginx/Dockerfile ./nginx

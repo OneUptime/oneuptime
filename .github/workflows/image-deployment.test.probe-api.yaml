@@ -22,6 +22,6 @@ jobs:
         # Build and deploy probe-api.
       - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:4.0.$CI_PIPELINE_ID-test --push -f ./ProbeAPI/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:5.0.$CI_PIPELINE_ID-test --push -f ./ProbeAPI/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/probe-api:test --push -f ./ProbeAPI/Dockerfile .
       
