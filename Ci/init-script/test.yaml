@@ -17,7 +17,7 @@ spec:
         spec:
             containers:
                 - name: InitScript
-                  image: localhost:32000/InitScript:staging
+                  image: localhost:32000/InitScript:test
                   imagePullPolicy: Always
                   env:
                       - name: MONGO_URL

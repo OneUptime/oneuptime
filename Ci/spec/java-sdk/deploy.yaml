@@ -29,7 +29,7 @@ staging_JavaSDK:
         - mvn clean deploy
         - git init
         - git add .
-        - git commit -m "staging deployment version 4.0.$CI_PIPELINE_ID-SNAPSHOT"
+        - git commit -m "Test Image Deploy to DockerHubment version 4.0.$CI_PIPELINE_ID-SNAPSHOT"
         - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/JavaSDK.git staging --force
         - cd ..

@@ -44,7 +44,7 @@ staging_ProbeAPI:
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:4.0.$CI_PIPELINE_ID --push ./ProbeAPI
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:staging --push ./ProbeAPI
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:test --push ./ProbeAPI
         - kubectl set image deployment/fi-ProbeAPI fi-ProbeAPI=oneuptime/ProbeAPI:4.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh

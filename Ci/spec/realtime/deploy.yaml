@@ -44,7 +44,7 @@ staging_realtime:
         - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
         - sudo docker buildx create --use
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:4.0.$CI_PIPELINE_ID --push ./realtime
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:staging --push ./realtime
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/realtime:test --push ./realtime
         - kubectl set image deployment/fi-realtime fi-realtime=oneuptime/realtime:4.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
