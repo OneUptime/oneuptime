@@ -120,10 +120,11 @@ for d in */ ; do
     if [ -f ./$d.env.tpl ]; then
         cat ./$d.env.tpl | gomplate > ./$d.env
     fi
+
+    if [ -f ./$d.Dockerfile.tpl ]; then
+        cat ./$d.Dockerfile.tpl | gomplate > ./$d.Dockerfile
+    fi
 done
-
-# Generate Docker files.
-
 
 # Write this to docker-compose. 
 cat docker-compose.tpl.yml | gomplate > docker-compose.yml
