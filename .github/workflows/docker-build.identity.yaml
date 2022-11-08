@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v2
       
       - name: Preinstall 
-        run: npm run preinstall
+        run: npm run prerun
         
       # build image for identity
       - name: build docker image

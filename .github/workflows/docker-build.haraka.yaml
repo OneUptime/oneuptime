@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Preinstall 
-        run: npm run preinstall
+        run: npm run prerun
         
       # build images
       - name: build docker image
