@@ -18,7 +18,7 @@ INTERNAL_SMTP_PASSWORD=$(openssl rand -hex 12)
 export INTERNAL_SMTP_PASSWORD=$INTERNAL_SMTP_PASSWORD
 
 # Talk to the user
-echo "Welcome to the single instance OneUptime 🟢 installer"
+echo "Welcome to the OneUptime 🟢 Runner"
 echo ""
 echo "⚠️  You really need 8gb or more of memory to run this stack ⚠️"
 echo ""
@@ -34,35 +34,35 @@ echo "Making sure any stack that might exist is stopped"
 
 # If docker-compose is installed and if docker-compose.yml is found then, stop the stack.
 if [[ $(which docker-compose) ]]; then
-if [ -f ./docker-compose.yml ]; then
-sudo -E docker-compose -f docker-compose.yml stop || true
-fi
+    if [ -f ./docker-compose.yml ]; then
+        sudo -E docker-compose -f docker-compose.yml stop || true
+    fi
 fi
 
 
 # If Mac
 if [[ "$OSTYPE" == "darwin"* ]]; then
-if [[ ! $(which brew) ]]; then
-    echo "Homebrew not installed. Please install homebrew and restart installer"
-    exit
-fi
+    if [[ ! $(which brew) ]]; then
+        echo "Homebrew not installed. Please install homebrew and restart installer"
+        exit
+    fi
 fi
 
 # If linux
 if [[ "$OSTYPE" != "darwin"* ]]; then
-echo "Grabbing latest apt caches"
-sudo apt update
+    echo "Grabbing latest apt caches"
+    sudo apt update
 fi
 
 # clone oneuptime
 echo "Installing OneUptime 🟢"
 if [[ ! $(which git) ]]; then
-if [[ "$OSTYPE" != "darwin"* ]]; then
-sudo apt install -y git
-fi
-if [[ "$OSTYPE" == "darwin"* ]]; then
-brew install git
-fi
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+        sudo apt install -y git
+    fi
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        brew install git
+    fi
 fi
 
 GIT_REPO_URL=$(git config --get remote.origin.url)

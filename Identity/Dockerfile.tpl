@@ -1,5 +1,5 @@
 #
-# OneUptime-ProbeAPI Dockerfile
+# OneUptime-identity Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -8,11 +8,14 @@ FROM node:alpine
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
 
+
+# Install python
+RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
+
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
-RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
@@ -41,25 +44,30 @@ COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
 
+#SET ENV Variables
+ENV PRODUCTION=true
+
+RUN mkdir /usr/src/app
+
 WORKDIR /usr/src/app
 
 # Install app dependencies
-RUN cd /usr/src/app
-
-# Copy package.json files
-COPY ./ProbeAPI/package.json /usr/src/app/package.json
-COPY ./ProbeAPI/package-lock.json /usr/src/app/package-lock.json
-
-
+COPY ./Identity/package*.json /usr/src/app/
 RUN npm install
 
 # Expose ports.
-EXPOSE 3400
+#   - 3087: OneUptime-backend
+EXPOSE 3087
 
-# Expose Debugging port.
-EXPOSE 9229
-
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
+CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./Identity /usr/src/app
+# Bundle app source
 RUN npm run compile
-CMD [ "npm", "run", "dev"]
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}
 

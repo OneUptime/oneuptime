@@ -1,5 +1,5 @@
 #
-# OneUptime-DashboardAPI Dockerfile
+# OneUptime-licensing Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -7,10 +7,6 @@ FROM node:alpine
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
-
-
-# Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
@@ -47,23 +43,27 @@ RUN npm run compile
 #SET ENV Variables
 ENV PRODUCTION=true
 
+
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./DashboardAPI/package*.json /usr/src/app/
+COPY ./Licensing/package*.json /usr/src/app/
 RUN npm install
-RUN npm install -g ts-node
-RUN npm install -g ts-node-dev
-
-# Bundle app source
-COPY ./DashboardAPI /usr/src/app
 
 # Expose ports.
-#   - 3002: OneUptime-backend
-EXPOSE 3002
+#   - 3004: OneUptime-licensing
+EXPOSE 3004
 
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
+CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./Licensing /usr/src/app
+# Bundle app source
 RUN npm run compile
-CMD [ "npm", "start"]
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}

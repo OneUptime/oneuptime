@@ -1,5 +1,5 @@
 #
-# OneUptime-Alert Dockerfile
+# OneUptime-File Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -51,22 +51,23 @@ RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
-# Install trivy for container scanning
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
-
 # Install app dependencies
-COPY ./Alert/package*.json /usr/src/app/
+COPY ./File/package*.json /usr/src/app/
 RUN npm install
-RUN npm install -g ts-node
-RUN npm install -g ts-node-dev
 
-# Bundle app source
-COPY ./Alert /usr/src/app
 
 # Expose ports.
-#   - 3088: OneUptime-backend
-EXPOSE 3088
+#   - 3125: OneUptime-backend
+EXPOSE 3125
 
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
+CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./File /usr/src/app
+# Bundle app source
 RUN npm run compile
-CMD [ "npm", "start"]
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}

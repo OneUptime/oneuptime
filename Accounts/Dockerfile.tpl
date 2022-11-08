@@ -1,5 +1,5 @@
 #
-# Home Dockerfile
+# Accounts Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -12,7 +12,6 @@ RUN apk update && apk add bash && apk add curl
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
-RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
@@ -52,26 +51,30 @@ RUN npm run compile
 
 
 #SET ENV Variables
-
+ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
-# Copy package.json files
-COPY ./Home/package.json /usr/src/app/package.json
-COPY ./Home/package-lock.json /usr/src/app/package-lock.json
-
-
 # Install app dependencies
-RUN npm install 
-
-# Create .cache folder with necessary permissions for React-based apps
-# https://stackoverflow.com/questions/67087735/eacces-permission-denied-mkdir-usr-app-node-modules-cache-how-can-i-creat
-RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules/.cache
+COPY ./Accounts/package*.json /usr/src/app/
+RUN npm install  
 
 # Expose ports.
-#   - 1444:  home
-EXPOSE 1444
+#   - 3003:  accounts
+EXPOSE 3003
 
+
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./Accounts /usr/src/app
+# Bundle app source
+RUN npm run build
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}

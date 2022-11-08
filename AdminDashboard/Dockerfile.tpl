@@ -61,18 +61,21 @@ WORKDIR /usr/src/app
 # Install app dependencies
 COPY ./AdminDashboard/package*.json /usr/src/app/
 RUN npm install  
-RUN npm install -g ts-node
-RUN npm install -g ts-node-dev
-
-# Copy app source
-COPY ./AdminDashboard /usr/src/app
-
-# Bundle app source
-RUN npm run build
 
 # Expose ports.
 #   - 3005:  AdminDashboard
 EXPOSE 3005
 
+
+{{ if eq .Env.ENVIRONMENT "development" }}
+#Run the app
+CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./AdminDashboard /usr/src/app
+# Bundle app source
+RUN npm run build
 #Run the app
 CMD [ "npm", "start" ]
+{{ end }}
+

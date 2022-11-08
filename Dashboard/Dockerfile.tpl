@@ -1,5 +1,5 @@
 #
-# MailService Dockerfile
+# Dashboard Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -12,7 +12,6 @@ RUN apk update && apk add bash && apk add curl
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
-RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
@@ -41,21 +40,40 @@ COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
 
+
+# Install CommonUI
+RUN mkdir /usr/src/CommonUI
+WORKDIR /usr/src/CommonUI
+COPY ./CommonUI/package*.json /usr/src/CommonUI/
+RUN npm install --force
+COPY ./CommonUI /usr/src/CommonUI
+RUN npm run compile
+
+
+#SET ENV Variables
+ENV PRODUCTION=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
+RUN mkdir /usr/src/app
+
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Mail/package*.json /usr/src/app/
-RUN npm install
-RUN npm install -g ts-node
-
-# Bundle app source
-COPY ./Mail /usr/src/app
+COPY ./Dashboard/package*.json /usr/src/app/
+RUN npm install  
 
 # Expose ports.
-#   - 3190: MailService
-EXPOSE 3190
+#   - 3009:  Dashboard
+EXPOSE 3009
 
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
-RUN npm run compile
-CMD [ "npm", "run", "dev"]
-
+CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./Dashboard /usr/src/app
+# Bundle app source
+RUN npm run build
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}

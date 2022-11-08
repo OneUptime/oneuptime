@@ -1,5 +1,5 @@
 #
-# dashboard Dockerfile
+# OneUptime-Alert Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -8,11 +8,14 @@ FROM node:alpine
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
 
+
+# Install python
+RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
+
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
-RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
@@ -41,37 +44,35 @@ COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
 
-
-# Install CommonUI
-RUN mkdir /usr/src/CommonUI
-WORKDIR /usr/src/CommonUI
-COPY ./CommonUI/package*.json /usr/src/CommonUI/
-RUN npm install --force
-COPY ./CommonUI /usr/src/CommonUI
-RUN npm run compile
-
-
 #SET ENV Variables
+ENV PRODUCTION=true
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
-# Copy package.json files
-COPY ./Dashboard/package.json /usr/src/app/package.json
-COPY ./Dashboard/package-lock.json /usr/src/app/package-lock.json
-
+# Install trivy for container scanning
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install app dependencies
-RUN npm install 
+COPY ./Alert/package*.json /usr/src/app/
+RUN npm install
 
-# Create .cache folder with necessary permissions for React-based apps
-# https://stackoverflow.com/questions/67087735/eacces-permission-denied-mkdir-usr-app-node-modules-cache-how-can-i-creat
-RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules/.cache
 
 # Expose ports.
-#   - 3009:  dashboard
-EXPOSE 3009
+#   - 3088: OneUptime-Alert
+EXPOSE 3088
 
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./Alert /usr/src/app
+# Bundle app source
+RUN npm run compile
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}
+
+

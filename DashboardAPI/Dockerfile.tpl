@@ -1,8 +1,16 @@
+#
+# OneUptime-DashboardAPI Dockerfile
+#
+
 # Pull base image nodejs image.
 FROM node:alpine
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
+
+
+# Install python
+RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
@@ -36,24 +44,29 @@ COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+#SET ENV Variables
+ENV PRODUCTION=true
 
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./ApiDocs/package*.json /usr/src/app/
+COPY ./DashboardAPI/package*.json /usr/src/app/
 RUN npm install
-RUN npm install -g ts-node
-RUN npm install -g ts-node-dev
-
-# Bundle app source
-COPY ./ApiDocs /usr/src/app
 
 # Expose ports.
-#   - 1445: OneUptime Docs
-EXPOSE 1445
+#   - 3002: OneUptime-backend
+EXPOSE 3002
 
+{{ if eq .Env.ENVIRONMENT "development" }}
+#Run the app
+CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./DashboardAPI /usr/src/app
+# Bundle app source
+RUN npm run compile
 #Run the app
 CMD [ "npm", "start" ]
+{{ end }}

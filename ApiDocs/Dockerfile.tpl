@@ -1,7 +1,3 @@
-#
-# OneUptime Docs Dockerfile
-#
-
 # Pull base image nodejs image.
 FROM node:alpine
 
@@ -12,7 +8,6 @@ RUN apk update && apk add bash && apk add curl
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
-RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
@@ -41,26 +36,30 @@ COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
 
-#SET ENV Variables
-
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-
-
+RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
-# Copy package.json files
-COPY ./ApiDocs/package.json /usr/src/app/package.json
-COPY ./ApiDocs/package-lock.json /usr/src/app/package-lock.json
-
-
 # Install app dependencies
+COPY ./ApiDocs/package*.json /usr/src/app/
 RUN npm install
 
-# Expose ports.
-#   - 3000:  OneUptime
-EXPOSE 3000
 
+# Expose ports.
+#   - 1445: OneUptime Docs
+EXPOSE 1445
+
+
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./ApiDocs /usr/src/app
+# Bundle app source
+RUN npm run compile
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}

@@ -1,5 +1,5 @@
 #
-# StatusPage Dockerfile
+# OneUptime-ProbeAPI Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -12,7 +12,6 @@ RUN apk update && apk add bash && apk add curl
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
-RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
@@ -41,37 +40,28 @@ COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
 
-
-# Install CommonUI
-RUN mkdir /usr/src/CommonUI
-WORKDIR /usr/src/CommonUI
-COPY ./CommonUI/package*.json /usr/src/CommonUI/
-RUN npm install --force
-COPY ./CommonUI /usr/src/CommonUI
-RUN npm run compile
-
-
 #SET ENV Variables
+ENV PRODUCTION=true
 
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
-# Copy package.json files
-COPY ./StatusPage/package.json /usr/src/app/package.json
-COPY ./StatusPage/package-lock.json /usr/src/app/package-lock.json
-
-
 # Install app dependencies
-RUN npm install 
-
-# Create .cache folder with necessary permissions for React-based apps
-# https://stackoverflow.com/questions/67087735/eacces-permission-denied-mkdir-usr-app-node-modules-cache-how-can-i-creat
-RUN mkdir -p node_modules/.cache && chmod -R 777 node_modules/.cache
+COPY ./ProbeAPI/package*.json /usr/src/app/
+RUN npm install
 
 # Expose ports.
-#   - 3105:  StatusPage
-EXPOSE 3105
+EXPOSE 3400
 
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./ProbeAPI /usr/src/app
+# Bundle app source
+RUN npm run compile
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}

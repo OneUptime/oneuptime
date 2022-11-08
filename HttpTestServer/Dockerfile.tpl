@@ -1,5 +1,5 @@
 #
-# OneUptime-Workers Dockerfile
+# OneUptime-HttpTestServer Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -8,14 +8,11 @@ FROM node:alpine
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
 
-
-# Install python
-RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
-
 #Use bash shell by default
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
+
 
 RUN mkdir /usr/src
 
@@ -46,24 +43,30 @@ RUN npm run compile
 
 #SET ENV Variables
 ENV PRODUCTION=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+
 
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Workers/package*.json /usr/src/app/
+COPY ./HttpTestServer/package*.json /usr/src/app/
 RUN npm install
-RUN npm install -g ts-node
-RUN npm install -g ts-node-dev
 
-# Bundle app source
-COPY ./Workers /usr/src/app
 
 # Expose ports.
-#   - 3452: OneUptime-worker
-EXPOSE 3452
+#   - 3010: OneUptime-HttpTestServer
+EXPOSE 3010
 
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
+CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./HttpTestServer /usr/src/app
+# Bundle app source
 RUN npm run compile
-CMD [ "npm", "start"]
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}

@@ -1,9 +1,13 @@
 #
-# OneUptime-licensing Dockerfile
+# OneUptime Home Dockerfile
 #
 
 # Pull base image nodejs image.
 FROM node:alpine
+
+#SET ENV Variables. 
+ENV PRODUCTION=true
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
@@ -40,27 +44,27 @@ COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
 
-#SET ENV Variables
-ENV PRODUCTION=true
-
-
 RUN mkdir /usr/src/app
 
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./Licensing/package*.json /usr/src/app/
+COPY ./Home/package*.json /usr/src/app/
 RUN npm install
-RUN npm install -g ts-node
-RUN npm install -g ts-node-dev
 
-# Bundle app source
-COPY ./Licensing /usr/src/app
 
 # Expose ports.
-#   - 3004: OneUptime-licensing
-EXPOSE 3004
+#   - 1444: OneUptime Home
+EXPOSE 1444
 
+{{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
+CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./Home /usr/src/app
+# Bundle app source
 RUN npm run compile
-CMD [ "npm", "start"]
+#Run the app
+CMD [ "npm", "start" ]
+{{ end }}

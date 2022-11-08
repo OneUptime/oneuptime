@@ -1,5 +1,12 @@
+#
+# realtime Dockerfile
+#
+
 # Pull base image nodejs image.
 FROM node:alpine
+
+#SET ENV Variables
+ENV PRODUCTION=true
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
@@ -41,17 +48,22 @@ RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
 
 # Install app dependencies
-COPY ./HelmChart/package*.json /usr/src/app/
+COPY ./Realtime/package*.json /usr/src/app/
 RUN npm install
-RUN npm install -g ts-node
-RUN npm install -g ts-node-dev
-
-# Bundle app source
-COPY ./HelmChart /usr/src/app
 
 # Expose ports.
-#   - 3423: OneUptime Helm Chart Server
-EXPOSE 3423
+EXPOSE 3300
 
+{{ if eq .Env.ENVIRONMENT "development" }}
+#Run the app
+CMD [ "npm", "run", "dev" ]
+{{ else }}
+# Copy app source
+COPY ./Realtime /usr/src/app
+# Bundle app source
+RUN npm run compile
 #Run the app
 CMD [ "npm", "start" ]
+{{ end }}
+
+
