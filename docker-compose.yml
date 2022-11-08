@@ -1,0 +1,236 @@
+version: '3.7'
+
+services:
+    ##IMPORTANT:
+    ## This container is an SMTP server used to send emails.
+    ## Setup private, tls_cert and tls_key keys before running this part
+    haraka:
+        ports:
+            - '2525:2525'
+        build:
+            network: host
+            context: ./Haraka
+        env_file:
+            - ./Haraka/.env
+    
+    redis:
+        image: redis:7.0.3
+        ports:
+            - '6379:6379'
+        command: redis-server /usr/local/etc/redis/redis.conf
+        env_file:
+            - ./Redis/.env
+        volumes:
+            - ./Redis/redis.conf:/usr/local/etc/redis/redis.conf
+
+    postgres:
+        image: postgres:latest
+        restart: always
+        env_file:
+            - ./Postgres/.env
+        ports:
+            - '5400:5432'
+        volumes: 
+            - postgres:/var/lib/postgresql/data
+    
+    mail:
+        ports:
+            
+            - 3190:3190
+        
+        image:  oneuptime/mail:latest
+        
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonServer/.env
+            - ./CommonServer/secret.env
+            - ./Mail/.env
+        depends_on:
+            - haraka
+            - postgres
+        
+
+    
+
+    accounts:
+        ports:
+            - '3003:3003'
+        
+        image:  oneuptime/accounts:latest
+        
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonUI/.env
+            - ./Accounts/.env
+
+        depends_on:
+            - identity
+        
+
+    dashboard:
+        ports:
+            - '3009:3009'
+        
+        image:  oneuptime/dashboard:latest
+        
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonUI/.env
+            - ./Accounts/.env
+
+        depends_on:
+            - identity
+            - accounts
+        
+    
+
+    status-page:
+        ports:
+            - '3105:3105'
+        
+        image:  oneuptime/status-page:latest
+        
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonUI/.env
+            - ./StatusPage/.env
+
+        depends_on:
+            - accounts
+            - dashboard-api
+        
+
+    dashboard-api:
+        ports:
+            - '3002:3002'
+            
+        
+        image:  oneuptime/dashboard-api:latest
+        
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonServer/.env
+            - ./CommonServer/secret.env
+            - ./DashboardAPI/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - mail
+        links:
+            - redis
+            - postgres
+            - mail
+        
+    
+
+
+    workers:
+        ports:
+            - '3452:3452'
+            
+        
+        image:  oneuptime/workers:latest
+        
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonServer/.env
+            - ./CommonServer/secret.env
+            - ./Workers/.env
+
+        depends_on:
+            - postgres
+            - mail
+        links:
+            - postgres
+            - mail
+        
+    
+
+
+
+    identity:
+        ports:
+            - '3087:3087'
+            
+        
+        image:  oneuptime/identity:latest
+        
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonServer/.env
+            - ./CommonServer/secret.env
+            - ./Identity/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - mail
+        links:
+            - redis
+            - postgres
+            - mail
+        
+    
+
+    file:
+        ports:
+            - '3125:3125'
+            
+        
+        image:  oneuptime/file:latest
+        
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonServer/.env
+            - ./CommonServer/secret.env
+            - ./File/.env
+
+        depends_on:
+            - postgres
+        links:
+            - postgres
+        
+
+  
+    home:
+        ports:
+            - '1444:1444'
+            
+        env_file:
+            - ./Common/.env
+            - ./Common/secret.env
+            - ./CommonServer/.env
+            - ./CommonServer/secret.env
+            - ./Home/.env
+        
+        image:  oneuptime/home:latest
+        
+        
+    
+
+    nginx:
+        depends_on:
+            - identity
+            - accounts
+            - dashboard-api
+            - dashboard
+            - home
+        restart: always
+        build:
+            dockerfile: Dockerfile
+            network: host
+            context: ./Nginx
+        ports:
+            - '80:80'
+            - '443:443'
+volumes:
+    postgres:

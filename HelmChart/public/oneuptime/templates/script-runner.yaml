@@ -54,7 +54,7 @@ spec:
                         value: {{ $.Values.nodeEnv }}
                       - name: SERVER_URL
                         value: {{ template "oneuptime.serverUrl" $ }}
-                      - name: IS_SAAS_SERVICE
+                      - name: BILLING_ENABLED
                         value: 'true'
                       - name: ONEUPTIME_SECRET
                         valueFrom:

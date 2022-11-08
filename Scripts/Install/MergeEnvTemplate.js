@@ -3,7 +3,7 @@
 import fs from 'fs';
 
 try {
-    const tempate = fs.readFileSync('./config.env.tpl', 'utf8');
+    const tempate = fs.readFileSync('./config.tpl.env', 'utf8');
     const env = fs.readFileSync('./config.env', 'utf8');
     
 
@@ -34,7 +34,7 @@ try {
     }
 
     // write the file back to disk and exit. 
-    fs.writeFileSync('./config.env', linesInEnv.join("\n"));
+    fs.writeFileSync('./config.env.temp', linesInEnv.join("\n"));
 
 } catch (err) {
     console.error(err);

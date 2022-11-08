@@ -35,7 +35,7 @@ spec:
                     limits:
                       cpu: 500m
                   env:
-                      - name: IS_SAAS_SERVICE
+                      - name: BILLING_ENABLED
                         value: 'true'
                       - name: NODE_ENV
                         value: 'production'

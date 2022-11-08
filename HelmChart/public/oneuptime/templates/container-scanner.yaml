@@ -34,7 +34,7 @@ spec:
                       value: {{ $.Values.host.containerScannerPort | quote }}
                     - name: SERVER_URL
                       value: {{ template "oneuptime.serverUrl" $ }}
-                    - name: IS_SAAS_SERVICE
+                    - name: BILLING_ENABLED
                       value: 'true'
                     - name: CONTAINER_SCANNER_NAME
                       value: {{ $.Values.containerScanner.name }}

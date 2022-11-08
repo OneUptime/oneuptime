@@ -2,7 +2,7 @@
 version: '3.7'
 
 x-common-variables: &common-variables
-   IS_SAAS_SERVICE: ${IS_SAAS_SERVICE}
+   BILLING_ENABLED: ${BILLING_ENABLED}
 
 
 services:

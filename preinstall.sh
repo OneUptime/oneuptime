@@ -2,10 +2,20 @@
 
 set -e
 
-export ONEUPTIME_APP_TAG="${ONEUPTIME_APP_TAG:-latest}"
+ONEUPTIME_SECRET=$(openssl rand -hex 12)
+export ONEUPTIME_SECRET=$ONEUPTIME_SECRET
 
-ONEUPTIME_SECRET=$(head -c 28 /dev/urandom | sha224sum -b | head -c 56)
-export ONEUPTIME_SECRET
+DATABASE_PASSWORD=$(openssl rand -hex 12)
+export DATABASE_PASSWORD=$DATABASE_PASSWORD.
+
+REDIS_PASSWORD=$(openssl rand -hex 12)
+export REDIS_PASSWORD=$REDIS_PASSWORD
+
+ENCRYPTION_SECRET=$(openssl rand -hex 12)
+export ENCRYPTION_SECRET=$ENCRYPTION_SECRET
+
+INTERNAL_SMTP_PASSWORD=$(openssl rand -hex 12)
+export INTERNAL_SMTP_PASSWORD=$INTERNAL_SMTP_PASSWORD
 
 # Talk to the user
 echo "Welcome to the single instance OneUptime 🟢 installer"
@@ -78,13 +88,14 @@ if [[ ! $(which node) && ! $(node --version) ]]; then
     fi
 fi
 
+if [[ ! $(which gomplate) ]]; then
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+    brew install gomplate
+    fi
 
-if [[ "$OSTYPE" == "darwin"* ]]; then
-brew install gomplate
-fi
-
-if [[ "$OSTYPE" != "darwin"* ]]; then
-sudo apt-get install -y gomplate
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+    sudo apt-get install -y gomplate
+    fi
 fi
 
 
@@ -96,9 +107,13 @@ touch config.env
 #Run a scirpt to merge config.env.tpl to config.env
 node ./Scripts/Install/MergeEnvTemplate.js
 
+cat config.env.temp | gomplate > config.env
+
+rm config.env.temp
 
 echo "Config file has been generated at config.env. Please look at the config, make changes and when you're done - hit enter to continue with the setup."
 read -r ENTER
+
 
 
 # Load env values from config.env
@@ -107,10 +122,13 @@ export $(grep -v '^#' config.env | xargs)
 # Write env vars in config files. 
 
 for d in */ ; do
-    if [ -f /$d/.env.tpl ]; then
-        cat /$d/.env.tpl | gomplate > /$d/.env
+    if [ -f ./$d.env.tpl ]; then
+        cat ./$d.env.tpl | gomplate > ./$d.env
     fi
 done
 
+# Generate Docker files.
+
+
 # Write this to docker-compose. 
-cat docker-compose.yml.tpl | gomplate > docker-compose.yml
+cat docker-compose.tpl.yml | gomplate > docker-compose.yml

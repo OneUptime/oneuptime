@@ -68,7 +68,7 @@ spec:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: clusterkey
                       {{- if $.Values.saas.isSaasService }}
-                      - name: IS_SAAS_SERVICE
+                      - name: BILLING_ENABLED
                         value: 'true'
                       - name: SLACK_ERROR_LOG_WEBHOOK
                         value: {{ $.Values.saas.slackErrorLog.webhook }}

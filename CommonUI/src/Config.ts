@@ -14,7 +14,7 @@ export const HTTP_PROTOCOL: Protocol = window.location.protocol.includes(
     ? Protocol.HTTPS
     : Protocol.HTTP;
 
-export const IS_SAAS_SERVICE: boolean = env('IS_SAAS_SERVICE') === 'true';
+export const BILLING_ENABLED: boolean = env('BILLING_ENABLED') === 'true';
 export const DISABLE_SIGNUP: boolean = env('DISABLE_SIGNUP') === 'true';
 export const VERSION: Version = new Version(env('VERSION') || '1.0.0');
 

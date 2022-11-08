@@ -49,7 +49,7 @@ spec:
                         fieldRef:
                           fieldPath: spec.serviceAccountName
                     {{- if .Values.saas.isSaasService }}
-                    - name: IS_SAAS_SERVICE
+                    - name: BILLING_ENABLED
                       value: 'true'
                     {{- else }}
                     - name: LICENSE_URL
