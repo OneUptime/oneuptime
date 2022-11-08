@@ -116,15 +116,16 @@ export $(grep -v '^#' config.env | xargs)
 
 # Write env vars in config files. 
 
-for d in */ ; do
-    if [ -f ./$d.env.tpl ]; then
-        cat ./$d.env.tpl | gomplate > ./$d.env
+
+for directory_name in $(find . -type d -maxdepth 1) ; do
+    if [ -f "$directory_name/.env.tpl" ]; then
+        cat $directory_name/.env.tpl | gomplate > $directory_name/.env
     fi
 
-    if [ -f ./$d.Dockerfile.tpl ]; then
-        cat ./$d.Dockerfile.tpl | gomplate > ./$d.Dockerfile
+    if [ -f "$directory_name/Dockerfile.tpl" ]; then
+        cat $directory_name/Dockerfile.tpl | gomplate > $directory_name/Dockerfile
     fi
 done
 
-# Write this to docker-compose. 
+# Convert template to docker-compose. 
 cat docker-compose.tpl.yml | gomplate > docker-compose.yml
