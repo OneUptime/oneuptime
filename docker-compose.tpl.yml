@@ -49,9 +49,7 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
-            - ./Common/secret.env
             - ./CommonServer/.env
-            - ./CommonServer/secret.env
             - ./Mail/.env
         depends_on:
             - haraka
@@ -87,7 +85,6 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
-            - ./Common/secret.env
             - ./CommonUI/.env
             - ./Accounts/.env
 
@@ -122,7 +119,6 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
-            - ./Common/secret.env
             - ./CommonUI/.env
             - ./Accounts/.env
 
@@ -157,7 +153,6 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
-            - ./Common/secret.env
             - ./CommonUI/.env
             - ./StatusPage/.env
 
@@ -194,9 +189,7 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
-            - ./Common/secret.env
             - ./CommonServer/.env
-            - ./CommonServer/secret.env
             - ./DashboardAPI/.env
 
         depends_on:
@@ -241,9 +234,7 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
-            - ./Common/secret.env
             - ./CommonServer/.env
-            - ./CommonServer/secret.env
             - ./Workers/.env
 
         depends_on:
@@ -287,9 +278,7 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
-            - ./Common/secret.env
             - ./CommonServer/.env
-            - ./CommonServer/secret.env
             - ./Identity/.env
 
         depends_on:
@@ -333,9 +322,7 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
-            - ./Common/secret.env
             - ./CommonServer/.env
-            - ./CommonServer/secret.env
             - ./File/.env
 
         depends_on:
@@ -367,9 +354,7 @@ services:
             {{ end }}
         env_file:
             - ./Common/.env
-            - ./Common/secret.env
             - ./CommonServer/.env
-            - ./CommonServer/secret.env
             - ./Home/.env
         {{ if eq .Env.ENVIRONMENT "development" }}
         build:

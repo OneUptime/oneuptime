@@ -38,10 +38,7 @@ if [[ ! $(which docker-compose) && ! $(docker-compose --version) ]]; then
   exit
 fi
 
-
-
-
-
+npm run start
 
 echo "We will need to wait ~5-10 minutes for things to settle down, migrations to finish, and TLS certs to be issued"
 echo ""
