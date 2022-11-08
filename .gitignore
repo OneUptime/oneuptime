@@ -62,7 +62,7 @@ GoSDK/tester/
 
 secret.env
 
-/.env
+*/.env
 
 config.env
 

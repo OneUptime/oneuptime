@@ -111,11 +111,6 @@ cat config.env.temp | gomplate > config.env
 
 rm config.env.temp
 
-echo "Config file has been generated at config.env. Please look at the config, make changes and when you're done - hit enter to continue with the setup."
-read -r ENTER
-
-
-
 # Load env values from config.env
 export $(grep -v '^#' config.env | xargs)
 
