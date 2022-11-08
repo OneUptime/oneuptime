@@ -4,4 +4,4 @@
 
 cd ..
 # Run Postgres
-npm run-script start-enterprise-ci postgres
+docker-compose up postgres -d
