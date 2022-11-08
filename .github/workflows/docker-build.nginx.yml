@@ -1,4 +1,4 @@
-name: Licensing Docker Build
+name: NGINX Docker Build
 
 on:
   pull_request: 
@@ -18,6 +18,6 @@ jobs:
       - name: Preinstall 
         uses: npm run preinstall
 
-      # build image for licensing
+      # build image for mail service
       - name: build docker image
-        run: sudo docker build -f ./Licensing/Dockerfile .
+        run: sudo docker build -f ./Nginx/Dockerfile .

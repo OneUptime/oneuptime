@@ -15,6 +15,9 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v2
 
+      - name: Preinstall 
+        uses: npm run preinstall
+        
       # build images
       - name: build docker image
-        run: npm run build-ci haraka
+        run: sudo docker build -f ./Haraka/Dockerfile .

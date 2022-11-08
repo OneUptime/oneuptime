@@ -15,6 +15,9 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v2
 
+      - name: Preinstall 
+        uses: npm run preinstall
+        
       # build image for licensing
       - name: build docker image
-        run: npm run build-ci integration
+        run: sudo docker build -f ./Integration/Dockerfile .

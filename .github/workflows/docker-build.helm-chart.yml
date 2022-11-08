@@ -1,4 +1,4 @@
-name: HelmChart Docker Build
+name: Helm Chart Docker Build
 
 on:
   pull_request: 
@@ -15,6 +15,9 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v2
 
+      - name: Preinstall 
+        uses: npm run preinstall
+        
       # build image for home
       - name: build docker image
-        run: npm run build-ci helmchart
+        run: sudo docker build -f ./HelmChart/Dockerfile .

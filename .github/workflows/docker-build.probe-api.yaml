@@ -14,7 +14,10 @@ jobs:
     steps:
       - name: Checkout 
         uses: actions/checkout@v2
-
+      
+      - name: Preinstall 
+        uses: npm run preinstall
+        
       # build image probe api
       - name: build docker image
-        run: npm run build-ci probe-api
+        run: sudo docker build -f ./ProbeAPI/Dockerfile .

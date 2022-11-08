@@ -1,4 +1,4 @@
-name: Mail Docker Build
+name: Alert Docker Build
 
 on:
   pull_request: 
@@ -15,6 +15,9 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v2
 
+      - name: Preinstall 
+        uses: npm run preinstall
+
       # build image for mail service
       - name: build docker image
-        run: npm run build-ci mail
+        run: sudo docker build -f ./Alert/Dockerfile .
