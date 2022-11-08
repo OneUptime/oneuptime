@@ -89,13 +89,7 @@ if [[ ! $(which node) && ! $(node --version) ]]; then
 fi
 
 if [[ ! $(which gomplate) ]]; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-    brew install gomplate
-    fi
-
-    if [[ "$OSTYPE" != "darwin"* ]]; then
-    sudo apt-get install -y gomplate
-    fi
+    sudo npm install -g gomplate
 fi
 
 
