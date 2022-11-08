@@ -40,7 +40,7 @@ spec:
                       value: {{ $.Values.containerScanner.name }}
                     - name: CONTAINER_SCANNER_KEY
                       value: {{ $.Values.containerScanner.key }}
-                    - name: CLUSTER_KEY
+                    - name: ONEUPTIME_SECRET
                       valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}

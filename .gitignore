@@ -61,3 +61,7 @@ GoSDK/tester/
 .gitconfig
 
 secret.env
+
+*/.env
+
+config.env

@@ -126,7 +126,7 @@ spec:
                         value: {{ $.Values.logstashHost | quote }}
                       - name: LOGSTASH_PORT
                         value: {{ $.Values.logstashPort | quote }}
-                      - name: CLUSTER_KEY
+                      - name: ONEUPTIME_SECRET
                         valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}

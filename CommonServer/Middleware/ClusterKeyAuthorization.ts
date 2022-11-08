@@ -1,4 +1,4 @@
-import { ClusterKey as CLUSTER_KEY } from '../Config';
+import { ClusterKey as ONEUPTIME_SECRET } from '../Config';
 import {
     ExpressRequest,
     ExpressResponse,
@@ -34,7 +34,7 @@ export default class ClusterKeyAuthorization {
             );
         }
 
-        const isAuthorized: boolean = clusterKey === CLUSTER_KEY;
+        const isAuthorized: boolean = clusterKey === ONEUPTIME_SECRET;
 
         if (!isAuthorized) {
             return Response.sendErrorResponse(

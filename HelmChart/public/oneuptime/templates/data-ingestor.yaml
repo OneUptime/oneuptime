@@ -39,7 +39,7 @@ spec:
                         value: {{ template "oneuptime.scriptRunnerUrl" $ }}
                       - name: REALTIME_URL
                         value: {{ template "oneuptime.realtimeUrl" $ }}
-                      - name: CLUSTER_KEY
+                      - name: ONEUPTIME_SECRET
                         valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}

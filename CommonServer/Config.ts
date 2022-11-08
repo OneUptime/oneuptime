@@ -30,7 +30,7 @@ export const AirtableApiKey: string = process.env['AIRTABLE_API_KEY'] || '';
 export const AirtableBaseId: string = process.env['AIRTABLE_BASE_ID'] || '';
 
 export const ClusterKey: ObjectID = new ObjectID(
-    process.env['CLUSTER_KEY'] || ''
+    process.env['ONEUPTIME_SECRET'] || ''
 );
 
 export const RealtimeHostname: Hostname = Hostname.fromString(

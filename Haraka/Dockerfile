@@ -35,6 +35,6 @@ RUN apk add curl
 COPY haraka.sh /
 RUN chmod 755 /haraka.sh
 
-EXPOSE $PORT
+EXPOSE 2525
 
 CMD ["/haraka.sh"]

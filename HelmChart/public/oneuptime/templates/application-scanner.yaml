@@ -40,7 +40,7 @@ spec:
                       value: {{ $.Values.applicationScanner.name }}
                     - name: APPLICATION_SCANNER_KEY
                       value: {{ $.Values.applicationScanner.key }}
-                    - name: CLUSTER_KEY
+                    - name: ONEUPTIME_SECRET
                       valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}

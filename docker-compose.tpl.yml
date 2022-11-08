@@ -1,10 +1,4 @@
-# This docker file is for development.
-# It connects to debugging ports that help you debug the app.
-
 version: '3.7'
-
-x-common-variables: &common-variables
-   IS_SAAS_SERVICE: ${IS_SAAS_SERVICE}
 
 services:
     ##IMPORTANT:
@@ -16,10 +10,18 @@ services:
         build:
             network: host
             context: ./Haraka
-            args:
-                PORT: '2525'
         env_file:
             - ./Haraka/.env
+    
+    redis:
+        image: redis:7.0.3
+        ports:
+            - '6379:6379'
+        command: redis-server /usr/local/etc/redis/redis.conf
+        env_file:
+            - ./Redis/.env
+        volumes:
+            - ./Redis/redis.conf:/usr/local/etc/redis/redis.conf
 
     postgres:
         image: postgres:latest
@@ -33,22 +35,28 @@ services:
     
     mail:
         ports:
+            {{ if eq .Env.ENVIRONMENT "development" }}
             - 9110:9229 # Debugging port.
+            {{ end }}
             - 3190:3190
+        {{ if eq .Env.ENVIRONMENT "development" }}
         build:
             network: host
             context: .
-            dockerfile: ./Mail/Dockerfile.dev
+            dockerfile: ./Mail/Dockerfile
+        {{ else }}
+        image:  oneuptime/mail:{{ .Env.APP_TAG }}
+        {{ end }}
         env_file:
             - ./Common/.env
             - ./Common/secret.env
             - ./CommonServer/.env
             - ./CommonServer/secret.env
             - ./Mail/.env
-        environment: *common-variables
         depends_on:
             - haraka
             - postgres
+        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Mail:/usr/src/app
             # Use node modules of the container and not host system.
@@ -62,46 +70,30 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+        {{ end }}
 
-    saml:
-        image: kenchan0130/simplesamlphp
-        ports:
-            - 9876:8080
-            - 8443:8443
-        env_file:
-            - ./Common/.env
-            - ./Common/secret.env
-            - ./CommonServer/.env
-            - ./CommonServer/secret.env
-            - ./SAML/.env
-        volumes:
-            - ./SAML/users.php:/var/www/simplesamlphp/config/authsources.php
-
-    redis:
-        image: redis:7.0.3
-        ports:
-            - '6379:6379'
-        command: redis-server /usr/local/etc/redis/redis.conf
-        env_file:
-            - ./Redis/.env
-        volumes:
-            - ./Redis/redis.conf:/usr/local/etc/redis/redis.conf
+    
 
     accounts:
         ports:
             - '3003:3003'
+        {{ if eq .Env.ENVIRONMENT "development" }}
         build:
             network: host
             context: .
-            dockerfile: ./Accounts/Dockerfile.dev
+            dockerfile: ./Accounts/Dockerfile
+        {{ else }}
+        image:  oneuptime/accounts:{{ .Env.APP_TAG }}
+        {{ end }}
         env_file:
             - ./Common/.env
             - ./Common/secret.env
             - ./CommonUI/.env
             - ./Accounts/.env
-        environment: *common-variables
+
         depends_on:
             - identity
+        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Accounts:/usr/src/app
             # Use node modules of the container and not host system.
@@ -115,23 +107,29 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+        {{ end }}
 
     dashboard:
         ports:
             - '3009:3009'
+        {{ if eq .Env.ENVIRONMENT "development" }}
         build:
             network: host
             context: .
-            dockerfile: ./Dashboard/Dockerfile.dev
+            dockerfile: ./Dashboard/Dockerfile
+        {{ else }}
+        image:  oneuptime/dashboard:{{ .Env.APP_TAG }}
+        {{ end }}
         env_file:
             - ./Common/.env
             - ./Common/secret.env
             - ./CommonUI/.env
             - ./Accounts/.env
-        environment: *common-variables
+
         depends_on:
             - identity
             - accounts
+        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Dashboard:/usr/src/app
             - /usr/src/app/node_modules/
@@ -143,24 +141,30 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+        {{ end }}
     
 
     status-page:
         ports:
             - '3105:3105'
+        {{ if eq .Env.ENVIRONMENT "development" }}
         build:
             network: host
             context: .
-            dockerfile: ./StatusPage/Dockerfile.dev
+            dockerfile: ./StatusPage/Dockerfile
+        {{ else }}
+        image:  oneuptime/status-page:{{ .Env.APP_TAG }}
+        {{ end }}
         env_file:
             - ./Common/.env
             - ./Common/secret.env
             - ./CommonUI/.env
             - ./StatusPage/.env
-        environment: *common-variables
+
         depends_on:
             - accounts
             - dashboard-api
+        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./StatusPage:/usr/src/app
             - /usr/src/app/node_modules/
@@ -172,22 +176,29 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+        {{ end }}
 
     dashboard-api:
         ports:
             - '3002:3002'
+            {{ if eq .Env.ENVIRONMENT "development" }}
             - '9232:9229' # Debugging port.
+            {{ end }}
+        {{ if eq .Env.ENVIRONMENT "development" }}
         build:
             network: host
             context: .
-            dockerfile: ./DashboardAPI/Dockerfile.dev
+            dockerfile: ./DashboardAPI/Dockerfile
+        {{ else }}
+        image:  oneuptime/dashboard-api:{{ .Env.APP_TAG }}
+        {{ end }}
         env_file:
             - ./Common/.env
             - ./Common/secret.env
             - ./CommonServer/.env
             - ./CommonServer/secret.env
             - ./DashboardAPI/.env
-        environment: *common-variables
+
         depends_on:
             - redis
             - postgres
@@ -196,6 +207,7 @@ services:
             - redis
             - postgres
             - mail
+        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./DashboardAPI:/usr/src/app
             # Use node modules of the container and not host system.
@@ -209,30 +221,38 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+        {{ end }}
     
 
 
     workers:
         ports:
             - '3452:3452'
+            {{ if eq .Env.ENVIRONMENT "development" }}
             - '9654:9229' # Debugging port.
+            {{ end }}
+        {{ if eq .Env.ENVIRONMENT "development" }}
         build:
             network: host
             context: .
-            dockerfile: ./Workers/Dockerfile.dev
+            dockerfile: ./Workers/Dockerfile
+        {{ else }}
+        image:  oneuptime/workers:{{ .Env.APP_TAG }}
+        {{ end }}
         env_file:
             - ./Common/.env
             - ./Common/secret.env
             - ./CommonServer/.env
             - ./CommonServer/secret.env
             - ./Workers/.env
-        environment: *common-variables
+
         depends_on:
             - postgres
             - mail
         links:
             - postgres
             - mail
+        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Workers:/usr/src/app
             # Use node modules of the container and not host system.
@@ -246,26 +266,32 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+        {{ end }}
     
 
-    
-        
+
 
     identity:
         ports:
             - '3087:3087'
+            {{ if eq .Env.ENVIRONMENT "development" }}
             - '9132:9229' # Debugging port.
+            {{ end }}
+        {{ if eq .Env.ENVIRONMENT "development" }}
         build:
             network: host
             context: .
-            dockerfile: ./Identity/Dockerfile.dev
+            dockerfile: ./Identity/Dockerfile
+        {{ else }}
+        image:  oneuptime/identity:{{ .Env.APP_TAG }}
+        {{ end }}
         env_file:
             - ./Common/.env
             - ./Common/secret.env
             - ./CommonServer/.env
             - ./CommonServer/secret.env
             - ./Identity/.env
-        environment: *common-variables
+
         depends_on:
             - redis
             - postgres
@@ -274,6 +300,7 @@ services:
             - redis
             - postgres
             - mail
+        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Identity:/usr/src/app
             # Use node modules of the container and not host system.
@@ -287,27 +314,35 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+        {{ end }}
     
 
     file:
         ports:
             - '3125:3125'
+            {{ if eq .Env.ENVIRONMENT "development" }}
             - '9012:9229' # Debugging port.
+            {{ end }}
+        {{ if eq .Env.ENVIRONMENT "development" }}
         build:
             network: host
             context: .
-            dockerfile: ./File/Dockerfile.dev
+            dockerfile: ./File/Dockerfile
+        {{ else }}
+        image:  oneuptime/file:{{ .Env.APP_TAG }}
+        {{ end }}
         env_file:
             - ./Common/.env
             - ./Common/secret.env
             - ./CommonServer/.env
             - ./CommonServer/secret.env
             - ./File/.env
-        environment: *common-variables
+
         depends_on:
             - postgres
         links:
             - postgres
+        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./File:/usr/src/app
             # Use node modules of the container and not host system.
@@ -321,23 +356,30 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+        {{ end }}
 
   
     home:
         ports:
             - '1444:1444'
+            {{ if eq .Env.ENVIRONMENT "development" }}
             - '9235:9229' # Debugging port.
+            {{ end }}
         env_file:
             - ./Common/.env
             - ./Common/secret.env
             - ./CommonServer/.env
             - ./CommonServer/secret.env
             - ./Home/.env
-        environment: *common-variables
+        {{ if eq .Env.ENVIRONMENT "development" }}
         build:
             network: host
             context: .
-            dockerfile: ./Home/Dockerfile.dev
+            dockerfile: ./Home/Dockerfile
+        {{ else }}
+        image:  oneuptime/home:{{ .Env.APP_TAG }}
+        {{ end }}
+        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Home:/usr/src/app
             # Use node modules of the container and not host system.
@@ -351,6 +393,7 @@ services:
             - /usr/src/CommonUI/node_modules/
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
+        {{ end }}
     
 
     nginx:

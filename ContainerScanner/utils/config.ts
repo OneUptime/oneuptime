@@ -41,6 +41,6 @@ export default {
     serverUrl: process.env['SERVER_URL'],
     containerScannerName: process.env['CONTAINER_SCANNER_NAME'],
     containerScannerKey: process.env['CONTAINER_SCANNER_KEY'],
-    clusterKey: process.env['CLUSTER_KEY'],
+    clusterKey: process.env['ONEUPTIME_SECRET'],
     containerScannerVersion: packageJson.version,
 };
