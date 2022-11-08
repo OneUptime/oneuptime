@@ -4,6 +4,8 @@ import IPv6 from 'Common/Types/IP/IPv6';
 import Port from 'Common/Types/Port';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import net, { Socket } from 'net';
+
+// TODO - make sure it  work for the IPV6
 export interface PingResponse {
     isAlive: boolean;
     responseTimeInMS?: PositiveNumber;
@@ -51,9 +53,7 @@ export default class Ping {
                         isAlive: false,
                     });
                 });
-                socket.on('connect', (data: any) => {
-                    // eslint-disable-next-line no-console
-                    console.log(data?.toString());
+                socket.on('connect', () => {
                     const remoteAddressIP: undefined | IPv4 | IPv6 | '' =
                         socket.remoteAddress &&
                         (net.isIPv4(socket.remoteAddress)
@@ -68,8 +68,6 @@ export default class Ping {
                             remoteAddressPort:
                                 socket.remotePort &&
                                 new Port(socket.remotePort),
-                            bytesReceived: new PositiveNumber(socket.bytesRead),
-                            bytesSent: new PositiveNumber(socket.bytesRead),
                         });
                     });
                 });
