@@ -65,3 +65,6 @@ secret.env
 /.env
 
 config.env
+
+# This file is autofenerated from the template
+docker-compose.yml
