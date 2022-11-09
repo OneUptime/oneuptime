@@ -132,6 +132,10 @@ if [[ ! $(which gomplate) ]]; then
         ARCHITECTURE="arm64"
     fi
 
+    if [[ $ARCHITECTURE == "x86_64" ]]; then
+        ARCHITECTURE="amd64"
+    fi
+
     echo "ARCHITECTURE:"
     echo "$(uname -s) $(uname -m)"
 
