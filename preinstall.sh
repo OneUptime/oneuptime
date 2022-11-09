@@ -73,9 +73,14 @@ then
   cd oneuptime
 fi
 
+
+# if this script is not running in CI/CD
+if [ -z "$CI_PIPELINE_ID" ]
+then
 # try to clone - if folder is already there pull latest for that branch
 git pull
 cd ..
+fi
 
 if [[ ! $(which node) && ! $(node --version) ]]; then
     if [[ "$OSTYPE" != "darwin"* ]]; then
