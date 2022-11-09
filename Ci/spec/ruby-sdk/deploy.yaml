@@ -16,7 +16,7 @@ staging_ruby-sdk:
         - bundle install
         - git init
         - git add .
-        - git commit -m "staging commit version 4.0.$CI_PIPELINE_ID"
+        - git commit -m "staging commit version 5.0.$CI_PIPELINE_ID"
         - mkdir -p ~/.gem
         - GEMPATH=~/.gem/credentials
         - rm $GEMPATH || true # reomve previous saved file or just continue if it doesnt exist (new container)
@@ -25,9 +25,9 @@ staging_ruby-sdk:
         - echo "---" >> $GEMPATH
         - echo ":oneuptimegem:$CUSTOMSPACE$RUBYGEM_API_KEY" >> $GEMPATH
         - chmod 0600 $GEMPATH
-        - bundle exec gem bump -v 4.0.$CI_PIPELINE_ID-qa
+        - bundle exec gem bump -v 5.0.$CI_PIPELINE_ID-qa
         - gem build oneuptime.gemspec
-        - gem push oneuptime-4.0.$CI_PIPELINE_ID.pre.qa.gem -k oneuptimegem
+        - gem push oneuptime-5.0.$CI_PIPELINE_ID.pre.qa.gem -k oneuptimegem
         - git checkout staging || git checkout -b staging
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/ruby-sdk.git staging --force
         - cd ..
@@ -58,7 +58,7 @@ production_ruby-sdk:
         - bundle install
         - git init
         - git add .
-        - git commit -m "production commit version 4.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made" && exit 0
+        - git commit -m "production commit version 5.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - pwd -P
         - git checkout -f master
         - pwd -P
@@ -72,11 +72,11 @@ production_ruby-sdk:
         - chmod 0600 $GEMPATH
         - ls -l
         - pwd -P
-        - bundle exec gem bump -v 4.0.$CI_PIPELINE_ID
+        - bundle exec gem bump -v 5.0.$CI_PIPELINE_ID
         - gem build oneuptime.gemspec
-        - gem push oneuptime-4.0.$CI_PIPELINE_ID.gem -k oneuptimegem
+        - gem push oneuptime-5.0.$CI_PIPELINE_ID.gem -k oneuptimegem
         # - git add .
-        # - git commit -m "production commit version 4.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made" && exit 0
+        # - git commit -m "production commit version 5.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made" && exit 0
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/ruby-sdk.git master --force
         - cd ..
         - cd ..

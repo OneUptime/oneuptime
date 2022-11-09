@@ -10,11 +10,11 @@ production_ProbeAPI:
         - chmod +x ./ci/scripts/deployment-production-setup.sh
         - bash ./ci/scripts/deployment-production-setup.sh
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
-        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:4.0.$CI_PIPELINE_ID --push ./ProbeAPI
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:5.0.$CI_PIPELINE_ID --push ./ProbeAPI
         - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:latest --push ./ProbeAPI
-        - kubectl set image deployment/fi-ProbeAPI fi-ProbeAPI=oneuptime/ProbeAPI:4.0.$CI_PIPELINE_ID
+        - kubectl set image deployment/fi-ProbeAPI fi-ProbeAPI=oneuptime/ProbeAPI:5.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh
@@ -41,11 +41,11 @@ staging_ProbeAPI:
         - bash ./ci/scripts/deployment-staging-setup.sh
         - sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy ProbeAPI.
-        - sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+        - sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
         - sudo docker buildx create --use
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:4.0.$CI_PIPELINE_ID --push ./ProbeAPI
-        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:staging --push ./ProbeAPI
-        - kubectl set image deployment/fi-ProbeAPI fi-ProbeAPI=oneuptime/ProbeAPI:4.0.$CI_PIPELINE_ID
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:5.0.$CI_PIPELINE_ID --push ./ProbeAPI
+        - sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/ProbeAPI:test --push ./ProbeAPI
+        - kubectl set image deployment/fi-ProbeAPI fi-ProbeAPI=oneuptime/ProbeAPI:5.0.$CI_PIPELINE_ID
         # Cleanup
         - chmod +x ./ci/scripts/deployment-cleanup.sh
         - ./ci/scripts/deployment-cleanup.sh

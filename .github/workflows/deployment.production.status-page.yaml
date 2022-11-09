@@ -11,13 +11,10 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      DOCKERHUBPASSWORD: ${{secrets.DOCKERHUBPASSWORD}}
-      DOCKERHUBUSERNAME: ${{secrets.DOCKERHUBUSERNAME}}
+      DOCKERHUB_PASSWORD: ${{secrets.DOCKERHUB_PASSWORD}}
+      DOCKERHUB_USERNAME: ${{secrets.DOCKERHUB_USERNAME}}
       CI_PIPELINE_ID: ${{github.run_number}}
-      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY_ID}}
-      DIGITAL_OCEAN_API_KEY: ${{secrets.DIGITAL_OCEAN_API_KEY}}
-      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-      AWS_DEFAULT_REGION: ${{secrets.AWS_DEFAULT_REGION}}
+     
       NPM_AUTH_TOKEN: ${{secrets.NPM_AUTH_TOKEN}}
     steps:
       - uses: actions/checkout@v2
@@ -31,15 +28,15 @@ jobs:
 
       - run: sudo docker run --rm --privileged docker/binfmt:820fdd95a9972a5308930a2bdfb8573dd4447ad3
         # Build and deploy StatusPage.
-      - run: sudo docker login --username $DOCKERHUBUSERNAME --password $DOCKERHUBPASSWORD
+      - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/StatusPage:4.0.$CI_PIPELINE_ID --push -f ./StatusPage/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/StatusPage:5.0.$CI_PIPELINE_ID --push -f ./StatusPage/Dockerfile .
       - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/StatusPage:latest --push -f ./StatusPage/Dockerfile .
       - run: chmod +x ./ci/scripts/deployment-setup.sh
       - run: bash ./ci/scripts/deployment-setup.sh
       - run: chmod +x ./ci/scripts/deployment-production-setup.sh
       - run: bash ./ci/scripts/deployment-production-setup.sh
-      - run: kubectl set image deployment/fi-status fi-status=oneuptime/StatusPage:4.0.$CI_PIPELINE_ID
+      - run: kubectl set image deployment/fi-status fi-status=oneuptime/StatusPage:5.0.$CI_PIPELINE_ID
         # Cleanup
       - run: chmod +x ./ci/scripts/deployment-cleanup.sh
       - run: ./ci/scripts/deployment-cleanup.sh

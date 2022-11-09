@@ -19,12 +19,12 @@ deploy_staging_GoSDK:
         - go mod tidy
         - git init
         - git add .
-        - git commit -m "staging commit version 4.0.$CI_PIPELINE_ID"
-        - git tag v4.0.$CI_PIPELINE_ID-qa
+        - git commit -m "staging commit version 5.0.$CI_PIPELINE_ID"
+        - git tag v5.0.$CI_PIPELINE_ID-qa
         # - go build
         # - git checkout staging || git checkout -b staging
         # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git staging --force
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git v4.0.$CI_PIPELINE_ID-qa --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git v5.0.$CI_PIPELINE_ID-qa --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh
         - ./ci/scripts/cleanup.sh
@@ -54,18 +54,18 @@ production_GoSDK:
         - cd GoSDK
         - git init
         - git add .
-        - git commit -m "production commit version 4.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made"
+        - git commit -m "production commit version 5.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made"
         - git checkout -f master
         - go get -d ./...
         - go mod tidy
         - git init
         - git add .
-        - git commit -m "production commit version 4.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made"
-        - git tag v0.4.0.$CI_PIPELINE_ID
+        - git commit -m "production commit version 5.0.$CI_PIPELINE_ID" || echo "Nothing to update because no changes to sdk was made"
+        - git tag v0.5.0.$CI_PIPELINE_ID
         # - go build
         # - git checkout staging || git checkout -b staging
         # - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git staging --force
-        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git v4.0.$CI_PIPELINE_ID --force
+        - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git v5.0.$CI_PIPELINE_ID --force
         - git push https://$GITHUB_USERNAME:$GITHUB_PASSWORD@github.com/OneUptime/GoSDK.git master --force
         - cd ..
         - chmod +x ./ci/scripts/cleanup.sh

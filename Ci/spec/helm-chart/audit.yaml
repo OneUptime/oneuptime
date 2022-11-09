@@ -11,7 +11,7 @@ audit_HelmChart:
         - sudo apt-get install -y build-essential
         - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
         - sudo apt-get install -y nodejs
-        # Lint helm chart - helm lint needs a kubeconfig file and this is why we do staging deployment setup.
+        # Lint helm chart - helm lint needs a kubeconfig file and this is why we do Test Image Deploy to DockerHubment setup.
         - chmod +x ./ci/scripts/deployment-setup.sh
         - bash ./ci/scripts/deployment-setup.sh
         - chmod +x ./ci/scripts/deployment-staging-setup.sh

@@ -11,8 +11,8 @@ mobile_lighthouse_home:
         - echo "Setup machine for running lighthouse on home page"
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-        - sudo docker build -t oneuptime/home:4.0.$CI_PIPELINE_ID ./home
-        - sudo docker run -p 1444:1444 -d oneuptime/home:4.0.$CI_PIPELINE_ID
+        - sudo docker build -t oneuptime/home:5.0.$CI_PIPELINE_ID ./home
+        - sudo docker run -p 1444:1444 -d oneuptime/home:5.0.$CI_PIPELINE_ID
         - sudo docker ps
         - cd home
         - npm install
@@ -40,8 +40,8 @@ desktop_lighthouse_home:
         - echo "Setup machine for running lighthouse on home page"
         - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
         - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
-        - sudo docker build -t oneuptime/home:4.0.$CI_PIPELINE_ID ./home
-        - sudo docker run -p 1444:1444 -d oneuptime/home:4.0.$CI_PIPELINE_ID
+        - sudo docker build -t oneuptime/home:5.0.$CI_PIPELINE_ID ./home
+        - sudo docker run -p 1444:1444 -d oneuptime/home:5.0.$CI_PIPELINE_ID
         - sudo docker ps
         - cd home
         - npm install
