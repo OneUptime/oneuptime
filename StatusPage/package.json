@@ -20,11 +20,11 @@
   },
   "scripts": {
       "dev": "webpack-dev-server --port=3105 --mode=development",
-      "build": "webpack build",
+      "build": "webpack build --mode=production",
       "test": "react-app-rewired test",
       "eject": "webpack eject",
       "compile": "tsc",
-      "start": "node index.ts",
+      "start": "webpack serve --port=3105",
       "audit": "npm audit --audit-level=low",
       "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
       "dep-check": "depcheck ./ --skip-missing=true'"
