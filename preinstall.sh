@@ -73,6 +73,8 @@ then
   cd oneuptime
 fi
 
+echo "CI PIPELINE ID"
+echo $CI_PIPELINE_ID
 
 # if this script is not running in CI/CD
 if [ -z "$CI_PIPELINE_ID" ]
