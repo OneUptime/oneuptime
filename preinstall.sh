@@ -92,6 +92,10 @@ if [[ ! $(which gomplate) ]]; then
     sudo npm install -g gomplate
 fi
 
+if [[ ! $(which ts-node) ]]; then
+    sudo npm install -g ts-node
+fi
+
 
 cd oneuptime
 
@@ -99,7 +103,7 @@ cd oneuptime
 touch config.env
 
 #Run a scirpt to merge config.env.tpl to config.env
-node ./Scripts/Install/MergeEnvTemplate.js
+ts-node-esm ./Scripts/Install/MergeEnvTemplate.ts
 
 cat config.env.temp | gomplate > config.env
 
