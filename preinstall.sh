@@ -128,13 +128,15 @@ fi
 if [[ ! $(which gomplate) ]]; then
     ARCHITECTURE=$(uname -m)
 
-    if [[ "$ARCHITECTURE" != "aarch64" ]]; then
+    if [[ "$ARCHITECTURE" == "aarch64" ]]; then
         ARCHITECTURE = "arm64"
     fi
 
-    sudo curl -o /usr/local/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/download/3.11.3/gomplate_$(uname -s)-$(uname -m)
+    sudo curl -o /usr/local/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/download/3.11.3/gomplate_$(uname -s)-$(ARCHITECTURE)
     sudo chmod 755 /usr/local/bin/gomplate
 fi
+
+
 
 if [[ ! $(which ts-node) ]]; then
     sudo npm install -g ts-node
