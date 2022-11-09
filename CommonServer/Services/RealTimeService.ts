@@ -14,7 +14,7 @@ class Service {
     public constructor() {
         this.api = new API(HttpProtocol, RealtimeHostname);
         this.headers = {
-            CLUSTER_KEY: ClusterKey.toString(),
+            ONEUPTIME_SECRET: ClusterKey.toString(),
         };
     }
 

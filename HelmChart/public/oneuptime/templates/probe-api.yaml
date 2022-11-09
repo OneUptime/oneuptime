@@ -34,7 +34,7 @@ spec:
                     limits:
                       cpu: 700m
                   env:
-                      - name: CLUSTER_KEY
+                      - name: ONEUPTIME_SECRET
                         valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}

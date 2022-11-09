@@ -14,11 +14,11 @@ mobile_lighthouse_accounts:
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name redis -p 6379:6379 -d redis:7.0.3 redis-server
         - sudo docker build -t oneuptime/backend:5.0.$CI_PIPELINE_ID ./backend
-        - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d oneuptime/backend:5.0.$CI_PIPELINE_ID
+        - sudo docker run --env-file ./backend/.env -e BILLING_ENABLED=true --net=host -d oneuptime/backend:5.0.$CI_PIPELINE_ID
         - sudo docker build -t oneuptime/accounts:5.0.$CI_PIPELINE_ID ./accounts
-        - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d oneuptime/accounts:5.0.$CI_PIPELINE_ID
+        - sudo docker run --env-file ./accounts/.env -e BILLING_ENABLED=true -p 3003:3003 -d oneuptime/accounts:5.0.$CI_PIPELINE_ID
         - sudo docker build -t oneuptime/dashboard:5.0.$CI_PIPELINE_ID ./dashboard
-        - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d oneuptime/dashboard:5.0.$CI_PIPELINE_ID
+        - sudo docker run --env-file ./dashboard/.env -e BILLING_ENABLED=true -p 3000:3000 -d oneuptime/dashboard:5.0.$CI_PIPELINE_ID
         - sudo docker ps
         - npm install
         - cd accounts
@@ -52,11 +52,11 @@ desktop_lighthouse_accounts:
         - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
         - sudo docker run --name redis -p 6379:6379 -d redis:7.0.3 redis-server
         - sudo docker build -t oneuptime/backend:5.0.$CI_PIPELINE_ID ./backend
-        - sudo docker run --env-file ./backend/.env -e IS_SAAS_SERVICE=true --net=host -d oneuptime/backend:5.0.$CI_PIPELINE_ID
+        - sudo docker run --env-file ./backend/.env -e BILLING_ENABLED=true --net=host -d oneuptime/backend:5.0.$CI_PIPELINE_ID
         - sudo docker build -t oneuptime/accounts:5.0.$CI_PIPELINE_ID ./accounts
-        - sudo docker run --env-file ./accounts/.env -e IS_SAAS_SERVICE=true -p 3003:3003 -d oneuptime/accounts:5.0.$CI_PIPELINE_ID
+        - sudo docker run --env-file ./accounts/.env -e BILLING_ENABLED=true -p 3003:3003 -d oneuptime/accounts:5.0.$CI_PIPELINE_ID
         - sudo docker build -t oneuptime/dashboard:5.0.$CI_PIPELINE_ID ./dashboard
-        - sudo docker run --env-file ./dashboard/.env -e IS_SAAS_SERVICE=true -p 3000:3000 -d oneuptime/dashboard:5.0.$CI_PIPELINE_ID
+        - sudo docker run --env-file ./dashboard/.env -e BILLING_ENABLED=true -p 3000:3000 -d oneuptime/dashboard:5.0.$CI_PIPELINE_ID
         - sudo docker ps
         - npm install
         - cd accounts

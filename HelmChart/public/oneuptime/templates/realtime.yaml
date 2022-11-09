@@ -51,7 +51,7 @@ spec:
                             fieldPath: spec.serviceAccountName
                       - name: PORT
                         value: {{ $.Values.host.realtimePort | quote }}
-                      - name: CLUSTER_KEY
+                      - name: ONEUPTIME_SECRET
                         valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}

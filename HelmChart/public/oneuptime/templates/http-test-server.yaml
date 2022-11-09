@@ -52,7 +52,7 @@ spec:
                     - name: ONEUPTIME_HOST
                       value: {{ $.Values.oneuptime.hosts.host1.host }}
                     {{- if .Values.saas.isSaasService }}
-                    - name: IS_SAAS_SERVICE
+                    - name: BILLING_ENABLED
                       value: 'true'
                     {{- end }}
                     - name: NODE_ENV

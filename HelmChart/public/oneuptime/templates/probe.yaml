@@ -62,13 +62,13 @@ spec:
                         value: {{ template "oneuptime.probeApiUrl" $ }}
                       - name: RESOURCES_LIMIT
                         value: '10'
-                      - name: CLUSTER_KEY
+                      - name: ONEUPTIME_SECRET
                         valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
                             key: clusterkey
                       {{- if $.Values.saas.isSaasService }}
-                      - name: IS_SAAS_SERVICE
+                      - name: BILLING_ENABLED
                         value: 'true'
                       - name: SLACK_ERROR_LOG_WEBHOOK
                         value: {{ $.Values.saas.slackErrorLog.webhook }}

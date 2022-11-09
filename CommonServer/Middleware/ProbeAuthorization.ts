@@ -9,7 +9,7 @@ import {
     OneUptimeRequest,
 } from '../Utils/Express';
 
-import { ClusterKey as CLUSTER_KEY } from '../Config';
+import { ClusterKey as ONEUPTIME_SECRET } from '../Config';
 import ObjectID from 'Common/Types/ObjectID';
 import LocalCache from '../Infrastructure/LocalCache';
 import Probe from 'Model/Models/Probe';
@@ -82,7 +82,7 @@ export default class ProbeMiddleware {
             throw new BadDataException('Probe version not found.');
         }
 
-        if (clusterKey && clusterKey === CLUSTER_KEY) {
+        if (clusterKey && clusterKey === ONEUPTIME_SECRET) {
             /*
              * If cluster key matches then just query by probe name,
              * Because if the probe key does not match, we can update probe key later
@@ -129,7 +129,7 @@ export default class ProbeMiddleware {
             }
         }
 
-        if (!probeId && (!clusterKey || clusterKey !== CLUSTER_KEY)) {
+        if (!probeId && (!clusterKey || clusterKey !== ONEUPTIME_SECRET)) {
             throw new BadDataException(
                 'Probe key and probe name do not match.'
             );

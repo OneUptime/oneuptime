@@ -1,4 +1,4 @@
-name: Mail Docker Build
+name: Alert Docker Build
 
 on:
   pull_request: 
@@ -11,10 +11,15 @@ jobs:
  # define job to build docker image
    docker-build:
     runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
         uses: actions/checkout@v2
 
+      - name: Preinstall 
+        run: npm run prerun
+
       # build image for mail service
       - name: build docker image
-        run: npm run build-ci mail
+        run: sudo docker build -f ./Alert/Dockerfile .

@@ -30,7 +30,7 @@ spec:
                   name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   env:
-                      - name: IS_SAAS_SERVICE
+                      - name: BILLING_ENABLED
                         value: 'true'
                       - name: NODE_ENV
                         value: 'development'

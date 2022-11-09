@@ -3,5 +3,7 @@
 # Run database in docker-compose
 
 cd ..
+# Run Preinstall. 
+npm run prerun
 # Run Postgres
-npm run-script start-enterprise-ci postgres
+docker-compose up -d postgres
