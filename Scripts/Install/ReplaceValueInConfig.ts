@@ -3,7 +3,12 @@
 const fs: any = require('fs');
 
 const init: Function = (): void => {
-    const env: string = fs.readFileSync('./config.env', 'utf8');
+    let env: string = "";
+    try {
+        env = fs.readFileSync('./config.env', 'utf8');
+    } catch (err) {
+        // do nothing.
+    }
     const envValToReplace: string | undefined = process.argv[2];
 
     if (!envValToReplace) {

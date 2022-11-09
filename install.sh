@@ -4,9 +4,6 @@ set -e
 
 bash preinstall.sh
 
-
-
-
 if [[ ! $(which docker) && ! $(docker --version) ]]; then
   echo "Setting up Docker"
   sudo curl -sSL https://get.docker.com/ | sh  
