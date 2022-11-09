@@ -20,4 +20,4 @@ jobs:
 
       # build image for mail service
       - name: build docker image
-        run: sudo docker build -f ./Nginx/Dockerfile .
+        run: sudo docker build -f ./Nginx/Dockerfile ./Nginx
