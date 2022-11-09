@@ -39,7 +39,7 @@ services:
             - 9110:9229 # Debugging port.
             {{ end }}
             - 3190:3190
-        {{ if eq .Env.ENVIRONMENT "development" }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
@@ -75,7 +75,7 @@ services:
     accounts:
         ports:
             - '3003:3003'
-        {{ if eq .Env.ENVIRONMENT "development" }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
@@ -109,7 +109,7 @@ services:
     dashboard:
         ports:
             - '3009:3009'
-        {{ if eq .Env.ENVIRONMENT "development" }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
@@ -143,7 +143,7 @@ services:
     status-page:
         ports:
             - '3105:3105'
-        {{ if (eq .Env.ENVIRONMENT "development") or (eq .Env.ENVIRONMENT "ci") }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
@@ -179,7 +179,7 @@ services:
             {{ if eq .Env.ENVIRONMENT "development" }}
             - '9232:9229' # Debugging port.
             {{ end }}
-        {{ if eq .Env.ENVIRONMENT "development" }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
@@ -224,7 +224,7 @@ services:
             {{ if eq .Env.ENVIRONMENT "development" }}
             - '9654:9229' # Debugging port.
             {{ end }}
-        {{ if eq .Env.ENVIRONMENT "development" }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
@@ -268,7 +268,7 @@ services:
             {{ if eq .Env.ENVIRONMENT "development" }}
             - '9132:9229' # Debugging port.
             {{ end }}
-        {{ if eq .Env.ENVIRONMENT "development" }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
@@ -312,7 +312,7 @@ services:
             {{ if eq .Env.ENVIRONMENT "development" }}
             - '9012:9229' # Debugging port.
             {{ end }}
-        {{ if eq .Env.ENVIRONMENT "development" }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .
@@ -356,7 +356,7 @@ services:
             - ./Common/.env
             - ./CommonServer/.env
             - ./Home/.env
-        {{ if eq .Env.ENVIRONMENT "development" }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
             context: .

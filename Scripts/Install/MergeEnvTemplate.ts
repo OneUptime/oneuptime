@@ -1,6 +1,6 @@
 // This script merges config.env.tpl to config.env
 
-import fs from 'fs';
+const fs = require('fs');
 
 const init = (): void => {
     const tempate: string = fs.readFileSync('./config.tpl.env', 'utf8');
