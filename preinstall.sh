@@ -132,7 +132,7 @@ if [[ ! $(which gomplate) ]]; then
         ARCHITECTURE = "arm64"
     fi
 
-    sudo curl -o /usr/local/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/download/3.11.3/gomplate_$(uname -s)-$(ARCHITECTURE)
+    sudo curl -o /usr/local/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/download/3.11.3/gomplate_$(uname -s)-$ARCHITECTURE
     sudo chmod 755 /usr/local/bin/gomplate
 fi
 
