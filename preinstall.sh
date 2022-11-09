@@ -125,7 +125,11 @@ if [[ ! $(which docker-compose) && ! $(docker-compose --version) ]]; then
   exit
 fi
 
-alias gomplate='sudo docker run hairyhenderson/gomplate:stable'
+if [[ ! $(which gomplate) ]]; then
+    sudo curl -o /usr/local/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/download/<version>/gomplate_$(uname -s)-$(uname -m)
+    chmod 755 /usr/local/bin/gomplate
+    gomplate --help
+fi
 
 if [[ ! $(which ts-node) ]]; then
     sudo npm install -g ts-node
