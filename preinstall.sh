@@ -66,9 +66,8 @@ if [[ ! $(which git) ]]; then
 fi
 
 GIT_REPO_URL=$(git config --get remote.origin.url)
-echo "GITHUB URL"
-echo $GIT_REPO_URL
-if [[ $GIT_REPO_URL != *oneuptime.git ]] # * is used for pattern matching
+
+if [[ $GIT_REPO_URL != *oneuptime* ]] # * is used for pattern matching
 then
   git clone https://github.com/OneUptime/oneuptime.git || true
   cd oneuptime
