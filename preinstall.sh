@@ -128,8 +128,8 @@ fi
 if [[ ! $(which gomplate) ]]; then
     ARCHITECTURE=$(uname -m)
 
-    if [[ "$ARCHITECTURE" == "aarch64" ]]; then
-        ARCHITECTURE = "arm64"
+    if [[ $ARCHITECTURE == "aarch64" ]]; then
+        ARCHITECTURE="arm64"
     fi
 
     sudo curl -o /usr/local/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/download/3.11.3/gomplate_$(uname -s)-$ARCHITECTURE
