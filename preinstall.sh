@@ -126,7 +126,7 @@ if [[ ! $(which docker-compose) && ! $(docker-compose --version) ]]; then
 fi
 
 if [[ ! $(which gomplate) ]]; then
-    sudo curl -o /usr/local/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/download/<version>/gomplate_$(uname -s)-$(uname -m)
+    sudo curl -o /usr/local/bin/gomplate -sSL https://github.com/hairyhenderson/gomplate/releases/download/3.11.3/gomplate_$(uname -s)-$(uname -m)
     chmod 755 /usr/local/bin/gomplate
     gomplate --help
 fi
