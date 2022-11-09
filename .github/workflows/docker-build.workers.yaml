@@ -11,6 +11,8 @@ jobs:
  # define jobs to build docker imag
   docker-build:
     runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout 
         uses: actions/checkout@v2
