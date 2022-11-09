@@ -33,7 +33,7 @@
     "scripts": {
         "config-to-dev": "ts-node-esm ./Scripts/Install/ReplaceValueInConfig.ts ENVIRONMENT development",
         "config-to-ci": "ts-node-esm ./Scripts/Install/ReplaceValueInConfig.ts ENVIRONMENT ci",
-        "config-to-test": "ts-node-esm ./Scripts/Install/ReplaceValueInConfig.ts ENVIRONMENT test",
+        "config-to-test": "ts-node-esm ./Scripts/Install/ReplaceValueInConfig.ts ENVIRONMENT test && ts-node-esm ./Scripts/Install/ReplaceValueInConfig.ts APP_TAG test",
         "config-to-production": "ts-node-esm ./Scripts/Install/ReplaceValueInConfig.ts ENVIRONMENT production",
         "prerun": "bash preinstall.sh",
         "typeorm": "node --require ts-node/register ./node_modules/typeorm/cli.js",
