@@ -3,7 +3,7 @@
 const fs: any = require('fs');
 
 const init: Function = (): void => {
-    let env: string = "";
+    let env: string = '';
     try {
         env = fs.readFileSync('./config.env', 'utf8');
     } catch (err) {
