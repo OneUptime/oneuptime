@@ -78,8 +78,9 @@ if [ -z "$CI_PIPELINE_ID" ]
 then
 # try to clone - if folder is already there pull latest for that branch
 git pull
-cd ..
 fi
+
+cd ..
 
 if [[ ! $(which node) && ! $(node --version) ]]; then
     if [[ "$OSTYPE" != "darwin"* ]]; then
