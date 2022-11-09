@@ -125,9 +125,7 @@ if [[ ! $(which docker-compose) && ! $(docker-compose --version) ]]; then
   exit
 fi
 
-if [[ ! $(which gomplate) ]]; then
-    alias gomplate='docker run hairyhenderson/gomplate:stable'
-fi
+alias gomplate='sudo docker run hairyhenderson/gomplate:stable'
 
 if [[ ! $(which ts-node) ]]; then
     sudo npm install -g ts-node
