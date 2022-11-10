@@ -16,6 +16,7 @@ RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
+RUN npm install nodemon -g
 
 RUN mkdir /usr/src
 
