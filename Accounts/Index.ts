@@ -12,14 +12,11 @@ export const APP_NAME: string = 'accounts';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-app.use(ExpressStatic(path.join(__dirname, 'build')));
+app.use(ExpressStatic(path.join(__dirname, 'public')));
 
-app.use(
-    `/${APP_NAME}/static/js`,
-    ExpressStatic(path.join(__dirname, 'build', 'static', 'js'))
-);
+app.use(`/${APP_NAME}`, ExpressStatic(path.join(__dirname, 'public')));
 
-app.use(`/${APP_NAME}`, ExpressStatic(path.join(__dirname, 'build')));
+app.use([`/${APP_NAME}/assets`,`/${APP_NAME}/${APP_NAME}/assets`], ExpressStatic(path.join(__dirname, 'dist')));
 
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

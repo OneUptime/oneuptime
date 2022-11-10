@@ -1,0 +1,1 @@
+PORT={{ .Env.ACCOUNTS_PORT }}
