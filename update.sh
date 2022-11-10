@@ -13,6 +13,11 @@ fi
 
 bash preinstall.sh
 
+# Revert all local changes
+git reset
+git checkout .
+
+# Pull latest changes
 git pull
 
 docker-compose pull
