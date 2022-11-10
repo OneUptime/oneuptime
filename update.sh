@@ -11,27 +11,20 @@ else
     exit
 fi
 
-cd oneuptime
-git pull
-cd ../
+bash preinstall.sh
 
-rm -f docker-compose.yml
-cp oneuptime/docker-compose.yml docker-compose.yml.tmpl
-envsubst < docker-compose.yml.tmpl > docker-compose.yml
-rm docker-compose.yml.tmpl
+git pull
 
 docker-compose pull
 
 echo "Stopping the stack!"
 docker-compose stop
 
-echo "Checking if async migrations are up to date"
-sudo -E docker-compose run init
-
-
+# echo "Checking if async migrations are up to date"
+# sudo -E docker-compose run init
 
 echo "OK, Restarting the stack!"
-sudo -E docker-compose up -d
+npm run start
 
 
-echo "OneUptime upgraded successfully!"
+echo "OneUptime updated successfully!"
