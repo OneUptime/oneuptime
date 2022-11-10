@@ -1,0 +1,1 @@
+PORT={{ .Env.FILE_PORT }}

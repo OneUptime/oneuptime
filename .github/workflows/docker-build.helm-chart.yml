@@ -1,0 +1,25 @@
+name: Helm Chart Docker Build
+
+on:
+  pull_request: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+
+jobs:
+ # define jobs to build docker imag
+  docker-build:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+
+      - name: Preinstall 
+        run: npm run prerun
+        
+      # build image for home
+      - name: build docker image
+        run: sudo docker build -f ./HelmChart/Dockerfile .

@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "ts-node Index.ts",
+        "start": "node --require ts-node/register Index.ts",
         "compile": "tsc",
         "dev": "nodemon",
         "test": "echo 'no tests'"

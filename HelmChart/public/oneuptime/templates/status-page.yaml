@@ -59,7 +59,7 @@ spec:
                     - name: MONGO_URL
                       value: {{ template "oneuptime.mongodbConnectionString" . }}
                     {{- if .Values.saas.isSaasService }}
-                    - name: IS_SAAS_SERVICE
+                    - name: BILLING_ENABLED
                       value: 'true'
                     - name: STATUSPAGE_CERT
                       value: {{ $.Values.statusPage.cert }}

@@ -126,7 +126,7 @@ spec:
                         value: {{ $.Values.logstashHost | quote }}
                       - name: LOGSTASH_PORT
                         value: {{ $.Values.logstashPort | quote }}
-                      - name: CLUSTER_KEY
+                      - name: ONEUPTIME_SECRET
                         valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
@@ -138,7 +138,7 @@ spec:
                         value: {{ $.Values.saas.stripe.privateKey }}
                       - name: SLACK_BILLING_WEBHOOK
                         value: {{ $.Values.saas.stripe.slackWebhook }}
-                      - name: IS_SAAS_SERVICE
+                      - name: BILLING_ENABLED
                         value: 'true'
                       - name: TWITTER_BEARER_TOKEN
                         value: {{ $.Values.saas.twitter.bearertoken }}

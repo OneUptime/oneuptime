@@ -5,7 +5,7 @@ import Hostname from 'Common/Types/API/Hostname';
 
 export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
-export const IsSaaSService: boolean = process.env['IS_SAAS_SERVICE'] === 'true';
+export const IsSaaSService: boolean = process.env['BILLING_ENABLED'] === 'true';
 
 export const DatabaseHost: Hostname = Hostname.fromString(
     process.env['DATABASE_HOST'] || ''
@@ -22,7 +22,7 @@ export const DatabaseName: string =
     process.env['DATABASE_NAME'] || 'oneuptimedb';
 
 export const EncryptionSecret: ObjectID = new ObjectID(
-    process.env['ENCRYPTIOJN_SECRET'] || ''
+    process.env['ENCRYPTION_SECRET'] || ''
 );
 
 export const AirtableApiKey: string = process.env['AIRTABLE_API_KEY'] || '';
@@ -30,7 +30,7 @@ export const AirtableApiKey: string = process.env['AIRTABLE_API_KEY'] || '';
 export const AirtableBaseId: string = process.env['AIRTABLE_BASE_ID'] || '';
 
 export const ClusterKey: ObjectID = new ObjectID(
-    process.env['CLUSTER_KEY'] || ''
+    process.env['ONEUPTIME_SECRET'] || ''
 );
 
 export const RealtimeHostname: Hostname = Hostname.fromString(

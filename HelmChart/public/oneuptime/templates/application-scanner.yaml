@@ -34,13 +34,13 @@ spec:
                       value: {{ $.Values.host.applicationScannerPort | quote }}
                     - name: SERVER_URL
                       value: {{ template "oneuptime.serverUrl" $ }}
-                    - name: IS_SAAS_SERVICE
+                    - name: BILLING_ENABLED
                       value: 'true'
                     - name: APPLICATION_SCANNER_NAME
                       value: {{ $.Values.applicationScanner.name }}
                     - name: APPLICATION_SCANNER_KEY
                       value: {{ $.Values.applicationScanner.key }}
-                    - name: CLUSTER_KEY
+                    - name: ONEUPTIME_SECRET
                       valueFrom:
                           configMapKeyRef:
                             name: {{ printf "%s-%s" $.Release.Name "configmap"  }}

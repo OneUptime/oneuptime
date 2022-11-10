@@ -3,7 +3,7 @@
     "version": "3.0.0",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
-        "start": "ts-node Index.ts",
+        "start": "node --require ts-node/register Index.ts",
         "compile": "tsc",
         "dev": "nodemon",
         "test": "jest",
@@ -26,7 +26,7 @@
         "body-parser": "^1.19.2",
         "cli-table": "^0.3.11",
         "Common": "file:../Common",
-"Model": "file:../Model",
+        "Model": "file:../Model",
         "CommonServer": "file:../CommonServer",
         "compression": "^1.7.4",
         "ejs": "^3.1.8",

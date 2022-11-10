@@ -5,8 +5,8 @@
     <p>Information technology — Security techniques — Code of practice for information security controls based on
         ISO/IEC 27002 for cloud services</p>
     <script type="module" async>
-        var IS_SAAS_SERVICE = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
-        if (IS_SAAS_SERVICE) {
+        var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (BILLING_ENABLED) {
             amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > ISO 27017');
         }
     </script>
