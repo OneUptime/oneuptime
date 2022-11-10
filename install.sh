@@ -4,6 +4,13 @@ set -e
 
 bash preinstall.sh
 
+# If docker-compose is installed and if docker-compose.yml is found then, stop the stack.
+if [[ $(which docker-compose) ]]; then
+    if [ -f ./docker-compose.yml ]; then
+        sudo -E docker-compose -f docker-compose.yml stop || true
+    fi
+fi
+
 npm run start
 
 echo "We will need to wait ~5-10 minutes for things to settle down, migrations to finish, and TLS certs to be issued"

@@ -32,13 +32,6 @@ echo "Ok! We'll take it from here 🚀"
 
 echo "Making sure any stack that might exist is stopped"
 
-# If docker-compose is installed and if docker-compose.yml is found then, stop the stack.
-if [[ $(which docker-compose) ]]; then
-    if [ -f ./docker-compose.yml ]; then
-        sudo -E docker-compose -f docker-compose.yml stop || true
-    fi
-fi
-
 
 # If Mac
 if [[ "$OSTYPE" == "darwin"* ]]; then
