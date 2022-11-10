@@ -51,7 +51,6 @@ services:
             - ./Mail/.env
         depends_on:
             - haraka
-            - postgres
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./Mail:/usr/src/app

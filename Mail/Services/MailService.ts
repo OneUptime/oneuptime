@@ -1,5 +1,4 @@
 import nodemailer, { Transporter } from 'nodemailer';
-import hbs from 'nodemailer-express-handlebars';
 import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
 import EmailMessage from 'Common/Types/Email/EmailMessage';
@@ -18,6 +17,7 @@ import logger from 'CommonServer/Utils/Logger';
 
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {
+
         if (!obj['SMTP_USERNAME']) {
             logger.error('SMTP_USERNAME env var not found');
             return false;
@@ -141,52 +141,40 @@ export default class MailService {
         return subjectHandlebars(vars).toString();
     }
 
-    private static createMailer(EmailServer: EmailServer): Transporter {
-        const helpers: Dictionary<string> = {
-            year: OneUptimeDate.getCurrentYear().toString(),
-        };
-
-        const options: hbs.NodemailerExpressHandlebarsOptions = {
-            viewEngine: {
-                extname: '.hbs',
-                layoutsDir: 'Templates',
-                defaultLayout: 'template',
-                partialsDir: 'Templates/Partials/',
-                helpers,
-            },
-            viewPath: 'Templates/Partials/',
-            extName: '.hbs',
-        };
+    private static createMailer(emailServer: EmailServer): Transporter {
 
         const privateMailer: Transporter = nodemailer.createTransport({
-            host: EmailServer.host.toString(),
-            port: EmailServer.port.toNumber(),
-            secure: EmailServer.secure,
+            host: emailServer.host.toString(),
+            port: emailServer.port.toNumber(),
+            secure: emailServer.secure,
             auth: {
-                user: EmailServer.username,
-                pass: EmailServer.password,
-            },
+                user: emailServer.username,
+                pass: emailServer.password,
+            }
         });
-
-        privateMailer.use('compile', hbs(options));
 
         return privateMailer;
     }
 
     private static async transportMail(
         mail: EmailMessage,
-        EmailServer: EmailServer
+        emailServer: EmailServer
     ): Promise<void> {
-        const mailer: Transporter = this.createMailer(EmailServer);
-        await mailer.sendMail(mail);
+        const mailer: Transporter = this.createMailer(emailServer);
+        await mailer.sendMail({
+            from: emailServer.fromEmail.toString(),
+            to: mail.toEmail.toString(),
+            subject: mail.subject,
+            html: mail.body,
+        });
     }
 
     public static async send(
         mail: EmailMessage,
-        EmailServer?: EmailServer
+        emailServer?: EmailServer
     ): Promise<void> {
-        if (!EmailServer) {
-            EmailServer = this.getGlobalSmtpSettings();
+        if (!emailServer) {
+            emailServer = this.getGlobalSmtpSettings();
         }
 
         // default vars.
@@ -203,6 +191,6 @@ export default class MailService {
             : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
 
-        await this.transportMail(mail, EmailServer);
+        await this.transportMail(mail, emailServer);
     }
 }

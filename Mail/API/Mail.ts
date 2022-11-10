@@ -21,8 +21,8 @@ router.post(
         const body: JSONObject = req.body;
 
         const mail: EmailMessage = {
-            templateType: body['template-name'] as EmailTemplateType,
-            toEmail: new Email(body['to-email'] as string),
+            templateType: body['templateType'] as EmailTemplateType,
+            toEmail: new Email(body['toEmail'] as string),
             subject: body['subject'] as string,
             vars: body['vars'] as Dictionary<string>,
             body: (body['body'] as string) || '',

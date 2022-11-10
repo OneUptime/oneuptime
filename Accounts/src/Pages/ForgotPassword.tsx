@@ -93,16 +93,16 @@ const ForgotPassword: FunctionComponent = () => {
 
                                         <div className="mt-5 text-center">
                                             <p className="text-muted mb-0">
-                                                Don&apos;t have an account?{' '}
+                                                Remember your password?{' '}
                                                 <Link
                                                     to={
                                                         new Route(
-                                                            '/accounts/register'
+                                                            '/accounts/login'
                                                         )
                                                     }
                                                     className="underline-on-hover text-primary fw-semibold"
                                                 >
-                                                    Register.
+                                                    Login.
                                                 </Link>
                                             </p>
                                         </div>
