@@ -6,10 +6,9 @@ import Express, {
     ExpressResponse,
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
+import logger from 'CommonServer/Utils/Logger';
 
 export const APP_NAME: string = 'accounts';
-
-App(APP_NAME);
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -23,7 +22,20 @@ app.use(
 app.use(`/${APP_NAME}`, ExpressStatic(path.join(__dirname, 'build')));
 
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+const init: Function = async (): Promise<void> => {
+    try {
+        // init the app
+        await App(APP_NAME);
+        
+    } catch (err) {
+        logger.error('App Init Failed:');
+        logger.error(err);
+    }
+};
+
+init();
 
 export default app;
