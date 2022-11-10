@@ -9,7 +9,6 @@ import { FORGOT_PASSWORD_API_URL } from '../Utils/ApiPaths';
 import URL from 'Common/Types/API/URL';
 
 const ForgotPassword: FunctionComponent = () => {
-
     const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
@@ -38,58 +37,65 @@ const ForgotPassword: FunctionComponent = () => {
                                             <h5 className="mb-0">
                                                 Forgot Password
                                             </h5>
-                                            {!isSuccess && <p className="text-muted mt-2 mb-0">
-                                                Please enter your email and the
-                                                password reset link will be sent
-                                                to you.{' '}
-                                            </p>}
+                                            {!isSuccess && (
+                                                <p className="text-muted mt-2 mb-0">
+                                                    Please enter your email and
+                                                    the password reset link will
+                                                    be sent to you.{' '}
+                                                </p>
+                                            )}
 
-
-                                            {isSuccess && <p className="text-muted mt-2 mb-0">
-                                                We have emailed you the password reset link. Please do not forget to check spam.{' '}
-                                            </p>}
-
+                                            {isSuccess && (
+                                                <p className="text-muted mt-2 mb-0">
+                                                    We have emailed you the
+                                                    password reset link. Please
+                                                    do not forget to check spam.{' '}
+                                                </p>
+                                            )}
                                         </div>
 
-                                        {!isSuccess && <ModelForm<User>
-                                             modelType={User}
-                                            id="login-form"
-                                            apiUrl={apiUrl}
-                                            fields={[
-                                                {
-                                                    field: {
-                                                        email: true,
+                                        {!isSuccess && (
+                                            <ModelForm<User>
+                                                modelType={User}
+                                                id="login-form"
+                                                apiUrl={apiUrl}
+                                                fields={[
+                                                    {
+                                                        field: {
+                                                            email: true,
+                                                        },
+                                                        title: 'Email',
+                                                        fieldType:
+                                                            FormFieldSchemaType.Email,
+                                                        required: true,
                                                     },
-                                                    title: 'Email',
-                                                    fieldType:
-                                                        FormFieldSchemaType.Email,
-                                                    required: true,
-                                                },
-                                            ]}
-                                            onSuccess={() => {
-                                                setIsSuccess(true);
-                                            }}
-                                            submitButtonText={
-                                                'Send Password Reset Link'
-                                            }
-                                            formType={FormType.Create}
-                                            maxPrimaryButtonWidth={true}
-                                            footer={
-                                                <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
-                                                    <p>
-                                                        <Link
-                                                            to={
-                                                                new Route(
-                                                                    '/accounts/login'
-                                                                )
-                                                            }
-                                                        >
-                                                            Return to Sign in.
-                                                        </Link>
-                                                    </p>
-                                                </div>
-                                            }
-                                        />}
+                                                ]}
+                                                onSuccess={() => {
+                                                    setIsSuccess(true);
+                                                }}
+                                                submitButtonText={
+                                                    'Send Password Reset Link'
+                                                }
+                                                formType={FormType.Create}
+                                                maxPrimaryButtonWidth={true}
+                                                footer={
+                                                    <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
+                                                        <p>
+                                                            <Link
+                                                                to={
+                                                                    new Route(
+                                                                        '/accounts/login'
+                                                                    )
+                                                                }
+                                                            >
+                                                                Return to Sign
+                                                                in.
+                                                            </Link>
+                                                        </p>
+                                                    </div>
+                                                }
+                                            />
+                                        )}
 
                                         <div className="mt-5 text-center">
                                             <p className="text-muted mb-0">

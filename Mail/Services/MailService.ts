@@ -17,7 +17,6 @@ import logger from 'CommonServer/Utils/Logger';
 
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {
-
         if (!obj['SMTP_USERNAME']) {
             logger.error('SMTP_USERNAME env var not found');
             return false;
@@ -142,7 +141,6 @@ export default class MailService {
     }
 
     private static createMailer(emailServer: EmailServer): Transporter {
-
         const privateMailer: Transporter = nodemailer.createTransport({
             host: emailServer.host.toString(),
             port: emailServer.port.toNumber(),
@@ -150,7 +148,7 @@ export default class MailService {
             auth: {
                 user: emailServer.username,
                 pass: emailServer.password,
-            }
+            },
         });
 
         return privateMailer;

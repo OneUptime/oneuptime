@@ -15,7 +15,7 @@ export default class MailService {
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             ...mail,
-            clusterKey: ClusterKey.toString()
+            clusterKey: ClusterKey.toString(),
         };
 
         if (mailServer) {

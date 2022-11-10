@@ -15,7 +15,6 @@ const init: Function = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);
-       
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
