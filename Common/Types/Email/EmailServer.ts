@@ -2,7 +2,7 @@ import Email from '../Email';
 import Port from '../Port';
 import Hostname from '../API/Hostname';
 
-export default interface MailServer {
+export default interface EmailServer {
     host: Hostname;
     port: Port;
     username: string;

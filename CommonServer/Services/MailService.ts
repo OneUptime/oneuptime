@@ -5,13 +5,13 @@ import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
 import { ClusterKey, HttpProtocol, MailHostname } from '../Config';
-import Mail from 'Common/Types/Mail/Mail';
-import MailServer from 'Common/Types/Mail/MailServer';
+import Email from 'Common/Types/Email/EmailMessage';
+import EmailServer from 'Common/Types/Email/EmailServer';
 
 export default class MailService {
     public static async sendMail(
-        mail: Mail,
-        mailServer?: MailServer
+        mail: Email,
+        mailServer?: EmailServer
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             ...mail,

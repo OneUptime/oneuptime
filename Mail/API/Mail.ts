@@ -7,12 +7,12 @@ const router: ExpressRouter = Express.getRouter();
 import Response from 'CommonServer/Utils/Response';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
 import MailService from '../Services/MailService';
-import Mail from 'Common/Types/Mail/Mail';
+import EmailMessage from 'Common/Types/Email/EmailMessage';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import { JSONObject } from 'Common/Types/JSON';
 import Email from 'Common/Types/Email';
 import Dictionary from 'Common/Types/Dictionary';
-import MailServer from 'Common/Types/Mail/MailServer';
+import EmailServer from 'Common/Types/Email/EmailServer';
 
 router.post(
     '/send',
@@ -20,7 +20,7 @@ router.post(
     async (req: ExpressRequest, res: ExpressResponse) => {
         const body: JSONObject = req.body;
 
-        const mail: Mail = {
+        const mail: EmailMessage = {
             templateType: body['template-name'] as EmailTemplateType,
             toEmail: new Email(body['to-email'] as string),
             subject: body['subject'] as string,
@@ -28,10 +28,10 @@ router.post(
             body: body['body'] as string || '',
         };
 
-        let mailServer: MailServer | undefined = undefined;
+        let mailServer: EmailServer | undefined = undefined;
 
         if (hasMailServerSettingsInBody(body)) {
-            mailServer = MailService.getMailServer(req.body);
+            mailServer = MailService.getEmailServer(req.body);
         }
 
         await MailService.send(

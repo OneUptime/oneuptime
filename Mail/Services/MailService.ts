@@ -2,11 +2,11 @@ import nodemailer, { Transporter } from 'nodemailer';
 import hbs from 'nodemailer-express-handlebars';
 import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
-import Mail from 'Common/Types/Mail/Mail';
+import EmailMessage from 'Common/Types/Email/EmailMessage';
 import Path from 'path';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import MailServer from 'Common/Types/Mail/MailServer';
+import EmailServer from 'Common/Types/Email/EmailServer';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import OneUptimeDate from 'Common/Types/Date';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
@@ -72,7 +72,7 @@ export default class MailService {
         return true; 
     }
 
-    public static getMailServer(obj : JSONObject): MailServer { 
+    public static getEmailServer(obj : JSONObject): EmailServer { 
         if (!this.isSMTPConfigValid(obj)) {
             throw new BadDataException("SMTP Config is not valid");
         }
@@ -89,8 +89,8 @@ export default class MailService {
         };
     }
 
-    private static getGlobalSmtpSettings(): MailServer {
-        return this.getMailServer(process.env);
+    private static getGlobalSmtpSettings(): EmailServer {
+        return this.getEmailServer(process.env);
     }
 
 
@@ -111,7 +111,7 @@ export default class MailService {
                 Path.resolve(
                     process.cwd(),
                     'Templates',
-                    `${emailTemplateType}.hbs`
+                    `${emailTemplateType}`
                 ),
                 { encoding: 'utf8', flag: 'r' }
             );
@@ -136,7 +136,7 @@ export default class MailService {
         return subjectHandlebars(vars).toString();
     }
 
-    private static createMailer(mailServer: MailServer): Transporter {
+    private static createMailer(EmailServer: EmailServer): Transporter {
         const helpers: Dictionary<string> = {
             year: OneUptimeDate.getCurrentYear().toString(),
         };
@@ -154,12 +154,12 @@ export default class MailService {
         };
 
         const privateMailer: Transporter = nodemailer.createTransport({
-            host: mailServer.host.toString(),
-            port: mailServer.port.toNumber(),
-            secure: mailServer.secure,
+            host: EmailServer.host.toString(),
+            port: EmailServer.port.toNumber(),
+            secure: EmailServer.secure,
             auth: {
-                user: mailServer.username,
-                pass: mailServer.password,
+                user: EmailServer.username,
+                pass: EmailServer.password,
             },
         });
 
@@ -169,24 +169,33 @@ export default class MailService {
     }
 
     private static async transportMail(
-        mail: Mail,
-        mailServer: MailServer
+        mail: EmailMessage,
+        EmailServer: EmailServer
     ): Promise<void> {
-        const mailer: Transporter = this.createMailer(mailServer);
+        const mailer: Transporter = this.createMailer(EmailServer);
         await mailer.sendMail(mail);
     }
 
     public static async send(
-        mail: Mail,
-        mailServer?: MailServer
+        mail: EmailMessage,
+        EmailServer?: EmailServer
     ): Promise<void> {
-        if (!mailServer) {
-            mailServer = this.getGlobalSmtpSettings();
+        if (!EmailServer) {
+            EmailServer = this.getGlobalSmtpSettings();
         }
 
-        mail.body = mail.templateType ? await this.compileEmailBody(mail.templateType, mail.vars) : this.compileText(mail.body, mail.vars);
+        // default vars.
+        if (!mail.vars) {
+            mail.vars = {};
+        }
+
+        if (!mail.vars['year']) {
+            mail.vars['year'] = OneUptimeDate.getCurrentYear().toString();
+        }
+
+        mail.body = mail.templateType ? await this.compileEmailBody(mail.templateType, mail.vars) : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
 
-        await this.transportMail(mail, mailServer);
+        await this.transportMail(mail, EmailServer);
     }
 }
