@@ -15,8 +15,17 @@ export default class MailService {
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             ...mail,
-            ...mailServer
         };
+
+        if (mailServer) {
+            body['SMTP_USERNAME'] = mailServer.username;
+            body['SMTP_EMAIL'] = mailServer.fromEmail;
+            body['SMTP_FROM_NAME'] = mailServer.fromName;
+            body['SMTP_IS_SECURE'] = mailServer.secure;
+            body['SMTP_PORT'] = mailServer.port.toNumber();
+            body['SMTP_HOST'] = mailServer.host.toString();
+            body['SMTP_PASSWORD'] = mailServer.password;
+        }
 
         return await API.post<EmptyResponseData>(
             new URL(
