@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
     Routes,
@@ -26,7 +26,6 @@ import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
 import RouteParams from './Utils/RouteParams';
-import { useEffect } from 'react';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -35,10 +34,9 @@ const App: FunctionComponent = () => {
 
     const [isPreview, setIsPreview] = useState<boolean>(false);
 
-
     useEffect(() => {
         setIsPreview(isPreviewPage());
-    }, [])
+    }, []);
 
     // js.
     const [javascript, setJavaScript] = useState<string | null>(null);
@@ -49,7 +47,7 @@ const App: FunctionComponent = () => {
         }
     };
 
-    const isPreviewPage: Function =  (): boolean => {
+    const isPreviewPage: Function = (): boolean => {
         const id: string | null = Navigation.getParamByName(
             RouteParams.StatusPageId,
             RouteMap[PageMap.PREVIEW_OVERVIEW]!
@@ -59,7 +57,7 @@ const App: FunctionComponent = () => {
             return true;
         }
 
-        return false; 
+        return false;
     };
 
     return (
@@ -80,7 +78,6 @@ const App: FunctionComponent = () => {
 
                 <PageRoute
                     path={RouteMap[PageMap.OVERVIEW]?.toString()}
-                    
                     element={
                         <Overview
                             pageRoute={RouteMap[PageMap.OVERVIEW] as Route}

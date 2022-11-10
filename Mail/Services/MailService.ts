@@ -17,82 +17,87 @@ import { JSONObject } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
 
 export default class MailService {
-
     public static isSMTPConfigValid(obj: JSONObject): boolean {
         if (!obj['SMTP_USERNAME']) {
             logger.error('SMTP_USERNAME env var not found');
-            return false; 
+            return false;
         }
 
         if (!obj['SMTP_EMAIL']) {
             logger.error('SMTP_EMAIL env var not found');
-            return false; 
+            return false;
         }
 
         if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
-            logger.error('SMTP_EMAIL env var ' + obj['SMTP_EMAIL'] + ' is not a valid email');
-            return false; 
+            logger.error(
+                'SMTP_EMAIL env var ' +
+                    obj['SMTP_EMAIL'] +
+                    ' is not a valid email'
+            );
+            return false;
         }
 
         if (!obj['SMTP_FROM_NAME']) {
             logger.error('SMTP_FROM_NAME env var not found');
-            return false; 
+            return false;
         }
 
         if (!obj['SMTP_IS_SECURE']) {
             logger.error('SMTP_IS_SECURE env var not found');
-            return false; 
+            return false;
         }
 
         if (!obj['SMTP_PORT']) {
             logger.error('SMTP_PORT env var not found');
-            return false; 
+            return false;
         }
 
         if (!Port.isValid(obj['SMTP_PORT'].toString())) {
-            logger.error('SMTP_PORT ' + obj['SMTP_HOST'] + ' env var not valid');
-            return false; 
+            logger.error(
+                'SMTP_PORT ' + obj['SMTP_HOST'] + ' env var not valid'
+            );
+            return false;
         }
 
         if (!obj['SMTP_HOST']) {
             logger.error('SMTP_HOST env var not found');
-            return false; 
+            return false;
         }
 
         if (!Hostname.isValid(obj['SMTP_HOST'].toString())) {
-            logger.error('SMTP_HOST env var ' + obj['SMTP_HOST'] + '  not valid');
-            return false; 
+            logger.error(
+                'SMTP_HOST env var ' + obj['SMTP_HOST'] + '  not valid'
+            );
+            return false;
         }
 
         if (!obj['SMTP_PASSWORD']) {
             logger.error('SMTP_PASSWORD env var not found');
-            return false; 
+            return false;
         }
 
-        return true; 
+        return true;
     }
 
-    public static getEmailServer(obj : JSONObject): EmailServer { 
+    public static getEmailServer(obj: JSONObject): EmailServer {
         if (!this.isSMTPConfigValid(obj)) {
-            throw new BadDataException("SMTP Config is not valid");
+            throw new BadDataException('SMTP Config is not valid');
         }
-
 
         return {
             username: obj['SMTP_USERNAME']?.toString()!,
-            password:  obj['SMTP_PASSWORD']?.toString()!,
-            host:  new Hostname(obj['SMTP_HOST']?.toString()!),
-            port:  new Port(obj['SMTP_PORT']?.toString()!),
-            fromEmail:  new Email(obj['SMTP_EMAIL']?.toString()!),
-            fromName:  obj['SMTP_FROM_NAME']?.toString()!,
-            secure:  obj['SMTP_IS_SECURE'] === "true",
+            password: obj['SMTP_PASSWORD']?.toString()!,
+            host: new Hostname(obj['SMTP_HOST']?.toString()!),
+            port: new Port(obj['SMTP_PORT']?.toString()!),
+            fromEmail: new Email(obj['SMTP_EMAIL']?.toString()!),
+            fromName: obj['SMTP_FROM_NAME']?.toString()!,
+            secure: obj['SMTP_IS_SECURE'] === 'true',
         };
     }
 
     private static getGlobalSmtpSettings(): EmailServer {
         return this.getEmailServer(process.env);
     }
-
 
     private static async compileEmailBody(
         emailTemplateType: EmailTemplateType,
@@ -193,7 +198,9 @@ export default class MailService {
             mail.vars['year'] = OneUptimeDate.getCurrentYear().toString();
         }
 
-        mail.body = mail.templateType ? await this.compileEmailBody(mail.templateType, mail.vars) : this.compileText(mail.body || '', mail.vars);
+        mail.body = mail.templateType
+            ? await this.compileEmailBody(mail.templateType, mail.vars)
+            : this.compileText(mail.body || '', mail.vars);
         mail.subject = this.compileText(mail.subject, mail.vars);
 
         await this.transportMail(mail, EmailServer);

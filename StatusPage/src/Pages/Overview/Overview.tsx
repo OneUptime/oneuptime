@@ -573,11 +573,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     )}
                                     eventType={'Incident'}
                                     eventViewRoute={RouteUtil.populateRouteParams(
-                                        props.isPreviewPage ? RouteMap[
-                                            PageMap.PREVIEW_INCIDENT_DETAIL
-                                        ] as Route :  RouteMap[
-                                            PageMap.INCIDENT_DETAIL
-                                        ] as Route,
+                                        props.isPreviewPage
+                                            ? (RouteMap[
+                                                  PageMap
+                                                      .PREVIEW_INCIDENT_DETAIL
+                                              ] as Route)
+                                            : (RouteMap[
+                                                  PageMap.INCIDENT_DETAIL
+                                              ] as Route),
                                         incidentGroup.incident.id!
                                     )}
                                 />
@@ -616,11 +619,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     }
                                     eventType={'Scheduled Maintenance'}
                                     eventViewRoute={RouteUtil.populateRouteParams(
-                                        props.isPreviewPage ? RouteMap[
-                                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                                        ] as Route :  RouteMap[
-                                            PageMap.SCHEDULED_EVENT_DETAIL
-                                        ] as Route,
+                                        props.isPreviewPage
+                                            ? (RouteMap[
+                                                  PageMap
+                                                      .PREVIEW_SCHEDULED_EVENT_DETAIL
+                                              ] as Route)
+                                            : (RouteMap[
+                                                  PageMap.SCHEDULED_EVENT_DETAIL
+                                              ] as Route),
                                         scheduledEventGroup.scheduledMaintenance
                                             .id!
                                     )}

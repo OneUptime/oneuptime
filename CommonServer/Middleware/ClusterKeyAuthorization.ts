@@ -34,7 +34,7 @@ export default class ClusterKeyAuthorization {
             );
         }
 
-        const isAuthorized: boolean = clusterKey === ONEUPTIME_SECRET;
+        const isAuthorized: boolean = clusterKey.toString() === ONEUPTIME_SECRET.toString();
 
         if (!isAuthorized) {
             return Response.sendErrorResponse(

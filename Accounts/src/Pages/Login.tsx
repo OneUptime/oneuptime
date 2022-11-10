@@ -23,9 +23,11 @@ const LoginPage: FunctionComponent = () => {
                         <div className="auth-full-page-content d-flex p-sm-5 p-4">
                             <div className="w-100">
                                 <div className="d-flex flex-column h-100">
-
                                     <div className="auth-content my-auto">
-                                    <div className="mt-4 text-center" style={{marginBottom: "40px"}}>
+                                        <div
+                                            className="mt-4 text-center"
+                                            style={{ marginBottom: '40px' }}
+                                        >
                                             <img
                                                 style={{ height: '40px' }}
                                                 src={`/accounts/public/${OneUptimeLogo}`}

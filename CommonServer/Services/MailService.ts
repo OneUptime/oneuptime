@@ -15,6 +15,7 @@ export default class MailService {
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
             ...mail,
+            clusterKey: ClusterKey.toString()
         };
 
         if (mailServer) {
@@ -28,15 +29,8 @@ export default class MailService {
         }
 
         return await API.post<EmptyResponseData>(
-            new URL(
-                HttpProtocol,
-                MailHostname,
-                new Route('/email/send')
-            ),
-            body,
-            {
-                clusterkey: ClusterKey.toString(),
-            }
+            new URL(HttpProtocol, MailHostname, new Route('/email/send')),
+            body
         );
     }
 }

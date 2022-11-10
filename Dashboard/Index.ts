@@ -16,7 +16,10 @@ app.use(ExpressStatic(path.join(__dirname, 'public')));
 
 app.use(`/${APP_NAME}`, ExpressStatic(path.join(__dirname, 'public')));
 
-app.use([`/${APP_NAME}/assets`,`/${APP_NAME}/${APP_NAME}/assets`], ExpressStatic(path.join(__dirname, 'dist')));
+app.use(
+    [`/${APP_NAME}/assets`, `/${APP_NAME}/${APP_NAME}/assets`],
+    ExpressStatic(path.join(__dirname, 'dist'))
+);
 
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -26,7 +29,6 @@ const init: Function = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);
-        
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

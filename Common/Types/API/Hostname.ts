@@ -26,9 +26,8 @@ export default class Hostname extends DatabaseProperty {
         }
     }
 
-
     public static isValid(value: string): boolean {
-        const re: RegExp =  /^[a-zA-Z-\d!#$&'*+,/:;=?@[\].]*$/;
+        const re: RegExp = /^[a-zA-Z-\d!#$&'*+,/:;=?@[\].]*$/;
         const isValid: boolean = re.test(value);
         if (!isValid) {
             return false;

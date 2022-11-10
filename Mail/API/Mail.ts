@@ -25,7 +25,7 @@ router.post(
             toEmail: new Email(body['to-email'] as string),
             subject: body['subject'] as string,
             vars: body['vars'] as Dictionary<string>,
-            body: body['body'] as string || '',
+            body: (body['body'] as string) || '',
         };
 
         let mailServer: EmailServer | undefined = undefined;
@@ -34,16 +34,19 @@ router.post(
             mailServer = MailService.getEmailServer(req.body);
         }
 
-        await MailService.send(
-            mail, mailServer
-        );
+        await MailService.send(mail, mailServer);
 
         return Response.sendEmptyResponse(req, res);
     }
 );
 
-const hasMailServerSettingsInBody = (body: JSONObject): boolean => {
-    return body && Object.keys(body).filter((key) => key.startsWith("SMTP_")).length > 0;
-}
+const hasMailServerSettingsInBody: Function = (body: JSONObject): boolean => {
+    return (
+        body &&
+        Object.keys(body).filter((key: string) => {
+            return key.startsWith('SMTP_');
+        }).length > 0
+    );
+};
 
 export default router;

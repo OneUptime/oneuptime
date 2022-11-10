@@ -11,7 +11,6 @@ export default class Port extends DatabaseProperty {
         return this._port;
     }
     public set port(value: PositiveNumber) {
-       
         if (Port.isValid(value)) {
             this._port = value;
         } else {
@@ -24,7 +23,7 @@ export default class Port extends DatabaseProperty {
             try {
                 port = Number.parseInt(port.toString(), 10);
             } catch (error) {
-                return false; 
+                return false;
             }
         }
 
@@ -33,10 +32,9 @@ export default class Port extends DatabaseProperty {
         }
 
         if (port >= 0 && port <= 65535) {
-           return true
-        } else {
-            return false; 
+            return true;
         }
+        return false;
     }
 
     public constructor(port: number | string) {

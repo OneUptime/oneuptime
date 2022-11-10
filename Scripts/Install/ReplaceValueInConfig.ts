@@ -1,7 +1,6 @@
 // This script merges config.env.tpl to config.env
 
-
-import fs from 'fs'
+import fs from 'fs';
 
 const init: Function = (): void => {
     let env: string = '';
