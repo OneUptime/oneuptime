@@ -41,7 +41,7 @@
         "lint": "ejslint home/views/*.ejs && eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore ",
         "fix-lint": " node --max_old_space_size=18192 ./node_modules/.bin/eslint '**/*.ts*' -c .eslintrc.json --ignore-path .eslintignore --fix ",
         "fix": "npm run fix-lint",
-        "start": "bash install.sh",
+        "start": "docker-compose up -d $npm_config_services",
         "ps": "docker-compose ps",
         "logs": "docker-compose logs --tail=100 -f $npm_config_services",
         "force-build": "npm run prerun && docker-compose build --no-cache $npm_config_services",
