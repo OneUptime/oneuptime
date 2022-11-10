@@ -4,12 +4,22 @@ set -e
 
 bash preinstall.sh
 
-# If docker-compose is installed and if docker-compose.yml is found then, stop the stack.
-if [[ $(which docker-compose) ]]; then
-    if [ -f ./docker-compose.yml ]; then
-        sudo -E docker-compose -f docker-compose.yml stop || true
-    fi
-fi
+
+
+# Revert all local changes
+git reset
+git checkout .
+
+# Pull latest changes
+git pull
+
+docker-compose pull
+
+echo "Stopping the stack!"
+sudo -E docker-compose -f docker-compose.yml stop || true
+
+# echo "Checking if async migrations are up to date"
+# sudo -E docker-compose run init
 
 npm run start
 
