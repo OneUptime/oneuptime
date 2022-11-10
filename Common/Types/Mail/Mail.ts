@@ -1,6 +1,6 @@
-import Email from 'Common/Types/Email';
-import Dictionary from 'Common/Types/Dictionary';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import Email from '../Email';
+import Dictionary from '../Dictionary';
+import EmailTemplateType from '../Email/EmailTemplateType';
 
 export default interface Mail {
     toEmail: Email;

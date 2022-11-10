@@ -1,140 +1,98 @@
 import nodemailer, { Transporter } from 'nodemailer';
-import ObjectID from 'Common/Types/ObjectID';
 import hbs from 'nodemailer-express-handlebars';
 import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
-import Mail from '../Types/Mail';
-import GlobalConfigService from 'CommonServer/Services/GlobalConfigService';
-import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
-import EmailLogService from 'CommonServer/Services/EmailLogService';
+import Mail from 'Common/Types/Mail/Mail';
 import Path from 'path';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import * as Config from '../Config';
-import { MailServer } from '../Types/MailServer';
+import MailServer from 'Common/Types/Mail/MailServer';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import OneUptimeDate from 'Common/Types/Date';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import Dictionary from 'Common/Types/Dictionary';
-import OperationResult from 'Common/Types/Operation/OperationResult';
 import Hostname from 'Common/Types/API/Hostname';
-import Exception from 'Common/Types/Exception/Exception';
-import GlobalConfig from 'Model/Models/GlobalConfig';
 import Port from 'Common/Types/Port';
-import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
-import EmailLog from 'Model/Models/EmailLog';
-import Project from 'Model/Models/Project';
+import { JSONObject } from 'Common/Types/JSON';
+import logger from 'CommonServer/Utils/Logger';
 
 export default class MailService {
-    private static async getGlobalSmtpSettings(): Promise<MailServer> {
-        const document: GlobalConfig | null =
-            await GlobalConfigService.findOneBy({
-                query: {
-                    name: 'smtp',
-                },
-                select: {
-                    value: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
 
-        if (document && document.value && !document.value['internalSmtp']) {
-            return {
-                username: document.value['email'] as string,
-                password: document.value['password'] as string,
-                host: new Hostname(document.value['smtp-server'] as string),
-                port: new Port(document.value['smtp-port'] as string),
-                fromEmail: new Email(document.value['from'] as string),
-                fromName:
-                    (document.value['from-name'] as string) || 'OneUptime',
-                secure: Boolean(document.value['smtp-secure']),
-                enabled: Boolean(document.value['email-enabled']),
-            };
-        } else if (
-            document &&
-            document.value &&
-            document.value['internalSmtp'] &&
-            document.value['customSmtp']
-        ) {
-            return {
-                username: Config.InternalSmtpUser,
-                password: Config.InternalSmtpPassword,
-                host: Config.InternalSmtpHost,
-                port: Config.InternalSmtpPort,
-                fromEmail: Config.InternalSmtpFromEmail,
-                fromName: Config.InternalSmtpFromName,
-                enabled: Boolean(document.value['email-enabled']),
-                secure: Config.InternalSmtpSecure,
-                backupMailServer: {
-                    username: document.value['email'] as string,
-                    password: document.value['password'] as string,
-                    host: new Hostname(document.value['smtp-server'] as string),
-                    port: new Port(document.value['smtp-port'] as string),
-                    fromEmail: new Email(document.value['from'] as string),
-                    fromName:
-                        (document.value['from-name'] as string) || 'OneUptime',
-                    secure: Boolean(document.value['smtp-secure']),
-                    enabled: Boolean(document.value['email-enabled']),
-                },
-            };
-        } else if (
-            document &&
-            document.value &&
-            document.value['internalSmtp']
-        ) {
-            return {
-                username: Config.InternalSmtpUser,
-                password: Config.InternalSmtpPassword,
-                host: Config.InternalSmtpHost,
-                port: Config.InternalSmtpPort,
-                fromEmail: Config.InternalSmtpFromEmail,
-                fromName: Config.InternalSmtpFromName,
-                enabled: Boolean(document.value['email-enabled']),
-                secure: Config.InternalSmtpSecure,
-            };
+    public static isSMTPConfigValid(obj: JSONObject): boolean {
+        if (!obj['SMTP_USERNAME']) {
+            logger.error('SMTP_USERNAME env var not found');
+            return false; 
         }
 
-        throw new BadDataException('No Global Settings for Email SMTP found');
-    }
-
-    private static async getProjectSmtpSettings(
-        projectId: ObjectID
-    ): Promise<MailServer> {
-        const projectSmtp: ProjectSmtpConfig | null =
-            await ProjectSmtpConfigService.findOneBy({
-                query: {
-                    project: new Project(projectId),
-                },
-                select: {
-                    username: true,
-                    password: true,
-                    hostname: true,
-                    port: true,
-                    fromName: true,
-                    fromEmail: true,
-                    secure: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
-
-        if (projectSmtp) {
-            return {
-                username: projectSmtp.username!,
-                password: projectSmtp.password!,
-                host: projectSmtp.hostname!,
-                port: projectSmtp.port!,
-                fromName: projectSmtp.fromName! || 'OneUptime',
-                fromEmail: projectSmtp.fromEmail!,
-                secure: projectSmtp.secure!,
-                enabled: true,
-            };
+        if (!obj['SMTP_EMAIL']) {
+            logger.error('SMTP_EMAIL env var not found');
+            return false; 
         }
-        return await this.getGlobalSmtpSettings();
+
+        if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
+            logger.error('SMTP_EMAIL env var ' + obj['SMTP_EMAIL'] + ' is not a valid email');
+            return false; 
+        }
+
+        if (!obj['SMTP_FROM_NAME']) {
+            logger.error('SMTP_FROM_NAME env var not found');
+            return false; 
+        }
+
+        if (!obj['SMTP_IS_SECURE']) {
+            logger.error('SMTP_IS_SECURE env var not found');
+            return false; 
+        }
+
+        if (!obj['SMTP_PORT']) {
+            logger.error('SMTP_PORT env var not found');
+            return false; 
+        }
+
+        if (!Port.isValid(obj['SMTP_PORT'].toString())) {
+            logger.error('SMTP_PORT ' + obj['SMTP_HOST'] + ' env var not valid');
+            return false; 
+        }
+
+        if (!obj['SMTP_HOST']) {
+            logger.error('SMTP_HOST env var not found');
+            return false; 
+        }
+
+        if (!Hostname.isValid(obj['SMTP_HOST'].toString())) {
+            logger.error('SMTP_HOST env var ' + obj['SMTP_HOST'] + '  not valid');
+            return false; 
+        }
+
+        if (!obj['SMTP_PASSWORD']) {
+            logger.error('SMTP_PASSWORD env var not found');
+            return false; 
+        }
+
+        return true; 
     }
+
+    public static getMailServer(obj : JSONObject): MailServer { 
+        if (!this.isSMTPConfigValid(obj)) {
+            throw new BadDataException("SMTP Config is not valid");
+        }
+
+
+        return {
+            username: obj['SMTP_USERNAME']?.toString()!,
+            password:  obj['SMTP_PASSWORD']?.toString()!,
+            host:  new Hostname(obj['SMTP_HOST']?.toString()!),
+            port:  new Port(obj['SMTP_PORT']?.toString()!),
+            fromEmail:  new Email(obj['SMTP_EMAIL']?.toString()!),
+            fromName:  obj['SMTP_FROM_NAME']?.toString()!,
+            secure:  obj['SMTP_IS_SECURE'] === "true",
+        };
+    }
+
+    private static getGlobalSmtpSettings(): MailServer {
+        return this.getMailServer(process.env);
+    }
+
 
     private static async compileEmailBody(
         emailTemplateType: EmailTemplateType,
@@ -169,7 +127,7 @@ export default class MailService {
         return emailBody(vars).toString();
     }
 
-    private static compileSubject(
+    private static compileText(
         subject: string,
         vars: Dictionary<string>
     ): string {
@@ -210,131 +168,24 @@ export default class MailService {
         return privateMailer;
     }
 
-    private static async createEmailStatus(data: {
-        fromEmail?: Email;
-        fromName?: string;
-        toEmail: Email;
-        subject: string;
-        body?: string;
-        templateType?: EmailTemplateType;
-        status: OperationResult;
-        smtpHost?: Hostname;
-        projectId?: ObjectID;
-        errorDescription?: string;
-    }): Promise<void> {
-        const log: EmailLog = new EmailLog();
-        if (data.fromEmail) {
-            log.fromEmail = data.fromEmail;
-        }
-
-        if (data.fromName) {
-            log.fromName = data.fromName;
-        }
-
-        log.toEmail = data.toEmail;
-        log.subject = data.subject;
-
-        if (data.body) {
-            log.body = data.body;
-        }
-
-        if (data.templateType) {
-            log.templateType = data.templateType;
-        }
-
-        log.status = data.status;
-        if (data.smtpHost) {
-            log.smtpHost = data.smtpHost;
-        }
-
-        if (data.errorDescription) {
-            log.errorDescription = data.errorDescription;
-        }
-
-        if (data.projectId) {
-            log.project = new Project(data.projectId);
-        }
-
-        await EmailLogService.create({
-            data: log,
-            props: {
-                isRoot: true,
-            },
-        });
-    }
-
     private static async transportMail(
         mail: Mail,
         mailServer: MailServer
     ): Promise<void> {
         const mailer: Transporter = this.createMailer(mailServer);
-
-        try {
-            await mailer.sendMail(mail);
-
-            await this.createEmailStatus({
-                fromEmail: mailServer.fromEmail,
-                fromName: mailServer.fromName,
-                smtpHost: mailServer.host,
-                toEmail: mail.toEmail,
-                subject: mail.subject,
-                templateType: mail.templateType,
-                body: mail.body,
-                status: OperationResult.Success,
-            });
-        } catch (error) {
-            if (mailServer.backupMailServer) {
-                return await this.transportMail(
-                    mail,
-                    mailServer.backupMailServer
-                );
-            }
-
-            const exception: Exception = error as Exception;
-
-            await this.createEmailStatus({
-                fromEmail: mailServer.fromEmail,
-                fromName: mailServer.fromName,
-                smtpHost: mailServer.host,
-                toEmail: mail.toEmail,
-                subject: mail.subject,
-                templateType: mail.templateType,
-                body: mail.body,
-                status: OperationResult.Error,
-                errorDescription: exception.message,
-            });
-        }
+        await mailer.sendMail(mail);
     }
 
     public static async send(
         mail: Mail,
-        projectId?: ObjectID,
-        forceSendFromGlobalMailServer?: boolean
+        mailServer?: MailServer
     ): Promise<void> {
-        let mailServer: MailServer | null = null;
-
-        if (forceSendFromGlobalMailServer) {
-            mailServer = await this.getGlobalSmtpSettings();
-        }
-
-        if (projectId && !forceSendFromGlobalMailServer) {
-            mailServer = await this.getProjectSmtpSettings(projectId);
-        }
-
         if (!mailServer) {
-            await this.createEmailStatus({
-                toEmail: mail.toEmail,
-                subject: mail.subject,
-                templateType: mail.templateType,
-                status: OperationResult.Error,
-                errorDescription: 'SMTP settings not found',
-            });
-
-            throw new BadDataException('SMTP settings not found');
+            mailServer = this.getGlobalSmtpSettings();
         }
 
-        mail.body = await this.compileEmailBody(mail.templateType, mail.vars);
-        mail.subject = this.compileSubject(mail.subject, mail.vars);
+        mail.body = mail.templateType ? await this.compileEmailBody(mail.templateType, mail.vars) : this.compileText(mail.body, mail.vars);
+        mail.subject = this.compileText(mail.subject, mail.vars);
 
         await this.transportMail(mail, mailServer);
     }

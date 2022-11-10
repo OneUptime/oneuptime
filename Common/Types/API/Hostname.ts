@@ -18,13 +18,22 @@ export default class Hostname extends DatabaseProperty {
         this._port = v;
     }
 
-    public set hostname(v: string) {
-        const matchHostnameCharacters: RegExp =
-            /^[a-zA-Z-\d!#$&'*+,/:;=?@[\].]*$/;
-        if (v && !matchHostnameCharacters.test(v)) {
-            throw new BadDataException(`Invalid hostname: ${v}`);
+    public set hostname(value: string) {
+        if (Hostname.isValid(value)) {
+            this._route = value;
+        } else {
+            throw new BadDataException('Hostname is not in valid format.');
         }
-        this._route = v;
+    }
+
+
+    public static isValid(value: string): boolean {
+        const re: RegExp =  /^[a-zA-Z-\d!#$&'*+,/:;=?@[\].]*$/;
+        const isValid: boolean = re.test(value);
+        if (!isValid) {
+            return false;
+        }
+        return true;
     }
 
     public constructor(hostname: string, port?: Port | string | number) {
