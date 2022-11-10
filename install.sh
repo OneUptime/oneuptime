@@ -15,9 +15,6 @@ git pull
 
 docker-compose pull
 
-echo "Stopping the stack!"
-sudo -E docker-compose -f docker-compose.yml stop || true
-
 # echo "Checking if async migrations are up to date"
 # sudo -E docker-compose run init
 
