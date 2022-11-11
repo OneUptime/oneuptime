@@ -106,7 +106,7 @@ router.post(
             const emailVerificationToken = new EmailVerificationToken();
             emailVerificationToken.userId = savedUser?.id!;
             emailVerificationToken.email = savedUser?.email!;
-            emailVerificationToken.token = generatedToken; 
+            emailVerificationToken.token = generatedToken;
             emailVerificationToken.expires = OneUptimeDate.getOneDayAfter()
 
             await EmailVerificationTokenService.create({
@@ -321,33 +321,54 @@ router.post(
             await user.password?.hashValue(EncryptionSecret);
 
             const alreadySavedUser: User | null = await UserService.findOneBy({
-                query: { email: user.email!, password: user.password! },
+                query: { resetPasswordToken: user.resetPasswordToken as string || '' },
                 select: {
                     _id: true,
                     password: true,
                     name: true,
                     email: true,
                     isMasterAdmin: true,
+                    resetPasswordExpires: true
                 },
                 props: {
                     isRoot: true,
                 },
             });
 
-            if (alreadySavedUser) {
-                const token: string = JSONWebToken.sign(
-                    alreadySavedUser,
-                    OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
-                );
-
-                return Response.sendJsonObjectResponse(req, res, {
-                    token: token,
-                    user: BaseModel.toJSON(alreadySavedUser, User),
-                });
+            if (!alreadySavedUser) {
+                throw new BadDataException("Invalid link. Please go to forgot password page again and request a new link.")
             }
-            throw new BadDataException(
-                'Invalid login: Email or password does not match.'
-            );
+
+            if (alreadySavedUser && OneUptimeDate.hasExpired(alreadySavedUser.resetPasswordExpires!)) {
+                throw new BadDataException("Expired link. Please go to forgot password page again and request a new link.")
+            }
+
+
+            await UserService.updateOneById({
+                id: alreadySavedUser.id!,
+                data: {
+                    password: user.password!,
+                    resetPasswordToken: null!,
+                    resetPasswordExpires: null!
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            MailService.sendMail({
+                toEmail: alreadySavedUser.email!,
+                subject: 'Password Changed.',
+                templateType: EmailTemplateType.PasswordChanged,
+                vars: {
+                    homeURL: new URL(HttpProtocol, Domain).toString(),
+                },
+            }).catch((err: Error) => {
+                logger.error(err);
+            });
+
+            return Response.sendEmptyResponse(req, res);
+
         } catch (err) {
             return next(err);
         }
@@ -391,16 +412,16 @@ router.post(
                     const emailVerificationToken = new EmailVerificationToken();
                     emailVerificationToken.userId = alreadySavedUser?.id!;
                     emailVerificationToken.email = alreadySavedUser?.email!;
-                    emailVerificationToken.token = generatedToken; 
+                    emailVerificationToken.token = generatedToken;
                     emailVerificationToken.expires = OneUptimeDate.getOneDayAfter()
-        
+
                     await EmailVerificationTokenService.create({
                         data: emailVerificationToken,
                         props: {
                             isRoot: true
                         },
                     });
-                    
+
 
                     MailService.sendMail({
                         toEmail: alreadySavedUser.email!,

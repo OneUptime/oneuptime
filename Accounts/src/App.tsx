@@ -16,6 +16,7 @@ import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import VerifyEmail from './Pages/VerifyEmail';
 import User from 'CommonUI/src/Utils/User';
+import ResetPasswordPage from './Pages/ResetPassword';
 
 function App(): ReactElement {
     Navigation.setNavigateHook(useNavigate());
@@ -37,7 +38,7 @@ function App(): ReactElement {
                 />
                 <Route
                     path="/accounts/reset-password/:token"
-                    element={<ForgotPasswordPage />}
+                    element={<ResetPasswordPage />}
                 />
                 <Route path="/accounts/register" element={<RegisterPage />} />
                 <Route path="/accounts/login/sso" element={<SsoLoginPage />} />
