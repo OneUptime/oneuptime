@@ -6,7 +6,6 @@ import {
     EncryptionSecret,
     Domain,
     AccountsRoute,
-    DashboardRoute,
 } from 'CommonServer/Config';
 import Express, {
     ExpressRequest,
@@ -57,20 +56,6 @@ router.post(
                 user.isEmailVerified = false;
             }
 
-            let verificationToken: ObjectID | null = null;
-            let emailVerificationToken: EmailVerificationToken | null = null;
-            if (req.query['token']) {
-                verificationToken = new ObjectID(req.query['token'] as string);
-                emailVerificationToken =
-                    await EmailVerificationTokenService.findOneBy({
-                        query: {
-                            token: verificationToken,
-                        },
-                        props: {
-                            isRoot: true,
-                        },
-                    });
-            }
 
             const alreadySavedUser: User | null = await UserService.findOneBy({
                 query: { email: user.email! },
@@ -83,15 +68,6 @@ router.post(
                 },
             });
 
-            if (
-                emailVerificationToken &&
-                user &&
-                alreadySavedUser?.id?.toString() ===
-                    emailVerificationToken?.userId?.toString()
-            ) {
-                user.isEmailVerified = true;
-            }
-
             if (alreadySavedUser && alreadySavedUser.password) {
                 throw new BadDataException(
                     `User with email ${user.email} already exists.`
@@ -99,6 +75,7 @@ router.post(
             }
 
             let savedUser: User | null = null;
+
             if (alreadySavedUser) {
                 savedUser = await UserService.updateOneByIdAndFetch({
                     id: alreadySavedUser.id!,
@@ -122,45 +99,40 @@ router.post(
                 });
             }
 
-            if (alreadySavedUser) {
-                // Send Welcome Mail
-                MailService.sendMail({
-                    toEmail: user.email!,
-                    subject: 'Welcome to OneUptime.',
-                    templateType: EmailTemplateType.WelomeEmail,
-                    vars: {
-                        name: user.name!.toString(),
-                        dashboardUrl: new URL(
-                            HttpProtocol,
-                            Domain,
-                            DashboardRoute
-                        ).toString(),
-                        homeUrl: new URL(HttpProtocol, HomeHostname).toString(),
-                    },
-                }).catch((err: Error) => {
-                    logger.error(err);
-                });
-            } else {
-                // Send EmailVerification Link because this is a new user.
-                MailService.sendMail({
-                    toEmail: user.email!,
-                    subject: 'Welcome to OneUptime. Please verify your email.',
-                    templateType: EmailTemplateType.WelomeEmail,
-                    vars: {
-                        name: user.name!.toString(),
-                        emailVerificationUrl: new URL(
-                            HttpProtocol,
-                            Domain,
-                            new Route(AccountsRoute.toString()).addRoute(
-                                '/reset-password/'
-                            )
-                        ).toString(),
-                        homeUrl: new URL(HttpProtocol, HomeHostname).toString(),
-                    },
-                }).catch((err: Error) => {
-                    logger.error(err);
-                });
-            }
+            console.log(savedUser);
+
+            const generatedToken = ObjectID.generate();
+
+            const emailVerificationToken = new EmailVerificationToken();
+            emailVerificationToken.userId = savedUser?.id!;
+            emailVerificationToken.email = savedUser?.email!;
+            emailVerificationToken.token = generatedToken; 
+            emailVerificationToken.expires = OneUptimeDate.getOneDayAfter()
+
+            await EmailVerificationTokenService.create({
+                data: emailVerificationToken,
+                props: {
+                    isRoot: true
+                },
+            });
+
+            MailService.sendMail({
+                toEmail: user.email!,
+                subject: 'Welcome to OneUptime. Please verify your email.',
+                templateType: EmailTemplateType.SignupWelcomeEmail,
+                vars: {
+                    name: user.name!.toString(),
+                    tokenVerifyUrl: new URL(
+                        HttpProtocol,
+                        Domain,
+                        new Route(AccountsRoute.toString()).addRoute(
+                            '/verify-email/' + generatedToken.toString()
+                        )).toString(),
+                    homeUrl: new URL(HttpProtocol, HomeHostname).toString(),
+                },
+            }).catch((err: Error) => {
+                logger.error(err);
+            });
 
             if (savedUser) {
                 const token: string = JSONWebToken.sign(
@@ -253,6 +225,87 @@ router.post(
 );
 
 router.post(
+    '/verify-email',
+    async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction
+    ): Promise<void> => {
+        try {
+            const data: JSONObject = req.body['data'];
+
+            const token: EmailVerificationToken = EmailVerificationToken.fromJSON(data as JSONObject, EmailVerificationToken) as EmailVerificationToken;
+
+            const alreadySavedToken: EmailVerificationToken | null = await EmailVerificationTokenService.findOneBy({
+                query: { token: token.token! },
+                select: {
+                    _id: true,
+                    userId: true,
+                    email: true,
+                    expires: true
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (!alreadySavedToken) {
+                throw new BadDataException("Invalid link. Please try to log in and we will resend you another link which you should be able to verify email with.")
+            }
+
+            if (OneUptimeDate.hasExpired(alreadySavedToken.expires!)) {
+                throw new BadDataException("Link expired. Please try to log in and we will resend you another link which you should be able to verify email with.")
+            }
+
+            let user = await UserService.findOneBy({
+                query: {
+                    email: token.email!,
+                    _id: token._id!
+                },
+                props: {
+                    isRoot: true
+                },
+                select: {
+                    _id: true,
+                    email: true
+                }
+            });
+
+            if (!user) {
+                throw new BadDataException("Invalid link. Please try to log in and we will resend you another link which you should be able to verify email with.")
+            }
+
+            await UserService.updateOneBy({
+                query: {
+                    _id: user._id!,
+                },
+                data: {
+                    isEmailVerified: true
+                },
+                props: {
+                    isRoot: true
+                }
+            });
+
+            MailService.sendMail({
+                toEmail: user.email!,
+                subject: 'Email Verified.',
+                templateType: EmailTemplateType.EmailVerified,
+                vars: {
+                    homeURL: new URL(HttpProtocol, Domain).toString(),
+                },
+            }).catch((err: Error) => {
+                logger.error(err);
+            });
+
+            return Response.sendEmptyResponse(req, res);
+        } catch (err) {
+            return next(err);
+        }
+    }
+);
+
+router.post(
     '/reset-password',
     async (
         req: ExpressRequest,
@@ -321,6 +374,7 @@ router.post(
                     name: true,
                     email: true,
                     isMasterAdmin: true,
+                    isEmailVerified: true,
                 },
                 props: {
                     isRoot: true,
@@ -328,6 +382,45 @@ router.post(
             });
 
             if (alreadySavedUser) {
+
+                if (!alreadySavedUser.isEmailVerified) {
+                    const generatedToken = ObjectID.generate();
+
+                    const emailVerificationToken = new EmailVerificationToken();
+                    emailVerificationToken.userId = alreadySavedUser?.id!;
+                    emailVerificationToken.email = alreadySavedUser?.email!;
+                    emailVerificationToken.token = generatedToken; 
+                    emailVerificationToken.expires = OneUptimeDate.getOneDayAfter()
+        
+                    await EmailVerificationTokenService.create({
+                        data: emailVerificationToken,
+                        props: {
+                            isRoot: true
+                        },
+                    });
+                    
+
+                    MailService.sendMail({
+                        toEmail: user.email!,
+                        subject: 'Welcome to OneUptime.',
+                        templateType: EmailTemplateType.SignupWelcomeEmail,
+                        vars: {
+                            name: user.name!.toString(),
+                            tokenVerifyUrl: new URL(
+                                HttpProtocol,
+                                Domain,
+                                new Route(AccountsRoute.toString()).addRoute(
+                                    '/verify-email/' + generatedToken.toString()
+                                )).toString(),
+                            homeUrl: new URL(HttpProtocol, HomeHostname).toString(),
+                        },
+                    }).catch((err: Error) => {
+                        logger.error(err);
+                    });
+
+                    throw new BadDataException("Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.")
+                }
+
                 const token: string = JSONWebToken.sign(
                     alreadySavedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
