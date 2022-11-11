@@ -36,72 +36,88 @@ const RegisterPage: FunctionComponent = () => {
                                         </div>
                                         <div className="text-center">
                                             <h5 className="mb-0">
-                                               Reset Password.
+                                                Reset Password.
                                             </h5>
-                                            {!isSuccess && <p className="text-muted mt-2 mb-0">
-                                                Please enter your new password and we will have it updated.{' '}
-                                            </p>}
+                                            {!isSuccess && (
+                                                <p className="text-muted mt-2 mb-0">
+                                                    Please enter your new
+                                                    password and we will have it
+                                                    updated.{' '}
+                                                </p>
+                                            )}
 
-                                            {isSuccess && <p className="text-muted mt-2 mb-0">
-                                                Your password has been updated. Please log in.
-                                            </p>}
-                                            
+                                            {isSuccess && (
+                                                <p className="text-muted mt-2 mb-0">
+                                                    Your password has been
+                                                    updated. Please log in.
+                                                </p>
+                                            )}
                                         </div>
 
-                                        {!isSuccess && <ModelForm<User>
-                                            modelType={User}
-                                            id="register-form"
-                                            onBeforeCreate={(item: User) => {
-                                                item.resetPasswordToken = Navigation.getLastParam()?.toString().replace("/", "").toString() ||''
-                                                return item;
-                                            }}
-                                            showAsColumns={1}
-                                            maxPrimaryButtonWidth={true}
-                                            initialValues={{
-                                                password: '',
-                                                confirmPassword: '',
-                                            }}
-                                            fields={[
-                                               
-                                                {
-                                                    field: {
-                                                        password: true,
+                                        {!isSuccess && (
+                                            <ModelForm<User>
+                                                modelType={User}
+                                                id="register-form"
+                                                onBeforeCreate={(
+                                                    item: User
+                                                ) => {
+                                                    item.resetPasswordToken =
+                                                        Navigation.getLastParam()
+                                                            ?.toString()
+                                                            .replace('/', '')
+                                                            .toString() || '';
+                                                    return item;
+                                                }}
+                                                showAsColumns={1}
+                                                maxPrimaryButtonWidth={true}
+                                                initialValues={{
+                                                    password: '',
+                                                    confirmPassword: '',
+                                                }}
+                                                fields={[
+                                                    {
+                                                        field: {
+                                                            password: true,
+                                                        },
+                                                        fieldType:
+                                                            FormFieldSchemaType.Password,
+                                                        validation: {
+                                                            minLength: 6,
+                                                        },
+                                                        placeholder:
+                                                            'New Password',
+                                                        title: 'New Password',
+                                                        required: true,
                                                     },
-                                                    fieldType:
-                                                        FormFieldSchemaType.Password,
-                                                    validation: {
-                                                        minLength: 6,
+                                                    {
+                                                        field: {
+                                                            password: true,
+                                                        },
+                                                        validation: {
+                                                            minLength: 6,
+                                                            toMatchField:
+                                                                'password',
+                                                        },
+                                                        fieldType:
+                                                            FormFieldSchemaType.Password,
+                                                        placeholder:
+                                                            'Confirm Password',
+                                                        title: 'Confirm Password',
+                                                        overideFieldKey:
+                                                            'confirmPassword',
+                                                        required: true,
                                                     },
-                                                    placeholder: 'New Password',
-                                                    title: 'New Password',
-                                                    required: true,
-                                                },
-                                                {
-                                                    field: {
-                                                        password: true,
-                                                    },
-                                                    validation: {
-                                                        minLength: 6,
-                                                        toMatchField:
-                                                            'password',
-                                                    },
-                                                    fieldType:
-                                                        FormFieldSchemaType.Password,
-                                                    placeholder:
-                                                        'Confirm Password',
-                                                    title: 'Confirm Password',
-                                                    overideFieldKey:
-                                                        'confirmPassword',
-                                                    required: true,
-                                                },
-                                            ]}
-                                            apiUrl={apiUrl}
-                                            formType={FormType.Create}
-                                            submitButtonText={'Reset Password'}
-                                            onSuccess={() => {
-                                                setIsSuccess(true);
-                                            }}
-                                        />}
+                                                ]}
+                                                apiUrl={apiUrl}
+                                                formType={FormType.Create}
+                                                submitButtonText={
+                                                    'Reset Password'
+                                                }
+                                                onSuccess={() => {
+                                                    setIsSuccess(true);
+                                                }}
+                                            />
+                                        )}
 
                                         <div className="mt-5 text-center">
                                             <p className="text-muted mb-0">

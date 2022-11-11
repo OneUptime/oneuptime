@@ -16,7 +16,7 @@ export default class MailService {
         const body: JSONObject = {
             ...mail,
             clusterKey: ClusterKey.toString(),
-            toEmail: mail.toEmail.toString()
+            toEmail: mail.toEmail.toString(),
         };
 
         if (mailServer) {

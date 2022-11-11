@@ -164,7 +164,6 @@ export default class MailService {
             to: mail.toEmail.toString(),
             subject: mail.subject,
             html: mail.body,
-            
         });
     }
 

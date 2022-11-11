@@ -116,8 +116,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     protected checkRequiredFields(data: TBaseModel): void {
         // Check required fields.
 
-        console.log(data);
-
         const relatationalColumns: Dictionary<string> = {};
 
         const tableColumns: Array<string> = data.getTableColumns().columns;
@@ -143,12 +141,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 !(data as any)[requiredField] &&
                 !data.isDefaultValueColumn(requiredField)
             ) {
-
                 const metadata: TableColumnMetadata =
-                data.getTableColumnMetadata(requiredField);
+                    data.getTableColumnMetadata(requiredField);
 
-                if (metadata && metadata.manyToOneRelationColumn && metadata.type === TableColumnType.Entity && data.getColumnValue(metadata.manyToOneRelationColumn)) {
-                    continue; 
+                if (
+                    metadata &&
+                    metadata.manyToOneRelationColumn &&
+                    metadata.type === TableColumnType.Entity &&
+                    data.getColumnValue(metadata.manyToOneRelationColumn)
+                ) {
+                    continue;
                 }
 
                 if (

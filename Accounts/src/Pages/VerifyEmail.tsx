@@ -4,7 +4,7 @@ import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
 import Link from 'CommonUI/src/Components/Link/Link';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
-import EmailVerificationToken from "Model/Models/EmailVerificationToken"
+import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
 import { VERIFY_EMAIL_API_URL } from '../Utils/ApiPaths';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -17,16 +17,18 @@ const VerifyEmail: FunctionComponent = () => {
     const [error, setError] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
-
-    const init = async (): Promise<void> => {
+    const init: Function = async (): Promise<void> => {
         // Ping an API here.
         setError('');
         setIsLoading(true);
 
         try {
             // strip data.
-            const emailverificationToken = new EmailVerificationToken();
-            emailverificationToken.token = new ObjectID(Navigation.getLastParam()?.toString().replace('/', '') || '');
+            const emailverificationToken: EmailVerificationToken =
+                new EmailVerificationToken();
+            emailverificationToken.token = new ObjectID(
+                Navigation.getLastParam()?.toString().replace('/', '') || ''
+            );
 
             await ModelAPI.createOrUpdate<EmailVerificationToken>(
                 emailverificationToken,
@@ -36,24 +38,24 @@ const VerifyEmail: FunctionComponent = () => {
                 {},
                 {}
             );
-
-            
         } catch (err) {
             setError(
                 (err as HTTPErrorResponse).message ||
-                'Server Error. Please try again'
+                    'Server Error. Please try again'
             );
         }
 
         setIsLoading(false);
-    }
+    };
 
     useEffect(() => {
-        init();
-    }, [])
+        init().catch((err: Error) => {
+            setError(err.toString());
+        });
+    }, []);
 
     if (isLoading) {
-        return <PageLoader isVisible={true} />
+        return <PageLoader isVisible={true} />;
     }
 
     return (
@@ -76,25 +78,29 @@ const VerifyEmail: FunctionComponent = () => {
                                                 src={`/accounts/public/${OneUptimeLogo}`}
                                             />
                                         </div>
-                                        {!error && <div className="text-center">
-                                            <h5 className="mb-0">
-                                                Your email is verified.
-                                            </h5>
-                                            <p className="text-muted mt-2 mb-0">
-                                                Thank you for veryfing your
-                                                email. You can now log in to
-                                                OneUptime.{' '}
-                                            </p>
-                                        </div>}
+                                        {!error && (
+                                            <div className="text-center">
+                                                <h5 className="mb-0">
+                                                    Your email is verified.
+                                                </h5>
+                                                <p className="text-muted mt-2 mb-0">
+                                                    Thank you for veryfing your
+                                                    email. You can now log in to
+                                                    OneUptime.{' '}
+                                                </p>
+                                            </div>
+                                        )}
 
-                                        {error && <div className="text-center">
-                                            <h5 className="mb-0">
-                                                Sorry, something went wrong!
-                                            </h5>
-                                            <p className="text-muted mt-2 mb-0">
-                                                {error}
-                                            </p>
-                                        </div>}
+                                        {error && (
+                                            <div className="text-center">
+                                                <h5 className="mb-0">
+                                                    Sorry, something went wrong!
+                                                </h5>
+                                                <p className="text-muted mt-2 mb-0">
+                                                    {error}
+                                                </p>
+                                            </div>
+                                        )}
 
                                         <div className="mt-5 text-center">
                                             <p className="text-muted mb-0">
