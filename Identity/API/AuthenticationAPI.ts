@@ -287,6 +287,8 @@ router.post(
                 }
             });
 
+            console.log(user.email);
+
             MailService.sendMail({
                 toEmail: user.email!,
                 subject: 'Email Verified.',
@@ -401,11 +403,11 @@ router.post(
                     
 
                     MailService.sendMail({
-                        toEmail: user.email!,
-                        subject: 'Welcome to OneUptime.',
+                        toEmail: alreadySavedUser.email!,
+                        subject: 'Please verify email.',
                         templateType: EmailTemplateType.SignupWelcomeEmail,
                         vars: {
-                            name: user.name!.toString(),
+                            name: alreadySavedUser.name!.toString(),
                             tokenVerifyUrl: new URL(
                                 HttpProtocol,
                                 Domain,

@@ -23,12 +23,10 @@ const VerifyEmail: FunctionComponent = () => {
         setError('');
         setIsLoading(true);
 
-
-
         try {
             // strip data.
             const emailverificationToken = new EmailVerificationToken();
-            emailverificationToken.token = new ObjectID(Navigation.getLastParam()?.toString() || '');
+            emailverificationToken.token = new ObjectID(Navigation.getLastParam()?.toString().replace('/', '') || '');
 
             await ModelAPI.createOrUpdate<EmailVerificationToken>(
                 emailverificationToken,
@@ -91,7 +89,7 @@ const VerifyEmail: FunctionComponent = () => {
 
                                         {error && <div className="text-center">
                                             <h5 className="mb-0">
-                                                Error
+                                                Sorry, something went wrong!
                                             </h5>
                                             <p className="text-muted mt-2 mb-0">
                                                 {error}
