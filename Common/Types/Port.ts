@@ -6,30 +6,40 @@ import Typeof from './Typeof';
 
 export default class Port extends DatabaseProperty {
     private _port: PositiveNumber = new PositiveNumber(0);
+
     public get port(): PositiveNumber {
         return this._port;
     }
-    public set port(v: PositiveNumber) {
-        this._port = v;
+    public set port(value: PositiveNumber) {
+        if (Port.isValid(value)) {
+            this._port = value;
+        } else {
+            throw new BadDataException('Port is not in valid format.');
+        }
     }
 
-    public constructor(port: number | string) {
-        super();
+    public static isValid(port: number | string | PositiveNumber): boolean {
         if (typeof port === Typeof.String) {
             try {
                 port = Number.parseInt(port.toString(), 10);
             } catch (error) {
-                throw new BadDataException(`Invalid port: ${port}`);
+                return false;
             }
         }
 
-        if (port >= 0 && port <= 65535) {
-            this.port = new PositiveNumber(port);
-        } else {
-            throw new BadDataException(
-                'Port should be in the range from 0 to 65535'
-            );
+        if (port instanceof PositiveNumber) {
+            port = port.toNumber();
         }
+
+        if (port >= 0 && port <= 65535) {
+            return true;
+        }
+        return false;
+    }
+
+    public constructor(port: number | string) {
+        super();
+        this.port = new PositiveNumber(port);
     }
 
     public static override toDatabase(

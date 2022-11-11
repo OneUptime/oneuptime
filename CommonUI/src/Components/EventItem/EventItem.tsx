@@ -3,7 +3,7 @@ import { Blue } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Link from '../Link/Link';
-
+import URL from 'Common/Types/API/URL';
 export interface TimelineItem {
     date: Date;
     text: string;
@@ -15,7 +15,7 @@ export interface ComponentProps {
     eventTimeline: Array<TimelineItem>;
     eventMiniDescription?: string | undefined;
     eventType: string;
-    eventViewRoute?: Route | undefined;
+    eventViewRoute?: Route | URL | undefined;
     footerEventStatus?: string | undefined;
     footerDateTime?: Date | undefined;
 }

@@ -158,7 +158,7 @@ export class Service extends DatabaseService<Model> {
 
     private async addDefaultIncidentState(createdItem: Model): Promise<Model> {
         let createdIncidentState: IncidentState = new IncidentState();
-        createdIncidentState.name = 'Created';
+        createdIncidentState.name = 'Identified';
         createdIncidentState.description =
             'When an incident is created, it belongs to this state';
         createdIncidentState.color = Red;

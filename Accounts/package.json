@@ -22,7 +22,7 @@
         "build": "webpack build --mode=production",
         "test": "",
         "compile": "tsc",
-        "start": "webpack serve --port=3003",
+        "start": "node --require ts-node/register Index.ts",
         "audit": "npm audit --audit-level=low",
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "dep-check": "depcheck ./ --skip-missing=true'"
@@ -56,6 +56,7 @@
         "sass": "^1.51.0",
         "sass-loader": "^12.6.0",
         "ts-loader": "^9.3.0",
+        "ts-node": "^10.9.1",
         "webpack": "^5.72.1",
         "webpack-cli": "^4.9.2",
         "webpack-dev-server": "^4.9.0"

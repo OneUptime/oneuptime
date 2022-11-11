@@ -2,50 +2,35 @@ import EmptyResponseData from 'Common/Types/API/EmptyResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import Dictionary from 'Common/Types/Dictionary';
-import Email from 'Common/Types/Email';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
 import API from 'Common/Utils/API';
 import { ClusterKey, HttpProtocol, MailHostname } from '../Config';
+import Email from 'Common/Types/Email/EmailMessage';
+import EmailServer from 'Common/Types/Email/EmailServer';
 
 export default class MailService {
     public static async sendMail(
-        to: Email,
-        subject: string,
-        template: EmailTemplateType,
-        vars: Dictionary<string>,
-        options?: {
-            projectId?: ObjectID;
-            forceSendFromGlobalMailServer?: boolean;
-        }
+        mail: Email,
+        mailServer?: EmailServer
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
-            toEmail: to.toString(),
-            subject,
-            vars: vars,
+            ...mail,
+            clusterKey: ClusterKey.toString(),
         };
 
-        if (options?.projectId) {
-            body['projectId'] = options.projectId;
-        }
-
-        if (options?.forceSendFromGlobalMailServer) {
-            body['forceSendFromGlobalMailServer'] =
-                options.forceSendFromGlobalMailServer;
+        if (mailServer) {
+            body['SMTP_USERNAME'] = mailServer.username;
+            body['SMTP_EMAIL'] = mailServer.fromEmail;
+            body['SMTP_FROM_NAME'] = mailServer.fromName;
+            body['SMTP_IS_SECURE'] = mailServer.secure;
+            body['SMTP_PORT'] = mailServer.port.toNumber();
+            body['SMTP_HOST'] = mailServer.host.toString();
+            body['SMTP_PASSWORD'] = mailServer.password;
         }
 
         return await API.post<EmptyResponseData>(
-            new URL(
-                HttpProtocol,
-                MailHostname,
-                new Route('/email/' + template)
-            ),
-            body,
-            {
-                clusterkey: ClusterKey.toString(),
-            }
+            new URL(HttpProtocol, MailHostname, new Route('/email/send')),
+            body
         );
     }
 }

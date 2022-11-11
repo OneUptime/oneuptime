@@ -1,26 +1,40 @@
 import App from 'CommonServer/Utils/StartServer';
 import path from 'path';
-import {
+import Express, {
+    ExpressApplication,
     ExpressRequest,
     ExpressResponse,
     ExpressStatic,
-    ExpressApplication,
 } from 'CommonServer/Utils/Express';
+import logger from 'CommonServer/Utils/Logger';
 
-export const APP_NAME: string = 'dashboard';
-const app: ExpressApplication = App(APP_NAME);
+export const APP_NAME: string = 'status-page';
 
-app.use(ExpressStatic(path.join(__dirname, 'build')));
+const app: ExpressApplication = Express.getExpressApp();
+
+app.use(ExpressStatic(path.join(__dirname, 'public')));
+
+app.use(`/${APP_NAME}`, ExpressStatic(path.join(__dirname, 'public')));
 
 app.use(
-    `/${APP_NAME}/static/js`,
-    ExpressStatic(path.join(__dirname, 'build', 'static', 'js'))
+    [`/${APP_NAME}/assets`, `/${APP_NAME}/${APP_NAME}/assets`],
+    ExpressStatic(path.join(__dirname, 'dist'))
 );
 
-app.use(`/${APP_NAME}`, ExpressStatic(path.join(__dirname, 'build')));
-
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+const init: Function = async (): Promise<void> => {
+    try {
+        // init the app
+        await App(APP_NAME);
+    } catch (err) {
+        logger.error('App Init Failed:');
+        logger.error(err);
+    }
+};
+
+init();
 
 export default app;

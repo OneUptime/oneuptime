@@ -35,7 +35,9 @@ export default class Email extends DatabaseProperty {
         if (Email.isValid(value)) {
             this._email = value;
         } else {
-            throw new BadDataException('Email is not in valid format.');
+            throw new BadDataException(
+                `Email ${value} is not in valid format.`
+            );
         }
     }
 

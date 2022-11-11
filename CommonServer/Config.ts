@@ -2,6 +2,7 @@ import Protocol from 'Common/Types/API/Protocol';
 import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
+import Route from 'Common/Types/API/Route';
 
 export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
@@ -31,6 +32,10 @@ export const AirtableBaseId: string = process.env['AIRTABLE_BASE_ID'] || '';
 
 export const ClusterKey: ObjectID = new ObjectID(
     process.env['ONEUPTIME_SECRET'] || ''
+);
+
+export const Domain: Hostname = Hostname.fromString(
+    process.env['DOMAIN'] || ''
 );
 
 export const RealtimeHostname: Hostname = Hostname.fromString(
@@ -79,3 +84,38 @@ export const HttpProtocol: Protocol = (
 export const RedisHostname: string = process.env['REDIS_HOST'] || '';
 export const RedisPassword: string = process.env['REDIS_PASSWORD'] || '';
 export const RedisPort: Port = new Port(process.env['REDIS_PORT'] || '');
+
+export const DashboardApiRoute: Route = new Route(
+    process.env['DASHBOARD_API_ROUTE'] || ''
+);
+
+export const IdentityRoute: Route = new Route(
+    process.env['IDENTITY_ROUTE'] || ''
+);
+
+export const FileRoute: Route = new Route(process.env['FILE_ROUTE'] || '');
+
+export const StausPageRoute: Route = new Route(
+    process.env['STATUS_PAGE_ROUTE'] || ''
+);
+
+export const DashboardRoute: Route = new Route(
+    process.env['DASHBOARD_ROUTE'] || ''
+);
+
+export const IntegrationRoute: Route = new Route(
+    process.env['INTEGRATION_ROUTE'] || ''
+);
+
+export const HelmRoute: Route = new Route(process.env['HELMCHART_ROUTE'] || '');
+export const AccountsRoute: Route = new Route(
+    process.env['ACCOUNTS_ROUTE'] || ''
+);
+
+export const ApiDocsRoute: Route = new Route(
+    process.env['APIDOCS_ROUTE'] || ''
+);
+
+export const AdminDashboardRoute: Route = new Route(
+    process.env['ADMINDASHBOARD_ROUTE'] || ''
+);

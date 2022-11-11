@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
     Routes,
@@ -25,11 +25,18 @@ import PageMap from './Utils/PageMap';
 import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
+import RouteParams from './Utils/RouteParams';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
     Navigation.setLocation(useLocation());
     Navigation.setParams(useParams());
+
+    const [isPreview, setIsPreview] = useState<boolean>(false);
+
+    useEffect(() => {
+        setIsPreview(isPreviewPage());
+    }, []);
 
     // js.
     const [javascript, setJavaScript] = useState<string | null>(null);
@@ -38,6 +45,19 @@ const App: FunctionComponent = () => {
         if (javascript) {
             eval(javascript);
         }
+    };
+
+    const isPreviewPage: Function = (): boolean => {
+        const id: string | null = Navigation.getParamByName(
+            RouteParams.StatusPageId,
+            RouteMap[PageMap.PREVIEW_OVERVIEW]!
+        );
+
+        if (id) {
+            return true;
+        }
+
+        return false;
     };
 
     return (
@@ -64,6 +84,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                         />
                     }
                 />
@@ -80,6 +101,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                         />
                     }
                 />
@@ -94,6 +116,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                         />
                     }
                 />
@@ -108,6 +131,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                         />
                     }
                 />
@@ -120,6 +144,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                         />
                     }
                 />
@@ -134,6 +159,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                         />
                     }
                 />
@@ -148,6 +174,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                         />
                     }
                 />
@@ -160,6 +187,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                         />
                     }
                 />
@@ -173,6 +201,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_OVERVIEW] as Route
                             }
@@ -187,6 +216,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route
                             }
@@ -203,6 +233,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
@@ -221,6 +252,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_SCHEDULED_EVENT_LIST
@@ -237,6 +269,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_INCIDENT_DETAIL
@@ -253,6 +286,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route
                             }
@@ -269,6 +303,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
@@ -287,6 +322,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
                                     PageMap.PREVIEW_ANNOUNCEMENT_LIST
@@ -305,6 +341,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
+                            isPreviewPage={isPreview}
                             pageRoute={RouteMap[PageMap.NOT_FOUND] as Route}
                         />
                     }

@@ -35,6 +35,10 @@ function App(): ReactElement {
                     path="/accounts/forgot-password"
                     element={<ForgotPasswordPage />}
                 />
+                <Route
+                    path="/accounts/reset-password/:token"
+                    element={<ForgotPasswordPage />}
+                />
                 <Route path="/accounts/register" element={<RegisterPage />} />
                 <Route path="/accounts/login/sso" element={<SsoLoginPage />} />
                 <Route

@@ -1,14 +1,17 @@
-import React, { FunctionComponent } from 'react';
-import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
+import React, { FunctionComponent, useState } from 'react';
+import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Model/Models/User';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
 import Link from 'CommonUI/src/Components/Link/Link';
+import { FORGOT_PASSWORD_API_URL } from '../Utils/ApiPaths';
+import URL from 'Common/Types/API/URL';
 
 const ForgotPassword: FunctionComponent = () => {
-    const user: User = new User();
+    const apiUrl: URL = FORGOT_PASSWORD_API_URL;
+
+    const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
     return (
         <div className="auth-page">
@@ -20,74 +23,92 @@ const ForgotPassword: FunctionComponent = () => {
                         <div className="auth-full-page-content d-flex p-sm-5 p-4">
                             <div className="w-100">
                                 <div className="d-flex flex-column h-100">
-                                    <div className="mt-4 text-center">
-                                        <img
-                                            style={{ height: '40px' }}
-                                            src={`/accounts/public/${OneUptimeLogo}`}
-                                        />
-                                    </div>
                                     <div className="auth-content my-auto">
+                                        <div
+                                            className="mt-4 text-center"
+                                            style={{ marginBottom: '40px' }}
+                                        >
+                                            <img
+                                                style={{ height: '40px' }}
+                                                src={`/accounts/public/${OneUptimeLogo}`}
+                                            />
+                                        </div>
                                         <div className="text-center">
                                             <h5 className="mb-0">
-                                                Reset Password
+                                                Forgot Password
                                             </h5>
-                                            <p className="text-muted mt-2 mb-0">
-                                                Please enter your email and the
-                                                password reset link will be sent
-                                                to you.{' '}
-                                            </p>
+                                            {!isSuccess && (
+                                                <p className="text-muted mt-2 mb-0">
+                                                    Please enter your email and
+                                                    the password reset link will
+                                                    be sent to you.{' '}
+                                                </p>
+                                            )}
+
+                                            {isSuccess && (
+                                                <p className="text-muted mt-2 mb-0">
+                                                    We have emailed you the
+                                                    password reset link. Please
+                                                    do not forget to check spam.{' '}
+                                                </p>
+                                            )}
                                         </div>
 
-                                        <BasicModelForm<User>
-                                            model={user}
-                                            id="login-form"
-                                            fields={[
-                                                {
-                                                    field: {
-                                                        email: true,
+                                        {!isSuccess && (
+                                            <ModelForm<User>
+                                                modelType={User}
+                                                id="login-form"
+                                                apiUrl={apiUrl}
+                                                fields={[
+                                                    {
+                                                        field: {
+                                                            email: true,
+                                                        },
+                                                        title: 'Email',
+                                                        fieldType:
+                                                            FormFieldSchemaType.Email,
+                                                        required: true,
                                                     },
-                                                    title: 'Email',
-                                                    fieldType:
-                                                        FormFieldSchemaType.Email,
-                                                    required: true,
-                                                },
-                                            ]}
-                                            onSubmit={(
-                                                _values: FormValues<User>
-                                            ) => {}}
-                                            submitButtonText={
-                                                'Send Password Reset Link'
-                                            }
-                                            maxPrimaryButtonWidth={true}
-                                            footer={
-                                                <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
-                                                    <p>
-                                                        <Link
-                                                            to={
-                                                                new Route(
-                                                                    '/accounts/login'
-                                                                )
-                                                            }
-                                                        >
-                                                            Return to Sign in.
-                                                        </Link>
-                                                    </p>
-                                                </div>
-                                            }
-                                        />
+                                                ]}
+                                                onSuccess={() => {
+                                                    setIsSuccess(true);
+                                                }}
+                                                submitButtonText={
+                                                    'Send Password Reset Link'
+                                                }
+                                                formType={FormType.Create}
+                                                maxPrimaryButtonWidth={true}
+                                                footer={
+                                                    <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
+                                                        <p>
+                                                            <Link
+                                                                to={
+                                                                    new Route(
+                                                                        '/accounts/login'
+                                                                    )
+                                                                }
+                                                            >
+                                                                Return to Sign
+                                                                in.
+                                                            </Link>
+                                                        </p>
+                                                    </div>
+                                                }
+                                            />
+                                        )}
 
                                         <div className="mt-5 text-center">
                                             <p className="text-muted mb-0">
-                                                Don&apos;t have an account?{' '}
+                                                Remember your password?{' '}
                                                 <Link
                                                     to={
                                                         new Route(
-                                                            '/accounts/register'
+                                                            '/accounts/login'
                                                         )
                                                     }
                                                     className="underline-on-hover text-primary fw-semibold"
                                                 >
-                                                    Register.
+                                                    Login.
                                                 </Link>
                                             </p>
                                         </div>

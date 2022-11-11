@@ -1,11 +1,12 @@
 import {
-    AccountsHostname,
-    DashboardHostname,
     DisableSignup,
     HomeHostname,
     HttpProtocol,
     IsSaaSService,
     EncryptionSecret,
+    Domain,
+    AccountsRoute,
+    DashboardRoute,
 } from 'CommonServer/Config';
 import Express, {
     ExpressRequest,
@@ -23,13 +24,14 @@ import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import EmailSubjects from 'Common/Types/Email/EmailSubjects';
 import URL from 'Common/Types/API/URL';
 import Response from 'CommonServer/Utils/Response';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BaseModel from 'Common/Models/BaseModel';
+import Route from 'Common/Types/API/Route';
+import logger from 'CommonServer/Utils/Logger';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -122,38 +124,42 @@ router.post(
 
             if (alreadySavedUser) {
                 // Send Welcome Mail
-                await MailService.sendMail(
-                    user.email!,
-                    EmailSubjects.getSubjectByType(
-                        EmailTemplateType.SIGNUP_WELCOME_EMAIL
-                    ),
-                    EmailTemplateType.SIGNUP_WELCOME_EMAIL,
-                    {
+                MailService.sendMail({
+                    toEmail: user.email!,
+                    subject: 'Welcome to OneUptime.',
+                    templateType: EmailTemplateType.WelomeEmail,
+                    vars: {
                         name: user.name!.toString(),
                         dashboardUrl: new URL(
                             HttpProtocol,
-                            DashboardHostname
+                            Domain,
+                            DashboardRoute
                         ).toString(),
                         homeUrl: new URL(HttpProtocol, HomeHostname).toString(),
-                    }
-                );
+                    },
+                }).catch((err: Error) => {
+                    logger.error(err);
+                });
             } else {
                 // Send EmailVerification Link because this is a new user.
-                await MailService.sendMail(
-                    user.email!,
-                    EmailSubjects.getSubjectByType(
-                        EmailTemplateType.SIGNUP_WELCOME_EMAIL
-                    ),
-                    EmailTemplateType.SIGNUP_WELCOME_EMAIL,
-                    {
+                MailService.sendMail({
+                    toEmail: user.email!,
+                    subject: 'Welcome to OneUptime. Please verify your email.',
+                    templateType: EmailTemplateType.WelomeEmail,
+                    vars: {
                         name: user.name!.toString(),
                         emailVerificationUrl: new URL(
                             HttpProtocol,
-                            AccountsHostname
+                            Domain,
+                            new Route(AccountsRoute.toString()).addRoute(
+                                '/reset-password/'
+                            )
                         ).toString(),
                         homeUrl: new URL(HttpProtocol, HomeHostname).toString(),
-                    }
-                );
+                    },
+                }).catch((err: Error) => {
+                    logger.error(err);
+                });
             }
 
             if (savedUser) {
@@ -176,7 +182,7 @@ router.post(
 );
 
 router.post(
-    '/request-reset-password',
+    '/forgot-password',
     async (
         req: ExpressRequest,
         res: ExpressResponse,
@@ -187,10 +193,8 @@ router.post(
 
             const user: User = User.fromJSON(data as JSONObject, User) as User;
 
-            await user.password?.hashValue(EncryptionSecret);
-
             const alreadySavedUser: User | null = await UserService.findOneBy({
-                query: { email: user.email!, password: user.password! },
+                query: { email: user.email! },
                 select: {
                     _id: true,
                     password: true,
@@ -204,18 +208,43 @@ router.post(
             });
 
             if (alreadySavedUser) {
-                const token: string = JSONWebToken.sign(
-                    alreadySavedUser,
-                    OneUptimeDate.getSecondsInDays(new PositiveNumber(30))
-                );
-
-                return Response.sendJsonObjectResponse(req, res, {
-                    token: token,
-                    user: BaseModel.toJSON(alreadySavedUser, User),
+                const token: string = ObjectID.generate().toString();
+                await UserService.updateOneBy({
+                    query: {
+                        _id: user._id!,
+                    },
+                    data: {
+                        resetPasswordToken: token,
+                        resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
+                    },
+                    props: {
+                        isRoot: true,
+                    },
                 });
+
+                MailService.sendMail({
+                    toEmail: user.email!,
+                    subject: 'Password Reset Request for OneUptime',
+                    templateType: EmailTemplateType.ForgotPassword,
+                    vars: {
+                        homeURL: new URL(HttpProtocol, Domain).toString(),
+                        tokenVerifyUrl: new URL(
+                            HttpProtocol,
+                            Domain,
+                            new Route(AccountsRoute.toString()).addRoute(
+                                '/reset-password/' + token
+                            )
+                        ).toString(),
+                    },
+                }).catch((err: Error) => {
+                    logger.error(err);
+                });
+
+                return Response.sendEmptyResponse(req, res);
             }
+
             throw new BadDataException(
-                'Invalid login: Email or password does not match.'
+                `No user is registered with ${user.email?.toString()}`
             );
         } catch (err) {
             return next(err);

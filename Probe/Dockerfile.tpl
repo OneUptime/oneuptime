@@ -12,6 +12,7 @@ RUN apk update && apk add bash && apk add curl
 SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
+RUN npm install nodemon -g
 
 #SET ENV Variables
 ENV PRODUCTION=true

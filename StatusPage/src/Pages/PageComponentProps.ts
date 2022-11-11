@@ -5,4 +5,5 @@ export default interface ComponentProps {
     pageRoute: Route;
     statusPageId?: ObjectID | null | undefined;
     onLoadComplete: () => void;
+    isPreviewPage?: boolean; // if this status page is not hosted on a domain, then this is true, otherwise false.
 }

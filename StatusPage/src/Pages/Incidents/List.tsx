@@ -178,7 +178,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 eventTimeline: timeline,
                 eventType: 'Incident',
                 eventViewRoute: RouteUtil.populateRouteParams(
-                    RouteMap[PageMap.INCIDENT_DETAIL] as Route,
+                    props.isPreviewPage
+                        ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                        : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
                     incident.id!
                 ),
             });
