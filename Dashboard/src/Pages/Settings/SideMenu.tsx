@@ -160,6 +160,33 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.Call}
                 /> */}
             </SideMenuSection>
+            <SideMenuSection title="Billing">
+                <SideMenuItem
+                    link={{
+                        title: 'Basic Billing',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_BILLING] as Route
+                        ),
+                    }}
+                    icon={IconProp.Billing}
+                />
+                <SideMenuItem
+                    link={{
+                        title: 'Invoices',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route
+                        ),
+                    }}
+                    icon={IconProp.File}
+                />
+                {/* <SideMenuItem
+                    link={{
+                        title: 'Integrations',
+                        to: new Route('/:projectSlug/home'),
+                    }}
+                    icon={IconProp.Integrations}
+                /> */}
+            </SideMenuSection>
             <SideMenuSection title="Danger Zone">
                 <SideMenuItem
                     link={{

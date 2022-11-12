@@ -233,6 +233,14 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/teams`
     ),
 
+    [PageMap.SETTINGS_BILLING]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/billing`
+    ),
+
+    [PageMap.SETTINGS_BILLING_INVOICES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/invoices`
+    ),
+
     [PageMap.SETTINGS_TEAM_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/teams/${RouteParams.ModelID}`
     ),

@@ -17,6 +17,7 @@ import {
     Globe,
     MoreVertical,
     CreditCard,
+    File,
     User,
     ChevronDown,
     ChevronRight,
@@ -139,6 +140,7 @@ export enum IconProp {
     Link,
     Layers,
     Clock,
+    Invoice
 }
 
 export interface ComponentProps {
@@ -611,6 +613,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.Clock && (
                 <Clock
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Invoice && (
+                <File
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : (undefined as any)}

@@ -6,7 +6,9 @@ import Route from 'Common/Types/API/Route';
 
 export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
-export const IsSaaSService: boolean = process.env['BILLING_ENABLED'] === 'true';
+export const IsBillingEnabled: boolean = process.env['BILLING_ENABLED'] === 'true';
+export const BillingPublicKey: string = process.env['BILLING_PUBLIC_KEY'] || '';
+export const BillingPrivateKey: string = process.env['BILLING_PRIVATE_KEY']  || '';
 
 export const DatabaseHost: Hostname = Hostname.fromString(
     process.env['DATABASE_HOST'] || ''
