@@ -3,6 +3,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
@@ -121,3 +122,7 @@ export const ApiDocsRoute: Route = new Route(
 export const AdminDashboardRoute: Route = new Route(
     process.env['ADMINDASHBOARD_ROUTE'] || ''
 );
+
+export const IsProduction: boolean = process.env['ENVIRONMENT'] === "production";
+
+export const SubscriptionPlans: Array<SubscriptionPlan> = SubscriptionPlan.getSubscriptionPlans();

@@ -3,6 +3,7 @@ import Protocol from 'Common/Types/API/Protocol';
 import Route from 'Common/Types/API/Route';
 import Version from 'Common/Types/Version';
 import URL from 'Common/Types/API/URL';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export const env: Function = (key: string): string => {
     return process.env[key] || '';
@@ -133,3 +134,5 @@ export const ACCOUNTS_URL: URL = new URL(
     ACCOUNTS_ROUTE
 );
 export const HOME_URL: URL = new URL(HTTP_PROTOCOL, HOME_HOSTNAME, HOME_ROUTE);
+
+export const SubscriptionPlans: Array<SubscriptionPlan> = SubscriptionPlan.getSubscriptionPlans();
