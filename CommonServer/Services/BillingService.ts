@@ -1,4 +1,6 @@
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import OneUptimeDate from 'Common/Types/Date';
+import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
 import Stripe from 'stripe';
@@ -59,7 +61,10 @@ export class BillingService {
     }
 
 
-    public static async subscribeToPlan(customerId: string, plan: SubscriptionPlan, quantity: number, isYearly: boolean): Promise<string> {
+    public static async subscribeToPlan(customerId: string, plan: SubscriptionPlan, quantity: number, isYearly: boolean, hasTrial: boolean): Promise<{
+        id: string, 
+        trialEndsAt: Date
+    }> {
         
         if (!this.isBillingEnabled()) {
             throw new BadDataException("Billing is not enabled for this server.")
@@ -70,9 +75,10 @@ export class BillingService {
             items: [
               {price: isYearly ? plan.getYearlyPlanId() : plan.getMonthlyPlanId(), quantity: quantity},
             ],
+            trial_end: hasTrial ? OneUptimeDate.getSomeDaysAfter(plan.getTrialPeriod()).getTime() : 'now'
         });
         
-        return subscription.id;
+        return { id: subscription.id, trialEndsAt: hasTrial ? OneUptimeDate.getSomeDaysAfter(plan.getTrialPeriod()) : OneUptimeDate.getCurrentDate() }
     }
 
     public static async updateSubscription(subscriptionId: string, plan: SubscriptionPlan, quantity: number, isYearly: boolean): Promise<void> {
@@ -90,6 +96,20 @@ export class BillingService {
             },
         );
         
+    }
+
+
+    public static async getSetupIntentSecret(customerId: string): Promise<string> {
+
+        const setupIntent = await this.stripe.setupIntents.create({
+            customer: customerId
+        });
+
+        if (!setupIntent.client_secret) {
+            throw new APIException("client_secret not returned by payment provider.");
+        }
+        
+        return setupIntent.client_secret;
     }
 
     public static async cancelSubscription(subscriptionId: string): Promise<void> {
