@@ -6,6 +6,13 @@ import ObjectID from 'Common/Types/ObjectID';
 import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../Config';
 
+export interface PaymentMethod{
+    id: string, 
+    type: string, 
+    last4Digits: string,
+    isDefault: boolean
+}
+
 export class BillingService {
     private static stripe: Stripe = new Stripe(BillingPrivateKey, {
         apiVersion: '2022-08-01',
@@ -182,6 +189,91 @@ export class BillingService {
             trialEndsAt: endTrialAt,
         };
 
+    }
+
+    public static async deletePaymentMethod(
+        customerId: string, paymentMethodId: string
+    ): Promise<void> {
+        if (!this.isBillingEnabled()) {
+            throw new BadDataException(
+                'Billing is not enabled for this server.'
+            );
+        }
+
+        const paymenMethods = await this.getPaymentMethods(customerId);
+        if (paymenMethods.length === 1) {
+            throw new BadDataException("There's only one poayment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account.");
+        }
+
+        await this.stripe.paymentMethods.detach(paymentMethodId);
+    }
+
+    public static async getPaymentMethods(customerId: string): Promise<Array<PaymentMethod>>{
+        if (!this.isBillingEnabled()) {
+            throw new BadDataException(
+                'Billing is not enabled for this server.'
+            );
+        }
+        const paymenMethods: Array<PaymentMethod> = [];
+        
+        const cardPaymentMethods = await this.stripe.paymentMethods.list({
+            customer: customerId,
+            type: 'card'
+        });
+
+        const sepaPaymentMethods = await this.stripe.paymentMethods.list({
+            customer: customerId,
+            type: 'sepa_debit'
+        });
+
+        const usBankPaymentMethods = await this.stripe.paymentMethods.list({
+            customer: customerId,
+            type: 'us_bank_account'
+        });
+
+        const bacsPaymentMethods = await this.stripe.paymentMethods.list({
+            customer: customerId,
+            type: 'bacs_debit'
+        });
+
+        cardPaymentMethods.data.forEach((item) => {
+            paymenMethods.push({
+                type: item.card?.brand || 'Card',
+                last4Digits: item.card?.last4 || 'xxxx',
+                isDefault: false,
+                id: item.id
+            })
+        });
+
+
+        bacsPaymentMethods.data.forEach((item) => {
+            paymenMethods.push({
+                type: 'UK Bank Account',
+                last4Digits: item.bacs_debit?.last4 || 'xxxx',
+                isDefault: false,
+                id: item.id
+            })
+        });
+
+        usBankPaymentMethods.data.forEach((item) => {
+            paymenMethods.push({
+                type: 'US Bank Account',
+                last4Digits: item.us_bank_account?.last4 || 'xxxx',
+                isDefault: false,
+                id: item.id
+            })
+        });
+
+        sepaPaymentMethods.data.forEach((item) => {
+            paymenMethods.push({
+                type: 'EU Bank Account',
+                last4Digits: item.sepa_debit?.last4 || 'xxxx',
+                isDefault: false,
+                id: item.id
+            })
+        });
+
+        return paymenMethods;
     }
 
     public static async getSetupIntentSecret(
