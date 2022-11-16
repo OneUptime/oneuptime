@@ -33,7 +33,9 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
     const [isFormLoading, setIsFormLoading] = useState<boolean>(false);
     const formRef: RefObject<FormikProps<FormikValues>> =
         useRef<FormikProps<FormikValues>>(null);
-    const [error, setError] = useState<string>('');
+    const [error, setError] = useState<string>(''); 
+    
+
 
     return (
         <Modal

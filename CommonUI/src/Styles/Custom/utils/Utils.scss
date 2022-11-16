@@ -522,15 +522,21 @@
     border-width: 1px;
     border-color: $color-light-grey;
     border-radius: 3px;
+    cursor: pointer;
 }
 
 
 .radio-empty-circle{
-    height: 10px;
-    width: 10px;
-    border-width: 3px;
-    border-color: $color-grey;
+
+    border-color: $color-light-grey;
+    border-style: solid;
+    height: 15px;
+    width: 15px;
+    border-width: 1px;
+    margin-right: 10px;
     border-radius: 100px;
+    margin-top: 5px;
+    cursor: pointer;
 
     &:hover {
         border-color: $color-black !important;
@@ -542,7 +548,8 @@
 
 .radio-checked-circle{
     border-color: $color-black;
-    background-color: $color-black;
+    background-color: $color-grey;
+    padding: 2px;
 }
 
 .radio-text-title{
@@ -558,4 +565,5 @@
 .show-as-link{
     text-decoration: underline;
     color: $color-blue;
+    cursor: pointer;
 }

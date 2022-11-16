@@ -81,7 +81,7 @@ export default class Model extends TenantModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.CurrentUser],
         read: [Permission.ProjectOwner, Permission.ProjectAdmin],
         update: [],
     })

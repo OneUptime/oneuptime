@@ -1024,7 +1024,7 @@ const BasicForm: Function = <T extends Object>(
                                                     1) ===
                                                 0
                                             ) {
-                                                return (<div>
+                                                return (<div key={i}>
                                                     {getFormField(
                                                         field,
                                                         i,
@@ -1061,7 +1061,7 @@ const BasicForm: Function = <T extends Object>(
                                                         1) !==
                                                     0
                                                 ) {
-                                                    return (<div>
+                                                    return (<div  key={i}>
                                                         {getFormField(
                                                             field,
                                                             i,
