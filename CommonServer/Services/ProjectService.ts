@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Project';
-import DatabaseService, { OnCreate, OnFind } from './DatabaseService';
+import DatabaseService, { OnCreate, OnDelete, OnFind } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import TeamService from './TeamService';
@@ -25,6 +25,10 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import IncidentSeverityService from './IncidentSeverityService';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
+import { IsBillingEnabled } from '../Config';
+import BillingService from './BillingService';
+import DeleteBy from '../Types/Database/DeleteBy';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -77,6 +81,7 @@ export class Service extends DatabaseService<Model> {
                 'User should be logged in to create the project.'
             );
         }
+
 
         return Promise.resolve({ createBy: data, carryForward: null });
     }
@@ -152,6 +157,21 @@ export class Service extends DatabaseService<Model> {
             createdItem
         );
         createdItem = await this.addDefaultIncidentSeverity(createdItem);
+
+        // Create billing. 
+
+        if (IsBillingEnabled) {
+            const customerId: string = await BillingService.createCustomer(createdItem.name!, createdItem.id!);
+            await this.updateOneById({
+                id: createdItem.id!,
+                data: {
+                    paymentProviderCustomerId: customerId
+                },
+                props: {
+                    isRoot: true
+                }
+            });
+        }
 
         return createdItem;
     }
@@ -433,5 +453,41 @@ export class Service extends DatabaseService<Model> {
 
         return { findBy, carryForward: null };
     }
+
+    protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
+        
+        if (IsBillingEnabled) {
+            const projects: Array<Model> = await this.findBy({
+                query: deleteBy.query,
+                props: deleteBy.props,
+                limit: LIMIT_MAX,
+                skip: 0,
+                select: {
+                    _id: true,
+                    paymentProviderSubscriptionId: true
+                }
+            });
+
+            return { deleteBy, carryForward: projects };
+        }
+
+        return { deleteBy, carryForward: [] };
+    }
+
+    protected override async onDeleteSuccess(onDelete: OnDelete<Model>, _itemIdsBeforeDelete: ObjectID[]): Promise<OnDelete<Model>> {
+        
+        // get project id 
+        if (IsBillingEnabled) {
+            for (const project of onDelete.carryForward) {
+                if (project.paymentProviderSubscriptionId) {
+                    await BillingService.cancelSubscription(project.paymentProviderSubscriptionId)
+                }
+            }
+        }
+
+        return onDelete; 
+    }
+
+
 }
 export default new Service();

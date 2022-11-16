@@ -20,7 +20,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
+import { DataSource, QueryBuilder, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import { EncryptionSecret } from '../Config';
@@ -66,15 +66,17 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new (): TBaseModel };
+    private entityType!: { new(): TBaseModel };
     private model!: TBaseModel;
+    private modelName!: string;
 
     public constructor(
-        modelType: { new (): TBaseModel },
+        modelType: { new(): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
         this.model = new modelType();
+        this.modelName = modelType.name;
 
         if (postgresDatabase) {
             this.postgresDatabase = postgresDatabase;
@@ -359,8 +361,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data.getSlugifyColumn() as string
                 ]
                     ? ((createBy.data as any)[
-                          createBy.data.getSlugifyColumn() as string
-                      ] as string)
+                        createBy.data.getSlugifyColumn() as string
+                    ] as string)
                     : null
             );
         }
@@ -615,6 +617,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         skip,
         limit,
         props,
+        distinctOn
     }: CountBy<TBaseModel>): Promise<PositiveNumber> {
         try {
             if (!skip) {
@@ -651,11 +654,23 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             findBy.query = checkReadPermissionType.query;
 
-            const count: number = await this.getRepository().count({
-                where: findBy.query as any,
-                skip: (findBy.skip as PositiveNumber).toNumber(),
-                take: (findBy.limit as PositiveNumber).toNumber(),
-            });
+            const queryBuilder = this.getQueryBuilder(this.modelName)
+                .where(findBy.query)
+                .skip(skip.toNumber())
+                .take(limit.toNumber())
+                
+            
+            if (distinctOn) {
+                queryBuilder.distinctOn([`${this.modelName}.${distinctOn}`]);
+            }
+
+            const count = await queryBuilder.getCount();
+
+            // const count: number = await this.getRepository().count({
+            //     where: findBy.query as any,
+            //     skip: (findBy.skip as PositiveNumber).toNumber(),
+            //     take: (findBy.limit as PositiveNumber).toNumber(),
+            // });
 
             let countPositive: PositiveNumber = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
@@ -665,6 +680,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
             throw this.getException(error as Exception);
         }
     }
+
+
+    
 
     public async deleteOneBy(
         deleteOneBy: DeleteOneBy<TBaseModel>
@@ -839,10 +857,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                            key +
-                            ' of ' +
-                            this.model.singularName +
-                            ' because this column modelType is not found.'
+                        key +
+                        ' of ' +
+                        this.model.singularName +
+                        ' because this column modelType is not found.'
                     );
                 }
 

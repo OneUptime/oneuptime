@@ -81,7 +81,7 @@ export default class Model extends TenantModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.User],
+        create: [],
         read: [Permission.ProjectOwner, Permission.ProjectAdmin],
         update: [],
     })
@@ -95,7 +95,7 @@ export default class Model extends TenantModel {
     public paymentProviderPlanId?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.User],
+        create: [],
         read: [Permission.ProjectOwner, Permission.ProjectAdmin],
         update: [],
     })
@@ -107,6 +107,20 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public paymentProviderSubscriptionId?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderCustomerId?: string = undefined;
 
     @ColumnAccessControl({
         create: [],

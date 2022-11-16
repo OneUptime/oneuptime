@@ -71,4 +71,11 @@ export default class SubscriptionPlan {
 
         return plans; 
     }
+
+    public static getSubscriptionPlanById(planId: string): SubscriptionPlan | undefined {
+        const plans = this.getSubscriptionPlans();
+        return plans.find((plan) => {
+            plan.getMonthlyPlanId() === planId || plan.getYearlyPlanId() === planId
+        })
+    }
 }

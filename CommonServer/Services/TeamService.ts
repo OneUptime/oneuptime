@@ -5,6 +5,11 @@ import UpdateBy from '../Types/Database/UpdateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DeleteBy from '../Types/Database/DeleteBy';
+import ObjectID from 'Common/Types/ObjectID';
+import ProjectService from './ProjectService';
+import { IsBillingEnabled } from '../Config';
+import BillingService from './BillingService';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -67,6 +72,51 @@ export class Service extends DatabaseService<Model> {
         }
 
         return { deleteBy, carryForward: null };
+    }
+
+    public async getUniqueTeamMemberCountInProject(projectId: ObjectID): Promise<number> { 
+        return (await this.countBy({
+            query: {
+                projectId
+            },
+            props: {
+                isRoot: true
+            },
+            distinctOn: "userId",
+            skip: 0,
+            limit: LIMIT_MAX
+        })).toNumber()
+    }
+
+    public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(projectId: ObjectID): Promise<void> {
+        
+        if (!IsBillingEnabled) {
+            return;
+        }
+        
+        const numberOfMembers = await this.getUniqueTeamMemberCountInProject(projectId);
+        const project = await ProjectService.findOneById({
+            id: projectId,
+            select: {
+                paymentProviderSubscriptionId: true,
+                paymentProviderPlanId: true
+            },
+            props: {
+                isRoot: true
+            }
+        });
+
+        
+
+        if (project && project.paymentProviderSubscriptionId && project?.paymentProviderPlanId) {
+            const plan = SubscriptionPlan.getSubscriptionPlanById(project?.paymentProviderPlanId!);
+            
+            if (!plan) {
+                return;
+            }
+
+            await BillingService.updateSubscription(project.paymentProviderSubscriptionId, plan, numberOfMembers, plan.getYearlyPlanId() === project.paymentProviderPlanId);
+        }
     }
 }
 export default new Service();
