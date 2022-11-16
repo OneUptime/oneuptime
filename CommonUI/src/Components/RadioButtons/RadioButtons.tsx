@@ -43,8 +43,8 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
 
     return (
         <div className='form-control radio-group'>
-            {props.options && props.options.map((radioButton: RadioButton) => {
-                return (<div className='flex radio-box' onClick={() => {
+            {props.options && props.options.map((radioButton: RadioButton, i: number) => {
+                return (<div key={i} className='flex radio-box' onClick={() => {
                     handleChange(radioButton.value);
                 }}>
                     <div className='radio-circle-box'>

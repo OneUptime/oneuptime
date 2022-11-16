@@ -90,6 +90,12 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 
 
 
+        refreshFields();
+
+    }, [isSubsriptionPlanYearly]);
+
+
+    const refreshFields = () => {
         let formFields: Array<Field<Project>> = [{
             field: {
                 name: true,
@@ -135,6 +141,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                 required: true,
                 footerElement: (<div className='show-as-link' onClick={() => {
                     setIsSubscriptionPlanYearly(false);
+                    refreshFields();
                 }}>
                     {isSubsriptionPlanYearly ? <span>Switch to monthly pricing?</span> : <span> Switch to yearly pricing?</span>}
                 </div>)
@@ -142,8 +149,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         }
 
         setFields(formFields);
-
-    }, [isSubsriptionPlanYearly])
+    }
 
    
 

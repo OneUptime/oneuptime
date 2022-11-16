@@ -113,6 +113,19 @@ export default class Model extends TenantModel {
         read: [Permission.ProjectOwner, Permission.ProjectAdmin],
         update: [],
     })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public trialEndsAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        update: [],
+    })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
         type: ColumnType.ShortText,

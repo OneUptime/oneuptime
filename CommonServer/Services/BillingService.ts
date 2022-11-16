@@ -85,10 +85,10 @@ export class BillingService {
                     quantity: quantity,
                 },
             ],
-            trial_end: hasTrial
-                ? OneUptimeDate.getSomeDaysAfter(
+            trial_end: hasTrial && plan.getTrialPeriod() > 0 
+                ? OneUptimeDate.toUnixTimestamp(OneUptimeDate.getSomeDaysAfter(
                       plan.getTrialPeriod()
-                  ).getTime()
+                  ))
                 : 'now',
         });
 

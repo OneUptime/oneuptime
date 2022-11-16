@@ -97,4 +97,8 @@ export default class SubscriptionPlan {
                 plan.getYearlyPlanId() === planId;
         });
     }
+
+    public static isValidPlanId(planId: string): boolean {
+        return !!this.getSubscriptionPlanById(planId)
+    }
 }

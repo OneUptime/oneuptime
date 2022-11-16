@@ -175,6 +175,10 @@ export default class OneUptimeDate {
         return moment.utc(seconds * 1000).format('HH:mm:ss');
     }
 
+    public static toUnixTimestamp(date: Date): number { 
+       return  Math.floor(date.getTime() / 1000)
+    }
+
     public static secondsToFormattedFriendlyTimeString(
         seconds: number
     ): string {

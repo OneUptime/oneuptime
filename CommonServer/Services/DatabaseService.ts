@@ -660,7 +660,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 .take(limit.toNumber());
 
             if (distinctOn) {
-                queryBuilder.distinctOn([`${this.modelName}.${distinctOn}`]);
+                queryBuilder.groupBy(`${this.modelName}.${distinctOn}`);
             }
 
             const count: number = await queryBuilder.getCount();

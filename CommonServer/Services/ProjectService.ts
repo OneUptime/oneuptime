@@ -29,6 +29,7 @@ import { IsBillingEnabled } from '../Config';
 import BillingService from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -40,6 +41,17 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnCreate<Model>> {
         if (!data.data.name) {
             throw new BadDataException('Project name is required');
+        }
+
+
+        if (IsBillingEnabled) {
+            if (!data.data.paymentProviderPlanId) {
+                throw new BadDataException("Plan required to create the project.");
+            }
+
+            if (!SubscriptionPlan.isValidPlanId(data.data.paymentProviderPlanId)) {
+                throw new BadDataException("Plan is invalid.");
+            }
         }
 
         // check if the user has the project with the same name. If yes, reject.
@@ -164,10 +176,24 @@ export class Service extends DatabaseService<Model> {
                 createdItem.name!,
                 createdItem.id!
             );
+
+            const plan: SubscriptionPlan | undefined= SubscriptionPlan.getSubscriptionPlanById(createdItem.paymentProviderPlanId!);
+
+            if (!plan) {
+                throw new BadDataException("Invalid plan.");
+            }
+            // add subscription to this customer. 
+
+            const {
+                id, trialEndsAt
+            } = await BillingService.subscribeToPlan(customerId, plan, 1, plan.getYearlyPlanId() === createdItem.paymentProviderPlanId!, true);
+
             await this.updateOneById({
                 id: createdItem.id!,
                 data: {
                     paymentProviderCustomerId: customerId,
+                    paymentProviderSubscriptionId: id, 
+                    trialEndsAt: trialEndsAt
                 },
                 props: {
                     isRoot: true,
