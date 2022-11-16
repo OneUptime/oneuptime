@@ -8,13 +8,15 @@ import ProjectPicker from './ProjectPicker';
 import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Model/Models/Project';
 import CounterModelAlert from 'CommonUI/src/Components/CounterModelAlert/CounterModelAlert';
-import { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
+import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import TeamMember from 'Model/Models/TeamMember';
 import User from 'CommonUI/src/Utils/User';
 import ProjectInvitationsModal from './ProjectInvitationsModal';
 import ActiveIncidentsModal from './ActiveIncidentsModal';
 import Incident from 'Model/Models/Incident';
 import Logo from './Logo';
+import OneUptimeDate from 'Common/Types/Date';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -23,6 +25,7 @@ export interface ComponentProps {
     onProjectRequestRejected: () => void;
     showProjectModal: boolean;
     onProjectModalClose: () => void;
+    selectedProject: Project | null;
 }
 
 const DashboardHeader: FunctionComponent<ComponentProps> = (
@@ -43,7 +46,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 leftComponents={
                     <>
                         {props.projects.length === 0 && (
-                            <Logo onClick={() => {}} />
+                            <Logo onClick={() => { }} />
                         )}
                         <ProjectPicker
                             showProjectModal={props.showProjectModal}
@@ -96,6 +99,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     setShowActiveIncidentsModal(true);
                                 }}
                             />
+
+                            {props.selectedProject?.trialEndsAt && BILLING_ENABLED && OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(OneUptimeDate.getCurrentDate(), props.selectedProject?.trialEndsAt!) > 0 && <Alert
+                                type={AlertType.INFO}
+                                title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(OneUptimeDate.getCurrentDate(), props.selectedProject?.trialEndsAt!)} days`}
+                            />}
                         </div>
                     </>
                 }

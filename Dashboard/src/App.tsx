@@ -146,6 +146,7 @@ const App: FunctionComponent = () => {
                 {
                     name: true,
                     _id: true,
+                    trialEndsAt: true
                 },
                 {},
                 {},
@@ -184,6 +185,7 @@ const App: FunctionComponent = () => {
             onProjectModalClose={() => {
                 setShowProjectModal(false);
             }}
+            selectedProject={selectedProject}
         >
             <Routes>
                 <PageRoute
