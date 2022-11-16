@@ -5,6 +5,7 @@ import Button, {
     ButtonSize,
     ButtonStyleType,
 } from 'CommonUI/src/Components/Button/Button';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
 
 export interface ComponentProps extends PageComponentProps {
     onClickShowProjectModal: () => void;
@@ -16,8 +17,8 @@ const Welcome: FunctionComponent<ComponentProps> = (
     return (
         <Page title={'Welcome to OneUptime.'} breadcrumbLinks={[]}>
             <p>
-                Welcome to OneUptime. Thank you for signing up! To get started
-                please create a new project.
+                Welcome to OneUptime. Thank you for signing up! <br/>To get started
+                please create a new project. {BILLING_ENABLED && <span> No credit card required.</span>}
             </p>
             <Button
                 onClick={() => {

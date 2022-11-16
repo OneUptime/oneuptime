@@ -6,6 +6,7 @@ import URL from 'Common/Types/API/URL';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export const env: Function = (key: string): string => {
+    console.log(process.env);
     return process.env[key] || '';
 };
 

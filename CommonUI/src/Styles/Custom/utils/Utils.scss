@@ -512,3 +512,50 @@
     opacity: 0.7;
     font-size: 13px;
 }
+
+.radio-group{
+    padding: 10px;
+}
+
+.radio-box{
+    padding: 5px;
+    border-width: 1px;
+    border-color: $color-light-grey;
+    border-radius: 3px;
+}
+
+
+.radio-empty-circle{
+    height: 10px;
+    width: 10px;
+    border-width: 3px;
+    border-color: $color-grey;
+    border-radius: 100px;
+
+    &:hover {
+        border-color: $color-black !important;
+    }
+}
+
+
+
+
+.radio-checked-circle{
+    border-color: $color-black;
+    background-color: $color-black;
+}
+
+.radio-text-title{
+    font-size: 14px;
+}
+
+.radio-text-box-description{
+    font-size: 11px;
+    color: $color-grey;
+}
+
+
+.show-as-link{
+    text-decoration: underline;
+    color: $color-blue;
+}

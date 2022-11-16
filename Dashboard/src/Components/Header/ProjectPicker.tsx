@@ -11,6 +11,10 @@ import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModa
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import Field from 'CommonUI/src/Components/Forms/Types/Field';
+import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -26,6 +30,8 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     const [selectedProject, setSelectedProject] = useState<Project | null>(
         null
     );
+
+    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] = useState<boolean>(true)
 
     useEffect(() => {
         if (props.showProjectModal) {
@@ -78,6 +84,45 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         }
     }, [props.projects]);
 
+    const fields: Array<Field<Project>> = [{
+        field: {
+            name: true,
+        },
+        validation: {
+            minLength: 6,
+        },
+        fieldType: FormFieldSchemaType.Text,
+        placeholder: 'Acme',
+        title: 'Project Name',
+        required: true,
+    }];
+
+    if (BILLING_ENABLED) {
+        fields.push({
+            field: {
+                paymentProviderPlanId: true,
+            },
+            validation: {
+                minLength: 6,
+            },
+            fieldType: FormFieldSchemaType.RadioButton,
+            radioButtonOptions: SubscriptionPlan.getSubscriptionPlans().map((plan: SubscriptionPlan): RadioButton => {
+                return {    
+                    value: isSubsriptionPlanYearly ? plan.getYearlyPlanId() : plan.getMonthlyPlanId(),
+                    title: plan.getName(),
+                    description: plan.isCustomPricing() ? `Custom Pricing based on your needs. Our sales team will contact you shortly.` : `$${isSubsriptionPlanYearly ? plan.getYearlySubscriptionAmountInUSD() : plan.getMonthlySubscriptionAmountInUSD()} / month per user. Billed ${isSubsriptionPlanYearly ? "yearly" : "monthly"}. ${plan.getTrialPeriod() > 0 ? `Free ${plan.getTrialPeriod()} days trial.` : ''}`
+               } 
+            }),
+            title: 'Please select a plan.',
+            required: true,
+            footerElement: (<div className='show-as-link' onClick={() => {
+                setIsSubscriptionPlanYearly(!isSubsriptionPlanYearly);
+            }}>
+                {isSubsriptionPlanYearly ? <span>Switch to monthly pricing?</span> : <span> Switch to yearly pricing </span>}
+            </div>)
+        })
+    }
+
     return (
         <>
             {props.projects.length !== 0 && (
@@ -117,20 +162,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         },
                         model: new Project(),
                         id: 'create-project-from',
-                        fields: [
-                            {
-                                field: {
-                                    name: true,
-                                },
-                                validation: {
-                                    minLength: 6,
-                                },
-                                fieldType: FormFieldSchemaType.Text,
-                                placeholder: 'Acme',
-                                title: 'Project Name',
-                                required: true,
-                            },
-                        ],
+                        fields: fields,
                         formType: FormType.Create,
                     }}
                 />
