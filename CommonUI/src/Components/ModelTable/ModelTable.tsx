@@ -736,9 +736,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                 );
 
                                 onCompleteAction();
+
                                 if (props.onViewComplete) {
                                     props.onViewComplete(baseModel);
                                 }
+
                                 return Navigation.navigate(route);
                             }
 
@@ -752,6 +754,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             if (props.onViewComplete) {
                                 props.onViewComplete(baseModel);
                             }
+
                             return Navigation.navigate(
                                 new Route(
                                     props.viewPageRoute.toString()

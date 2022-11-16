@@ -16,10 +16,14 @@ import ObjectID from 'Common/Types/ObjectID';
 import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ProjectService from './ProjectService';
-import { IsBillingEnabled } from '../Config';
+import { DashboardRoute, Domain, HttpProtocol, IsBillingEnabled } from '../Config';
 import BillingService from './BillingService';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Project from 'Model/Models/Project';
+import MailService from './MailService';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import URL from 'Common/Types/API/URL';
+import logger from '../Utils/Logger';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -49,7 +53,34 @@ export class Service extends DatabaseService<Model> {
             }
 
             createBy.data.userId = user.id!;
+
+            const project = await ProjectService.findOneById({
+                id: createBy.data.projectId!,
+                select: {
+                    name: true
+                },
+                props: {
+                    isRoot: true
+                }
+            });
+
+            if (project) {
+                MailService.sendMail({
+                    toEmail: email,
+                    templateType: EmailTemplateType.InviteMember,
+                    vars: {
+                        dashboardUrl: new URL(HttpProtocol, Domain, DashboardRoute).toString(),
+                        projectName: project.name!,
+                        homeUrl: new URL(HttpProtocol, Domain).toString(),
+                    },
+                    subject: "You have been invited to " + project.name
+                }).catch((err) => {
+                    logger.error(err);
+                });
+            }
         }
+
+
 
         return { createBy, carryForward: null };
     }
@@ -199,12 +230,21 @@ export class Service extends DatabaseService<Model> {
                 return;
             }
 
-            await BillingService.updateSubscription(
+            await BillingService.changeQuantity(
                 project.paymentProviderSubscriptionId,
-                plan,
-                numberOfMembers,
-                plan.getYearlyPlanId() === project.paymentProviderPlanId
+                numberOfMembers
             );
+
+
+            await ProjectService.updateOneById({
+                id: projectId, 
+                data: {
+                    paymentProviderSubscriptionSeats: numberOfMembers,
+                },
+                props: {
+                    isRoot: true
+                } 
+            })
         }
     }
 }

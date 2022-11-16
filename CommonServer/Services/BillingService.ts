@@ -85,10 +85,10 @@ export class BillingService {
                     quantity: quantity,
                 },
             ],
-            trial_end: hasTrial && plan.getTrialPeriod() > 0 
+            trial_end: hasTrial && plan.getTrialPeriod() > 0
                 ? OneUptimeDate.toUnixTimestamp(OneUptimeDate.getSomeDaysAfter(
-                      plan.getTrialPeriod()
-                  ))
+                    plan.getTrialPeriod()
+                ))
                 : 'now',
         });
 
@@ -100,11 +100,9 @@ export class BillingService {
         };
     }
 
-    public static async updateSubscription(
+    public static async changeQuantity(
         subscriptionId: string,
-        plan: SubscriptionPlan,
         quantity: number,
-        isYearly: boolean
     ): Promise<void> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
@@ -112,16 +110,80 @@ export class BillingService {
             );
         }
 
-        await this.stripe.subscriptions.update(subscriptionId, {
+        const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+
+        if (!subscription) {
+            throw new BadDataException("Subscription not found");
+        }
+
+        const subscriptionItemId = subscription.items.data[0]?.id;
+
+        if (!subscriptionItemId) {
+            throw new BadDataException("Subscription Item not found");
+        }
+
+        await this.stripe.subscriptionItems.update(
+            subscriptionItemId,
+            { quantity: quantity }
+        );
+    }
+
+
+    public static async changePlan(
+        subscriptionId: string,
+        newPlan: SubscriptionPlan,
+        quantity: number,
+        isYearly: boolean,
+        hasTrial: boolean
+    ): Promise<{
+        id: string;
+        trialEndsAt: Date;
+    }> {
+        if (!this.isBillingEnabled()) {
+            throw new BadDataException(
+                'Billing is not enabled for this server.'
+            );
+        }
+
+        let subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+
+        if (!subscription) {
+            throw new BadDataException("Subscription not found");
+        }
+
+        const subscriptionItemId = subscription.items.data[0]?.id;
+
+        if (!subscriptionItemId) {
+            throw new BadDataException("Subscription Item not found");
+        }
+
+        await this.stripe.subscriptionItems.del(
+            subscriptionItemId,
+        );
+
+        subscription = await this.stripe.subscriptions.update(subscriptionId, {
             items: [
                 {
                     price: isYearly
-                        ? plan.getYearlyPlanId()
-                        : plan.getMonthlyPlanId(),
+                        ? newPlan.getYearlyPlanId()
+                        : newPlan.getMonthlyPlanId(),
                     quantity: quantity,
                 },
             ],
+            trial_end: hasTrial && newPlan.getTrialPeriod() > 0
+                ? OneUptimeDate.toUnixTimestamp(OneUptimeDate.getSomeDaysAfter(
+                    newPlan.getTrialPeriod()
+                ))
+                : 'now',
         });
+
+        return {
+            id: subscription.id,
+            trialEndsAt: hasTrial
+                ? OneUptimeDate.getSomeDaysAfter(newPlan.getTrialPeriod())
+                : OneUptimeDate.getCurrentDate(),
+        };
+
     }
 
     public static async getSetupIntentSecret(

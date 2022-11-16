@@ -161,13 +161,6 @@ export class Service extends DatabaseService<Model> {
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
-        createdItem = await this.addDefaultProjectTeams(createdItem);
-        createdItem = await this.addDefaultMonitorStatus(createdItem);
-        createdItem = await this.addDefaultIncidentState(createdItem);
-        createdItem = await this.addDefaultScheduledMaintenanceState(
-            createdItem
-        );
-        createdItem = await this.addDefaultIncidentSeverity(createdItem);
 
         // Create billing.
 
@@ -177,7 +170,7 @@ export class Service extends DatabaseService<Model> {
                 createdItem.id!
             );
 
-            const plan: SubscriptionPlan | undefined= SubscriptionPlan.getSubscriptionPlanById(createdItem.paymentProviderPlanId!);
+            const plan: SubscriptionPlan | undefined = SubscriptionPlan.getSubscriptionPlanById(createdItem.paymentProviderPlanId!);
 
             if (!plan) {
                 throw new BadDataException("Invalid plan.");
@@ -192,7 +185,7 @@ export class Service extends DatabaseService<Model> {
                 id: createdItem.id!,
                 data: {
                     paymentProviderCustomerId: customerId,
-                    paymentProviderSubscriptionId: id, 
+                    paymentProviderSubscriptionId: id,
                     trialEndsAt: trialEndsAt
                 },
                 props: {
@@ -200,6 +193,16 @@ export class Service extends DatabaseService<Model> {
                 },
             });
         }
+
+
+        createdItem = await this.addDefaultProjectTeams(createdItem);
+        createdItem = await this.addDefaultMonitorStatus(createdItem);
+        createdItem = await this.addDefaultIncidentState(createdItem);
+        createdItem = await this.addDefaultScheduledMaintenanceState(
+            createdItem
+        );
+        createdItem = await this.addDefaultIncidentSeverity(createdItem);
+
 
         return createdItem;
     }

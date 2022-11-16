@@ -653,24 +653,29 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 );
 
             findBy.query = checkReadPermissionType.query;
-
-            const queryBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(this.modelName)
-                .where(findBy.query)
-                .skip(skip.toNumber())
-                .take(limit.toNumber());
+            let count: number = 0; 
 
             if (distinctOn) {
-                queryBuilder.groupBy(`${this.modelName}.${distinctOn}`);
+                const queryBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(this.modelName)
+                    .where(findBy.query)
+                    .skip(skip.toNumber())
+                    .take(limit.toNumber());
+
+                if (distinctOn) {
+                    queryBuilder.groupBy(`${this.modelName}.${distinctOn}`);
+                }
+
+                count = await queryBuilder.getCount();
+
+            } else {
+               count = await this.getRepository().count({
+                    where: findBy.query as any,
+                    skip: (findBy.skip as PositiveNumber).toNumber(),
+                    take: (findBy.limit as PositiveNumber).toNumber(),
+                });
             }
 
-            const count: number = await queryBuilder.getCount();
-
-            // const count: number = await this.getRepository().count({
-            //     where: findBy.query as any,
-            //     skip: (findBy.skip as PositiveNumber).toNumber(),
-            //     take: (findBy.limit as PositiveNumber).toNumber(),
-            // });
-
+        
             let countPositive: PositiveNumber = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
             return countPositive;

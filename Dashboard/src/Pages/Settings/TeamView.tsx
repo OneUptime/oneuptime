@@ -2,7 +2,7 @@ import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -143,6 +143,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     description:
                         'See a list of members or invite them to this team. ',
                 }}
+                
                 noItemsMessage={'No members found for this team.'}
                 formFields={[
                     {
@@ -161,7 +162,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 deleteButtonText="Remove Member"
                 showFilterButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
                 columns={[
                     {
                         field: {
