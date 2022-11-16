@@ -1,8 +1,7 @@
 import {
     DisableSignup,
-    HomeHostname,
     HttpProtocol,
-    IsSaaSService,
+    IsBillingEnabled,
     EncryptionSecret,
     Domain,
     AccountsRoute,
@@ -50,7 +49,7 @@ router.post(
 
             const user: User = User.fromJSON(data as JSONObject, User) as User;
 
-            if (IsSaaSService) {
+            if (IsBillingEnabled) {
                 //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
                 user.isMasterAdmin = false;
                 user.isEmailVerified = false;
@@ -127,7 +126,7 @@ router.post(
                             '/verify-email/' + generatedToken.toString()
                         )
                     ).toString(),
-                    homeUrl: new URL(HttpProtocol, HomeHostname).toString(),
+                    homeUrl: new URL(HttpProtocol, Domain).toString(),
                 },
             }).catch((err: Error) => {
                 logger.error(err);
@@ -455,7 +454,7 @@ router.post(
                             ).toString(),
                             homeUrl: new URL(
                                 HttpProtocol,
-                                HomeHostname
+                                Domain
                             ).toString(),
                         },
                     }).catch((err: Error) => {

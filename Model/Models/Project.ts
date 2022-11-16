@@ -83,7 +83,7 @@ export default class Model extends TenantModel {
     @ColumnAccessControl({
         create: [Permission.CurrentUser],
         read: [Permission.ProjectOwner, Permission.ProjectAdmin],
-        update: [],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({

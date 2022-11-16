@@ -134,10 +134,10 @@ export class BillingService {
         newPlan: SubscriptionPlan,
         quantity: number,
         isYearly: boolean,
-        hasTrial: boolean
+        endTrialAt?: Date | undefined
     ): Promise<{
         id: string;
-        trialEndsAt: Date;
+        trialEndsAt?: Date | undefined;
     }> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
@@ -151,6 +151,20 @@ export class BillingService {
             throw new BadDataException("Subscription not found");
         }
 
+        subscription = await this.stripe.subscriptions.update(subscriptionId, {
+            items: [
+                {
+                    price: isYearly
+                        ? newPlan.getYearlyPlanId()
+                        : newPlan.getMonthlyPlanId(),
+                    quantity: quantity,
+                },
+            ],
+            trial_end: endTrialAt
+                ? OneUptimeDate.toUnixTimestamp(endTrialAt)
+                : 'now',
+        });
+
         const subscriptionItemId = subscription.items.data[0]?.id;
 
         if (!subscriptionItemId) {
@@ -161,27 +175,11 @@ export class BillingService {
             subscriptionItemId,
         );
 
-        subscription = await this.stripe.subscriptions.update(subscriptionId, {
-            items: [
-                {
-                    price: isYearly
-                        ? newPlan.getYearlyPlanId()
-                        : newPlan.getMonthlyPlanId(),
-                    quantity: quantity,
-                },
-            ],
-            trial_end: hasTrial && newPlan.getTrialPeriod() > 0
-                ? OneUptimeDate.toUnixTimestamp(OneUptimeDate.getSomeDaysAfter(
-                    newPlan.getTrialPeriod()
-                ))
-                : 'now',
-        });
+        
 
         return {
             id: subscription.id,
-            trialEndsAt: hasTrial
-                ? OneUptimeDate.getSomeDaysAfter(newPlan.getTrialPeriod())
-                : OneUptimeDate.getCurrentDate(),
+            trialEndsAt: endTrialAt,
         };
 
     }

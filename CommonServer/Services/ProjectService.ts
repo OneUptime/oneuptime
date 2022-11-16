@@ -1,6 +1,6 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Project';
-import DatabaseService, { OnCreate, OnDelete, OnFind } from './DatabaseService';
+import DatabaseService, { OnCreate, OnDelete, OnFind, OnUpdate } from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import TeamService from './TeamService';
@@ -30,6 +30,7 @@ import BillingService from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import UpdateBy from '../Types/Database/UpdateBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -95,6 +96,43 @@ export class Service extends DatabaseService<Model> {
         }
 
         return Promise.resolve({ createBy: data, carryForward: null });
+    }
+
+    protected override async onBeforeUpdate(updateBy: UpdateBy<Model>): Promise<OnUpdate<Model>> {
+        if (IsBillingEnabled) {
+            if (updateBy.data.paymentProviderPlanId) {
+                // payment provider id changed. 
+                const project = await this.findOneById({
+                    id: new ObjectID(updateBy.data._id! as string),
+                    select: {
+                        paymentProviderSubscriptionId: true,
+                        paymentProviderSubscriptionSeats: true,
+                        paymentProviderPlanId: true,
+                        trialEndsAt: true
+                    },
+                    props: {
+                        isRoot: true
+                    }
+                });
+
+
+                if (!project) {
+                    throw new BadDataException("Project not found");
+                }
+
+                if (project.paymentProviderPlanId !== updateBy.data.paymentProviderPlanId) {
+                    const plan = SubscriptionPlan.getSubscriptionPlanById(updateBy.data.paymentProviderPlanId! as string); 
+                    
+                    if (!plan) {
+                        throw new BadDataException("Invalid plan");
+                    }
+
+                    await BillingService.changePlan(project.paymentProviderSubscriptionId as string, plan, project.paymentProviderSubscriptionSeats as number, plan.getYearlyPlanId() === updateBy.data.paymentProviderPlanId, project.trialEndsAt);
+                }
+            }
+        }
+
+        return {updateBy, carryForward: []}
     }
 
     private async addDefaultScheduledMaintenanceState(
