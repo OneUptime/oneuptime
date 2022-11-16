@@ -19,6 +19,7 @@ import ProjectService from './ProjectService';
 import { IsBillingEnabled } from '../Config';
 import BillingService from './BillingService';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import Project from 'Model/Models/Project';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -75,9 +76,10 @@ export class Service extends DatabaseService<Model> {
             onCreate.createBy.data.projectId!
         );
 
+        await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+            onCreate.createBy.data.projectId!
+        );
 
-        await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(onCreate.createBy.data.projectId!);
-        
         return createdItem;
     }
 
@@ -137,54 +139,72 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnDelete<Model>> {
         for (const item of onDelete.carryForward as Array<Model>) {
             await this.refreshTokens(item.userId!, item.projectId!);
-            await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(item.projectId!);
+            await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+                item.projectId!
+            );
         }
 
         return onDelete;
     }
 
-    public async getUniqueTeamMemberCountInProject(projectId: ObjectID): Promise<number> { 
-        return (await this.countBy({
-            query: {
-                projectId
-            },
-            props: {
-                isRoot: true
-            },
-            distinctOn: "userId",
-            skip: 0,
-            limit: LIMIT_MAX
-        })).toNumber()
+    public async getUniqueTeamMemberCountInProject(
+        projectId: ObjectID
+    ): Promise<number> {
+        return (
+            await this.countBy({
+                query: {
+                    projectId,
+                },
+                props: {
+                    isRoot: true,
+                },
+                distinctOn: 'userId',
+                skip: 0,
+                limit: LIMIT_MAX,
+            })
+        ).toNumber();
     }
 
-    public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(projectId: ObjectID): Promise<void> {
-        
+    public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+        projectId: ObjectID
+    ): Promise<void> {
         if (!IsBillingEnabled) {
             return;
         }
-        
-        const numberOfMembers = await this.getUniqueTeamMemberCountInProject(projectId);
-        const project = await ProjectService.findOneById({
+
+        const numberOfMembers: number = await this.getUniqueTeamMemberCountInProject(
+            projectId
+        );
+        const project: Project | null = await ProjectService.findOneById({
             id: projectId,
             select: {
                 paymentProviderSubscriptionId: true,
-                paymentProviderPlanId: true
+                paymentProviderPlanId: true,
             },
             props: {
-                isRoot: true
-            }
+                isRoot: true,
+            },
         });
 
-        
+        if (
+            project &&
+            project.paymentProviderSubscriptionId &&
+            project?.paymentProviderPlanId
+        ) {
+            const plan: SubscriptionPlan | undefined = SubscriptionPlan.getSubscriptionPlanById(
+                project?.paymentProviderPlanId!
+            );
 
-        if (project && project.paymentProviderSubscriptionId && project?.paymentProviderPlanId) {
-            const plan = SubscriptionPlan.getSubscriptionPlanById(project?.paymentProviderPlanId!);
-            
             if (!plan) {
                 return;
             }
 
-            await BillingService.updateSubscription(project.paymentProviderSubscriptionId, plan, numberOfMembers, plan.getYearlyPlanId() === project.paymentProviderPlanId);
+            await BillingService.updateSubscription(
+                project.paymentProviderSubscriptionId,
+                plan,
+                numberOfMembers,
+                plan.getYearlyPlanId() === project.paymentProviderPlanId
+            );
         }
     }
 }

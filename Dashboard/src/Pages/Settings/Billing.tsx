@@ -7,12 +7,10 @@ import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 
-export interface ComponentProps extends PageComponentProps {
-   
-}
+export interface ComponentProps extends PageComponentProps {}
 
 const Settings: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+    _props: ComponentProps
 ): ReactElement => {
     return (
         <Page
@@ -38,8 +36,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                 strongTitle="DANGER ZONE"
                 title="Deleting your project will delete it permanently and there is no way to recover. "
             />
-
-           
         </Page>
     );
 };

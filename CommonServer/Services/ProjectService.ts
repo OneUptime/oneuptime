@@ -82,7 +82,6 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-
         return Promise.resolve({ createBy: data, carryForward: null });
     }
 
@@ -158,18 +157,21 @@ export class Service extends DatabaseService<Model> {
         );
         createdItem = await this.addDefaultIncidentSeverity(createdItem);
 
-        // Create billing. 
+        // Create billing.
 
         if (IsBillingEnabled) {
-            const customerId: string = await BillingService.createCustomer(createdItem.name!, createdItem.id!);
+            const customerId: string = await BillingService.createCustomer(
+                createdItem.name!,
+                createdItem.id!
+            );
             await this.updateOneById({
                 id: createdItem.id!,
                 data: {
-                    paymentProviderCustomerId: customerId
+                    paymentProviderCustomerId: customerId,
                 },
                 props: {
-                    isRoot: true
-                }
+                    isRoot: true,
+                },
             });
         }
 
@@ -454,8 +456,9 @@ export class Service extends DatabaseService<Model> {
         return { findBy, carryForward: null };
     }
 
-    protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
-        
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
         if (IsBillingEnabled) {
             const projects: Array<Model> = await this.findBy({
                 query: deleteBy.query,
@@ -464,8 +467,8 @@ export class Service extends DatabaseService<Model> {
                 skip: 0,
                 select: {
                     _id: true,
-                    paymentProviderSubscriptionId: true
-                }
+                    paymentProviderSubscriptionId: true,
+                },
             });
 
             return { deleteBy, carryForward: projects };
@@ -474,20 +477,22 @@ export class Service extends DatabaseService<Model> {
         return { deleteBy, carryForward: [] };
     }
 
-    protected override async onDeleteSuccess(onDelete: OnDelete<Model>, _itemIdsBeforeDelete: ObjectID[]): Promise<OnDelete<Model>> {
-        
-        // get project id 
+    protected override async onDeleteSuccess(
+        onDelete: OnDelete<Model>,
+        _itemIdsBeforeDelete: ObjectID[]
+    ): Promise<OnDelete<Model>> {
+        // get project id
         if (IsBillingEnabled) {
             for (const project of onDelete.carryForward) {
                 if (project.paymentProviderSubscriptionId) {
-                    await BillingService.cancelSubscription(project.paymentProviderSubscriptionId)
+                    await BillingService.cancelSubscription(
+                        project.paymentProviderSubscriptionId
+                    );
                 }
             }
         }
 
-        return onDelete; 
+        return onDelete;
     }
-
-
 }
 export default new Service();

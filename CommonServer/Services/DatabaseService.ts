@@ -20,7 +20,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import PostgresDatabase, {
     PostgresAppInstance,
 } from '../Infrastructure/PostgresDatabase';
-import { DataSource, QueryBuilder, Repository, SelectQueryBuilder } from 'typeorm';
+import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import { EncryptionSecret } from '../Config';
@@ -617,7 +617,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         skip,
         limit,
         props,
-        distinctOn
+        distinctOn,
     }: CountBy<TBaseModel>): Promise<PositiveNumber> {
         try {
             if (!skip) {
@@ -654,17 +654,16 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             findBy.query = checkReadPermissionType.query;
 
-            const queryBuilder = this.getQueryBuilder(this.modelName)
+            const queryBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(this.modelName)
                 .where(findBy.query)
                 .skip(skip.toNumber())
-                .take(limit.toNumber())
-                
-            
+                .take(limit.toNumber());
+
             if (distinctOn) {
                 queryBuilder.distinctOn([`${this.modelName}.${distinctOn}`]);
             }
 
-            const count = await queryBuilder.getCount();
+            const count: number = await queryBuilder.getCount();
 
             // const count: number = await this.getRepository().count({
             //     where: findBy.query as any,
@@ -680,9 +679,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
             throw this.getException(error as Exception);
         }
     }
-
-
-    
 
     public async deleteOneBy(
         deleteOneBy: DeleteOneBy<TBaseModel>

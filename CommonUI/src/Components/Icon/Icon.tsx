@@ -140,7 +140,7 @@ export enum IconProp {
     Link,
     Layers,
     Clock,
-    Invoice
+    Invoice,
 }
 
 export interface ComponentProps {

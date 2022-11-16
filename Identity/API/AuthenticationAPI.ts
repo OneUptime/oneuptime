@@ -425,7 +425,8 @@ router.post(
                 if (!alreadySavedUser.isEmailVerified) {
                     const generatedToken: ObjectID = ObjectID.generate();
 
-                    const emailVerificationToken:EmailVerificationToken = new EmailVerificationToken();
+                    const emailVerificationToken: EmailVerificationToken =
+                        new EmailVerificationToken();
                     emailVerificationToken.userId = alreadySavedUser?.id!;
                     emailVerificationToken.email = alreadySavedUser?.email!;
                     emailVerificationToken.token = generatedToken;

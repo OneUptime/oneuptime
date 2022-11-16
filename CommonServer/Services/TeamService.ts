@@ -6,7 +6,6 @@ import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import DeleteBy from '../Types/Database/DeleteBy';
 
-
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
         super(Model, postgresDatabase);
@@ -69,7 +68,5 @@ export class Service extends DatabaseService<Model> {
 
         return { deleteBy, carryForward: null };
     }
-
-    
 }
 export default new Service();

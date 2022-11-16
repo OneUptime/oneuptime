@@ -7,9 +7,11 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
-export const IsBillingEnabled: boolean = process.env['BILLING_ENABLED'] === 'true';
+export const IsBillingEnabled: boolean =
+    process.env['BILLING_ENABLED'] === 'true';
 export const BillingPublicKey: string = process.env['BILLING_PUBLIC_KEY'] || '';
-export const BillingPrivateKey: string = process.env['BILLING_PRIVATE_KEY']  || '';
+export const BillingPrivateKey: string =
+    process.env['BILLING_PRIVATE_KEY'] || '';
 
 export const DatabaseHost: Hostname = Hostname.fromString(
     process.env['DATABASE_HOST'] || ''
@@ -123,6 +125,8 @@ export const AdminDashboardRoute: Route = new Route(
     process.env['ADMINDASHBOARD_ROUTE'] || ''
 );
 
-export const IsProduction: boolean = process.env['ENVIRONMENT'] === "production";
+export const IsProduction: boolean =
+    process.env['ENVIRONMENT'] === 'production';
 
-export const SubscriptionPlans: Array<SubscriptionPlan> = SubscriptionPlan.getSubscriptionPlans();
+export const SubscriptionPlans: Array<SubscriptionPlan> =
+    SubscriptionPlan.getSubscriptionPlans();
