@@ -1,11 +1,12 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/BillingPaymentMethod';
-import DatabaseService, { OnFind } from './DatabaseService';
+import DatabaseService, { OnDelete, OnFind } from './DatabaseService';
 import FindBy from '../Types/Database/FindBy';
 import ProjectService from './ProjectService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Project from 'Model/Models/Project';
 import BillingService from './BillingService';
+import DeleteBy from '../Types/Database/DeleteBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -48,7 +49,8 @@ export class Service extends DatabaseService<Model> {
                 projectId: findBy.props.tenantId!
             },
             props: {
-                isRoot: true
+                isRoot: true,
+                ignoreHooks: true
             }
         });
 
@@ -72,6 +74,13 @@ export class Service extends DatabaseService<Model> {
 
         return { findBy, carryForward: paymentMethods };
     }
+
+   protected override onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
+       const items = await this.findBy({
+           query: deleteBy.query, 
+           
+       })
+   }
 
 }
 
