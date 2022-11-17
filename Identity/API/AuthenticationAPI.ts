@@ -452,10 +452,7 @@ router.post(
                                     '/verify-email/' + generatedToken.toString()
                                 )
                             ).toString(),
-                            homeUrl: new URL(
-                                HttpProtocol,
-                                Domain
-                            ).toString(),
+                            homeUrl: new URL(HttpProtocol, Domain).toString(),
                         },
                     }).catch((err: Error) => {
                         logger.error(err);

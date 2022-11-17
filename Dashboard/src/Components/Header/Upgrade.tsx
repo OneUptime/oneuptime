@@ -10,22 +10,25 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 
-
 export interface ComponentProps {
-    projectId: ObjectID
+    projectId: ObjectID;
 }
-const Upgrade: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
-
+const Upgrade: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     const [showModal, setShowModal] = useState<boolean>(false);
-    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] = useState<boolean>(true)
+    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
+        useState<boolean>(true);
 
     return (
         <>
-            <HeaderIconDropdownButton title='Upgrade' onClick={() => {
-                setShowModal(true);
-            }} icon={IconProp.Upgrade} >
-
-            </HeaderIconDropdownButton>
+            <HeaderIconDropdownButton
+                title="Upgrade"
+                onClick={() => {
+                    setShowModal(true);
+                }}
+                icon={IconProp.Upgrade}
+            ></HeaderIconDropdownButton>
             {showModal ? (
                 <ModelFormModal<Project>
                     modelType={Project}
@@ -44,48 +47,94 @@ const Upgrade: FunctionComponent<ComponentProps> = (props: ComponentProps): Reac
                         },
                         model: new Project(),
                         id: 'create-project-from',
-                        fields: [ {
-                            field: {
-                                paymentProviderPlanId: true,
+                        fields: [
+                            {
+                                field: {
+                                    paymentProviderPlanId: true,
+                                },
+                                validation: {
+                                    minLength: 6,
+                                },
+                                fieldType: FormFieldSchemaType.RadioButton,
+                                radioButtonOptions:
+                                    SubscriptionPlan.getSubscriptionPlans().map(
+                                        (
+                                            plan: SubscriptionPlan
+                                        ): RadioButton => {
+                                            let description: string =
+                                                plan.isCustomPricing()
+                                                    ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
+                                                    : `$${
+                                                          isSubsriptionPlanYearly
+                                                              ? plan.getYearlySubscriptionAmountInUSD()
+                                                              : plan.getMonthlySubscriptionAmountInUSD()
+                                                      } / month per user. Billed ${
+                                                          isSubsriptionPlanYearly
+                                                              ? 'yearly'
+                                                              : 'monthly'
+                                                      }. ${
+                                                          plan.getTrialPeriod() >
+                                                          0
+                                                              ? `Free ${plan.getTrialPeriod()} days trial.`
+                                                              : ''
+                                                      }`;
+
+                                            if (
+                                                isSubsriptionPlanYearly &&
+                                                plan.getYearlySubscriptionAmountInUSD() ===
+                                                    0
+                                            ) {
+                                                description =
+                                                    'This plan is free, forever. ';
+                                            }
+
+                                            if (
+                                                !isSubsriptionPlanYearly &&
+                                                plan.getMonthlySubscriptionAmountInUSD() ===
+                                                    0
+                                            ) {
+                                                description =
+                                                    'This plan is free, forever. ';
+                                            }
+
+                                            return {
+                                                value: isSubsriptionPlanYearly
+                                                    ? plan.getYearlyPlanId()
+                                                    : plan.getMonthlyPlanId(),
+                                                title: plan.getName(),
+                                                description: description,
+                                            };
+                                        }
+                                    ),
+                                title: 'Please select a plan.',
+                                required: true,
+                                footerElement: (
+                                    <div
+                                        className="show-as-link"
+                                        onClick={() => {
+                                            setIsSubscriptionPlanYearly(false);
+                                        }}
+                                    >
+                                        {isSubsriptionPlanYearly ? (
+                                            <span>
+                                                Switch to monthly pricing?
+                                            </span>
+                                        ) : (
+                                            <span>
+                                                {' '}
+                                                Switch to yearly pricing?
+                                            </span>
+                                        )}
+                                    </div>
+                                ),
                             },
-                            validation: {
-                                minLength: 6,
-                            },
-                            fieldType: FormFieldSchemaType.RadioButton,
-                            radioButtonOptions: SubscriptionPlan.getSubscriptionPlans().map((plan: SubscriptionPlan): RadioButton => {
-            
-                                let description: string = plan.isCustomPricing() ? `Custom Pricing based on your needs. Our sales team will contact you shortly.` : `$${isSubsriptionPlanYearly ? plan.getYearlySubscriptionAmountInUSD() : plan.getMonthlySubscriptionAmountInUSD()} / month per user. Billed ${isSubsriptionPlanYearly ? "yearly" : "monthly"}. ${plan.getTrialPeriod() > 0 ? `Free ${plan.getTrialPeriod()} days trial.` : ''}`
-            
-                                if (isSubsriptionPlanYearly && plan.getYearlySubscriptionAmountInUSD() === 0) { 
-                                    description = 'This plan is free, forever. '
-                                }
-            
-                                if (!isSubsriptionPlanYearly && plan.getMonthlySubscriptionAmountInUSD() === 0) {
-                                    description = 'This plan is free, forever. '
-                                }
-            
-            
-                                return {    
-                                    value: isSubsriptionPlanYearly ? plan.getYearlyPlanId() : plan.getMonthlyPlanId(),
-                                    title: plan.getName(),
-                                    description: description
-                               } 
-                            }),
-                            title: 'Please select a plan.',
-                            required: true,
-                            footerElement: (<div className='show-as-link' onClick={() => {
-                                setIsSubscriptionPlanYearly(false);
-                            }}>
-                                {isSubsriptionPlanYearly ? <span>Switch to monthly pricing?</span> : <span> Switch to yearly pricing?</span>}
-                            </div>)
-                        }],
+                        ],
                         formType: FormType.Update,
                     }}
                 />
             ) : (
                 <></>
             )}
-
         </>
     );
 };

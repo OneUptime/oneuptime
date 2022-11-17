@@ -96,5 +96,5 @@ export default [
     ScheduledMaintenancePublicNote,
     ScheduledMaintenanceInternalNote,
 
-    BillingPaymentMethods
+    BillingPaymentMethods,
 ];

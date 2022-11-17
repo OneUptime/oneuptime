@@ -14,47 +14,49 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onBeforeFind(findBy: FindBy<Model>): Promise<OnFind<Model>> {
-
-
+    protected override async onBeforeFind(
+        findBy: FindBy<Model>
+    ): Promise<OnFind<Model>> {
         if (!findBy.props.tenantId) {
-            throw new BadDataException("ProjectID not found.")
+            throw new BadDataException('ProjectID not found.');
         }
-        
+
         const project: Project | null = await ProjectService.findOneById({
             id: findBy.props.tenantId!,
             props: {
-                ...findBy.props, 
+                ...findBy.props,
                 isRoot: true,
-                ignoreHooks: true
+                ignoreHooks: true,
             },
             select: {
                 _id: true,
-                paymentProviderCustomerId: true
-            }
+                paymentProviderCustomerId: true,
+            },
         });
 
         if (!project) {
-            throw new BadDataException("Project not found");
+            throw new BadDataException('Project not found');
         }
-
 
         if (!project.paymentProviderCustomerId) {
-            throw new BadDataException("Payment provider customer id not found.")
+            throw new BadDataException(
+                'Payment provider customer id not found.'
+            );
         }
-        
-        const paymentMethods = await BillingService.getPaymentMethods(project.paymentProviderCustomerId);
+
+        const paymentMethods = await BillingService.getPaymentMethods(
+            project.paymentProviderCustomerId
+        );
 
         await this.deleteBy({
             query: {
-                projectId: findBy.props.tenantId!
+                projectId: findBy.props.tenantId!,
             },
             props: {
                 isRoot: true,
-                ignoreHooks: true
-            }
+                ignoreHooks: true,
+            },
         });
-
 
         for (const paymentMethod of paymentMethods) {
             const billingPaymentMethod = new Model();
@@ -62,46 +64,54 @@ export class Service extends DatabaseService<Model> {
             billingPaymentMethod.type = paymentMethod.type;
             billingPaymentMethod.last4Digits = paymentMethod.last4Digits;
             billingPaymentMethod.isDefault = paymentMethod.isDefault;
-            billingPaymentMethod.paymentProviderPaymentMethodId = paymentMethod.id;
-            billingPaymentMethod.paymentProviderCustomerId = project.paymentProviderCustomerId;
+            billingPaymentMethod.paymentProviderPaymentMethodId =
+                paymentMethod.id;
+            billingPaymentMethod.paymentProviderCustomerId =
+                project.paymentProviderCustomerId;
 
             await this.create({
                 data: billingPaymentMethod,
                 props: {
-                    isRoot: true
-                }
+                    isRoot: true,
+                },
             });
         }
-
 
         return { findBy, carryForward: paymentMethods };
     }
 
-   protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
-       const items = await this.findBy({
-           query: deleteBy.query,
-           select: {
-               _id: true,
-               paymentProviderPaymentMethodId: true,
-               paymentProviderCustomerId: true, 
-           },
-           skip: 0,
-           limit: LIMIT_MAX,
-           props: {
-               isRoot: true,
-               ignoreHooks: true
-           }
-       });
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
+        const items = await this.findBy({
+            query: deleteBy.query,
+            select: {
+                _id: true,
+                paymentProviderPaymentMethodId: true,
+                paymentProviderCustomerId: true,
+            },
+            skip: 0,
+            limit: LIMIT_MAX,
+            props: {
+                isRoot: true,
+                ignoreHooks: true,
+            },
+        });
 
-       for (const item of items) {
-           if (item.paymentProviderPaymentMethodId && item.paymentProviderCustomerId) {
-               await BillingService.deletePaymentMethod(item.paymentProviderCustomerId, item.paymentProviderPaymentMethodId);
-           }
-       }
+        for (const item of items) {
+            if (
+                item.paymentProviderPaymentMethodId &&
+                item.paymentProviderCustomerId
+            ) {
+                await BillingService.deletePaymentMethod(
+                    item.paymentProviderCustomerId,
+                    item.paymentProviderPaymentMethodId
+                );
+            }
+        }
 
-       return { deleteBy, carryForward: null };
-   }
-
+        return { deleteBy, carryForward: null };
+    }
 }
 
 export default new Service();

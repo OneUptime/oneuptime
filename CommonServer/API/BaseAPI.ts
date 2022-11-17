@@ -27,12 +27,12 @@ export default class BaseAPI<
     TBaseModel extends BaseModel,
     TBaseService extends DatabaseService<BaseModel>
 > {
-    public entityType: { new(): TBaseModel };
+    public entityType: { new (): TBaseModel };
 
     public router: ExpressRouter;
     public service: TBaseService;
 
-    public constructor(type: { new(): TBaseModel }, service: TBaseService) {
+    public constructor(type: { new (): TBaseModel }, service: TBaseService) {
         this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
 
@@ -145,15 +145,22 @@ export default class BaseAPI<
     }
 
     public getPermissionsForTenant(req: ExpressRequest): Array<UserPermission> {
-
         const permissions: Array<UserPermission> = [];
 
         const props = this.getDatabaseCommonInteractionProps(req);
 
-        console.log(props)
+        console.log(props);
 
-        if (props && props.userTenantAccessPermission && props.userTenantAccessPermission[props.tenantId?.toString() || '']) {
-            return props.userTenantAccessPermission[props.tenantId?.toString() || '']?.permissions || [];
+        if (
+            props &&
+            props.userTenantAccessPermission &&
+            props.userTenantAccessPermission[props.tenantId?.toString() || '']
+        ) {
+            return (
+                props.userTenantAccessPermission[
+                    props.tenantId?.toString() || ''
+                ]?.permissions || []
+            );
         }
 
         return permissions;
@@ -205,7 +212,6 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
-
         await this.onBeforeList(req, res);
 
         const skip: PositiveNumber = req.query['skip']
@@ -418,42 +424,44 @@ export default class BaseAPI<
     }
 
     protected async onBeforeList(
-        _req: ExpressRequest, _res: ExpressResponse
+        _req: ExpressRequest,
+        _res: ExpressResponse
     ): Promise<any> {
         return Promise.resolve(true);
     }
 
-
     protected async onBeforeCreate(
-        _req: ExpressRequest, _res: ExpressResponse
+        _req: ExpressRequest,
+        _res: ExpressResponse
     ): Promise<any> {
         return Promise.resolve(true);
     }
 
     protected async onBeforeGet(
-        _req: ExpressRequest, _res: ExpressResponse
+        _req: ExpressRequest,
+        _res: ExpressResponse
     ): Promise<any> {
         return Promise.resolve(true);
     }
 
     protected async onBeforeUpdate(
-        _req: ExpressRequest, _res: ExpressResponse
+        _req: ExpressRequest,
+        _res: ExpressResponse
     ): Promise<any> {
         return Promise.resolve(true);
     }
 
-
     protected async onBeforeDelete(
-        _req: ExpressRequest, _res: ExpressResponse
+        _req: ExpressRequest,
+        _res: ExpressResponse
     ): Promise<any> {
         return Promise.resolve(true);
     }
 
     protected async onBeforeCount(
-        _req: ExpressRequest, _res: ExpressResponse
+        _req: ExpressRequest,
+        _res: ExpressResponse
     ): Promise<any> {
         return Promise.resolve(true);
     }
-
-
 }

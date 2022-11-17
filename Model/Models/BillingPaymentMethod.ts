@@ -70,8 +70,6 @@ export default class BillingPaymentMethod extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
-
     @ColumnAccessControl({
         create: [Permission.ProjectOwner],
         read: [Permission.ProjectOwner],
@@ -174,7 +172,6 @@ export default class BillingPaymentMethod extends BaseModel {
     })
     public paymentProviderPaymentMethodId?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.ProjectOwner],
@@ -188,7 +185,6 @@ export default class BillingPaymentMethod extends BaseModel {
         unique: false,
     })
     public paymentProviderCustomerId?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [Permission.ProjectOwner],

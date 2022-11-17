@@ -143,7 +143,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                     description:
                         'See a list of members or invite them to this team. ',
                 }}
-                
                 noItemsMessage={'No members found for this team.'}
                 formFields={[
                     {

@@ -17,8 +17,9 @@ const Welcome: FunctionComponent<ComponentProps> = (
     return (
         <Page title={'Welcome to OneUptime.'} breadcrumbLinks={[]}>
             <p>
-                Welcome to OneUptime. Thank you for signing up! <br/>To get started
-                please create a new project. {BILLING_ENABLED && <span> No credit card required.</span>}
+                Welcome to OneUptime. Thank you for signing up! <br />
+                To get started please create a new project.{' '}
+                {BILLING_ENABLED && <span> No credit card required.</span>}
             </p>
             <Button
                 onClick={() => {

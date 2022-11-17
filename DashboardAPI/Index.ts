@@ -247,7 +247,6 @@ app.use(
     ).getRouter()
 );
 
-
 app.use(
     new BaseAPI<Domain, DomainServiceType>(Domain, DomainService).getRouter()
 );

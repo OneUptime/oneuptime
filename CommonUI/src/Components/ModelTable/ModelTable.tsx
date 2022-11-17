@@ -529,7 +529,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 icon: IconProp.Filter,
             });
         }
-        
 
         setCardButtons(headerbuttons);
     };

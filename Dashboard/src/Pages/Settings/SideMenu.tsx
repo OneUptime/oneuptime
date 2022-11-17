@@ -161,17 +161,18 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.Call}
                 /> */}
             </SideMenuSection>
-            {BILLING_ENABLED ? <SideMenuSection title="Billing and Invoices">
-                <SideMenuItem
-                    link={{
-                        title: 'Billing',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.SETTINGS_BILLING] as Route
-                        ),
-                    }}
-                    icon={IconProp.Billing}
-                />
-                {/* <SideMenuItem
+            {BILLING_ENABLED ? (
+                <SideMenuSection title="Billing and Invoices">
+                    <SideMenuItem
+                        link={{
+                            title: 'Billing',
+                            to: RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.SETTINGS_BILLING] as Route
+                            ),
+                        }}
+                        icon={IconProp.Billing}
+                    />
+                    {/* <SideMenuItem
                     link={{
                         title: 'Invoices',
                         to: RouteUtil.populateRouteParams(
@@ -180,7 +181,10 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     }}
                     icon={IconProp.File}
                 /> */}
-            </SideMenuSection> : <></>}
+                </SideMenuSection>
+            ) : (
+                <></>
+            )}
             <SideMenuSection title="Danger Zone">
                 <SideMenuItem
                     link={{

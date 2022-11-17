@@ -31,7 +31,8 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         null
     );
 
-    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] = useState<boolean>(true)
+    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
+        useState<boolean>(true);
 
     const [fields, setFields] = useState<Array<Field<Project>>>([]);
 
@@ -87,71 +88,105 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     }, [props.projects]);
 
     useEffect(() => {
-
-
-
         refreshFields();
-
     }, [isSubsriptionPlanYearly]);
 
-
     const refreshFields = () => {
-        let formFields: Array<Field<Project>> = [{
-            field: {
-                name: true,
-            },
-            validation: {
-                minLength: 6,
-            },
-            fieldType: FormFieldSchemaType.Text,
-            placeholder: 'Acme',
-            title: 'Project Name',
-            required: true,
-        }];
-    
-        if (BILLING_ENABLED) {
-            formFields = [...formFields, {
+        let formFields: Array<Field<Project>> = [
+            {
                 field: {
-                    paymentProviderPlanId: true,
+                    name: true,
                 },
                 validation: {
                     minLength: 6,
                 },
-                fieldType: FormFieldSchemaType.RadioButton,
-                radioButtonOptions: SubscriptionPlan.getSubscriptionPlans().map((plan: SubscriptionPlan): RadioButton => {
-
-                    let description: string = plan.isCustomPricing() ? `Custom Pricing based on your needs. Our sales team will contact you shortly.` : `$${isSubsriptionPlanYearly ? plan.getYearlySubscriptionAmountInUSD() : plan.getMonthlySubscriptionAmountInUSD()} / month per user. Billed ${isSubsriptionPlanYearly ? "yearly" : "monthly"}. ${plan.getTrialPeriod() > 0 ? `Free ${plan.getTrialPeriod()} days trial.` : ''}`
-
-                    if (isSubsriptionPlanYearly && plan.getYearlySubscriptionAmountInUSD() === 0) { 
-                        description = 'This plan is free, forever. '
-                    }
-
-                    if (!isSubsriptionPlanYearly && plan.getMonthlySubscriptionAmountInUSD() === 0) {
-                        description = 'This plan is free, forever. '
-                    }
-
-
-                    return {    
-                        value: isSubsriptionPlanYearly ? plan.getYearlyPlanId() : plan.getMonthlyPlanId(),
-                        title: plan.getName(),
-                        description: description
-                   } 
-                }),
-                title: 'Please select a plan.',
+                fieldType: FormFieldSchemaType.Text,
+                placeholder: 'Acme',
+                title: 'Project Name',
                 required: true,
-                footerElement: (<div className='show-as-link' onClick={() => {
-                    setIsSubscriptionPlanYearly(false);
-                    refreshFields();
-                }}>
-                    {isSubsriptionPlanYearly ? <span>Switch to monthly pricing?</span> : <span> Switch to yearly pricing?</span>}
-                </div>)
-            }]
+            },
+        ];
+
+        if (BILLING_ENABLED) {
+            formFields = [
+                ...formFields,
+                {
+                    field: {
+                        paymentProviderPlanId: true,
+                    },
+                    validation: {
+                        minLength: 6,
+                    },
+                    fieldType: FormFieldSchemaType.RadioButton,
+                    radioButtonOptions:
+                        SubscriptionPlan.getSubscriptionPlans().map(
+                            (plan: SubscriptionPlan): RadioButton => {
+                                let description: string = plan.isCustomPricing()
+                                    ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
+                                    : `$${
+                                          isSubsriptionPlanYearly
+                                              ? plan.getYearlySubscriptionAmountInUSD()
+                                              : plan.getMonthlySubscriptionAmountInUSD()
+                                      } / month per user. Billed ${
+                                          isSubsriptionPlanYearly
+                                              ? 'yearly'
+                                              : 'monthly'
+                                      }. ${
+                                          plan.getTrialPeriod() > 0
+                                              ? `Free ${plan.getTrialPeriod()} days trial.`
+                                              : ''
+                                      }`;
+
+                                if (
+                                    isSubsriptionPlanYearly &&
+                                    plan.getYearlySubscriptionAmountInUSD() ===
+                                        0
+                                ) {
+                                    description =
+                                        'This plan is free, forever. ';
+                                }
+
+                                if (
+                                    !isSubsriptionPlanYearly &&
+                                    plan.getMonthlySubscriptionAmountInUSD() ===
+                                        0
+                                ) {
+                                    description =
+                                        'This plan is free, forever. ';
+                                }
+
+                                return {
+                                    value: isSubsriptionPlanYearly
+                                        ? plan.getYearlyPlanId()
+                                        : plan.getMonthlyPlanId(),
+                                    title: plan.getName(),
+                                    description: description,
+                                };
+                            }
+                        ),
+                    title: 'Please select a plan.',
+                    required: true,
+                    footerElement: (
+                        <div
+                            className="show-as-link"
+                            onClick={() => {
+                                setIsSubscriptionPlanYearly(false);
+                                refreshFields();
+                            }}
+                        >
+                            {isSubsriptionPlanYearly ? (
+                                <span>Switch to monthly pricing?</span>
+                            ) : (
+                                <span> Switch to yearly pricing?</span>
+                            )}
+                        </div>
+                    ),
+                },
+            ];
         }
 
         setFields(formFields);
-    }
-
-   
+    };
 
     return (
         <>

@@ -17,7 +17,7 @@ export interface ComponentProps {
     isLoading?: undefined | boolean;
     disableSubmitButton?: undefined | boolean;
     error?: string | undefined;
-    isBodyLoading?: boolean | undefined
+    isBodyLoading?: boolean | undefined;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (
@@ -40,7 +40,11 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 }
                             />
                             <ModalBody error={props.error}>
-                                {!props.isBodyLoading ? props.children : <Loader />}
+                                {!props.isBodyLoading ? (
+                                    props.children
+                                ) : (
+                                    <Loader />
+                                )}
                             </ModalBody>
                             <ModalFooter
                                 submitButtonType={
@@ -63,7 +67,10 @@ const Modal: FunctionComponent<ComponentProps> = (
                                     props.onClose ? props.onClose : undefined
                                 }
                                 isLoading={props.isLoading || false}
-                                disableSubmitButton={props.isBodyLoading || props.disableSubmitButton}
+                                disableSubmitButton={
+                                    props.isBodyLoading ||
+                                    props.disableSubmitButton
+                                }
                             />
                         </div>
                     </div>

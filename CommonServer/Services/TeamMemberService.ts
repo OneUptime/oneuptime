@@ -16,7 +16,12 @@ import ObjectID from 'Common/Types/ObjectID';
 import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ProjectService from './ProjectService';
-import { DashboardRoute, Domain, HttpProtocol, IsBillingEnabled } from '../Config';
+import {
+    DashboardRoute,
+    Domain,
+    HttpProtocol,
+    IsBillingEnabled,
+} from '../Config';
 import BillingService from './BillingService';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Project from 'Model/Models/Project';
@@ -57,11 +62,11 @@ export class Service extends DatabaseService<Model> {
             const project = await ProjectService.findOneById({
                 id: createBy.data.projectId!,
                 select: {
-                    name: true
+                    name: true,
                 },
                 props: {
-                    isRoot: true
-                }
+                    isRoot: true,
+                },
             });
 
             if (project) {
@@ -69,18 +74,20 @@ export class Service extends DatabaseService<Model> {
                     toEmail: email,
                     templateType: EmailTemplateType.InviteMember,
                     vars: {
-                        dashboardUrl: new URL(HttpProtocol, Domain, DashboardRoute).toString(),
+                        dashboardUrl: new URL(
+                            HttpProtocol,
+                            Domain,
+                            DashboardRoute
+                        ).toString(),
                         projectName: project.name!,
                         homeUrl: new URL(HttpProtocol, Domain).toString(),
                     },
-                    subject: "You have been invited to " + project.name
+                    subject: 'You have been invited to ' + project.name,
                 }).catch((err) => {
                     logger.error(err);
                 });
             }
         }
-
-
 
         return { createBy, carryForward: null };
     }
@@ -181,23 +188,28 @@ export class Service extends DatabaseService<Model> {
     public async getUniqueTeamMemberCountInProject(
         projectId: ObjectID
     ): Promise<number> {
-        
-            const members = await this.findBy({
-                query: {
-                    projectId: projectId!,
-                },
-                props: {
-                    isRoot: true,
-                },
-                select: {
-                    userId: true, 
-                },
-                skip: 0,
-                limit: LIMIT_MAX,
+        const members = await this.findBy({
+            query: {
+                projectId: projectId!,
+            },
+            props: {
+                isRoot: true,
+            },
+            select: {
+                userId: true,
+            },
+            skip: 0,
+            limit: LIMIT_MAX,
+        });
+
+        const emmberIds = members
+            .map((member) => {
+                return member.userId?.toString();
             })
-        
-        const emmberIds = members.map((member) => member.userId?.toString()).filter((memberId) => !!memberId);
-        return [...new Set(emmberIds)].length; //get unique member ids. 
+            .filter((memberId) => {
+                return Boolean(memberId);
+            });
+        return [...new Set(emmberIds)].length; //get unique member ids.
     }
 
     public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
@@ -207,9 +219,8 @@ export class Service extends DatabaseService<Model> {
             return;
         }
 
-        const numberOfMembers: number = await this.getUniqueTeamMemberCountInProject(
-            projectId
-        );
+        const numberOfMembers: number =
+            await this.getUniqueTeamMemberCountInProject(projectId);
         const project: Project | null = await ProjectService.findOneById({
             id: projectId,
             select: {
@@ -226,9 +237,10 @@ export class Service extends DatabaseService<Model> {
             project.paymentProviderSubscriptionId &&
             project?.paymentProviderPlanId
         ) {
-            const plan: SubscriptionPlan | undefined = SubscriptionPlan.getSubscriptionPlanById(
-                project?.paymentProviderPlanId!
-            );
+            const plan: SubscriptionPlan | undefined =
+                SubscriptionPlan.getSubscriptionPlanById(
+                    project?.paymentProviderPlanId!
+                );
 
             if (!plan) {
                 return;
@@ -239,16 +251,15 @@ export class Service extends DatabaseService<Model> {
                 numberOfMembers
             );
 
-
             await ProjectService.updateOneById({
-                id: projectId, 
+                id: projectId,
                 data: {
                     paymentProviderSubscriptionSeats: numberOfMembers,
                 },
                 props: {
-                    isRoot: true
-                } 
-            })
+                    isRoot: true,
+                },
+            });
         }
     }
 }

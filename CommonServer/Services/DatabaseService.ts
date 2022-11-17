@@ -66,12 +66,12 @@ export interface OnUpdate<TBaseModel extends BaseModel> {
 
 class DatabaseService<TBaseModel extends BaseModel> {
     private postgresDatabase!: PostgresDatabase;
-    private entityType!: { new(): TBaseModel };
+    private entityType!: { new (): TBaseModel };
     private model!: TBaseModel;
     private modelName!: string;
 
     public constructor(
-        modelType: { new(): TBaseModel },
+        modelType: { new (): TBaseModel },
         postgresDatabase?: PostgresDatabase
     ) {
         this.entityType = modelType;
@@ -361,8 +361,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createBy.data.getSlugifyColumn() as string
                 ]
                     ? ((createBy.data as any)[
-                        createBy.data.getSlugifyColumn() as string
-                    ] as string)
+                          createBy.data.getSlugifyColumn() as string
+                      ] as string)
                     : null
             );
         }
@@ -465,9 +465,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
     }
 
     public async create(createBy: CreateBy<TBaseModel>): Promise<TBaseModel> {
-        const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks ? { createBy, carryForward: [] } : await this._onBeforeCreate(
-            createBy
-        );
+        const onCreate: OnCreate<TBaseModel> = createBy.props.ignoreHooks
+            ? { createBy, carryForward: [] }
+            : await this._onBeforeCreate(createBy);
 
         let _createdBy: CreateBy<TBaseModel> = onCreate.createBy;
 
@@ -658,17 +658,17 @@ class DatabaseService<TBaseModel extends BaseModel> {
             let count: number = 0;
 
             if (distinctOn) {
-                const queryBuilder: SelectQueryBuilder<TBaseModel> = this.getQueryBuilder(this.modelName)
-                    .where(findBy.query)
-                    .skip(skip.toNumber())
-                    .take(limit.toNumber());
+                const queryBuilder: SelectQueryBuilder<TBaseModel> =
+                    this.getQueryBuilder(this.modelName)
+                        .where(findBy.query)
+                        .skip(skip.toNumber())
+                        .take(limit.toNumber());
 
                 if (distinctOn) {
                     queryBuilder.groupBy(`${this.modelName}.${distinctOn}`);
                 }
 
                 count = await queryBuilder.getCount();
-
             } else {
                 count = await this.getRepository().count({
                     where: findBy.query as any,
@@ -676,7 +676,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     take: (findBy.limit as PositiveNumber).toNumber(),
                 });
             }
-
 
             let countPositive: PositiveNumber = new PositiveNumber(count);
             countPositive = await this.onCountSuccess(countPositive);
@@ -699,9 +698,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _deleteBy(deleteBy: DeleteBy<TBaseModel>): Promise<number> {
         try {
-            const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks ? { deleteBy, carryForward: [] } : await this.onBeforeDelete(
-                deleteBy
-            );
+            const onDelete: OnDelete<TBaseModel> = deleteBy.props.ignoreHooks
+                ? { deleteBy, carryForward: [] }
+                : await this.onBeforeDelete(deleteBy);
             const beforeDeleteBy: DeleteBy<TBaseModel> = onDelete.deleteBy;
 
             const carryForward: any = onDelete.carryForward;
@@ -728,17 +727,15 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 } as any,
                 props: {
                     isRoot: true,
-                    ignoreHooks: true
+                    ignoreHooks: true,
                 },
             });
 
             const numberOfDocsAffected: number =
                 (await this.getRepository().delete(beforeDeleteBy.query as any))
                     .affected || 0;
-            
-            
-            if (!deleteBy.props.ignoreHooks) {
 
+            if (!deleteBy.props.ignoreHooks) {
                 await this.onDeleteSuccess(
                     { deleteBy, carryForward },
                     items.map((i: TBaseModel) => {
@@ -769,7 +766,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
                     createdAt: SortOrder.Descending,
                 };
             }
-            const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks ? { findBy, carryForward: [] } : await this.onBeforeFind(findBy);
+            const onFind: OnFind<TBaseModel> = findBy.props.ignoreHooks
+                ? { findBy, carryForward: [] }
+                : await this.onBeforeFind(findBy);
             const onBeforeFind: FindBy<TBaseModel> = onFind.findBy;
             const carryForward: any = onFind.carryForward;
 
@@ -866,10 +865,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
                 if (!tableColumnMetadata.modelType) {
                     throw new BadDataException(
                         'Populate not supported on ' +
-                        key +
-                        ' of ' +
-                        this.model.singularName +
-                        ' because this column modelType is not found.'
+                            key +
+                            ' of ' +
+                            this.model.singularName +
+                            ' because this column modelType is not found.'
                     );
                 }
 
@@ -928,7 +927,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async findOneById(
         findOneById: FindOneByID<TBaseModel>
     ): Promise<TBaseModel | null> {
-        console.log("FINDONE BY");
+        console.log('FINDONE BY');
         console.log(findOneById);
         return await this.findOneBy({
             query: {
@@ -942,9 +941,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
     private async _updateBy(updateBy: UpdateBy<TBaseModel>): Promise<number> {
         try {
-            const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks ? { updateBy, carryForward: [] } : await this.onBeforeUpdate(
-                updateBy
-            );
+            const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
+                ? { updateBy, carryForward: [] }
+                : await this.onBeforeUpdate(updateBy);
 
             const beforeUpdateBy: UpdateBy<TBaseModel> = onUpdate.updateBy;
             const carryForward: any = onUpdate.carryForward;

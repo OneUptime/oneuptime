@@ -48,7 +48,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 leftComponents={
                     <>
                         {props.projects.length === 0 && (
-                            <Logo onClick={() => { }} />
+                            <Logo onClick={() => {}} />
                         )}
                         <ProjectPicker
                             showProjectModal={props.showProjectModal}
@@ -102,17 +102,35 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 }}
                             />
 
-                            {props.selectedProject?.trialEndsAt && BILLING_ENABLED && OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(OneUptimeDate.getCurrentDate(), props.selectedProject?.trialEndsAt!) > 0 && <Alert
-                                type={AlertType.INFO}
-                                title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(OneUptimeDate.getCurrentDate(), props.selectedProject?.trialEndsAt!)} days`}
-                            />}
+                            {props.selectedProject?.trialEndsAt &&
+                                BILLING_ENABLED &&
+                                OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                    OneUptimeDate.getCurrentDate(),
+                                    props.selectedProject?.trialEndsAt!
+                                ) > 0 && (
+                                    <Alert
+                                        type={AlertType.INFO}
+                                        title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                            OneUptimeDate.getCurrentDate(),
+                                            props.selectedProject?.trialEndsAt!
+                                        )} days`}
+                                    />
+                                )}
                         </div>
                     </>
                 }
                 rightComponents={
                     <>
                         {/* <Notifications /> */}
-                        {props.selectedProject?.id && props.selectedProject.paymentProviderPlanId && SubscriptionPlan.isFreePlan(props.selectedProject.paymentProviderPlanId) ? <Upgrade projectId={props.selectedProject.id} /> : <></>}
+                        {props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId
+                        ) ? (
+                            <Upgrade projectId={props.selectedProject.id} />
+                        ) : (
+                            <></>
+                        )}
                         <Help />
                         <UserProfile />
                     </>

@@ -142,7 +142,7 @@ export enum IconProp {
     Layers,
     Clock,
     Invoice,
-    Upgrade
+    Upgrade,
 }
 
 export interface ComponentProps {

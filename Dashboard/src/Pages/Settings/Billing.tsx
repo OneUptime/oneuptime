@@ -11,12 +11,18 @@ import Page from 'CommonUI/src/Components/Page/Page';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Project from 'Model/Models/Project';
-import React, { FunctionComponent, ReactElement, useEffect, useRef, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
-import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod'
+import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Modal from 'CommonUI/src/Components/Modal/Modal';
 import ButtonType from 'CommonUI/src/Components/Button/ButtonTypes';
@@ -31,16 +37,18 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import useAsyncEffect from 'use-async-effect';
 import CheckoutForm from './BillingPaymentMethodForm';
 
-export interface ComponentProps extends PageComponentProps { }
+export interface ComponentProps extends PageComponentProps {}
 
 const Settings: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] = useState<boolean>(true)
-    const [showPaymentMethodModal, setShowPaymentMethodModal] = useState<boolean>(false);
+    const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
+        useState<boolean>(true);
+    const [showPaymentMethodModal, setShowPaymentMethodModal] =
+        useState<boolean>(false);
     const [isModalLoading, setIsModalLoading] = useState<boolean>(false);
-    const [isModalSubmitButtonLoading, setIsModalSubmitButtonLoading] = useState<boolean>(false);
+    const [isModalSubmitButtonLoading, setIsModalSubmitButtonLoading] =
+        useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [setupIntent, setSetupIntent] = useState<string>('');
     const [stripe, setStripe] = useState<Stripe | null>(null);
@@ -50,18 +58,16 @@ const Settings: FunctionComponent<ComponentProps> = (
         setIsModalLoading(true);
         setStripe(await loadStripe(BILLING_PUBLIC_KEY));
         setIsModalLoading(false);
-    }, [])
+    }, []);
 
     useEffect(() => {
         if (stripe) {
-
         }
-    }, [stripe])
+    }, [stripe]);
 
     const fetchSetupIntent = async () => {
         try {
             setIsModalLoading(true);
-
 
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
@@ -75,21 +81,18 @@ const Settings: FunctionComponent<ComponentProps> = (
 
             setSetupIntent(data['setupIntent'] as string);
             setIsModalLoading(false);
-
-
         } catch (err) {
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
             }
             setIsModalLoading(false);
         }
-    }
-
+    };
 
     return (
         <Page
@@ -127,32 +130,71 @@ const Settings: FunctionComponent<ComponentProps> = (
                             minLength: 6,
                         },
                         fieldType: FormFieldSchemaType.RadioButton,
-                        radioButtonOptions: SubscriptionPlan.getSubscriptionPlans().map((plan: SubscriptionPlan): RadioButton => {
+                        radioButtonOptions:
+                            SubscriptionPlan.getSubscriptionPlans().map(
+                                (plan: SubscriptionPlan): RadioButton => {
+                                    let description: string =
+                                        plan.isCustomPricing()
+                                            ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
+                                            : `$${
+                                                  isSubsriptionPlanYearly
+                                                      ? plan.getYearlySubscriptionAmountInUSD()
+                                                      : plan.getMonthlySubscriptionAmountInUSD()
+                                              } / month per user. Billed ${
+                                                  isSubsriptionPlanYearly
+                                                      ? 'yearly'
+                                                      : 'monthly'
+                                              }. ${
+                                                  plan.getTrialPeriod() > 0
+                                                      ? `Free ${plan.getTrialPeriod()} days trial.`
+                                                      : ''
+                                              }`;
 
-                            let description: string = plan.isCustomPricing() ? `Custom Pricing based on your needs. Our sales team will contact you shortly.` : `$${isSubsriptionPlanYearly ? plan.getYearlySubscriptionAmountInUSD() : plan.getMonthlySubscriptionAmountInUSD()} / month per user. Billed ${isSubsriptionPlanYearly ? "yearly" : "monthly"}. ${plan.getTrialPeriod() > 0 ? `Free ${plan.getTrialPeriod()} days trial.` : ''}`
+                                    if (
+                                        isSubsriptionPlanYearly &&
+                                        plan.getYearlySubscriptionAmountInUSD() ===
+                                            0
+                                    ) {
+                                        description =
+                                            'This plan is free, forever. ';
+                                    }
 
-                            if (isSubsriptionPlanYearly && plan.getYearlySubscriptionAmountInUSD() === 0) {
-                                description = 'This plan is free, forever. '
-                            }
+                                    if (
+                                        !isSubsriptionPlanYearly &&
+                                        plan.getMonthlySubscriptionAmountInUSD() ===
+                                            0
+                                    ) {
+                                        description =
+                                            'This plan is free, forever. ';
+                                    }
 
-                            if (!isSubsriptionPlanYearly && plan.getMonthlySubscriptionAmountInUSD() === 0) {
-                                description = 'This plan is free, forever. '
-                            }
-
-
-                            return {
-                                value: isSubsriptionPlanYearly ? plan.getYearlyPlanId() : plan.getMonthlyPlanId(),
-                                title: plan.getName(),
-                                description: description
-                            }
-                        }),
+                                    return {
+                                        value: isSubsriptionPlanYearly
+                                            ? plan.getYearlyPlanId()
+                                            : plan.getMonthlyPlanId(),
+                                        title: plan.getName(),
+                                        description: description,
+                                    };
+                                }
+                            ),
                         title: 'Please select a plan.',
                         required: true,
-                        footerElement: (<div className='show-as-link' onClick={() => {
-                            setIsSubscriptionPlanYearly(!isSubsriptionPlanYearly);
-                        }}>
-                            {isSubsriptionPlanYearly ? <span>Switch to monthly pricing?</span> : <span> Switch to yearly pricing?</span>}
-                        </div>)
+                        footerElement: (
+                            <div
+                                className="show-as-link"
+                                onClick={() => {
+                                    setIsSubscriptionPlanYearly(
+                                        !isSubsriptionPlanYearly
+                                    );
+                                }}
+                            >
+                                {isSubsriptionPlanYearly ? (
+                                    <span>Switch to monthly pricing?</span>
+                                ) : (
+                                    <span> Switch to yearly pricing?</span>
+                                )}
+                            </div>
+                        ),
                     },
                 ]}
                 modelDetailProps={{
@@ -165,47 +207,83 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                             title: 'Current Plan',
                             getElement: (item: JSONObject): ReactElement => {
-                                const plan = SubscriptionPlan.getSubscriptionPlanById(item['paymentProviderPlanId'] as string);
+                                const plan =
+                                    SubscriptionPlan.getSubscriptionPlanById(
+                                        item['paymentProviderPlanId'] as string
+                                    );
 
                                 if (!plan) {
-                                    return <p>No plan selected for this project</p>
+                                    return (
+                                        <p>No plan selected for this project</p>
+                                    );
                                 }
 
-                                let description: string = plan.isCustomPricing() ? `Custom Pricing based on your needs. Our sales team will contact you shortly.` : `$${isSubsriptionPlanYearly ? plan.getYearlySubscriptionAmountInUSD() : plan.getMonthlySubscriptionAmountInUSD()} / month per user. Billed ${isSubsriptionPlanYearly ? "yearly" : "monthly"}.`
+                                let description: string = plan.isCustomPricing()
+                                    ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
+                                    : `$${
+                                          isSubsriptionPlanYearly
+                                              ? plan.getYearlySubscriptionAmountInUSD()
+                                              : plan.getMonthlySubscriptionAmountInUSD()
+                                      } / month per user. Billed ${
+                                          isSubsriptionPlanYearly
+                                              ? 'yearly'
+                                              : 'monthly'
+                                      }.`;
 
-                                if (isSubsriptionPlanYearly && plan.getYearlySubscriptionAmountInUSD() === 0) {
-                                    description = 'This plan is free, forever. '
+                                if (
+                                    isSubsriptionPlanYearly &&
+                                    plan.getYearlySubscriptionAmountInUSD() ===
+                                        0
+                                ) {
+                                    description =
+                                        'This plan is free, forever. ';
                                 }
 
-                                if (!isSubsriptionPlanYearly && plan.getMonthlySubscriptionAmountInUSD() === 0) {
-                                    description = 'This plan is free, forever. '
+                                if (
+                                    !isSubsriptionPlanYearly &&
+                                    plan.getMonthlySubscriptionAmountInUSD() ===
+                                        0
+                                ) {
+                                    description =
+                                        'This plan is free, forever. ';
                                 }
 
-                                return <div>
-                                    <div className='bold'>{plan.getName()}</div>
-                                    <div>{description}</div>
-                                </div>
-                            }
+                                return (
+                                    <div>
+                                        <div className="bold">
+                                            {plan.getName()}
+                                        </div>
+                                        <div>{description}</div>
+                                    </div>
+                                );
+                            },
                         },
                         {
                             field: {
                                 paymentProviderSubscriptionSeats: true,
                             },
                             title: 'Seats',
-                            description: 'These are current users in this project. To change this you need to add or remove them.',
+                            description:
+                                'These are current users in this project. To change this you need to add or remove them.',
                             getElement: (item: JSONObject): ReactElement => {
-
-                                return <div>
-                                    <div className='bold'>{item['paymentProviderSubscriptionSeats'] as string} users in this project.</div>
-                                </div>
-                            }
-
+                                return (
+                                    <div>
+                                        <div className="bold">
+                                            {
+                                                item[
+                                                    'paymentProviderSubscriptionSeats'
+                                                ] as string
+                                            }{' '}
+                                            users in this project.
+                                        </div>
+                                    </div>
+                                );
+                            },
                         },
                     ],
                     modelId: props.currentProject?._id,
                 }}
             />
-
 
             <ModelTable<BillingPaymentMethod>
                 modelType={BillingPaymentMethod}
@@ -215,15 +293,17 @@ const Settings: FunctionComponent<ComponentProps> = (
                 isCreateable={false}
                 isViewable={false}
                 cardProps={{
-                    buttons: [{
-                        title: "Add Payemnt Method",
-                        icon: IconProp.Add,
-                        onClick: () => {
-                            fetchSetupIntent();
-                            setShowPaymentMethodModal(true);
+                    buttons: [
+                        {
+                            title: 'Add Payemnt Method',
+                            icon: IconProp.Add,
+                            onClick: () => {
+                                fetchSetupIntent();
+                                setShowPaymentMethodModal(true);
+                            },
+                            buttonStyle: ButtonStyleType.OUTLINE,
                         },
-                        buttonStyle: ButtonStyleType.OUTLINE
-                    }],
+                    ],
                     icon: IconProp.Billing,
                     title: 'Payment Methods',
                     description:
@@ -255,7 +335,6 @@ const Settings: FunctionComponent<ComponentProps> = (
                 ]}
             />
 
-
             {showPaymentMethodModal ? (
                 <Modal
                     title={`Add payment method`}
@@ -272,16 +351,33 @@ const Settings: FunctionComponent<ComponentProps> = (
                     isBodyLoading={isModalLoading}
                     submitButtonType={ButtonType.Submit}
                 >
-                    {setupIntent && !error && stripe ? <Elements stripe={stripe} options={{
-
-                        // passing the client secret obtained in step 3
-                        clientSecret: setupIntent,
-                    }}>
-
-                        <CheckoutForm onSuccess={() => { setIsModalSubmitButtonLoading(false); }} onError={(errorMessage) => { setError(errorMessage); setIsModalSubmitButtonLoading(false);}} formRef={formRef} />
-
-                    </Elements> : <></>}
-                    {!error && !setupIntent && !stripe ? <p>Loading...</p> : <></>}
+                    {setupIntent && !error && stripe ? (
+                        <Elements
+                            stripe={stripe}
+                            options={{
+                                // passing the client secret obtained in step 3
+                                clientSecret: setupIntent,
+                            }}
+                        >
+                            <CheckoutForm
+                                onSuccess={() => {
+                                    setIsModalSubmitButtonLoading(false);
+                                }}
+                                onError={(errorMessage) => {
+                                    setError(errorMessage);
+                                    setIsModalSubmitButtonLoading(false);
+                                }}
+                                formRef={formRef}
+                            />
+                        </Elements>
+                    ) : (
+                        <></>
+                    )}
+                    {!error && !setupIntent && !stripe ? (
+                        <p>Loading...</p>
+                    ) : (
+                        <></>
+                    )}
                 </Modal>
             ) : (
                 <></>
@@ -296,7 +392,13 @@ const Settings: FunctionComponent<ComponentProps> = (
                         title: `Delete Project`,
                         buttonStyle: ButtonStyleType.DANGER,
                         onClick: () => {
-                            Navigation.navigate(RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_DANGERZONE] as Route))
+                            Navigation.navigate(
+                                RouteUtil.populateRouteParams(
+                                    RouteMap[
+                                        PageMap.SETTINGS_DANGERZONE
+                                    ] as Route
+                                )
+                            );
                         },
                         icon: IconProp.Close,
                     },

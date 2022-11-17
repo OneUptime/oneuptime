@@ -1,6 +1,11 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Project';
-import DatabaseService, { OnCreate, OnDelete, OnFind, OnUpdate } from './DatabaseService';
+import DatabaseService, {
+    OnCreate,
+    OnDelete,
+    OnFind,
+    OnUpdate,
+} from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import TeamService from './TeamService';
@@ -44,14 +49,17 @@ export class Service extends DatabaseService<Model> {
             throw new BadDataException('Project name is required');
         }
 
-
         if (IsBillingEnabled) {
             if (!data.data.paymentProviderPlanId) {
-                throw new BadDataException("Plan required to create the project.");
+                throw new BadDataException(
+                    'Plan required to create the project.'
+                );
             }
 
-            if (!SubscriptionPlan.isValidPlanId(data.data.paymentProviderPlanId)) {
-                throw new BadDataException("Plan is invalid.");
+            if (
+                !SubscriptionPlan.isValidPlanId(data.data.paymentProviderPlanId)
+            ) {
+                throw new BadDataException('Plan is invalid.');
             }
         }
 
@@ -98,41 +106,54 @@ export class Service extends DatabaseService<Model> {
         return Promise.resolve({ createBy: data, carryForward: null });
     }
 
-    protected override async onBeforeUpdate(updateBy: UpdateBy<Model>): Promise<OnUpdate<Model>> {
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<Model>
+    ): Promise<OnUpdate<Model>> {
         if (IsBillingEnabled) {
             if (updateBy.data.paymentProviderPlanId) {
-                // payment provider id changed. 
+                // payment provider id changed.
                 const project = await this.findOneById({
                     id: new ObjectID(updateBy.data._id! as string),
                     select: {
                         paymentProviderSubscriptionId: true,
                         paymentProviderSubscriptionSeats: true,
                         paymentProviderPlanId: true,
-                        trialEndsAt: true
+                        trialEndsAt: true,
                     },
                     props: {
-                        isRoot: true
-                    }
+                        isRoot: true,
+                    },
                 });
 
-
                 if (!project) {
-                    throw new BadDataException("Project not found");
+                    throw new BadDataException('Project not found');
                 }
 
-                if (project.paymentProviderPlanId !== updateBy.data.paymentProviderPlanId) {
-                    const plan = SubscriptionPlan.getSubscriptionPlanById(updateBy.data.paymentProviderPlanId! as string); 
-                    
+                if (
+                    project.paymentProviderPlanId !==
+                    updateBy.data.paymentProviderPlanId
+                ) {
+                    const plan = SubscriptionPlan.getSubscriptionPlanById(
+                        updateBy.data.paymentProviderPlanId! as string
+                    );
+
                     if (!plan) {
-                        throw new BadDataException("Invalid plan");
+                        throw new BadDataException('Invalid plan');
                     }
 
-                    await BillingService.changePlan(project.paymentProviderSubscriptionId as string, plan, project.paymentProviderSubscriptionSeats as number, plan.getYearlyPlanId() === updateBy.data.paymentProviderPlanId, project.trialEndsAt);
+                    await BillingService.changePlan(
+                        project.paymentProviderSubscriptionId as string,
+                        plan,
+                        project.paymentProviderSubscriptionSeats as number,
+                        plan.getYearlyPlanId() ===
+                            updateBy.data.paymentProviderPlanId,
+                        project.trialEndsAt
+                    );
                 }
             }
         }
 
-        return {updateBy, carryForward: []}
+        return { updateBy, carryForward: [] };
     }
 
     private async addDefaultScheduledMaintenanceState(
@@ -199,7 +220,6 @@ export class Service extends DatabaseService<Model> {
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
-
         // Create billing.
 
         if (IsBillingEnabled) {
@@ -208,30 +228,36 @@ export class Service extends DatabaseService<Model> {
                 createdItem.id!
             );
 
-            const plan: SubscriptionPlan | undefined = SubscriptionPlan.getSubscriptionPlanById(createdItem.paymentProviderPlanId!);
+            const plan: SubscriptionPlan | undefined =
+                SubscriptionPlan.getSubscriptionPlanById(
+                    createdItem.paymentProviderPlanId!
+                );
 
             if (!plan) {
-                throw new BadDataException("Invalid plan.");
+                throw new BadDataException('Invalid plan.');
             }
-            // add subscription to this customer. 
+            // add subscription to this customer.
 
-            const {
-                id, trialEndsAt
-            } = await BillingService.subscribeToPlan(customerId, plan, 1, plan.getYearlyPlanId() === createdItem.paymentProviderPlanId!, true);
+            const { id, trialEndsAt } = await BillingService.subscribeToPlan(
+                customerId,
+                plan,
+                1,
+                plan.getYearlyPlanId() === createdItem.paymentProviderPlanId!,
+                true
+            );
 
             await this.updateOneById({
                 id: createdItem.id!,
                 data: {
                     paymentProviderCustomerId: customerId,
                     paymentProviderSubscriptionId: id,
-                    trialEndsAt: trialEndsAt
+                    trialEndsAt: trialEndsAt,
                 },
                 props: {
                     isRoot: true,
                 },
             });
         }
-
 
         createdItem = await this.addDefaultProjectTeams(createdItem);
         createdItem = await this.addDefaultMonitorStatus(createdItem);
@@ -240,7 +266,6 @@ export class Service extends DatabaseService<Model> {
             createdItem
         );
         createdItem = await this.addDefaultIncidentSeverity(createdItem);
-
 
         return createdItem;
     }

@@ -7,9 +7,9 @@ import React, {
 import 'react-toggle/style.css';
 
 export interface RadioButton {
-    title: string,
-    description?: string | undefined,
-    value: string
+    title: string;
+    description?: string | undefined;
+    value: string;
 }
 
 export interface ComponentProps {
@@ -18,7 +18,7 @@ export interface ComponentProps {
     onFocus?: () => void;
     onBlur?: () => void;
     tabIndex?: number | undefined;
-    options: Array<RadioButton>
+    options: Array<RadioButton>;
 }
 
 const RadioButtons: FunctionComponent<ComponentProps> = (
@@ -42,26 +42,37 @@ const RadioButtons: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <div className='form-control radio-group'>
-            {props.options && props.options.map((radioButton: RadioButton, i: number) => {
-                return (<div key={i} className='flex radio-box' onClick={() => {
-                    handleChange(radioButton.value);
-                }}>
-                    <div className='radio-circle-box'>
-                        {value !== radioButton.value ? <div className='radio-empty-circle'> </div> :
-                            <div className='radio-empty-circle radio-checked-circle'> </div>}
-                    </div>
-                    <div className='radio-text-box'>
-                        <div className='radio-text-title'>
-                            {radioButton.title}
+        <div className="form-control radio-group">
+            {props.options &&
+                props.options.map((radioButton: RadioButton, i: number) => {
+                    return (
+                        <div
+                            key={i}
+                            className="flex radio-box"
+                            onClick={() => {
+                                handleChange(radioButton.value);
+                            }}
+                        >
+                            <div className="radio-circle-box">
+                                {value !== radioButton.value ? (
+                                    <div className="radio-empty-circle"> </div>
+                                ) : (
+                                    <div className="radio-empty-circle radio-checked-circle">
+                                        {' '}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="radio-text-box">
+                                <div className="radio-text-title">
+                                    {radioButton.title}
+                                </div>
+                                <div className="radio-text-box-description">
+                                    {radioButton.description}
+                                </div>
+                            </div>
                         </div>
-                        <div className='radio-text-box-description'>
-                            {radioButton.description}
-                        </div>
-                    </div>
-                </div>)
-            })}
-
+                    );
+                })}
         </div>
     );
 };

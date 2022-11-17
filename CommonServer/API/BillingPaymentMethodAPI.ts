@@ -1,4 +1,3 @@
-
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import Project from 'Model/Models/Project';
@@ -9,11 +8,18 @@ import BillingPaymentMethodService, {
 } from '../Services/BillingPaymentMethodService';
 import BillingService from '../Services/BillingService';
 import ProjectService from '../Services/ProjectService';
-import { ExpressRequest, ExpressResponse, NextFunction } from '../Utils/Express';
+import {
+    ExpressRequest,
+    ExpressResponse,
+    NextFunction,
+} from '../Utils/Express';
 import Response from '../Utils/Response';
 import BaseAPI from './BaseAPI';
 
-export default class UserAPI extends BaseAPI<BillingPaymentMethod, BillingPaymentMethodServiceType> {
+export default class UserAPI extends BaseAPI<
+    BillingPaymentMethod,
+    BillingPaymentMethodServiceType
+> {
     public constructor() {
         super(BillingPaymentMethod, BillingPaymentMethodService);
 
@@ -26,9 +32,10 @@ export default class UserAPI extends BaseAPI<BillingPaymentMethod, BillingPaymen
                 next: NextFunction
             ) => {
                 try {
-
                     if (!IsBillingEnabled) {
-                        throw new BadDataException("Billign is not enabled for this server");
+                        throw new BadDataException(
+                            'Billign is not enabled for this server'
+                        );
                     }
 
                     if (req.body['projectId']) {
@@ -37,45 +44,57 @@ export default class UserAPI extends BaseAPI<BillingPaymentMethod, BillingPaymen
                         );
                     }
 
-                    const userPermissions = this.getPermissionsForTenant(req).filter((permission) => {
+                    const userPermissions = this.getPermissionsForTenant(
+                        req
+                    ).filter((permission) => {
                         console.log(permission.permission);
                         //FIX: Change "Project"
-                        return permission.permission.toString() === "ProjectOwner"
-                    }); 
-
-                    if (userPermissions.length === 0) {
-                        throw new BadDataException("Only Project owner can add payment methods.");
-                    }
-
-                    const project: Project | null = await ProjectService.findOneById({
-                        id: this.getDatabaseCommonInteractionProps(req).tenantId!,
-                        props: {
-                            isRoot: true
-                        },
-                        select: {
-                            _id: true,
-                            paymentProviderCustomerId: true
-                        }
+                        return (
+                            permission.permission.toString() === 'ProjectOwner'
+                        );
                     });
 
+                    if (userPermissions.length === 0) {
+                        throw new BadDataException(
+                            'Only Project owner can add payment methods.'
+                        );
+                    }
+
+                    const project: Project | null =
+                        await ProjectService.findOneById({
+                            id: this.getDatabaseCommonInteractionProps(req)
+                                .tenantId!,
+                            props: {
+                                isRoot: true,
+                            },
+                            select: {
+                                _id: true,
+                                paymentProviderCustomerId: true,
+                            },
+                        });
+
                     if (!project) {
-                        throw new BadDataException("Project not found");
+                        throw new BadDataException('Project not found');
                     }
 
                     if (!project) {
-                        throw new BadDataException("Project not found");
+                        throw new BadDataException('Project not found');
                     }
 
                     if (!project.paymentProviderCustomerId) {
-                        throw new BadDataException("Payment Provider customer not found");
+                        throw new BadDataException(
+                            'Payment Provider customer not found'
+                        );
                     }
 
-                    const setupIntent: string = await BillingService.getSetupIntentSecret(project.paymentProviderCustomerId);
+                    const setupIntent: string =
+                        await BillingService.getSetupIntentSecret(
+                            project.paymentProviderCustomerId
+                        );
 
                     return Response.sendJsonObjectResponse(req, res, {
                         setupIntent: setupIntent,
                     });
-
                 } catch (err) {
                     next(err);
                 }

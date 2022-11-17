@@ -45,20 +45,25 @@ export default class SubscriptionPlan {
         return this.name;
     }
 
-
     public static isFreePlan(planId: string): boolean {
         const plan = this.getSubscriptionPlanById(planId);
         if (plan) {
-            if (plan.getMonthlyPlanId() === planId && plan.getMonthlySubscriptionAmountInUSD() === 0) {
+            if (
+                plan.getMonthlyPlanId() === planId &&
+                plan.getMonthlySubscriptionAmountInUSD() === 0
+            ) {
                 return true;
             }
 
-            if (plan.getYearlyPlanId() === planId && plan.getYearlySubscriptionAmountInUSD() === 0) {
+            if (
+                plan.getYearlyPlanId() === planId &&
+                plan.getYearlySubscriptionAmountInUSD() === 0
+            ) {
                 return true;
             }
         }
 
-        return false; 
+        return false;
     }
 
     public getYearlySubscriptionAmountInUSD(): number {
@@ -109,12 +114,14 @@ export default class SubscriptionPlan {
     ): SubscriptionPlan | undefined {
         const plans: Array<SubscriptionPlan> = this.getSubscriptionPlans();
         return plans.find((plan: SubscriptionPlan) => {
-            return plan.getMonthlyPlanId() === planId ||
-                plan.getYearlyPlanId() === planId;
+            return (
+                plan.getMonthlyPlanId() === planId ||
+                plan.getYearlyPlanId() === planId
+            );
         });
     }
 
     public static isValidPlanId(planId: string): boolean {
-        return !!this.getSubscriptionPlanById(planId)
+        return Boolean(this.getSubscriptionPlanById(planId));
     }
 }
