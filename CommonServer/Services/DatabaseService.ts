@@ -920,6 +920,8 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async findOneById(
         findOneById: FindOneByID<TBaseModel>
     ): Promise<TBaseModel | null> {
+        console.log("FINDONE BY");
+        console.log(findOneById);
         return await this.findOneBy({
             query: {
                 _id: findOneById.id.toString() as any,

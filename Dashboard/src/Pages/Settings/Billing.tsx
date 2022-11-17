@@ -11,7 +11,7 @@ import Page from 'CommonUI/src/Components/Page/Page';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Project from 'Model/Models/Project';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useRef, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
@@ -20,6 +20,16 @@ import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod'
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Modal from 'CommonUI/src/Components/Modal/Modal';
 import ButtonType from 'CommonUI/src/Components/Button/ButtonTypes';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import BaseAPI from 'CommonUI/src/Utils/API/API';
+import URL from 'Common/Types/API/URL';
+import { BILLING_PUBLIC_KEY, DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe, Stripe } from '@stripe/stripe-js';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import useAsyncEffect from 'use-async-effect';
+import CheckoutForm from './BillingPaymentMethodForm';
 
 export interface ComponentProps extends PageComponentProps { }
 
@@ -29,6 +39,57 @@ const Settings: FunctionComponent<ComponentProps> = (
 
     const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] = useState<boolean>(true)
     const [showPaymentMethodModal, setShowPaymentMethodModal] = useState<boolean>(false);
+    const [isModalLoading, setIsModalLoading] = useState<boolean>(false);
+    const [isModalSubmitButtonLoading, setIsModalSubmitButtonLoading] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
+    const [setupIntent, setSetupIntent] = useState<string>('');
+    const [stripe, setStripe] = useState<Stripe | null>(null);
+    const formRef: any = useRef<any>(null);
+
+    useAsyncEffect(async () => {
+        setIsModalLoading(true);
+        setStripe(await loadStripe(BILLING_PUBLIC_KEY));
+        setIsModalLoading(false);
+    }, [])
+
+    useEffect(() => {
+        if (stripe) {
+
+        }
+    }, [stripe])
+
+    const fetchSetupIntent = async () => {
+        try {
+            setIsModalLoading(true);
+
+
+            const response: HTTPResponse<JSONObject> =
+                await BaseAPI.post<JSONObject>(
+                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                        `/billing-payment-methods/setup`
+                    ),
+                    {},
+                    ModelAPI.getCommonHeaders()
+                );
+            const data: JSONObject = response.data;
+
+            setSetupIntent(data['setupIntent'] as string);
+            setIsModalLoading(false);
+
+
+        } catch (err) {
+            try {
+                setError(
+                    (err as HTTPErrorResponse).message ||
+                    'Server Error. Please try again'
+                );
+            } catch (e) {
+                setError('Server Error. Please try again');
+            }
+            setIsModalLoading(false);
+        }
+    }
+
 
     return (
         <Page
@@ -156,8 +217,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                 cardProps={{
                     buttons: [{
                         title: "Add Payemnt Method",
-                        icon: IconProp.Add, 
+                        icon: IconProp.Add,
                         onClick: () => {
+                            fetchSetupIntent();
                             setShowPaymentMethodModal(true);
                         },
                         buttonStyle: ButtonStyleType.OUTLINE
@@ -192,22 +254,34 @@ const Settings: FunctionComponent<ComponentProps> = (
                     },
                 ]}
             />
-            
+
 
             {showPaymentMethodModal ? (
                 <Modal
                     title={`Add payment method`}
-                    onSubmit={() => {
-                        setShowPaymentMethodModal(false);
+                    onSubmit={async () => {
+                        setIsModalSubmitButtonLoading(true);
+                        formRef.current.click();
                     }}
+                    isLoading={isModalSubmitButtonLoading}
                     onClose={() => {
                         setShowPaymentMethodModal(false);
                     }}
                     submitButtonText={`Save`}
-                    isBodyLoading={true}
+                    error={error || ''}
+                    isBodyLoading={isModalLoading}
                     submitButtonType={ButtonType.Submit}
                 >
-                    <div>Payuemnt</div>
+                    {setupIntent && !error && stripe ? <Elements stripe={stripe} options={{
+
+                        // passing the client secret obtained in step 3
+                        clientSecret: setupIntent,
+                    }}>
+
+                        <CheckoutForm onSuccess={() => { setIsModalSubmitButtonLoading(false); }} onError={(errorMessage) => { setError(errorMessage); setIsModalSubmitButtonLoading(false);}} formRef={formRef} />
+
+                    </Elements> : <></>}
+                    {!error && !setupIntent && !stripe ? <p>Loading...</p> : <></>}
                 </Modal>
             ) : (
                 <></>

@@ -1,6 +1,5 @@
 
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Permission from 'Common/Types/Permission';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import Project from 'Model/Models/Project';
 import { IsBillingEnabled } from '../Config';
@@ -38,11 +37,13 @@ export default class UserAPI extends BaseAPI<BillingPaymentMethod, BillingPaymen
                         );
                     }
 
-                    const userPermissions = this.getPermissionsForTenant(req); 
+                    const userPermissions = this.getPermissionsForTenant(req).filter((permission) => {
+                        console.log(permission.permission);
+                        //FIX: Change "Project"
+                        return permission.permission.toString() === "ProjectOwner"
+                    }); 
 
-                    if (userPermissions.filter((permission) => {
-                        permission.permission === Permission.ProjectOwner
-                    }).length === 0) {
+                    if (userPermissions.length === 0) {
                         throw new BadDataException("Only Project owner can add payment methods.");
                     }
 

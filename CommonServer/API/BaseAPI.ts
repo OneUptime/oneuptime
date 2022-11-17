@@ -150,6 +150,8 @@ export default class BaseAPI<
 
         const props = this.getDatabaseCommonInteractionProps(req);
 
+        console.log(props)
+
         if (props && props.userTenantAccessPermission && props.userTenantAccessPermission[props.tenantId?.toString() || '']) {
             return props.userTenantAccessPermission[props.tenantId?.toString() || '']?.permissions || [];
         }
@@ -203,6 +205,10 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+
+        console.log("LIST")
+        await this.onBeforeList(req, res);
+
         const skip: PositiveNumber = req.query['skip']
             ? new PositiveNumber(req.query['skip'] as string)
             : new PositiveNumber(0);
@@ -405,5 +411,11 @@ export default class BaseAPI<
 
     public getEntityName(): string {
         return this.entityType.name;
+    }
+
+    protected async onBeforeList(
+        _req: ExpressRequest, _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
     }
 }
