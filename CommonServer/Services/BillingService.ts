@@ -206,7 +206,7 @@ export class BillingService {
 
         const paymenMethods = await this.getPaymentMethods(customerId);
         if (paymenMethods.length === 1) {
-            throw new BadDataException("There's only one poayment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account.");
+            throw new BadDataException("There's only one payment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account.");
         }
 
         await this.stripe.paymentMethods.detach(paymentMethodId);

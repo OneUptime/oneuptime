@@ -24,12 +24,14 @@ const CheckoutForm = (props: ComponentProps) => {
             // Make sure to disable form submission until Stripe.js has loaded.
             return;
         }
+
+        console.log(Navigation.getCurrentURL().removeQueryString().toString());
         
         const { error } = await stripe.confirmSetup({
             //`Elements` instance that was used to create the Payment Element
             elements,
             confirmParams: {
-                return_url: Navigation.getCurrentURL().toString(),
+                return_url: Navigation.getCurrentURL().removeQueryString().toString(),
             },
         });
 

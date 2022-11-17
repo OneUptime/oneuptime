@@ -27,12 +27,12 @@ export default class BaseAPI<
     TBaseModel extends BaseModel,
     TBaseService extends DatabaseService<BaseModel>
 > {
-    public entityType: { new (): TBaseModel };
+    public entityType: { new(): TBaseModel };
 
     public router: ExpressRouter;
     public service: TBaseService;
 
-    public constructor(type: { new (): TBaseModel }, service: TBaseService) {
+    public constructor(type: { new(): TBaseModel }, service: TBaseService) {
         this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
 
@@ -144,8 +144,8 @@ export default class BaseAPI<
         this.service = service;
     }
 
-    public getPermissionsForTenant(req:ExpressRequest): Array<UserPermission> {
-        
+    public getPermissionsForTenant(req: ExpressRequest): Array<UserPermission> {
+
         const permissions: Array<UserPermission> = [];
 
         const props = this.getDatabaseCommonInteractionProps(req);
@@ -156,7 +156,7 @@ export default class BaseAPI<
             return props.userTenantAccessPermission[props.tenantId?.toString() || '']?.permissions || [];
         }
 
-        return permissions; 
+        return permissions;
     }
 
     public getDatabaseCommonInteractionProps(
@@ -206,7 +206,6 @@ export default class BaseAPI<
         res: ExpressResponse
     ): Promise<void> {
 
-        console.log("LIST")
         await this.onBeforeList(req, res);
 
         const skip: PositiveNumber = req.query['skip']
@@ -281,6 +280,8 @@ export default class BaseAPI<
     ): Promise<void> {
         let query: Query<BaseModel> = {};
 
+        await this.onBeforeCount(req, res);
+
         if (req.body) {
             query = JSONFunctions.deserialize(
                 req.body['query']
@@ -305,7 +306,7 @@ export default class BaseAPI<
         res: ExpressResponse
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
-
+        await this.onBeforeGet(req, res);
         let select: Select<BaseModel> = {};
         let populate: Populate<BaseModel> = {};
 
@@ -335,6 +336,7 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        await this.onBeforeDelete(req, res);
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
         await this.service.deleteBy({
@@ -351,6 +353,7 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        await this.onBeforeUpdate(req, res);
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
@@ -378,6 +381,7 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        await this.onBeforeCreate(req, res);
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
@@ -418,4 +422,38 @@ export default class BaseAPI<
     ): Promise<any> {
         return Promise.resolve(true);
     }
+
+
+    protected async onBeforeCreate(
+        _req: ExpressRequest, _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+    protected async onBeforeGet(
+        _req: ExpressRequest, _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+    protected async onBeforeUpdate(
+        _req: ExpressRequest, _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+
+    protected async onBeforeDelete(
+        _req: ExpressRequest, _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+    protected async onBeforeCount(
+        _req: ExpressRequest, _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+
 }

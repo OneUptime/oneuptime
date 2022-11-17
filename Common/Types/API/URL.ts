@@ -42,7 +42,8 @@ export default class URL extends DatabaseProperty {
     public constructor(
         protocol: Protocol,
         hostname: Hostname | string,
-        route?: Route
+        route?: Route,
+        queryString?: string
     ) {
         super();
         if (hostname instanceof Hostname) {
@@ -56,6 +57,20 @@ export default class URL extends DatabaseProperty {
         if (route) {
             this.route = route;
         }
+
+        if (queryString) {
+            const keyValues = queryString.split("&");
+            for (const keyValue of keyValues) {
+                if (keyValue.split("=")[0] && keyValue.split("=")[1]) {
+                    const key = keyValue.split("=")[0];
+                    const value = keyValue.split("=")[1];
+                    if (key && value) {
+                        this._params[key] = value;
+                    }
+                }
+            }
+        }
+
     }
 
     public isHttps(): boolean {
@@ -118,14 +133,22 @@ export default class URL extends DatabaseProperty {
         const hostname: Hostname = new Hostname(url.split('/')[0] || '');
 
         let route: Route | undefined;
+        let queryString: string | undefined; 
 
         if (url.split('/').length > 1) {
             const paths: Array<string> = url.split('/');
             paths.shift();
-            route = new Route(paths.join('/'));
+            route = new Route(paths.join('/').split("?")[0]);
+            
         }
 
-        return new URL(protocol, hostname, route);
+        queryString = url.split("?")[1] || '';
+
+        return new URL(protocol, hostname, route, queryString);
+    }
+
+    public removeQueryString(): URL {
+        return URL.fromString(this.toString().split("?")[0] || '');
     }
 
     public addRoute(route: Route | string): URL {

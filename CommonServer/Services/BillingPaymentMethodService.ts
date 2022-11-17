@@ -7,6 +7,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import Project from 'Model/Models/Project';
 import BillingService from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -15,7 +16,6 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeFind(findBy: FindBy<Model>): Promise<OnFind<Model>> {
 
-        console.log(findBy.props);
 
         if (!findBy.props.tenantId) {
             throw new BadDataException("ProjectID not found.")
@@ -25,7 +25,8 @@ export class Service extends DatabaseService<Model> {
             id: findBy.props.tenantId!,
             props: {
                 ...findBy.props, 
-                isRoot: true
+                isRoot: true,
+                ignoreHooks: true
             },
             select: {
                 _id: true,
@@ -62,7 +63,8 @@ export class Service extends DatabaseService<Model> {
             billingPaymentMethod.last4Digits = paymentMethod.last4Digits;
             billingPaymentMethod.isDefault = paymentMethod.isDefault;
             billingPaymentMethod.paymentProviderPaymentMethodId = paymentMethod.id;
-            
+            billingPaymentMethod.paymentProviderCustomerId = project.paymentProviderCustomerId;
+
             await this.create({
                 data: billingPaymentMethod,
                 props: {
@@ -75,11 +77,29 @@ export class Service extends DatabaseService<Model> {
         return { findBy, carryForward: paymentMethods };
     }
 
-   protected override onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
+   protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
        const items = await this.findBy({
-           query: deleteBy.query, 
-           
-       })
+           query: deleteBy.query,
+           select: {
+               _id: true,
+               paymentProviderPaymentMethodId: true,
+               paymentProviderCustomerId: true, 
+           },
+           skip: 0,
+           limit: LIMIT_MAX,
+           props: {
+               isRoot: true,
+               ignoreHooks: true
+           }
+       });
+
+       for (const item of items) {
+           if (item.paymentProviderPaymentMethodId && item.paymentProviderCustomerId) {
+               await BillingService.deletePaymentMethod(item.paymentProviderCustomerId, item.paymentProviderPaymentMethodId);
+           }
+       }
+
+       return { deleteBy, carryForward: null };
    }
 
 }

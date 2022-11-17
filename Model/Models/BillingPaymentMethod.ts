@@ -176,6 +176,21 @@ export default class BillingPaymentMethod extends BaseModel {
 
 
     @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: false,
+        unique: false,
+    })
+    public paymentProviderCustomerId?: string = undefined;
+
+
+    @ColumnAccessControl({
         create: [Permission.ProjectOwner],
         read: [Permission.ProjectOwner],
         update: [],

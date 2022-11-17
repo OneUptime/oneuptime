@@ -16,4 +16,5 @@ export default interface DatabaseCommonInteractionProps {
     tenantId?: ObjectID | undefined;
     isRoot?: boolean | undefined;
     isMultiTenantRequest?: boolean | undefined;
+    ignoreHooks?: boolean | undefined;
 }
