@@ -10,7 +10,7 @@ export default interface DatabaseCommonInteractionProps {
     userId?: ObjectID | undefined;
     userGlobalAccessPermission?: UserGlobalAccessPermission | undefined;
     userTenantAccessPermission?:
-        | Dictionary<UserTenantAccessPermission>
+        | Dictionary<UserTenantAccessPermission>  // tenantId <-> UserTenantAccessPermission
         | undefined;
     userType?: UserType | undefined;
     tenantId?: ObjectID | undefined;

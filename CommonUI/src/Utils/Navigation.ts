@@ -66,6 +66,10 @@ abstract class Navigation {
         return URL.fromString(window.location.href);
     }
 
+    public static reload(): void {
+        window.location.reload();
+    }
+
     public static isOnThisPage(route: Route | URL): boolean {
         if (route instanceof Route) {
             const current: Route = this.getCurrentRoute();

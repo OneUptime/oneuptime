@@ -17,6 +17,8 @@ import Incident from 'Model/Models/Incident';
 import Logo from './Logo';
 import OneUptimeDate from 'Common/Types/Date';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import Upgrade from './Upgrade';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -110,6 +112,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 rightComponents={
                     <>
                         {/* <Notifications /> */}
+                        {props.selectedProject?.id && props.selectedProject.paymentProviderPlanId && SubscriptionPlan.isFreePlan(props.selectedProject.paymentProviderPlanId) ? <Upgrade projectId={props.selectedProject.id} /> : <></>}
                         <Help />
                         <UserProfile />
                     </>

@@ -181,19 +181,23 @@ export class Service extends DatabaseService<Model> {
     public async getUniqueTeamMemberCountInProject(
         projectId: ObjectID
     ): Promise<number> {
-        return (
-            await this.countBy({
+        
+            const members = await this.findBy({
                 query: {
-                    projectId,
+                    projectId: projectId!,
                 },
                 props: {
                     isRoot: true,
                 },
-                distinctOn: 'userId',
+                select: {
+                    userId: true, 
+                },
                 skip: 0,
                 limit: LIMIT_MAX,
             })
-        ).toNumber();
+        
+        const emmberIds = members.map((member) => member.userId?.toString()).filter((memberId) => !!memberId);
+        return [...new Set(emmberIds)].length; //get unique member ids. 
     }
 
     public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(

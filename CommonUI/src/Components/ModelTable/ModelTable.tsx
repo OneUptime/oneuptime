@@ -468,7 +468,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     const setHeaderButtons: Function = (): void => {
         // add header buttons.
-        const headerbuttons: Array<CardButtonSchema> = [];
+        let headerbuttons: Array<CardButtonSchema> = [];
+
+        if (props.cardProps?.buttons && props.cardProps?.buttons.length > 0) {
+            headerbuttons = [...props.cardProps.buttons];
+        }
 
         const permissions: Array<Permission> | null =
             PermissionUtil.getAllPermissions();
@@ -525,6 +529,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 icon: IconProp.Filter,
             });
         }
+        
 
         setCardButtons(headerbuttons);
     };

@@ -151,11 +151,15 @@ export class BillingService {
                 'Billing is not enabled for this server.'
             );
         }
-
+    
         let subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
 
         if (!subscription) {
             throw new BadDataException("Subscription not found");
+        }
+
+        if ((await this.getPaymentMethods(subscription.customer.toString())).length === 0) {
+            throw new BadDataException("No payment methods added. Please add your card to this project to change your plan");
         }
 
         subscription = await this.stripe.subscriptions.update(subscriptionId, {
@@ -167,7 +171,7 @@ export class BillingService {
                     quantity: quantity,
                 },
             ],
-            trial_end: endTrialAt
+            trial_end: endTrialAt && OneUptimeDate.isInTheFuture(endTrialAt)
                 ? OneUptimeDate.toUnixTimestamp(endTrialAt)
                 : 'now',
         });

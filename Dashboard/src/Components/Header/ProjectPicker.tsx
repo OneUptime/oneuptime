@@ -26,7 +26,7 @@ export interface ComponentProps {
 const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [showModel, setShowModel] = useState<boolean>(false);
+    const [showModal, setShowModal] = useState<boolean>(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(
         null
     );
@@ -37,7 +37,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
 
     useEffect(() => {
         if (props.showProjectModal) {
-            setShowModel(true);
+            setShowModal(true);
         }
     }, [props.showProjectModal]);
 
@@ -161,7 +161,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     selectedProjectIcon={IconProp.Folder}
                     projects={props.projects}
                     onCreateProjectButtonClicked={() => {
-                        setShowModel(true);
+                        setShowModal(true);
                         props.onProjectModalClose();
                     }}
                     onProjectSelected={(project: Project) => {
@@ -169,12 +169,12 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     }}
                 />
             )}
-            {showModel ? (
+            {showModal ? (
                 <ModelFormModal<Project>
                     modelType={Project}
                     title="Create New Project"
                     onClose={() => {
-                        setShowModel(false);
+                        setShowModal(false);
                         props.onProjectModalClose();
                     }}
                     submitButtonText="Create Project"
@@ -183,7 +183,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         if (project && props.onProjectSelected) {
                             props.onProjectSelected(project);
                         }
-                        setShowModel(false);
+                        setShowModal(false);
                         props.onProjectModalClose();
                     }}
                     formProps={{

@@ -21,6 +21,7 @@ import Sort from '../Types/Database/Sort';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../Types/Database/Populate';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
+import { UserPermission } from 'Common/Types/Permission';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -141,6 +142,19 @@ export default class BaseAPI<
 
         this.router = router;
         this.service = service;
+    }
+
+    public getPermissionsForTenant(req:ExpressRequest): Array<UserPermission> {
+        
+        const permissions: Array<UserPermission> = [];
+
+        const props = this.getDatabaseCommonInteractionProps(req);
+
+        if (props && props.userTenantAccessPermission && props.userTenantAccessPermission[props.tenantId?.toString() || '']) {
+            return props.userTenantAccessPermission[props.tenantId?.toString() || '']?.permissions || [];
+        }
+
+        return permissions; 
     }
 
     public getDatabaseCommonInteractionProps(

@@ -6,6 +6,7 @@ import Card from 'CommonUI/src/Components/Card/Card';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -15,6 +16,10 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
+import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod'
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import Modal from 'CommonUI/src/Components/Modal/Modal';
+import ButtonType from 'CommonUI/src/Components/Button/ButtonTypes';
 
 export interface ComponentProps extends PageComponentProps { }
 
@@ -23,7 +28,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
 
     const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] = useState<boolean>(true)
-
+    const [showPaymentMethodModal, setShowPaymentMethodModal] = useState<boolean>(false);
 
     return (
         <Page
@@ -139,6 +144,74 @@ const Settings: FunctionComponent<ComponentProps> = (
                     modelId: props.currentProject?._id,
                 }}
             />
+
+
+            <ModelTable<BillingPaymentMethod>
+                modelType={BillingPaymentMethod}
+                id="payment-methods-table"
+                isDeleteable={true}
+                isEditable={false}
+                isCreateable={false}
+                isViewable={false}
+                cardProps={{
+                    buttons: [{
+                        title: "Add Payemnt Method",
+                        icon: IconProp.Add, 
+                        onClick: () => {
+                            setShowPaymentMethodModal(true);
+                        },
+                        buttonStyle: ButtonStyleType.OUTLINE
+                    }],
+                    icon: IconProp.Billing,
+                    title: 'Payment Methods',
+                    description:
+                        'Here is a list of payment methods attached to this project.',
+                }}
+                noItemsMessage={'No payment methods found.'}
+                query={{
+                    projectId: props.currentProject?._id,
+                }}
+                showRefreshButton={true}
+                showFilterButton={true}
+                columns={[
+                    {
+                        field: {
+                            type: true,
+                        },
+                        title: 'Payment Method Type',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            last4Digits: true,
+                        },
+                        title: 'Number',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                ]}
+            />
+            
+
+            {showPaymentMethodModal ? (
+                <Modal
+                    title={`Add payment method`}
+                    onSubmit={() => {
+                        setShowPaymentMethodModal(false);
+                    }}
+                    onClose={() => {
+                        setShowPaymentMethodModal(false);
+                    }}
+                    submitButtonText={`Save`}
+                    isBodyLoading={true}
+                    submitButtonType={ButtonType.Submit}
+                >
+                    <div>Payuemnt</div>
+                </Modal>
+            ) : (
+                <></>
+            )}
 
             <Card
                 title={`Cancel Plan`}

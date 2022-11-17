@@ -3,6 +3,7 @@
     "version": "0.1.0",
     "private": false,
     "dependencies": {
+        "@stripe/react-stripe-js": "^1.15.0",
         "Common": "file:../Common",
         "CommonServer": "file:../CommonServer",
         "CommonUI": "file:../CommonUI",
@@ -14,6 +15,7 @@
         "react-icons": "^4.4.0",
         "react-router": "^6.3.0",
         "react-router-dom": "^6.3.0",
+        "stripe": "^11.0.0",
         "the-new-css-reset": "^1.7.3",
         "typescript": "^4.6.4",
         "use-async-effect": "^2.2.6"

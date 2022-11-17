@@ -45,6 +45,22 @@ export default class SubscriptionPlan {
         return this.name;
     }
 
+
+    public static isFreePlan(planId: string): boolean {
+        const plan = this.getSubscriptionPlanById(planId);
+        if (plan) {
+            if (plan.getMonthlyPlanId() === planId && plan.getMonthlySubscriptionAmountInUSD() === 0) {
+                return true;
+            }
+
+            if (plan.getYearlyPlanId() === planId && plan.getYearlySubscriptionAmountInUSD() === 0) {
+                return true;
+            }
+        }
+
+        return false; 
+    }
+
     public getYearlySubscriptionAmountInUSD(): number {
         return this.yearlySubscriptionAmountInUSD;
     }

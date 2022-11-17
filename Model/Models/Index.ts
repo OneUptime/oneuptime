@@ -48,6 +48,8 @@ import ScheduledMaintenanceStateTimeline from './ScheduledMaintenanceStateTimeli
 import ScheduledMaintenancePublicNote from './ScheduledMaintenancePublicNote';
 import ScheduledMaintenanceInternalNote from './ScheduledMaintenanceInternalNote';
 
+import BillingPaymentMethods from './BillingPaymentMethod';
+
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 
@@ -93,4 +95,6 @@ export default [
     ScheduledMaintenanceStateTimeline,
     ScheduledMaintenancePublicNote,
     ScheduledMaintenanceInternalNote,
+
+    BillingPaymentMethods
 ];

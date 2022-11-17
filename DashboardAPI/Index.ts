@@ -11,6 +11,8 @@ import UserService, {
     Service as UserServiceType,
 } from 'CommonServer/Services/UserService';
 
+import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
+
 import Project from 'Model/Models/Project';
 import ProjectService, {
     Service as ProjectServiceType,
@@ -245,6 +247,7 @@ app.use(
     ).getRouter()
 );
 
+
 app.use(
     new BaseAPI<Domain, DomainServiceType>(Domain, DomainService).getRouter()
 );
@@ -373,6 +376,7 @@ app.use(
 );
 
 app.use(new StatusPageAPI().getRouter());
+app.use(new BillingPaymentMethodAPI().getRouter());
 
 app.use(
     new BaseAPI<

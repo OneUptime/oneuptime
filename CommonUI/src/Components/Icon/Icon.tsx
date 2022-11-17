@@ -41,6 +41,7 @@ import {
     Folder,
     Share2,
     MessageSquare,
+    ShoppingBag,
     Info,
     Check,
     Trash,
@@ -141,6 +142,7 @@ export enum IconProp {
     Layers,
     Clock,
     Invoice,
+    Upgrade
 }
 
 export interface ComponentProps {
@@ -621,6 +623,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Invoice && (
                 <File
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Upgrade && (
+                <ShoppingBag
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : (undefined as any)}
