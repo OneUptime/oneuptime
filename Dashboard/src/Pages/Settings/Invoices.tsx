@@ -22,11 +22,11 @@ const Settings: FunctionComponent<ComponentProps> = (
                 },
                 {
                     title: 'Settings',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteMap[PageMap.SETTINGS] as Route,
                 },
                 {
-                    title: 'Danger Zone',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    title: 'Invoices',
+                    to: RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

@@ -104,11 +104,11 @@ const Settings: FunctionComponent<ComponentProps> = (
                 },
                 {
                     title: 'Settings',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteMap[PageMap.SETTINGS] as Route,
                 },
                 {
-                    title: 'Danger Zone',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    title: 'Billing',
+                    to: RouteMap[PageMap.SETTINGS_BILLING] as Route,
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
@@ -295,7 +295,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 cardProps={{
                     buttons: [
                         {
-                            title: 'Add Payemnt Method',
+                            title: 'Add Payment Method',
                             icon: IconProp.Add,
                             onClick: () => {
                                 fetchSetupIntent();
@@ -337,7 +337,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 
             {showPaymentMethodModal ? (
                 <Modal
-                    title={`Add payment method`}
+                    title={`Add Payment Method`}
                     onSubmit={async () => {
                         setIsModalSubmitButtonLoading(true);
                         formRef.current.click();

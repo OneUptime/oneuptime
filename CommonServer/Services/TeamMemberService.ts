@@ -152,6 +152,8 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeDelete(
         deleteBy: DeleteBy<Model>
     ): Promise<OnDelete<Model>> {
+
+
         const items: Array<Model> = await this.findBy({
             query: deleteBy.query,
             select: {
