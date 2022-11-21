@@ -429,6 +429,7 @@ export class Service extends DatabaseService<Model> {
         let ownerTeam: Team = new Team();
         ownerTeam.projectId = createdItem.id!;
         ownerTeam.name = 'Owners';
+        ownerTeam.shouldHaveAtleastOneMember = true; 
         ownerTeam.isPermissionsEditable = false;
         ownerTeam.isTeamEditable = false;
         ownerTeam.isTeamDeleteable = false;
@@ -469,6 +470,7 @@ export class Service extends DatabaseService<Model> {
             data: ownerPermissions,
             props: {
                 isRoot: true,
+                ignoreHooks: true
             },
         });
 
@@ -498,6 +500,7 @@ export class Service extends DatabaseService<Model> {
             data: adminPermissions,
             props: {
                 isRoot: true,
+                ignoreHooks: true
             },
         });
 
@@ -526,6 +529,7 @@ export class Service extends DatabaseService<Model> {
             data: memberPermissions,
             props: {
                 isRoot: true,
+                ignoreHooks: true
             },
         });
 

@@ -241,6 +241,22 @@ export default class Team extends BaseModel {
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
         type: ColumnType.Boolean,
+        default: false,
+    })
+    public shouldHaveAtleastOneMember?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanEditProjectTeam,
+            Permission.CanEditProjectTeamPermissions,
+        ],
+        update: [],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
         default: true,
     })
     public isTeamEditable?: boolean = undefined;

@@ -29,6 +29,7 @@ import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import URL from 'Common/Types/API/URL';
 import logger from '../Utils/Logger';
+import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -154,23 +155,52 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnDelete<Model>> {
 
 
-        const items: Array<Model> = await this.findBy({
+
+        const members: Array<Model> = await this.findBy({
             query: deleteBy.query,
             select: {
                 userId: true,
                 projectId: true,
+                team: true,
+                teamId: true
             },
             limit: LIMIT_MAX,
             skip: 0,
-            populate: {},
+            populate: {
+                team: {
+                    _id: true,
+                    shouldHaveAtleastOneMember: true
+                }
+            },
             props: {
                 isRoot: true,
             },
         });
 
+
+        // check if there's one member in the team. 
+        for (const member of members) {
+            if (member.team?.shouldHaveAtleastOneMember) {
+                const membersInTeam = await this.countBy({
+                    query: {
+                        _id: member.teamId?.toString() as string
+                    },
+                    skip: 0,
+                    limit: LIMIT_MAX,
+                    props: {
+                        isRoot: true
+                    }
+                });
+
+                if (membersInTeam.toNumber() <= 1) {
+                    throw new BadDataException("This team should have atleast 1 member");
+                }
+            }
+        }
+
         return {
             deleteBy: deleteBy,
-            carryForward: items,
+            carryForward: members,
         };
     }
 
