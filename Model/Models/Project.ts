@@ -153,6 +153,20 @@ export default class Model extends TenantModel {
         read: [Permission.ProjectOwner, Permission.ProjectAdmin],
         update: [],
     })
+    @TableColumn({ type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderSubscriptionStatus?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        update: [],
+    })
     @TableColumn({
         type: TableColumnType.SmallPositiveNumber,
         isDefaultValueColumn: true,

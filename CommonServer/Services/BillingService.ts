@@ -320,6 +320,21 @@ export class BillingService {
 
         await this.stripe.subscriptions.del(subscriptionId);
     }
+
+
+    public static async getSubscriptionStatus(
+        subscriptionId: string
+    ): Promise<string> {
+        if (!this.isBillingEnabled()) {
+            throw new BadDataException(
+                'Billing is not enabled for this server.'
+            );
+        }
+
+        const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+
+        return subscription.status;
+    }
 }
 
 export default BillingService;
