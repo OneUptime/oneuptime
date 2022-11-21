@@ -66,6 +66,20 @@ export default class SubscriptionPlan {
         return false;
     }
 
+    public static isCustomPricingPlan(planId: string): boolean {
+        const plan = this.getSubscriptionPlanById(planId);
+        if (plan) {
+            if (
+                plan.getMonthlyPlanId() === planId &&
+                plan.isCustomPricing()
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public getYearlySubscriptionAmountInUSD(): number {
         return this.yearlySubscriptionAmountInUSD;
     }

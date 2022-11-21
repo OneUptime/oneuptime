@@ -19,6 +19,15 @@ import OneUptimeDate from 'Common/Types/Date';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';
 import Upgrade from './Upgrade';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
+import useAsyncEffect from 'use-async-effect';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
+import Route from 'Common/Types/API/Route';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -42,13 +51,25 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [projectCountRefreshToggle, setProjectCountRefreshToggle] =
         useState<boolean>(true);
 
+    const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] = useState<boolean>(false);
+    const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(null);
+
+    useAsyncEffect(async () => {
+        if (props.selectedProject && props.selectedProject._id && BILLING_ENABLED) {
+            setPaymentMethodCountLoading(true);
+            const paymentMethodsCount = await ModelAPI.count(BillingPaymentMethod, { projectId: props.selectedProject?._id });
+            setPaymentMethodCount(paymentMethodsCount);
+            setPaymentMethodCountLoading(false);
+        }
+    }, [props.selectedProject])
+
     return (
         <>
             <Header
                 leftComponents={
                     <>
                         {props.projects.length === 0 && (
-                            <Logo onClick={() => {}} />
+                            <Logo onClick={() => { }} />
                         )}
                         <ProjectPicker
                             showProjectModal={props.showProjectModal}
@@ -125,11 +146,30 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 rightComponents={
                     <>
                         {/* <Notifications /> */}
-                        {props.selectedProject?.id &&
-                        props.selectedProject.paymentProviderPlanId &&
-                        SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId
-                        ) ? (
+                        {BILLING_ENABLED && props.selectedProject?.id &&
+                            props.selectedProject.paymentProviderPlanId &&
+                            !SubscriptionPlan.isFreePlan(
+                                props.selectedProject.paymentProviderPlanId
+                            ) && !SubscriptionPlan.isCustomPricingPlan(
+                                props.selectedProject.paymentProviderPlanId
+                            ) && !isPaymentMethodCountLoading && paymentMethodCount === 0 ? (<Button
+                                title="Add Card Details"
+                                onClick={() => {
+                                    Navigation.navigate(RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_BILLING] as Route));
+                                }}
+                                buttonStyle={ButtonStyleType.LINK}
+                                icon={IconProp.Billing}
+                                textStyle={
+                                    {
+                                        fontWeight: 500
+                                    }
+                                }
+                            ></Button>) : <></>}
+                        {BILLING_ENABLED && props.selectedProject?.id &&
+                            props.selectedProject.paymentProviderPlanId &&
+                            SubscriptionPlan.isFreePlan(
+                                props.selectedProject.paymentProviderPlanId
+                            ) ? (
                             <Upgrade projectId={props.selectedProject.id} />
                         ) : (
                             <></>

@@ -29,6 +29,11 @@ const Upgrade: FunctionComponent<ComponentProps> = (
                 }}
                 buttonStyle={ButtonStyleType.LINK}
                 icon={IconProp.Automation}
+                textStyle={
+                    {
+                        fontWeight: 500
+                    }
+                }
             ></Button>
             {showModal ? (
                 <ModelFormModal<Project>

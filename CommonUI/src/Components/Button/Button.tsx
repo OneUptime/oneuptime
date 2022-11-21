@@ -42,6 +42,7 @@ export interface ComponentProps {
     buttonStyle?: undefined | ButtonStyleType;
     buttonSize?: ButtonSize | undefined;
     dataTestId?: string;
+    textStyle?: React.CSSProperties | undefined;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -59,6 +60,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyle = ButtonStyleType.NORMAL,
     buttonSize = ButtonSize.Normal,
     dataTestId,
+    textStyle
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -153,11 +155,10 @@ const Button: FunctionComponent<ComponentProps> = ({
             data-testid={dataTestId}
             type={type}
             disabled={disabled}
-            className={`btn ${buttonStyleCssClass} ${buttonSize} waves-effect waves-light ${
-                !title && buttonStyle === ButtonStyleType.NORMAL
+            className={`btn ${buttonStyleCssClass} ${buttonSize} waves-effect waves-light ${!title && buttonStyle === ButtonStyleType.NORMAL
                     ? 'no-border-on-hover'
                     : ''
-            }`}
+                }`}
         >
             {!isLoading && (
                 <div>
@@ -173,7 +174,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
                                     thick={
-                                        buttonSize === ButtonSize.Small
+                                        buttonSize === ButtonSize.Small || buttonStyle === ButtonStyleType.LINK
                                             ? ThickProp.LessThick
                                             : ThickProp.Thick
                                     }
@@ -190,7 +191,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     marginTop: '1px',
                                 }}
                             >
-                                <b>{title}</b>
+                                <b style={textStyle}>{title}</b>
                             </div>
                         ) : (
                             <></>
