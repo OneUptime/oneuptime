@@ -36,6 +36,7 @@ import { loadStripe, Stripe } from '@stripe/stripe-js';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import useAsyncEffect from 'use-async-effect';
 import CheckoutForm from './BillingPaymentMethodForm';
+import Text from 'Common/Types/Text';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -323,6 +324,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                         title: 'Payment Method Type',
                         type: FieldType.Text,
                         isFilterable: true,
+                        getElement: (item: JSONObject) => {
+                            return <span>{`${Text.uppercaseFirstLetter(item['type'] as string)}`}</span>
+                        }
                     },
                     {
                         field: {
@@ -331,6 +335,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                         title: 'Number',
                         type: FieldType.Text,
                         isFilterable: true,
+                        getElement: (item: JSONObject) => {
+                            return <span>{`*****${item['last4Digits']}`}</span>
+                        }
                     },
                 ]}
             />
