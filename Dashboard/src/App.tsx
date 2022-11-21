@@ -147,6 +147,7 @@ const App: FunctionComponent = () => {
                     name: true,
                     _id: true,
                     trialEndsAt: true,
+                    paymentProviderPlanId: true
                 },
                 {},
                 {},

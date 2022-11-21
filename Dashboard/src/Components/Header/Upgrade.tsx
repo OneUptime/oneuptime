@@ -1,5 +1,4 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
-import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import Project from 'Model/Models/Project';
@@ -9,6 +8,7 @@ import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 
 export interface ComponentProps {
     projectId: ObjectID;
@@ -22,13 +22,14 @@ const Upgrade: FunctionComponent<ComponentProps> = (
 
     return (
         <>
-            <HeaderIconDropdownButton
-                title="Upgrade"
+            <Button
+                title="Upgrade Plan"
                 onClick={() => {
                     setShowModal(true);
                 }}
-                icon={IconProp.Upgrade}
-            ></HeaderIconDropdownButton>
+                buttonStyle={ButtonStyleType.LINK}
+                icon={IconProp.Automation}
+            ></Button>
             {showModal ? (
                 <ModelFormModal<Project>
                     modelType={Project}

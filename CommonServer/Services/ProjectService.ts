@@ -251,7 +251,7 @@ export class Service extends DatabaseService<Model> {
                 data: {
                     paymentProviderCustomerId: customerId,
                     paymentProviderSubscriptionId: id,
-                    trialEndsAt: trialEndsAt,
+                    trialEndsAt: (trialEndsAt || null) as any,
                 },
                 props: {
                     isRoot: true,

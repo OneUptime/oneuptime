@@ -113,7 +113,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                             OneUptimeDate.getCurrentDate(),
                                             props.selectedProject?.trialEndsAt!
-                                        )} days`}
+                                        )} ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                            OneUptimeDate.getCurrentDate(),
+                                            props.selectedProject?.trialEndsAt!
+                                        ) > 1 ? 'days' : 'day'}`}
                                     />
                                 )}
                         </div>

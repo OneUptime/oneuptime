@@ -75,7 +75,7 @@ export class BillingService {
         hasTrial: boolean
     ): Promise<{
         id: string;
-        trialEndsAt: Date;
+        trialEndsAt: Date | null;
     }> {
         if (!this.isBillingEnabled()) {
             throw new BadDataException(
@@ -106,9 +106,9 @@ export class BillingService {
 
         return {
             id: subscription.id,
-            trialEndsAt: hasTrial
+            trialEndsAt: hasTrial && plan.getTrialPeriod() > 0
                 ? OneUptimeDate.getSomeDaysAfter(plan.getTrialPeriod())
-                : OneUptimeDate.getCurrentDate(),
+                : null,
         };
     }
 

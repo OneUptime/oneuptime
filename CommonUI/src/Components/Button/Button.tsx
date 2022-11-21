@@ -18,6 +18,7 @@ export enum ButtonStyleType {
     SUCCESS_OUTLINE,
     WARNING,
     WARNING_OUTLINE,
+    LINK
 }
 
 export enum ButtonSize {
@@ -98,6 +99,10 @@ const Button: FunctionComponent<ComponentProps> = ({
     };
 
     let buttonStyleCssClass: string = 'no-border-on-hover';
+
+    if (buttonStyle === ButtonStyleType.LINK) {
+        buttonStyleCssClass = 'no-border-on-hover font-500';
+    }
 
     if (buttonStyle === ButtonStyleType.DANGER) {
         buttonStyleCssClass = 'btn-danger';
