@@ -55,14 +55,14 @@ export enum ShowTableAs {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     onFetchInit?:
-        | undefined
-        | ((pageNumber: number, itemsOnPage: number) => void);
+    | undefined
+    | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-        | undefined
-        | ((data: Array<TBaseModel>, totalCount: number) => void);
+    | undefined
+    | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     selectMoreFields?: Select<TBaseModel>;
@@ -171,6 +171,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [isTableFilterFetchLoading, setIsTableFilterFetchLoading] =
         useState(false);
 
+    const [errorModalText, setErrorModalText] = useState<string>('');
+
     useEffect(() => {
         const detailFields: Array<Field> = [];
         for (const column of tableColumns) {
@@ -186,8 +188,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 fieldType: column.type,
                 getElement: column.getElement
                     ? (item: JSONObject): ReactElement => {
-                          return column.getElement!(item, onBeforeFetchData);
-                      }
+                        return column.getElement!(item, onBeforeFetchData);
+                    }
                     : undefined,
             });
 
@@ -217,12 +219,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             await fetchItems();
         } catch (err) {
             try {
-                setError(
+                setErrorModalText(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
-                setError('Server Error. Please try again');
+                setErrorModalText('Server Error. Please try again');
             }
         }
 
@@ -320,7 +322,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setTableFilterError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setTableFilterError('Server Error. Please try again');
@@ -360,8 +362,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                              [sortBy as any]: sortOrder,
-                          }
+                            [sortBy as any]: sortOrder,
+                        }
                         : {},
                     getPopulate(),
                     props.fetchRequestOptions
@@ -373,7 +375,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -490,9 +492,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             showTableAs !== ShowTableAs.OrderedStatesList
         ) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${
-                    props.singularName || model.singularName
-                }`,
+                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                    }`,
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
                     setModalType(ModalType.Create);
@@ -951,9 +952,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         let getTitleElement:
             | ((
-                  item: JSONObject,
-                  onBeforeFetchData?: JSONObject | undefined
-              ) => ReactElement)
+                item: JSONObject,
+                onBeforeFetchData?: JSONObject | undefined
+            ) => ReactElement)
             | undefined = undefined;
         let getDescriptionElement:
             | ((item: JSONObject) => ReactElement)
@@ -997,10 +998,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onCreateNewItem={
                     props.isCreateable
                         ? (order: number) => {
-                              setOrderedStatesListNewItemOrder(order);
-                              setModalType(ModalType.Create);
-                              setShowModal(true);
-                          }
+                            setOrderedStatesListNewItemOrder(order);
+                            setModalType(ModalType.Create);
+                            setShowModal(true);
+                        }
                         : undefined
                 }
                 singularLabel={
@@ -1105,9 +1106,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
+                            }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
                     initialValues={
@@ -1120,9 +1120,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${
-                                  props.singularName || model.singularName
-                              }`
+                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
+                            }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {
@@ -1196,6 +1195,18 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         }
                     }}
                     submitButtonType={ButtonStyleType.DANGER}
+                />
+            )}
+
+            {errorModalText && (
+                <ConfirmModal
+                    title={`Error`}
+                    description={`${errorModalText}`}
+                    submitButtonText={'Close'}
+                    onSubmit={() => {
+                        setErrorModalText('');
+                    }}
+                    submitButtonType={ButtonStyleType.NORMAL}
                 />
             )}
         </>
