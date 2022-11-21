@@ -9,6 +9,7 @@ const ComponentLoader: FunctionComponent = (): ReactElement => {
             style={{
                 marginTop: '50px',
                 marginBottom: '50px',
+                width: "100%"
             }}
         >
             <Loader
