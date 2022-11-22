@@ -1,3 +1,12 @@
+import BadDataException from "../Exception/BadDataException";
+
+export enum PlanSelect {
+    Free = "Free",
+    Growth = "Growth",
+    Enterprise = "Enterprise"
+}
+
+
 export default class SubscriptionPlan {
     private monthlyPlanId: string = '';
     private yearlyPlanId: string = '';
@@ -137,5 +146,35 @@ export default class SubscriptionPlan {
 
     public static isValidPlanId(planId: string): boolean {
         return Boolean(this.getSubscriptionPlanById(planId));
+    }
+
+    public static getPlanSelect(planId: string): PlanSelect{
+        const plan = this.getSubscriptionPlanById(planId);
+        if (!plan) {
+            throw new BadDataException("Plan ID is invalid");
+        }
+
+        return plan.getName() as PlanSelect;
+    }
+
+    public static getSubscriptionPlanFromPlanSelect(planSelect: PlanSelect): SubscriptionPlan {
+        const plan = this.getSubscriptionPlans().find((plan) => plan.getName() === planSelect);
+        
+        if (!plan) {
+            throw new BadDataException("Invalid Plan");
+        }
+
+        return plan;
+    }
+
+    public static isFeatureAccessibleOnCurrentPlan(featurePlan: PlanSelect, currentPlan: PlanSelect): boolean {
+        const featureSubscriptionPlan = this.getSubscriptionPlanFromPlanSelect(featurePlan);
+        const currentSubscriptionPlan = this.getSubscriptionPlanFromPlanSelect(currentPlan);
+
+        if (featureSubscriptionPlan.getPlanOrder() > currentSubscriptionPlan.getPlanOrder()) {
+            return false; 
+        }
+
+        return true;
     }
 }

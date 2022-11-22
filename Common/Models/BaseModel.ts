@@ -31,6 +31,7 @@ import Permission, {
 import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
+import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
 
 export type DbTypes =
     | string
@@ -69,6 +70,13 @@ export default class BaseModel extends BaseEntity {
     public readRecordPermissions!: Array<Permission>;
     public deleteRecordPermissions!: Array<Permission>;
     public updateRecordPermissions!: Array<Permission>;
+
+    // Billing Plans.
+    public createBillingPlan: PlanSelect | null = null;
+    public readBillingPlan: PlanSelect | null = null;
+    public updateBillingPlan: PlanSelect | null = null;
+    public deleteBillingPlan: PlanSelect | null = null;
+
 
     public currentUserCanAccessColumnBy!: string | null;
     public labelsColumn!: string | null;

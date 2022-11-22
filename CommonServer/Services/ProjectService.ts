@@ -34,7 +34,7 @@ import { IsBillingEnabled } from '../Config';
 import BillingService from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan, { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 import UpdateBy from '../Types/Database/UpdateBy';
 
 export class Service extends DatabaseService<Model> {
@@ -590,6 +590,34 @@ export class Service extends DatabaseService<Model> {
         }
 
         return onDelete;
+    }
+
+    public async getCurrentPlan(projectId: ObjectID): Promise<PlanSelect | null> {
+        if (!IsBillingEnabled) {
+            return null;
+        }
+
+        const project = await this.findOneById({
+            id: projectId,
+            select: {
+                paymentProviderPlanId: true
+            },
+            props: {
+                isRoot: true,
+                ignoreHooks: true
+            }
+        });
+
+        if (!project) {
+            throw new BadDataException("Project ID is invalid");
+        }
+
+        if (!project.paymentProviderPlanId) {
+            throw new BadDataException("Project does not have any plans");
+        }
+
+        return SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId);
+
     }
 }
 export default new Service();
