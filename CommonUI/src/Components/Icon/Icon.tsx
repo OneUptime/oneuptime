@@ -58,6 +58,7 @@ import {
     ExternalLink,
     Layers,
     Codesandbox,
+    Star
 } from 'react-feather';
 
 export enum SizeProp {
@@ -143,6 +144,7 @@ export enum IconProp {
     Clock,
     Invoice,
     Upgrade,
+    Star
 }
 
 export interface ComponentProps {
@@ -631,6 +633,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Upgrade && (
                 <ShoppingBag
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Star && (
+                <Star
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : (undefined as any)}

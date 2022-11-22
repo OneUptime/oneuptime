@@ -23,6 +23,12 @@ import ProbeService, {
     Service as ProbeServiceType,
 } from 'CommonServer/Services/ProbeService';
 
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
+import StatusPagePrivateUserService, {
+    Service as StatusPagePrivateUserServiceType,
+} from 'CommonServer/Services/StatusPagePrivateUserService';
+
+
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import StatusPageSubscriberService, {
     Service as StatusPageSubscriberServiceType,
@@ -288,6 +294,14 @@ app.use(
         StatusPageSubscriberService
     ).getRouter()
 );
+
+app.use(
+    new BaseAPI<StatusPagePrivateUser, StatusPagePrivateUserServiceType>(
+        StatusPagePrivateUser,
+        StatusPagePrivateUserService
+    ).getRouter()
+);
+
 
 app.use(
     new BaseAPI<Incident, IncidentServiceType>(

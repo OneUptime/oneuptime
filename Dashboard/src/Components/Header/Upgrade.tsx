@@ -28,7 +28,7 @@ const Upgrade: FunctionComponent<ComponentProps> = (
                     setShowModal(true);
                 }}
                 buttonStyle={ButtonStyleType.LINK}
-                icon={IconProp.Automation}
+                icon={IconProp.Star}
                 textStyle={
                     {
                         fontWeight: 500

@@ -72,10 +72,10 @@ export default class BaseModel extends BaseEntity {
     public updateRecordPermissions!: Array<Permission>;
 
     // Billing Plans.
-    public createBillingPlan: PlanSelect | null = null;
-    public readBillingPlan: PlanSelect | null = null;
-    public updateBillingPlan: PlanSelect | null = null;
-    public deleteBillingPlan: PlanSelect | null = null;
+    public createBillingPlan!: PlanSelect | null;
+    public readBillingPlan!: PlanSelect | null;
+    public updateBillingPlan!: PlanSelect | null;
+    public deleteBillingPlan!: PlanSelect | null;
 
 
     public currentUserCanAccessColumnBy!: string | null;

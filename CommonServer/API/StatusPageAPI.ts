@@ -103,7 +103,7 @@ export default class StatusPageAPI extends BaseAPI<
                     if (
                         !(await this.service.hasReadAccess(
                             objectId,
-                            this.getDatabaseCommonInteractionProps(req)
+                            await this.getDatabaseCommonInteractionProps(req)
                         ))
                     ) {
                         throw new NotAuthorizedException(
@@ -138,7 +138,7 @@ export default class StatusPageAPI extends BaseAPI<
                     if (
                         !(await this.service.hasReadAccess(
                             objectId,
-                            this.getDatabaseCommonInteractionProps(req)
+                            await this.getDatabaseCommonInteractionProps(req)
                         ))
                     ) {
                         throw new NotAuthorizedException(
@@ -285,7 +285,7 @@ export default class StatusPageAPI extends BaseAPI<
                     if (
                         !(await this.service.hasReadAccess(
                             objectId,
-                            this.getDatabaseCommonInteractionProps(req)
+                            await this.getDatabaseCommonInteractionProps(req)
                         ))
                     ) {
                         throw new NotAuthorizedException(
@@ -745,7 +745,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getIncidents(
                         objectId,
                         null,
-                        this.getDatabaseCommonInteractionProps(req)
+                        await this.getDatabaseCommonInteractionProps(req)
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -774,7 +774,7 @@ export default class StatusPageAPI extends BaseAPI<
                         await this.getScheduledMaintenanceEvents(
                             objectId,
                             null,
-                            this.getDatabaseCommonInteractionProps(req)
+                            await this.getDatabaseCommonInteractionProps(req)
                         );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -802,7 +802,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getAnnouncements(
                         objectId,
                         null,
-                        this.getDatabaseCommonInteractionProps(req)
+                        await this.getDatabaseCommonInteractionProps(req)
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -834,7 +834,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getIncidents(
                         objectId,
                         incidentId,
-                        this.getDatabaseCommonInteractionProps(req)
+                        await this.getDatabaseCommonInteractionProps(req)
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -867,7 +867,7 @@ export default class StatusPageAPI extends BaseAPI<
                         await this.getScheduledMaintenanceEvents(
                             objectId,
                             scheduledMaintenanceId,
-                            this.getDatabaseCommonInteractionProps(req)
+                            await this.getDatabaseCommonInteractionProps(req)
                         );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -899,7 +899,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getAnnouncements(
                         objectId,
                         announcementId,
-                        this.getDatabaseCommonInteractionProps(req)
+                        await this.getDatabaseCommonInteractionProps(req)
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);

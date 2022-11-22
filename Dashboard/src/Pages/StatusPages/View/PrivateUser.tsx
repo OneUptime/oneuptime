@@ -13,6 +13,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -117,6 +118,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         isFilterable: false,
                     }
                 ]}
+                currentPlan={SubscriptionPlan.getPlanSelect(props.currentProject?.paymentProviderPlanId!)}
             />
         </Page>
     );

@@ -44,9 +44,9 @@ export default class UserAPI extends BaseAPI<
                         );
                     }
 
-                    const userPermissions = this.getPermissionsForTenant(
+                    const userPermissions = (await this.getPermissionsForTenant(
                         req
-                    ).filter((permission) => {
+                    )).filter((permission) => {
                         console.log(permission.permission);
                         //FIX: Change "Project"
                         return (
@@ -62,8 +62,7 @@ export default class UserAPI extends BaseAPI<
 
                     const project: Project | null =
                         await ProjectService.findOneById({
-                            id: this.getDatabaseCommonInteractionProps(req)
-                                .tenantId!,
+                            id: this.getTenantId(req)!,
                             props: {
                                 isRoot: true,
                             },

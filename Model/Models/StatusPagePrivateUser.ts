@@ -19,7 +19,15 @@ import StatusPage from './StatusPage';
 import Email from 'Common/Types/Email';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import HashedString from 'Common/Types/HashedString';
+import TableBillingAccessControl from 'Common/Types/Database/AccessControl/TableBillingAccessControl';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
+@TableBillingAccessControl({
+    create: PlanSelect.Growth,
+    read: PlanSelect.Growth,
+    update: PlanSelect.Growth,
+    delete: PlanSelect.Growth
+})
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -34,6 +42,7 @@ import HashedString from 'Common/Types/HashedString';
 @Entity({
     name: 'StatusPagePrivateUser',
 })
+
 export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [

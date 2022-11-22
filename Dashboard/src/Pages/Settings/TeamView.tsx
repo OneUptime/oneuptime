@@ -191,14 +191,14 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             hasAcceptedInvitation: true,
                         },
-                        title: 'Invitation Status',
+                        title: 'Status',
                         type: FieldType.Boolean,
                         isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['hasAcceptedInvitation']) {
                                 return (
                                     <Pill
-                                        text="Invitation Accepted"
+                                        text="Member"
                                         color={Green}
                                     />
                                 );

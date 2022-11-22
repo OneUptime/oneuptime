@@ -168,6 +168,14 @@ export default class BaseAPI<
         return permissions;
     }
 
+    public getTenantId(req: ExpressRequest): ObjectID | null {
+        if ((req as OneUptimeRequest).tenantId) {
+            return (req as OneUptimeRequest).tenantId as ObjectID;
+        }
+
+        return null;
+    }
+
     public async getDatabaseCommonInteractionProps(
         req: ExpressRequest
     ): Promise<DatabaseCommonInteractionProps> {

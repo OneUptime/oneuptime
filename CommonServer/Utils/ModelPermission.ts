@@ -976,13 +976,13 @@ export default class ModelPermission {
                 }
             }
 
-            if (type === DatabaseRequestType.Create && model.deleteBillingPlan) {
+            if (type === DatabaseRequestType.Delete && model.deleteBillingPlan) {
                 if (!SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(model.deleteBillingPlan, props.currentPlan)) {
                     throw new PaymentRequiredException("Please upgrade your plan to " + model.createBillingPlan + " to access this feature");
                 }
             }
 
-            if (type === DatabaseRequestType.Create && model.readBillingPlan) {
+            if (type === DatabaseRequestType.Read && model.readBillingPlan) {
                 if (!SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(model.readBillingPlan, props.currentPlan)) {
                     throw new PaymentRequiredException("Please upgrade your plan to " + model.createBillingPlan + " to access this feature");
                 }

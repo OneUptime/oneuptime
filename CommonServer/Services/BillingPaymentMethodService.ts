@@ -60,10 +60,8 @@ export class Service extends DatabaseService<Model> {
 
         for (const paymentMethod of paymentMethods) {
             const billingPaymentMethod = new Model();
-            billingPaymentMethod.projectId = project.id!;
 
-            console.log("PROJECT ID");
-            console.log(project.id);
+            billingPaymentMethod.projectId = project.id!;
 
             billingPaymentMethod.type = paymentMethod.type;
             billingPaymentMethod.last4Digits = paymentMethod.last4Digits;

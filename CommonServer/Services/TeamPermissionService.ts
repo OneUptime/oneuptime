@@ -29,7 +29,7 @@ export class Service extends DatabaseService<Model> {
                 isPermissionsEditable: true
             },
             props: {
-                isRoot: false
+                isRoot: true
             }
         });
 

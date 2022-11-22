@@ -47,6 +47,10 @@ import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import InBetween from 'Common/Types/Database/InBetween';
+import { BILLING_ENABLED } from '../../Config';
+import SubscriptionPlan, { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import Pill from '../Pill/Pill';
+import { Yellow } from 'Common/Types/BrandColors';
 
 export enum ShowTableAs {
     Table,
@@ -110,6 +114,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         shouldAddItemInTheBegining?: boolean;
     };
     onViewComplete: (item: TBaseModel) => void;
+    currentPlan?: PlanSelect | undefined;
 }
 
 enum ModalType {
@@ -1046,6 +1051,17 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         );
     };
 
+    const getCardTitle: Function = (title: ReactElement | string): ReactElement => {
+        return <span>
+            {title}
+            {BILLING_ENABLED && props.currentPlan && (new props.modelType().readBillingPlan) && !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(new props.modelType().readBillingPlan!, props.currentPlan) && <span style={{
+                marginLeft: "5px"
+            }}>
+                <Pill text={`${new props.modelType().readBillingPlan} Plan`} color={Yellow} />
+            </span>}
+        </span>
+    };
+
     const getCardComponent: Function = (): ReactElement => {
         if (showTableAs === ShowTableAs.List) {
             return (
@@ -1055,6 +1071,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             {...props.cardProps}
                             cardBodyStyle={{ padding: '0px' }}
                             buttons={cardButtons}
+                            title={getCardTitle(props.cardProps.title)}
                         >
                             {getList()}
                         </Card>
@@ -1071,6 +1088,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             {...props.cardProps}
                             cardBodyStyle={{ padding: '0px' }}
                             buttons={cardButtons}
+                            title={getCardTitle(props.cardProps.title)}
                         >
                             {getTable()}
                         </Card>
@@ -1088,6 +1106,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         {...props.cardProps}
                         cardBodyStyle={{ padding: '0px' }}
                         buttons={cardButtons}
+                        title={getCardTitle(props.cardProps.title)}
                     >
                         {getOrderedStatesList()}
                     </Card>
