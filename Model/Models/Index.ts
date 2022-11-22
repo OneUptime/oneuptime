@@ -24,6 +24,7 @@ import StatusPageAnnouncement from './StatusPageAnnouncement';
 import StatusPageSubscriber from './StatusPageSubscriber';
 import StatusPageFooterLink from './StatusPageFooterLink';
 import StatusPageHeaderLink from './StatusPageHeaderLink';
+import StatusPagePrivateUser from './StatusPagePrivateUser';
 
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
@@ -81,6 +82,7 @@ export default [
     IncidentInternalNote,
     File,
     Domain,
+
     StatusPageGroup,
     StatusPageDomain,
     StatusPageResource,
@@ -89,6 +91,7 @@ export default [
     StatusPageSubscriber,
     StatusPageFooterLink,
     StatusPageHeaderLink,
+    StatusPagePrivateUser,
 
     ScheduledMaintenanceState,
     ScheduledMaintenance,

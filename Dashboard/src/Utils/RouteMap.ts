@@ -125,6 +125,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/footer-style`
     ),
 
+    [PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/private-users`
+    ),
+
     [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/navbar-style`
     ),

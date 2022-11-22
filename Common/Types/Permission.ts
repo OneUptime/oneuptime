@@ -68,6 +68,12 @@ enum Permission {
     CanEditStatusPageSubscriber = 'CanEditStatusPageSubscriber',
     CanReadStatusPageSubscriber = 'CanReadStatusPageSubscriber',
 
+    CanCreateStatusPagePrivateUser = 'CanCreateStatusPagePrivateUser',
+    CanDeleteStatusPagePrivateUser = 'CanDeleteStatusPagePrivateUser',
+    CanEditStatusPagePrivateUser = 'CanEditStatusPagePrivateUser',
+    CanReadStatusPagePrivateUser = 'CanReadStatusPagePrivateUser',
+
+
     // Probe Permissions (Owner Permission)
     CanCreateProjectDomain = 'CanCreateProjectDomain',
     CanDeleteProjectDomain = 'CanDeleteProjectDomain',
@@ -1263,6 +1269,40 @@ export class PermissionHelper {
                 title: 'Can Read Status Page Subscriber',
                 description:
                     'A user assigned this permission  can read subscriber on status page of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateStatusPagePrivateUser,
+                title: 'Can Create Status Page Private User',
+                description:
+                    'A user assigned this permission can create private user on status page this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteStatusPagePrivateUser,
+                title: 'Can Delete Status Page PrivateUser',
+                description:
+                    'A user assigned this permission  can delete private user on status page of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditStatusPagePrivateUser,
+                title: 'Can Edit Status Page PrivateUser',
+                description:
+                    'A user assigned this permission can edit private user on status page of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadStatusPagePrivateUser,
+                title: 'Can Read Status Page Private User',
+                description:
+                    'A user assigned this permission  can read private user on status page of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

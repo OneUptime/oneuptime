@@ -212,6 +212,21 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                 />
             </SideMenuSection>
 
+            <SideMenuSection title="Private Users">
+                <SideMenuItem
+                    link={{
+                        title: 'Private Users',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[
+                                PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                            ] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.User}
+                />
+            </SideMenuSection>
+
             <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
