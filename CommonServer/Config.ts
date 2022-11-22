@@ -128,5 +128,11 @@ export const AdminDashboardRoute: Route = new Route(
 export const IsProduction: boolean =
     process.env['ENVIRONMENT'] === 'production';
 
+export const IsDevelopment: boolean =
+    process.env['ENVIRONMENT'] === 'development';
+
+export const IsTest: boolean =
+    process.env['ENVIRONMENT'] === 'test';
+
 export const SubscriptionPlans: Array<SubscriptionPlan> =
     SubscriptionPlan.getSubscriptionPlans();

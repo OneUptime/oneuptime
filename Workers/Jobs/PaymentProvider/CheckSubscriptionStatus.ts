@@ -1,15 +1,15 @@
 
-import { EVERY_DAY } from '../../Utils/CronTime';
+import { EVERY_DAY, EVERY_MINUTE } from '../../Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import Project from 'Model/Models/Project';
 import BillingService from 'CommonServer/Services/BillingService';
-import { IsBillingEnabled } from 'CommonServer/Config';
+import { IsBillingEnabled, IsDevelopment } from 'CommonServer/Config';
 import logger from 'CommonServer/Utils/Logger';
 import Sleep from 'Common/Types/Sleep';
 
-RunCron('PaymentProvider:CheckSubscriptionStatus', EVERY_DAY, async () => {
+RunCron('PaymentProvider:CheckSubscriptionStatus', IsDevelopment ? EVERY_MINUTE : EVERY_DAY, async () => {
     // get all projects.
     if (!IsBillingEnabled) {
         return;
