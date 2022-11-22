@@ -22,6 +22,8 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../Types/Database/Populate';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
+import { IsBillingEnabled } from '../Config';
+import ProjectService from '../Services/ProjectService';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -144,10 +146,10 @@ export default class BaseAPI<
         this.service = service;
     }
 
-    public getPermissionsForTenant(req: ExpressRequest): Array<UserPermission> {
+    public async getPermissionsForTenant(req: ExpressRequest): Promise<Array<UserPermission>> {
         const permissions: Array<UserPermission> = [];
 
-        const props = this.getDatabaseCommonInteractionProps(req);
+        const props = await this.getDatabaseCommonInteractionProps(req);
 
         console.log(props);
 
@@ -166,9 +168,9 @@ export default class BaseAPI<
         return permissions;
     }
 
-    public getDatabaseCommonInteractionProps(
+    public async getDatabaseCommonInteractionProps(
         req: ExpressRequest
-    ): DatabaseCommonInteractionProps {
+    ): Promise<DatabaseCommonInteractionProps> {
         const props: DatabaseCommonInteractionProps = {
             tenantId: undefined,
             userGlobalAccessPermission: undefined,
@@ -203,6 +205,10 @@ export default class BaseAPI<
 
         if (req.headers['is-multi-tenant-query']) {
             props.isMultiTenantRequest = true;
+        }
+
+        if (IsBillingEnabled && props.tenantId) {
+            props.currentPlan = await ProjectService.getCurrentPlan(props.tenantId) || undefined;
         }
 
         return props;
@@ -254,7 +260,7 @@ export default class BaseAPI<
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
-            this.getDatabaseCommonInteractionProps(req);
+        await this.getDatabaseCommonInteractionProps(req);
 
         const list: Array<BaseModel> = await this.service.findBy({
             query,
@@ -295,7 +301,7 @@ export default class BaseAPI<
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
-            this.getDatabaseCommonInteractionProps(req);
+        await this.getDatabaseCommonInteractionProps(req);
 
         const count: PositiveNumber = await this.service.countBy({
             query,
@@ -332,7 +338,7 @@ export default class BaseAPI<
             id: objectId,
             select,
             populate,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: await this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEntityResponse(req, res, item, this.entityType);
@@ -349,7 +355,7 @@ export default class BaseAPI<
             query: {
                 _id: objectId.toString(),
             },
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: await this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -377,7 +383,7 @@ export default class BaseAPI<
                 _id: objectIdString,
             },
             data: item,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: await this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -402,7 +408,7 @@ export default class BaseAPI<
         const createBy: CreateBy<TBaseModel> = {
             data: item,
             miscDataProps: miscDataProps,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: await this.getDatabaseCommonInteractionProps(req),
         };
 
         const savedItem: BaseModel = await this.service.create(createBy);
