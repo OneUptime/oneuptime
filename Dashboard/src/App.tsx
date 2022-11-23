@@ -106,7 +106,7 @@ const App: FunctionComponent = () => {
         Navigation.navigate(ACCOUNTS_URL);
     }
 
-    const [isLoading, setLoading] = useState<boolean>(false);
+    const [isLoading, setLoading] = useState<boolean>(true);
     const [showProjectModal, setShowProjectModal] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [projects, setProjects] = useState<Array<Project>>([]);

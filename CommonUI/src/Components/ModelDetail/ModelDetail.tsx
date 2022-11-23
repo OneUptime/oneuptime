@@ -32,7 +32,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
     const [fields, setFields] = useState<Array<Field<TBaseModel>>>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
     const [item, setItem] = useState<TBaseModel | null>(null);
 

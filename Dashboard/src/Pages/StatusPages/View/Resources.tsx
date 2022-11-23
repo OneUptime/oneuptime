@@ -38,7 +38,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     );
 
     const [groups, setGroups] = useState<Array<StatusPageGroup>>([]);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>('');
 
     const fetchGroups: Function = async () => {
