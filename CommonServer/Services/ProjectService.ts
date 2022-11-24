@@ -34,7 +34,9 @@ import { IsBillingEnabled } from '../Config';
 import BillingService from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import SubscriptionPlan, { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan, {
+    PlanSelect,
+} from 'Common/Types/Billing/SubscriptionPlan';
 import UpdateBy from '../Types/Database/UpdateBy';
 
 export class Service extends DatabaseService<Model> {
@@ -146,7 +148,7 @@ export class Service extends DatabaseService<Model> {
                         plan,
                         project.paymentProviderSubscriptionSeats as number,
                         plan.getYearlyPlanId() ===
-                        updateBy.data.paymentProviderPlanId,
+                            updateBy.data.paymentProviderPlanId,
                         project.trialEndsAt
                     );
                 }
@@ -456,7 +458,7 @@ export class Service extends DatabaseService<Model> {
             data: ownerTeamMember,
             props: {
                 isRoot: true,
-                ignoreHooks: true
+                ignoreHooks: true,
             },
         });
 
@@ -471,7 +473,7 @@ export class Service extends DatabaseService<Model> {
             data: ownerPermissions,
             props: {
                 isRoot: true,
-                ignoreHooks: true
+                ignoreHooks: true,
             },
         });
 
@@ -501,7 +503,7 @@ export class Service extends DatabaseService<Model> {
             data: adminPermissions,
             props: {
                 isRoot: true,
-                ignoreHooks: true
+                ignoreHooks: true,
             },
         });
 
@@ -530,7 +532,7 @@ export class Service extends DatabaseService<Model> {
             data: memberPermissions,
             props: {
                 isRoot: true,
-                ignoreHooks: true
+                ignoreHooks: true,
             },
         });
 
@@ -592,7 +594,9 @@ export class Service extends DatabaseService<Model> {
         return onDelete;
     }
 
-    public async getCurrentPlan(projectId: ObjectID): Promise<{ plan: PlanSelect | null, isSubscriptionUnpaid: boolean }> {
+    public async getCurrentPlan(
+        projectId: ObjectID
+    ): Promise<{ plan: PlanSelect | null; isSubscriptionUnpaid: boolean }> {
         if (!IsBillingEnabled) {
             return { plan: null, isSubscriptionUnpaid: false };
         }
@@ -601,24 +605,28 @@ export class Service extends DatabaseService<Model> {
             id: projectId,
             select: {
                 paymentProviderPlanId: true,
-                paymentProviderSubscriptionStatus: true
+                paymentProviderSubscriptionStatus: true,
             },
             props: {
                 isRoot: true,
-                ignoreHooks: true
-            }
+                ignoreHooks: true,
+            },
         });
 
         if (!project) {
-            throw new BadDataException("Project ID is invalid");
+            throw new BadDataException('Project ID is invalid');
         }
 
         if (!project.paymentProviderPlanId) {
-            throw new BadDataException("Project does not have any plans");
+            throw new BadDataException('Project does not have any plans');
         }
 
-        return { plan: SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId), isSubscriptionUnpaid:  SubscriptionPlan.isUnpaid(project.paymentProviderSubscriptionStatus || 'active')};
-
+        return {
+            plan: SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId),
+            isSubscriptionUnpaid: SubscriptionPlan.isUnpaid(
+                project.paymentProviderSubscriptionStatus || 'active'
+            ),
+        };
     }
 }
 export default new Service();

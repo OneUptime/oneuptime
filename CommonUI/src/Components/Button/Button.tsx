@@ -18,7 +18,7 @@ export enum ButtonStyleType {
     SUCCESS_OUTLINE,
     WARNING,
     WARNING_OUTLINE,
-    LINK
+    LINK,
 }
 
 export enum ButtonSize {
@@ -60,7 +60,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyle = ButtonStyleType.NORMAL,
     buttonSize = ButtonSize.Normal,
     dataTestId,
-    textStyle
+    textStyle,
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -155,10 +155,11 @@ const Button: FunctionComponent<ComponentProps> = ({
             data-testid={dataTestId}
             type={type}
             disabled={disabled}
-            className={`btn ${buttonStyleCssClass} ${buttonSize} waves-effect waves-light ${!title && buttonStyle === ButtonStyleType.NORMAL
+            className={`btn ${buttonStyleCssClass} ${buttonSize} waves-effect waves-light ${
+                !title && buttonStyle === ButtonStyleType.NORMAL
                     ? 'no-border-on-hover'
                     : ''
-                }`}
+            }`}
         >
             {!isLoading && (
                 <div>
@@ -174,7 +175,8 @@ const Button: FunctionComponent<ComponentProps> = ({
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
                                     thick={
-                                        buttonSize === ButtonSize.Small || buttonStyle === ButtonStyleType.LINK
+                                        buttonSize === ButtonSize.Small ||
+                                        buttonStyle === ButtonStyleType.LINK
                                             ? ThickProp.LessThick
                                             : ThickProp.Thick
                                     }

@@ -22,7 +22,6 @@ import CurrentUserCanAccessRecordBy from 'Common/Types/Database/CurrentUserCanAc
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
 
-
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
     create: [Permission.Public],

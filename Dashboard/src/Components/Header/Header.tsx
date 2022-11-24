@@ -51,17 +51,27 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [projectCountRefreshToggle, setProjectCountRefreshToggle] =
         useState<boolean>(true);
 
-    const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] = useState<boolean>(false);
-    const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(null);
+    const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] =
+        useState<boolean>(false);
+    const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(
+        null
+    );
 
     useAsyncEffect(async () => {
-        if (props.selectedProject && props.selectedProject._id && BILLING_ENABLED) {
+        if (
+            props.selectedProject &&
+            props.selectedProject._id &&
+            BILLING_ENABLED
+        ) {
             setPaymentMethodCountLoading(true);
-            const paymentMethodsCount = await ModelAPI.count(BillingPaymentMethod, { projectId: props.selectedProject?._id });
+            const paymentMethodsCount = await ModelAPI.count(
+                BillingPaymentMethod,
+                { projectId: props.selectedProject?._id }
+            );
             setPaymentMethodCount(paymentMethodsCount);
             setPaymentMethodCountLoading(false);
         }
-    }, [props.selectedProject])
+    }, [props.selectedProject]);
 
     return (
         <>
@@ -69,7 +79,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 leftComponents={
                     <>
                         {props.projects.length === 0 && (
-                            <Logo onClick={() => { }} />
+                            <Logo onClick={() => {}} />
                         )}
                         <ProjectPicker
                             showProjectModal={props.showProjectModal}
@@ -134,10 +144,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                             OneUptimeDate.getCurrentDate(),
                                             props.selectedProject?.trialEndsAt!
-                                        )} ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                                            OneUptimeDate.getCurrentDate(),
-                                            props.selectedProject?.trialEndsAt!
-                                        ) > 1 ? 'days' : 'day'}`}
+                                        )} ${
+                                            OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                                OneUptimeDate.getCurrentDate(),
+                                                props.selectedProject
+                                                    ?.trialEndsAt!
+                                            ) > 1
+                                                ? 'days'
+                                                : 'day'
+                                        }`}
                                     />
                                 )}
                         </div>
@@ -146,30 +161,43 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 rightComponents={
                     <>
                         {/* <Notifications /> */}
-                        {BILLING_ENABLED && props.selectedProject?.id &&
-                            props.selectedProject.paymentProviderPlanId &&
-                            !SubscriptionPlan.isFreePlan(
-                                props.selectedProject.paymentProviderPlanId
-                            ) && !SubscriptionPlan.isCustomPricingPlan(
-                                props.selectedProject.paymentProviderPlanId
-                            ) && !isPaymentMethodCountLoading && paymentMethodCount === 0 ? (<Button
+                        {BILLING_ENABLED &&
+                        props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        !SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId
+                        ) &&
+                        !SubscriptionPlan.isCustomPricingPlan(
+                            props.selectedProject.paymentProviderPlanId
+                        ) &&
+                        !isPaymentMethodCountLoading &&
+                        paymentMethodCount === 0 ? (
+                            <Button
                                 title="Add Card Details"
                                 onClick={() => {
-                                    Navigation.navigate(RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_BILLING] as Route));
+                                    Navigation.navigate(
+                                        RouteUtil.populateRouteParams(
+                                            RouteMap[
+                                                PageMap.SETTINGS_BILLING
+                                            ] as Route
+                                        )
+                                    );
                                 }}
                                 buttonStyle={ButtonStyleType.LINK}
                                 icon={IconProp.Billing}
-                                textStyle={
-                                    {
-                                        fontWeight: 500
-                                    }
-                                }
-                            ></Button>) : <></>}
-                        {BILLING_ENABLED && props.selectedProject?.id &&
-                            props.selectedProject.paymentProviderPlanId &&
-                            SubscriptionPlan.isFreePlan(
-                                props.selectedProject.paymentProviderPlanId
-                            ) ? (
+                                textStyle={{
+                                    fontWeight: 500,
+                                }}
+                            ></Button>
+                        ) : (
+                            <></>
+                        )}
+                        {BILLING_ENABLED &&
+                        props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId
+                        ) ? (
                             <Upgrade projectId={props.selectedProject.id} />
                         ) : (
                             <></>

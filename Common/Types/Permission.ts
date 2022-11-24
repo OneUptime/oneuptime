@@ -73,7 +73,6 @@ enum Permission {
     CanEditStatusPagePrivateUser = 'CanEditStatusPagePrivateUser',
     CanReadStatusPagePrivateUser = 'CanReadStatusPagePrivateUser',
 
-
     // Probe Permissions (Owner Permission)
     CanCreateProjectDomain = 'CanCreateProjectDomain',
     CanDeleteProjectDomain = 'CanDeleteProjectDomain',
@@ -183,12 +182,10 @@ enum Permission {
     CanDeleteIncidentPublicNote = 'CanDeleteIncidentPublicNote',
     CanReadIncidentPublicNote = 'CanReadIncidentPublicNote',
 
-
     CanCreateInvoices = 'CanCreateInvoices',
     CanEditInvoices = 'CanEditInvoices',
     CanDeleteInvoices = 'CanDeleteInvoices',
     CanReadInvoices = 'CanReadInvoices',
-
 
     CanCreateBillingPaymentMethod = 'CanCreateBillingPaymentMethod',
     CanEditBillingPaymentMethod = 'CanEditBillingPaymentMethod',
@@ -1120,7 +1117,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateInvoices,
                 title: 'Can Create Invoices',
@@ -1153,8 +1149,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
 
             {
                 permission: Permission.CanCreateBillingPaymentMethod,
@@ -1353,7 +1347,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
 
             {
                 permission: Permission.CanCreateStatusPagePrivateUser,

@@ -31,7 +31,10 @@ import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessContr
 })
 export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateBillingPaymentMethod,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
         update: [],
     })
@@ -55,7 +58,10 @@ export default class BillingPaymentMethod extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateBillingPaymentMethod,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
         update: [],
     })
@@ -73,7 +79,10 @@ export default class BillingPaymentMethod extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateBillingPaymentMethod,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
         update: [],
     })
@@ -97,7 +106,10 @@ export default class BillingPaymentMethod extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateBillingPaymentMethod,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
         update: [],
     })
@@ -147,7 +159,10 @@ export default class BillingPaymentMethod extends BaseModel {
     public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateBillingPaymentMethod,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
         update: [],
     })
@@ -189,7 +204,10 @@ export default class BillingPaymentMethod extends BaseModel {
     public paymentProviderCustomerId?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateBillingPaymentMethod,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
         update: [],
     })
@@ -203,7 +221,10 @@ export default class BillingPaymentMethod extends BaseModel {
     public last4Digits?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
+        create: [
+            Permission.ProjectOwner,
+            Permission.CanCreateBillingPaymentMethod,
+        ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
         update: [],
     })

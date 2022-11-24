@@ -1,11 +1,10 @@
-import BadDataException from "../Exception/BadDataException";
+import BadDataException from '../Exception/BadDataException';
 
 export enum PlanSelect {
-    Free = "Free",
-    Growth = "Growth",
-    Enterprise = "Enterprise"
+    Free = 'Free',
+    Growth = 'Growth',
+    Enterprise = 'Enterprise',
 }
-
 
 export default class SubscriptionPlan {
     private monthlyPlanId: string = '';
@@ -78,10 +77,7 @@ export default class SubscriptionPlan {
     public static isCustomPricingPlan(planId: string): boolean {
         const plan = this.getSubscriptionPlanById(planId);
         if (plan) {
-            if (
-                plan.getMonthlyPlanId() === planId &&
-                plan.isCustomPricing()
-            ) {
+            if (plan.getMonthlyPlanId() === planId && plan.isCustomPricing()) {
                 return true;
             }
         }
@@ -148,41 +144,59 @@ export default class SubscriptionPlan {
         return Boolean(this.getSubscriptionPlanById(planId));
     }
 
-    public static getPlanSelect(planId: string): PlanSelect{
+    public static getPlanSelect(planId: string): PlanSelect {
         const plan = this.getSubscriptionPlanById(planId);
         if (!plan) {
-            throw new BadDataException("Plan ID is invalid");
+            throw new BadDataException('Plan ID is invalid');
         }
 
         return plan.getName() as PlanSelect;
     }
 
-    public static getSubscriptionPlanFromPlanSelect(planSelect: PlanSelect): SubscriptionPlan {
-        const plan = this.getSubscriptionPlans().find((plan) => plan.getName() === planSelect);
-        
+    public static getSubscriptionPlanFromPlanSelect(
+        planSelect: PlanSelect
+    ): SubscriptionPlan {
+        const plan = this.getSubscriptionPlans().find((plan) => {
+            return plan.getName() === planSelect;
+        });
+
         if (!plan) {
-            throw new BadDataException("Invalid Plan");
+            throw new BadDataException('Invalid Plan');
         }
 
         return plan;
     }
 
-    public static isFeatureAccessibleOnCurrentPlan(featurePlan: PlanSelect, currentPlan: PlanSelect): boolean {
-        const featureSubscriptionPlan = this.getSubscriptionPlanFromPlanSelect(featurePlan);
-        const currentSubscriptionPlan = this.getSubscriptionPlanFromPlanSelect(currentPlan);
+    public static isFeatureAccessibleOnCurrentPlan(
+        featurePlan: PlanSelect,
+        currentPlan: PlanSelect
+    ): boolean {
+        const featureSubscriptionPlan =
+            this.getSubscriptionPlanFromPlanSelect(featurePlan);
+        const currentSubscriptionPlan =
+            this.getSubscriptionPlanFromPlanSelect(currentPlan);
 
-        if (featureSubscriptionPlan.getPlanOrder() > currentSubscriptionPlan.getPlanOrder()) {
-            return false; 
+        if (
+            featureSubscriptionPlan.getPlanOrder() >
+            currentSubscriptionPlan.getPlanOrder()
+        ) {
+            return false;
         }
 
         return true;
     }
 
-    public static isUnpaid(subscriptionStatus: string): boolean { 
-        if (subscriptionStatus === "incomplete" || subscriptionStatus === "incomplete_expired" || subscriptionStatus === "past_due" || subscriptionStatus === "canceled" || subscriptionStatus === "unpaid") {
-            return true; 
+    public static isUnpaid(subscriptionStatus: string): boolean {
+        if (
+            subscriptionStatus === 'incomplete' ||
+            subscriptionStatus === 'incomplete_expired' ||
+            subscriptionStatus === 'past_due' ||
+            subscriptionStatus === 'canceled' ||
+            subscriptionStatus === 'unpaid'
+        ) {
+            return true;
         }
 
-        return false; 
+        return false;
     }
 }

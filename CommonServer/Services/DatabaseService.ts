@@ -518,11 +518,10 @@ class DatabaseService<TBaseModel extends BaseModel> {
         )) as TBaseModel;
 
         try {
-
-            console.log("DATA CREATE");
+            console.log('DATA CREATE');
             createBy.data = await this.getRepository().save(createBy.data);
-            console.log("DATA CREATED");
-            
+            console.log('DATA CREATED');
+
             if (!createBy.props.ignoreHooks) {
                 createBy.data = await this.onCreateSuccess(
                     {

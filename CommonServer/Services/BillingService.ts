@@ -17,9 +17,9 @@ export interface Invoice {
     id: string;
     amount: number;
     currencyCode: string;
-    subscriptionId?: string | undefined; 
+    subscriptionId?: string | undefined;
     status: string;
-    downloadableLink: string; 
+    downloadableLink: string;
     customerId: string | undefined;
 }
 
@@ -116,9 +116,10 @@ export class BillingService {
 
         return {
             id: subscription.id,
-            trialEndsAt: hasTrial && plan.getTrialPeriod() > 0
-                ? OneUptimeDate.getSomeDaysAfter(plan.getTrialPeriod())
-                : null,
+            trialEndsAt:
+                hasTrial && plan.getTrialPeriod() > 0
+                    ? OneUptimeDate.getSomeDaysAfter(plan.getTrialPeriod())
+                    : null,
         };
     }
 
@@ -331,7 +332,6 @@ export class BillingService {
         await this.stripe.subscriptions.del(subscriptionId);
     }
 
-
     public static async getSubscriptionStatus(
         subscriptionId: string
     ): Promise<string> {
@@ -341,12 +341,16 @@ export class BillingService {
             );
         }
 
-        const subscription = await this.stripe.subscriptions.retrieve(subscriptionId);
+        const subscription = await this.stripe.subscriptions.retrieve(
+            subscriptionId
+        );
 
         return subscription.status;
     }
 
-    public static async getInvoices(customerId: string): Promise<Array<Invoice>> {
+    public static async getInvoices(
+        customerId: string
+    ): Promise<Array<Invoice>> {
         const invoices = await this.stripe.invoices.list({
             customer: customerId,
             limit: 100,
@@ -360,25 +364,27 @@ export class BillingService {
                 subscriptionId: invoice.subscription?.toString() || undefined,
                 status: invoice.status?.toString() || 'Unknown',
                 downloadableLink: invoice.invoice_pdf?.toString() || '',
-                customerId: invoice.customer?.toString() || ''
-            }
+                customerId: invoice.customer?.toString() || '',
+            };
         });
-
     }
 
-    public static async payInvoice(customerId: string, invoiceId: string): Promise<Invoice> {
+    public static async payInvoice(
+        customerId: string,
+        invoiceId: string
+    ): Promise<Invoice> {
         // after the invoice is paid, // please fetch subscription and check the status.
         const paymentMethods = await this.getPaymentMethods(customerId);
 
         if (paymentMethods.length === 0) {
-            throw new BadDataException("Payment Method not added. Please add a payment method.");
+            throw new BadDataException(
+                'Payment Method not added. Please add a payment method.'
+            );
         }
-        
-        const invoice = await this.stripe.invoices.pay(
-            invoiceId, {
-                payment_method: paymentMethods[0]?.id || ''
-            }
-        );
+
+        const invoice = await this.stripe.invoices.pay(invoiceId, {
+            payment_method: paymentMethods[0]?.id || '',
+        });
 
         return {
             id: invoice.id!,
@@ -387,8 +393,8 @@ export class BillingService {
             subscriptionId: invoice.subscription?.toString() || undefined,
             status: invoice.status?.toString() || 'Unknown',
             downloadableLink: invoice.invoice_pdf?.toString() || '',
-            customerId: invoice.customer?.toString() || ''
-        }
+            customerId: invoice.customer?.toString() || '',
+        };
     }
 }
 

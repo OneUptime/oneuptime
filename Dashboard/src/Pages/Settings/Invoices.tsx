@@ -5,11 +5,7 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Text from 'Common/Types/Text';
 import PageMap from '../../Utils/PageMap';
 import RouteMap from '../../Utils/RouteMap';
@@ -27,19 +23,17 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 
-export interface ComponentProps extends PageComponentProps { }
+export interface ComponentProps extends PageComponentProps {}
 
 const Settings: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const payInvoice = async (customerId: string, invoiceId: string) => {
         try {
             setIsLoading(true);
-
 
             await BaseAPI.post<JSONObject>(
                 URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
@@ -48,8 +42,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                 {
                     data: {
                         paymentProviderInvoiceId: invoiceId,
-                        paymentProviderCustomerId: customerId, 
-                    }
+                        paymentProviderCustomerId: customerId,
+                    },
                 },
                 ModelAPI.getCommonHeaders()
             );
@@ -59,7 +53,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -67,7 +61,6 @@ const Settings: FunctionComponent<ComponentProps> = (
             setIsLoading(false);
         }
     };
-
 
     return (
         <Page
@@ -88,92 +81,138 @@ const Settings: FunctionComponent<ComponentProps> = (
             ]}
             sideMenu={<DashboardSideMenu />}
         >
-
-
             {isLoading ? <ComponentLoader /> : <></>}
 
-            {!isLoading ? <ModelTable<BillingInvoice>
-                modelType={BillingInvoice}
-                id="invoices-table"
-                isDeleteable={false}
-                isEditable={false}
-                isCreateable={false}
-                isViewable={false}
-                cardProps={{
-                    icon: IconProp.File,
-                    title: 'Invoices',
-                    description:
-                        'Here is a list of invoices for this project.',
-                }}
-                noItemsMessage={'No invoices so far.'}
-                query={{
-                    projectId: props.currentProject?._id,
-                }}
-                showRefreshButton={true}
-                showFilterButton={false}
-                selectMoreFields={{
-                    currencyCode: true,
-                    paymentProviderCustomerId: true
-                }}
-                columns={[
-                    {
-                        field: {
-                            paymentProviderInvoiceId: true,
+            {!isLoading ? (
+                <ModelTable<BillingInvoice>
+                    modelType={BillingInvoice}
+                    id="invoices-table"
+                    isDeleteable={false}
+                    isEditable={false}
+                    isCreateable={false}
+                    isViewable={false}
+                    cardProps={{
+                        icon: IconProp.File,
+                        title: 'Invoices',
+                        description:
+                            'Here is a list of invoices for this project.',
+                    }}
+                    noItemsMessage={'No invoices so far.'}
+                    query={{
+                        projectId: props.currentProject?._id,
+                    }}
+                    showRefreshButton={true}
+                    showFilterButton={false}
+                    selectMoreFields={{
+                        currencyCode: true,
+                        paymentProviderCustomerId: true,
+                    }}
+                    columns={[
+                        {
+                            field: {
+                                paymentProviderInvoiceId: true,
+                            },
+                            title: 'Invoice ID',
+                            type: FieldType.Text,
                         },
-                        title: 'Invoice ID',
-                        type: FieldType.Text,
-                    },
-                    {
-                        field: {
-                            amount: true,
+                        {
+                            field: {
+                                amount: true,
+                            },
+                            title: 'Amount',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                            getElement: (item: JSONObject) => {
+                                return (
+                                    <span>{`${
+                                        (item['amount'] as number) / 100
+                                    } ${item['currencyCode']
+                                        ?.toString()
+                                        .toUpperCase()}`}</span>
+                                );
+                            },
                         },
-                        title: 'Amount',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                        getElement: (item: JSONObject) => {
-                            return <span>{`${(item['amount'] as number) / 100} ${item['currencyCode']?.toString().toUpperCase()}`}</span>
-                        }
-                    },
-                    {
-                        field: {
-                            status: true,
+                        {
+                            field: {
+                                status: true,
+                            },
+                            title: 'Invoice Status',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                            getElement: (item: JSONObject) => {
+                                if (item['status'] === 'paid') {
+                                    return (
+                                        <Pill
+                                            text={Text.uppercaseFirstLetter(
+                                                item['status'] as string
+                                            )}
+                                            color={Green}
+                                        />
+                                    );
+                                }
+                                return (
+                                    <Pill
+                                        text={Text.uppercaseFirstLetter(
+                                            item['status'] as string
+                                        )}
+                                        color={Yellow}
+                                    />
+                                );
+                            },
                         },
-                        title: 'Invoice Status',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                        getElement: (item: JSONObject) => {
-                            if (item['status'] === "paid") {
-                                return <Pill text={Text.uppercaseFirstLetter(item['status'] as string)} color={Green} />
-                            } else {
-                                return <Pill text={Text.uppercaseFirstLetter(item['status'] as string)} color={Yellow} />
-                            }
-                        }
-                    },
-                    {
-                        field: {
-                            downloadableLink: true,
-                        },
-                        title: 'Actions',
-                        type: FieldType.Text,
-                        isFilterable: true,
-                        getElement: (item: JSONObject) => {
+                        {
+                            field: {
+                                downloadableLink: true,
+                            },
+                            title: 'Actions',
+                            type: FieldType.Text,
+                            isFilterable: true,
+                            getElement: (item: JSONObject) => {
+                                return (
+                                    <div>
+                                        {item['downloadableLink'] ? (
+                                            <Button
+                                                icon={IconProp.Download}
+                                                onClick={() => {
+                                                    Navigation.navigate(
+                                                        item[
+                                                            'downloadableLink'
+                                                        ] as URL
+                                                    );
+                                                }}
+                                                title="Download"
+                                            />
+                                        ) : (
+                                            <></>
+                                        )}
 
-                            return (
-                                <div>
-                                    {item['downloadableLink'] ? <Button icon={IconProp.Download} onClick={() => {
-                                        Navigation.navigate(item['downloadableLink'] as URL);
-                                    }} title="Download" /> : <></>}
-
-                                    {item['status'] !== "paid" ? <Button icon={IconProp.Billing} onClick={() => {
-                                        payInvoice(item['paymentProviderCustomerId'] as string, item['paymentProviderInvoiceId'] as string);
-                                    }} title="Pay Invoice" /> : <></>}
-                                </div>
-                            )
-                        }
-                    },
-                ]}
-            /> : <></>}
-
+                                        {item['status'] !== 'paid' ? (
+                                            <Button
+                                                icon={IconProp.Billing}
+                                                onClick={() => {
+                                                    payInvoice(
+                                                        item[
+                                                            'paymentProviderCustomerId'
+                                                        ] as string,
+                                                        item[
+                                                            'paymentProviderInvoiceId'
+                                                        ] as string
+                                                    );
+                                                }}
+                                                title="Pay Invoice"
+                                            />
+                                        ) : (
+                                            <></>
+                                        )}
+                                    </div>
+                                );
+                            },
+                        },
+                    ]}
+                />
+            ) : (
+                <></>
+            )}
 
             {error ? (
                 <ConfirmModal
@@ -185,8 +224,9 @@ const Settings: FunctionComponent<ComponentProps> = (
                     }}
                     submitButtonType={ButtonStyleType.NORMAL}
                 />
-            ): <></>}
-
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

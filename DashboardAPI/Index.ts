@@ -30,7 +30,6 @@ import StatusPagePrivateUserService, {
     Service as StatusPagePrivateUserServiceType,
 } from 'CommonServer/Services/StatusPagePrivateUserService';
 
-
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import StatusPageSubscriberService, {
     Service as StatusPageSubscriberServiceType,
@@ -303,7 +302,6 @@ app.use(
         StatusPagePrivateUserService
     ).getRouter()
 );
-
 
 app.use(
     new BaseAPI<Incident, IncidentServiceType>(

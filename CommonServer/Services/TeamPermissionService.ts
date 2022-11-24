@@ -1,6 +1,10 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/TeamPermission';
-import DatabaseService, { OnCreate, OnDelete, OnUpdate } from './DatabaseService';
+import DatabaseService, {
+    OnCreate,
+    OnDelete,
+    OnUpdate,
+} from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import AccessTokenService from './AccessTokenService';
 import TeamMemberService from './TeamMemberService';
@@ -17,28 +21,34 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onBeforeCreate(createBy: CreateBy<Model>): Promise<OnCreate<Model>> {
+    protected override async onBeforeCreate(
+        createBy: CreateBy<Model>
+    ): Promise<OnCreate<Model>> {
         if (!createBy.data.teamId) {
-            throw new BadDataException("Team Id is required to create permission");
+            throw new BadDataException(
+                'Team Id is required to create permission'
+            );
         }
 
         // get team.
         const team = await TeamService.findOneById({
             id: createBy.data.teamId!,
             select: {
-                isPermissionsEditable: true
+                isPermissionsEditable: true,
             },
             props: {
-                isRoot: true
-            }
+                isRoot: true,
+            },
         });
 
         if (!team) {
-            throw new BadDataException("Invalid Team ID");
+            throw new BadDataException('Invalid Team ID');
         }
 
         if (!team.isPermissionsEditable) {
-            throw new BadDataException("You cannot create new permissions for this team because this team is not editable");
+            throw new BadDataException(
+                'You cannot create new permissions for this team because this team is not editable'
+            );
         }
 
         return { createBy, carryForward: null };
@@ -78,53 +88,58 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-    protected override async onBeforeUpdate(updateBy: UpdateBy<Model>): Promise<OnUpdate<Model>> {
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<Model>
+    ): Promise<OnUpdate<Model>> {
         const teamPermissions = await this.findBy({
             query: updateBy.query,
             select: {
                 _id: true,
                 teamId: true,
-                projectId: true
+                projectId: true,
             },
             populate: {
                 team: {
-                    isPermissionsEditable: true
-                }
+                    isPermissionsEditable: true,
+                },
             },
             skip: 0,
             limit: LIMIT_MAX,
             props: {
                 isRoot: true,
-            }
+            },
         });
 
         for (const permission of teamPermissions) {
             if (!permission.team?.isPermissionsEditable) {
-                throw new BadDataException("Permissions for this team is not updateable. You can create a new team and add permissions to that team instead.");
+                throw new BadDataException(
+                    'Permissions for this team is not updateable. You can create a new team and add permissions to that team instead.'
+                );
             }
         }
 
         return { updateBy, carryForward: teamPermissions };
     }
 
-    protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: ObjectID[]): Promise<OnUpdate<Model>> {
-
+    protected override async onUpdateSuccess(
+        onUpdate: OnUpdate<Model>,
+        _updatedItemIds: ObjectID[]
+    ): Promise<OnUpdate<Model>> {
         for (const permission of onUpdate.carryForward) {
-
-
-            const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
-                query: {
-                    teamId: permission.teamId!,
-                },
-                select: {
-                    userId: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-                limit: LIMIT_MAX,
-                skip: 0,
-            });
+            const teamMembers: Array<TeamMember> =
+                await TeamMemberService.findBy({
+                    query: {
+                        teamId: permission.teamId!,
+                    },
+                    select: {
+                        userId: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                    limit: LIMIT_MAX,
+                    skip: 0,
+                });
 
             for (const member of teamMembers) {
                 /// Refresh tokens.
@@ -141,34 +156,37 @@ export class Service extends DatabaseService<Model> {
         return onUpdate;
     }
 
-    protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
         const teamPermissions = await this.findBy({
             query: deleteBy.query,
             select: {
                 _id: true,
                 teamId: true,
-                projectId: true
+                projectId: true,
             },
             populate: {
                 team: {
-                    isPermissionsEditable: true
-                }
+                    isPermissionsEditable: true,
+                },
             },
             skip: 0,
             limit: LIMIT_MAX,
             props: {
                 isRoot: true,
-            }
+            },
         });
 
         for (const permission of teamPermissions) {
             if (!permission.team?.isPermissionsEditable) {
-                throw new BadDataException("Permissions for this team is not deleteable. You can create a new team and add permissions to that team instead.");
+                throw new BadDataException(
+                    'Permissions for this team is not deleteable. You can create a new team and add permissions to that team instead.'
+                );
             }
         }
 
         let teamMembers: Array<TeamMember> = [];
-
 
         for (const permission of teamPermissions) {
             const members: Array<TeamMember> = await TeamMemberService.findBy({
@@ -177,7 +195,7 @@ export class Service extends DatabaseService<Model> {
                 },
                 select: {
                     userId: true,
-                    projectId: true
+                    projectId: true,
                 },
                 props: {
                     isRoot: true,
@@ -192,8 +210,10 @@ export class Service extends DatabaseService<Model> {
         return { deleteBy, carryForward: teamMembers };
     }
 
-    protected override async onDeleteSuccess(onDelete: OnDelete<Model>, _itemIdsBeforeDelete: ObjectID[]): Promise<OnDelete<Model>> {
-        
+    protected override async onDeleteSuccess(
+        onDelete: OnDelete<Model>,
+        _itemIdsBeforeDelete: ObjectID[]
+    ): Promise<OnDelete<Model>> {
         for (const member of onDelete.carryForward) {
             /// Refresh tokens.
             await AccessTokenService.refreshUserGlobalAccessPermission(
@@ -203,7 +223,6 @@ export class Service extends DatabaseService<Model> {
                 member.userId!,
                 member.data.projectId!
             );
-
         }
 
         return onDelete;

@@ -47,13 +47,16 @@ export default class UserAPI extends BaseAPI<
                         );
                     }
 
-                    const userPermissions = (await this.getPermissionsForTenant(
-                        req
-                    )).filter((permission) => {
+                    const userPermissions = (
+                        await this.getPermissionsForTenant(req)
+                    ).filter((permission) => {
                         console.log(permission.permission);
                         //FIX: Change "Project"
                         return (
-                            permission.permission.toString() === Permission.ProjectOwner.toString() || permission.permission.toString() === Permission.CanEditInvoices.toString()
+                            permission.permission.toString() ===
+                                Permission.ProjectOwner.toString() ||
+                            permission.permission.toString() ===
+                                Permission.CanEditInvoices.toString()
                         );
                     });
 
@@ -72,7 +75,7 @@ export default class UserAPI extends BaseAPI<
                             select: {
                                 _id: true,
                                 paymentProviderCustomerId: true,
-                                paymentProviderSubscriptionId: true
+                                paymentProviderSubscriptionId: true,
                             },
                         });
 
@@ -98,58 +101,59 @@ export default class UserAPI extends BaseAPI<
 
                     const body: JSONObject = req.body;
 
-                    const item: BillingInvoice = BaseModel.fromJSON<BillingInvoice>(
-                        body['data'] as JSONObject,
-                        this.entityType
-                    ) as BillingInvoice;
-
+                    const item: BillingInvoice =
+                        BaseModel.fromJSON<BillingInvoice>(
+                            body['data'] as JSONObject,
+                            this.entityType
+                        ) as BillingInvoice;
 
                     if (!item.paymentProviderInvoiceId) {
-                        throw new BadDataException("Invoice ID not found");
+                        throw new BadDataException('Invoice ID not found');
                     }
 
                     if (!item.paymentProviderCustomerId) {
-                        throw new BadDataException("Customer ID not found");
+                        throw new BadDataException('Customer ID not found');
                     }
 
-                    const invoice: Invoice =
-                        await BillingService.payInvoice(
-                            item.paymentProviderCustomerId!,
-                            item.paymentProviderInvoiceId!,
-                        );
+                    const invoice: Invoice = await BillingService.payInvoice(
+                        item.paymentProviderCustomerId!,
+                        item.paymentProviderInvoiceId!
+                    );
 
-
-                    // save updated status. 
+                    // save updated status.
 
                     await this.service.updateOneBy({
                         query: {
-                            paymentProviderInvoiceId: invoice.id!
+                            paymentProviderInvoiceId: invoice.id!,
                         },
                         props: {
                             isRoot: true,
-                            ignoreHooks: true
+                            ignoreHooks: true,
                         },
                         data: {
-                            status: invoice.status
-                        }
-                    })
+                            status: invoice.status,
+                        },
+                    });
 
-                    // refresh subscription status. 
-                    const subscriptionState = await BillingService.getSubscriptionStatus(project.paymentProviderSubscriptionId as string);
+                    // refresh subscription status.
+                    const subscriptionState =
+                        await BillingService.getSubscriptionStatus(
+                            project.paymentProviderSubscriptionId as string
+                        );
 
                     await ProjectService.updateOneById({
                         id: project.id!,
                         data: {
-                            paymentProviderSubscriptionStatus: subscriptionState
+                            paymentProviderSubscriptionStatus:
+                                subscriptionState,
                         },
                         props: {
                             isRoot: true,
-                            ignoreHooks: true
-                        }
+                            ignoreHooks: true,
+                        },
                     });
 
                     return Response.sendEmptyResponse(req, res);
-                    
                 } catch (err) {
                     next(err);
                 }

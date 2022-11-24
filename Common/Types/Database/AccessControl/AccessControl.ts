@@ -17,4 +17,3 @@ export interface BillingAccessControl {
     update: PlanSelect;
     delete: PlanSelect;
 }
-

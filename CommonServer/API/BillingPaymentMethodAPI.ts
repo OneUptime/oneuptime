@@ -45,13 +45,16 @@ export default class UserAPI extends BaseAPI<
                         );
                     }
 
-                    const userPermissions = (await this.getPermissionsForTenant(
-                        req
-                    )).filter((permission) => {
+                    const userPermissions = (
+                        await this.getPermissionsForTenant(req)
+                    ).filter((permission) => {
                         console.log(permission.permission);
                         //FIX: Change "Project"
                         return (
-                            permission.permission.toString() === Permission.ProjectOwner.toString() || permission.permission.toString() === Permission.CanCreateBillingPaymentMethod.toString()
+                            permission.permission.toString() ===
+                                Permission.ProjectOwner.toString() ||
+                            permission.permission.toString() ===
+                                Permission.CanCreateBillingPaymentMethod.toString()
                         );
                     });
 

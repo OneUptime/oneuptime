@@ -59,7 +59,7 @@ import {
     Layers,
     Codesandbox,
     Star,
-    ArrowDown
+    ArrowDown,
 } from 'react-feather';
 
 export enum SizeProp {
@@ -146,7 +146,7 @@ export enum IconProp {
     Invoice,
     Upgrade,
     Star,
-    Download
+    Download,
 }
 
 export interface ComponentProps {

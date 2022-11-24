@@ -48,7 +48,9 @@ import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import InBetween from 'Common/Types/Database/InBetween';
 import { BILLING_ENABLED } from '../../Config';
-import SubscriptionPlan, { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan, {
+    PlanSelect,
+} from 'Common/Types/Billing/SubscriptionPlan';
 import Pill from '../Pill/Pill';
 import { Yellow } from 'Common/Types/BrandColors';
 
@@ -59,14 +61,14 @@ export enum ShowTableAs {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     onFetchInit?:
-    | undefined
-    | ((pageNumber: number, itemsOnPage: number) => void);
+        | undefined
+        | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-    | undefined
-    | ((data: Array<TBaseModel>, totalCount: number) => void);
+        | undefined
+        | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     selectMoreFields?: Select<TBaseModel>;
@@ -193,8 +195,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 fieldType: column.type,
                 getElement: column.getElement
                     ? (item: JSONObject): ReactElement => {
-                        return column.getElement!(item, onBeforeFetchData);
-                    }
+                          return column.getElement!(item, onBeforeFetchData);
+                      }
                     : undefined,
             });
 
@@ -226,7 +228,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setErrorModalText(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setErrorModalText('Server Error. Please try again');
@@ -327,7 +329,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setTableFilterError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setTableFilterError('Server Error. Please try again');
@@ -338,7 +340,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const fetchItems: Function = async () => {
-
         setError('');
         setIsLoading(true);
 
@@ -364,8 +365,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                            [sortBy as any]: sortOrder,
-                        }
+                              [sortBy as any]: sortOrder,
+                          }
                         : {},
                     getPopulate(),
                     props.fetchRequestOptions
@@ -377,7 +378,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -494,8 +495,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             showTableAs !== ShowTableAs.OrderedStatesList
         ) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
-                    }`,
+                title: `${props.createVerb || 'Create'} ${
+                    props.singularName || model.singularName
+                }`,
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
                     setModalType(ModalType.Create);
@@ -954,9 +956,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         let getTitleElement:
             | ((
-                item: JSONObject,
-                onBeforeFetchData?: JSONObject | undefined
-            ) => ReactElement)
+                  item: JSONObject,
+                  onBeforeFetchData?: JSONObject | undefined
+              ) => ReactElement)
             | undefined = undefined;
         let getDescriptionElement:
             | ((item: JSONObject) => ReactElement)
@@ -1000,10 +1002,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onCreateNewItem={
                     props.isCreateable
                         ? (order: number) => {
-                            setOrderedStatesListNewItemOrder(order);
-                            setModalType(ModalType.Create);
-                            setShowModal(true);
-                        }
+                              setOrderedStatesListNewItemOrder(order);
+                              setModalType(ModalType.Create);
+                              setShowModal(true);
+                          }
                         : undefined
                 }
                 singularLabel={
@@ -1048,15 +1050,34 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         );
     };
 
-    const getCardTitle: Function = (title: ReactElement | string): ReactElement => {
-        return <span>
-            {title}
-            {BILLING_ENABLED && props.currentPlan && (new props.modelType().readBillingPlan) && !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(new props.modelType().readBillingPlan!, props.currentPlan) && <span style={{
-                marginLeft: "5px"
-            }}>
-                <Pill text={`${new props.modelType().readBillingPlan} Plan`} color={Yellow} />
-            </span>}
-        </span>
+    const getCardTitle: Function = (
+        title: ReactElement | string
+    ): ReactElement => {
+        return (
+            <span>
+                {title}
+                {BILLING_ENABLED &&
+                    props.currentPlan &&
+                    new props.modelType().readBillingPlan &&
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        new props.modelType().readBillingPlan!,
+                        props.currentPlan
+                    ) && (
+                        <span
+                            style={{
+                                marginLeft: '5px',
+                            }}
+                        >
+                            <Pill
+                                text={`${
+                                    new props.modelType().readBillingPlan
+                                } Plan`}
+                                color={Yellow}
+                            />
+                        </span>
+                    )}
+            </span>
+        );
     };
 
     const getCardComponent: Function = (): ReactElement => {
@@ -1122,8 +1143,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
-                            }`
+                            ? `${props.createVerb || 'Create'} New ${
+                                  props.singularName || model.singularName
+                              }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
                     initialValues={
@@ -1136,8 +1158,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
-                            }`
+                            ? `${props.createVerb || 'Create'} ${
+                                  props.singularName || model.singularName
+                              }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {

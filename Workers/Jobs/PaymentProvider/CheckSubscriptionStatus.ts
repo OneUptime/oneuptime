@@ -1,4 +1,3 @@
-
 import { EVERY_DAY, EVERY_MINUTE } from '../../Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import ProjectService from 'CommonServer/Services/ProjectService';
@@ -9,52 +8,57 @@ import { IsBillingEnabled, IsDevelopment } from 'CommonServer/Config';
 import logger from 'CommonServer/Utils/Logger';
 import Sleep from 'Common/Types/Sleep';
 
-RunCron('PaymentProvider:CheckSubscriptionStatus', IsDevelopment ? EVERY_MINUTE : EVERY_DAY, async () => {
-    // get all projects.
-    if (!IsBillingEnabled) {
-        return;
-    }
-
-    const projects: Array<Project> = await ProjectService.findBy({
-        query: {},
-        select: {
-            _id: true,
-            paymentProviderSubscriptionId: true,
-            paymentProviderCustomerId: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-            isRoot: true,
-            ignoreHooks: true
+RunCron(
+    'PaymentProvider:CheckSubscriptionStatus',
+    IsDevelopment ? EVERY_MINUTE : EVERY_DAY,
+    async () => {
+        // get all projects.
+        if (!IsBillingEnabled) {
+            return;
         }
-    });
 
-    for (const project of projects) {
-        try {
-            if (project.paymentProviderSubscriptionId) {
+        const projects: Array<Project> = await ProjectService.findBy({
+            query: {},
+            select: {
+                _id: true,
+                paymentProviderSubscriptionId: true,
+                paymentProviderCustomerId: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            props: {
+                isRoot: true,
+                ignoreHooks: true,
+            },
+        });
 
-                // get subscription detail.
-                const subscriptionState = await BillingService.getSubscriptionStatus(project.paymentProviderSubscriptionId as string);
+        for (const project of projects) {
+            try {
+                if (project.paymentProviderSubscriptionId) {
+                    // get subscription detail.
+                    const subscriptionState =
+                        await BillingService.getSubscriptionStatus(
+                            project.paymentProviderSubscriptionId as string
+                        );
 
-                await ProjectService.updateOneById({
-                    id: project.id!,
-                    data: {
-                        paymentProviderSubscriptionStatus: subscriptionState
-                    },
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true
-                    }
-                });
+                    await ProjectService.updateOneById({
+                        id: project.id!,
+                        data: {
+                            paymentProviderSubscriptionStatus:
+                                subscriptionState,
+                        },
+                        props: {
+                            isRoot: true,
+                            ignoreHooks: true,
+                        },
+                    });
 
-                // after every subscription fetch, sleep for a 5 seconds to avoid stripe rate limit.
-                await Sleep.sleep(5000);
-
+                    // after every subscription fetch, sleep for a 5 seconds to avoid stripe rate limit.
+                    await Sleep.sleep(5000);
+                }
+            } catch (err) {
+                logger.error(err);
             }
-        } catch (err) {
-            logger.error(err);
         }
     }
-
-});
+);

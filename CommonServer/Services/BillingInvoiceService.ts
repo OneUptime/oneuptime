@@ -64,11 +64,14 @@ export class Service extends DatabaseService<Model> {
             billingInvoice.projectId = project.id!;
 
             billingInvoice.amount = invoice.amount;
-            billingInvoice.downloadableLink = URL.fromString(invoice.downloadableLink);
+            billingInvoice.downloadableLink = URL.fromString(
+                invoice.downloadableLink
+            );
             billingInvoice.currencyCode = invoice.currencyCode;
-            billingInvoice.paymentProviderCustomerId = invoice.customerId || ''; 
-            billingInvoice.paymentProviderSubscriptionId = invoice.subscriptionId || ''; 
-            billingInvoice.status = invoice.status || ''; 
+            billingInvoice.paymentProviderCustomerId = invoice.customerId || '';
+            billingInvoice.paymentProviderSubscriptionId =
+                invoice.subscriptionId || '';
+            billingInvoice.status = invoice.status || '';
             billingInvoice.paymentProviderInvoiceId = invoice.id;
 
             await this.create({
@@ -85,7 +88,7 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeDelete(
         _deleteBy: DeleteBy<Model>
     ): Promise<OnDelete<Model>> {
-       throw new BadDataException("Invoice should not be deleted.")
+        throw new BadDataException('Invoice should not be deleted.');
     }
 }
 

@@ -26,14 +26,20 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
     create: PlanSelect.Growth,
     read: PlanSelect.Growth,
     update: PlanSelect.Growth,
-    delete: PlanSelect.Growth
+    delete: PlanSelect.Growth,
 })
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateStatusPagePrivateUser],
+    create: [
+        Permission.ProjectOwner,
+        Permission.CanCreateStatusPagePrivateUser,
+    ],
     read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPagePrivateUser],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.CanDeleteStatusPagePrivateUser,
+    ],
     update: [Permission.ProjectOwner, Permission.CanEditStatusPagePrivateUser],
 })
 @CrudApiEndpoint(new Route('/status-page-private-user'))
@@ -42,14 +48,16 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 @Entity({
     name: 'StatusPagePrivateUser',
 })
-
 export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateStatusPagePrivateUser,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPagePrivateUser,
+        ],
         update: [],
     })
     @TableColumn({
@@ -76,7 +84,10 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateStatusPagePrivateUser,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPagePrivateUser,
+        ],
         update: [],
     })
     @Index()
@@ -97,7 +108,10 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateStatusPagePrivateUser,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPagePrivateUser,
+        ],
         update: [],
     })
     @TableColumn({
@@ -124,7 +138,10 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateStatusPagePrivateUser,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPagePrivateUser,
+        ],
         update: [],
     })
     @Index()
@@ -141,7 +158,10 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateStatusPagePrivateUser,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPagePrivateUser,
+        ],
         update: [
             Permission.ProjectOwner,
             Permission.CanEditStatusPagePrivateUser,
@@ -161,7 +181,10 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateStatusPagePrivateUser,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPagePrivateUser,
+        ],
         update: [
             Permission.ProjectOwner,
             Permission.CanEditStatusPagePrivateUser,
@@ -180,7 +203,6 @@ export default class StatusPagePrivateUser extends BaseModel {
         transformer: HashedString.getDatabaseTransformer(),
     })
     public password?: HashedString = undefined;
-
 
     @ColumnAccessControl({
         create: [],
@@ -229,7 +251,10 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateStatusPagePrivateUser,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPagePrivateUser,
+        ],
         update: [],
     })
     @TableColumn({
@@ -256,7 +281,10 @@ export default class StatusPagePrivateUser extends BaseModel {
             Permission.ProjectOwner,
             Permission.CanCreateStatusPagePrivateUser,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPagePrivateUser,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -269,7 +297,10 @@ export default class StatusPagePrivateUser extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+        read: [
+            Permission.ProjectOwner,
+            Permission.CanReadStatusPagePrivateUser,
+        ],
         update: [],
     })
     @TableColumn({

@@ -153,47 +153,45 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeDelete(
         deleteBy: DeleteBy<Model>
     ): Promise<OnDelete<Model>> {
-
-
-
         const members: Array<Model> = await this.findBy({
             query: deleteBy.query,
             select: {
                 userId: true,
                 projectId: true,
                 team: true,
-                teamId: true
+                teamId: true,
             },
             limit: LIMIT_MAX,
             skip: 0,
             populate: {
                 team: {
                     _id: true,
-                    shouldHaveAtleastOneMember: true
-                }
+                    shouldHaveAtleastOneMember: true,
+                },
             },
             props: {
                 isRoot: true,
             },
         });
 
-
-        // check if there's one member in the team. 
+        // check if there's one member in the team.
         for (const member of members) {
             if (member.team?.shouldHaveAtleastOneMember) {
                 const membersInTeam = await this.countBy({
                     query: {
-                        _id: member.teamId?.toString() as string
+                        _id: member.teamId?.toString() as string,
                     },
                     skip: 0,
                     limit: LIMIT_MAX,
                     props: {
-                        isRoot: true
-                    }
+                        isRoot: true,
+                    },
                 });
 
                 if (membersInTeam.toNumber() <= 1) {
-                    throw new BadDataException("This team should have atleast 1 member");
+                    throw new BadDataException(
+                        'This team should have atleast 1 member'
+                    );
                 }
             }
         }

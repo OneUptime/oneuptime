@@ -325,8 +325,12 @@ const Settings: FunctionComponent<ComponentProps> = (
                         type: FieldType.Text,
                         isFilterable: true,
                         getElement: (item: JSONObject) => {
-                            return <span>{`${Text.uppercaseFirstLetter(item['type'] as string)}`}</span>
-                        }
+                            return (
+                                <span>{`${Text.uppercaseFirstLetter(
+                                    item['type'] as string
+                                )}`}</span>
+                            );
+                        },
                     },
                     {
                         field: {
@@ -336,8 +340,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                         type: FieldType.Text,
                         isFilterable: true,
                         getElement: (item: JSONObject) => {
-                            return <span>{`*****${item['last4Digits']}`}</span>
-                        }
+                            return <span>{`*****${item['last4Digits']}`}</span>;
+                        },
                     },
                 ]}
             />

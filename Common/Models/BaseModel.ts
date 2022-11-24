@@ -79,7 +79,6 @@ export default class BaseModel extends BaseEntity {
 
     public allowAccessIfSubscriptionIsUnpaid!: boolean;
 
-
     public currentUserCanAccessColumnBy!: string | null;
     public labelsColumn!: string | null;
     public slugifyColumn!: string | null;

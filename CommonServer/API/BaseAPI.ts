@@ -146,7 +146,9 @@ export default class BaseAPI<
         this.service = service;
     }
 
-    public async getPermissionsForTenant(req: ExpressRequest): Promise<Array<UserPermission>> {
+    public async getPermissionsForTenant(
+        req: ExpressRequest
+    ): Promise<Array<UserPermission>> {
         const permissions: Array<UserPermission> = [];
 
         const props = await this.getDatabaseCommonInteractionProps(req);
@@ -270,7 +272,7 @@ export default class BaseAPI<
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
-        await this.getDatabaseCommonInteractionProps(req);
+            await this.getDatabaseCommonInteractionProps(req);
 
         const list: Array<BaseModel> = await this.service.findBy({
             query,
@@ -311,7 +313,7 @@ export default class BaseAPI<
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
-        await this.getDatabaseCommonInteractionProps(req);
+            await this.getDatabaseCommonInteractionProps(req);
 
         const count: PositiveNumber = await this.service.countBy({
             query,

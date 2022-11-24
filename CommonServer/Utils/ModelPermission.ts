@@ -958,37 +958,86 @@ export default class ModelPermission {
             );
         }
 
-        /// Check billing permissions. 
+        /// Check billing permissions.
 
         if (IsBillingEnabled && props.currentPlan) {
+            const model = new modelType();
 
-            const model = new modelType(); 
-
-            if (props.isSubscriptionUnpaid && !model.allowAccessIfSubscriptionIsUnpaid) {
-                throw new PaymentRequiredException("Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Billing to proceed.")
+            if (
+                props.isSubscriptionUnpaid &&
+                !model.allowAccessIfSubscriptionIsUnpaid
+            ) {
+                throw new PaymentRequiredException(
+                    'Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Billing to proceed.'
+                );
             }
 
-            if (type === DatabaseRequestType.Create && model.createBillingPlan) {
-                if (!SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(model.createBillingPlan, props.currentPlan)) {
-                    throw new PaymentRequiredException("Please upgrade your plan to " + model.createBillingPlan + " to access this feature");
+            if (
+                type === DatabaseRequestType.Create &&
+                model.createBillingPlan
+            ) {
+                if (
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        model.createBillingPlan,
+                        props.currentPlan
+                    )
+                ) {
+                    throw new PaymentRequiredException(
+                        'Please upgrade your plan to ' +
+                            model.createBillingPlan +
+                            ' to access this feature'
+                    );
                 }
             }
 
-            if (type === DatabaseRequestType.Update && model.updateBillingPlan) {
-                if (!SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(model.updateBillingPlan, props.currentPlan)) {
-                    throw new PaymentRequiredException("Please upgrade your plan to " + model.createBillingPlan + " to access this feature");
+            if (
+                type === DatabaseRequestType.Update &&
+                model.updateBillingPlan
+            ) {
+                if (
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        model.updateBillingPlan,
+                        props.currentPlan
+                    )
+                ) {
+                    throw new PaymentRequiredException(
+                        'Please upgrade your plan to ' +
+                            model.createBillingPlan +
+                            ' to access this feature'
+                    );
                 }
             }
 
-            if (type === DatabaseRequestType.Delete && model.deleteBillingPlan) {
-                if (!SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(model.deleteBillingPlan, props.currentPlan)) {
-                    throw new PaymentRequiredException("Please upgrade your plan to " + model.createBillingPlan + " to access this feature");
+            if (
+                type === DatabaseRequestType.Delete &&
+                model.deleteBillingPlan
+            ) {
+                if (
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        model.deleteBillingPlan,
+                        props.currentPlan
+                    )
+                ) {
+                    throw new PaymentRequiredException(
+                        'Please upgrade your plan to ' +
+                            model.createBillingPlan +
+                            ' to access this feature'
+                    );
                 }
             }
 
             if (type === DatabaseRequestType.Read && model.readBillingPlan) {
-                if (!SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(model.readBillingPlan, props.currentPlan)) {
-                    throw new PaymentRequiredException("Please upgrade your plan to " + model.createBillingPlan + " to access this feature");
+                if (
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        model.readBillingPlan,
+                        props.currentPlan
+                    )
+                ) {
+                    throw new PaymentRequiredException(
+                        'Please upgrade your plan to ' +
+                            model.createBillingPlan +
+                            ' to access this feature'
+                    );
                 }
             }
         }

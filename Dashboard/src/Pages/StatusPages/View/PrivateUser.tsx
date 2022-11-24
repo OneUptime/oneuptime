@@ -50,14 +50,15 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 {
                     title: 'Private Users',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS] as Route,
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                        ] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
             <ModelTable<StatusPagePrivateUser>
                 modelType={StatusPagePrivateUser}
                 id="status-page-group"
@@ -116,9 +117,11 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Password',
                         type: FieldType.Password,
                         isFilterable: false,
-                    }
+                    },
                 ]}
-                currentPlan={SubscriptionPlan.getPlanSelect(props.currentProject?.paymentProviderPlanId!)}
+                currentPlan={SubscriptionPlan.getPlanSelect(
+                    props.currentProject?.paymentProviderPlanId!
+                )}
             />
         </Page>
     );

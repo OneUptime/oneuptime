@@ -131,8 +131,7 @@ export const IsProduction: boolean =
 export const IsDevelopment: boolean =
     process.env['ENVIRONMENT'] === 'development';
 
-export const IsTest: boolean =
-    process.env['ENVIRONMENT'] === 'test';
+export const IsTest: boolean = process.env['ENVIRONMENT'] === 'test';
 
 export const SubscriptionPlans: Array<SubscriptionPlan> =
     SubscriptionPlan.getSubscriptionPlans();
