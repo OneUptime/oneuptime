@@ -19,4 +19,5 @@ export default interface DatabaseCommonInteractionProps {
     isMultiTenantRequest?: boolean | undefined;
     ignoreHooks?: boolean | undefined;
     currentPlan?: PlanSelect | undefined;
+    isSubscriptionUnpaid?: boolean | undefined;
 }

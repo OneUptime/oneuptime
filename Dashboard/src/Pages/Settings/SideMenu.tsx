@@ -172,15 +172,15 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         }}
                         icon={IconProp.Billing}
                     />
-                    {/* <SideMenuItem
+                    <SideMenuItem
                     link={{
                         title: 'Invoices',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route
                         ),
                     }}
-                    icon={IconProp.File}
-                /> */}
+                    icon={IconProp.TextFile}
+                />
                 </SideMenuSection>
             ) : (
                 <></>

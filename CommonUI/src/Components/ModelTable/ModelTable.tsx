@@ -338,9 +338,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const fetchItems: Function = async () => {
-        if (isLoading) {
-            return;
-        }
 
         setError('');
         setIsLoading(true);

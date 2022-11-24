@@ -20,7 +20,10 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import CurrentUserCanAccessRecordBy from 'Common/Types/Database/CurrentUserCanAccessRecordBy';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
+import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
 
+
+@AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
     create: [Permission.Public],
     read: [

@@ -146,7 +146,7 @@ export class Service extends DatabaseService<Model> {
                         plan,
                         project.paymentProviderSubscriptionSeats as number,
                         plan.getYearlyPlanId() ===
-                            updateBy.data.paymentProviderPlanId,
+                        updateBy.data.paymentProviderPlanId,
                         project.trialEndsAt
                     );
                 }
@@ -429,7 +429,7 @@ export class Service extends DatabaseService<Model> {
         let ownerTeam: Team = new Team();
         ownerTeam.projectId = createdItem.id!;
         ownerTeam.name = 'Owners';
-        ownerTeam.shouldHaveAtleastOneMember = true; 
+        ownerTeam.shouldHaveAtleastOneMember = true;
         ownerTeam.isPermissionsEditable = false;
         ownerTeam.isTeamEditable = false;
         ownerTeam.isTeamDeleteable = false;
@@ -592,15 +592,16 @@ export class Service extends DatabaseService<Model> {
         return onDelete;
     }
 
-    public async getCurrentPlan(projectId: ObjectID): Promise<PlanSelect | null> {
+    public async getCurrentPlan(projectId: ObjectID): Promise<{ plan: PlanSelect | null, isSubscriptionUnpaid: boolean }> {
         if (!IsBillingEnabled) {
-            return null;
+            return { plan: null, isSubscriptionUnpaid: false };
         }
 
         const project = await this.findOneById({
             id: projectId,
             select: {
-                paymentProviderPlanId: true
+                paymentProviderPlanId: true,
+                paymentProviderSubscriptionStatus: true
             },
             props: {
                 isRoot: true,
@@ -616,7 +617,7 @@ export class Service extends DatabaseService<Model> {
             throw new BadDataException("Project does not have any plans");
         }
 
-        return SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId);
+        return { plan: SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId), isSubscriptionUnpaid:  SubscriptionPlan.isUnpaid(project.paymentProviderSubscriptionStatus || 'active')};
 
     }
 }

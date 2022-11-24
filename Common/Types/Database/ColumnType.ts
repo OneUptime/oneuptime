@@ -26,6 +26,7 @@ enum ColumnType {
     PositiveNumber = 'integer',
     BigPositiveNumber = 'bigint',
     SmallNumber = 'smallint',
+    Decimal = 'decimal',
     Number = 'integer',
     BigNumber = 'bigint',
     Markdown = 'text',

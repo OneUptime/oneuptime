@@ -57,6 +57,7 @@ import ProjectSmtpConfig from './ProjectSmtpConfig';
 import Domain from './Domain';
 
 import File from './File';
+import BillingInvoice from './BillingInvoice';
 
 export default [
     User,
@@ -100,4 +101,5 @@ export default [
     ScheduledMaintenanceInternalNote,
 
     BillingPaymentMethods,
+    BillingInvoice
 ];

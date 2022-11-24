@@ -15,24 +15,25 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
+import URL from 'Common/Types/API/URL';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
-    read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteBillingPaymentMethod],
+    create: [],
+    read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+    delete: [],
     update: [],
 })
-@CrudApiEndpoint(new Route('/billing-payment-methods'))
-@SingularPluralName('Payment Method', 'Payment Methods')
+@CrudApiEndpoint(new Route('/billing-invoices'))
+@SingularPluralName('Invoice', 'Invoices')
 @Entity({
-    name: 'BillingPaymentMethod',
+    name: 'BillingInvoice',
 })
-export default class BillingPaymentMethod extends BaseModel {
+export default class BillingInvoice extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @TableColumn({
@@ -55,8 +56,8 @@ export default class BillingPaymentMethod extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @Index()
@@ -73,8 +74,8 @@ export default class BillingPaymentMethod extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @TableColumn({
@@ -97,8 +98,8 @@ export default class BillingPaymentMethod extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -111,7 +112,7 @@ export default class BillingPaymentMethod extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @TableColumn({
@@ -135,7 +136,7 @@ export default class BillingPaymentMethod extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -147,8 +148,21 @@ export default class BillingPaymentMethod extends BaseModel {
     public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Number })
+    @Column({
+        type: ColumnType.Decimal,
+        nullable: false,
+        unique: false,
+    })
+    public amount?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -158,11 +172,25 @@ export default class BillingPaymentMethod extends BaseModel {
         nullable: false,
         unique: false,
     })
-    public type?: string = undefined;
+    public currencyCode?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongURL })
+    @Column({
+        type: ColumnType.LongURL,
+        nullable: false,
+        unique: false,
+        transformer: URL.getDatabaseTransformer(),
+    })
+    public downloadableLink?: URL = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -172,11 +200,11 @@ export default class BillingPaymentMethod extends BaseModel {
         nullable: false,
         unique: false,
     })
-    public paymentProviderPaymentMethodId?: string = undefined;
+    public status?: string = undefined;
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -189,8 +217,22 @@ export default class BillingPaymentMethod extends BaseModel {
     public paymentProviderCustomerId?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderSubscriptionId?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -200,18 +242,5 @@ export default class BillingPaymentMethod extends BaseModel {
         nullable: false,
         unique: false,
     })
-    public last4Digits?: string = undefined;
-
-    @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateBillingPaymentMethod],
-        read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
-        update: [],
-    })
-    @TableColumn({ type: TableColumnType.Boolean })
-    @Column({
-        type: ColumnType.Boolean,
-        nullable: true,
-        unique: false,
-    })
-    public isDefault?: boolean = undefined;
+    public paymentProviderInvoiceId?: string = undefined;
 }

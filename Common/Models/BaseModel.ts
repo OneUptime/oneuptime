@@ -77,6 +77,8 @@ export default class BaseModel extends BaseEntity {
     public updateBillingPlan!: PlanSelect | null;
     public deleteBillingPlan!: PlanSelect | null;
 
+    public allowAccessIfSubscriptionIsUnpaid!: boolean;
+
 
     public currentUserCanAccessColumnBy!: string | null;
     public labelsColumn!: string | null;

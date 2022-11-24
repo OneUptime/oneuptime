@@ -11,12 +11,14 @@ import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
+@AllowAccessIfSubscriptionIsUnpaid()
 @MultiTenentQueryAllowed(true)
 @TableAccessControl({
     create: [Permission.User],

@@ -183,6 +183,18 @@ enum Permission {
     CanDeleteIncidentPublicNote = 'CanDeleteIncidentPublicNote',
     CanReadIncidentPublicNote = 'CanReadIncidentPublicNote',
 
+
+    CanCreateInvoices = 'CanCreateInvoices',
+    CanEditInvoices = 'CanEditInvoices',
+    CanDeleteInvoices = 'CanDeleteInvoices',
+    CanReadInvoices = 'CanReadInvoices',
+
+
+    CanCreateBillingPaymentMethod = 'CanCreateBillingPaymentMethod',
+    CanEditBillingPaymentMethod = 'CanEditBillingPaymentMethod',
+    CanDeleteBillingPaymentMethod = 'CanDeleteBillingPaymentMethod',
+    CanReadBillingPaymentMethod = 'CanReadBillingPaymentMethod',
+
     CanCreateProjectMonitor = 'CanCreateProjectMonitor',
     CanEditProjectMonitor = 'CanEditProjectMonitor',
     CanDeleteProjectMonitor = 'CanDeleteProjectMonitor',
@@ -1104,6 +1116,75 @@ export class PermissionHelper {
                 title: 'Can Read Incident Status Page Note',
                 description:
                     'A user assigned this permission  can read Incident Status Page Note of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+            {
+                permission: Permission.CanCreateInvoices,
+                title: 'Can Create Invoices',
+                description:
+                    'A user assigned this permission can create Invoices this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteInvoices,
+                title: 'Can Delete Invoices',
+                description:
+                    'A user assigned this permission  can delete Invoices of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditInvoices,
+                title: 'Can Edit Invoices',
+                description:
+                    'A user assigned this permission can edit Invoices of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadInvoices,
+                title: 'Can Read Invoices',
+                description:
+                    'A user assigned this permission  can read Invoices of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+
+            {
+                permission: Permission.CanCreateBillingPaymentMethod,
+                title: 'Can Create Payment Method',
+                description:
+                    'A user assigned this permission can create Payment Method this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteBillingPaymentMethod,
+                title: 'Can Delete Payment Method',
+                description:
+                    'A user assigned this permission  can delete Payment Method of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditBillingPaymentMethod,
+                title: 'Can Edit Payment Method',
+                description:
+                    'A user assigned this permission can edit Payment Method of this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadBillingPaymentMethod,
+                title: 'Can Read Payment Method',
+                description:
+                    'A user assigned this permission  can read Payment Method of this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

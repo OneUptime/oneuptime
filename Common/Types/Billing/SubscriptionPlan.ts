@@ -177,4 +177,12 @@ export default class SubscriptionPlan {
 
         return true;
     }
+
+    public static isUnpaid(subscriptionStatus: string): boolean { 
+        if (subscriptionStatus === "incomplete" || subscriptionStatus === "incomplete_expired" || subscriptionStatus === "past_due" || subscriptionStatus === "canceled" || subscriptionStatus === "unpaid") {
+            return true; 
+        }
+
+        return false; 
+    }
 }

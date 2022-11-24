@@ -12,9 +12,6 @@ import ApiKey from 'Model/Models/ApiKey';
 import { LessThan } from 'typeorm';
 import OneUptimeDate from 'Common/Types/Date';
 import UserType from 'Common/Types/UserType';
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
-import { IsBillingEnabled } from '../Config';
-import ProjectService from '../Services/ProjectService';
 
 export default class ProjectMiddleware {
     public static getProjectId(req: ExpressRequest): ObjectID | null {
@@ -32,20 +29,6 @@ export default class ProjectMiddleware {
 
         return projectId;
     }
-
-    public static async getProjectPlan(req: ExpressRequest): Promise<PlanSelect | null> {
-        if (!IsBillingEnabled) {
-            return null;
-        }
-
-        const projectId = this.getProjectId(req);
-
-        if (!projectId) {
-            return null;
-        }
-
-        return await ProjectService.getCurrentPlan(projectId);
-    } 
 
     public static getApiKey(req: ExpressRequest): ObjectID | null {
         let apiKey: ObjectID | null = null;

@@ -216,7 +216,9 @@ export default class BaseAPI<
         }
 
         if (IsBillingEnabled && props.tenantId) {
-            props.currentPlan = await ProjectService.getCurrentPlan(props.tenantId) || undefined;
+            const plan = await ProjectService.getCurrentPlan(props.tenantId!);
+            props.currentPlan = plan.plan || undefined;
+            props.isSubscriptionUnpaid = plan.isSubscriptionUnpaid;
         }
 
         return props;

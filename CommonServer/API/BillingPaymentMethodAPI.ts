@@ -1,4 +1,5 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Permission from 'Common/Types/Permission';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import Project from 'Model/Models/Project';
 import { IsBillingEnabled } from '../Config';
@@ -50,7 +51,7 @@ export default class UserAPI extends BaseAPI<
                         console.log(permission.permission);
                         //FIX: Change "Project"
                         return (
-                            permission.permission.toString() === 'ProjectOwner'
+                            permission.permission.toString() === Permission.ProjectOwner.toString() || permission.permission.toString() === Permission.CanCreateBillingPaymentMethod.toString()
                         );
                     });
 

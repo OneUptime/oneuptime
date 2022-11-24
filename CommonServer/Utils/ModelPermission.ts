@@ -964,6 +964,10 @@ export default class ModelPermission {
 
             const model = new modelType(); 
 
+            if (props.isSubscriptionUnpaid && !model.allowAccessIfSubscriptionIsUnpaid) {
+                throw new PaymentRequiredException("Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Billing to proceed.")
+            }
+
             if (type === DatabaseRequestType.Create && model.createBillingPlan) {
                 if (!SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(model.createBillingPlan, props.currentPlan)) {
                     throw new PaymentRequiredException("Please upgrade your plan to " + model.createBillingPlan + " to access this feature");

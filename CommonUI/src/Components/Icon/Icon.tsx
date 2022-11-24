@@ -58,7 +58,8 @@ import {
     ExternalLink,
     Layers,
     Codesandbox,
-    Star
+    Star,
+    ArrowDown
 } from 'react-feather';
 
 export enum SizeProp {
@@ -144,7 +145,8 @@ export enum IconProp {
     Clock,
     Invoice,
     Upgrade,
-    Star
+    Star,
+    Download
 }
 
 export interface ComponentProps {
@@ -641,6 +643,14 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Star && (
                 <Star
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Download && (
+                <ArrowDown
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : (undefined as any)}
