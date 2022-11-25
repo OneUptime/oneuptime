@@ -340,6 +340,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const fetchItems: Function = async () => {
+
         setError('');
         setIsLoading(true);
 
@@ -393,10 +394,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             getFilterDropdownItems();
         }
     }, [showTableFilter]);
-
-    useEffect(() => {
-        fetchItems();
-    }, [props.refreshToggle]);
 
     const getSelect: Function = (): Select<TBaseModel> => {
         const selectFields: Select<TBaseModel> = {
@@ -540,11 +537,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         fetchItems();
-    }, [currentPageNumber, sortBy, sortOrder, itemsOnPage, query]);
-
-    useEffect(() => {
-        setHeaderButtons();
-    }, [showTableFilter]);
+    }, [currentPageNumber, sortBy, sortOrder, itemsOnPage, query, props.refreshToggle]);
 
     const shouldDisableSort: Function = (columnName: string): boolean => {
         return model.isEntityColumn(columnName);
