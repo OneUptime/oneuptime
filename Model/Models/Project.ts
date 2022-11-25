@@ -11,12 +11,14 @@ import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
+import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
+@AllowAccessIfSubscriptionIsUnpaid()
 @MultiTenentQueryAllowed(true)
 @TableAccessControl({
     create: [Permission.User],
@@ -81,9 +83,9 @@ export default class Model extends TenantModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.User],
+        create: [Permission.CurrentUser],
         read: [Permission.ProjectOwner, Permission.ProjectAdmin],
-        update: [],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
     })
     @TableColumn({ type: TableColumnType.ShortText })
     @Column({
@@ -95,7 +97,7 @@ export default class Model extends TenantModel {
     public paymentProviderPlanId?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.User],
+        create: [],
         read: [Permission.ProjectOwner, Permission.ProjectAdmin],
         update: [],
     })
@@ -107,6 +109,60 @@ export default class Model extends TenantModel {
         unique: false,
     })
     public paymentProviderSubscriptionId?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Number })
+    @Column({
+        type: ColumnType.Number,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderSubscriptionSeats?: number = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: true,
+        unique: false,
+    })
+    public trialEndsAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderCustomerId?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.ProjectAdmin],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.ShortText })
+    @Column({
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+        nullable: true,
+        unique: false,
+    })
+    public paymentProviderSubscriptionStatus?: string = undefined;
 
     @ColumnAccessControl({
         create: [],

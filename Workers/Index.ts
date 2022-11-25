@@ -5,6 +5,7 @@ import App from 'CommonServer/Utils/StartServer';
 
 // Worker import.
 import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
+import './Jobs/PaymentProvider/CheckSubscriptionStatus';
 
 const APP_NAME: string = 'workers';
 

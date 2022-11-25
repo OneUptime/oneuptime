@@ -21,6 +21,10 @@ import Sort from '../Types/Database/Sort';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import Populate from '../Types/Database/Populate';
 import PartialEntity from 'Common/Types/Database/PartialEntity';
+import { UserPermission } from 'Common/Types/Permission';
+import { IsBillingEnabled } from '../Config';
+import ProjectService from '../Services/ProjectService';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -143,9 +147,40 @@ export default class BaseAPI<
         this.service = service;
     }
 
-    public getDatabaseCommonInteractionProps(
+    public async getPermissionsForTenant(
         req: ExpressRequest
-    ): DatabaseCommonInteractionProps {
+    ): Promise<Array<UserPermission>> {
+        const permissions: Array<UserPermission> = [];
+
+        const props: DatabaseCommonInteractionProps =
+            await this.getDatabaseCommonInteractionProps(req);
+
+        if (
+            props &&
+            props.userTenantAccessPermission &&
+            props.userTenantAccessPermission[props.tenantId?.toString() || '']
+        ) {
+            return (
+                props.userTenantAccessPermission[
+                    props.tenantId?.toString() || ''
+                ]?.permissions || []
+            );
+        }
+
+        return permissions;
+    }
+
+    public getTenantId(req: ExpressRequest): ObjectID | null {
+        if ((req as OneUptimeRequest).tenantId) {
+            return (req as OneUptimeRequest).tenantId as ObjectID;
+        }
+
+        return null;
+    }
+
+    public async getDatabaseCommonInteractionProps(
+        req: ExpressRequest
+    ): Promise<DatabaseCommonInteractionProps> {
         const props: DatabaseCommonInteractionProps = {
             tenantId: undefined,
             userGlobalAccessPermission: undefined,
@@ -182,6 +217,15 @@ export default class BaseAPI<
             props.isMultiTenantRequest = true;
         }
 
+        if (IsBillingEnabled && props.tenantId) {
+            const plan: {
+                plan: PlanSelect | null;
+                isSubscriptionUnpaid: boolean;
+            } = await ProjectService.getCurrentPlan(props.tenantId!);
+            props.currentPlan = plan.plan || undefined;
+            props.isSubscriptionUnpaid = plan.isSubscriptionUnpaid;
+        }
+
         return props;
     }
 
@@ -189,6 +233,8 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        await this.onBeforeList(req, res);
+
         const skip: PositiveNumber = req.query['skip']
             ? new PositiveNumber(req.query['skip'] as string)
             : new PositiveNumber(0);
@@ -229,7 +275,7 @@ export default class BaseAPI<
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
-            this.getDatabaseCommonInteractionProps(req);
+            await this.getDatabaseCommonInteractionProps(req);
 
         const list: Array<BaseModel> = await this.service.findBy({
             query,
@@ -261,6 +307,8 @@ export default class BaseAPI<
     ): Promise<void> {
         let query: Query<BaseModel> = {};
 
+        await this.onBeforeCount(req, res);
+
         if (req.body) {
             query = JSONFunctions.deserialize(
                 req.body['query']
@@ -268,7 +316,7 @@ export default class BaseAPI<
         }
 
         const databaseProps: DatabaseCommonInteractionProps =
-            this.getDatabaseCommonInteractionProps(req);
+            await this.getDatabaseCommonInteractionProps(req);
 
         const count: PositiveNumber = await this.service.countBy({
             query,
@@ -285,7 +333,7 @@ export default class BaseAPI<
         res: ExpressResponse
     ): Promise<void> {
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
-
+        await this.onBeforeGet(req, res);
         let select: Select<BaseModel> = {};
         let populate: Populate<BaseModel> = {};
 
@@ -305,7 +353,7 @@ export default class BaseAPI<
             id: objectId,
             select,
             populate,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: await this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEntityResponse(req, res, item, this.entityType);
@@ -315,13 +363,14 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        await this.onBeforeDelete(req, res);
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
 
         await this.service.deleteBy({
             query: {
                 _id: objectId.toString(),
             },
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: await this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -331,6 +380,7 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        await this.onBeforeUpdate(req, res);
         const objectId: ObjectID = new ObjectID(req.params['id'] as string);
         const objectIdString: string = objectId.toString();
         const body: JSONObject = req.body;
@@ -348,7 +398,7 @@ export default class BaseAPI<
                 _id: objectIdString,
             },
             data: item,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: await this.getDatabaseCommonInteractionProps(req),
         });
 
         return Response.sendEmptyResponse(req, res);
@@ -358,6 +408,7 @@ export default class BaseAPI<
         req: ExpressRequest,
         res: ExpressResponse
     ): Promise<void> {
+        await this.onBeforeCreate(req, res);
         const body: JSONObject = req.body;
 
         const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
@@ -372,7 +423,7 @@ export default class BaseAPI<
         const createBy: CreateBy<TBaseModel> = {
             data: item,
             miscDataProps: miscDataProps,
-            props: this.getDatabaseCommonInteractionProps(req),
+            props: await this.getDatabaseCommonInteractionProps(req),
         };
 
         const savedItem: BaseModel = await this.service.create(createBy);
@@ -391,5 +442,47 @@ export default class BaseAPI<
 
     public getEntityName(): string {
         return this.entityType.name;
+    }
+
+    protected async onBeforeList(
+        _req: ExpressRequest,
+        _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+    protected async onBeforeCreate(
+        _req: ExpressRequest,
+        _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+    protected async onBeforeGet(
+        _req: ExpressRequest,
+        _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+    protected async onBeforeUpdate(
+        _req: ExpressRequest,
+        _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+    protected async onBeforeDelete(
+        _req: ExpressRequest,
+        _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
+    }
+
+    protected async onBeforeCount(
+        _req: ExpressRequest,
+        _res: ExpressResponse
+    ): Promise<any> {
+        return Promise.resolve(true);
     }
 }

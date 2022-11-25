@@ -48,6 +48,7 @@ import Phone from 'Common/Types/Phone';
 import Domain from 'Common/Types/Domain';
 import Typeof from 'Common/Types/Typeof';
 import URL from 'Common/Types/API/URL';
+import RadioButtons from '../RadioButtons/RadioButtons';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -230,6 +231,37 @@ const BasicForm: Function = <T extends Object>(
                                     }
                                     options={field.dropdownOptions || []}
                                     placeholder={field.placeholder || ''}
+                                    initialValue={
+                                        initialValues &&
+                                        (initialValues as any)[fieldName]
+                                            ? (initialValues as any)[fieldName]
+                                            : ''
+                                    }
+                                />
+                            );
+                        }}
+                    </Field>
+                )}
+
+                {field.fieldType === FormFieldSchemaType.RadioButton && (
+                    <Field name={fieldName}>
+                        {({ form }: any) => {
+                            return (
+                                <RadioButtons
+                                    onChange={async (value: string) => {
+                                        setCurrentValue({
+                                            ...currentValue,
+                                            [fieldName]: value,
+                                        });
+                                        field.onChange &&
+                                            field.onChange(value, form);
+                                        await form.setFieldValue(
+                                            fieldName,
+                                            value,
+                                            true
+                                        );
+                                    }}
+                                    options={field.radioButtonOptions || []}
                                     initialValue={
                                         initialValues &&
                                         (initialValues as any)[fieldName]
@@ -985,10 +1017,15 @@ const BasicForm: Function = <T extends Object>(
                                                         1) ===
                                                 0
                                             ) {
-                                                return getFormField(
-                                                    field,
-                                                    i,
-                                                    props.isLoading
+                                                return (
+                                                    <div key={i}>
+                                                        {getFormField(
+                                                            field,
+                                                            i,
+                                                            props.isLoading
+                                                        )}
+                                                        {field.footerElement}
+                                                    </div>
                                                 );
                                             }
                                             return (
@@ -1019,10 +1056,17 @@ const BasicForm: Function = <T extends Object>(
                                                             1) !==
                                                     0
                                                 ) {
-                                                    return getFormField(
-                                                        field,
-                                                        i,
-                                                        props.isLoading
+                                                    return (
+                                                        <div key={i}>
+                                                            {getFormField(
+                                                                field,
+                                                                i,
+                                                                props.isLoading
+                                                            )}
+                                                            {
+                                                                field.footerElement
+                                                            }
+                                                        </div>
                                                     );
                                                 }
                                                 return (

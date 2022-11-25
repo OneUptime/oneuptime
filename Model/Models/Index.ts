@@ -24,6 +24,7 @@ import StatusPageAnnouncement from './StatusPageAnnouncement';
 import StatusPageSubscriber from './StatusPageSubscriber';
 import StatusPageFooterLink from './StatusPageFooterLink';
 import StatusPageHeaderLink from './StatusPageHeaderLink';
+import StatusPagePrivateUser from './StatusPagePrivateUser';
 
 // On Call Duty
 import OnCallDuty from './OnCallDuty';
@@ -48,12 +49,15 @@ import ScheduledMaintenanceStateTimeline from './ScheduledMaintenanceStateTimeli
 import ScheduledMaintenancePublicNote from './ScheduledMaintenancePublicNote';
 import ScheduledMaintenanceInternalNote from './ScheduledMaintenanceInternalNote';
 
+import BillingPaymentMethods from './BillingPaymentMethod';
+
 // Project SMTP Config.
 import ProjectSmtpConfig from './ProjectSmtpConfig';
 
 import Domain from './Domain';
 
 import File from './File';
+import BillingInvoice from './BillingInvoice';
 
 export default [
     User,
@@ -79,6 +83,7 @@ export default [
     IncidentInternalNote,
     File,
     Domain,
+
     StatusPageGroup,
     StatusPageDomain,
     StatusPageResource,
@@ -87,10 +92,14 @@ export default [
     StatusPageSubscriber,
     StatusPageFooterLink,
     StatusPageHeaderLink,
+    StatusPagePrivateUser,
 
     ScheduledMaintenanceState,
     ScheduledMaintenance,
     ScheduledMaintenanceStateTimeline,
     ScheduledMaintenancePublicNote,
     ScheduledMaintenanceInternalNote,
+
+    BillingPaymentMethods,
+    BillingInvoice,
 ];

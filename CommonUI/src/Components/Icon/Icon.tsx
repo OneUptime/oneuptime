@@ -17,6 +17,7 @@ import {
     Globe,
     MoreVertical,
     CreditCard,
+    File,
     User,
     ChevronDown,
     ChevronRight,
@@ -40,6 +41,7 @@ import {
     Folder,
     Share2,
     MessageSquare,
+    ShoppingBag,
     Info,
     Check,
     Trash,
@@ -56,6 +58,8 @@ import {
     ExternalLink,
     Layers,
     Codesandbox,
+    Star,
+    ArrowDown,
 } from 'react-feather';
 
 export enum SizeProp {
@@ -139,6 +143,10 @@ export enum IconProp {
     Link,
     Layers,
     Clock,
+    Invoice,
+    Upgrade,
+    Star,
+    Download,
 }
 
 export interface ComponentProps {
@@ -611,6 +619,38 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.Clock && (
                 <Clock
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Invoice && (
+                <File
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Upgrade && (
+                <ShoppingBag
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Star && (
+                <Star
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Download && (
+                <ArrowDown
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : (undefined as any)}

@@ -15,6 +15,7 @@ export interface ComponentProps {
     onProjectRequestRejected: () => void;
     showProjectModal: boolean;
     onProjectModalClose: () => void;
+    selectedProject: Project | null;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -31,6 +32,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                     showProjectModal={props.showProjectModal}
                     onProjectModalClose={props.onProjectModalClose}
                     onProjectRequestRejected={props.onProjectRequestRejected}
+                    selectedProject={props.selectedProject || null}
                 />
             }
             navBar={<NavBar show={props.projects.length > 0} />}

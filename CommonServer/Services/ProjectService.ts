@@ -1,6 +1,11 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Project';
-import DatabaseService, { OnCreate, OnFind } from './DatabaseService';
+import DatabaseService, {
+    OnCreate,
+    OnDelete,
+    OnFind,
+    OnUpdate,
+} from './DatabaseService';
 import CreateBy from '../Types/Database/CreateBy';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import TeamService from './TeamService';
@@ -25,6 +30,14 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import IncidentSeverityService from './IncidentSeverityService';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
+import { IsBillingEnabled } from '../Config';
+import BillingService from './BillingService';
+import DeleteBy from '../Types/Database/DeleteBy';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import SubscriptionPlan, {
+    PlanSelect,
+} from 'Common/Types/Billing/SubscriptionPlan';
+import UpdateBy from '../Types/Database/UpdateBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -36,6 +49,20 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnCreate<Model>> {
         if (!data.data.name) {
             throw new BadDataException('Project name is required');
+        }
+
+        if (IsBillingEnabled) {
+            if (!data.data.paymentProviderPlanId) {
+                throw new BadDataException(
+                    'Plan required to create the project.'
+                );
+            }
+
+            if (
+                !SubscriptionPlan.isValidPlanId(data.data.paymentProviderPlanId)
+            ) {
+                throw new BadDataException('Plan is invalid.');
+            }
         }
 
         // check if the user has the project with the same name. If yes, reject.
@@ -79,6 +106,57 @@ export class Service extends DatabaseService<Model> {
         }
 
         return Promise.resolve({ createBy: data, carryForward: null });
+    }
+
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<Model>
+    ): Promise<OnUpdate<Model>> {
+        if (IsBillingEnabled) {
+            if (updateBy.data.paymentProviderPlanId) {
+                // payment provider id changed.
+                const project: Model | null = await this.findOneById({
+                    id: new ObjectID(updateBy.data._id! as string),
+                    select: {
+                        paymentProviderSubscriptionId: true,
+                        paymentProviderSubscriptionSeats: true,
+                        paymentProviderPlanId: true,
+                        trialEndsAt: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                if (!project) {
+                    throw new BadDataException('Project not found');
+                }
+
+                if (
+                    project.paymentProviderPlanId !==
+                    updateBy.data.paymentProviderPlanId
+                ) {
+                    const plan: SubscriptionPlan | undefined =
+                        SubscriptionPlan.getSubscriptionPlanById(
+                            updateBy.data.paymentProviderPlanId! as string
+                        );
+
+                    if (!plan) {
+                        throw new BadDataException('Invalid plan');
+                    }
+
+                    await BillingService.changePlan(
+                        project.paymentProviderSubscriptionId as string,
+                        plan,
+                        project.paymentProviderSubscriptionSeats as number,
+                        plan.getYearlyPlanId() ===
+                            updateBy.data.paymentProviderPlanId,
+                        project.trialEndsAt
+                    );
+                }
+            }
+        }
+
+        return { updateBy, carryForward: [] };
     }
 
     private async addDefaultScheduledMaintenanceState(
@@ -145,6 +223,45 @@ export class Service extends DatabaseService<Model> {
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
+        // Create billing.
+
+        if (IsBillingEnabled) {
+            const customerId: string = await BillingService.createCustomer(
+                createdItem.name!,
+                createdItem.id!
+            );
+
+            const plan: SubscriptionPlan | undefined =
+                SubscriptionPlan.getSubscriptionPlanById(
+                    createdItem.paymentProviderPlanId!
+                );
+
+            if (!plan) {
+                throw new BadDataException('Invalid plan.');
+            }
+            // add subscription to this customer.
+
+            const { id, trialEndsAt } = await BillingService.subscribeToPlan(
+                customerId,
+                plan,
+                1,
+                plan.getYearlyPlanId() === createdItem.paymentProviderPlanId!,
+                true
+            );
+
+            await this.updateOneById({
+                id: createdItem.id!,
+                data: {
+                    paymentProviderCustomerId: customerId,
+                    paymentProviderSubscriptionId: id,
+                    trialEndsAt: (trialEndsAt || null) as any,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
+
         createdItem = await this.addDefaultProjectTeams(createdItem);
         createdItem = await this.addDefaultMonitorStatus(createdItem);
         createdItem = await this.addDefaultIncidentState(createdItem);
@@ -315,6 +432,7 @@ export class Service extends DatabaseService<Model> {
         let ownerTeam: Team = new Team();
         ownerTeam.projectId = createdItem.id!;
         ownerTeam.name = 'Owners';
+        ownerTeam.shouldHaveAtleastOneMember = true;
         ownerTeam.isPermissionsEditable = false;
         ownerTeam.isTeamEditable = false;
         ownerTeam.isTeamDeleteable = false;
@@ -341,6 +459,7 @@ export class Service extends DatabaseService<Model> {
             data: ownerTeamMember,
             props: {
                 isRoot: true,
+                ignoreHooks: true,
             },
         });
 
@@ -355,6 +474,7 @@ export class Service extends DatabaseService<Model> {
             data: ownerPermissions,
             props: {
                 isRoot: true,
+                ignoreHooks: true,
             },
         });
 
@@ -384,6 +504,7 @@ export class Service extends DatabaseService<Model> {
             data: adminPermissions,
             props: {
                 isRoot: true,
+                ignoreHooks: true,
             },
         });
 
@@ -412,6 +533,7 @@ export class Service extends DatabaseService<Model> {
             data: memberPermissions,
             props: {
                 isRoot: true,
+                ignoreHooks: true,
             },
         });
 
@@ -432,6 +554,80 @@ export class Service extends DatabaseService<Model> {
         }
 
         return { findBy, carryForward: null };
+    }
+
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
+        if (IsBillingEnabled) {
+            const projects: Array<Model> = await this.findBy({
+                query: deleteBy.query,
+                props: deleteBy.props,
+                limit: LIMIT_MAX,
+                skip: 0,
+                select: {
+                    _id: true,
+                    paymentProviderSubscriptionId: true,
+                },
+            });
+
+            return { deleteBy, carryForward: projects };
+        }
+
+        return { deleteBy, carryForward: [] };
+    }
+
+    protected override async onDeleteSuccess(
+        onDelete: OnDelete<Model>,
+        _itemIdsBeforeDelete: ObjectID[]
+    ): Promise<OnDelete<Model>> {
+        // get project id
+        if (IsBillingEnabled) {
+            for (const project of onDelete.carryForward) {
+                if (project.paymentProviderSubscriptionId) {
+                    await BillingService.cancelSubscription(
+                        project.paymentProviderSubscriptionId
+                    );
+                }
+            }
+        }
+
+        return onDelete;
+    }
+
+    public async getCurrentPlan(
+        projectId: ObjectID
+    ): Promise<{ plan: PlanSelect | null; isSubscriptionUnpaid: boolean }> {
+        if (!IsBillingEnabled) {
+            return { plan: null, isSubscriptionUnpaid: false };
+        }
+
+        const project: Model | null = await this.findOneById({
+            id: projectId,
+            select: {
+                paymentProviderPlanId: true,
+                paymentProviderSubscriptionStatus: true,
+            },
+            props: {
+                isRoot: true,
+                ignoreHooks: true,
+            },
+        });
+
+        if (!project) {
+            throw new BadDataException('Project ID is invalid');
+        }
+
+        if (!project.paymentProviderPlanId) {
+            throw new BadDataException('Project does not have any plans');
+        }
+
+        return {
+            plan: SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId),
+            isSubscriptionUnpaid: SubscriptionPlan.isUnpaid(
+                project.paymentProviderSubscriptionStatus || 'active'
+            ),
+        };
     }
 }
 export default new Service();

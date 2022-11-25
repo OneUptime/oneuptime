@@ -6,6 +6,7 @@ import Permission, {
 import BaseModel from 'Common/Models/BaseModel';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
+import PaymentRequiredException from 'Common/Types/Exception/PaymentRequiredException';
 import Query from '../Types/Database/Query';
 import Select from '../Types/Database/Select';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -28,6 +29,8 @@ import Search from 'Common/Types/Database/Search';
 import { FindOperator } from 'typeorm';
 import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import { IsBillingEnabled } from '../Config';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;
@@ -953,6 +956,90 @@ export default class ModelPermission {
                     modelPermissions
                 ).join(', ')}`
             );
+        }
+
+        /// Check billing permissions.
+
+        if (IsBillingEnabled && props.currentPlan) {
+            const model: BaseModel = new modelType();
+
+            if (
+                props.isSubscriptionUnpaid &&
+                !model.allowAccessIfSubscriptionIsUnpaid
+            ) {
+                throw new PaymentRequiredException(
+                    'Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Billing to proceed.'
+                );
+            }
+
+            if (
+                type === DatabaseRequestType.Create &&
+                model.createBillingPlan
+            ) {
+                if (
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        model.createBillingPlan,
+                        props.currentPlan
+                    )
+                ) {
+                    throw new PaymentRequiredException(
+                        'Please upgrade your plan to ' +
+                            model.createBillingPlan +
+                            ' to access this feature'
+                    );
+                }
+            }
+
+            if (
+                type === DatabaseRequestType.Update &&
+                model.updateBillingPlan
+            ) {
+                if (
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        model.updateBillingPlan,
+                        props.currentPlan
+                    )
+                ) {
+                    throw new PaymentRequiredException(
+                        'Please upgrade your plan to ' +
+                            model.createBillingPlan +
+                            ' to access this feature'
+                    );
+                }
+            }
+
+            if (
+                type === DatabaseRequestType.Delete &&
+                model.deleteBillingPlan
+            ) {
+                if (
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        model.deleteBillingPlan,
+                        props.currentPlan
+                    )
+                ) {
+                    throw new PaymentRequiredException(
+                        'Please upgrade your plan to ' +
+                            model.createBillingPlan +
+                            ' to access this feature'
+                    );
+                }
+            }
+
+            if (type === DatabaseRequestType.Read && model.readBillingPlan) {
+                if (
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        model.readBillingPlan,
+                        props.currentPlan
+                    )
+                ) {
+                    throw new PaymentRequiredException(
+                        'Please upgrade your plan to ' +
+                            model.createBillingPlan +
+                            ' to access this feature'
+                    );
+                }
+            }
         }
     }
 

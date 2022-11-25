@@ -18,6 +18,7 @@ export enum ButtonStyleType {
     SUCCESS_OUTLINE,
     WARNING,
     WARNING_OUTLINE,
+    LINK,
 }
 
 export enum ButtonSize {
@@ -41,6 +42,7 @@ export interface ComponentProps {
     buttonStyle?: undefined | ButtonStyleType;
     buttonSize?: ButtonSize | undefined;
     dataTestId?: string;
+    textStyle?: React.CSSProperties | undefined;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -58,6 +60,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonStyle = ButtonStyleType.NORMAL,
     buttonSize = ButtonSize.Normal,
     dataTestId,
+    textStyle,
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -98,6 +101,10 @@ const Button: FunctionComponent<ComponentProps> = ({
     };
 
     let buttonStyleCssClass: string = 'no-border-on-hover';
+
+    if (buttonStyle === ButtonStyleType.LINK) {
+        buttonStyleCssClass = 'no-border-on-hover font-500';
+    }
 
     if (buttonStyle === ButtonStyleType.DANGER) {
         buttonStyleCssClass = 'btn-danger';
@@ -168,7 +175,8 @@ const Button: FunctionComponent<ComponentProps> = ({
                                         iconSize ? iconSize : SizeProp.Regular
                                     }
                                     thick={
-                                        buttonSize === ButtonSize.Small
+                                        buttonSize === ButtonSize.Small ||
+                                        buttonStyle === ButtonStyleType.LINK
                                             ? ThickProp.LessThick
                                             : ThickProp.Thick
                                     }
@@ -185,7 +193,7 @@ const Button: FunctionComponent<ComponentProps> = ({
                                     marginTop: '1px',
                                 }}
                             >
-                                <b>{title}</b>
+                                <b style={textStyle}>{title}</b>
                             </div>
                         ) : (
                             <></>

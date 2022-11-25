@@ -8,4 +8,5 @@ export default interface CountBy<TBaseModel extends BaseModel> {
     skip?: PositiveNumber | number;
     limit?: PositiveNumber | number;
     props: DatabaseCommonInteractionProps;
+    distinctOn?: string | undefined;
 }

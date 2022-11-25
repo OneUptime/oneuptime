@@ -11,7 +11,7 @@
                 "docker-build"
             ],
             "dockerRun": {
-                "command": "nest start --debug 0.0.0.0:9229"
+                "command": "nest start --debug 127.0.0.1:9229"
             },
             "node": {
                 "enableDebugging": true
@@ -28,7 +28,7 @@
             "program": "${file}"
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/DashboardAPI",
             "name": "Dashboard API: Debug with Docker",
             "port": 9232,
@@ -42,7 +42,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/data-ingestor",
             "name": "Data Ingestor: Debug with Docker",
             "port": 9338,
@@ -56,7 +56,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Mail",
             "name": "Mail: Debug with Docker",
             "port": 9110,
@@ -70,7 +70,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Realtime",
             "name": "Realtime: Debug with Docker",
             "port": 9250,
@@ -84,7 +84,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Workers",
             "name": "Workers: Debug with Docker",
             "port": 9654,
@@ -98,7 +98,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/ProbeAPI",
             "name": "Probe API: Debug with Docker",
             "port": 9251,
@@ -112,7 +112,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Identity",
             "name": "Identity: Debug with Docker",
             "port": 9132,
@@ -126,7 +126,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Identity",
             "name": "File: Debug with Docker",
             "port": 9012,
@@ -140,7 +140,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Alert",
             "name": "Alert: Debug with Docker",
             "port": 9133,
@@ -154,7 +154,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/Alert",
             "name": "Integration: Debug with Docker",
             "port": 9134,
@@ -168,7 +168,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/licensing",
             "name": "Licensing: Debug with Docker",
             "port": 9233,
@@ -182,7 +182,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/HttpTestServer",
             "name": "HTTP Test Server: Debug with Docker",
             "port": 9234,
@@ -196,7 +196,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/home",
             "name": "Home: Debug with Docker",
             "port": 9235,
@@ -210,7 +210,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/script-runnner",
             "name": "Script Runner: Debug with Docker",
             "port": 9236,
@@ -224,7 +224,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/InitScript",
             "name": "Init Script: Debug with Docker",
             "port": 9237,
@@ -238,7 +238,7 @@
             "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/probe",
             "name": "Probe: Debug with Docker",
             "port": 9238,

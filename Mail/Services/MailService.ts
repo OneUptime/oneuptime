@@ -160,7 +160,7 @@ export default class MailService {
     ): Promise<void> {
         const mailer: Transporter = this.createMailer(emailServer);
         await mailer.sendMail({
-            from: emailServer.fromEmail.toString(),
+            from: `${emailServer.fromName.toString()} <${emailServer.fromEmail.toString()}>`,
             to: mail.toEmail.toString(),
             subject: mail.subject,
             html: mail.body,

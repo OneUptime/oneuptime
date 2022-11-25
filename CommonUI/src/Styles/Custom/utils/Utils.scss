@@ -512,3 +512,62 @@
     opacity: 0.7;
     font-size: 13px;
 }
+
+.radio-group{
+    padding: 10px;
+}
+
+.radio-box{
+    padding: 5px;
+    border-width: 1px;
+    border-color: $color-light-grey;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+
+.radio-empty-circle{
+
+    border-color: $color-light-grey;
+    border-style: solid;
+    height: 15px;
+    width: 15px;
+    border-width: 1px;
+    margin-right: 10px;
+    border-radius: 100px;
+    margin-top: 5px;
+    cursor: pointer;
+
+    &:hover {
+        border-color: $color-black !important;
+    }
+}
+
+
+
+
+.radio-checked-circle{
+    border-color: $color-black;
+    background-color: $color-grey;
+    padding: 2px;
+}
+
+.radio-text-title{
+    font-size: 14px;
+}
+
+.radio-text-box-description{
+    font-size: 11px;
+    color: $color-grey;
+}
+
+
+.show-as-link{
+    text-decoration: underline;
+    color: $color-blue;
+    cursor: pointer;
+}
+
+.font-500{
+    font-weight: 500 !important;
+}

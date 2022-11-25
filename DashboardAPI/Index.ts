@@ -11,6 +11,10 @@ import UserService, {
     Service as UserServiceType,
 } from 'CommonServer/Services/UserService';
 
+import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
+
+import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
+
 import Project from 'Model/Models/Project';
 import ProjectService, {
     Service as ProjectServiceType,
@@ -20,6 +24,11 @@ import Probe from 'Model/Models/Probe';
 import ProbeService, {
     Service as ProbeServiceType,
 } from 'CommonServer/Services/ProbeService';
+
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
+import StatusPagePrivateUserService, {
+    Service as StatusPagePrivateUserServiceType,
+} from 'CommonServer/Services/StatusPagePrivateUserService';
 
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import StatusPageSubscriberService, {
@@ -288,6 +297,13 @@ app.use(
 );
 
 app.use(
+    new BaseAPI<StatusPagePrivateUser, StatusPagePrivateUserServiceType>(
+        StatusPagePrivateUser,
+        StatusPagePrivateUserService
+    ).getRouter()
+);
+
+app.use(
     new BaseAPI<Incident, IncidentServiceType>(
         Incident,
         IncidentService
@@ -373,6 +389,8 @@ app.use(
 );
 
 app.use(new StatusPageAPI().getRouter());
+app.use(new BillingPaymentMethodAPI().getRouter());
+app.use(new BillingInvoiceAPI().getRouter());
 
 app.use(
     new BaseAPI<

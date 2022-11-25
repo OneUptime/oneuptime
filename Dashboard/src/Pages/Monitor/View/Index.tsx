@@ -38,7 +38,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
 
     const [data, setData] = useState<Array<MonitorStatusTimeline>>([]);
     const [error, setError] = useState<string>('');
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
     const endDate: Date = OneUptimeDate.getCurrentDate();
 

@@ -4,6 +4,7 @@ import ModalHeader from './ModalHeader';
 import ModalFooter from './ModalFooter';
 import ModalBody from './ModalBody';
 import ButtonType from '../Button/ButtonTypes';
+import Loader from '../Loader/Loader';
 
 export interface ComponentProps {
     title: string;
@@ -16,6 +17,7 @@ export interface ComponentProps {
     isLoading?: undefined | boolean;
     disableSubmitButton?: undefined | boolean;
     error?: string | undefined;
+    isBodyLoading?: boolean | undefined;
 }
 
 const Modal: FunctionComponent<ComponentProps> = (
@@ -38,7 +40,11 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 }
                             />
                             <ModalBody error={props.error}>
-                                {props.children}
+                                {!props.isBodyLoading ? (
+                                    props.children
+                                ) : (
+                                    <Loader />
+                                )}
                             </ModalBody>
                             <ModalFooter
                                 submitButtonType={
@@ -61,7 +67,10 @@ const Modal: FunctionComponent<ComponentProps> = (
                                     props.onClose ? props.onClose : undefined
                                 }
                                 isLoading={props.isLoading || false}
-                                disableSubmitButton={props.disableSubmitButton}
+                                disableSubmitButton={
+                                    props.isBodyLoading ||
+                                    props.disableSubmitButton
+                                }
                             />
                         </div>
                     </div>

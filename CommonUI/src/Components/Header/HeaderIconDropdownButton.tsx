@@ -6,6 +6,8 @@ export interface ComponentProps {
     icon: IconProp;
     badge?: undefined | number;
     children?: undefined | ReactElement | Array<ReactElement>;
+    title?: string | undefined;
+    onClick?: (() => void) | undefined;
 }
 
 const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
@@ -20,6 +22,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
                 aria-haspopup="true"
                 className="btn header-item noti-icon position-relative"
                 onClick={() => {
+                    props.onClick && props.onClick();
                     setIsComponentVisible(!isComponentVisible);
                 }}
                 aria-expanded="false"
@@ -29,6 +32,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
                 ) : (
                     <></>
                 )}
+                {props.title}
                 {props.badge && props.badge > 0 && (
                     <span className="badge bg-danger rounded-pill">
                         {props.badge}

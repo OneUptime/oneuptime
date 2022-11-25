@@ -1,6 +1,9 @@
 enum EmailTemplateType {
     ForgotPassword = 'ForgotPassword.hbs',
-    WelomeEmail = 'WelcomeEmail.hbs',
+    SignupWelcomeEmail = 'SignupWelcomeEmail.hbs',
+    EmailVerified = 'EmailVerified.hbs',
+    PasswordChanged = 'PasswordChanged.hbs',
+    InviteMember = 'InviteMember.hbs',
 }
 
 export default EmailTemplateType;

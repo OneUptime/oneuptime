@@ -125,6 +125,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/footer-style`
     ),
 
+    [PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/private-users`
+    ),
+
     [PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE]: new Route(
         `/dashboard/${RouteParams.ProjectID}/status-pages/${RouteParams.ModelID}/navbar-style`
     ),
@@ -231,6 +235,14 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.SETTINGS_TEAMS]: new Route(
         `/dashboard/${RouteParams.ProjectID}/settings/teams`
+    ),
+
+    [PageMap.SETTINGS_BILLING]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/billing`
+    ),
+
+    [PageMap.SETTINGS_BILLING_INVOICES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/settings/invoices`
     ),
 
     [PageMap.SETTINGS_TEAM_VIEW]: new Route(

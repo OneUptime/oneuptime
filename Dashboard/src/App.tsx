@@ -36,6 +36,8 @@ import StatusPagesViewNavBarStyle from './Pages/StatusPages/View/NavBarStyle';
 import StatusPagesViewGroups from './Pages/StatusPages/View/Groups';
 import StatusPageViewSubscriberSettings from './Pages/StatusPages/View/SubscriberSettings';
 
+import StatusPageViewPrivateUser from './Pages/StatusPages/View/PrivateUser';
+
 import Incidents from './Pages/Incidents/Incidents';
 import IncidentView from './Pages/Incidents/View/Index';
 import IncidentViewDelete from './Pages/Incidents/View/Delete';
@@ -71,6 +73,8 @@ import SettingsIncidents from './Pages/Settings/IncidentState';
 import SettingsScheduledMaintenanceState from './Pages/Settings/ScheduledMaintenanceState';
 import SettingsDomains from './Pages/Settings/Domains';
 import SettingsIncidentSeverity from './Pages/Settings/IncidentSeverity';
+import SettingsBilling from './Pages/Settings/Billing';
+import SettingsInvoices from './Pages/Settings/Invoices';
 
 // On Call Duty
 import OnCallDutyPage from './Pages/OnCallDuty/OnCallDuties';
@@ -102,7 +106,7 @@ const App: FunctionComponent = () => {
         Navigation.navigate(ACCOUNTS_URL);
     }
 
-    const [isLoading, setLoading] = useState<boolean>(false);
+    const [isLoading, setLoading] = useState<boolean>(true);
     const [showProjectModal, setShowProjectModal] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [projects, setProjects] = useState<Array<Project>>([]);
@@ -144,6 +148,8 @@ const App: FunctionComponent = () => {
                 {
                     name: true,
                     _id: true,
+                    trialEndsAt: true,
+                    paymentProviderPlanId: true,
                 },
                 {},
                 {},
@@ -182,6 +188,7 @@ const App: FunctionComponent = () => {
             onProjectModalClose={() => {
                 setShowProjectModal(false);
             }}
+            selectedProject={selectedProject}
         >
             <Routes>
                 <PageRoute
@@ -450,6 +457,22 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[
                                     PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                                ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                    ]?.toString()}
+                    element={
+                        <StatusPageViewPrivateUser
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
                                 ] as Route
                             }
                             currentProject={selectedProject}
@@ -966,6 +989,34 @@ const App: FunctionComponent = () => {
                         <SettingsApiKeyView
                             pageRoute={
                                 RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.SETTINGS_BILLING]?.toString()}
+                    element={
+                        <SettingsBilling
+                            pageRoute={
+                                RouteMap[PageMap.SETTINGS_BILLING] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[
+                        PageMap.SETTINGS_BILLING_INVOICES
+                    ]?.toString()}
+                    element={
+                        <SettingsInvoices
+                            pageRoute={
+                                RouteMap[
+                                    PageMap.SETTINGS_BILLING_INVOICES
+                                ] as Route
                             }
                             currentProject={selectedProject}
                         />

@@ -47,6 +47,12 @@ import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import InBetween from 'Common/Types/Database/InBetween';
+import { BILLING_ENABLED } from '../../Config';
+import SubscriptionPlan, {
+    PlanSelect,
+} from 'Common/Types/Billing/SubscriptionPlan';
+import Pill from '../Pill/Pill';
+import { Yellow } from 'Common/Types/BrandColors';
 
 export enum ShowTableAs {
     Table,
@@ -110,6 +116,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
         shouldAddItemInTheBegining?: boolean;
     };
     onViewComplete: (item: TBaseModel) => void;
+    currentPlan?: PlanSelect | undefined;
 }
 
 enum ModalType {
@@ -143,7 +150,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [query, setQuery] = useState<Query<TBaseModel>>({});
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
     const [totalItemsCount, setTotalItemsCount] = useState<number>(0);
-    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const [error, setError] = useState<string>('');
     const [tableFilterError, setTableFilterError] = useState<string>('');
@@ -170,6 +177,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     const [isTableFilterFetchLoading, setIsTableFilterFetchLoading] =
         useState(false);
+
+    const [errorModalText, setErrorModalText] = useState<string>('');
 
     useEffect(() => {
         const detailFields: Array<Field> = [];
@@ -217,12 +226,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             await fetchItems();
         } catch (err) {
             try {
-                setError(
+                setErrorModalText(
                     (err as HTTPErrorResponse).message ||
                         'Server Error. Please try again'
                 );
             } catch (e) {
-                setError('Server Error. Please try again');
+                setErrorModalText('Server Error. Please try again');
             }
         }
 
@@ -331,10 +340,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const fetchItems: Function = async () => {
-        if (isLoading) {
-            return;
-        }
-
         setError('');
         setIsLoading(true);
 
@@ -388,10 +393,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             getFilterDropdownItems();
         }
     }, [showTableFilter]);
-
-    useEffect(() => {
-        fetchItems();
-    }, [props.refreshToggle]);
 
     const getSelect: Function = (): Select<TBaseModel> => {
         const selectFields: Select<TBaseModel> = {
@@ -468,7 +469,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     const setHeaderButtons: Function = (): void => {
         // add header buttons.
-        const headerbuttons: Array<CardButtonSchema> = [];
+        let headerbuttons: Array<CardButtonSchema> = [];
+
+        if (props.cardProps?.buttons && props.cardProps?.buttons.length > 0) {
+            headerbuttons = [...props.cardProps.buttons];
+        }
 
         const permissions: Array<Permission> | null =
             PermissionUtil.getAllPermissions();
@@ -531,11 +536,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         fetchItems();
-    }, [currentPageNumber, sortBy, sortOrder, itemsOnPage, query]);
-
-    useEffect(() => {
-        setHeaderButtons();
-    }, [showTableFilter]);
+    }, [
+        currentPageNumber,
+        sortBy,
+        sortOrder,
+        itemsOnPage,
+        query,
+        props.refreshToggle,
+    ]);
 
     const shouldDisableSort: Function = (columnName: string): boolean => {
         return model.isEntityColumn(columnName);
@@ -736,9 +744,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                 );
 
                                 onCompleteAction();
+
                                 if (props.onViewComplete) {
                                     props.onViewComplete(baseModel);
                                 }
+
                                 return Navigation.navigate(route);
                             }
 
@@ -752,6 +762,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             if (props.onViewComplete) {
                                 props.onViewComplete(baseModel);
                             }
+
                             return Navigation.navigate(
                                 new Route(
                                     props.viewPageRoute.toString()
@@ -1038,6 +1049,36 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         );
     };
 
+    const getCardTitle: Function = (
+        title: ReactElement | string
+    ): ReactElement => {
+        return (
+            <span>
+                {title}
+                {BILLING_ENABLED &&
+                    props.currentPlan &&
+                    new props.modelType().readBillingPlan &&
+                    !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
+                        new props.modelType().readBillingPlan!,
+                        props.currentPlan
+                    ) && (
+                        <span
+                            style={{
+                                marginLeft: '5px',
+                            }}
+                        >
+                            <Pill
+                                text={`${
+                                    new props.modelType().readBillingPlan
+                                } Plan`}
+                                color={Yellow}
+                            />
+                        </span>
+                    )}
+            </span>
+        );
+    };
+
     const getCardComponent: Function = (): ReactElement => {
         if (showTableAs === ShowTableAs.List) {
             return (
@@ -1047,6 +1088,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             {...props.cardProps}
                             cardBodyStyle={{ padding: '0px' }}
                             buttons={cardButtons}
+                            title={getCardTitle(props.cardProps.title)}
                         >
                             {getList()}
                         </Card>
@@ -1063,6 +1105,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             {...props.cardProps}
                             cardBodyStyle={{ padding: '0px' }}
                             buttons={cardButtons}
+                            title={getCardTitle(props.cardProps.title)}
                         >
                             {getTable()}
                         </Card>
@@ -1080,6 +1123,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         {...props.cardProps}
                         cardBodyStyle={{ padding: '0px' }}
                         buttons={cardButtons}
+                        title={getCardTitle(props.cardProps.title)}
                     >
                         {getOrderedStatesList()}
                     </Card>
@@ -1189,6 +1233,18 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         }
                     }}
                     submitButtonType={ButtonStyleType.DANGER}
+                />
+            )}
+
+            {errorModalText && (
+                <ConfirmModal
+                    title={`Error`}
+                    description={`${errorModalText}`}
+                    submitButtonText={'Close'}
+                    onSubmit={() => {
+                        setErrorModalText('');
+                    }}
+                    submitButtonType={ButtonStyleType.NORMAL}
                 />
             )}
         </>

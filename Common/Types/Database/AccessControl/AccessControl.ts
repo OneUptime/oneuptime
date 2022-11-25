@@ -1,3 +1,4 @@
+import { PlanSelect } from '../../Billing/SubscriptionPlan';
 import Permission from '../../Permission';
 
 export interface ColumnAccessControl {
@@ -8,4 +9,11 @@ export interface ColumnAccessControl {
 
 export interface TableAccessControl extends ColumnAccessControl {
     delete: Array<Permission>;
+}
+
+export interface BillingAccessControl {
+    create: PlanSelect;
+    read: PlanSelect;
+    update: PlanSelect;
+    delete: PlanSelect;
 }

@@ -25,6 +25,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     formProps: ModelFormComponentProps<TBaseModel>;
     modelIdToEdit?: ObjectID | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    footer?: ReactElement | undefined;
 }
 
 const ModelFormModal: Function = <TBaseModel extends BaseModel>(
@@ -47,26 +48,33 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
             error={error}
         >
             {!error ? (
-                <ModelForm<TBaseModel>
-                    {...props.formProps}
-                    modelType={props.modelType}
-                    modelIdToEdit={props.modelIdToEdit}
-                    hideSubmitButton={true}
-                    onLoadingChange={(isFormLoading: boolean) => {
-                        setIsFormLoading(isFormLoading);
-                    }}
-                    formRef={formRef}
-                    initialValues={props.initialValues}
-                    onSuccess={(
-                        data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
-                    ) => {
-                        props.onSuccess && props.onSuccess(data);
-                    }}
-                    onError={(error: string) => {
-                        setError(error);
-                    }}
-                    onBeforeCreate={props.onBeforeCreate}
-                />
+                <>
+                    <ModelForm<TBaseModel>
+                        {...props.formProps}
+                        modelType={props.modelType}
+                        modelIdToEdit={props.modelIdToEdit}
+                        hideSubmitButton={true}
+                        onLoadingChange={(isFormLoading: boolean) => {
+                            setIsFormLoading(isFormLoading);
+                        }}
+                        formRef={formRef}
+                        initialValues={props.initialValues}
+                        onSuccess={(
+                            data:
+                                | TBaseModel
+                                | JSONObjectOrArray
+                                | Array<TBaseModel>
+                        ) => {
+                            props.onSuccess && props.onSuccess(data);
+                        }}
+                        onError={(error: string) => {
+                            setError(error);
+                        }}
+                        onBeforeCreate={props.onBeforeCreate}
+                    />
+
+                    {props.footer}
+                </>
             ) : (
                 <></>
             )}

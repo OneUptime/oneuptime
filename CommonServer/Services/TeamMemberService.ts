@@ -1,5 +1,4 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/TeamMember';
 import DatabaseService, {
     OnCreate,
     OnDelete,
@@ -15,15 +14,32 @@ import DeleteBy from '../Types/Database/DeleteBy';
 import ObjectID from 'Common/Types/ObjectID';
 import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import ProjectService from './ProjectService';
+import {
+    DashboardRoute,
+    Domain,
+    HttpProtocol,
+    IsBillingEnabled,
+} from '../Config';
+import BillingService from './BillingService';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import Project from 'Model/Models/Project';
+import MailService from './MailService';
+import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import URL from 'Common/Types/API/URL';
+import logger from '../Utils/Logger';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import TeamMember from 'Model/Models/TeamMember';
 
-export class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
+        super(TeamMember, postgresDatabase);
     }
 
     protected override async onBeforeCreate(
-        createBy: CreateBy<Model>
-    ): Promise<OnCreate<Model>> {
+        createBy: CreateBy<TeamMember>
+    ): Promise<OnCreate<TeamMember>> {
         if (!createBy.data.hasAcceptedInvitation) {
             createBy.data.hasAcceptedInvitation = false;
         }
@@ -44,6 +60,35 @@ export class Service extends DatabaseService<Model> {
             }
 
             createBy.data.userId = user.id!;
+
+            const project: Project | null = await ProjectService.findOneById({
+                id: createBy.data.projectId!,
+                select: {
+                    name: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+            if (project) {
+                MailService.sendMail({
+                    toEmail: email,
+                    templateType: EmailTemplateType.InviteMember,
+                    vars: {
+                        dashboardUrl: new URL(
+                            HttpProtocol,
+                            Domain,
+                            DashboardRoute
+                        ).toString(),
+                        projectName: project.name!,
+                        homeUrl: new URL(HttpProtocol, Domain).toString(),
+                    },
+                    subject: 'You have been invited to ' + project.name,
+                }).catch((err: Error) => {
+                    logger.error(err);
+                });
+            }
         }
 
         return { createBy, carryForward: null };
@@ -63,22 +108,27 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onCreateSuccess(
-        onCreate: OnCreate<Model>,
-        createdItem: Model
-    ): Promise<Model> {
+        onCreate: OnCreate<TeamMember>,
+        createdItem: TeamMember
+    ): Promise<TeamMember> {
         await this.refreshTokens(
             onCreate.createBy.data.userId!,
             onCreate.createBy.data.projectId!
         );
+
+        await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+            onCreate.createBy.data.projectId!
+        );
+
         return createdItem;
     }
 
     protected override async onUpdateSuccess(
-        onUpdate: OnUpdate<Model>,
+        onUpdate: OnUpdate<TeamMember>,
         updatedItemIds: Array<ObjectID>
-    ): Promise<OnUpdate<Model>> {
-        const updateBy: UpdateBy<Model> = onUpdate.updateBy;
-        const items: Array<Model> = await this.findBy({
+    ): Promise<OnUpdate<TeamMember>> {
+        const updateBy: UpdateBy<TeamMember> = onUpdate.updateBy;
+        const items: Array<TeamMember> = await this.findBy({
             query: {
                 _id: QueryHelper.in(updatedItemIds),
             },
@@ -102,36 +152,147 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onBeforeDelete(
-        deleteBy: DeleteBy<Model>
-    ): Promise<OnDelete<Model>> {
-        const items: Array<Model> = await this.findBy({
+        deleteBy: DeleteBy<TeamMember>
+    ): Promise<OnDelete<TeamMember>> {
+        const members: Array<TeamMember> = await this.findBy({
             query: deleteBy.query,
             select: {
                 userId: true,
                 projectId: true,
+                team: true,
+                teamId: true,
             },
             limit: LIMIT_MAX,
             skip: 0,
-            populate: {},
+            populate: {
+                team: {
+                    _id: true,
+                    shouldHaveAtleastOneMember: true,
+                },
+            },
             props: {
                 isRoot: true,
             },
         });
 
+        // check if there's one member in the team.
+        for (const member of members) {
+            if (member.team?.shouldHaveAtleastOneMember) {
+                const membersInTeam: PositiveNumber = await this.countBy({
+                    query: {
+                        _id: member.teamId?.toString() as string,
+                    },
+                    skip: 0,
+                    limit: LIMIT_MAX,
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                if (membersInTeam.toNumber() <= 1) {
+                    throw new BadDataException(
+                        'This team should have atleast 1 member'
+                    );
+                }
+            }
+        }
+
         return {
             deleteBy: deleteBy,
-            carryForward: items,
+            carryForward: members,
         };
     }
 
     protected override async onDeleteSuccess(
-        onDelete: OnDelete<Model>
-    ): Promise<OnDelete<Model>> {
-        for (const item of onDelete.carryForward as Array<Model>) {
+        onDelete: OnDelete<TeamMember>
+    ): Promise<OnDelete<TeamMember>> {
+        for (const item of onDelete.carryForward as Array<TeamMember>) {
             await this.refreshTokens(item.userId!, item.projectId!);
+            await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+                item.projectId!
+            );
         }
 
         return onDelete;
+    }
+
+    public async getUniqueTeamMemberCountInProject(
+        projectId: ObjectID
+    ): Promise<number> {
+        const members: Array<TeamMember> = await this.findBy({
+            query: {
+                projectId: projectId!,
+            },
+            props: {
+                isRoot: true,
+            },
+            select: {
+                userId: true,
+            },
+            skip: 0,
+            limit: LIMIT_MAX,
+        });
+
+        const memberIds: Array<string | undefined> = members
+            .map((member: TeamMember) => {
+                return member.userId?.toString();
+            })
+            .filter((memberId: string | undefined) => {
+                return Boolean(memberId);
+            });
+
+        return [...new Set(memberIds)].length; //get unique member ids.
+    }
+
+    public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+        projectId: ObjectID
+    ): Promise<void> {
+        if (!IsBillingEnabled) {
+            return;
+        }
+
+        const numberOfMembers: number =
+            await this.getUniqueTeamMemberCountInProject(projectId);
+        const project: Project | null = await ProjectService.findOneById({
+            id: projectId,
+            select: {
+                paymentProviderSubscriptionId: true,
+                paymentProviderPlanId: true,
+            },
+            props: {
+                isRoot: true,
+            },
+        });
+
+        if (
+            project &&
+            project.paymentProviderSubscriptionId &&
+            project?.paymentProviderPlanId
+        ) {
+            const plan: SubscriptionPlan | undefined =
+                SubscriptionPlan.getSubscriptionPlanById(
+                    project?.paymentProviderPlanId!
+                );
+
+            if (!plan) {
+                return;
+            }
+
+            await BillingService.changeQuantity(
+                project.paymentProviderSubscriptionId,
+                numberOfMembers
+            );
+
+            await ProjectService.updateOneById({
+                id: projectId,
+                data: {
+                    paymentProviderSubscriptionSeats: numberOfMembers,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+        }
     }
 }
 export default new Service();

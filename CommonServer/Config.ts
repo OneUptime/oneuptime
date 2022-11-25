@@ -3,10 +3,15 @@ import ObjectID from 'Common/Types/ObjectID';
 import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
-export const IsSaaSService: boolean = process.env['BILLING_ENABLED'] === 'true';
+export const IsBillingEnabled: boolean =
+    process.env['BILLING_ENABLED'] === 'true';
+export const BillingPublicKey: string = process.env['BILLING_PUBLIC_KEY'] || '';
+export const BillingPrivateKey: string =
+    process.env['BILLING_PRIVATE_KEY'] || '';
 
 export const DatabaseHost: Hostname = Hostname.fromString(
     process.env['DATABASE_HOST'] || ''
@@ -119,3 +124,14 @@ export const ApiDocsRoute: Route = new Route(
 export const AdminDashboardRoute: Route = new Route(
     process.env['ADMINDASHBOARD_ROUTE'] || ''
 );
+
+export const IsProduction: boolean =
+    process.env['ENVIRONMENT'] === 'production';
+
+export const IsDevelopment: boolean =
+    process.env['ENVIRONMENT'] === 'development';
+
+export const IsTest: boolean = process.env['ENVIRONMENT'] === 'test';
+
+export const SubscriptionPlans: Array<SubscriptionPlan> =
+    SubscriptionPlan.getSubscriptionPlans();

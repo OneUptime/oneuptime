@@ -8,13 +8,26 @@ import ProjectPicker from './ProjectPicker';
 import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Model/Models/Project';
 import CounterModelAlert from 'CommonUI/src/Components/CounterModelAlert/CounterModelAlert';
-import { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
+import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
 import TeamMember from 'Model/Models/TeamMember';
 import User from 'CommonUI/src/Utils/User';
 import ProjectInvitationsModal from './ProjectInvitationsModal';
 import ActiveIncidentsModal from './ActiveIncidentsModal';
 import Incident from 'Model/Models/Incident';
 import Logo from './Logo';
+import OneUptimeDate from 'Common/Types/Date';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import Upgrade from './Upgrade';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
+import useAsyncEffect from 'use-async-effect';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
+import Route from 'Common/Types/API/Route';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -23,6 +36,7 @@ export interface ComponentProps {
     onProjectRequestRejected: () => void;
     showProjectModal: boolean;
     onProjectModalClose: () => void;
+    selectedProject: Project | null;
 }
 
 const DashboardHeader: FunctionComponent<ComponentProps> = (
@@ -36,6 +50,28 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
     const [projectCountRefreshToggle, setProjectCountRefreshToggle] =
         useState<boolean>(true);
+
+    const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] =
+        useState<boolean>(false);
+    const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(
+        null
+    );
+
+    useAsyncEffect(async () => {
+        if (
+            props.selectedProject &&
+            props.selectedProject._id &&
+            BILLING_ENABLED
+        ) {
+            setPaymentMethodCountLoading(true);
+            const paymentMethodsCount: number = await ModelAPI.count(
+                BillingPaymentMethod,
+                { projectId: props.selectedProject?._id }
+            );
+            setPaymentMethodCount(paymentMethodsCount);
+            setPaymentMethodCountLoading(false);
+        }
+    }, [props.selectedProject]);
 
     return (
         <>
@@ -96,12 +132,76 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     setShowActiveIncidentsModal(true);
                                 }}
                             />
+
+                            {props.selectedProject?.trialEndsAt &&
+                                BILLING_ENABLED &&
+                                OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                    OneUptimeDate.getCurrentDate(),
+                                    props.selectedProject?.trialEndsAt!
+                                ) > 0 && (
+                                    <Alert
+                                        type={AlertType.INFO}
+                                        title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                            OneUptimeDate.getCurrentDate(),
+                                            props.selectedProject?.trialEndsAt!
+                                        )} ${
+                                            OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                                OneUptimeDate.getCurrentDate(),
+                                                props.selectedProject
+                                                    ?.trialEndsAt!
+                                            ) > 1
+                                                ? 'days'
+                                                : 'day'
+                                        }`}
+                                    />
+                                )}
                         </div>
                     </>
                 }
                 rightComponents={
                     <>
                         {/* <Notifications /> */}
+                        {BILLING_ENABLED &&
+                        props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        !SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId
+                        ) &&
+                        !SubscriptionPlan.isCustomPricingPlan(
+                            props.selectedProject.paymentProviderPlanId
+                        ) &&
+                        !isPaymentMethodCountLoading &&
+                        paymentMethodCount === 0 ? (
+                            <Button
+                                title="Add Card Details"
+                                onClick={() => {
+                                    Navigation.navigate(
+                                        RouteUtil.populateRouteParams(
+                                            RouteMap[
+                                                PageMap.SETTINGS_BILLING
+                                            ] as Route
+                                        )
+                                    );
+                                }}
+                                buttonStyle={ButtonStyleType.LINK}
+                                icon={IconProp.Billing}
+                                textStyle={{
+                                    fontWeight: 500,
+                                }}
+                            ></Button>
+                        ) : (
+                            <></>
+                        )}
+                        {BILLING_ENABLED &&
+                        props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId
+                        ) ? (
+                            <Upgrade projectId={props.selectedProject.id} />
+                        ) : (
+                            <></>
+                        )}
                         <Help />
                         <UserProfile />
                     </>

@@ -6,6 +6,8 @@ import { DropdownOption } from '../../Dropdown/Dropdown';
 import BaseModel from 'Common/Models/BaseModel';
 import MimeType from 'Common/Types/File/MimeType';
 import FormValues from './FormValues';
+import { RadioButton } from '../../RadioButtons/RadioButtons';
+import { ReactElement } from 'react';
 
 export default interface Field<TEntity> {
     title?: string;
@@ -40,4 +42,6 @@ export default interface Field<TEntity> {
     fieldType?: FormFieldSchemaType;
     overideFieldKey?: string;
     defaultValue?: boolean | string | undefined;
+    radioButtonOptions?: Array<RadioButton>;
+    footerElement?: ReactElement | undefined;
 }

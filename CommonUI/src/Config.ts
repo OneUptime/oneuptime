@@ -3,6 +3,7 @@ import Protocol from 'Common/Types/API/Protocol';
 import Route from 'Common/Types/API/Route';
 import Version from 'Common/Types/Version';
 import URL from 'Common/Types/API/URL';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export const env: Function = (key: string): string => {
     return process.env[key] || '';
@@ -14,7 +15,10 @@ export const HTTP_PROTOCOL: Protocol = window.location.protocol.includes(
     ? Protocol.HTTPS
     : Protocol.HTTP;
 
+export const DOMAIN: string = env('DOMAIN') || '';
+
 export const BILLING_ENABLED: boolean = env('BILLING_ENABLED') === 'true';
+export const BILLING_PUBLIC_KEY: string = env('BILLING_PUBLIC_KEY') || '';
 export const DISABLE_SIGNUP: boolean = env('DISABLE_SIGNUP') === 'true';
 export const VERSION: Version = new Version(env('VERSION') || '1.0.0');
 
@@ -133,3 +137,6 @@ export const ACCOUNTS_URL: URL = new URL(
     ACCOUNTS_ROUTE
 );
 export const HOME_URL: URL = new URL(HTTP_PROTOCOL, HOME_HOSTNAME, HOME_ROUTE);
+
+export const SubscriptionPlans: Array<SubscriptionPlan> =
+    SubscriptionPlan.getSubscriptionPlans();

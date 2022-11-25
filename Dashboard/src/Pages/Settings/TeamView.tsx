@@ -2,7 +2,7 @@ import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -161,7 +161,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 showRefreshButton={true}
                 deleteButtonText="Remove Member"
                 showFilterButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
                 columns={[
                     {
                         field: {
@@ -191,17 +191,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         field: {
                             hasAcceptedInvitation: true,
                         },
-                        title: 'Invitation Status',
+                        title: 'Status',
                         type: FieldType.Boolean,
                         isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['hasAcceptedInvitation']) {
-                                return (
-                                    <Pill
-                                        text="Invitation Accepted"
-                                        color={Green}
-                                    />
-                                );
+                                return <Pill text="Member" color={Green} />;
                             }
                             return (
                                 <Pill text="Invitation Sent" color={Yellow} />

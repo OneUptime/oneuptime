@@ -6,6 +6,7 @@ import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
 
 const DashboardSideMenu: FunctionComponent = (): ReactElement => {
     return (
@@ -160,6 +161,32 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                     icon={IconProp.Call}
                 /> */}
             </SideMenuSection>
+            {BILLING_ENABLED ? (
+                <SideMenuSection title="Billing and Invoices">
+                    <SideMenuItem
+                        link={{
+                            title: 'Billing',
+                            to: RouteUtil.populateRouteParams(
+                                RouteMap[PageMap.SETTINGS_BILLING] as Route
+                            ),
+                        }}
+                        icon={IconProp.Billing}
+                    />
+                    <SideMenuItem
+                        link={{
+                            title: 'Invoices',
+                            to: RouteUtil.populateRouteParams(
+                                RouteMap[
+                                    PageMap.SETTINGS_BILLING_INVOICES
+                                ] as Route
+                            ),
+                        }}
+                        icon={IconProp.TextFile}
+                    />
+                </SideMenuSection>
+            ) : (
+                <></>
+            )}
             <SideMenuSection title="Danger Zone">
                 <SideMenuItem
                     link={{
