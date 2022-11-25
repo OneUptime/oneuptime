@@ -59,11 +59,11 @@ export default class URL extends DatabaseProperty {
         }
 
         if (queryString) {
-            const keyValues = queryString.split('&');
+            const keyValues: Array<string> = queryString.split('&');
             for (const keyValue of keyValues) {
                 if (keyValue.split('=')[0] && keyValue.split('=')[1]) {
-                    const key = keyValue.split('=')[0];
-                    const value = keyValue.split('=')[1];
+                    const key: string | undefined = keyValue.split('=')[0];
+                    const value: string | undefined = keyValue.split('=')[1];
                     if (key && value) {
                         this._params[key] = value;
                     }
@@ -132,7 +132,6 @@ export default class URL extends DatabaseProperty {
         const hostname: Hostname = new Hostname(url.split('/')[0] || '');
 
         let route: Route | undefined;
-        let queryString: string | undefined;
 
         if (url.split('/').length > 1) {
             const paths: Array<string> = url.split('/');
@@ -140,7 +139,7 @@ export default class URL extends DatabaseProperty {
             route = new Route(paths.join('/').split('?')[0]);
         }
 
-        queryString = url.split('?')[1] || '';
+        const queryString: string | undefined = url.split('?')[1] || '';
 
         return new URL(protocol, hostname, route, queryString);
     }

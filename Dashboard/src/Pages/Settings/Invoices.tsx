@@ -31,7 +31,7 @@ const Settings: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const payInvoice = async (customerId: string, invoiceId: string) => {
+    const payInvoice: Function = async (customerId: string, invoiceId: string): Promise<void> => {
         try {
             setIsLoading(true);
 
@@ -189,8 +189,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         {item['status'] !== 'paid' ? (
                                             <Button
                                                 icon={IconProp.Billing}
-                                                onClick={() => {
-                                                    payInvoice(
+                                                onClick={async () => {
+                                                    await payInvoice(
                                                         item[
                                                             'paymentProviderCustomerId'
                                                         ] as string,

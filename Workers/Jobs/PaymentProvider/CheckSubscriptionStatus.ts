@@ -36,7 +36,7 @@ RunCron(
             try {
                 if (project.paymentProviderSubscriptionId) {
                     // get subscription detail.
-                    const subscriptionState =
+                    const subscriptionState: string =
                         await BillingService.getSubscriptionStatus(
                             project.paymentProviderSubscriptionId as string
                         );

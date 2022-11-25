@@ -91,7 +91,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         refreshFields();
     }, [isSubsriptionPlanYearly]);
 
-    const refreshFields = () => {
+    const refreshFields: Function = (): void => {
         let formFields: Array<Field<Project>> = [
             {
                 field: {

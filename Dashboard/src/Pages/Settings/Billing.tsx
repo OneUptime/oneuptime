@@ -61,12 +61,8 @@ const Settings: FunctionComponent<ComponentProps> = (
         setIsModalLoading(false);
     }, []);
 
-    useEffect(() => {
-        if (stripe) {
-        }
-    }, [stripe]);
 
-    const fetchSetupIntent = async () => {
+    const fetchSetupIntent: Function = async (): Promise<void> => {
         try {
             setIsModalLoading(true);
 
@@ -208,7 +204,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                             title: 'Current Plan',
                             getElement: (item: JSONObject): ReactElement => {
-                                const plan =
+                                const plan: SubscriptionPlan | undefined =
                                     SubscriptionPlan.getSubscriptionPlanById(
                                         item['paymentProviderPlanId'] as string
                                     );
@@ -374,7 +370,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 onSuccess={() => {
                                     setIsModalSubmitButtonLoading(false);
                                 }}
-                                onError={(errorMessage) => {
+                                onError={(errorMessage: string) => {
                                     setError(errorMessage);
                                     setIsModalSubmitButtonLoading(false);
                                 }}

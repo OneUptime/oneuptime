@@ -24,6 +24,7 @@ import PartialEntity from 'Common/Types/Database/PartialEntity';
 import { UserPermission } from 'Common/Types/Permission';
 import { IsBillingEnabled } from '../Config';
 import ProjectService from '../Services/ProjectService';
+import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,
@@ -151,9 +152,7 @@ export default class BaseAPI<
     ): Promise<Array<UserPermission>> {
         const permissions: Array<UserPermission> = [];
 
-        const props = await this.getDatabaseCommonInteractionProps(req);
-
-        console.log(props);
+        const props: DatabaseCommonInteractionProps = await this.getDatabaseCommonInteractionProps(req);
 
         if (
             props &&
@@ -218,7 +217,7 @@ export default class BaseAPI<
         }
 
         if (IsBillingEnabled && props.tenantId) {
-            const plan = await ProjectService.getCurrentPlan(props.tenantId!);
+            const plan: { plan: PlanSelect | null; isSubscriptionUnpaid: boolean } = await ProjectService.getCurrentPlan(props.tenantId!);
             props.currentPlan = plan.plan || undefined;
             props.isSubscriptionUnpaid = plan.isSubscriptionUnpaid;
         }

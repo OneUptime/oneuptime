@@ -1,4 +1,4 @@
-import React, { Ref } from 'react';
+import React, { FunctionComponent, ReactElement, Ref } from 'react';
 import {
     useStripe,
     useElements,
@@ -12,11 +12,11 @@ export interface ComponentProps {
     formRef: Ref<any>;
 }
 
-const CheckoutForm = (props: ComponentProps) => {
-    const stripe = useStripe();
-    const elements = useElements();
+const CheckoutForm: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+    const stripe: any = useStripe();
+    const elements: any = useElements();
 
-    const submitForm = async (event: Event) => {
+    const submitForm: Function = async (event: Event): Promise<void> => {
         event.preventDefault();
         // We don't want to let default form submission happen here,
         // which would refresh the page.
@@ -27,8 +27,6 @@ const CheckoutForm = (props: ComponentProps) => {
             // Make sure to disable form submission until Stripe.js has loaded.
             return;
         }
-
-        console.log(Navigation.getCurrentURL().removeQueryString().toString());
 
         const { error } = await stripe.confirmSetup({
             //`Elements` instance that was used to create the Payment Element
