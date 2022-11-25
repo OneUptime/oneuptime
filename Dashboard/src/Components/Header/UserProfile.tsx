@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import UserProfile from 'CommonUI/src/Components/Header/UserProfile/UserProfile';
 import UserProfileMenu from 'CommonUI/src/Components/Header/UserProfile/UserProfileMenu';
 import UserProfileMenuItem from 'CommonUI/src/Components/Header/UserProfile/UserProfileMenuItem';
@@ -10,13 +10,12 @@ import { Red } from 'Common/Types/BrandColors';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import UserUtil from 'CommonUI/src/Utils/User';
-import UserProfileModal from './UserProfileModal';
 
+export interface ComponentProps{
+    onClickUserProfle: ()=> void;
+}
 
-const DashboardUserProfile: FunctionComponent = (): ReactElement => {
-
-    const [showProfileModal, setShowProfileModal] =
-        useState<boolean>(false);
+const DashboardUserProfile: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
 
     return (
         <>
@@ -30,7 +29,7 @@ const DashboardUserProfile: FunctionComponent = (): ReactElement => {
                     <UserProfileMenuItem
                         title="Profile"
                         onClick={() => {
-                            setShowProfileModal(true);
+                            props.onClickUserProfle();
                         }}
                         icon={IconProp.User}
                     />
@@ -44,15 +43,7 @@ const DashboardUserProfile: FunctionComponent = (): ReactElement => {
                 </UserProfileMenu>
             </UserProfile>
 
-            {
-                showProfileModal && (
-                    <UserProfileModal
-                        onClose={() => {
-                            setShowProfileModal(false);
-                        }}
-                    />
-                )
-            }
+           
         </>
     );
 };

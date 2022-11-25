@@ -5,8 +5,8 @@ import FullPageModal from 'CommonUI/src/Components/FullPageModal/FullPageModal';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import FieldType from 'CommonUI/src/Components/Types/FieldType';
+// import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
+// import FieldType from 'CommonUI/src/Components/Types/FieldType';
 
 export interface ComponentProps {
     onClose: () => void;
@@ -109,7 +109,7 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                     }}
                 />
 
-                <CardModelDetail<User>
+                {/* <CardModelDetail<User>
                     cardProps={{
                         title: 'Profile Picture',
                         description: 'Please update your profile pic here.',
@@ -194,7 +194,7 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                     ]}
                     formType={FormType.Update}
                     submitButtonText={'Update Password'}
-                />
+                /> */}
             </FullPageModal>
         </>
     );

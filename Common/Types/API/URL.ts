@@ -5,6 +5,7 @@ import DatabaseProperty from '../Database/DatabaseProperty';
 import { FindOperator } from 'typeorm';
 import Dictionary from '../Dictionary';
 import Typeof from '../Typeof';
+import Email from '../Email';
 
 export default class URL extends DatabaseProperty {
     private _route: Route = new Route();
@@ -22,6 +23,16 @@ export default class URL extends DatabaseProperty {
     public set params(v: Dictionary<string>) {
         this._params = v;
     }
+
+
+    private _email!: Email;
+    public get email(): Email {
+        return this._email;
+    }
+    public set email(v: Email) {
+        this._email = v;
+    }
+
 
     private _hostname!: Hostname;
     public get hostname(): Hostname {
@@ -41,12 +52,17 @@ export default class URL extends DatabaseProperty {
 
     public constructor(
         protocol: Protocol,
-        hostname: Hostname | string,
+        hostname: Hostname | string | Email,
         route?: Route,
         queryString?: string
     ) {
         super();
-        if (hostname instanceof Hostname) {
+
+        if (typeof hostname === Typeof.String && Email.isValid(hostname as string)) {
+            this.email = new Email(hostname as string)
+        } else if (hostname instanceof Email) {
+            this.email = hostname;
+        } else if (hostname instanceof Hostname) {
             this.hostname = hostname;
         } else if (typeof hostname === Typeof.String) {
             this.hostname = Hostname.fromString(hostname);
@@ -77,21 +93,23 @@ export default class URL extends DatabaseProperty {
     }
 
     public override toString(): string {
-        let urlString: string = `${this.protocol}${this.hostname}`;
-        if (this.route.toString().startsWith('/')) {
-            urlString += this.route.toString();
-        } else {
-            urlString += '/' + this.route.toString();
-        }
-
-        if (Object.keys(this.params).length > 0) {
-            urlString += '?';
-
-            for (const key of Object.keys(this.params)) {
-                urlString += key + '=' + this.params[key] + '&';
+        let urlString: string = `${this.protocol}${this.hostname || this.email}`;
+        if (!this.email) {
+            if (this.route && this.route.toString().startsWith('/')) {
+                urlString += this.route.toString();
+            } else {
+                urlString += '/' + this.route.toString();
             }
 
-            urlString = urlString.substring(0, urlString.length - 1); // remove last &
+            if (Object.keys(this.params).length > 0) {
+                urlString += '?';
+
+                for (const key of Object.keys(this.params)) {
+                    urlString += key + '=' + this.params[key] + '&';
+                }
+
+                urlString = urlString.substring(0, urlString.length - 1); // remove last &
+            }
         }
 
         return urlString;
@@ -127,6 +145,11 @@ export default class URL extends DatabaseProperty {
         if (url.startsWith('mongodb://')) {
             protocol = Protocol.MONGO_DB;
             url = url.replace('mongodb://', '');
+        }
+
+        if (url.startsWith('mailto:')) {
+            protocol = Protocol.MAIL;
+            url = url.replace('mailto:', '');
         }
 
         const hostname: Hostname = new Hostname(url.split('/')[0] || '');

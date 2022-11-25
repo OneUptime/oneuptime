@@ -28,6 +28,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
+import UserProfileModal from './UserProfileModal';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -56,6 +57,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(
         null
     );
+
+    const [showProfileModal, setShowProfileModal] =
+        useState<boolean>(false);
 
     useAsyncEffect(async () => {
         if (
@@ -156,8 +160,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                             props.selectedProject
                                                 ?.trialEndsAt!
                                         ) > 1
-                                                ? 'days'
-                                                : 'day'
+                                            ? 'days'
+                                            : 'day'
                                             }`}
                                         style={{
                                             marginRight: "10px"
@@ -212,7 +216,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             <></>
                         )}
                         <Help />
-                        <UserProfile />
+                        <UserProfile onClickUserProfle={() => {
+                            setShowProfileModal(true);
+                        }} />
                     </>
                 }
             />
@@ -236,6 +242,16 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     }}
                 />
             )}
+
+            {
+                showProfileModal && (
+                    <UserProfileModal
+                        onClose={() => {
+                            setShowProfileModal(false);
+                        }}
+                    />
+                )
+            }
 
             {showActiveIncidentsModal && (
                 <ActiveIncidentsModal
