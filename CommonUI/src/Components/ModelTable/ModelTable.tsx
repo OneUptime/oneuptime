@@ -340,7 +340,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const fetchItems: Function = async () => {
-
         setError('');
         setIsLoading(true);
 
@@ -537,7 +536,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
     useEffect(() => {
         fetchItems();
-    }, [currentPageNumber, sortBy, sortOrder, itemsOnPage, query, props.refreshToggle]);
+    }, [
+        currentPageNumber,
+        sortBy,
+        sortOrder,
+        itemsOnPage,
+        query,
+        props.refreshToggle,
+    ]);
 
     const shouldDisableSort: Function = (columnName: string): boolean => {
         return model.isEntityColumn(columnName);

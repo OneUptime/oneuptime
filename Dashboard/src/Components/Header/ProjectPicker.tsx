@@ -215,19 +215,23 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         fields: [...fields],
                         formType: FormType.Create,
                     }}
-                    footer={<div
-                        className="show-as-link"
-                        onClick={() => {
-                            setIsSubscriptionPlanYearly(!isSubsriptionPlanYearly);
-                            refreshFields();
-                        }}
-                    >
-                        {isSubsriptionPlanYearly ? (
-                            <span>Switch to monthly pricing?</span>
-                        ) : (
-                            <span> Switch to yearly pricing?</span>
-                        )}
-                    </div>}
+                    footer={
+                        <div
+                            className="show-as-link"
+                            onClick={() => {
+                                setIsSubscriptionPlanYearly(
+                                    !isSubsriptionPlanYearly
+                                );
+                                refreshFields();
+                            }}
+                        >
+                            {isSubsriptionPlanYearly ? (
+                                <span>Switch to monthly pricing?</span>
+                            ) : (
+                                <span> Switch to yearly pricing?</span>
+                            )}
+                        </div>
+                    }
                 />
             ) : (
                 <></>

@@ -14,13 +14,13 @@ import FormValues from '../Forms/Types/FormValues';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     initialValues?: FormValues<TBaseModel> | undefined;
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
     onSuccess?:
-    | undefined
-    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+        | undefined
+        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     submitButtonStyleType?: undefined | ButtonStyleType;
     formProps: ModelFormComponentProps<TBaseModel>;
     modelIdToEdit?: ObjectID | undefined;
@@ -60,7 +60,10 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
                         formRef={formRef}
                         initialValues={props.initialValues}
                         onSuccess={(
-                            data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>
+                            data:
+                                | TBaseModel
+                                | JSONObjectOrArray
+                                | Array<TBaseModel>
                         ) => {
                             props.onSuccess && props.onSuccess(data);
                         }}

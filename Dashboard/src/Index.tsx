@@ -9,7 +9,7 @@ const root: any = ReactDOM.createRoot(
 );
 
 root.render(
-        <BrowserRouter>
-            <App />
-        </BrowserRouter>
+    <BrowserRouter>
+        <App />
+    </BrowserRouter>
 );
