@@ -189,7 +189,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                             <></>
                                         )}
 
-                                        {item['status'] !== 'paid' ? (
+                                        {item['status'] !== 'paid' && item['status'] !== 'draft' ? (
                                             <Button
                                                 icon={IconProp.Billing}
                                                 onClick={async () => {
