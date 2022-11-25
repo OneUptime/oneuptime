@@ -133,15 +133,15 @@ export class BillingService {
             );
         }
 
-        const subscription = await this.stripe.subscriptions.retrieve(
-            subscriptionId
-        );
+        const subscription: Stripe.Response<Stripe.Subscription> =
+            await this.stripe.subscriptions.retrieve(subscriptionId);
 
         if (!subscription) {
             throw new BadDataException('Subscription not found');
         }
 
-        const subscriptionItemId = subscription.items.data[0]?.id;
+        const subscriptionItemId: string | undefined =
+            subscription.items.data[0]?.id;
 
         if (!subscriptionItemId) {
             throw new BadDataException('Subscription Item not found');
@@ -168,9 +168,8 @@ export class BillingService {
             );
         }
 
-        let subscription = await this.stripe.subscriptions.retrieve(
-            subscriptionId
-        );
+        let subscription: Stripe.Response<Stripe.Subscription> =
+            await this.stripe.subscriptions.retrieve(subscriptionId);
 
         if (!subscription) {
             throw new BadDataException('Subscription not found');
@@ -200,7 +199,8 @@ export class BillingService {
                     : 'now',
         });
 
-        const subscriptionItemId = subscription.items.data[0]?.id;
+        const subscriptionItemId: string | undefined =
+            subscription.items.data[0]?.id;
 
         if (!subscriptionItemId) {
             throw new BadDataException('Subscription Item not found');
@@ -224,7 +224,9 @@ export class BillingService {
             );
         }
 
-        const paymenMethods = await this.getPaymentMethods(customerId);
+        const paymenMethods: Array<PaymentMethod> =
+            await this.getPaymentMethods(customerId);
+
         if (paymenMethods.length === 1) {
             throw new BadDataException(
                 "There's only one payment method associated with this account. It cannot be deleted. To delete this payment method please add more payment methods to your account."
@@ -244,27 +246,31 @@ export class BillingService {
         }
         const paymenMethods: Array<PaymentMethod> = [];
 
-        const cardPaymentMethods = await this.stripe.paymentMethods.list({
-            customer: customerId,
-            type: 'card',
-        });
+        const cardPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
+            await this.stripe.paymentMethods.list({
+                customer: customerId,
+                type: 'card',
+            });
 
-        const sepaPaymentMethods = await this.stripe.paymentMethods.list({
-            customer: customerId,
-            type: 'sepa_debit',
-        });
+        const sepaPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
+            await this.stripe.paymentMethods.list({
+                customer: customerId,
+                type: 'sepa_debit',
+            });
 
-        const usBankPaymentMethods = await this.stripe.paymentMethods.list({
-            customer: customerId,
-            type: 'us_bank_account',
-        });
+        const usBankPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
+            await this.stripe.paymentMethods.list({
+                customer: customerId,
+                type: 'us_bank_account',
+            });
 
-        const bacsPaymentMethods = await this.stripe.paymentMethods.list({
-            customer: customerId,
-            type: 'bacs_debit',
-        });
+        const bacsPaymentMethods: Stripe.ApiList<Stripe.PaymentMethod> =
+            await this.stripe.paymentMethods.list({
+                customer: customerId,
+                type: 'bacs_debit',
+            });
 
-        cardPaymentMethods.data.forEach((item) => {
+        cardPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
             paymenMethods.push({
                 type: item.card?.brand || 'Card',
                 last4Digits: item.card?.last4 || 'xxxx',
@@ -273,7 +279,7 @@ export class BillingService {
             });
         });
 
-        bacsPaymentMethods.data.forEach((item) => {
+        bacsPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
             paymenMethods.push({
                 type: 'UK Bank Account',
                 last4Digits: item.bacs_debit?.last4 || 'xxxx',
@@ -282,7 +288,7 @@ export class BillingService {
             });
         });
 
-        usBankPaymentMethods.data.forEach((item) => {
+        usBankPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
             paymenMethods.push({
                 type: 'US Bank Account',
                 last4Digits: item.us_bank_account?.last4 || 'xxxx',
@@ -291,7 +297,7 @@ export class BillingService {
             });
         });
 
-        sepaPaymentMethods.data.forEach((item) => {
+        sepaPaymentMethods.data.forEach((item: Stripe.PaymentMethod) => {
             paymenMethods.push({
                 type: 'EU Bank Account',
                 last4Digits: item.sepa_debit?.last4 || 'xxxx',
@@ -341,9 +347,8 @@ export class BillingService {
             );
         }
 
-        const subscription = await this.stripe.subscriptions.retrieve(
-            subscriptionId
-        );
+        const subscription: Stripe.Response<Stripe.Subscription> =
+            await this.stripe.subscriptions.retrieve(subscriptionId);
 
         return subscription.status;
     }
@@ -351,12 +356,13 @@ export class BillingService {
     public static async getInvoices(
         customerId: string
     ): Promise<Array<Invoice>> {
-        const invoices = await this.stripe.invoices.list({
-            customer: customerId,
-            limit: 100,
-        });
+        const invoices: Stripe.ApiList<Stripe.Invoice> =
+            await this.stripe.invoices.list({
+                customer: customerId,
+                limit: 100,
+            });
 
-        return invoices.data.map((invoice) => {
+        return invoices.data.map((invoice: Stripe.Invoice) => {
             return {
                 id: invoice.id!,
                 amount: invoice.amount_due,
@@ -374,7 +380,8 @@ export class BillingService {
         invoiceId: string
     ): Promise<Invoice> {
         // after the invoice is paid, // please fetch subscription and check the status.
-        const paymentMethods = await this.getPaymentMethods(customerId);
+        const paymentMethods: Array<PaymentMethod> =
+            await this.getPaymentMethods(customerId);
 
         if (paymentMethods.length === 0) {
             throw new BadDataException(
@@ -382,9 +389,12 @@ export class BillingService {
             );
         }
 
-        const invoice = await this.stripe.invoices.pay(invoiceId, {
-            payment_method: paymentMethods[0]?.id || '',
-        });
+        const invoice: Stripe.Invoice = await this.stripe.invoices.pay(
+            invoiceId,
+            {
+                payment_method: paymentMethods[0]?.id || '',
+            }
+        );
 
         return {
             id: invoice.id!,

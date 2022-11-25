@@ -15,9 +15,6 @@ export interface RadioButton {
 export interface ComponentProps {
     onChange: (value: string) => void;
     initialValue?: string | undefined;
-    onFocus?: () => void;
-    onBlur?: () => void;
-    tabIndex?: number | undefined;
     options: Array<RadioButton>;
 }
 

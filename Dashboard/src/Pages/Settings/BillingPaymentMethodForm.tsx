@@ -12,7 +12,9 @@ export interface ComponentProps {
     formRef: Ref<any>;
 }
 
-const CheckoutForm: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
+const CheckoutForm: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     const stripe: any = useStripe();
     const elements: any = useElements();
 

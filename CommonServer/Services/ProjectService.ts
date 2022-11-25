@@ -114,7 +114,7 @@ export class Service extends DatabaseService<Model> {
         if (IsBillingEnabled) {
             if (updateBy.data.paymentProviderPlanId) {
                 // payment provider id changed.
-                const project = await this.findOneById({
+                const project: Model | null = await this.findOneById({
                     id: new ObjectID(updateBy.data._id! as string),
                     select: {
                         paymentProviderSubscriptionId: true,
@@ -135,9 +135,10 @@ export class Service extends DatabaseService<Model> {
                     project.paymentProviderPlanId !==
                     updateBy.data.paymentProviderPlanId
                 ) {
-                    const plan = SubscriptionPlan.getSubscriptionPlanById(
-                        updateBy.data.paymentProviderPlanId! as string
-                    );
+                    const plan: SubscriptionPlan | undefined =
+                        SubscriptionPlan.getSubscriptionPlanById(
+                            updateBy.data.paymentProviderPlanId! as string
+                        );
 
                     if (!plan) {
                         throw new BadDataException('Invalid plan');
@@ -601,7 +602,7 @@ export class Service extends DatabaseService<Model> {
             return { plan: null, isSubscriptionUnpaid: false };
         }
 
-        const project = await this.findOneById({
+        const project: Model | null = await this.findOneById({
             id: projectId,
             select: {
                 paymentProviderPlanId: true,

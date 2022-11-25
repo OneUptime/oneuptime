@@ -1,7 +1,7 @@
 import BaseModel from 'Common/Models/BaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
-import Permission from 'Common/Types/Permission';
+import Permission, { UserPermission } from 'Common/Types/Permission';
 import BillingInvoice from 'Model/Models/BillingInvoice';
 import Project from 'Model/Models/Project';
 import { IsBillingEnabled } from '../Config';
@@ -47,11 +47,9 @@ export default class UserAPI extends BaseAPI<
                         );
                     }
 
-                    const userPermissions = (
+                    const userPermissions: Array<UserPermission> = (
                         await this.getPermissionsForTenant(req)
-                    ).filter((permission) => {
-                        console.log(permission.permission);
-                        //FIX: Change "Project"
+                    ).filter((permission: UserPermission) => {
                         return (
                             permission.permission.toString() ===
                                 Permission.ProjectOwner.toString() ||
@@ -136,7 +134,7 @@ export default class UserAPI extends BaseAPI<
                     });
 
                     // refresh subscription status.
-                    const subscriptionState =
+                    const subscriptionState: string =
                         await BillingService.getSubscriptionStatus(
                             project.paymentProviderSubscriptionId as string
                         );

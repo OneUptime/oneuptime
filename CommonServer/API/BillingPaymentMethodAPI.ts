@@ -1,5 +1,5 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Permission from 'Common/Types/Permission';
+import Permission, { UserPermission } from 'Common/Types/Permission';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import Project from 'Model/Models/Project';
 import { IsBillingEnabled } from '../Config';
@@ -45,11 +45,9 @@ export default class UserAPI extends BaseAPI<
                         );
                     }
 
-                    const userPermissions = (
+                    const userPermissions: Array<UserPermission> = (
                         await this.getPermissionsForTenant(req)
-                    ).filter((permission) => {
-                        console.log(permission.permission);
-                        //FIX: Change "Project"
+                    ).filter((permission: UserPermission) => {
                         return (
                             permission.permission.toString() ===
                                 Permission.ProjectOwner.toString() ||

@@ -54,7 +54,8 @@ export default class SubscriptionPlan {
     }
 
     public static isFreePlan(planId: string): boolean {
-        const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(planId);
+        const plan: SubscriptionPlan | undefined =
+            this.getSubscriptionPlanById(planId);
         if (plan) {
             if (
                 plan.getMonthlyPlanId() === planId &&
@@ -75,7 +76,8 @@ export default class SubscriptionPlan {
     }
 
     public static isCustomPricingPlan(planId: string): boolean {
-        const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(planId);
+        const plan: SubscriptionPlan | undefined =
+            this.getSubscriptionPlanById(planId);
         if (plan) {
             if (plan.getMonthlyPlanId() === planId && plan.isCustomPricing()) {
                 return true;
@@ -145,7 +147,8 @@ export default class SubscriptionPlan {
     }
 
     public static getPlanSelect(planId: string): PlanSelect {
-        const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(planId);
+        const plan: SubscriptionPlan | undefined =
+            this.getSubscriptionPlanById(planId);
         if (!plan) {
             throw new BadDataException('Plan ID is invalid');
         }
@@ -156,9 +159,10 @@ export default class SubscriptionPlan {
     public static getSubscriptionPlanFromPlanSelect(
         planSelect: PlanSelect
     ): SubscriptionPlan {
-        const plan: SubscriptionPlan | undefined = this.getSubscriptionPlans().find((plan: SubscriptionPlan) => {
-            return plan.getName() === planSelect;
-        });
+        const plan: SubscriptionPlan | undefined =
+            this.getSubscriptionPlans().find((plan: SubscriptionPlan) => {
+                return plan.getName() === planSelect;
+            });
 
         if (!plan) {
             throw new BadDataException('Invalid Plan');

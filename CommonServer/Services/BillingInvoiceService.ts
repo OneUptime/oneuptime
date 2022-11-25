@@ -5,7 +5,7 @@ import FindBy from '../Types/Database/FindBy';
 import ProjectService from './ProjectService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Project from 'Model/Models/Project';
-import BillingService from './BillingService';
+import BillingService, { Invoice } from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
 import URL from 'Common/Types/API/URL';
 
@@ -44,7 +44,7 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        const invoices = await BillingService.getInvoices(
+        const invoices: Array<Invoice> = await BillingService.getInvoices(
             project.paymentProviderCustomerId
         );
 
@@ -59,7 +59,7 @@ export class Service extends DatabaseService<Model> {
         });
 
         for (const invoice of invoices) {
-            const billingInvoice = new Model();
+            const billingInvoice: Model = new Model();
 
             billingInvoice.projectId = project.id!;
 

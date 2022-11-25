@@ -1,5 +1,4 @@
 import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import Model from 'Model/Models/TeamMember';
 import DatabaseService, {
     OnCreate,
     OnDelete,
@@ -30,15 +29,17 @@ import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import URL from 'Common/Types/API/URL';
 import logger from '../Utils/Logger';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import PositiveNumber from 'Common/Types/PositiveNumber';
+import TeamMember from 'Model/Models/TeamMember';
 
-export class Service extends DatabaseService<Model> {
+export class Service extends DatabaseService<TeamMember> {
     public constructor(postgresDatabase?: PostgresDatabase) {
-        super(Model, postgresDatabase);
+        super(TeamMember, postgresDatabase);
     }
 
     protected override async onBeforeCreate(
-        createBy: CreateBy<Model>
-    ): Promise<OnCreate<Model>> {
+        createBy: CreateBy<TeamMember>
+    ): Promise<OnCreate<TeamMember>> {
         if (!createBy.data.hasAcceptedInvitation) {
             createBy.data.hasAcceptedInvitation = false;
         }
@@ -60,7 +61,7 @@ export class Service extends DatabaseService<Model> {
 
             createBy.data.userId = user.id!;
 
-            const project = await ProjectService.findOneById({
+            const project: Project | null = await ProjectService.findOneById({
                 id: createBy.data.projectId!,
                 select: {
                     name: true,
@@ -84,7 +85,7 @@ export class Service extends DatabaseService<Model> {
                         homeUrl: new URL(HttpProtocol, Domain).toString(),
                     },
                     subject: 'You have been invited to ' + project.name,
-                }).catch((err) => {
+                }).catch((err: Error) => {
                     logger.error(err);
                 });
             }
@@ -107,9 +108,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onCreateSuccess(
-        onCreate: OnCreate<Model>,
-        createdItem: Model
-    ): Promise<Model> {
+        onCreate: OnCreate<TeamMember>,
+        createdItem: TeamMember
+    ): Promise<TeamMember> {
         await this.refreshTokens(
             onCreate.createBy.data.userId!,
             onCreate.createBy.data.projectId!
@@ -123,11 +124,11 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onUpdateSuccess(
-        onUpdate: OnUpdate<Model>,
+        onUpdate: OnUpdate<TeamMember>,
         updatedItemIds: Array<ObjectID>
-    ): Promise<OnUpdate<Model>> {
-        const updateBy: UpdateBy<Model> = onUpdate.updateBy;
-        const items: Array<Model> = await this.findBy({
+    ): Promise<OnUpdate<TeamMember>> {
+        const updateBy: UpdateBy<TeamMember> = onUpdate.updateBy;
+        const items: Array<TeamMember> = await this.findBy({
             query: {
                 _id: QueryHelper.in(updatedItemIds),
             },
@@ -151,9 +152,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onBeforeDelete(
-        deleteBy: DeleteBy<Model>
-    ): Promise<OnDelete<Model>> {
-        const members: Array<Model> = await this.findBy({
+        deleteBy: DeleteBy<TeamMember>
+    ): Promise<OnDelete<TeamMember>> {
+        const members: Array<TeamMember> = await this.findBy({
             query: deleteBy.query,
             select: {
                 userId: true,
@@ -177,7 +178,7 @@ export class Service extends DatabaseService<Model> {
         // check if there's one member in the team.
         for (const member of members) {
             if (member.team?.shouldHaveAtleastOneMember) {
-                const membersInTeam = await this.countBy({
+                const membersInTeam: PositiveNumber = await this.countBy({
                     query: {
                         _id: member.teamId?.toString() as string,
                     },
@@ -203,9 +204,9 @@ export class Service extends DatabaseService<Model> {
     }
 
     protected override async onDeleteSuccess(
-        onDelete: OnDelete<Model>
-    ): Promise<OnDelete<Model>> {
-        for (const item of onDelete.carryForward as Array<Model>) {
+        onDelete: OnDelete<TeamMember>
+    ): Promise<OnDelete<TeamMember>> {
+        for (const item of onDelete.carryForward as Array<TeamMember>) {
             await this.refreshTokens(item.userId!, item.projectId!);
             await this.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
                 item.projectId!
@@ -218,7 +219,7 @@ export class Service extends DatabaseService<Model> {
     public async getUniqueTeamMemberCountInProject(
         projectId: ObjectID
     ): Promise<number> {
-        const members = await this.findBy({
+        const members: Array<TeamMember> = await this.findBy({
             query: {
                 projectId: projectId!,
             },
@@ -232,14 +233,15 @@ export class Service extends DatabaseService<Model> {
             limit: LIMIT_MAX,
         });
 
-        const emmberIds = members
-            .map((member) => {
+        const memberIds: Array<string | undefined> = members
+            .map((member: TeamMember) => {
                 return member.userId?.toString();
             })
-            .filter((memberId) => {
+            .filter((memberId: string | undefined) => {
                 return Boolean(memberId);
             });
-        return [...new Set(emmberIds)].length; //get unique member ids.
+
+        return [...new Set(memberIds)].length; //get unique member ids.
     }
 
     public async updateSubscriptionSeatsByUnqiqueTeamMembersInProject(

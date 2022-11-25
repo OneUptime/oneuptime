@@ -248,7 +248,6 @@ const BasicForm: Function = <T extends Object>(
                         {({ form }: any) => {
                             return (
                                 <RadioButtons
-                                    tabIndex={index}
                                     onChange={async (value: string) => {
                                         setCurrentValue({
                                             ...currentValue,
@@ -259,12 +258,6 @@ const BasicForm: Function = <T extends Object>(
                                         await form.setFieldValue(
                                             fieldName,
                                             value,
-                                            true
-                                        );
-                                    }}
-                                    onBlur={async () => {
-                                        await form.setFieldTouched(
-                                            fieldName,
                                             true
                                         );
                                     }}

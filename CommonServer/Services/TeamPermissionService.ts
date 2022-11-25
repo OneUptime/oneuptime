@@ -15,6 +15,7 @@ import TeamService from './TeamService';
 import UpdateBy from '../Types/Database/UpdateBy';
 import DeleteBy from '../Types/Database/DeleteBy';
 import ObjectID from 'Common/Types/ObjectID';
+import Team from 'Model/Models/Team';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -31,7 +32,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         // get team.
-        const team = await TeamService.findOneById({
+        const team: Team | null = await TeamService.findOneById({
             id: createBy.data.teamId!,
             select: {
                 isPermissionsEditable: true,
@@ -91,7 +92,7 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeUpdate(
         updateBy: UpdateBy<Model>
     ): Promise<OnUpdate<Model>> {
-        const teamPermissions = await this.findBy({
+        const teamPermissions: Array<Model> = await this.findBy({
             query: updateBy.query,
             select: {
                 _id: true,
@@ -159,7 +160,7 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeDelete(
         deleteBy: DeleteBy<Model>
     ): Promise<OnDelete<Model>> {
-        const teamPermissions = await this.findBy({
+        const teamPermissions: Array<Model> = await this.findBy({
             query: deleteBy.query,
             select: {
                 _id: true,

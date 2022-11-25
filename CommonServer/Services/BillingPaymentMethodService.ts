@@ -5,7 +5,7 @@ import FindBy from '../Types/Database/FindBy';
 import ProjectService from './ProjectService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Project from 'Model/Models/Project';
-import BillingService from './BillingService';
+import BillingService, { PaymentMethod } from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 
@@ -44,9 +44,10 @@ export class Service extends DatabaseService<Model> {
             );
         }
 
-        const paymentMethods = await BillingService.getPaymentMethods(
-            project.paymentProviderCustomerId
-        );
+        const paymentMethods: Array<PaymentMethod> =
+            await BillingService.getPaymentMethods(
+                project.paymentProviderCustomerId
+            );
 
         await this.deleteBy({
             query: {
@@ -59,7 +60,7 @@ export class Service extends DatabaseService<Model> {
         });
 
         for (const paymentMethod of paymentMethods) {
-            const billingPaymentMethod = new Model();
+            const billingPaymentMethod: Model = new Model();
 
             billingPaymentMethod.projectId = project.id!;
 
@@ -85,7 +86,7 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeDelete(
         deleteBy: DeleteBy<Model>
     ): Promise<OnDelete<Model>> {
-        const items = await this.findBy({
+        const items: Array<Model> = await this.findBy({
             query: deleteBy.query,
             select: {
                 _id: true,

@@ -14,7 +14,6 @@ import Project from 'Model/Models/Project';
 import React, {
     FunctionComponent,
     ReactElement,
-    useEffect,
     useRef,
     useState,
 } from 'react';
@@ -60,7 +59,6 @@ const Settings: FunctionComponent<ComponentProps> = (
         setStripe(await loadStripe(BILLING_PUBLIC_KEY));
         setIsModalLoading(false);
     }, []);
-
 
     const fetchSetupIntent: Function = async (): Promise<void> => {
         try {

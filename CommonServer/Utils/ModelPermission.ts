@@ -961,7 +961,7 @@ export default class ModelPermission {
         /// Check billing permissions.
 
         if (IsBillingEnabled && props.currentPlan) {
-            const model = new modelType();
+            const model: BaseModel = new modelType();
 
             if (
                 props.isSubscriptionUnpaid &&

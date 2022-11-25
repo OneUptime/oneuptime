@@ -518,9 +518,7 @@ class DatabaseService<TBaseModel extends BaseModel> {
         )) as TBaseModel;
 
         try {
-            console.log('DATA CREATE');
             createBy.data = await this.getRepository().save(createBy.data);
-            console.log('DATA CREATED');
 
             if (!createBy.props.ignoreHooks) {
                 createBy.data = await this.onCreateSuccess(
@@ -930,8 +928,6 @@ class DatabaseService<TBaseModel extends BaseModel> {
     public async findOneById(
         findOneById: FindOneByID<TBaseModel>
     ): Promise<TBaseModel | null> {
-        console.log('FINDONE BY');
-        console.log(findOneById);
         return await this.findOneBy({
             query: {
                 _id: findOneById.id.toString() as any,

@@ -152,7 +152,8 @@ export default class BaseAPI<
     ): Promise<Array<UserPermission>> {
         const permissions: Array<UserPermission> = [];
 
-        const props: DatabaseCommonInteractionProps = await this.getDatabaseCommonInteractionProps(req);
+        const props: DatabaseCommonInteractionProps =
+            await this.getDatabaseCommonInteractionProps(req);
 
         if (
             props &&
@@ -217,7 +218,10 @@ export default class BaseAPI<
         }
 
         if (IsBillingEnabled && props.tenantId) {
-            const plan: { plan: PlanSelect | null; isSubscriptionUnpaid: boolean } = await ProjectService.getCurrentPlan(props.tenantId!);
+            const plan: {
+                plan: PlanSelect | null;
+                isSubscriptionUnpaid: boolean;
+            } = await ProjectService.getCurrentPlan(props.tenantId!);
             props.currentPlan = plan.plan || undefined;
             props.isSubscriptionUnpaid = plan.isSubscriptionUnpaid;
         }

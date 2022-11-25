@@ -64,7 +64,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             BILLING_ENABLED
         ) {
             setPaymentMethodCountLoading(true);
-            const paymentMethodsCount = await ModelAPI.count(
+            const paymentMethodsCount: number = await ModelAPI.count(
                 BillingPaymentMethod,
                 { projectId: props.selectedProject?._id }
             );
