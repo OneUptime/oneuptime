@@ -1,4 +1,4 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import UserModel from 'Common/Models/UserModel';
 import ColumnType from 'Common/Types/Database/ColumnType';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
@@ -12,6 +12,7 @@ import CompanySize from 'Common/Types/Company/CompanySize';
 import JobRole from 'Common/Types/Company/JobRole';
 import HashedString from 'Common/Types/HashedString';
 import TableColumn from 'Common/Types/Database/TableColumn';
+import File from './File';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
@@ -21,6 +22,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import CurrentUserCanAccessRecordBy from 'Common/Types/Database/CurrentUserCanAccessRecordBy';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
+import ObjectID from 'Common/Types/ObjectID';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @TableAccessControl({
@@ -226,6 +228,7 @@ class User extends UserModel {
     })
     public companyPhoneNumber?: Phone = undefined;
 
+
     @ColumnAccessControl({
         create: [],
         read: [
@@ -236,15 +239,43 @@ class User extends UserModel {
 
         update: [Permission.CurrentUser],
     })
-    @TableColumn({ type: TableColumnType.ShortURL })
-    @Column({
-        type: ColumnType.ShortURL,
-        length: ColumnLength.ShortURL,
-        nullable: true,
-        unique: false,
-        transformer: URL.getDatabaseTransformer(),
+    @TableColumn({
+        manyToOneRelationColumn: 'profilePictureId',
+        type: TableColumnType.Entity,
+        modelType: File,
     })
-    public profilePicImageUrl?: URL = undefined;
+    @ManyToOne(
+        (_type: string) => {
+            return File;
+        },
+        {
+            eager: false,
+            nullable: true,
+            onDelete: 'CASCADE',
+            orphanedRowAction: 'delete',
+        }
+    )
+    @JoinColumn({ name: 'profilePictureId' })
+    public profilePictureFile?: File = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [
+            Permission.CurrentUser,
+            Permission.ProjectAdmin,
+            Permission.ProjectOwner,
+        ],
+
+        update: [Permission.CurrentUser],
+    })
+    @TableColumn({ type: TableColumnType.ObjectID })
+    @Column({
+        type: ColumnType.ObjectID,
+        nullable: true,
+        transformer: ObjectID.getDatabaseTransformer(),
+    })
+    public profilePictureId?: ObjectID = undefined;
+
 
     @ColumnAccessControl({
         create: [],

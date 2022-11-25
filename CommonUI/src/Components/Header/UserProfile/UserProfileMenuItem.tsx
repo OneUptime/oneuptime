@@ -7,7 +7,8 @@ import Link from '../../Link/Link';
 export interface ComponentProps {
     title: string;
     badge?: undefined | number;
-    route: Route;
+    route?: Route | undefined;
+    onClick?: (()=> void) | undefined;
     icon: IconProp;
     iconColor?: undefined | Color;
 }
@@ -18,7 +19,7 @@ const UserProfile: FunctionComponent<ComponentProps> = (
     return (
         <Link
             to={props.route}
-            onClick={undefined}
+            onClick={props.onClick}
             className="dropdown-item flex"
         >
             {props.badge ? (

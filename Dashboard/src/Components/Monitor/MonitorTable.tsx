@@ -4,7 +4,6 @@ import Monitor from 'Model/Models/Monitor';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import MonitorTypeUtil from '../../Utils/MonitorType';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
@@ -15,6 +14,7 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Route from 'Common/Types/API/Route';
 import Project from 'Model/Models/Project';
+import MonitorType from 'Common/Types/Monitor/MonitorType';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -37,6 +37,10 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
             isCreateable={true}
             isViewable={true}
             query={props.query}
+            onBeforeCreate={async (item: Monitor) => {
+                item.monitorType = MonitorType.Manual;
+                return item;
+            }}
             cardProps={{
                 icon: IconProp.Activity,
                 title: props.title || 'Monitors',
@@ -67,17 +71,17 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     required: true,
                     placeholder: 'Description',
                 },
-                {
-                    field: {
-                        monitorType: true,
-                    },
-                    title: 'Monitor Type',
-                    fieldType: FormFieldSchemaType.Dropdown,
-                    required: true,
-                    placeholder: 'Select Monitor Type',
-                    dropdownOptions:
-                        MonitorTypeUtil.monitorTypesAsDropdownOptions(),
-                },
+                // {
+                //     field: {
+                //         monitorType: true,
+                //     },
+                //     title: 'Monitor Type',
+                //     fieldType: FormFieldSchemaType.Dropdown,
+                //     required: true,
+                //     placeholder: 'Select Monitor Type',
+                //     dropdownOptions:
+                //         MonitorTypeUtil.monitorTypesAsDropdownOptions(),
+                // },
                 {
                     field: {
                         labels: true,
@@ -107,14 +111,14 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     type: FieldType.Text,
                     isFilterable: true,
                 },
-                {
-                    field: {
-                        monitorType: true,
-                    },
-                    title: 'Monitor Type',
-                    type: FieldType.Text,
-                    isFilterable: true,
-                },
+                // {
+                //     field: {
+                //         monitorType: true,
+                //     },
+                //     title: 'Monitor Type',
+                //     type: FieldType.Text,
+                //     isFilterable: true,
+                // },
                 {
                     field: {
                         currentMonitorStatus: {

@@ -11,7 +11,7 @@ const StatusPagesElement: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     if (!props.statusPages || props.statusPages.length === 0) {
-        return <p>No statusPages.</p>;
+        return <p>No Status Pages.</p>;
     }
 
     return (
