@@ -4,12 +4,12 @@ import UserProfileMenu from 'CommonUI/src/Components/Header/UserProfile/UserProf
 import UserProfileMenuItem from 'CommonUI/src/Components/Header/UserProfile/UserProfileMenuItem';
 import UserProfileDropdownDivider from 'CommonUI/src/Components/Header/UserProfile/UserProfileDropdownDivider';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import URL from 'Common/Types/API/URL';
 import Route from 'Common/Types/API/Route';
 import { Red } from 'Common/Types/BrandColors';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import UserUtil from 'CommonUI/src/Utils/User';
+import OneUptimeLogo from 'CommonUI/src/Images/users/blank-profile.svg';
 
 export interface ComponentProps{
     onClickUserProfle: ()=> void;
@@ -21,8 +21,8 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (props: Componen
         <>
             <UserProfile
                 userFullName={UserUtil.getName()}
-                userProfilePicture={URL.fromString(
-                    'https://blog.media.io/images/images2021/cool-good-tiktok-profile-pictures.jpg'
+                userProfilePicture={Route.fromString(
+                    `/dashboard/public/${OneUptimeLogo}`
                 )}
             >
                 <UserProfileMenu>

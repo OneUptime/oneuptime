@@ -414,6 +414,7 @@ router.post(
                     email: true,
                     isMasterAdmin: true,
                     isEmailVerified: true,
+                    profilePictureId: true
                 },
                 props: {
                     isRoot: true,

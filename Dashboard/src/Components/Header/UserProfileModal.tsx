@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import User from 'Model/Models/User';
 import UserUtil from 'CommonUI/src/Utils/User';
 import FullPageModal from 'CommonUI/src/Components/FullPageModal/FullPageModal';
@@ -8,6 +8,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Card from 'CommonUI/src/Components/Card/Card';
+import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 
 export interface ComponentProps {
     onClose: () => void;
@@ -16,6 +17,9 @@ export interface ComponentProps {
 const UserProfileModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+
+    const [hasPasswordChanged, setHasPasswordChanged] = useState<boolean>(false);
 
     return (
         <>
@@ -146,8 +150,8 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                                         },
                                     },
                                     fieldType: FieldType.ImageFile,
-                                    title: 'Favicon',
-                                    placeholder: 'No favicon uploaded.',
+                                    title: 'Profile Picture',
+                                    placeholder: 'No profile picture uploaded.',
                                 },
                             ],
                             modelId: UserUtil.getUserId()
@@ -158,11 +162,16 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
 
                     <Card style={{marginLeft: "30px"}} className="width-half" title={'Update Password'} description={'You can set a new password here if you wish to do so.'} icon={IconProp.Lock}>
 
-                        <ModelForm<User>
+                        {!hasPasswordChanged ? <ModelForm<User>
                             modelType={User}
+                            onSuccess={() => {
+                                setHasPasswordChanged(true);
+                            }}
+                            submitButtonStyleType={ButtonStyleType.OUTLINE}
                             id="change-password-form"
                             showAsColumns={1}
-                            modelId={UserUtil.getUserId()}
+                            doNotFetchExistingModel={true}
+                            modelIdToEdit={UserUtil.getUserId()}
                             maxPrimaryButtonWidth={true}
                             initialValues={{
                                 password: '',
@@ -203,7 +212,7 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                             ]}
                             formType={FormType.Update}
                             submitButtonText={'Update Password'}
-                        />
+                        /> : <p>Your password has been updated.</p>}
 
                     </Card>
                 </div>

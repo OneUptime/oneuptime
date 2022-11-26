@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import FullLogo from 'CommonUI/src/Components/Image/Image';
+import Image from 'CommonUI/src/Components/Image/Image';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
 import Route from 'Common/Types/API/Route';
 
@@ -12,7 +12,7 @@ const Logo: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div className="flex items-center" style={{ marginLeft: '-25px' }}>
-            <FullLogo
+            <Image
                 height={30}
                 onClick={() => {
                     props.onClick && props.onClick();

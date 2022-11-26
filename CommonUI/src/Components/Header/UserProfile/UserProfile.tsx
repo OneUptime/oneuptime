@@ -3,11 +3,13 @@ import Name from 'Common/Types/Name';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp } from '../../Icon/Icon';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
+import Route from 'Common/Types/API/Route';
+import Image from '../../Image/Image';
 
 export interface ComponentProps {
     userFullName: Name;
     children: ReactElement | Array<ReactElement>;
-    userProfilePicture: URL;
+    userProfilePicture: URL | Route;
 }
 
 const UserProfile: FunctionComponent<ComponentProps> = (
@@ -30,11 +32,11 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                     alignItems: 'center',
                 }}
             >
-                <img
+                <Image
                     className="rounded-circle header-profile-user"
-                    src={props.userProfilePicture.toString()}
-                    alt="Header Avatar"
+                    imageUrl={props.userProfilePicture}
                 />
+
                 <span className="d-none d-xl-inline-block ms-2 me-1">
                     {props.userFullName.toString()}
                 </span>
