@@ -47,6 +47,7 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                                 'jeff@example.com',
                             required: true,
                             title: 'Email',
+                            description: 'You will have to verify your email again if you change it'
                         },
                         {
                             field: {
