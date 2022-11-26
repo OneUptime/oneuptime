@@ -23,6 +23,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     isEditable?: undefined | boolean;
     editButtonText?: undefined | string;
     formFields?: undefined | Fields<TBaseModel>;
+    className?: string | undefined;
 }
 
 const CardModelDetail: Function = <TBaseModel extends BaseModel>(
@@ -67,7 +68,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
 
     return (
         <>
-            <Card {...props.cardProps} buttons={cardButtons}>
+            <Card {...props.cardProps} className={props.className} buttons={cardButtons}>
                 <ModelDetail
                     refresher={refresher}
                     {...props.modelDetailProps}

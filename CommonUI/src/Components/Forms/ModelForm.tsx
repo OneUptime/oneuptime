@@ -43,13 +43,13 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     id: string;
     onValidate?:
-        | undefined
-        | ((
-              values: FormValues<TBaseModel>
-          ) => FormikErrors<FormValues<TBaseModel>>);
+    | undefined
+    | ((
+        values: FormValues<TBaseModel>
+    ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -58,8 +58,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     onSuccess?:
-        | undefined
-        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+    | undefined
+    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -226,7 +226,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                                 isModelArray = true;
                                 idArray.push(
                                     (itemInArray as any as JSONObject)[
-                                        '_id'
+                                    '_id'
                                     ] as string
                                 );
                             }
@@ -305,7 +305,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -409,7 +409,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                     Array.isArray(valuesToSend[key]) &&
                     (valuesToSend[key] as Array<any>).length > 0 &&
                     typeof (valuesToSend[key] as Array<any>)[0] ===
-                        Typeof.String
+                    Typeof.String
                 ) {
                     const arr: Array<BaseModel> = [];
                     for (const id of valuesToSend[key] as Array<string>) {
@@ -446,7 +446,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             setError(
                 (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                'Server Error. Please try again'
             );
         }
 
@@ -476,26 +476,28 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
     }
 
     return (
-        <BasicModelForm<TBaseModel>
-            title={props.title}
-            description={props.description}
-            model={model}
-            id={props.id}
-            fields={fields}
-            showAsColumns={props.showAsColumns}
-            footer={props.footer}
-            isLoading={isLoading}
-            submitButtonText={props.submitButtonText}
-            cancelButtonText={props.cancelButtonText}
-            onSubmit={onSubmit}
-            onValidate={props.onValidate}
-            onCancel={props.onCancel}
-            maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
-            error={error}
-            hideSubmitButton={props.hideSubmitButton}
-            formRef={props.formRef}
-            initialValues={itemToEdit || props.initialValues}
-        ></BasicModelForm>
+        <div>
+            <BasicModelForm<TBaseModel>
+                title={props.title}
+                description={props.description}
+                model={model}
+                id={props.id}
+                fields={fields}
+                showAsColumns={props.showAsColumns}
+                footer={props.footer}
+                isLoading={isLoading}
+                submitButtonText={props.submitButtonText}
+                cancelButtonText={props.cancelButtonText}
+                onSubmit={onSubmit}
+                onValidate={props.onValidate}
+                onCancel={props.onCancel}
+                maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
+                error={error}
+                hideSubmitButton={props.hideSubmitButton}
+                formRef={props.formRef}
+                initialValues={itemToEdit || props.initialValues}
+            ></BasicModelForm>
+        </div>
     );
 };
 

@@ -84,9 +84,11 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
 
         const userPermissions: Array<Permission> =
             PermissionUtil.getAllPermissions();
+        
+        const model = new props.modelType();
 
         const accessControl: Dictionary<ColumnAccessControl> =
-        new props.modelType()?.getColumnAccessControlForAllColumns() || {};
+        model.getColumnAccessControlForAllColumns() || {};
 
         const fieldsToSet: Array<Field<TBaseModel>> = [];
 
@@ -142,13 +144,12 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         setFields(fieldsToSet);
     };
 
-    useEffect(() => {
-        setDetailFields();
-    }, []);
 
     useEffect(() => {
-        setDetailFields();
-    }, [onBeforeFetchData]);
+        if (props.modelType) {
+            setDetailFields();
+        }
+    }, [onBeforeFetchData, props.modelType]);
 
     const fetchItem: Function = async (): Promise<void> => {
 
