@@ -238,4 +238,90 @@ export default class StatusPageDomain extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Date })
+    @Column({
+        type: ColumnType.Date,
+        nullable: false,
+        unique: false,
+        default: () => {
+            return 'CURRENT_TIMESTAMP';
+        },
+    })
+    public sslCertificateExpiresAt?: Date = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public sslCertificateCrt?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public sslCertificateKey?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public sslCertificateChallengeText?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        nullable: true,
+        unique: false,
+    })
+    public sslProvisioningFailedReason?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.JSON })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+        unique: false,
+    })
+    public greenlockConfig?: JSON = undefined;
+
+
 }

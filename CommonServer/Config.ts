@@ -14,21 +14,21 @@ export const BillingPrivateKey: string =
     process.env['BILLING_PRIVATE_KEY'] || '';
 
 export const DatabaseHost: Hostname = Hostname.fromString(
-    process.env['DATABASE_HOST'] || ''
+    process.env['DATABASE_HOST'] || 'postgres'
 );
 
-export const DatabasePort: Port = new Port(process.env['DATABASE_PORT'] || '');
+export const DatabasePort: Port = new Port(process.env['DATABASE_PORT'] || '5432');
 
 export const DatabaseUsername: string =
     process.env['DATABASE_USERNAME'] || 'oneuptimedbuser';
 
-export const DatabasePassword: string = process.env['DATABASE_PASSWORD'] || '';
+export const DatabasePassword: string = process.env['DATABASE_PASSWORD'] || 'password';
 
 export const DatabaseName: string =
     process.env['DATABASE_NAME'] || 'oneuptimedb';
 
 export const EncryptionSecret: ObjectID = new ObjectID(
-    process.env['ENCRYPTION_SECRET'] || ''
+    process.env['ENCRYPTION_SECRET'] || 'secret'
 );
 
 export const AirtableApiKey: string = process.env['AIRTABLE_API_KEY'] || '';
@@ -36,93 +36,93 @@ export const AirtableApiKey: string = process.env['AIRTABLE_API_KEY'] || '';
 export const AirtableBaseId: string = process.env['AIRTABLE_BASE_ID'] || '';
 
 export const ClusterKey: ObjectID = new ObjectID(
-    process.env['ONEUPTIME_SECRET'] || ''
+    process.env['ONEUPTIME_SECRET'] || 'secret'
 );
 
 export const Domain: Hostname = Hostname.fromString(
-    process.env['DOMAIN'] || ''
+    process.env['DOMAIN'] || 'localhost'
 );
 
 export const RealtimeHostname: Hostname = Hostname.fromString(
-    process.env['REALTIME_HOSTNAME'] || ''
+    process.env['REALTIME_HOSTNAME'] || 'realtime'
 );
 
 export const MailHostname: Hostname = Hostname.fromString(
-    process.env['MAIL_HOSTNAME'] || ''
+    process.env['MAIL_HOSTNAME'] || 'mail'
 );
 
 export const DashboardApiHostname: Hostname = Hostname.fromString(
-    process.env['DASHBOARD_API_HOSTNAME'] || ''
+    process.env['DASHBOARD_API_HOSTNAME'] || 'dashboard-api'
 );
 
 export const ProbeApiHostname: Hostname = Hostname.fromString(
-    process.env['PROBE_API_HOSTNAME'] || ''
+    process.env['PROBE_API_HOSTNAME'] || 'probe-api'
 );
 
 export const DataIngestorHostname: Hostname = Hostname.fromString(
-    process.env['DATA_INGESTOR_HOSTNAME'] || ''
+    process.env['DATA_INGESTOR_HOSTNAME'] || 'daat-ingestor'
 );
 
 export const AccountsHostname: Hostname = Hostname.fromString(
-    process.env['ACCOUNTS_HOSTNAME'] || ''
+    process.env['ACCOUNTS_HOSTNAME'] || 'accounts'
 );
 
 export const HomeHostname: Hostname = Hostname.fromString(
-    process.env['HOME_HOSTNAME'] || ''
+    process.env['HOME_HOSTNAME'] || 'home'
 );
 
 export const DashboardHostname: Hostname = Hostname.fromString(
-    process.env['DASHBOARD_HOSTNAME'] || ''
+    process.env['DASHBOARD_HOSTNAME'] || 'dashboard'
 );
 
-export const Env: string = process.env['NODE_ENV'] || '';
+export const Env: string = process.env['NODE_ENV'] || 'production';
 
-export const Version: string = process.env['npm_package_version'] || '';
+export const Version: string = process.env['npm_package_version'] || '1.0.0';
 
 export const HttpProtocol: Protocol = (
-    process.env['HTTP_PROTOCOL'] || ''
+    process.env['HTTP_PROTOCOL'] || 'https'
 ).includes('https')
     ? Protocol.HTTPS
     : Protocol.HTTP;
 
 // Redis does not require password.
-export const RedisHostname: string = process.env['REDIS_HOST'] || '';
-export const RedisPassword: string = process.env['REDIS_PASSWORD'] || '';
-export const RedisPort: Port = new Port(process.env['REDIS_PORT'] || '');
+export const RedisHostname: string = process.env['REDIS_HOST'] || 'redis';
+export const RedisPassword: string = process.env['REDIS_PASSWORD'] || 'password';
+export const RedisPort: Port = new Port(process.env['REDIS_PORT'] || '6379');
 
 export const DashboardApiRoute: Route = new Route(
-    process.env['DASHBOARD_API_ROUTE'] || ''
+    process.env['DASHBOARD_API_ROUTE'] || '/dashboard-api'
 );
 
 export const IdentityRoute: Route = new Route(
-    process.env['IDENTITY_ROUTE'] || ''
+    process.env['IDENTITY_ROUTE'] || '/identity'
 );
 
-export const FileRoute: Route = new Route(process.env['FILE_ROUTE'] || '');
+export const FileRoute: Route = new Route(process.env['FILE_ROUTE'] || '/file');
 
 export const StausPageRoute: Route = new Route(
-    process.env['STATUS_PAGE_ROUTE'] || ''
+    process.env['STATUS_PAGE_ROUTE'] || '/status-page'
 );
 
 export const DashboardRoute: Route = new Route(
-    process.env['DASHBOARD_ROUTE'] || ''
+    process.env['DASHBOARD_ROUTE'] || '/dashboard'
 );
 
 export const IntegrationRoute: Route = new Route(
-    process.env['INTEGRATION_ROUTE'] || ''
+    process.env['INTEGRATION_ROUTE'] || '/integration'
 );
 
-export const HelmRoute: Route = new Route(process.env['HELMCHART_ROUTE'] || '');
+export const HelmRoute: Route = new Route(process.env['HELMCHART_ROUTE'] || '/helm-chart');
 export const AccountsRoute: Route = new Route(
-    process.env['ACCOUNTS_ROUTE'] || ''
+    process.env['ACCOUNTS_ROUTE'] || '/accounts'
 );
 
 export const ApiDocsRoute: Route = new Route(
-    process.env['APIDOCS_ROUTE'] || ''
+    process.env['APIDOCS_ROUTE'] || '/api-docs'
 );
 
 export const AdminDashboardRoute: Route = new Route(
-    process.env['ADMINDASHBOARD_ROUTE'] || ''
+    process.env['ADMINDASHBOARD_ROUTE'] || '/admin-dashboard'
 );
 
 export const IsProduction: boolean =

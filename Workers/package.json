@@ -14,9 +14,14 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@greenlock/manager": "^3.1.0",
+    "@root/greenlock": "^4.0.5",
     "@types/node-cron": "^3.0.4",
+    "acme-http-01-standalone": "^3.0.5",
     "Common": "file:../Common",
     "CommonServer": "file:../CommonServer",
+    "greenlock": "^4.0.4",
+    "greenlock-store-fs": "^3.2.2",
     "Model": "file:../Model",
     "node-cron": "^3.0.2"
   },

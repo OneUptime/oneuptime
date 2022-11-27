@@ -117,7 +117,7 @@ services:
         env_file:
             - ./Common/.env
             - ./CommonUI/.env
-            - ./Accounts/.env
+            - ./Dashboard/.env
 
         depends_on:
             - identity
