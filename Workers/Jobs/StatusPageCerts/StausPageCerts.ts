@@ -5,7 +5,7 @@ import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 // @ts-ignore
 import Greenlock from 'greenlock';
-import HTTPChallenge from '../../Utils/Greenlock/HTTPChallenge';
+import HTTPChallenge from '../../Utils/Greenlock/HttpChallenge';
 import logger from 'CommonServer/Utils/Logger';
 import Store from '../../Utils/Greenlock/Store';
 import BadDataException from 'Common/Types/Exception/BadDataException';
