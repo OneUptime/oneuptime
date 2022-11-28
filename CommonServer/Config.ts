@@ -51,6 +51,10 @@ export const MailHostname: Hostname = Hostname.fromString(
     process.env['MAIL_HOSTNAME'] || 'mail'
 );
 
+export const WorkerHostname: Hostname = Hostname.fromString(
+    process.env['WORKER_HOSTNAME'] || 'mail'
+);
+
 export const DashboardApiHostname: Hostname = Hostname.fromString(
     process.env['DASHBOARD_API_HOSTNAME'] || 'dashboard-api'
 );

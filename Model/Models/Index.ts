@@ -61,6 +61,7 @@ import BillingInvoice from './BillingInvoice';
 
 // Greenlock
 import GreenlockChallenge from './GreenlockChallenge'
+import GreenlockCertificate from './GreenlockCertificate';
 
 export default [
     User,
@@ -106,5 +107,6 @@ export default [
     BillingPaymentMethods,
     BillingInvoice,
 
-    GreenlockChallenge
+    GreenlockChallenge,
+    GreenlockCertificate
 ];

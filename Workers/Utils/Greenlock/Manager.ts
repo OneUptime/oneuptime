@@ -1,11 +1,13 @@
 
-// Docs: https://git.rootprojects.org/root/greenlock-manager-test.js
+// Docs: https://git.rootprojects.org/root/greenlock-manager.js
 
 import StatusPageDomainService from "CommonServer/Services/StatusPageDomainService";
 import StatusPageDomain from "Model/Models/StatusPageDomain";
 
 export default {
     create: () => {
+
+        console.log("Manager created");
 
         return {
             // Get
