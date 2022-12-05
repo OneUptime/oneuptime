@@ -6,9 +6,7 @@ import https from 'https';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 // @ts-ignore
 import Greenlock from 'greenlock';
-import HTTPChallenge from '../../Utils/Greenlock/HttpChallenge';
 import logger from 'CommonServer/Utils/Logger';
-import Store from '../../Utils/Greenlock/Store';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Express, {
     ExpressRequest,
@@ -26,7 +24,7 @@ const router: ExpressRouter = Express.getRouter();
 const greenlock = Greenlock.create({
     configFile: '/greenlockrc',
     packageRoot: `/usr/src/app`,
-    manager: './Utils/Greenlock/Manager.ts',
+    manager:  '/usr/src/app/Utils/Greenlock/Manager.ts',
     approveDomains: async (opts: any) => {
         const domain: StatusPageDomain | null = await StatusPageDomainService.findOneBy({
             query: {
@@ -48,7 +46,9 @@ const greenlock = Greenlock.create({
 
         return opts; // or Promise.resolve(opts);
     },
-    store: Store,
+    store: {
+        module: '/usr/src/app/Utils/Greenlock/Store.ts'
+    },
     // Staging for testing environments
     staging: IsDevelopment,
 
@@ -66,7 +66,9 @@ const greenlock = Greenlock.create({
 
     agreeToTerms: true,
     challenges: {
-        'http-01': HTTPChallenge
+        'http-01': {
+            module: '/usr/src/app/Utils/Greenlock/HttpChallenge.ts'
+        }
     },
 });
 
@@ -153,8 +155,10 @@ router.get(
 
 
 RunCron('StatusPageCerts:Renew', IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, async () => {
+    logger.info("Start");
     // fetch all domains wiht expired certs. 
     await greenlock.renew({});
+    logger.info("End");
 });
 
 RunCron('StatusPageCerts:AddCerts', IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, async () => {

@@ -3,7 +3,7 @@
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 
-export default {
+module.exports = {
 
     create: () => {
         
