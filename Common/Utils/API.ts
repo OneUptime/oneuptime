@@ -206,7 +206,7 @@ export default class API {
         url: URL,
         data?: JSONObject | JSONArray,
         headers?: Headers,
-        params?: Dictionary<string>
+        params?: Dictionary<string>,
     ): Promise<HTTPResponse<T> | HTTPErrorResponse> {
         const apiHeaders: Headers = this.getHeaders(headers);
 

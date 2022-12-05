@@ -254,4 +254,56 @@ export default class StatusPageDomain extends BaseModel {
     public greenlockConfig?: JSON = undefined;
 
 
+    // This token is used by the Worker. 
+    // worker pings the status page of customers - eg: status.company.com/verify-token/:id
+    // and the end  point on Sttaus Page proejct returns 200. 
+    // when that happens the isCnameVerified is set to True and the certificate is added to greenlock.
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public cnameVerificationToken?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isCnameVerified?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isAddedtoGreenlock?: boolean = undefined;
 }

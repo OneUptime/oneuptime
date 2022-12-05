@@ -4,7 +4,8 @@
 import StatusPageDomainService from "CommonServer/Services/StatusPageDomainService";
 import StatusPageDomain from "Model/Models/StatusPageDomain";
 
-export default {
+// because greenlock package expects module.exports. 
+module.exports = {
     create: () => {
 
         console.log("Manager created");

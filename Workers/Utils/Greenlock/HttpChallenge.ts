@@ -1,6 +1,7 @@
 import GreenlockChallenge from "Model/Models/GreenlockChallenge";
 import GreenlockChallengeService from "CommonServer/Services/GreenlockChallengeService";
 
+// because greenlock package expects module.exports. 
 export default {
 
     init: async (): Promise<null> => {

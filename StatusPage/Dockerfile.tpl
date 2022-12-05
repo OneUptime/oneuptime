@@ -61,8 +61,7 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./StatusPage/package*.json /usr/src/app/
-RUN npm install  
-
+RUN npm install
 
 # Expose ports.
 #   - 3105:  StatusPage

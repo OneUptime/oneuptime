@@ -41,6 +41,8 @@ export class Service extends DatabaseService<Model> {
                 createBy.data.subdomain + '.' + domain.domain;
         }
 
+        createBy.data.cnameVerificationToken = ObjectID.generate().toString();
+
         return { createBy, carryForward: null };
     }
 
@@ -52,7 +54,10 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
         const domains: Array<Model> = await this.findBy({
-            query: deleteBy.query,
+            query: {
+                ...deleteBy.query,
+                isAddedtoGreenlock: true
+            },
             populate: {},
             skip: 0, 
             limit: LIMIT_MAX,

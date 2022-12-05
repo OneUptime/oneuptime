@@ -12,6 +12,9 @@ import GreenlockChallengeService from "CommonServer/Services/GreenlockChallengeS
 import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
 import Response from 'CommonServer/Utils/Response';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
+import BadDataException from 'Common/Types/Exception/BadDataException';
+import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import StatusPageDomainService from "CommonServer/Services/StatusPageDomainService";
 
 export const APP_NAME: string = 'status-page';
 
@@ -48,6 +51,37 @@ app.get('/.well-known/acme-challenge/:token', async (
     }
 
     return Response.sendTextResponse(req, res, challenge.challenge as string);
+});
+
+app.get('/cname-verification/:token', async (
+    req: ExpressRequest,
+    res: ExpressResponse
+) => {
+    const host: string | undefined = req.get('host');
+    
+    if (!host) {
+        throw new BadDataException("Host not found");
+    }
+
+
+    const domain : StatusPageDomain | null = await StatusPageDomainService.findOneBy({
+        query: {
+            cnameVerificationToken: req.params['token'] as string,
+            fullDomain: host
+        },
+        select: {
+            _id: true
+        },
+        props: {
+            isRoot: true, 
+        }
+    })
+
+    if (!domain) {
+        return Response.sendErrorResponse(req, res, new BadDataException("Invalid token."));
+    }
+
+    return Response.sendEmptyResponse(req, res);
 });
 
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
