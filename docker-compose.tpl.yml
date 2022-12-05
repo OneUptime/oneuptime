@@ -150,6 +150,7 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
+            - ./CommonServer/.env
             - ./CommonUI/.env
             - ./StatusPage/.env
 

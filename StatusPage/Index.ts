@@ -27,7 +27,7 @@ app.use(
 );
 
 // ACME Challenge Validation. 
-app.use(['/.well-known/acme-challenge/:token'], async (
+app.get('/.well-known/acme-challenge/:token', async (
     req: ExpressRequest,
     res: ExpressResponse
 ) => {
