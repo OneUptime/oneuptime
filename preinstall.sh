@@ -142,8 +142,17 @@ if [[ ! $(which ts-node) ]]; then
     sudo npm install -g ts-node
 fi
 
-
 cd oneuptime
+
+# Generate Self Signed SSL certificate. 
+
+CERT=./Certs/Cert.crt
+if test -f "$CERT"; then
+    echo "SSL Certificate exists. Skipping generating a new one."
+else
+    echo "SSL Certificate not found. Generating a new certificate."
+    openssl req -new -x509 -nodes -out ./Certs/Cert.crt -keyout ./Certs/Key.key
+fi
 
 # Create .env file if it does not exist. 
 touch config.env

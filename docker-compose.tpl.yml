@@ -390,7 +390,7 @@ services:
         build:
             dockerfile: Dockerfile
             network: host
-            context: ./Nginx
+            context: .
         ports:
             - '80:80'
             - '443:443'
