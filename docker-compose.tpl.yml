@@ -388,11 +388,14 @@ services:
             - home
         restart: always
         build:
-            dockerfile: Dockerfile
+            dockerfile: ./Nginx/Dockerfile
             network: host
             context: .
         ports:
             - '80:80'
             - '443:443'
+        volumes:
+            - ./Nginx/default.conf:/etc/nginx/conf.d/default.conf
+            - ./Certs:/etc/nginx/certs
 volumes:
     postgres:

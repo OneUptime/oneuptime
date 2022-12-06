@@ -166,7 +166,7 @@ export default class StatusPageDomain extends BaseModel {
 
     @UniqueColumnBy('projectId')
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
         update: [],
     })
@@ -259,7 +259,7 @@ export default class StatusPageDomain extends BaseModel {
     // and the end  point on Sttaus Page proejct returns 200. 
     // when that happens the isCnameVerified is set to True and the certificate is added to greenlock.
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
         read: [],
         update: [],
     })
@@ -273,7 +273,7 @@ export default class StatusPageDomain extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
         update: [],
     })
     @TableColumn({
@@ -291,7 +291,7 @@ export default class StatusPageDomain extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
         update: [],
     })
     @TableColumn({

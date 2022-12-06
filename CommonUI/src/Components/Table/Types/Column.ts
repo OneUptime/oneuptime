@@ -7,6 +7,7 @@ export default interface Column {
     title: string;
     description?: string | undefined;
     disableSort?: boolean;
+    tooltipText?: ((item: JSONObject) => string) | undefined;
     type: FieldType;
     isFilterable?: boolean;
     filterDropdownOptions?: Array<DropdownOption> | undefined;

@@ -22,6 +22,7 @@ export default interface Columns<TEntity> {
     isFilterable: boolean;
     filterEntityType?: { new (): BaseModel } | undefined;
     filterQuery?: Query<BaseModel> | undefined;
+    tooltipText?: ((item: TEntity) => string) | undefined;
     filterDropdownField?:
         | {
               label: string;

@@ -15,6 +15,7 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
+import { StatusPageCNameRecord } from 'CommonUI/src/Config';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -72,7 +73,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     icon: IconProp.Globe,
                     title: 'Custom Domains',
                     description:
-                        'Important: Please add status-page.oneuptime.com as your CNAME for these domains for this to work.',
+                        `Important: Please add ${StatusPageCNameRecord} as your CNAME for these domains for this to work.`,
                 }}
                 onBeforeCreate={(
                     item: StatusPageDomain
@@ -126,6 +127,32 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Name',
                         type: FieldType.Text,
                         isFilterable: true,
+                    },
+                    {
+                        field: {
+                            isCnameVerified: true,
+                        },
+                        title: 'CNAME Valid',
+                        type: FieldType.Boolean,
+                        isFilterable: true,
+                        tooltipText: (item: StatusPageDomain): string => {
+                            if (item['isCnameVerified']) {
+                                return 'We have verified your CNAME record.';
+                            } else {
+                                return `Please add a new CNAME record to your domain ${item['fullDomain']}. It should look like CNAME ${item['fullDomain']} ${StatusPageCNameRecord}`;
+                            }
+                        }
+                    },
+                    {
+                        field: {
+                            isAddedtoGreenlock: true,
+                        },
+                        title: 'SSL Provisioned',
+                        type: FieldType.Boolean,
+                        isFilterable: true,
+                        tooltipText: (_item: StatusPageDomain): string => {
+                            return 'This will happen automatically after CNAME is verified. Please allow 24 hours for SSL to be provisioned after CNAME is verified. If it does not happen in 24 hours, please contact support.';
+                        }
                     },
                 ]}
             />

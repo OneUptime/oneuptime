@@ -17,7 +17,6 @@ export class Service extends DatabaseService<Model> {
     ): Promise<OnCreate<Model>> {
         createBy.data.domainVerificationText =
             'oneuptime-verification-' + Text.generateRandomText(20);
-        createBy.data.isVerified = false;
         return Promise.resolve({ createBy, carryForward: null });
     }
 

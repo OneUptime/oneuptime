@@ -33,7 +33,7 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (!domain?.isVerified) {
-            throw new BadDataException("This domain is not verified. Please verify it bu going to Settings > Domains");
+            throw new BadDataException("This domain is not verified. Please verify it by going to Settings > Domains");
         }
 
         if (domain) {
@@ -44,12 +44,6 @@ export class Service extends DatabaseService<Model> {
         createBy.data.cnameVerificationToken = ObjectID.generate().toString();
 
         return { createBy, carryForward: null };
-    }
-
-    protected override async onCreateSuccess(_onCreate: OnCreate<Model>, createdItem: Model): Promise<Model> {
-        // Add this domain to greenlock for certificate generation. 
-        await StatusPageCertificateService.add(createdItem.fullDomain as string);
-        return createdItem;
     }
 
     protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
