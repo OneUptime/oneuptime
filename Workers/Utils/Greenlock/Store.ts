@@ -139,11 +139,11 @@ module.exports = {
 
                 // You won't be able to use a certificate without it's private key, gotta save it
                 checkKeypair: async (opts: any): Promise<any | null> => {
-                    const id =
+                    const id: string =
                         opts.certificate.kid ||
                         opts.certificate.id ||
                         opts.subject;
-                    const keyblob = await getKeypair(id);
+                    const keyblob: any = await getKeypair(id);
 
                     if (!keyblob) {
                         return null;
@@ -156,8 +156,8 @@ module.exports = {
                 // (perhaps to delete expired keys), but the same information can also be redireved from
                 // the key using the "cert-info" package.
                 set: async (opts: any): Promise<null> => {
-                    const id = opts.certificate.id || opts.subject;
-                    const pems = opts.pems;
+                    const id: string = opts.certificate.id || opts.subject;
+                    const pems: any = opts.pems;
 
                     return await saveCertificate(
                         id,
@@ -176,8 +176,8 @@ module.exports = {
                 // but it's easiest to implement last since it's not useful until there
                 // are certs that can actually be loaded from storage.
                 check: async (opts: any): Promise<null | any> => {
-                    const id = opts.certificate.id || opts.subject;
-                    const certblob = await getCertificate(id);
+                    const id: string = opts.certificate.id || opts.subject;
+                    const certblob: any = await getCertificate(id);
 
                     if (!certblob) {
                         return null;
