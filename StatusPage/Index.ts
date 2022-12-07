@@ -54,6 +54,7 @@ app.get(
 app.get(
     '/status-page-api/cname-verification/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
+        logger.info("HERE!")
         const host: string | undefined = req.get('host');
 
         if (!host) {
