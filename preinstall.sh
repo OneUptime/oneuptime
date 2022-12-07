@@ -104,18 +104,11 @@ fi
 # enable docker without sudo
 sudo usermod -aG docker "${USER}" || true
 
-if [[ ! $(which docker-compose) && ! $(docker-compose --version) ]]; then
+if [[ ! $(which docker-compose) && ! $(docker compose --version) ]]; then
 mkdir -p /usr/local/lib/docker/cli-plugins
-curl -SL https://github.com/docker/compose/releases/download/v2.12.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins
+sudo curl -SL https://github.com/docker/compose/releases/download/v2.12.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose
 sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 docker compose version
-fi
-
-# If docker still fails to install, then quit. 
-if [[ ! $(which docker-compose) && ! $(docker-compose --version) ]]; then
-  echo -e "Failed to install docker-domcpose. Please install Docker Compose manually here: https://docs.docker.com/compose/install/linux/#install-the-plugin-manually."
-  echo -e "Exiting the OneUptime installer."
-  exit
 fi
 
 if [[ ! $(which gomplate) ]]; then

@@ -43,7 +43,7 @@ npm run logs-dev accounts
 ## Running on: on-prem, staging, or production.
 
 ### Running with Docker Compose: 
-- Run `docker-compose up`
+- Run `docker compose up`
 
 ### Running with Kubernetes and Helm
 -   Please check `README.md` in the `HelmChart` folder.

@@ -11,8 +11,8 @@ fi
 
 
 echo "Uninstalling OneUptime..."
-sudo docker-compose down
-sudo docker-compose rm
+sudo docker compose down
+sudo docker compose rm
 echo "OneUptime uninstalled."
 echo "We would like to hear your feedback to make this product better for you and for other users, please email us at hello@oneuptime.com."
 echo " - If you notice a bug, we will fix it for you."
