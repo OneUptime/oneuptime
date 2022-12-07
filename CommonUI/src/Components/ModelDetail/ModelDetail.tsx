@@ -40,7 +40,6 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         JSONObject | undefined
     >(undefined);
 
-
     const getSelectFields: Function = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
         for (const field of props.fields) {
@@ -84,11 +83,11 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
 
         const userPermissions: Array<Permission> =
             PermissionUtil.getAllPermissions();
-        
-        const model = new props.modelType();
+
+        const model: BaseModel = new props.modelType();
 
         const accessControl: Dictionary<ColumnAccessControl> =
-        model.getColumnAccessControlForAllColumns() || {};
+            model.getColumnAccessControlForAllColumns() || {};
 
         const fieldsToSet: Array<Field<TBaseModel>> = [];
 
@@ -144,7 +143,6 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         setFields(fieldsToSet);
     };
 
-
     useEffect(() => {
         if (props.modelType) {
             setDetailFields();
@@ -152,7 +150,6 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     }, [onBeforeFetchData, props.modelType]);
 
     const fetchItem: Function = async (): Promise<void> => {
-
         // get item.
         setIsLoading(true);
         props.onLoadingChange && props.onLoadingChange(true);

@@ -141,4 +141,5 @@ export const HOME_URL: URL = new URL(HTTP_PROTOCOL, HOME_HOSTNAME, HOME_ROUTE);
 export const SubscriptionPlans: Array<SubscriptionPlan> =
     SubscriptionPlan.getSubscriptionPlans();
 
-export const StatusPageCNameRecord: string = env('STATUS_PAGE_CNAME_RECORD') || '';
+export const StatusPageCNameRecord: string =
+    env('STATUS_PAGE_CNAME_RECORD') || '';

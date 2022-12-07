@@ -1,4 +1,4 @@
-import { Column, Entity, Index} from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import BaseModel from 'Common/Models/BaseModel';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableColumn from 'Common/Types/Database/TableColumn';
@@ -19,7 +19,6 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
     name: 'GreenlockChallenge',
 })
 export default class GreenlockCertificate extends BaseModel {
-
     @Index()
     @ColumnAccessControl({
         create: [],
@@ -34,7 +33,6 @@ export default class GreenlockCertificate extends BaseModel {
         unique: false,
     })
     public key?: string = undefined;
-
 
     @ColumnAccessControl({
         create: [],

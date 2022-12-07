@@ -24,7 +24,6 @@ export default class URL extends DatabaseProperty {
         this._params = v;
     }
 
-
     private _email!: Email;
     public get email(): Email {
         return this._email;
@@ -32,7 +31,6 @@ export default class URL extends DatabaseProperty {
     public set email(v: Email) {
         this._email = v;
     }
-
 
     private _hostname!: Hostname;
     public get hostname(): Hostname {
@@ -58,8 +56,11 @@ export default class URL extends DatabaseProperty {
     ) {
         super();
 
-        if (typeof hostname === Typeof.String && Email.isValid(hostname as string)) {
-            this.email = new Email(hostname as string)
+        if (
+            typeof hostname === Typeof.String &&
+            Email.isValid(hostname as string)
+        ) {
+            this.email = new Email(hostname as string);
         } else if (hostname instanceof Email) {
             this.email = hostname;
         } else if (hostname instanceof Hostname) {
@@ -93,7 +94,9 @@ export default class URL extends DatabaseProperty {
     }
 
     public override toString(): string {
-        let urlString: string = `${this.protocol}${this.hostname || this.email}`;
+        let urlString: string = `${this.protocol}${
+            this.hostname || this.email
+        }`;
         if (!this.email) {
             if (this.route && this.route.toString().startsWith('/')) {
                 urlString += this.route.toString();

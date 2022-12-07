@@ -67,6 +67,8 @@ RUN npm install
 # Expose ports.
 #   - 3105:  StatusPage
 EXPOSE 3105
+# API
+EXPOSE 3106 
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app

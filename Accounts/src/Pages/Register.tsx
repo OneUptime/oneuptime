@@ -15,7 +15,7 @@ import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 
 const RegisterPage: FunctionComponent = () => {
     const apiUrl: URL = SIGNUP_API_URL;
-    
+
     if (UserUtil.isLoggedIn()) {
         Navigation.navigate(DASHBOARD_URL);
     }

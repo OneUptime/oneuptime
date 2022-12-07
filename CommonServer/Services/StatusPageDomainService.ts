@@ -33,7 +33,9 @@ export class Service extends DatabaseService<Model> {
         });
 
         if (!domain?.isVerified) {
-            throw new BadDataException("This domain is not verified. Please verify it by going to Settings > Domains");
+            throw new BadDataException(
+                'This domain is not verified. Please verify it by going to Settings > Domains'
+            );
         }
 
         if (domain) {
@@ -46,14 +48,16 @@ export class Service extends DatabaseService<Model> {
         return { createBy, carryForward: null };
     }
 
-    protected override async onBeforeDelete(deleteBy: DeleteBy<Model>): Promise<OnDelete<Model>> {
+    protected override async onBeforeDelete(
+        deleteBy: DeleteBy<Model>
+    ): Promise<OnDelete<Model>> {
         const domains: Array<Model> = await this.findBy({
             query: {
                 ...deleteBy.query,
-                isAddedtoGreenlock: true
+                isAddedtoGreenlock: true,
             },
             populate: {},
-            skip: 0, 
+            skip: 0,
             limit: LIMIT_MAX,
             select: { fullDomain: true },
             props: {
@@ -61,19 +65,20 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
-        
-
         return { deleteBy, carryForward: domains };
     }
 
-    protected override async onDeleteSuccess(onDelete: OnDelete<Model>, _itemIdsBeforeDelete: ObjectID[]): Promise<OnDelete<Model>> {
+    protected override async onDeleteSuccess(
+        onDelete: OnDelete<Model>,
+        _itemIdsBeforeDelete: ObjectID[]
+    ): Promise<OnDelete<Model>> {
         for (const domain of onDelete.carryForward) {
-            await StatusPageCertificateService.remove(domain.fullDomain as string);
+            await StatusPageCertificateService.remove(
+                domain.fullDomain as string
+            );
         }
 
         return onDelete;
     }
-
-
 }
 export default new Service();

@@ -15,7 +15,7 @@ import { DASHBOARD_URL } from 'CommonUI/src/Config';
 
 const LoginPage: FunctionComponent = () => {
     const apiUrl: URL = LOGIN_API_URL;
-    
+
     if (UserUtil.isLoggedIn()) {
         Navigation.navigate(DASHBOARD_URL);
     }

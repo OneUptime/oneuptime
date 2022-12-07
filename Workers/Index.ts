@@ -9,13 +9,13 @@ import './Jobs/PaymentProvider/CheckSubscriptionStatus';
 
 // Certs Routers
 import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';
-import Express , { ExpressApplication }from 'CommonServer/Utils/Express';
+import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 
 const APP_NAME: string = 'workers';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-//cert routes. 
+//cert routes.
 app.use(StausPageCerts);
 
 const init: Function = async (): Promise<void> => {

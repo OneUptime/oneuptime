@@ -459,7 +459,7 @@ export class Service extends DatabaseService<Model> {
             data: ownerTeamMember,
             props: {
                 isRoot: true,
-                ignoreHooks: true
+                ignoreHooks: true,
             },
         });
 
@@ -536,7 +536,6 @@ export class Service extends DatabaseService<Model> {
                 ignoreHooks: true,
             },
         });
-
 
         await TeamMemberService.refreshTokens(
             createdItem.createdByUserId!,

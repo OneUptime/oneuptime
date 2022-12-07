@@ -9,7 +9,6 @@ export interface CardButtonSchema {
     disabled?: boolean | undefined;
     icon: IconProp;
     isLoading?: undefined | boolean;
-    
 }
 
 export interface ComponentProps {
@@ -20,7 +19,7 @@ export interface ComponentProps {
     children?: undefined | Array<ReactElement> | ReactElement;
     cardBodyStyle?: undefined | CSSProperties;
     className?: string | undefined;
-    style?: React.CSSProperties | undefined
+    style?: React.CSSProperties | undefined;
 }
 
 const Card: FunctionComponent<ComponentProps> = (

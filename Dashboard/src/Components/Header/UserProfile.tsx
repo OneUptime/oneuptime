@@ -11,12 +11,13 @@ import PageMap from '../../Utils/PageMap';
 import UserUtil from 'CommonUI/src/Utils/User';
 import OneUptimeLogo from 'CommonUI/src/Images/users/blank-profile.svg';
 
-export interface ComponentProps{
-    onClickUserProfle: ()=> void;
+export interface ComponentProps {
+    onClickUserProfle: () => void;
 }
 
-const DashboardUserProfile: FunctionComponent<ComponentProps> = (props: ComponentProps): ReactElement => {
-
+const DashboardUserProfile: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
         <>
             <UserProfile
@@ -42,8 +43,6 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (props: Componen
                     />
                 </UserProfileMenu>
             </UserProfile>
-
-           
         </>
     );
 };

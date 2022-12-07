@@ -227,7 +227,6 @@ export class PermissionHelper {
         permissions1: Array<Permission>,
         permissions2: Array<Permission>
     ): boolean {
-
         if (!permissions1) {
             permissions1 = [];
         }

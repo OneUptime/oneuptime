@@ -42,69 +42,73 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
             props: onCreate.createBy.props,
         });
 
-        // TODO: DELETE THIS WHEN WORKFLOW IS IMPLEMENMTED. 
+        // TODO: DELETE THIS WHEN WORKFLOW IS IMPLEMENMTED.
         // check if this is resolved state, and if it is then resolve all the monitors.
 
-        const isResolvedState: IncidentState | null = await IncidentStateService.findOneBy({
-            query: {
-                _id: createdItem.incidentStateId.toString()!,
-                isResolvedState: true
-            },
-            props: {
-                isRoot: true
-            },
-            select: {
-                _id: true
-            }
-        });
-        
+        const isResolvedState: IncidentState | null =
+            await IncidentStateService.findOneBy({
+                query: {
+                    _id: createdItem.incidentStateId.toString()!,
+                    isResolvedState: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+                select: {
+                    _id: true,
+                },
+            });
+
         if (isResolvedState) {
-            // resolve all the monitors. 
-            const incident: Incident | null= await IncidentService.findOneBy({
+            // resolve all the monitors.
+            const incident: Incident | null = await IncidentService.findOneBy({
                 query: {
                     _id: createdItem.incidentId?.toString(),
                 },
                 select: {
                     _id: true,
-                    projectId: true
+                    projectId: true,
                 },
                 populate: {
                     monitors: {
-                        _id: true
-                    }
+                        _id: true,
+                    },
                 },
                 props: {
-                    isRoot: true, 
+                    isRoot: true,
                 },
             });
 
             if (incident && incident.monitors && incident.monitors.length > 0) {
-                // get resolved monitor state. 
-                const resolvedMonitorState: MonitorStatus | null = await MonitorStatusService.findOneBy({
-                    query: {
-                        projectId: incident.projectId!,
-                        isOperationalState: true
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                    select: {
-                        _id: true
-                    }
-                });
+                // get resolved monitor state.
+                const resolvedMonitorState: MonitorStatus | null =
+                    await MonitorStatusService.findOneBy({
+                        query: {
+                            projectId: incident.projectId!,
+                            isOperationalState: true,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                        select: {
+                            _id: true,
+                        },
+                    });
 
                 if (resolvedMonitorState) {
                     for (const monitor of incident.monitors) {
-                        const monitorStausTimeline: MonitorStatusTimeline = new MonitorStatusTimeline();
+                        const monitorStausTimeline: MonitorStatusTimeline =
+                            new MonitorStatusTimeline();
                         monitorStausTimeline.monitorId = monitor.id!;
                         monitorStausTimeline.projectId = incident.projectId!;
-                        monitorStausTimeline.monitorStatusId = resolvedMonitorState.id!;
+                        monitorStausTimeline.monitorStatusId =
+                            resolvedMonitorState.id!;
 
                         await MonitorStatusTimelineService.create({
                             data: monitorStausTimeline,
                             props: {
-                                isRoot: true
-                            }
+                                isRoot: true,
+                            },
                         });
                     }
                 }

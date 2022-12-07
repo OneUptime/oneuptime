@@ -60,7 +60,7 @@ import File from './File';
 import BillingInvoice from './BillingInvoice';
 
 // Greenlock
-import GreenlockChallenge from './GreenlockChallenge'
+import GreenlockChallenge from './GreenlockChallenge';
 import GreenlockCertificate from './GreenlockCertificate';
 
 export default [
@@ -108,5 +108,5 @@ export default [
     BillingInvoice,
 
     GreenlockChallenge,
-    GreenlockCertificate
+    GreenlockCertificate,
 ];

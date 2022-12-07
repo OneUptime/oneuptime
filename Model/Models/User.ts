@@ -228,7 +228,6 @@ class User extends UserModel {
     })
     public companyPhoneNumber?: Phone = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [
@@ -275,7 +274,6 @@ class User extends UserModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public profilePictureId?: ObjectID = undefined;
-
 
     @ColumnAccessControl({
         create: [],

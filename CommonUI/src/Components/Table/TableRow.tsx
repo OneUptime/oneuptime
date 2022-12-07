@@ -68,7 +68,9 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                     }}
                                     onClick={() => {
                                         if (column.tooltipText) {
-                                            setTooltipModalText(column.tooltipText(props.item));
+                                            setTooltipModalText(
+                                                column.tooltipText(props.item)
+                                            );
                                         }
                                     }}
                                 >
@@ -77,25 +79,27 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                    column.key
+                                                        column.key
                                                     ] as string,
                                                     true
                                                 )
                                             ) : (
                                                 ''
                                             )
-                                        ) : column.type === FieldType.DateTime ? (
+                                        ) : column.type ===
+                                          FieldType.DateTime ? (
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                    column.key
+                                                        column.key
                                                     ] as string,
                                                     false
                                                 )
                                             ) : (
                                                 ''
                                             )
-                                        ) : column.type === FieldType.Boolean ? (
+                                        ) : column.type ===
+                                          FieldType.Boolean ? (
                                             props.item[column.key] ? (
                                                 <Icon
                                                     icon={IconProp.True}
@@ -130,7 +134,9 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                     <ConfirmModal
                                                         title={`Error`}
                                                         description={error}
-                                                        submitButtonText={'Close'}
+                                                        submitButtonText={
+                                                            'Close'
+                                                        }
                                                         onSubmit={() => {
                                                             return setError('');
                                                         }}
@@ -156,9 +162,9 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                             style={
                                                                 i > 0
                                                                     ? {
-                                                                        marginLeft:
-                                                                            '10px',
-                                                                    }
+                                                                          marginLeft:
+                                                                              '10px',
+                                                                      }
                                                                     : {}
                                                             }
                                                             key={i}
@@ -167,14 +173,18 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                                 buttonSize={
                                                                     ButtonSize.Small
                                                                 }
-                                                                title={button.title}
-                                                                icon={button.icon}
+                                                                title={
+                                                                    button.title
+                                                                }
+                                                                icon={
+                                                                    button.icon
+                                                                }
                                                                 buttonStyle={
                                                                     button.buttonStyleType
                                                                 }
                                                                 isLoading={
                                                                     isButtonLoading[
-                                                                    i
+                                                                        i
                                                                     ]
                                                                 }
                                                                 onClick={() => {
@@ -230,8 +240,6 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                 </td>
                             );
                         })}
-
-
                 </tr>
                 {tooltipModalText && (
                     <ConfirmModal

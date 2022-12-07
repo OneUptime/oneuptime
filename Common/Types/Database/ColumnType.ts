@@ -31,7 +31,7 @@ enum ColumnType {
     BigNumber = 'bigint',
     Markdown = 'text',
     File = 'bytea',
-    JSON = 'jsonb'
+    JSON = 'jsonb',
 }
 
 export default ColumnType;

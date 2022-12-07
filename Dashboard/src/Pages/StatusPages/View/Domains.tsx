@@ -72,8 +72,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     icon: IconProp.Globe,
                     title: 'Custom Domains',
-                    description:
-                        `Important: Please add ${StatusPageCNameRecord} as your CNAME for these domains for this to work.`,
+                    description: `Important: Please add ${StatusPageCNameRecord} as your CNAME for these domains for this to work.`,
                 }}
                 onBeforeCreate={(
                     item: StatusPageDomain
@@ -138,10 +137,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         tooltipText: (item: StatusPageDomain): string => {
                             if (item['isCnameVerified']) {
                                 return 'We have verified your CNAME record.';
-                            } else {
-                                return `Please add a new CNAME record to your domain ${item['fullDomain']}. It should look like CNAME ${item['fullDomain']} ${StatusPageCNameRecord}`;
                             }
-                        }
+                            return `Please add a new CNAME record to your domain ${item['fullDomain']}. It should look like CNAME ${item['fullDomain']} ${StatusPageCNameRecord}`;
+                        },
                     },
                     {
                         field: {
@@ -152,7 +150,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         tooltipText: (_item: StatusPageDomain): string => {
                             return 'This will happen automatically after CNAME is verified. Please allow 24 hours for SSL to be provisioned after CNAME is verified. If it does not happen in 24 hours, please contact support.';
-                        }
+                        },
                     },
                 ]}
             />

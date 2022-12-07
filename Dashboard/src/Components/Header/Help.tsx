@@ -19,7 +19,9 @@ const Help: FunctionComponent = (): ReactElement => {
                     <IconDropdwonItem
                         title="Chat on Slack"
                         icon={IconProp.Slack}
-                        url={URL.fromString('https://join.slack.com/t/oneuptimesupport/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ')}
+                        url={URL.fromString(
+                            'https://join.slack.com/t/oneuptimesupport/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ'
+                        )}
                     />
                 </IconDropdwonRow>
             </IconDropdwonMenu>

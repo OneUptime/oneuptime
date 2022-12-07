@@ -7,12 +7,11 @@ import API from 'Common/Utils/API';
 import { HttpProtocol, WorkerHostname } from '../Config';
 
 export default class StatusPageCertificateService {
-
     public static async add(
         domain: string
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
-            domain: domain
+            domain: domain,
         };
 
         return await API.post<EmptyResponseData>(
@@ -25,7 +24,7 @@ export default class StatusPageCertificateService {
         domain: string
     ): Promise<HTTPResponse<EmptyResponseData>> {
         const body: JSONObject = {
-            domain: domain
+            domain: domain,
         };
 
         return await API.delete<EmptyResponseData>(
@@ -34,11 +33,9 @@ export default class StatusPageCertificateService {
         );
     }
 
-    public static async get(
-        domain: string
-    ): Promise<HTTPResponse<JSONObject>> {
+    public static async get(domain: string): Promise<HTTPResponse<JSONObject>> {
         const body: JSONObject = {
-            domain: domain
+            domain: domain,
         };
 
         return await API.get<JSONObject>(

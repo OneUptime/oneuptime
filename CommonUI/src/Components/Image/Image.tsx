@@ -5,7 +5,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import URLFromProject from 'Common/Types/API/URL';
 
 export interface ComponentProps {
-    onClick?: (() => void | undefined);
+    onClick?: () => void | undefined;
     imageUrl?: URLFromProject | Route | undefined;
     height?: number | undefined;
     file?: File | undefined;

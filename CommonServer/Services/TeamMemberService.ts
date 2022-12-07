@@ -40,7 +40,6 @@ export class Service extends DatabaseService<TeamMember> {
     protected override async onBeforeCreate(
         createBy: CreateBy<TeamMember>
     ): Promise<OnCreate<TeamMember>> {
-
         createBy.data.hasAcceptedInvitation = false;
 
         if (createBy.miscDataProps && createBy.miscDataProps['email']) {
@@ -90,12 +89,12 @@ export class Service extends DatabaseService<TeamMember> {
             }
         }
 
-         //check if this user is already ivnited. 
-        
+        //check if this user is already ivnited.
+
         const member: TeamMember | null = await this.findOneBy({
             query: {
                 userId: createBy.data.userId!,
-                teamId: createBy.data.teamId!
+                teamId: createBy.data.teamId!,
             },
             props: {
                 isRoot: true,
@@ -106,7 +105,9 @@ export class Service extends DatabaseService<TeamMember> {
         });
 
         if (member) {
-            throw new BadDataException("This user has already been invited to this team");
+            throw new BadDataException(
+                'This user has already been invited to this team'
+            );
         }
 
         return { createBy, carryForward: null };
@@ -179,7 +180,7 @@ export class Service extends DatabaseService<TeamMember> {
                 projectId: true,
                 team: true,
                 teamId: true,
-                hasAcceptedInvitation: true
+                hasAcceptedInvitation: true,
             },
             limit: LIMIT_MAX,
             skip: 0,
@@ -197,15 +198,14 @@ export class Service extends DatabaseService<TeamMember> {
         // check if there's one member in the team.
         for (const member of members) {
             if (member.team?.shouldHaveAtleastOneMember) {
-
                 if (!member.hasAcceptedInvitation) {
-                    continue; 
+                    continue;
                 }
 
                 const membersInTeam: PositiveNumber = await this.countBy({
                     query: {
                         teamId: member.teamId!,
-                        hasAcceptedInvitation: true
+                        hasAcceptedInvitation: true,
                     },
                     skip: 0,
                     limit: LIMIT_MAX,

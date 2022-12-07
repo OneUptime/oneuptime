@@ -17,12 +17,15 @@ export const DatabaseHost: Hostname = Hostname.fromString(
     process.env['DATABASE_HOST'] || 'postgres'
 );
 
-export const DatabasePort: Port = new Port(process.env['DATABASE_PORT'] || '5432');
+export const DatabasePort: Port = new Port(
+    process.env['DATABASE_PORT'] || '5432'
+);
 
 export const DatabaseUsername: string =
     process.env['DATABASE_USERNAME'] || 'oneuptimedbuser';
 
-export const DatabasePassword: string = process.env['DATABASE_PASSWORD'] || 'password';
+export const DatabasePassword: string =
+    process.env['DATABASE_PASSWORD'] || 'password';
 
 export const DatabaseName: string =
     process.env['DATABASE_NAME'] || 'oneuptimedb';
@@ -91,7 +94,8 @@ export const HttpProtocol: Protocol = (
 
 // Redis does not require password.
 export const RedisHostname: string = process.env['REDIS_HOST'] || 'redis';
-export const RedisPassword: string = process.env['REDIS_PASSWORD'] || 'password';
+export const RedisPassword: string =
+    process.env['REDIS_PASSWORD'] || 'password';
 export const RedisPort: Port = new Port(process.env['REDIS_PORT'] || '6379');
 
 export const DashboardApiRoute: Route = new Route(
@@ -116,7 +120,9 @@ export const IntegrationRoute: Route = new Route(
     process.env['INTEGRATION_ROUTE'] || '/integration'
 );
 
-export const HelmRoute: Route = new Route(process.env['HELMCHART_ROUTE'] || '/helm-chart');
+export const HelmRoute: Route = new Route(
+    process.env['HELMCHART_ROUTE'] || '/helm-chart'
+);
 export const AccountsRoute: Route = new Route(
     process.env['ACCOUNTS_ROUTE'] || '/accounts'
 );

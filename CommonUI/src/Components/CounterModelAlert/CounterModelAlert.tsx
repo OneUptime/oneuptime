@@ -7,7 +7,7 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     alertType: AlertType;
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     singularName: string;
     pluralName: string;
     query: Query<TBaseModel>;
@@ -49,7 +49,7 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -82,8 +82,9 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
             style={props.style}
             onClick={props.onClick}
             type={props.alertType}
-            title={`${count} ${count > 1 ? props.pluralName : props.singularName
-                }`}
+            title={`${count} ${
+                count > 1 ? props.pluralName : props.singularName
+            }`}
         />
     );
 };

@@ -20,12 +20,12 @@
     "use-async-effect": "^2.2.6"
   },
   "scripts": {
-    "dev": "webpack-dev-server --port=3105 --mode=development & nodemon &",
+    "dev": "webpack-dev-server --port=3105 --mode=development & nodemon",
     "build": "webpack build --mode=production",
     "test": "react-app-rewired test",
     "eject": "webpack eject",
     "compile": "tsc",
-    "start": "node --require ts-node/register Index.ts & http-server ./public -p 3105",
+    "start": "http-server ./public -p 3105 & node --require ts-node/register Index.ts",
     "audit": "npm audit --audit-level=low",
     "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
     "dep-check": "depcheck ./ --skip-missing=true'"

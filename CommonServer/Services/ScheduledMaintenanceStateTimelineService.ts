@@ -41,79 +41,89 @@ export class Service extends DatabaseService<ScheduledMaintenanceStateTimeline> 
                     createdItem.scheduledMaintenanceStateId,
             },
             props: {
-                isRoot: true, 
+                isRoot: true,
             },
         });
 
-        // TODO: DELETE THIS WHEN WORKFLOW IS IMPLEMENMTED. 
+        // TODO: DELETE THIS WHEN WORKFLOW IS IMPLEMENMTED.
         // check if this is resolved state, and if it is then resolve all the monitors.
 
-        const isResolvedState: ScheduledMaintenanceState | null = await ScheduledMaintenanceStateService.findOneBy({
-            query: {
-                _id: createdItem.scheduledMaintenanceStateId.toString()!,
-                isResolvedState: true
-            },
-            props: {
-                isRoot: true
-            },
-            select: {
-                _id: true
-            }
-        });
-        
-        if (isResolvedState) {
-            // resolve all the monitors. 
-            const scheduledMaintenanceService: ScheduledMaintenance | null= await ScheduledMaintenanceService.findOneBy({
+        const isResolvedState: ScheduledMaintenanceState | null =
+            await ScheduledMaintenanceStateService.findOneBy({
                 query: {
-                    _id: createdItem.scheduledMaintenanceId?.toString(),
+                    _id: createdItem.scheduledMaintenanceStateId.toString()!,
+                    isResolvedState: true,
+                },
+                props: {
+                    isRoot: true,
                 },
                 select: {
                     _id: true,
-                    projectId: true
-                },
-                populate: {
-                    monitors: {
-                        _id: true
-                    }
-                },
-                props: {
-                    isRoot: true, 
                 },
             });
 
-            if (scheduledMaintenanceService && scheduledMaintenanceService.monitors && scheduledMaintenanceService.monitors.length > 0) {
-                // get resolved monitor state. 
-                const resolvedMonitorState: MonitorStatus | null = await MonitorStatusService.findOneBy({
+        if (isResolvedState) {
+            // resolve all the monitors.
+            const scheduledMaintenanceService: ScheduledMaintenance | null =
+                await ScheduledMaintenanceService.findOneBy({
                     query: {
-                        projectId: scheduledMaintenanceService.projectId!,
-                        isOperationalState: true
+                        _id: createdItem.scheduledMaintenanceId?.toString(),
+                    },
+                    select: {
+                        _id: true,
+                        projectId: true,
+                    },
+                    populate: {
+                        monitors: {
+                            _id: true,
+                        },
                     },
                     props: {
                         isRoot: true,
                     },
-                    select: {
-                        _id: true
-                    }
                 });
+
+            if (
+                scheduledMaintenanceService &&
+                scheduledMaintenanceService.monitors &&
+                scheduledMaintenanceService.monitors.length > 0
+            ) {
+                // get resolved monitor state.
+                const resolvedMonitorState: MonitorStatus | null =
+                    await MonitorStatusService.findOneBy({
+                        query: {
+                            projectId: scheduledMaintenanceService.projectId!,
+                            isOperationalState: true,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                        select: {
+                            _id: true,
+                        },
+                    });
 
                 if (resolvedMonitorState) {
                     for (const monitor of scheduledMaintenanceService.monitors) {
-                        const monitorStausTimeline: MonitorStatusTimeline = new MonitorStatusTimeline();
+                        const monitorStausTimeline: MonitorStatusTimeline =
+                            new MonitorStatusTimeline();
                         monitorStausTimeline.monitorId = monitor.id!;
-                        monitorStausTimeline.projectId = scheduledMaintenanceService.projectId!;
-                        monitorStausTimeline.monitorStatusId = resolvedMonitorState.id!;
+                        monitorStausTimeline.projectId =
+                            scheduledMaintenanceService.projectId!;
+                        monitorStausTimeline.monitorStatusId =
+                            resolvedMonitorState.id!;
 
                         await MonitorStatusTimelineService.create({
                             data: monitorStausTimeline,
                             props: {
-                                isRoot: true
-                            }
+                                isRoot: true,
+                            },
                         });
                     }
                 }
             }
         }
-        
+
         return createdItem;
     }
 

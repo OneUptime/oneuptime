@@ -6,84 +6,95 @@ import Express, {
 } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
-import GreenlockChallengeService from "CommonServer/Services/GreenlockChallengeService";
+import GreenlockChallengeService from 'CommonServer/Services/GreenlockChallengeService';
 import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
 import Response from 'CommonServer/Utils/Response';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import StatusPageDomainService from "CommonServer/Services/StatusPageDomainService";
+import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 
 export const APP_NAME: string = 'status-page';
 
 const app: ExpressApplication = Express.getExpressApp();
 
-// ACME Challenge Validation. 
-app.get('/.well-known/acme-challenge/:token', async (
-    req: ExpressRequest,
-    res: ExpressResponse
-) => {
-    const challenge : GreenlockChallenge | null = await GreenlockChallengeService.findOneBy({
-        query: {
-            key: req.params['token'] as string
-        },
-        select: {
-            challenge: true,
-        },
-        props: {
-            isRoot: true, 
+// ACME Challenge Validation.
+app.get(
+    '/.well-known/acme-challenge/:token',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        const challenge: GreenlockChallenge | null =
+            await GreenlockChallengeService.findOneBy({
+                query: {
+                    key: req.params['token'] as string,
+                },
+                select: {
+                    challenge: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (!challenge) {
+            return Response.sendErrorResponse(
+                req,
+                res,
+                new NotFoundException('Challenge not found')
+            );
         }
-    })
 
-    if (!challenge) {
-        return Response.sendErrorResponse(req, res, new NotFoundException("Challenge not found"));
+        return Response.sendTextResponse(
+            req,
+            res,
+            challenge.challenge as string
+        );
     }
+);
 
-    return Response.sendTextResponse(req, res, challenge.challenge as string);
-});
+app.get(
+    '/status-page-api/cname-verification/:token',
+    async (req: ExpressRequest, res: ExpressResponse) => {
+        const host: string | undefined = req.get('host');
 
-app.get('/status-page-api/cname-verification/:token', async (
-    req: ExpressRequest,
-    res: ExpressResponse
-) => {
-    const host: string | undefined = req.get('host');
-    
-    if (!host) {
-        throw new BadDataException("Host not found");
-    }
-
-
-    const domain : StatusPageDomain | null = await StatusPageDomainService.findOneBy({
-        query: {
-            cnameVerificationToken: req.params['token'] as string,
-            fullDomain: host
-        },
-        select: {
-            _id: true
-        },
-        props: {
-            isRoot: true, 
+        if (!host) {
+            throw new BadDataException('Host not found');
         }
-    })
 
-    if (!domain) {
-        return Response.sendErrorResponse(req, res, new BadDataException("Invalid token."));
+        const domain: StatusPageDomain | null =
+            await StatusPageDomainService.findOneBy({
+                query: {
+                    cnameVerificationToken: req.params['token'] as string,
+                    fullDomain: host,
+                },
+                select: {
+                    _id: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        if (!domain) {
+            return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException('Invalid token.')
+            );
+        }
+
+        return Response.sendEmptyResponse(req, res);
     }
-
-    return Response.sendEmptyResponse(req, res);
-});
-
+);
 
 const init: Function = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME);
 
-         // connect to the database.
-         await PostgresAppInstance.connect(
+        // connect to the database.
+        await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
-
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

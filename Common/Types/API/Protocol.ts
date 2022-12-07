@@ -4,7 +4,7 @@ enum Protocol {
     MONGO_DB = 'mongodb://',
     WS = 'ws://',
     WSS = 'wss://',
-    MAIL = 'mailto:'
+    MAIL = 'mailto:',
 }
 
 export default Protocol;

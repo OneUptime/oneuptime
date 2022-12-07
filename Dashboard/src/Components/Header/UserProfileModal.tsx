@@ -17,9 +17,8 @@ export interface ComponentProps {
 const UserProfileModal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
-    const [hasPasswordChanged, setHasPasswordChanged] = useState<boolean>(false);
+    const [hasPasswordChanged, setHasPasswordChanged] =
+        useState<boolean>(false);
 
     return (
         <>
@@ -34,27 +33,24 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                         description: "Here's are some of your details.",
                         icon: IconProp.User,
                     }}
-                    
                     isEditable={true}
                     formFields={[
                         {
                             field: {
                                 email: true,
                             },
-                            fieldType:
-                                FormFieldSchemaType.Email,
-                            placeholder:
-                                'jeff@example.com',
+                            fieldType: FormFieldSchemaType.Email,
+                            placeholder: 'jeff@example.com',
                             required: true,
                             title: 'Email',
-                            description: 'You will have to verify your email again if you change it'
+                            description:
+                                'You will have to verify your email again if you change it',
                         },
                         {
                             field: {
                                 name: true,
                             },
-                            fieldType:
-                                FormFieldSchemaType.Text,
+                            fieldType: FormFieldSchemaType.Text,
                             placeholder: 'Jeff Smith',
                             required: true,
                             title: 'Full Name',
@@ -63,24 +59,20 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                             field: {
                                 companyName: true,
                             },
-                            fieldType:
-                                FormFieldSchemaType.Text,
+                            fieldType: FormFieldSchemaType.Text,
                             placeholder: 'Acme, Inc.',
                             required: true,
                             title: 'Company Name',
                         },
                         {
                             field: {
-                                companyPhoneNumber:
-                                    true,
+                                companyPhoneNumber: true,
                             },
-                            fieldType:
-                                FormFieldSchemaType.Phone,
+                            fieldType: FormFieldSchemaType.Phone,
                             required: true,
-                            placeholder:
-                                '+1-123-456-7890',
+                            placeholder: '+1-123-456-7890',
                             title: 'Phone Number',
-                        }
+                        },
                     ]}
                     modelDetailProps={{
                         showDetailsInNumberOfColumns: 2,
@@ -111,14 +103,12 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                                 },
                                 title: 'Company Phone Number',
                             },
-
                         ],
-                        modelId: UserUtil.getUserId()
+                        modelId: UserUtil.getUserId(),
                     }}
                 />
 
-                <div className='flex width-max'>
-
+                <div className="flex width-max">
                     <CardModelDetail<User>
                         cardProps={{
                             title: 'Profile Picture',
@@ -135,7 +125,8 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                                 title: 'Profile Picture',
                                 fieldType: FormFieldSchemaType.ImageFile,
                                 required: false,
-                                placeholder: 'Please upload your profile picture here.',
+                                placeholder:
+                                    'Please upload your profile picture here.',
                             },
                         ]}
                         modelDetailProps={{
@@ -155,66 +146,70 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                                     placeholder: 'No profile picture uploaded.',
                                 },
                             ],
-                            modelId: UserUtil.getUserId()
+                            modelId: UserUtil.getUserId(),
                         }}
                         className="width-half"
-                    
                     />
 
-                    <Card style={{marginLeft: "30px"}} className="width-half" title={'Update Password'} description={'You can set a new password here if you wish to do so.'} icon={IconProp.Lock}>
-
-                        {!hasPasswordChanged ? <ModelForm<User>
-                            modelType={User}
-                            onSuccess={() => {
-                                setHasPasswordChanged(true);
-                            }}
-                            submitButtonStyleType={ButtonStyleType.OUTLINE}
-                            id="change-password-form"
-                            showAsColumns={1}
-                            doNotFetchExistingModel={true}
-                            modelIdToEdit={UserUtil.getUserId()}
-                            maxPrimaryButtonWidth={true}
-                            initialValues={{
-                                password: '',
-                                confirmPassword: '',
-                            }}
-                            fields={[
-                                {
-                                    field: {
-                                        password: true,
+                    <Card
+                        style={{ marginLeft: '30px' }}
+                        className="width-half"
+                        title={'Update Password'}
+                        description={
+                            'You can set a new password here if you wish to do so.'
+                        }
+                        icon={IconProp.Lock}
+                    >
+                        {!hasPasswordChanged ? (
+                            <ModelForm<User>
+                                modelType={User}
+                                onSuccess={() => {
+                                    setHasPasswordChanged(true);
+                                }}
+                                submitButtonStyleType={ButtonStyleType.OUTLINE}
+                                id="change-password-form"
+                                showAsColumns={1}
+                                doNotFetchExistingModel={true}
+                                modelIdToEdit={UserUtil.getUserId()}
+                                maxPrimaryButtonWidth={true}
+                                initialValues={{
+                                    password: '',
+                                    confirmPassword: '',
+                                }}
+                                fields={[
+                                    {
+                                        field: {
+                                            password: true,
+                                        },
+                                        fieldType: FormFieldSchemaType.Password,
+                                        validation: {
+                                            minLength: 6,
+                                        },
+                                        placeholder: 'Password',
+                                        title: 'Password',
+                                        required: true,
                                     },
-                                    fieldType:
-                                        FormFieldSchemaType.Password,
-                                    validation: {
-                                        minLength: 6,
+                                    {
+                                        field: {
+                                            password: true,
+                                        },
+                                        validation: {
+                                            minLength: 6,
+                                            toMatchField: 'password',
+                                        },
+                                        fieldType: FormFieldSchemaType.Password,
+                                        placeholder: 'Confirm Password',
+                                        title: 'Confirm Password',
+                                        overideFieldKey: 'confirmPassword',
+                                        required: true,
                                     },
-                                    placeholder: 'Password',
-                                    title: 'Password',
-                                    required: true,
-                                },
-                                {
-                                    field: {
-                                        password: true,
-                                    },
-                                    validation: {
-                                        minLength: 6,
-                                        toMatchField:
-                                            'password',
-                                    },
-                                    fieldType:
-                                        FormFieldSchemaType.Password,
-                                    placeholder:
-                                        'Confirm Password',
-                                    title: 'Confirm Password',
-                                    overideFieldKey:
-                                        'confirmPassword',
-                                    required: true,
-                                },
-                            ]}
-                            formType={FormType.Update}
-                            submitButtonText={'Update Password'}
-                        /> : <p>Your password has been updated.</p>}
-
+                                ]}
+                                formType={FormType.Update}
+                                submitButtonText={'Update Password'}
+                            />
+                        ) : (
+                            <p>Your password has been updated.</p>
+                        )}
                     </Card>
                 </div>
             </FullPageModal>

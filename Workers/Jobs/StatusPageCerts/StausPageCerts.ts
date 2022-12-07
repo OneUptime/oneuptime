@@ -18,36 +18,39 @@ import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthoriza
 import { JSONObject } from 'Common/Types/JSON';
 import Response from 'CommonServer/Utils/Response';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
+import http from 'http';
 
 const router: ExpressRouter = Express.getRouter();
 
-const greenlock = Greenlock.create({
+const greenlock: any = Greenlock.create({
     configFile: '/greenlockrc',
     packageRoot: `/usr/src/app`,
-    manager:  '/usr/src/app/Utils/Greenlock/Manager.ts',
+    manager: '/usr/src/app/Utils/Greenlock/Manager.ts',
     approveDomains: async (opts: any) => {
-        const domain: StatusPageDomain | null = await StatusPageDomainService.findOneBy({
-            query: {
-                fullDomain: opts.domain,
-            },
-            select: {
-                _id: true,
-                fullDomain: true
-            },
-            props: {
-                isRoot: true,
-            }
-        });
+        const domain: StatusPageDomain | null =
+            await StatusPageDomainService.findOneBy({
+                query: {
+                    fullDomain: opts.domain,
+                },
+                select: {
+                    _id: true,
+                    fullDomain: true,
+                },
+                props: {
+                    isRoot: true,
+                },
+            });
 
         if (!domain) {
-            throw new BadDataException(`Domain ${opts.domain} does not exist in StatusPageDomain`);
+            throw new BadDataException(
+                `Domain ${opts.domain} does not exist in StatusPageDomain`
+            );
         }
-
 
         return opts; // or Promise.resolve(opts);
     },
     store: {
-        module: '/usr/src/app/Utils/Greenlock/Store.ts'
+        module: '/usr/src/app/Utils/Greenlock/Store.ts',
     },
     // Staging for testing environments
     staging: IsDevelopment,
@@ -57,7 +60,7 @@ const greenlock = Greenlock.create({
     maintainerEmail: 'lets-encrypt@oneuptime.com',
 
     // for an RFC 8555 / RFC 7231 ACME client user agent
-    packageAgent: "oneuptime/1.0.0",
+    packageAgent: 'oneuptime/1.0.0',
     notify: function (event: string, details: any) {
         if ('error' === event) {
             logger.error(details);
@@ -67,30 +70,25 @@ const greenlock = Greenlock.create({
     agreeToTerms: true,
     challenges: {
         'http-01': {
-            module: '/usr/src/app/Utils/Greenlock/HttpChallenge.ts'
-        }
+            module: '/usr/src/app/Utils/Greenlock/HttpChallenge.ts',
+        },
     },
 });
-
 
 // Delete
 router.delete(
     `/certs`,
     ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-    async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction
-    ) => {
+    async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
             const body: JSONObject = req.body;
 
             if (!body['domain']) {
-                throw new BadDataException("Domain is required");
+                throw new BadDataException('Domain is required');
             }
 
             await greenlock.remove({
-                subject: body['domain']
+                subject: body['domain'],
             });
 
             return Response.sendEmptyResponse(req, res);
@@ -100,25 +98,20 @@ router.delete(
     }
 );
 
-
 // Create
 router.post(
     `/certs`,
     ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-    async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction
-    ) => {
+    async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
             const body: JSONObject = req.body;
 
             if (!body['domain']) {
-                throw new BadDataException("Domain is required");
+                throw new BadDataException('Domain is required');
             }
 
             await greenlock.add({
-                subject: body['domain']
+                subject: body['domain'],
             });
 
             return Response.sendEmptyResponse(req, res);
@@ -132,19 +125,17 @@ router.post(
 router.get(
     `/certs`,
     ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
-    async (
-        req: ExpressRequest,
-        res: ExpressResponse,
-        next: NextFunction
-    ) => {
+    async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
             const body: JSONObject = req.body;
 
             if (!body['domain']) {
-                throw new BadDataException("Domain is required");
+                throw new BadDataException('Domain is required');
             }
 
-            const site = await greenlock.get({ servername: body['domain'] as string });
+            const site: JSONObject = await greenlock.get({
+                servername: body['domain'] as string,
+            });
 
             return Response.sendJsonObjectResponse(req, res, site);
         } catch (err) {
@@ -153,149 +144,174 @@ router.get(
     }
 );
 
+RunCron(
+    'StatusPageCerts:Renew',
+    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    async () => {
+        logger.info('Start');
+        // fetch all domains wiht expired certs.
+        await greenlock.renew({});
+        logger.info('End');
+    }
+);
 
-RunCron('StatusPageCerts:Renew', IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, async () => {
-    logger.info("Start");
-    // fetch all domains wiht expired certs. 
-    await greenlock.renew({});
-    logger.info("End");
-});
-
-RunCron('StatusPageCerts:AddCerts', IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, async () => {
-
-    const domains: Array<StatusPageDomain> = await StatusPageDomainService.findBy({
-        query: {
-            isAddedtoGreenlock: false,
-        },
-        select: {
-            _id: true,
-            fullDomain: true,
-            cnameVerificationToken: true
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-            isRoot: true,
-        }
-    });
-
-     for (const domain of domains) {
-
-        logger.info(`StatusPageCerts:AddCerts - Checking CNAME ${domain.fullDomain}`);
-
-        // Check CNAME validation and if that fails. Remove certs from Greenlock.
-        const isValid = await checkCnameValidation(domain.fullDomain!, domain.cnameVerificationToken!);
-
-        if (isValid) {
-            logger.info(`StatusPageCerts:AddCerts - CNAME for ${domain.fullDomain} is valid. Adding domain to greenlock.`);
-
-            await greenlock.add({
-                subject: domain.fullDomain
+RunCron(
+    'StatusPageCerts:AddCerts',
+    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    async () => {
+        const domains: Array<StatusPageDomain> =
+            await StatusPageDomainService.findBy({
+                query: {
+                    isAddedtoGreenlock: false,
+                },
+                select: {
+                    _id: true,
+                    fullDomain: true,
+                    cnameVerificationToken: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
             });
 
-            await StatusPageDomainService.updateOneById({
-                id: domain.id!, 
-                data: {
-                    isAddedtoGreenlock: true, 
-                    isCnameVerified: true
-                },
-                props: {
-                    isRoot: true
-                }
-            })
+        for (const domain of domains) {
+            logger.info(
+                `StatusPageCerts:AddCerts - Checking CNAME ${domain.fullDomain}`
+            );
 
+            // Check CNAME validation and if that fails. Remove certs from Greenlock.
+            const isValid: boolean = await checkCnameValidation(
+                domain.fullDomain!,
+                domain.cnameVerificationToken!
+            );
 
-            logger.info(`StatusPageCerts:AddCerts - ${domain.fullDomain} added to greenlock.`);
+            if (isValid) {
+                logger.info(
+                    `StatusPageCerts:AddCerts - CNAME for ${domain.fullDomain} is valid. Adding domain to greenlock.`
+                );
 
-        } else {
-        
-            logger.info(`StatusPageCerts:AddCerts - CNAME for ${domain.fullDomain} is invalid. Removing cert`);
+                await greenlock.add({
+                    subject: domain.fullDomain,
+                });
+
+                await StatusPageDomainService.updateOneById({
+                    id: domain.id!,
+                    data: {
+                        isAddedtoGreenlock: true,
+                        isCnameVerified: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                logger.info(
+                    `StatusPageCerts:AddCerts - ${domain.fullDomain} added to greenlock.`
+                );
+            } else {
+                logger.info(
+                    `StatusPageCerts:AddCerts - CNAME for ${domain.fullDomain} is invalid. Removing cert`
+                );
+            }
         }
-         
-         
-
     }
-});
+);
 
+RunCron(
+    'StatusPageCerts:RemoveCerts',
+    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    async () => {
+        // Fetch all domains where certs are added to greenlock.
 
-RunCron('StatusPageCerts:RemoveCerts', IsDevelopment ? EVERY_MINUTE : EVERY_HOUR, async () => {
-
-    // Fetch all domains where certs are added to greenlock. 
-
-    const domains: Array<StatusPageDomain> = await StatusPageDomainService.findBy({
-        query: {
-            isAddedtoGreenlock: true,
-        },
-        select: {
-            _id: true,
-            fullDomain: true,
-            cnameVerificationToken: true
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-            isRoot: true,
-        }
-    });
-
-    for (const domain of domains) {
-
-        logger.info(`StatusPageCerts:RemoveCerts - Checking CNAME ${domain.fullDomain}`);
-
-        // Check CNAME validation and if that fails. Remove certs from Greenlock.
-        const isValid = await checkCnameValidation(domain.fullDomain!, domain.cnameVerificationToken!);
-
-        if (!isValid) {
-            logger.info(`StatusPageCerts:RemoveCerts - CNAME for ${domain.fullDomain} is invalid. Removing domain from greenlock.`);
-
-            await greenlock.remove({
-                subject: domain.fullDomain
+        const domains: Array<StatusPageDomain> =
+            await StatusPageDomainService.findBy({
+                query: {
+                    isAddedtoGreenlock: true,
+                },
+                select: {
+                    _id: true,
+                    fullDomain: true,
+                    cnameVerificationToken: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
             });
 
-            await StatusPageDomainService.updateOneById({
-                id: domain.id!, 
-                data: {
-                    isAddedtoGreenlock: false, 
-                    isCnameVerified: false
-                },
-                props: {
-                    isRoot: true
-                }
-            })
+        for (const domain of domains) {
+            logger.info(
+                `StatusPageCerts:RemoveCerts - Checking CNAME ${domain.fullDomain}`
+            );
 
-            logger.info(`StatusPageCerts:RemoveCerts - ${domain.fullDomain} removed from greenlock.`);
+            // Check CNAME validation and if that fails. Remove certs from Greenlock.
+            const isValid: boolean = await checkCnameValidation(
+                domain.fullDomain!,
+                domain.cnameVerificationToken!
+            );
 
-        } else {
-            logger.info(`StatusPageCerts:RemoveCerts - CNAME for ${domain.fullDomain} is valid`);
+            if (!isValid) {
+                logger.info(
+                    `StatusPageCerts:RemoveCerts - CNAME for ${domain.fullDomain} is invalid. Removing domain from greenlock.`
+                );
+
+                await greenlock.remove({
+                    subject: domain.fullDomain,
+                });
+
+                await StatusPageDomainService.updateOneById({
+                    id: domain.id!,
+                    data: {
+                        isAddedtoGreenlock: false,
+                        isCnameVerified: false,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
+                logger.info(
+                    `StatusPageCerts:RemoveCerts - ${domain.fullDomain} removed from greenlock.`
+                );
+            } else {
+                logger.info(
+                    `StatusPageCerts:RemoveCerts - CNAME for ${domain.fullDomain} is valid`
+                );
+            }
         }
-
     }
-});
+);
 
-
-const checkCnameValidation = (fulldomain: string, token: string): Promise<boolean> => {
-    return new Promise((resolve, reject) => {
+const checkCnameValidation: Function = (
+    fulldomain: string,
+    token: string
+): Promise<boolean> => {
+    return new Promise((resolve: Function, reject: Function) => {
         try {
-            https.request({
-                host: fulldomain,
-                port: 443,
-                path: '/status-page-api/cname-verification/' + token,
-                method: 'GET',
-                rejectUnauthorized: false,
-                agent: false
-            }, (res) => {
-                if (res.statusCode === 200) {
-                    return resolve(true);
+            https.request(
+                {
+                    host: fulldomain,
+                    port: 443,
+                    path: '/status-page-api/cname-verification/' + token,
+                    method: 'GET',
+                    rejectUnauthorized: false,
+                    agent: false,
+                },
+                (res: http.IncomingMessage) => {
+                    if (res.statusCode === 200) {
+                        return resolve(true);
+                    }
+
+                    return resolve(false);
                 }
-
-                return resolve(false);
-
-            });
+            );
         } catch (err) {
             reject(err);
         }
-    })
-
-}
+    });
+};
 
 export default router;

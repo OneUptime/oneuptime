@@ -61,14 +61,14 @@ export enum ShowTableAs {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     onFetchInit?:
-    | undefined
-    | ((pageNumber: number, itemsOnPage: number) => void);
+        | undefined
+        | ((pageNumber: number, itemsOnPage: number) => void);
     onFetchSuccess?:
-    | undefined
-    | ((data: Array<TBaseModel>, totalCount: number) => void);
+        | undefined
+        | ((data: Array<TBaseModel>, totalCount: number) => void);
     cardProps?: CardComponentProps | undefined;
     columns: Columns<TBaseModel>;
     selectMoreFields?: Select<TBaseModel>;
@@ -195,8 +195,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 fieldType: column.type,
                 getElement: column.getElement
                     ? (item: JSONObject): ReactElement => {
-                        return column.getElement!(item, onBeforeFetchData);
-                    }
+                          return column.getElement!(item, onBeforeFetchData);
+                      }
                     : undefined,
             });
 
@@ -228,7 +228,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setErrorModalText(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setErrorModalText('Server Error. Please try again');
@@ -325,8 +325,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
                 if (column.tooltipText) {
                     classicColumn.tooltipText = (item: JSONObject): string => {
-                        return column.tooltipText!(BaseModel.fromJSONObject(item, props.modelType));
-                    }
+                        return column.tooltipText!(
+                            BaseModel.fromJSONObject(item, props.modelType)
+                        );
+                    };
                 }
             }
 
@@ -335,7 +337,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setTableFilterError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setTableFilterError('Server Error. Please try again');
@@ -371,8 +373,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     getSelect(),
                     sortBy
                         ? {
-                            [sortBy as any]: sortOrder,
-                        }
+                              [sortBy as any]: sortOrder,
+                          }
                         : {},
                     getPopulate(),
                     props.fetchRequestOptions
@@ -384,7 +386,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -497,8 +499,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             showTableAs !== ShowTableAs.OrderedStatesList
         ) {
             headerbuttons.push({
-                title: `${props.createVerb || 'Create'} ${props.singularName || model.singularName
-                    }`,
+                title: `${props.createVerb || 'Create'} ${
+                    props.singularName || model.singularName
+                }`,
                 buttonStyle: ButtonStyleType.OUTLINE,
                 onClick: () => {
                     setModalType(ModalType.Create);
@@ -647,13 +650,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             const key: string | null = getColumnKey(column);
 
             if (hasPermission) {
-
-                let tooltipText: ((item: JSONObject) => string) | undefined = undefined;
+                let tooltipText: ((item: JSONObject) => string) | undefined =
+                    undefined;
 
                 if (column.tooltipText) {
                     tooltipText = (item: JSONObject): string => {
-                        return column.tooltipText!(BaseModel.fromJSONObject(item, props.modelType));
-                    }
+                        return column.tooltipText!(
+                            BaseModel.fromJSONObject(item, props.modelType)
+                        );
+                    };
                 }
 
                 columns.push({
@@ -662,7 +667,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     key: column.selectedProperty
                         ? key + '.' + column.selectedProperty
                         : key,
-                    tooltipText
+                    tooltipText,
                 });
 
                 if (key) {
@@ -970,9 +975,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         let getTitleElement:
             | ((
-                item: JSONObject,
-                onBeforeFetchData?: JSONObject | undefined
-            ) => ReactElement)
+                  item: JSONObject,
+                  onBeforeFetchData?: JSONObject | undefined
+              ) => ReactElement)
             | undefined = undefined;
         let getDescriptionElement:
             | ((item: JSONObject) => ReactElement)
@@ -1016,10 +1021,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onCreateNewItem={
                     props.isCreateable
                         ? (order: number) => {
-                            setOrderedStatesListNewItemOrder(order);
-                            setModalType(ModalType.Create);
-                            setShowModal(true);
-                        }
+                              setOrderedStatesListNewItemOrder(order);
+                              setModalType(ModalType.Create);
+                              setShowModal(true);
+                          }
                         : undefined
                 }
                 singularLabel={
@@ -1083,8 +1088,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             }}
                         >
                             <Pill
-                                text={`${new props.modelType().readBillingPlan
-                                    } Plan`}
+                                text={`${
+                                    new props.modelType().readBillingPlan
+                                } Plan`}
                                 color={Yellow}
                             />
                         </span>
@@ -1156,8 +1162,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <ModelFormModal<TBaseModel>
                     title={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} New ${props.singularName || model.singularName
-                            }`
+                            ? `${props.createVerb || 'Create'} New ${
+                                  props.singularName || model.singularName
+                              }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
                     initialValues={
@@ -1170,8 +1177,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }}
                     submitButtonText={
                         modalType === ModalType.Create
-                            ? `${props.createVerb || 'Create'} ${props.singularName || model.singularName
-                            }`
+                            ? `${props.createVerb || 'Create'} ${
+                                  props.singularName || model.singularName
+                              }`
                             : `Save Changes`
                     }
                     onSuccess={(_item: TBaseModel) => {

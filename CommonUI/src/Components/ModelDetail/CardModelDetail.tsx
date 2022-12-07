@@ -68,7 +68,11 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
 
     return (
         <>
-            <Card {...props.cardProps} className={props.className} buttons={cardButtons}>
+            <Card
+                {...props.cardProps}
+                className={props.className}
+                buttons={cardButtons}
+            >
                 <ModelDetail
                     refresher={refresher}
                     {...props.modelDetailProps}

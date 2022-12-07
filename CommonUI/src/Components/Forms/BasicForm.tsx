@@ -1103,7 +1103,10 @@ const BasicForm: Function = <T extends Object>(
                                         type={ButtonTypes.Submit}
                                         id={`${props.id}-submit-button`}
                                         isLoading={props.isLoading || false}
-                                        buttonStyle={props.submitButtonStyleType || ButtonStyleType.PRIMARY}
+                                        buttonStyle={
+                                            props.submitButtonStyleType ||
+                                            ButtonStyleType.PRIMARY
+                                        }
                                         style={{
                                             width: props.maxPrimaryButtonWidth
                                                 ? '100%'

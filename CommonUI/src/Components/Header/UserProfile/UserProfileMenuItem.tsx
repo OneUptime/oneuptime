@@ -8,7 +8,7 @@ export interface ComponentProps {
     title: string;
     badge?: undefined | number;
     route?: Route | undefined;
-    onClick?: (()=> void) | undefined;
+    onClick?: (() => void) | undefined;
     icon: IconProp;
     iconColor?: undefined | Color;
 }

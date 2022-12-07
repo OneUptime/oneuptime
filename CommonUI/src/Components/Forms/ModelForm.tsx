@@ -44,13 +44,13 @@ export enum FormType {
 }
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    modelType: { new(): TBaseModel };
+    modelType: { new (): TBaseModel };
     id: string;
     onValidate?:
-    | undefined
-    | ((
-        values: FormValues<TBaseModel>
-    ) => FormikErrors<FormValues<TBaseModel>>);
+        | undefined
+        | ((
+              values: FormValues<TBaseModel>
+          ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     title?: undefined | string;
@@ -59,8 +59,8 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     footer: ReactElement;
     onCancel?: undefined | (() => void);
     onSuccess?:
-    | undefined
-    | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
+        | undefined
+        | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
     cancelButtonText?: undefined | string;
     maxPrimaryButtonWidth?: undefined | boolean;
     apiUrl?: undefined | URL;
@@ -74,7 +74,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onError?: ((error: string) => void) | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     saveRequestOptions?: RequestOptions | undefined;
-    doNotFetchExistingModel?: boolean | undefined
+    doNotFetchExistingModel?: boolean | undefined;
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
@@ -229,7 +229,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                                 isModelArray = true;
                                 idArray.push(
                                     (itemInArray as any as JSONObject)[
-                                    '_id'
+                                        '_id'
                                     ] as string
                                 );
                             }
@@ -308,7 +308,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -319,7 +319,11 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
     };
 
     useAsyncEffect(async () => {
-        if (props.modelIdToEdit && props.formType === FormType.Update && !props.doNotFetchExistingModel) {
+        if (
+            props.modelIdToEdit &&
+            props.formType === FormType.Update &&
+            !props.doNotFetchExistingModel
+        ) {
             // get item.
             setLoading(true);
             setIsFetching(true);
@@ -412,7 +416,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                     Array.isArray(valuesToSend[key]) &&
                     (valuesToSend[key] as Array<any>).length > 0 &&
                     typeof (valuesToSend[key] as Array<any>)[0] ===
-                    Typeof.String
+                        Typeof.String
                 ) {
                     const arr: Array<BaseModel> = [];
                     for (const id of valuesToSend[key] as Array<string>) {
@@ -449,7 +453,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         } catch (err) {
             setError(
                 (err as HTTPErrorResponse).message ||
-                'Server Error. Please try again'
+                    'Server Error. Please try again'
             );
         }
 

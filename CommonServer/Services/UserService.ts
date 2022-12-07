@@ -36,12 +36,11 @@ export class Service extends DatabaseService<Model> {
         });
     }
 
-    protected override async onBeforeUpdate(updateBy: UpdateBy<Model>): Promise<OnUpdate<Model>> {
-
-
-
+    protected override async onBeforeUpdate(
+        updateBy: UpdateBy<Model>
+    ): Promise<OnUpdate<Model>> {
         if (updateBy.data.password || updateBy.data.email) {
-            const users = await this.findBy({
+            const users: Array<Model> = await this.findBy({
                 query: updateBy.query,
                 select: {
                     _id: true,
@@ -51,16 +50,18 @@ export class Service extends DatabaseService<Model> {
                     isRoot: true,
                 },
                 limit: LIMIT_MAX,
-                skip: 0
-            })
-
+                skip: 0,
+            });
 
             return { updateBy, carryForward: users };
         }
         return { updateBy, carryForward: [] };
     }
 
-    protected override async onUpdateSuccess(onUpdate: OnUpdate<Model>, _updatedItemIds: ObjectID[]): Promise<OnUpdate<Model>> {
+    protected override async onUpdateSuccess(
+        onUpdate: OnUpdate<Model>,
+        _updatedItemIds: ObjectID[]
+    ): Promise<OnUpdate<Model>> {
         if (onUpdate && onUpdate.updateBy.data.password) {
             for (const user of onUpdate.carryForward) {
                 // password changed, send password changed mail
@@ -78,26 +79,29 @@ export class Service extends DatabaseService<Model> {
         }
 
         if (onUpdate && onUpdate.updateBy.data.email) {
-
-            const newUsers = await this.findBy({
+            const newUsers: Array<Model> = await this.findBy({
                 query: onUpdate.updateBy.query,
                 select: {
                     _id: true,
                     email: true,
-                    name: true
+                    name: true,
                 },
                 props: {
                     isRoot: true,
                 },
                 limit: LIMIT_MAX,
-                skip: 0
-            })
+                skip: 0,
+            });
 
             for (const user of onUpdate.carryForward) {
+                const newUser: Model | undefined = newUsers.find((u: Model) => {
+                    return u._id?.toString() === user._id.toString();
+                });
 
-                const newUser = newUsers.find((u) => u._id?.toString() === user._id.toString());
-
-                if (newUser && newUser.email?.toString() !== user.email.toString()) {
+                if (
+                    newUser &&
+                    newUser.email?.toString() !== user.email.toString()
+                ) {
                     // password changed, send password changed mail
                     const generatedToken: ObjectID = ObjectID.generate();
 
@@ -106,7 +110,8 @@ export class Service extends DatabaseService<Model> {
                     emailVerificationToken.userId = user?.id!;
                     emailVerificationToken.email = newUser?.email!;
                     emailVerificationToken.token = generatedToken;
-                    emailVerificationToken.expires = OneUptimeDate.getOneDayAfter();
+                    emailVerificationToken.expires =
+                        OneUptimeDate.getOneDayAfter();
 
                     await EmailVerificationTokenService.create({
                         data: emailVerificationToken,
@@ -117,7 +122,8 @@ export class Service extends DatabaseService<Model> {
 
                     MailService.sendMail({
                         toEmail: newUser.email!,
-                        subject: 'You have changed your email. Please verify your email.',
+                        subject:
+                            'You have changed your email. Please verify your email.',
                         templateType: EmailTemplateType.EmailChanged,
                         vars: {
                             name: newUser.name!.toString(),
@@ -136,20 +142,17 @@ export class Service extends DatabaseService<Model> {
 
                     await this.updateBy({
                         query: {
-                            _id: user.id.toString()
+                            _id: user.id.toString(),
                         },
                         data: {
-                            isEmailVerified: false
+                            isEmailVerified: false,
                         },
                         props: {
                             isRoot: true,
-                            ignoreHooks: true
-                        }
+                            ignoreHooks: true,
+                        },
                     });
                 }
-
-
-
             }
         }
 
