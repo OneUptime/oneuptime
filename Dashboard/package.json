@@ -22,7 +22,7 @@
         "use-async-effect": "^2.2.6"
     },
     "scripts": {
-        "dev": "webpack-dev-server --port=3009 --mode=development",
+        "dev": "nodemon",
         "build": "webpack build --mode=production",
         "test": "react-app-rewired test",
         "eject": "webpack eject",

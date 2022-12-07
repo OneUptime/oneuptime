@@ -75,7 +75,7 @@ const VerifyEmail: FunctionComponent = () => {
                                         >
                                             <img
                                                 style={{ height: '40px' }}
-                                                src={`/accounts/public/${OneUptimeLogo}`}
+                                                src={`${OneUptimeLogo}`}
                                             />
                                         </div>
                                         {!error && (
