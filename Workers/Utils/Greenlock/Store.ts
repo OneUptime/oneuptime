@@ -49,7 +49,9 @@ module.exports = {
             return null;
         };
 
-        const getCertificate: Function = async (id: string): Promise<null | string> => {
+        const getCertificate: Function = async (
+            id: string
+        ): Promise<null | string> => {
             const cert: GreenlockCertificate | null =
                 await GreenlockCertificateService.findOneBy({
                     query: {
@@ -71,11 +73,16 @@ module.exports = {
             return cert.blob;
         };
 
-        const saveKeypair: Function = async (id: string, blob: string): Promise<null> => {
+        const saveKeypair: Function = async (
+            id: string,
+            blob: string
+        ): Promise<null> => {
             return await saveCertificate(id, blob);
         };
 
-        const getKeypair: Function = async (id: string): Promise<null | string> => {
+        const getKeypair: Function = async (
+            id: string
+        ): Promise<null | string> => {
             return await getCertificate(id);
         };
 
@@ -83,7 +90,8 @@ module.exports = {
             accounts: {
                 // Whenever a new keypair is used to successfully create an account, we need to save its keypair
                 setKeypair: async (opts: any): Promise<null> => {
-                    const id: string = opts.account.id || opts.email || 'default';
+                    const id: string =
+                        opts.account.id || opts.email || 'default';
                     const keypair: any = opts.keypair;
 
                     return await saveKeypair(
@@ -96,9 +104,8 @@ module.exports = {
                 },
                 // We need a way to retrieve a prior account's keypair for renewals and additional ACME certificate "orders"
                 checkKeypair: async (opts: any): Promise<any | null> => {
-                    
-
-                    const id: string = opts.account.id || opts.email || 'default';
+                    const id: string =
+                        opts.account.id || opts.email || 'default';
                     const keyblob: any = await getKeypair(id);
 
                     if (!keyblob) {
@@ -149,7 +156,6 @@ module.exports = {
                 // (perhaps to delete expired keys), but the same information can also be redireved from
                 // the key using the "cert-info" package.
                 set: async (opts: any): Promise<null> => {
-                    
                     const id = opts.certificate.id || opts.subject;
                     const pems = opts.pems;
 

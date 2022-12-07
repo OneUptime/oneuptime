@@ -66,6 +66,7 @@ module.exports = {
         devMiddleware: {
             writeToDisk: true,
         },
+        allowedHosts: "all"
     },
     devtool: 'eval-source-map',
 }
