@@ -140,6 +140,10 @@ services:
     status-page:
         ports:
             - '3105:3105'
+            - '3106:3106'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - 9764:9229 # Debugging port.
+            {{ end }}
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host

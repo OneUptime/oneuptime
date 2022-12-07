@@ -279,7 +279,7 @@ const checkCnameValidation = (fulldomain: string, token: string): Promise<boolea
             https.request({
                 host: fulldomain,
                 port: 443,
-                path: '/cname-verification/' + token,
+                path: '/status-page-api/cname-verification/' + token,
                 method: 'GET',
                 rejectUnauthorized: false,
                 agent: false
