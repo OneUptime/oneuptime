@@ -2,7 +2,7 @@ import './Envrionment';
 import './Process';
 import logger from './Logger';
 import cors from 'cors';
-
+import Port from 'Common/Types/Port';
 import Express, {
     ExpressRequest,
     ExpressResponse,
@@ -89,8 +89,8 @@ app.use(ExpressUrlEncoded({ limit: '50mb' }));
 
 app.use(logRequest);
 
-const init: Function = async (appName: string): Promise<ExpressApplication> => {
-    await Express.launchApplication(appName);
+const init: Function = async (appName: string, port?: Port): Promise<ExpressApplication> => {
+    await Express.launchApplication(appName, port);
     LocalCache.setString('app', 'name', appName);
     CommonAPI(appName);
 

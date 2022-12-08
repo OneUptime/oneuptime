@@ -10,6 +10,7 @@ import {
 } from 'Common/Types/Permission';
 import UserType from 'Common/Types/UserType';
 import Dictionary from 'Common/Types/Dictionary';
+import Port from 'Common/Types/Port';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
@@ -63,14 +64,14 @@ class Express {
     }
 
     public static async launchApplication(
-        appName: string
+        appName: string, port?: Port
     ): Promise<express.Application> {
         return new Promise<express.Application>((resolve: Function) => {
             if (!this.app) {
                 this.setupExpress();
             }
 
-            this.app.listen(this.app.get('port'), () => {
+            this.app.listen(port?.toNumber() || this.app.get('port'), () => {
                 // eslint-disable-next-line
                 logger.info(`${appName} server started on port: ${this.app.get('port')}`);
                 return resolve(this.app);

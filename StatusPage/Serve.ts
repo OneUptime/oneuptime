@@ -7,6 +7,7 @@ import Express, {
     ExpressStatic,
 } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
+import Port from 'Common/Types/Port';
 
 export const APP_NAME: string = 'accounts';
 
@@ -16,11 +17,6 @@ app.use(ExpressStatic(path.join(__dirname, 'public')));
 
 app.use(`/${APP_NAME}`, ExpressStatic(path.join(__dirname, 'public')));
 
-app.use(
-    [`/${APP_NAME}/assets`, `/${APP_NAME}/${APP_NAME}/assets`],
-    ExpressStatic(path.join(__dirname, 'dist'))
-);
-
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -28,7 +24,7 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
 const init: Function = async (): Promise<void> => {
     try {
         // init the app
-        await App(APP_NAME);
+        await App(APP_NAME, new Port(3106));
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);
