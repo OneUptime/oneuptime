@@ -18,7 +18,7 @@ import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthoriza
 import { JSONObject } from 'Common/Types/JSON';
 import Response from 'CommonServer/Utils/Response';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import http from 'http';
+import axios from 'axios';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -285,33 +285,28 @@ RunCron(
     }
 );
 
-const checkCnameValidation: Function = (
+const checkCnameValidation: Function = async (
     fulldomain: string,
     token: string
 ): Promise<boolean> => {
-    return new Promise((resolve: Function, reject: Function) => {
-        try {
-            https.request(
-                {
-                    host: fulldomain,
-                    port: 443,
-                    path: '/status-page-api/cname-verification/' + token,
-                    method: 'GET',
-                    rejectUnauthorized: false,
-                    agent: false,
-                },
-                (res: http.IncomingMessage) => {
-                    if (res.statusCode === 200) {
-                        return resolve(true);
-                    }
+    logger.info("Check CNAMeValidation.")
 
-                    return resolve(false);
-                }
-            );
-        } catch (err) {
-            reject(err);
+    try {
+        const agent = new https.Agent({
+            rejectUnauthorized: false
+        });
+
+        const result = await axios.get('https://' + fulldomain + '/status-page-api/cname-verification/' + token, { httpsAgent: agent });
+    
+        if (result.status === 200) {
+            return true;
+        } else {
+            return false;
         }
-    });
+    } catch (err) {
+        logger.error(err);
+        return false; 
+    }
 };
 
 export default router;
