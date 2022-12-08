@@ -8,7 +8,7 @@ import Express, {
 } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 
-export const APP_NAME: string = 'accounts';
+export const APP_NAME: string = 'dashboard';
 
 const app: ExpressApplication = Express.getExpressApp();
 

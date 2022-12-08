@@ -9,7 +9,7 @@ import Express, {
 import logger from 'CommonServer/Utils/Logger';
 import Port from 'Common/Types/Port';
 
-export const APP_NAME: string = 'accounts';
+export const APP_NAME: string = 'status-page';
 
 const app: ExpressApplication = Express.getExpressApp();
 
