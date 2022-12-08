@@ -16,6 +16,7 @@ import Express, {
 
 // Connect common api's.
 import CommonAPI from '../API/Index';
+import NotFoundException from 'Common/Types/Exception/NotFoundException';
 
 import OneUptimeDate from 'Common/Types/Date';
 import LocalCache from '../Infrastructure/LocalCache';
@@ -23,6 +24,7 @@ import Exception from 'Common/Types/Exception/Exception';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusCode from 'Common/Types/API/StatusCode';
 import Typeof from 'Common/Types/Typeof';
+import Response from './Response';
 // import OpenTelemetrySDK from "./OpenTelemetry";
 
 const app: ExpressApplication = Express.getExpressApp();
@@ -132,20 +134,20 @@ const init: Function = async (appName: string, port?: Port): Promise<ExpressAppl
         }
     );
 
-    app.post('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: '404 - Not Found.' });
+    app.post('*', (req: ExpressRequest, res: ExpressResponse) => {
+        return Response.sendErrorResponse(req, res, new NotFoundException("Not found"))
     });
 
-    app.put('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: '404 - Not Found.' });
+    app.put('*', (req: ExpressRequest, res: ExpressResponse) => {
+        return Response.sendErrorResponse(req, res, new NotFoundException("Not found"))
     });
 
-    app.delete('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: '404 - Not Found.' });
+    app.delete('*', (req: ExpressRequest, res: ExpressResponse) => {
+        return Response.sendErrorResponse(req, res, new NotFoundException("Not found"))
     });
 
-    app.get('*', (_req: ExpressRequest, res: ExpressResponse) => {
-        res.status(404).json({ error: '404 - Not Found.' });
+    app.get('*', (req: ExpressRequest, res: ExpressResponse) => {
+        return Response.sendErrorResponse(req, res, new NotFoundException("Not found"))
     });
 
     // await OpenTelemetrySDK.start();

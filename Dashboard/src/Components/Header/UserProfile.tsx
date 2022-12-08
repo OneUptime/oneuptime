@@ -23,7 +23,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
             <UserProfile
                 userFullName={UserUtil.getName()}
                 userProfilePicture={Route.fromString(
-                    `/dashboard/public/${OneUptimeLogo}`
+                    `${OneUptimeLogo}`
                 )}
             >
                 <UserProfileMenu>
