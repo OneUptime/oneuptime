@@ -2,6 +2,7 @@
 
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import logger from 'CommonServer/Utils/Logger';
 
 // because greenlock package expects module.exports.
 module.exports = {
@@ -18,7 +19,8 @@ module.exports = {
                 // Optional (wildcard support): find a certificate with `wildname` as an altname
 
                 // { subject, altnames, renewAt, deletedAt, challenges, ... }
-
+                logger.info("Greenlock Manager Get");
+                logger.info(servername);
                 const domain: StatusPageDomain | null =
                     await StatusPageDomainService.findOneBy({
                         query: {
@@ -35,14 +37,21 @@ module.exports = {
                     });
 
                 if (!domain || !domain.greenlockConfig) {
+                    logger.info("Greenlock Manager GET " + servername+" - No domain found.");
                     return undefined;
                 }
+
+                logger.info("Greenlock Manager GET " + servername + " RESULT");
+                logger.info(domain.greenlockConfig);
 
                 return domain.greenlockConfig;
             },
 
             // Set
             set: async (opts: any) => {
+                logger.info("Greenlock Manager Set");
+                logger.info(opts);
+
                 // { subject, altnames, renewAt, deletedAt }
                 // Required: updated `renewAt` and `deletedAt` for certificate matching `subject`
 

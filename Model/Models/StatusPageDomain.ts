@@ -304,4 +304,23 @@ export default class StatusPageDomain extends BaseModel {
         default: false,
     })
     public isAddedtoGreenlock?: boolean = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isSslProvisioned?: boolean = undefined;
 }

@@ -143,7 +143,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                     {
                         field: {
-                            isAddedtoGreenlock: true,
+                            isSslProvisioned: true,
                         },
                         title: 'SSL Provisioned',
                         type: FieldType.Boolean,

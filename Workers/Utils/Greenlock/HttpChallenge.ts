@@ -1,13 +1,18 @@
 import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
 import GreenlockChallengeService from 'CommonServer/Services/GreenlockChallengeService';
+import logger from 'CommonServer/Utils/Logger';
 
 // because greenlock package expects module.exports.
 module.exports = {
     init: async (): Promise<null> => {
+        logger.info("Greenlock HTTP Challenge Init");
         return Promise.resolve(null);
     },
 
     set: async (data: any): Promise<null> => {
+        logger.info("Greenlock HTTP Challenge Set");
+        logger.info(data);
+
         const ch: any = data.challenge;
         const key: string = ch.identifier.value + '#' + ch.token;
 
@@ -52,6 +57,10 @@ module.exports = {
     },
 
     get: async (data: any): Promise<null | any> => {
+
+        logger.info("Greenlock HTTP Challenge Get");
+        logger.info(data);
+
         const ch: any = data.challenge;
         const key: string = ch.identifier.value + '#' + ch.token;
 
@@ -77,6 +86,9 @@ module.exports = {
     },
 
     remove: async (data: any): Promise<null> => {
+        logger.info("Greenlock HTTP Challenge Remove");
+        logger.info(data);
+
         const ch: any = data.challenge;
         const key: string = ch.identifier.value + '#' + ch.token;
         await GreenlockChallengeService.deleteOneBy({

@@ -53,7 +53,7 @@ const greenlock: any = Greenlock.create({
         module: '/usr/src/app/Utils/Greenlock/Store.ts',
     },
     // Staging for testing environments
-    staging: IsDevelopment,
+    // staging: IsDevelopment,
 
     // This should be the contact who receives critical bug and security notifications
     // Optionally, you may receive other (very few) updates, such as important new features
@@ -61,10 +61,14 @@ const greenlock: any = Greenlock.create({
 
     // for an RFC 8555 / RFC 7231 ACME client user agent
     packageAgent: 'oneuptime/1.0.0',
+
     notify: function (event: string, details: any) {
         if ('error' === event) {
+            logger.error("Greenlock Notify: " + event);
             logger.error(details);
         }
+        logger.info("Greenlock Notify: " + event);
+        logger.info(details);
     },
 
     agreeToTerms: true,
@@ -88,7 +92,7 @@ router.delete(
             }
 
             await greenlock.remove({
-                subject: body['domain'],
+                subject: body['domain']
             });
 
             return Response.sendEmptyResponse(req, res);
@@ -112,6 +116,7 @@ router.post(
 
             await greenlock.add({
                 subject: body['domain'],
+                altnames: [body['domain']]
             });
 
             return Response.sendEmptyResponse(req, res);
@@ -148,10 +153,44 @@ RunCron(
     'StatusPageCerts:Renew',
     IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
     async () => {
-        logger.info('Start');
         // fetch all domains wiht expired certs.
         await greenlock.renew({});
-        logger.info('End');
+    }
+);
+
+RunCron(
+    'StatusPageCerts:OrderCerts',
+    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    async () => {
+        // Fetch all domains where certs are added to greenlock.
+
+        const domains: Array<StatusPageDomain> =
+            await StatusPageDomainService.findBy({
+                query: {
+                    isAddedtoGreenlock: true,
+                    isSslProvisioned: false
+                },
+                select: {
+                    _id: true,
+                    greenlockConfig: true,
+                    fullDomain: true
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        for (const domain of domains) {
+            logger.info(
+                `StatusPageCerts:OrderCerts - Checking CNAME ${domain.fullDomain}`
+            );
+
+        
+            await greenlock.order(domain.greenlockConfig);
+
+        }
     }
 );
 
@@ -192,15 +231,25 @@ RunCron(
                     `StatusPageCerts:AddCerts - CNAME for ${domain.fullDomain} is valid. Adding domain to greenlock.`
                 );
 
+                await StatusPageDomainService.updateOneById({
+                    id: domain.id!,
+                    data: {
+                        isCnameVerified: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+
                 await greenlock.add({
                     subject: domain.fullDomain,
+                    altnames: [domain.fullDomain]
                 });
 
                 await StatusPageDomainService.updateOneById({
                     id: domain.id!,
                     data: {
                         isAddedtoGreenlock: true,
-                        isCnameVerified: true,
                     },
                     props: {
                         isRoot: true,
@@ -285,6 +334,67 @@ RunCron(
     }
 );
 
+
+RunCron(
+    'StatusPageCerts:CheckSslProvisioningStatus',
+    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    async () => {
+        // Fetch all domains where certs are added to greenlock.
+
+        const domains: Array<StatusPageDomain> =
+            await StatusPageDomainService.findBy({
+                query: {
+                    isAddedtoGreenlock: true,
+                },
+                select: {
+                    _id: true,
+                    fullDomain: true,
+                    cnameVerificationToken: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        for (const domain of domains) {
+            logger.info(
+                `StatusPageCerts:RemoveCerts - Checking CNAME ${domain.fullDomain}`
+            );
+
+            // Check CNAME validation and if that fails. Remove certs from Greenlock.
+            const isValid: boolean = await isSslProvisioned(
+                domain.fullDomain!,
+                domain.cnameVerificationToken!
+            );
+
+            if (!isValid) {
+                await StatusPageDomainService.updateOneById({
+                    id: domain.id!,
+                    data: {
+                        isSslProvisioned: false,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            } else {
+                await StatusPageDomainService.updateOneById({
+                    id: domain.id!,
+                    data: {
+                        isSslProvisioned: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
+            }
+        }
+    }
+);
+
+
 const checkCnameValidation: Function = async (
     fulldomain: string,
     token: string
@@ -297,6 +407,26 @@ const checkCnameValidation: Function = async (
         });
 
         const result = await axios.get('https://' + fulldomain + '/status-page-api/cname-verification/' + token, { httpsAgent: agent });
+    
+        if (result.status === 200) {
+            return true;
+        } else {
+            return false;
+        }
+    } catch (err) {
+        logger.error(err);
+        return false; 
+    }
+};
+
+const isSslProvisioned: Function = async (
+    fulldomain: string,
+    token: string
+): Promise<boolean> => {
+
+    try {
+
+        const result = await axios.get('https://' + fulldomain + '/status-page-api/cname-verification/' + token);
     
         if (result.status === 200) {
             return true;

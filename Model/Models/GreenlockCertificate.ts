@@ -14,9 +14,9 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
     delete: [],
     update: [],
 })
-@SingularPluralName('Greenlock Challenge', 'Greenlock Challenges')
+@SingularPluralName('Greenlock Certificate', 'Greenlock Certificate')
 @Entity({
-    name: 'GreenlockChallenge',
+    name: 'GreenlockCertificate',
 })
 export default class GreenlockCertificate extends BaseModel {
     @Index()
