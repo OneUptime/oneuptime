@@ -95,7 +95,7 @@ const init: Function = async (): Promise<void> => {
     try {
         // init the app
         await App(APP_NAME, new Port(3106), {
-            port: new Port(3107),
+            port: new Port(3108),
             sniCallback: (serverName: string, callback: Function) => {
                 logger.info("SNI CALLBACK " + serverName);
                

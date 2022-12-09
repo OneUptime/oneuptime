@@ -69,8 +69,10 @@ RUN npm install
 EXPOSE 3105
 # API
 EXPOSE 3106 
-# HTTPS API
+# HTTPS UI
 EXPOSE 3107
+# HTTPS API
+EXPOSE 3108
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
