@@ -52,6 +52,7 @@ COPY ./CommonUI /usr/src/CommonUI
 RUN npm run compile
 
 
+
 #SET ENV Variables
 ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true

@@ -163,8 +163,10 @@ services:
         depends_on:
             - accounts
             - dashboard-api
-        {{ if eq .Env.ENVIRONMENT "development" }}
+        
         volumes:
+            - ./Certs:/usr/src/app/Certs
+        {{ if eq .Env.ENVIRONMENT "development" }}
             - ./StatusPage:/usr/src/app
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common

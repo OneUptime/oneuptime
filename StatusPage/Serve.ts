@@ -28,36 +28,35 @@ const init: Function = async (): Promise<void> => {
         // init the app
         await App(APP_NAME, new Port(3105), {
             port: new Port(3107),
-            sniCallback: (serverName: string, callback: Function) => {
-                logger.info("SNI CALLBACK " + serverName);
+            // sniCallback: (serverName: string, callback: Function) => {
+            //     logger.info("SNI CALLBACK " + serverName);
                
-            
-                GreenlockCertificateService.findOneBy({
-                    query: {
-                        key: serverName,
-                    },
-                    select: {
-                        blob: true,
-                    },
-                    props: {
-                        isRoot: true,
-                    },
-                }).then((result: GreenlockCertificate | null) => {
-                    if (!result) {
-                        return callback("Certificate not found");
-                    }
+            //     GreenlockCertificateService.findOneBy({
+            //         query: {
+            //             key: serverName,
+            //         },
+            //         select: {
+            //             blob: true,
+            //         },
+            //         props: {
+            //             isRoot: true,
+            //         },
+            //     }).then((result: GreenlockCertificate | null) => {
+            //         if (!result) {
+            //             return callback("Certificate not found");
+            //         }
 
-                    const blob = JSON.parse(result.blob as string);
+            //         const blob = JSON.parse(result.blob as string);
 
-                    callback(null, new (tls as any).createSecureContext({
-                        cert: blob.cert as string,
-                        key: blob.key as string,
-                    }));
-                }).catch((err: Error) => {
-                    logger.error(err);
-                    return callback("Server Error. Please try again later.");
-                });
-            }
+            //         callback(null, new (tls as any).createSecureContext({
+            //             cert: blob.cert as string,
+            //             key: blob.key as string,
+            //         }));
+            //     }).catch((err: Error) => {
+            //         logger.error(err);
+            //         return callback("Server Error. Please try again later.");
+            //     });
+            // }
         });
     } catch (err) {
         logger.error('App Init Failed:');
