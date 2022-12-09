@@ -19,7 +19,7 @@ module.exports = {
                 // Optional (wildcard support): find a certificate with `wildname` as an altname
 
                 // { subject, altnames, renewAt, deletedAt, challenges, ... }
-                logger.info("Greenlock Manager Get");
+                logger.info('Greenlock Manager Get');
                 logger.info(servername);
                 const domain: StatusPageDomain | null =
                     await StatusPageDomainService.findOneBy({
@@ -37,11 +37,15 @@ module.exports = {
                     });
 
                 if (!domain || !domain.greenlockConfig) {
-                    logger.info("Greenlock Manager GET " + servername+" - No domain found.");
+                    logger.info(
+                        'Greenlock Manager GET ' +
+                            servername +
+                            ' - No domain found.'
+                    );
                     return undefined;
                 }
 
-                logger.info("Greenlock Manager GET " + servername + " RESULT");
+                logger.info('Greenlock Manager GET ' + servername + ' RESULT');
                 logger.info(domain.greenlockConfig);
 
                 return domain.greenlockConfig;
@@ -49,7 +53,7 @@ module.exports = {
 
             // Set
             set: async (opts: any) => {
-                logger.info("Greenlock Manager Set");
+                logger.info('Greenlock Manager Set');
                 logger.info(opts);
 
                 // { subject, altnames, renewAt, deletedAt }

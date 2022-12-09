@@ -64,10 +64,10 @@ const greenlock: any = Greenlock.create({
 
     notify: function (event: string, details: any) {
         if ('error' === event) {
-            logger.error("Greenlock Notify: " + event);
+            logger.error('Greenlock Notify: ' + event);
             logger.error(details);
         }
-        logger.info("Greenlock Notify: " + event);
+        logger.info('Greenlock Notify: ' + event);
         logger.info(details);
     },
 
@@ -92,7 +92,7 @@ router.delete(
             }
 
             await greenlock.remove({
-                subject: body['domain']
+                subject: body['domain'],
             });
 
             return Response.sendEmptyResponse(req, res);
@@ -116,7 +116,7 @@ router.post(
 
             await greenlock.add({
                 subject: body['domain'],
-                altnames: [body['domain']]
+                altnames: [body['domain']],
             });
 
             return Response.sendEmptyResponse(req, res);
@@ -150,15 +150,6 @@ router.get(
 );
 
 RunCron(
-    'StatusPageCerts:Renew',
-    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
-    async () => {
-        // fetch all domains wiht expired certs.
-        await greenlock.renew({});
-    }
-);
-
-RunCron(
     'StatusPageCerts:OrderCerts',
     IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
     async () => {
@@ -168,12 +159,12 @@ RunCron(
             await StatusPageDomainService.findBy({
                 query: {
                     isAddedtoGreenlock: true,
-                    isSslProvisioned: false
+                    isSslProvisioned: false,
                 },
                 select: {
                     _id: true,
                     greenlockConfig: true,
-                    fullDomain: true
+                    fullDomain: true,
                 },
                 limit: LIMIT_MAX,
                 skip: 0,
@@ -187,9 +178,7 @@ RunCron(
                 `StatusPageCerts:OrderCerts - Checking CNAME ${domain.fullDomain}`
             );
 
-        
             await greenlock.order(domain.greenlockConfig);
-
         }
     }
 );
@@ -243,7 +232,7 @@ RunCron(
 
                 await greenlock.add({
                     subject: domain.fullDomain,
-                    altnames: [domain.fullDomain]
+                    altnames: [domain.fullDomain],
                 });
 
                 await StatusPageDomainService.updateOneById({
@@ -334,7 +323,6 @@ RunCron(
     }
 );
 
-
 RunCron(
     'StatusPageCerts:CheckSslProvisioningStatus',
     IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
@@ -394,28 +382,31 @@ RunCron(
     }
 );
 
-
 const checkCnameValidation: Function = async (
     fulldomain: string,
     token: string
 ): Promise<boolean> => {
-    logger.info("Check CNAMeValidation.")
+    logger.info('Check CNAMeValidation.');
 
     try {
         const agent = new https.Agent({
-            rejectUnauthorized: false
+            rejectUnauthorized: false,
         });
 
-        const result = await axios.get('https://' + fulldomain + '/status-page-api/cname-verification/' + token, { httpsAgent: agent });
-    
+        const result = await axios.get(
+            'https://' +
+                fulldomain +
+                '/status-page-api/cname-verification/' +
+                token,
+            { httpsAgent: agent }
+        );
+
         if (result.status === 200) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     } catch (err) {
-        logger.error(err);
-        return false; 
+        return false;
     }
 };
 
@@ -423,19 +414,20 @@ const isSslProvisioned: Function = async (
     fulldomain: string,
     token: string
 ): Promise<boolean> => {
-
     try {
+        const result = await axios.get(
+            'https://' +
+                fulldomain +
+                '/status-page-api/cname-verification/' +
+                token
+        );
 
-        const result = await axios.get('https://' + fulldomain + '/status-page-api/cname-verification/' + token);
-    
         if (result.status === 200) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     } catch (err) {
-        logger.error(err);
-        return false; 
+        return false;
     }
 };
 

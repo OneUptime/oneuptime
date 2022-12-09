@@ -4,7 +4,7 @@ import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 
 module.exports = {
-    create: () => {
+    create: (_opts: any) => {
         const saveCertificate: Function = async (
             id: string,
             blob: string
@@ -116,7 +116,7 @@ module.exports = {
                 },
             },
 
-            certificate: {
+            certificates: {
                 setKeypair: async (opts: any): Promise<null> => {
                     // The ID is a string that doesn't clash between accounts and certificates.
                     // That's all you need to know... unless you're doing something special (in which case you're on your own).
@@ -176,7 +176,7 @@ module.exports = {
                 // but it's easiest to implement last since it's not useful until there
                 // are certs that can actually be loaded from storage.
                 check: async (opts: any): Promise<null | any> => {
-                    const id: string = opts.certificate.id || opts.subject;
+                    const id: string = opts.certificate?.id || opts.subject;
                     const certblob: any = await getCertificate(id);
 
                     if (!certblob) {

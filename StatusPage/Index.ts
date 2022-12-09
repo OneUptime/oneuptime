@@ -13,6 +13,10 @@ import NotFoundException from 'Common/Types/Exception/NotFoundException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
+import Port from 'Common/Types/Port';
+import tls from 'tls';
+import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
+import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 
 export const APP_NAME: string = 'status-page';
 
@@ -25,7 +29,7 @@ app.get(
         const challenge: GreenlockChallenge | null =
             await GreenlockChallengeService.findOneBy({
                 query: {
-                    key: req.params['token'] as string,
+                    token: req.params['token'] as string,
                 },
                 select: {
                     challenge: true,
@@ -54,7 +58,7 @@ app.get(
 app.get(
     '/status-page-api/cname-verification/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
-        logger.info("HERE!")
+        logger.info('HERE!');
         const host: string | undefined = req.get('host');
 
         if (!host) {
@@ -90,7 +94,39 @@ app.get(
 const init: Function = async (): Promise<void> => {
     try {
         // init the app
-        await App(APP_NAME);
+        await App(APP_NAME, new Port(3106), {
+            port: new Port(3107),
+            sniCallback: (serverName: string, callback: Function) => {
+                logger.info("SNI CALLBACK " + serverName);
+               
+            
+                GreenlockCertificateService.findOneBy({
+                    query: {
+                        key: serverName,
+                    },
+                    select: {
+                        blob: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                }).then((result: GreenlockCertificate | null) => {
+                    if (!result) {
+                        return callback("Certificate not found");
+                    }
+
+                    const blob = JSON.parse(result.blob as string);
+
+                    callback(null, new (tls as any).createSecureContext({
+                        cert: blob.cert as string,
+                        key: blob.key as string,
+                    }));
+                }).catch((err: Error) => {
+                    logger.error(err);
+                    return callback("Server Error. Please try again later.");
+                });
+            }
+        });
 
         // connect to the database.
         await PostgresAppInstance.connect(

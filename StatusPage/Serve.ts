@@ -24,7 +24,7 @@ app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
 const init: Function = async (): Promise<void> => {
     try {
         // init the app
-        await App(APP_NAME, new Port(3106));
+        await App(APP_NAME, new Port(3105));
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

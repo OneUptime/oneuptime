@@ -91,8 +91,15 @@ app.use(ExpressUrlEncoded({ limit: '50mb' }));
 
 app.use(logRequest);
 
-const init: Function = async (appName: string, port?: Port): Promise<ExpressApplication> => {
-    await Express.launchApplication(appName, port);
+const init: Function = async (
+    appName: string,
+    port?: Port,
+    httpsOptions?: {
+        port?: Port, 
+        sniCallBack?: Function
+    }
+): Promise<ExpressApplication> => {
+    await Express.launchApplication(appName, port, httpsOptions);
     LocalCache.setString('app', 'name', appName);
     CommonAPI(appName);
 
@@ -135,19 +142,35 @@ const init: Function = async (appName: string, port?: Port): Promise<ExpressAppl
     );
 
     app.post('*', (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendErrorResponse(req, res, new NotFoundException("Not found"))
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException('Not found')
+        );
     });
 
     app.put('*', (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendErrorResponse(req, res, new NotFoundException("Not found"))
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException('Not found')
+        );
     });
 
     app.delete('*', (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendErrorResponse(req, res, new NotFoundException("Not found"))
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException('Not found')
+        );
     });
 
     app.get('*', (req: ExpressRequest, res: ExpressResponse) => {
-        return Response.sendErrorResponse(req, res, new NotFoundException("Not found"))
+        return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException('Not found')
+        );
     });
 
     // await OpenTelemetrySDK.start();

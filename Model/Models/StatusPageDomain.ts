@@ -305,7 +305,6 @@ export default class StatusPageDomain extends BaseModel {
     })
     public isAddedtoGreenlock?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],

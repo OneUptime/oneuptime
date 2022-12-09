@@ -34,6 +34,21 @@ export default class GreenlockChallenge extends BaseModel {
     })
     public key?: string = undefined;
 
+    @Index()
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.LongText })
+    @Column({
+        type: ColumnType.LongText,
+        length: ColumnLength.LongText,
+        nullable: false,
+        unique: false,
+    })
+    public token?: string = undefined;
+
     @ColumnAccessControl({
         create: [],
         read: [],
