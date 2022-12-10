@@ -70,7 +70,7 @@ class Express {
         port?: Port,
         httpsOptions?: {
             port?: Port, 
-            sniCallBack?: any
+            sniCallback?: any
         }
     ): Promise<express.Application> {
         
@@ -82,7 +82,7 @@ class Express {
 
         if (httpsOptions && httpsOptions.port) {
             const serverOptions = {
-                SNICallback: httpsOptions?.sniCallBack,
+                SNICallback: httpsOptions?.sniCallback,
                 cert: fs.readFileSync(
                     "/usr/src/app/Certs/Cert.crt"
                 ),

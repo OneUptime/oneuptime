@@ -18,7 +18,7 @@ import tls from 'tls';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 
-export const APP_NAME: string = 'status-page';
+export const APP_NAME: string = 'status-page-api';
 
 const app: ExpressApplication = Express.getExpressApp();
 
@@ -58,7 +58,7 @@ app.get(
 app.get(
     '/status-page-api/cname-verification/:token',
     async (req: ExpressRequest, res: ExpressResponse) => {
-        logger.info('HERE!');
+        
         const host: string | undefined = req.get('host');
 
         if (!host) {
@@ -99,27 +99,30 @@ const init: Function = async (): Promise<void> => {
             sniCallback: (serverName: string, callback: Function) => {
                 logger.info("SNI CALLBACK " + serverName);
                
-            
-                GreenlockCertificateService.findOneBy({
+                GreenlockCertificateService.findBy({
                     query: {
                         key: serverName,
                     },
                     select: {
                         blob: true,
+                        isKeyPair: true
                     },
+                    skip: 0, 
+                    limit: 10,
                     props: {
                         isRoot: true,
                     },
-                }).then((result: GreenlockCertificate | null) => {
-                    if (!result) {
-                        return callback("Certificate not found");
+                }).then((result: Array<GreenlockCertificate>) => {
+                    if (result.length === 0) {
+                        return callback(null, null);
                     }
+        
+                    const certBlob = JSON.parse(result.find((i) => !i.isKeyPair)?.blob || '{}');
+                    const keyBlob = JSON.parse(result.find((i) => i.isKeyPair)?.blob || '{}');
 
-                    const blob = JSON.parse(result.blob as string);
-
-                    callback(null, new (tls as any).createSecureContext({
-                        cert: blob.cert as string,
-                        key: blob.key as string,
+                    callback(null, tls.createSecureContext({
+                        cert: certBlob.cert,
+                        key: keyBlob.privateKeyPem,
                     }));
                 }).catch((err: Error) => {
                     logger.error(err);

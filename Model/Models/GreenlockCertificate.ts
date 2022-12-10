@@ -46,4 +46,19 @@ export default class GreenlockCertificate extends BaseModel {
         unique: false,
     })
     public blob?: string = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        default: false,
+        unique: false,
+    })
+    public isKeyPair?: boolean = undefined;
 }

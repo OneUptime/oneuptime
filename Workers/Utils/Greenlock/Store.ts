@@ -7,15 +7,18 @@ module.exports = {
     create: (_opts: any) => {
         const saveCertificate: Function = async (
             id: string,
-            blob: string
+            blob: string,
+            isKeyPair: boolean,
         ): Promise<null> => {
             let cert: GreenlockCertificate | null =
                 await GreenlockCertificateService.findOneBy({
                     query: {
                         key: id,
+                        isKeyPair: isKeyPair
                     },
                     select: {
                         _id: true,
+                        isKeyPair: isKeyPair
                     },
                     props: {
                         isRoot: true,
@@ -27,6 +30,7 @@ module.exports = {
                 cert = new GreenlockCertificate();
                 cert.key = id;
                 cert.blob = blob;
+                cert.isKeyPair = isKeyPair;
 
                 await GreenlockCertificateService.create({
                     data: cert,
@@ -36,6 +40,7 @@ module.exports = {
                 });
             } else {
                 cert.blob = blob;
+                cert.isKeyPair = isKeyPair;
                 await GreenlockCertificateService.updateOneById({
                     id: cert.id!,
                     data: cert,
@@ -50,12 +55,14 @@ module.exports = {
         };
 
         const getCertificate: Function = async (
-            id: string
+            id: string,
+            isKeyPair: boolean
         ): Promise<null | string> => {
             const cert: GreenlockCertificate | null =
                 await GreenlockCertificateService.findOneBy({
                     query: {
                         key: id,
+                        isKeyPair: isKeyPair
                     },
                     select: {
                         _id: true,
@@ -70,6 +77,7 @@ module.exports = {
             if (!cert || !cert.blob) {
                 return null;
             }
+
             return cert.blob;
         };
 
@@ -77,13 +85,13 @@ module.exports = {
             id: string,
             blob: string
         ): Promise<null> => {
-            return await saveCertificate(id, blob);
+            return await saveCertificate(id, blob, true);
         };
 
         const getKeypair: Function = async (
             id: string
         ): Promise<null | string> => {
-            return await getCertificate(id);
+            return await getCertificate(id, true);
         };
 
         return {
@@ -96,10 +104,7 @@ module.exports = {
 
                     return await saveKeypair(
                         id,
-                        JSON.stringify({
-                            privateKeyPem: keypair.privateKeyPem, // string PEM
-                            privateKeyJwk: keypair.privateKeyJwk, // object JWK
-                        })
+                        JSON.stringify(keypair)
                     ); // Must return or Promise `null` instead of `undefined`
                 },
                 // We need a way to retrieve a prior account's keypair for renewals and additional ACME certificate "orders"
@@ -128,10 +133,7 @@ module.exports = {
 
                     return await saveKeypair(
                         id,
-                        JSON.stringify({
-                            privateKeyPem: keypair.privateKeyPem, // string PEM
-                            privateKeyJwk: keypair.privateKeyJwk, // object JWK
-                        })
+                        JSON.stringify(keypair)
                     ); // Must return or Promise `null` instead of `undefined`
                     // Side Note: you can use the "keypairs" package to convert between
                     // public and private for jwk and pem, as well as convert JWK <-> PEM
@@ -161,14 +163,8 @@ module.exports = {
 
                     return await saveCertificate(
                         id,
-                        JSON.stringify({
-                            cert: pems.cert, // string PEM
-                            chain: pems.chain, // string PEM
-                            subject: pems.subject, // string name 'example.com
-                            altnames: pems.altnames, // Array of string names [ 'example.com', '*.example.com', 'foo.bar.example.com' ]
-                            issuedAt: pems.issuedAt, // date number in ms (a.k.a. NotBefore)
-                            expiresAt: pems.expiresAt, // date number in ms (a.k.a. NotAfter)
-                        })
+                        JSON.stringify(pems),
+                        false
                     ); // Must return or Promise `null` instead of `undefined`
                 },
 
@@ -177,7 +173,7 @@ module.exports = {
                 // are certs that can actually be loaded from storage.
                 check: async (opts: any): Promise<null | any> => {
                     const id: string = opts.certificate?.id || opts.subject;
-                    const certblob: any = await getCertificate(id);
+                    const certblob: any = await getCertificate(id, false);
 
                     if (!certblob) {
                         return null;
