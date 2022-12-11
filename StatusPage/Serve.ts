@@ -30,7 +30,6 @@ const init: Function = async (): Promise<void> => {
         await PostgresAppInstance.connect(
             PostgresAppInstance.getDatasourceOptions()
         );
-
     } catch (err) {
         logger.error('App Init Failed:');
         logger.error(err);

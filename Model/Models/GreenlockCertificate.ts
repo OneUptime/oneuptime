@@ -47,7 +47,6 @@ export default class GreenlockCertificate extends BaseModel {
     })
     public blob?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],

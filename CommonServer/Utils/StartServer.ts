@@ -93,7 +93,7 @@ app.use(logRequest);
 
 const init: Function = async (
     appName: string,
-    port?: Port,
+    port?: Port
 ): Promise<ExpressApplication> => {
     await Express.launchApplication(appName, port);
     LocalCache.setString('app', 'name', appName);

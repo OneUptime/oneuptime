@@ -18,7 +18,7 @@ import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthoriza
 import { JSONObject } from 'Common/Types/JSON';
 import Response from 'CommonServer/Utils/Response';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import fs from 'fs';
@@ -326,7 +326,6 @@ RunCron(
     }
 );
 
-
 RunCron(
     'StatusPageCerts:WriteCertsToDisk',
     IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
@@ -335,12 +334,10 @@ RunCron(
 
         const certs: Array<GreenlockCertificate> =
             await GreenlockCertificateService.findBy({
-                query: {
-                    
-                },
+                query: {},
                 select: {
                     isKeyPair: true,
-                    key: true, 
+                    key: true,
                     blob: true,
                 },
                 limit: LIMIT_MAX,
@@ -355,18 +352,30 @@ RunCron(
                 continue;
             }
 
-            const certBlob = certs.find((i) => i.key === cert.key && !i.isKeyPair); 
-            
+            const certBlob: GreenlockCertificate | undefined = certs.find(
+                (i: GreenlockCertificate) => {
+                    return i.key === cert.key && !i.isKeyPair;
+                }
+            );
+
             if (!certBlob) {
-                continue; 
+                continue;
             }
 
-            const key = JSON.parse(cert.blob || '{}').privateKeyPem;
-            const crt = JSON.parse(certBlob.blob || '{}').cert;
+            const key: string = JSON.parse(cert.blob || '{}').privateKeyPem;
+            const crt: string = JSON.parse(certBlob.blob || '{}').cert;
 
-            // Write to disk. 
-            fs.writeFileSync(`/usr/src/Certs/StatusPageCerts/${cert.key}.crt`, crt, { flag: 'wx' });
-            fs.writeFileSync(`/usr/src/Certs/StatusPageCerts/${cert.key}.key`, key,  { flag: 'wx' });
+            // Write to disk.
+            fs.writeFileSync(
+                `/usr/src/Certs/StatusPageCerts/${cert.key}.crt`,
+                crt,
+                { flag: 'wx' }
+            );
+            fs.writeFileSync(
+                `/usr/src/Certs/StatusPageCerts/${cert.key}.key`,
+                key,
+                { flag: 'wx' }
+            );
         }
     }
 );
@@ -437,11 +446,11 @@ const checkCnameValidation: Function = async (
     logger.info('Check CNAMeValidation.');
 
     try {
-        const agent = new https.Agent({
+        const agent: https.Agent = new https.Agent({
             rejectUnauthorized: false,
         });
 
-        const result = await axios.get(
+        const result: AxiosResponse = await axios.get(
             'https://' +
                 fulldomain +
                 '/status-page-api/cname-verification/' +
@@ -463,7 +472,7 @@ const isSslProvisioned: Function = async (
     token: string
 ): Promise<boolean> => {
     try {
-        const result = await axios.get(
+        const result: AxiosResponse = await axios.get(
             'https://' +
                 fulldomain +
                 '/status-page-api/cname-verification/' +

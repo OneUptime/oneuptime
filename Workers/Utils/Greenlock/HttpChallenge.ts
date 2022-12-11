@@ -17,7 +17,7 @@ module.exports = {
 
                 const ch: any = data.challenge;
                 const key: string = ch.identifier.value + '#' + ch.token;
-                const token: string = ch.token; 
+                const token: string = ch.token;
 
                 let challenge: GreenlockChallenge | null =
                     await GreenlockChallengeService.findOneBy({
@@ -107,7 +107,6 @@ module.exports = {
 
                 return null;
             },
-        }
-    }
-
+        };
+    },
 };

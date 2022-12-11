@@ -8,17 +8,17 @@ module.exports = {
         const saveCertificate: Function = async (
             id: string,
             blob: string,
-            isKeyPair: boolean,
+            isKeyPair: boolean
         ): Promise<null> => {
             let cert: GreenlockCertificate | null =
                 await GreenlockCertificateService.findOneBy({
                     query: {
                         key: id,
-                        isKeyPair: isKeyPair
+                        isKeyPair: isKeyPair,
                     },
                     select: {
                         _id: true,
-                        isKeyPair: isKeyPair
+                        isKeyPair: isKeyPair,
                     },
                     props: {
                         isRoot: true,
@@ -62,7 +62,7 @@ module.exports = {
                 await GreenlockCertificateService.findOneBy({
                     query: {
                         key: id,
-                        isKeyPair: isKeyPair
+                        isKeyPair: isKeyPair,
                     },
                     select: {
                         _id: true,
@@ -102,10 +102,7 @@ module.exports = {
                         opts.account.id || opts.email || 'default';
                     const keypair: any = opts.keypair;
 
-                    return await saveKeypair(
-                        id,
-                        JSON.stringify(keypair)
-                    ); // Must return or Promise `null` instead of `undefined`
+                    return await saveKeypair(id, JSON.stringify(keypair)); // Must return or Promise `null` instead of `undefined`
                 },
                 // We need a way to retrieve a prior account's keypair for renewals and additional ACME certificate "orders"
                 checkKeypair: async (opts: any): Promise<any | null> => {
@@ -131,10 +128,7 @@ module.exports = {
                         opts.subject;
                     const keypair: any = opts.keypair;
 
-                    return await saveKeypair(
-                        id,
-                        JSON.stringify(keypair)
-                    ); // Must return or Promise `null` instead of `undefined`
+                    return await saveKeypair(id, JSON.stringify(keypair)); // Must return or Promise `null` instead of `undefined`
                     // Side Note: you can use the "keypairs" package to convert between
                     // public and private for jwk and pem, as well as convert JWK <-> PEM
                 },

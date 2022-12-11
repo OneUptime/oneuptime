@@ -65,17 +65,13 @@ class Express {
 
     public static async launchApplication(
         appName: string,
-        port?: Port,
+        port?: Port
     ): Promise<express.Application> {
-        
         if (!this.app) {
             this.setupExpress();
         }
 
-    
-
         return new Promise<express.Application>((resolve: Function) => {
-
             this.app.listen(port?.toNumber() || this.app.get('port'), () => {
                 // eslint-disable-next-line
                 logger.info(`${appName} server started on port: ${port?.toNumber() || this.app.get('port')}`);
