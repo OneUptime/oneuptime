@@ -11,8 +11,6 @@ import {
 import UserType from 'Common/Types/UserType';
 import Dictionary from 'Common/Types/Dictionary';
 import Port from 'Common/Types/Port';
-import https from 'https';
-import fs from 'fs';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
@@ -68,33 +66,13 @@ class Express {
     public static async launchApplication(
         appName: string,
         port?: Port,
-        httpsOptions?: {
-            port?: Port, 
-            sniCallback?: any
-        }
     ): Promise<express.Application> {
         
         if (!this.app) {
             this.setupExpress();
         }
 
-       
-
-        if (httpsOptions && httpsOptions.port) {
-            const serverOptions = {
-                SNICallback: httpsOptions?.sniCallback,
-                cert: fs.readFileSync(
-                    "/usr/src/app/Certs/Cert.crt"
-                ),
-                key: fs.readFileSync(
-                    "/usr/src/app/Certs/Key.key"
-                ),
-            }
-
-            https.createServer(serverOptions, this.app).listen(httpsOptions?.port.toNumber(), () => {
-                logger.info(`${appName} HTTPS server started on port: ${httpsOptions?.port?.toNumber()}`);
-            });
-        }
+    
 
         return new Promise<express.Application>((resolve: Function) => {
 

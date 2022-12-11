@@ -19,6 +19,9 @@ import { JSONObject } from 'Common/Types/JSON';
 import Response from 'CommonServer/Utils/Response';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import axios from 'axios';
+import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
+import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
+import fs from 'fs';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -319,6 +322,51 @@ RunCron(
                     `StatusPageCerts:RemoveCerts - CNAME for ${domain.fullDomain} is valid`
                 );
             }
+        }
+    }
+);
+
+
+RunCron(
+    'StatusPageCerts:WriteCertsToDisk',
+    IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
+    async () => {
+        // Fetch all domains where certs are added to greenlock.
+
+        const certs: Array<GreenlockCertificate> =
+            await GreenlockCertificateService.findBy({
+                query: {
+                    
+                },
+                select: {
+                    isKeyPair: true,
+                    key: true, 
+                    blob: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        for (const cert of certs) {
+            if (!cert.isKeyPair) {
+                continue;
+            }
+
+            const certBlob = certs.find((i) => i.key === cert.key && !i.isKeyPair); 
+            
+            if (!certBlob) {
+                continue; 
+            }
+
+            const key = JSON.parse(cert.blob || '{}').privateKeyPem;
+            const crt = JSON.parse(certBlob.blob || '{}').cert;
+
+            // Write to disk. 
+            fs.writeFileSync(`/usr/src/Certs/StatusPageCerts/${cert.key}.crt`, crt, { flag: 'wx' });
+            fs.writeFileSync(`/usr/src/Certs/StatusPageCerts/${cert.key}.key`, key,  { flag: 'wx' });
         }
     }
 );

@@ -20,7 +20,7 @@
     "use-async-effect": "^2.2.6"
   },
   "scripts": {
-    "dev": "node --require ts-node/register Serve.ts & nodemon",
+    "dev": "webpack-dev-server --port=3105 --mode=development & nodemon",
     "build": "webpack build --mode=production",
     "test": "react-app-rewired test",
     "eject": "webpack eject",

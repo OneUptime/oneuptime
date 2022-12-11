@@ -41,8 +41,6 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
-
-
 # Install CommonUI
 RUN mkdir /usr/src/CommonUI
 WORKDIR /usr/src/CommonUI
@@ -50,8 +48,6 @@ COPY ./CommonUI/package*.json /usr/src/CommonUI/
 RUN npm install --force
 COPY ./CommonUI /usr/src/CommonUI
 RUN npm run compile
-
-
 
 #SET ENV Variables
 ENV PRODUCTION=true
@@ -69,11 +65,7 @@ RUN npm install
 #   - 3105:  StatusPage
 EXPOSE 3105
 # API
-EXPOSE 3106 
-# HTTPS UI
-EXPOSE 3107
-# HTTPS API
-EXPOSE 3108
+EXPOSE 3106
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app

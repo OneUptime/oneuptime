@@ -94,12 +94,8 @@ app.use(logRequest);
 const init: Function = async (
     appName: string,
     port?: Port,
-    httpsOptions?: {
-        port?: Port, 
-        sniCallBack?: Function
-    }
 ): Promise<ExpressApplication> => {
-    await Express.launchApplication(appName, port, httpsOptions);
+    await Express.launchApplication(appName, port);
     LocalCache.setString('app', 'name', appName);
     CommonAPI(appName);
 

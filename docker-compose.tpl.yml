@@ -141,8 +141,6 @@ services:
         ports:
             - '3105:3105' # HTTP UI Port
             - '3106:3106' # HTTP API Port
-            - '3107:3107' # HTTPS UI Port
-            - '3108:3108' # HTTPS API Port
             {{ if eq .Env.ENVIRONMENT "development" }}
             - 9764:9229 # Debugging port.
             {{ end }}
@@ -163,10 +161,9 @@ services:
         depends_on:
             - accounts
             - dashboard-api
-        
-        volumes:
-            - ./Certs:/usr/src/app/Certs
+            
         {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
             - ./StatusPage:/usr/src/app
             - /usr/src/app/node_modules/
             - ./Common:/usr/src/Common
@@ -249,8 +246,9 @@ services:
         links:
             - postgres
             - mail
-        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
+            - ./Certs:/usr/src/Certs
+        {{ if eq .Env.ENVIRONMENT "development" }}
             - ./Workers:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
