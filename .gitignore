@@ -75,3 +75,5 @@ logs.txt
 */Key.key
 Nginx/default.conf
 
+Certs/StatusPageCerts/*.crt
+Certs/StatusPageCerts/*.key
