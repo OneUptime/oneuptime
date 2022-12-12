@@ -53,7 +53,8 @@
         "stop": "docker compose down --remove-orphans",
         "prune": "docker system prune",
         "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
-        "prepare": "husky install"
+        "prepare": "husky install",
+        "backup": "sudo bash backup.sh"
     },
     "repository": {
         "type": "git",
