@@ -18,6 +18,8 @@ export interface ComponentProps {
     buttons?: undefined | Array<CardButtonSchema>;
     children?: undefined | Array<ReactElement> | ReactElement;
     cardBodyStyle?: undefined | CSSProperties;
+    className?: string | undefined;
+    style?: React.CSSProperties | undefined;
 }
 
 const Card: FunctionComponent<ComponentProps> = (
@@ -25,7 +27,7 @@ const Card: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <div className="row">
+            <div className={`${props.className || ''} row`} style={props.style}>
                 <div className="col-xl-12">
                     <div className="card">
                         <div className="card-header justify-space-between">

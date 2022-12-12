@@ -166,7 +166,7 @@ export default class StatusPageDomain extends BaseModel {
 
     @UniqueColumnBy('projectId')
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
         update: [],
     })
@@ -238,4 +238,88 @@ export default class StatusPageDomain extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ type: TableColumnType.JSON })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true,
+        unique: false,
+    })
+    public greenlockConfig?: JSON = undefined;
+
+    // This token is used by the Worker.
+    // worker pings the status page of customers - eg: status.company.com/verify-token/:id
+    // and the end  point on Sttaus Page proejct returns 200.
+    // when that happens the isCnameVerified is set to True and the certificate is added to greenlock.
+    @ColumnAccessControl({
+        create: [Permission.ProjectOwner, Permission.CanCreateStatusPageDomain],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ required: true, type: TableColumnType.ShortText })
+    @Column({
+        nullable: false,
+        type: ColumnType.ShortText,
+        length: ColumnLength.ShortText,
+    })
+    public cnameVerificationToken?: string = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isCnameVerified?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isAddedtoGreenlock?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
+        update: [],
+    })
+    @TableColumn({
+        isDefaultValueColumn: true,
+        required: true,
+        type: TableColumnType.Boolean,
+    })
+    @Column({
+        type: ColumnType.Boolean,
+        nullable: false,
+        unique: false,
+        default: false,
+    })
+    public isSslProvisioned?: boolean = undefined;
 }

@@ -1,14 +1,18 @@
 const path = require("path");
 const webpack = require("webpack");
 const dotenv = require('dotenv');
+const express = require('express');
 
 const readEnvFile = (pathToFile) => {
+
     const parsed = dotenv.config({ path: pathToFile }).parsed;
 
     const env = {};
+
     for (const key in parsed) {
         env[key] = JSON.stringify(parsed[key]);
     }
+
 
     return env;
 }
@@ -18,8 +22,8 @@ module.exports = {
     mode: "development",
     output: {
         filename: "bundle.js",
-        path: path.resolve(__dirname, "dist"),
-        publicPath: "/assets/",
+        path: path.resolve(__dirname, "public", "dist"),
+        publicPath: "/accounts/dist/",
     },
     resolve: {
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.json', '.css', '.scss'],
@@ -56,7 +60,7 @@ module.exports = {
                 use: ['style-loader', 'css-loader']
             },
             {
-                test: /\.(jpe?g|png|gif|svg)$/i, 
+                test: /\.(jpe?g|png|gif|svg)$/i,
                 loader: 'file-loader'
             }
         ],
@@ -66,6 +70,11 @@ module.exports = {
         devMiddleware: {
             writeToDisk: true,
         },
+        allowedHosts: "all",
+        setupMiddlewares: (middlewares, devServer) => {
+            devServer.app.use('/accounts/assets', express.static(path.resolve(__dirname, 'public', 'assets')));
+            return middlewares;
+        }
     },
     devtool: 'eval-source-map',
 }

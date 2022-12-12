@@ -322,6 +322,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         ) as string,
                     });
                 }
+
+                if (column.tooltipText) {
+                    classicColumn.tooltipText = (item: JSONObject): string => {
+                        return column.tooltipText!(
+                            BaseModel.fromJSONObject(item, props.modelType)
+                        );
+                    };
+                }
             }
 
             setColumns(classicColumns);
@@ -642,12 +650,24 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             const key: string | null = getColumnKey(column);
 
             if (hasPermission) {
+                let tooltipText: ((item: JSONObject) => string) | undefined =
+                    undefined;
+
+                if (column.tooltipText) {
+                    tooltipText = (item: JSONObject): string => {
+                        return column.tooltipText!(
+                            BaseModel.fromJSONObject(item, props.modelType)
+                        );
+                    };
+                }
+
                 columns.push({
                     ...column,
                     disableSort: column.disableSort || shouldDisableSort(key),
                     key: column.selectedProperty
                         ? key + '.' + column.selectedProperty
                         : key,
+                    tooltipText,
                 });
 
                 if (key) {

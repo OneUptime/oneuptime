@@ -8,7 +8,7 @@ node_modules
 */build/dist/*
 
 # Build Dist
-*/dist/*
+**/dist/*
 
 .idea
 # testing
@@ -70,3 +70,12 @@ config.env.tmp
 config.env.temp
 docker-compose.yml
 logs.txt
+
+*/Cert.crt
+*/Key.key
+Nginx/default.conf
+
+Certs/StatusPageCerts/*.crt
+Certs/StatusPageCerts/*.key
+
+Backups/*.backup

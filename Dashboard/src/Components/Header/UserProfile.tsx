@@ -4,46 +4,44 @@ import UserProfileMenu from 'CommonUI/src/Components/Header/UserProfile/UserProf
 import UserProfileMenuItem from 'CommonUI/src/Components/Header/UserProfile/UserProfileMenuItem';
 import UserProfileDropdownDivider from 'CommonUI/src/Components/Header/UserProfile/UserProfileDropdownDivider';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import URL from 'Common/Types/API/URL';
 import Route from 'Common/Types/API/Route';
 import { Red } from 'Common/Types/BrandColors';
 import RouteMap from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import UserUtil from 'CommonUI/src/Utils/User';
+import OneUptimeLogo from 'CommonUI/src/Images/users/blank-profile.svg';
 
-const DashboardUserProfile: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+    onClickUserProfle: () => void;
+}
+
+const DashboardUserProfile: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+): ReactElement => {
     return (
-        <UserProfile
-            userFullName={UserUtil.getName()}
-            userProfilePicture={URL.fromString(
-                'https://blog.media.io/images/images2021/cool-good-tiktok-profile-pictures.jpg'
-            )}
-        >
-            <UserProfileMenu>
-                <UserProfileMenuItem
-                    title="Profile"
-                    route={new Route('/logout')}
-                    icon={IconProp.User}
-                />
-                {/* <UserProfileMenuItem
-                    title="Billing"
-                    route={new Route('/logout')}
-                    icon={IconProp.Billing}
-                />
-                <UserProfileMenuItem
-                    title="User Settings"
-                    route={new Route('/logout')}
-                    icon={IconProp.Settings}
-                /> */}
-                <UserProfileDropdownDivider />
-                <UserProfileMenuItem
-                    title="Log out"
-                    route={RouteMap[PageMap.LOGOUT] as Route}
-                    icon={IconProp.Logout}
-                    iconColor={Red}
-                />
-            </UserProfileMenu>
-        </UserProfile>
+        <>
+            <UserProfile
+                userFullName={UserUtil.getName()}
+                userProfilePicture={Route.fromString(`${OneUptimeLogo}`)}
+            >
+                <UserProfileMenu>
+                    <UserProfileMenuItem
+                        title="Profile"
+                        onClick={() => {
+                            props.onClickUserProfle();
+                        }}
+                        icon={IconProp.User}
+                    />
+                    <UserProfileDropdownDivider />
+                    <UserProfileMenuItem
+                        title="Log out"
+                        route={RouteMap[PageMap.LOGOUT] as Route}
+                        icon={IconProp.Logout}
+                        iconColor={Red}
+                    />
+                </UserProfileMenu>
+            </UserProfile>
+        </>
     );
 };
 

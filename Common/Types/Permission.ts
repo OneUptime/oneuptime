@@ -227,6 +227,13 @@ export class PermissionHelper {
         permissions1: Array<Permission>,
         permissions2: Array<Permission>
     ): boolean {
+        if (!permissions1) {
+            permissions1 = [];
+        }
+
+        if (!permissions2) {
+            permissions2 = [];
+        }
         return (
             permissions1.filter((value: Permission) => {
                 return permissions2.includes(value);

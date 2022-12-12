@@ -28,6 +28,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
+import UserProfileModal from './UserProfileModal';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -56,6 +57,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(
         null
     );
+
+    const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
 
     useAsyncEffect(async () => {
         if (
@@ -93,6 +96,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             onChange={(_value: string) => {}}
                         /> */}
                         <div
+                            className="flex"
                             style={{
                                 marginLeft: '15px',
                                 marginTop: '15px',
@@ -114,6 +118,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 onClick={() => {
                                     setShowProjectInvitationModal(true);
                                 }}
+                                style={{
+                                    marginRight: '10px',
+                                }}
                             />
                             <CounterModelAlert<Incident>
                                 alertType={AlertType.DANGER}
@@ -130,6 +137,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 }}
                                 onClick={() => {
                                     setShowActiveIncidentsModal(true);
+                                }}
+                                style={{
+                                    marginRight: '10px',
                                 }}
                             />
 
@@ -153,6 +163,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                                 ? 'days'
                                                 : 'day'
                                         }`}
+                                        style={{
+                                            marginRight: '10px',
+                                        }}
                                     />
                                 )}
                         </div>
@@ -203,7 +216,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             <></>
                         )}
                         <Help />
-                        <UserProfile />
+                        <UserProfile
+                            onClickUserProfle={() => {
+                                setShowProfileModal(true);
+                            }}
+                        />
                     </>
                 }
             />
@@ -224,6 +241,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         setProjectCountRefreshToggle(
                             !projectCountRefreshToggle
                         );
+                    }}
+                />
+            )}
+
+            {showProfileModal && (
+                <UserProfileModal
+                    onClose={() => {
+                        setShowProfileModal(false);
                     }}
                 />
             )}

@@ -117,7 +117,7 @@ services:
         env_file:
             - ./Common/.env
             - ./CommonUI/.env
-            - ./Accounts/.env
+            - ./Dashboard/.env
 
         depends_on:
             - identity
@@ -139,7 +139,11 @@ services:
 
     status-page:
         ports:
-            - '3105:3105'
+            - '3105:3105' # HTTP UI Port
+            - '3106:3106' # HTTP API Port
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - 9764:9229 # Debugging port.
+            {{ end }}
         {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
@@ -150,12 +154,14 @@ services:
         {{ end }}
         env_file:
             - ./Common/.env
+            - ./CommonServer/.env
             - ./CommonUI/.env
             - ./StatusPage/.env
 
         depends_on:
             - accounts
             - dashboard-api
+            
         {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
             - ./StatusPage:/usr/src/app
@@ -240,8 +246,9 @@ services:
         links:
             - postgres
             - mail
-        {{ if eq .Env.ENVIRONMENT "development" }}
         volumes:
+            - ./Certs:/usr/src/Certs
+        {{ if eq .Env.ENVIRONMENT "development" }}
             - ./Workers:/usr/src/app
             # Use node modules of the container and not host system.
             # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
@@ -387,11 +394,14 @@ services:
             - home
         restart: always
         build:
-            dockerfile: Dockerfile
+            dockerfile: ./Nginx/Dockerfile
             network: host
-            context: ./Nginx
+            context: .
         ports:
             - '80:80'
             - '443:443'
+        volumes:
+            - ./Nginx/default.conf:/etc/nginx/conf.d/default.conf
+            - ./Certs:/etc/nginx/certs
 volumes:
     postgres:

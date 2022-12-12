@@ -59,6 +59,10 @@ import Domain from './Domain';
 import File from './File';
 import BillingInvoice from './BillingInvoice';
 
+// Greenlock
+import GreenlockChallenge from './GreenlockChallenge';
+import GreenlockCertificate from './GreenlockCertificate';
+
 export default [
     User,
     Probe,
@@ -102,4 +106,7 @@ export default [
 
     BillingPaymentMethods,
     BillingInvoice,
+
+    GreenlockChallenge,
+    GreenlockCertificate,
 ];

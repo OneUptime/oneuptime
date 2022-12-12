@@ -1,3 +1,4 @@
-FROM nginx
-COPY ./default.conf /etc/nginx/conf.d/default.conf
-COPY ./certs /etc/nginx/certs
+FROM nginx:alpine
+
+# Install bash. 
+RUN apk update && apk add bash && apk add curl

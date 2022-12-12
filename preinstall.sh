@@ -104,18 +104,11 @@ fi
 # enable docker without sudo
 sudo usermod -aG docker "${USER}" || true
 
-if [[ ! $(which docker-compose) && ! $(docker-compose --version) ]]; then
+if [[ ! $(which docker-compose) && ! $(docker compose --version) ]]; then
 mkdir -p /usr/local/lib/docker/cli-plugins
-curl -SL https://github.com/docker/compose/releases/download/v2.12.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins
+sudo curl -SL https://github.com/docker/compose/releases/download/v2.12.2/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose
 sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 docker compose version
-fi
-
-# If docker still fails to install, then quit. 
-if [[ ! $(which docker-compose) && ! $(docker-compose --version) ]]; then
-  echo -e "Failed to install docker-domcpose. Please install Docker Compose manually here: https://docs.docker.com/compose/install/linux/#install-the-plugin-manually."
-  echo -e "Exiting the OneUptime installer."
-  exit
 fi
 
 if [[ ! $(which gomplate) ]]; then
@@ -142,8 +135,17 @@ if [[ ! $(which ts-node) ]]; then
     sudo npm install -g ts-node
 fi
 
-
 cd oneuptime
+
+# Generate Self Signed SSL certificate. 
+
+CERT=./Certs/Cert.crt
+if test -f "$CERT"; then
+    echo "SSL Certificate exists. Skipping generating a new one."
+else
+    echo "SSL Certificate not found. Generating a new certificate."
+    openssl req -new -x509 -nodes -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=example.com" -out ./Certs/Cert.crt -keyout ./Certs/Key.key
+fi
 
 # Create .env file if it does not exist. 
 touch config.env
@@ -152,6 +154,7 @@ touch config.env
 ts-node-esm ./Scripts/Install/MergeEnvTemplate.ts
 
 cat config.env.temp | gomplate > config.env
+
 
 rm config.env.temp
 
@@ -173,3 +176,7 @@ done
 
 # Convert template to docker-compose. 
 cat docker-compose.tpl.yml | gomplate > docker-compose.yml
+
+
+# Convert nginx conf template to nginx
+cat ./Nginx/default.tpl.conf | gomplate > ./Nginx/default.conf

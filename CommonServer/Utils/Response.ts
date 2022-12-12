@@ -243,4 +243,24 @@ export default class Response {
         oneUptimeResponse.status(200).send(item);
         this.logResponse(req, res, item as JSONObject);
     }
+
+    public static sendTextResponse(
+        req: ExpressRequest,
+        res: ExpressResponse,
+        text: string
+    ): void {
+        const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+        const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+        oneUptimeResponse.set(
+            'ExpressRequest-Id',
+            oneUptimeRequest.id.toString()
+        );
+
+        oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+
+        oneUptimeResponse.logBody = { text: text as string };
+        oneUptimeResponse.status(200).send(text);
+        this.logResponse(req, res, { text: text as string });
+    }
 }

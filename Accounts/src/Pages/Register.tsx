@@ -7,12 +7,18 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
 import LoginUtil from '../Utils/Login';
 import { JSONObject } from 'Common/Types/JSON';
-
+import UserUtil from 'CommonUI/src/Utils/User';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 
 const RegisterPage: FunctionComponent = () => {
     const apiUrl: URL = SIGNUP_API_URL;
+
+    if (UserUtil.isLoggedIn()) {
+        Navigation.navigate(DASHBOARD_URL);
+    }
 
     return (
         <div className="auth-page">
@@ -31,7 +37,7 @@ const RegisterPage: FunctionComponent = () => {
                                         >
                                             <img
                                                 style={{ height: '40px' }}
-                                                src={`/accounts/public/${OneUptimeLogo}`}
+                                                src={`${OneUptimeLogo}`}
                                             />
                                         </div>
                                         <div className="text-center">

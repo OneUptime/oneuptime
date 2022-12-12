@@ -27,7 +27,7 @@ const SsoLoginPage: FunctionComponent = () => {
                                         >
                                             <img
                                                 style={{ height: '40px' }}
-                                                src={`/accounts/public/${OneUptimeLogo}`}
+                                                src={`${OneUptimeLogo}`}
                                             />
                                         </div>
                                         <div className="text-center">

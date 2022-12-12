@@ -32,6 +32,7 @@ enum ColumnType {
     BigNumber,
     Entity,
     EntityArray,
+    JSON,
 }
 
 export default ColumnType;

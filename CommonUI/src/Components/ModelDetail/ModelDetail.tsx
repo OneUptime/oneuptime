@@ -36,14 +36,9 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     const [error, setError] = useState<string>('');
     const [item, setItem] = useState<TBaseModel | null>(null);
 
-    const model: TBaseModel = new props.modelType();
     const [onBeforeFetchData, setOnBeforeFetchData] = useState<
         JSONObject | undefined
     >(undefined);
-
-    useEffect(() => {
-        fetchItem();
-    }, [props.refresher]);
 
     const getSelectFields: Function = (): Select<TBaseModel> => {
         const select: Select<TBaseModel> = {};
@@ -68,14 +63,14 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
                 ? (Object.keys(field.field)[0] as string)
                 : null;
 
-            if (key && model.isFileColumn(key)) {
+            if (key && new props.modelType()?.isFileColumn(key)) {
                 (populate as JSONObject)[key] = {
                     file: true,
                     _id: true,
                     type: true,
                     name: true,
                 };
-            } else if (key && model.isEntityColumn(key)) {
+            } else if (key && new props.modelType()?.isEntityColumn(key)) {
                 (populate as JSONObject)[key] = (field.field as any)[key];
             }
         }
@@ -89,8 +84,10 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
         const userPermissions: Array<Permission> =
             PermissionUtil.getAllPermissions();
 
+        const model: BaseModel = new props.modelType();
+
         const accessControl: Dictionary<ColumnAccessControl> =
-            model.getColumnAccessControlForAllColumns();
+            model.getColumnAccessControlForAllColumns() || {};
 
         const fieldsToSet: Array<Field<TBaseModel>> = [];
 
@@ -147,12 +144,10 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     };
 
     useEffect(() => {
-        setDetailFields();
-    }, []);
-
-    useEffect(() => {
-        setDetailFields();
-    }, [onBeforeFetchData]);
+        if (props.modelType) {
+            setDetailFields();
+        }
+    }, [onBeforeFetchData, props.modelType]);
 
     const fetchItem: Function = async (): Promise<void> => {
         // get item.
@@ -175,9 +170,9 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
             if (!item) {
                 setError(
                     `Cannot load ${(
-                        model.singularName || 'item'
+                        new props.modelType()?.singularName || 'item'
                     ).toLowerCase()}. It could be because you don't have enough permissions to read this ${(
-                        model.singularName || 'item'
+                        new props.modelType()?.singularName || 'item'
                     ).toLowerCase()}.`
                 );
             }
@@ -204,8 +199,10 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     };
 
     useEffect(() => {
-        fetchItem();
-    }, []);
+        if (props.modelId && props.modelType) {
+            fetchItem();
+        }
+    }, [props.modelId, props.refresher, props.modelType]);
 
     if (isLoading) {
         return (

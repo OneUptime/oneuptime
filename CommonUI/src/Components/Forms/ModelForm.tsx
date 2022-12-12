@@ -36,6 +36,7 @@ import FileModel from 'Common/Models/FileModel';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
+import { ButtonStyleType } from '../Button/Button';
 
 export enum FormType {
     Create,
@@ -65,6 +66,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     apiUrl?: undefined | URL;
     formType: FormType;
     hideSubmitButton?: undefined | boolean;
+    submitButtonStyleType?: ButtonStyleType | undefined;
     formRef?: undefined | MutableRefObject<FormikProps<FormikValues>>;
     onLoadingChange?: undefined | ((isLoading: boolean) => void);
     initialValues?: FormValues<TBaseModel> | undefined;
@@ -72,6 +74,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onError?: ((error: string) => void) | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     saveRequestOptions?: RequestOptions | undefined;
+    doNotFetchExistingModel?: boolean | undefined;
 }
 
 const ModelForm: Function = <TBaseModel extends BaseModel>(
@@ -316,7 +319,11 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
     };
 
     useAsyncEffect(async () => {
-        if (props.modelIdToEdit && props.formType === FormType.Update) {
+        if (
+            props.modelIdToEdit &&
+            props.formType === FormType.Update &&
+            !props.doNotFetchExistingModel
+        ) {
             // get item.
             setLoading(true);
             setIsFetching(true);
@@ -476,26 +483,29 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
     }
 
     return (
-        <BasicModelForm<TBaseModel>
-            title={props.title}
-            description={props.description}
-            model={model}
-            id={props.id}
-            fields={fields}
-            showAsColumns={props.showAsColumns}
-            footer={props.footer}
-            isLoading={isLoading}
-            submitButtonText={props.submitButtonText}
-            cancelButtonText={props.cancelButtonText}
-            onSubmit={onSubmit}
-            onValidate={props.onValidate}
-            onCancel={props.onCancel}
-            maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
-            error={error}
-            hideSubmitButton={props.hideSubmitButton}
-            formRef={props.formRef}
-            initialValues={itemToEdit || props.initialValues}
-        ></BasicModelForm>
+        <div>
+            <BasicModelForm<TBaseModel>
+                title={props.title}
+                description={props.description}
+                model={model}
+                id={props.id}
+                fields={fields}
+                showAsColumns={props.showAsColumns}
+                footer={props.footer}
+                isLoading={isLoading}
+                submitButtonText={props.submitButtonText}
+                cancelButtonText={props.cancelButtonText}
+                onSubmit={onSubmit}
+                submitButtonStyleType={props.submitButtonStyleType}
+                onValidate={props.onValidate}
+                onCancel={props.onCancel}
+                maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
+                error={error}
+                hideSubmitButton={props.hideSubmitButton}
+                formRef={props.formRef}
+                initialValues={itemToEdit || props.initialValues}
+            ></BasicModelForm>
+        </div>
     );
 };
 

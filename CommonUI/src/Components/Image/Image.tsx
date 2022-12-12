@@ -2,12 +2,14 @@ import Route from 'Common/Types/API/Route';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import File from 'Model/Models/File';
 import React, { FunctionComponent, ReactElement } from 'react';
+import URLFromProject from 'Common/Types/API/URL';
 
 export interface ComponentProps {
-    onClick: () => void;
-    imageUrl?: URL | Route | undefined;
+    onClick?: () => void | undefined;
+    imageUrl?: URLFromProject | Route | undefined;
     height?: number | undefined;
     file?: File | undefined;
+    className?: string | undefined;
 }
 
 export class ImageFunctions {
@@ -32,6 +34,7 @@ const Image: FunctionComponent<ComponentProps> = (
                 }}
                 src={props.imageUrl.toString()}
                 height={props.height}
+                className={props.className}
             />
         );
     }
@@ -46,6 +49,7 @@ const Image: FunctionComponent<ComponentProps> = (
                 }}
                 src={url}
                 height={props.height}
+                className={props.className}
             />
         );
     }

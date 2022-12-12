@@ -136,7 +136,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         labelField: 'name',
                         valueField: '_id',
                     },
-                    required: true,
+                    required: false,
                     placeholder: 'Select Status Pages',
                 },
                 {

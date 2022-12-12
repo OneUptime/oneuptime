@@ -25,6 +25,7 @@ export interface ComponentProps {
     size?: undefined | AlertSize;
     color?: undefined | Color;
     dataTestId?: string;
+    style?: React.CSSProperties | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -63,7 +64,7 @@ const Alert: FunctionComponent<ComponentProps> = (
     const rgb: RGB = Color.colorToRgb(props.color || Black);
 
     return (
-        <div className="row">
+        <div className="row" style={props.style}>
             <div className="col-xl-12">
                 <div
                     data-testid={props.dataTestId}

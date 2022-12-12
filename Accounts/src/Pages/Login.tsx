@@ -9,9 +9,16 @@ import { LOGIN_API_URL } from '../Utils/ApiPaths';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import LoginUtil from '../Utils/Login';
+import UserUtil from 'CommonUI/src/Utils/User';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import { DASHBOARD_URL } from 'CommonUI/src/Config';
 
 const LoginPage: FunctionComponent = () => {
     const apiUrl: URL = LOGIN_API_URL;
+
+    if (UserUtil.isLoggedIn()) {
+        Navigation.navigate(DASHBOARD_URL);
+    }
 
     return (
         <div className="auth-page">
@@ -30,7 +37,7 @@ const LoginPage: FunctionComponent = () => {
                                         >
                                             <img
                                                 style={{ height: '40px' }}
-                                                src={`/accounts/public/${OneUptimeLogo}`}
+                                                src={`${OneUptimeLogo}`}
                                             />
                                         </div>
                                         <div className="text-center">

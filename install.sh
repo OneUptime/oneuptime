@@ -7,10 +7,10 @@ bash preinstall.sh
 # Pull latest changes
 git pull
 
-docker-compose pull
+docker compose pull
 
 # echo "Checking if async migrations are up to date"
-# sudo -E docker-compose run init
+# sudo -E docker compose run init
 
 npm run start
 

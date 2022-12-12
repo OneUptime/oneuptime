@@ -14,12 +14,14 @@ const Help: FunctionComponent = (): ReactElement => {
                     <IconDropdwonItem
                         title="Support Email"
                         icon={IconProp.Email}
-                        url={URL.fromString('https://google.com')}
+                        url={URL.fromString('mailto:support@oneuptime.com')}
                     />
                     <IconDropdwonItem
                         title="Chat on Slack"
                         icon={IconProp.Slack}
-                        url={URL.fromString('https://google.com')}
+                        url={URL.fromString(
+                            'https://join.slack.com/t/oneuptimesupport/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ'
+                        )}
                     />
                 </IconDropdwonRow>
             </IconDropdwonMenu>

@@ -15,6 +15,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onCountFetchInit?: (() => void) | undefined;
     onClick?: (() => void) | undefined;
     refreshToggle?: boolean | undefined;
+    style?: React.CSSProperties | undefined;
 }
 
 const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
@@ -78,6 +79,7 @@ const CounterModelAlert: Function = <TBaseModel extends BaseModel>(
 
     return (
         <Alert
+            style={props.style}
             onClick={props.onClick}
             type={props.alertType}
             title={`${count} ${

@@ -40,9 +40,7 @@ export class Service extends DatabaseService<TeamMember> {
     protected override async onBeforeCreate(
         createBy: CreateBy<TeamMember>
     ): Promise<OnCreate<TeamMember>> {
-        if (!createBy.data.hasAcceptedInvitation) {
-            createBy.data.hasAcceptedInvitation = false;
-        }
+        createBy.data.hasAcceptedInvitation = false;
 
         if (createBy.miscDataProps && createBy.miscDataProps['email']) {
             const email: Email = new Email(
@@ -91,10 +89,31 @@ export class Service extends DatabaseService<TeamMember> {
             }
         }
 
+        //check if this user is already ivnited.
+
+        const member: TeamMember | null = await this.findOneBy({
+            query: {
+                userId: createBy.data.userId!,
+                teamId: createBy.data.teamId!,
+            },
+            props: {
+                isRoot: true,
+            },
+            select: {
+                _id: true,
+            },
+        });
+
+        if (member) {
+            throw new BadDataException(
+                'This user has already been invited to this team'
+            );
+        }
+
         return { createBy, carryForward: null };
     }
 
-    private async refreshTokens(
+    public async refreshTokens(
         userId: ObjectID,
         projectId: ObjectID
     ): Promise<void> {
@@ -161,6 +180,7 @@ export class Service extends DatabaseService<TeamMember> {
                 projectId: true,
                 team: true,
                 teamId: true,
+                hasAcceptedInvitation: true,
             },
             limit: LIMIT_MAX,
             skip: 0,
@@ -178,9 +198,14 @@ export class Service extends DatabaseService<TeamMember> {
         // check if there's one member in the team.
         for (const member of members) {
             if (member.team?.shouldHaveAtleastOneMember) {
+                if (!member.hasAcceptedInvitation) {
+                    continue;
+                }
+
                 const membersInTeam: PositiveNumber = await this.countBy({
                     query: {
-                        _id: member.teamId?.toString() as string,
+                        teamId: member.teamId!,
+                        hasAcceptedInvitation: true,
                     },
                     skip: 0,
                     limit: LIMIT_MAX,
@@ -191,7 +216,7 @@ export class Service extends DatabaseService<TeamMember> {
 
                 if (membersInTeam.toNumber() <= 1) {
                     throw new BadDataException(
-                        'This team should have atleast 1 member'
+                        'This team should have atleast 1 member who has accepted the invitation.'
                     );
                 }
             }

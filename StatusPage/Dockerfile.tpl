@@ -13,6 +13,7 @@ SHELL ["/bin/bash", "-c"]
 RUN npm install typescript -g
 RUN npm install ts-node -g
 RUN npm install nodemon -g
+RUN npm install http-server -g
 
 RUN mkdir /usr/src
 
@@ -40,8 +41,6 @@ RUN npm install
 COPY ./CommonServer /usr/src/CommonServer
 RUN npm run compile
 
-
-
 # Install CommonUI
 RUN mkdir /usr/src/CommonUI
 WORKDIR /usr/src/CommonUI
@@ -49,7 +48,6 @@ COPY ./CommonUI/package*.json /usr/src/CommonUI/
 RUN npm install --force
 COPY ./CommonUI /usr/src/CommonUI
 RUN npm run compile
-
 
 #SET ENV Variables
 ENV PRODUCTION=true
@@ -61,12 +59,13 @@ WORKDIR /usr/src/app
 
 # Install app dependencies
 COPY ./StatusPage/package*.json /usr/src/app/
-RUN npm install  
-
+RUN npm install
 
 # Expose ports.
 #   - 3105:  StatusPage
 EXPOSE 3105
+# API
+EXPOSE 3106
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app

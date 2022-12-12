@@ -537,6 +537,15 @@ export class Service extends DatabaseService<Model> {
             },
         });
 
+        await TeamMemberService.refreshTokens(
+            createdItem.createdByUserId!,
+            createdItem.id!
+        );
+
+        await TeamMemberService.updateSubscriptionSeatsByUnqiqueTeamMembersInProject(
+            createdItem.id!
+        );
+
         return createdItem;
     }
 

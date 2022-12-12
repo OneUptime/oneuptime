@@ -193,7 +193,7 @@ export default class Domain extends BaseModel {
     public isVerified?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.ProjectOwner, Permission.CanCreateProjectDomain],
         read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
         update: [],
     })

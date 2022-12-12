@@ -4,6 +4,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
 import Fields from './Types/Fields';
 import BasicForm, { DefaultValidateFunction } from './BasicForm';
+import { ButtonStyleType } from '../Button/Button';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;
@@ -16,6 +17,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
           ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
+    submitButtonStyleType?: ButtonStyleType | undefined;
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
@@ -77,6 +79,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             onValidate={
                 props.onValidate ? props.onValidate : DefaultValidateFunction
             }
+            submitButtonStyleType={props.submitButtonStyleType}
             onSubmit={props.onSubmit}
             initialValues={initialValues}
             submitButtonText={props.submitButtonText || 'Save'}

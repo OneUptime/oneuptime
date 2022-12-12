@@ -58,6 +58,7 @@ export const DefaultValidateFunction: Function = (
 
 export interface ComponentProps<T extends Object> {
     id: string;
+    submitButtonStyleType?: ButtonStyleType | undefined;
     initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
     onValidate?: undefined | ((values: FormValues<T>) => JSONObject);
@@ -1102,7 +1103,10 @@ const BasicForm: Function = <T extends Object>(
                                         type={ButtonTypes.Submit}
                                         id={`${props.id}-submit-button`}
                                         isLoading={props.isLoading || false}
-                                        buttonStyle={ButtonStyleType.PRIMARY}
+                                        buttonStyle={
+                                            props.submitButtonStyleType ||
+                                            ButtonStyleType.PRIMARY
+                                        }
                                         style={{
                                             width: props.maxPrimaryButtonWidth
                                                 ? '100%'
