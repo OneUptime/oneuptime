@@ -144,7 +144,7 @@ if test -f "$CERT"; then
     echo "SSL Certificate exists. Skipping generating a new one."
 else
     echo "SSL Certificate not found. Generating a new certificate."
-    openssl req -new -x509 -nodes -out ./Certs/Cert.crt -keyout ./Certs/Key.key
+    openssl req -new -x509 -nodes -subj "/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN=example.com" -out ./Certs/Cert.crt -keyout ./Certs/Key.key
 fi
 
 # Create .env file if it does not exist. 
