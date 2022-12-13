@@ -145,3 +145,6 @@ export const IsTest: boolean = process.env['ENVIRONMENT'] === 'test';
 
 export const SubscriptionPlans: Array<SubscriptionPlan> =
     SubscriptionPlan.getSubscriptionPlans();
+
+export const AnalyticsKey: string = process.env['ANALYTICS_KEY'] || '';
+export const AnalyticsHost: string = process.env['ANALYTICS_HOST'] || '';

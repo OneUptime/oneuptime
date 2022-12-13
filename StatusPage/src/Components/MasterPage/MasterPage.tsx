@@ -22,6 +22,8 @@ import BaseModel from 'Common/Models/BaseModel';
 import File from 'Model/Models/File';
 import { ImageFunctions } from 'CommonUI/src/Components/Image/Image';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import StatusPageDomain from 'Model/Models/StatusPageDomain';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -49,6 +51,15 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         );
         if (id) {
             return new ObjectID(id);
+        } else {
+            // get status page id by hostname. 
+            const result: ListResult<StatusPageDomain> = await ModelAPI.getList(StatusPageDomain, {
+                fullDomain: Navigation.getHostname().toString()
+            }, 1, 0, { _id: true }, {}, {});
+
+            if (result.data.length > 0 && result.data[0]?._id) {
+                return new ObjectID(result.data[0]?._id);
+            }
         }
 
         throw new BadDataException('Status Page ID not found');
