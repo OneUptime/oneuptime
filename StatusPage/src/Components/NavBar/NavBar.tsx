@@ -35,7 +35,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 : (RouteMap[PageMap.SUBSCRIBE] as Route)
                         )}
                     ></NavBarItem>
-                    <NavBarItem
+                    {/* <NavBarItem
                         title="RSS"
                         icon={IconProp.RSS}
                         route={RouteUtil.populateRouteParams(
@@ -43,7 +43,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                                 ? (RouteMap[PageMap.PREVIEW_RSS] as Route)
                                 : (RouteMap[PageMap.RSS] as Route)
                         )}
-                    ></NavBarItem>
+                    ></NavBarItem> */}
                 </>
             }
             maxWidth="880px"

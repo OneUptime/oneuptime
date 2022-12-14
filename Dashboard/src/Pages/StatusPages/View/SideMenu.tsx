@@ -135,7 +135,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Image}
                 />
 
-                <SideMenuItem
+                {/* <SideMenuItem
                     link={{
                         title: 'Embedded Status Page',
                         to: RouteUtil.populateRouteParams(
@@ -146,7 +146,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.Circle}
-                />
+                /> */}
 
                 <SideMenuItem
                     link={{

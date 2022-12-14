@@ -575,12 +575,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     eventViewRoute={RouteUtil.populateRouteParams(
                                         props.isPreviewPage
                                             ? (RouteMap[
-                                                  PageMap
-                                                      .PREVIEW_INCIDENT_DETAIL
-                                              ] as Route)
+                                                PageMap
+                                                    .PREVIEW_INCIDENT_DETAIL
+                                            ] as Route)
                                             : (RouteMap[
-                                                  PageMap.INCIDENT_DETAIL
-                                              ] as Route),
+                                                PageMap.INCIDENT_DETAIL
+                                            ] as Route),
                                         incidentGroup.incident.id!
                                     )}
                                 />
@@ -621,12 +621,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     eventViewRoute={RouteUtil.populateRouteParams(
                                         props.isPreviewPage
                                             ? (RouteMap[
-                                                  PageMap
-                                                      .PREVIEW_SCHEDULED_EVENT_DETAIL
-                                              ] as Route)
+                                                PageMap
+                                                    .PREVIEW_SCHEDULED_EVENT_DETAIL
+                                            ] as Route)
                                             : (RouteMap[
-                                                  PageMap.SCHEDULED_EVENT_DETAIL
-                                              ] as Route),
+                                                PageMap.SCHEDULED_EVENT_DETAIL
+                                            ] as Route),
                                         scheduledEventGroup.scheduledMaintenance
                                             .id!
                                     )}
@@ -636,13 +636,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     )}
 
                     <div>
-                        {currentStatus && (
+                        {currentStatus && statusPageResources.length > 0 && (
                             <Alert
-                                title={`${
-                                    currentStatus.isOperationalState
+                                title={`${currentStatus.isOperationalState
                                         ? `All`
                                         : 'Some'
-                                } Resources are ${currentStatus.name}`}
+                                    } Resources are ${currentStatus.name}`}
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
                                 size={AlertSize.Large}
@@ -650,7 +649,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         )}
                     </div>
 
-                    <div>
+                    {statusPageResources.length > 0 && <div>
                         <AccordianGroup>
                             {statusPageResources.filter(
                                 (resources: StatusPageResource) => {
@@ -690,7 +689,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                     }
                                                     isLastElement={
                                                         resourceGroups.length -
-                                                            1 ===
+                                                        1 ===
                                                         i
                                                     }
                                                     title={resourceGroup.name!}
@@ -704,7 +703,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     )}
                             </div>
                         </AccordianGroup>
-                    </div>
+                    </div>}
+
+                    {statusPageResources.length === 0 && <p> No resources added to this Status Page, please add some resources from OneUptime dashboard.</p>}
+
                 </div>
             ) : (
                 <></>

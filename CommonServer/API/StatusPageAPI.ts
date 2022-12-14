@@ -405,6 +405,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 return monitor.monitorId!;
                             });
 
+                   
                     const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
                     const endDate: Date = OneUptimeDate.getCurrentDate();
 
@@ -444,6 +445,8 @@ export default class StatusPageAPI extends BaseAPI<
                                 },
                             });
                     }
+
+                    
 
                     // check if status page has active incident.
                     let activeIncidents: Array<Incident> = [];
@@ -518,7 +521,7 @@ export default class StatusPageAPI extends BaseAPI<
 
                     let incidentStateTimelines: Array<IncidentStateTimeline> =
                         [];
-
+                        console.log("HERE");
                     if (incidentsOnStausPage.length > 0) {
                         incidentStateTimelines =
                             await IncidentStateTimelineService.findBy({
@@ -550,7 +553,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const activeAnnouncements: Array<StatusPageAnnouncement> =
                         await StatusPageAnnouncementService.findBy({
                             query: {
-                                statusPages: QueryHelper.in([objectId]),
+                                statusPages: objectId as any,
                                 showAnnouncementAt: QueryHelper.lessThan(today),
                                 endAnnouncementAt:
                                     QueryHelper.greaterThan(today),
@@ -577,7 +580,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 currentScheduledMaintenanceState: {
                                     isOngoingState: true,
                                 } as any,
-                                statusPages: QueryHelper.in([objectId]),
+                                statusPages: objectId as any,
                                 projectId: statusPage.projectId!,
                             },
                             select: {

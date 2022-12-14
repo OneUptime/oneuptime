@@ -518,7 +518,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onClick: () => {
                     fetchItems();
                 },
-                disabled: isLoading,
+                disabled: isTableFilterFetchLoading,
                 icon: IconProp.Refresh,
             });
         }
@@ -534,7 +534,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }
                     setShowTableFilter(newValue);
                 },
-                disabled: isLoading,
+                disabled: isTableFilterFetchLoading,
                 icon: IconProp.Filter,
             });
         }

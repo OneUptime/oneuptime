@@ -14,6 +14,11 @@ export interface ComponentProps {
 const StatusPageHeader: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    if (!props.banner && !props.logo && props.links.length === 0) {
+        return <></>
+    }
+
     return (
         <header
             id="page-topbar"

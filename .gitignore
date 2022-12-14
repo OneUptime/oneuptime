@@ -78,4 +78,7 @@ Nginx/default.conf
 Certs/StatusPageCerts/*.crt
 Certs/StatusPageCerts/*.key
 
+Certs/ServerCerts/*.crt
+Certs/ServerCerts/*.key
+
 Backups/*.backup
