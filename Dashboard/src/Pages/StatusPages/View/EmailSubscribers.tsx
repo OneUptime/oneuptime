@@ -103,7 +103,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Email',
                         description:
-                            'An email will be sent to this email for status page updates.',
+                            'Status page updates will be sent to this email.',
                         fieldType: FormFieldSchemaType.Email,
                         required: true,
                         placeholder: 'subscriber@company.com',

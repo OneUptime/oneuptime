@@ -122,7 +122,6 @@ export default class StatusPageAPI extends BaseAPI<
 
 
 
-
         this.router.post(
             `/${new this.entityType()
                 .getCrudApiPath()
@@ -453,7 +452,7 @@ export default class StatusPageAPI extends BaseAPI<
                     if (monitorsOnStatusPage.length > 0) {
                         activeIncidents = await IncidentService.findBy({
                             query: {
-                                monitors: QueryHelper.in(monitorsOnStatusPage),
+                                monitors: monitorsOnStatusPage as any,
                                 currentIncidentState: {
                                     isResolvedState: false,
                                 } as any,
@@ -978,14 +977,14 @@ export default class StatusPageAPI extends BaseAPI<
 
         let query: Query<ScheduledMaintenance> = {
             startsAt: QueryHelper.inBetween(last14Days, today),
-            statusPages: QueryHelper.in([statusPageId]),
+            statusPages: [statusPageId] as any,
             projectId: statusPage.projectId!,
         };
 
         if (scheduledMaintenanceId) {
             query = {
                 _id: scheduledMaintenanceId.toString(),
-                statusPages: QueryHelper.in([statusPageId]),
+                statusPages: [statusPageId] as any,
                 projectId: statusPage.projectId!,
             };
         }
@@ -1144,14 +1143,14 @@ export default class StatusPageAPI extends BaseAPI<
         const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
 
         let query: Query<StatusPageAnnouncement> = {
-            statusPages: QueryHelper.in([statusPageId]),
+            statusPages: [statusPageId] as any,
             showAnnouncementAt: QueryHelper.inBetween(last14Days, today),
             projectId: statusPage.projectId!,
         };
 
         if (announcementId) {
             query = {
-                statusPages: QueryHelper.in([statusPageId]),
+                statusPages: [statusPageId] as any,
                 _id: announcementId.toString(),
                 projectId: statusPage.projectId!,
             };
@@ -1282,14 +1281,14 @@ export default class StatusPageAPI extends BaseAPI<
         const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
 
         let incidentQuery: Query<Incident> = {
-            monitors: QueryHelper.in(monitorsOnStatusPage),
+            monitors: monitorsOnStatusPage as any,
             projectId: statusPage.projectId!,
             createdAt: QueryHelper.inBetween(last14Days, today),
         };
 
         if (incidentId) {
             incidentQuery = {
-                monitors: QueryHelper.in(monitorsOnStatusPage),
+                monitors: monitorsOnStatusPage as any,
                 projectId: statusPage.projectId!,
                 _id: incidentId.toString(),
             };

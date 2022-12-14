@@ -9,11 +9,7 @@ export const env: Function = (key: string): string => {
     return process.env[key] || '';
 };
 
-export const HTTP_PROTOCOL: Protocol = window.location.protocol.includes(
-    'https'
-)
-    ? Protocol.HTTPS
-    : Protocol.HTTP;
+export const HTTP_PROTOCOL: Protocol = env('HTTP_PROTOCOL') === "http" ? Protocol.HTTP : Protocol.HTTPS;
 
 export const DOMAIN: string = env('DOMAIN') || '';
 
