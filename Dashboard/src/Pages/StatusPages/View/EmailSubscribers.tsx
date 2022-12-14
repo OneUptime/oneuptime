@@ -15,6 +15,8 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import NotNull from 'Common/Types/Database/NotNull';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
+import { JSONObject } from 'Common/Types/JSON';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
 // import NotNull from 'Common/Types/Database/NotNull';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
@@ -118,6 +120,40 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Email',
                         type: FieldType.Email,
+                    },
+                    {
+                        field: {
+                            isUnsubscribed: true,
+                        },
+                        title: 'Status',
+                        type: FieldType.Text,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (item['isUnsubscribed']) {
+                                return (
+                                    <Pill
+                                        color={
+                                            Red
+                                        }
+                                        text={
+                                           "Unsubscribed"
+                                        }
+                                    />
+                                );
+                            } else {
+                                return (
+                                    <Pill
+                                        color={
+                                            Green
+                                        }
+                                        text={
+                                           "Subscribed"
+                                        }
+                                    />
+                                );
+                            }
+    
+                            return <></>;
+                        },
                     },
                     {
                         field: {
