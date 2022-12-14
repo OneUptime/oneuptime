@@ -45,45 +45,45 @@ export const ACCOUNTS_ROUTE: Route = new Route(env('ACCOUNTS_ROUTE'));
 export const HOME_ROUTE: Route = new Route(env('HOME_ROUTE'));
 
 export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 
 export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 
 export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 
 export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 
 export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 
 export const HELM_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 
 export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 
 export const ADMIN_DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 export const HOME_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 
 export const FILE_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+   env('DOMAIN')
 );
 
 export const DASHBOARD_API_URL: URL = new URL(
