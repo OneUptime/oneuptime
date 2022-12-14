@@ -363,18 +363,27 @@ RunCron(
             }
 
             const key: string = JSON.parse(cert.blob || '{}').privateKeyPem;
-            const crt: string = JSON.parse(certBlob.blob || '{}').cert;
+            let crt: string = JSON.parse(certBlob.blob || '{}').cert;
+
+            // Add chain to crt. 
+            console.log("Lookign for chain");
+            console.log(JSON.parse(certBlob.blob || '{}'));
+
+            if (JSON.parse(certBlob.blob || '{}').chain) {
+                console.log("Chain found");
+                crt += '\n' +
+                    '\n' +
+                    JSON.parse(certBlob.blob || '{}').chain;
+            }
 
             // Write to disk.
             fs.writeFileSync(
                 `/usr/src/Certs/StatusPageCerts/${cert.key}.crt`,
                 crt,
-                { flag: 'wx' }
             );
             fs.writeFileSync(
                 `/usr/src/Certs/StatusPageCerts/${cert.key}.key`,
                 key,
-                { flag: 'wx' }
             );
         }
     }
@@ -443,7 +452,6 @@ const checkCnameValidation: Function = async (
     fulldomain: string,
     token: string
 ): Promise<boolean> => {
-    logger.info('Check CNAMeValidation.');
 
     try {
         const agent: https.Agent = new https.Agent({
@@ -452,9 +460,9 @@ const checkCnameValidation: Function = async (
 
         const result: AxiosResponse = await axios.get(
             'https://' +
-                fulldomain +
-                '/status-page-api/cname-verification/' +
-                token,
+            fulldomain +
+            '/status-page-api/cname-verification/' +
+            token,
             { httpsAgent: agent }
         );
 
@@ -474,9 +482,9 @@ const isSslProvisioned: Function = async (
     try {
         const result: AxiosResponse = await axios.get(
             'https://' +
-                fulldomain +
-                '/status-page-api/cname-verification/' +
-                token
+            fulldomain +
+            '/status-page-api/cname-verification/' +
+            token
         );
 
         if (result.status === 200) {

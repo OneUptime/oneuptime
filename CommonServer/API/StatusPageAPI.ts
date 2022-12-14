@@ -68,7 +68,7 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-                    if (req.body['domain']) {
+                    if (!req.body['domain']) {
                         throw new BadDataException(
                             'domain is required in request body'
                         );
@@ -119,6 +119,9 @@ export default class StatusPageAPI extends BaseAPI<
                 }
             }
         );
+
+
+
 
         this.router.post(
             `/${new this.entityType()
