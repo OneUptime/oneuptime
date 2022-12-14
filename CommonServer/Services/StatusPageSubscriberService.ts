@@ -95,7 +95,7 @@ export class Service extends DatabaseService<Model> {
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
                     isPublicStatusPage: onCreate.carryForward.isPublicStatusPage,
-                    unsubscribeUrl: new URL(HttpProtocol, Domain).addRoute("/status-page-subscriber/unsubscribe/" + createdItem._id.toString()).toString() 
+                    unsubscribeUrl: new URL(HttpProtocol, Domain).addRoute("/api/status-page-subscriber/unsubscribe/" + createdItem._id.toString()).toString() 
                 },
                 subject: 'You have been subscribed to ' + statusPageName,
             }).catch((err: Error) => {

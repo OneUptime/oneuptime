@@ -17,6 +17,7 @@ import NotNull from 'Common/Types/Database/NotNull';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
+import { Green, Red } from 'Common/Types/BrandColors';
 // import NotNull from 'Common/Types/Database/NotNull';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
@@ -151,8 +152,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                     />
                                 );
                             }
-    
-                            return <></>;
                         },
                     },
                     {

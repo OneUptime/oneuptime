@@ -30,10 +30,6 @@ import StatusPagePrivateUserService, {
     Service as StatusPagePrivateUserServiceType,
 } from 'CommonServer/Services/StatusPagePrivateUserService';
 
-import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import StatusPageSubscriberService, {
-    Service as StatusPageSubscriberServiceType,
-} from 'CommonServer/Services/StatusPageSubscriberService';
 
 import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
 import StatusPageFooterLinkService, {
@@ -189,6 +185,8 @@ import StatusPageDomainService, {
 
 import StatusPageAPI from 'CommonServer/API/StatusPageAPI';
 
+import StatusPageSubscriberAPI from 'CommonServer/API/StatusPageSubscriberAPI';
+
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'api';
@@ -289,12 +287,6 @@ app.use(
     ).getRouter()
 );
 
-app.use(
-    new BaseAPI<StatusPageSubscriber, StatusPageSubscriberServiceType>(
-        StatusPageSubscriber,
-        StatusPageSubscriberService
-    ).getRouter()
-);
 
 app.use(
     new BaseAPI<StatusPagePrivateUser, StatusPagePrivateUserServiceType>(
@@ -389,6 +381,7 @@ app.use(
 );
 
 app.use(new StatusPageAPI().getRouter());
+app.use(new StatusPageSubscriberAPI().getRouter());
 app.use(new BillingPaymentMethodAPI().getRouter());
 app.use(new BillingInvoiceAPI().getRouter());
 
