@@ -39,7 +39,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [_statusPageResources, setStatusPageResources] = useState<
+    const [statusPageResources, setStatusPageResources] = useState<
         Array<StatusPageResource>
     >([]);
     const [incidentPublicNotes, setIncidentPublicNotes] = useState<
@@ -148,7 +148,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     incident.id?.toString()
                 ) {
                     timeline.push({
-                        text: incidentPublicNote?.note || '',
+                        text: (<span><b>Update</b> - <span>{incidentPublicNote?.note}</span></span>),
                         date: incidentPublicNote?.createdAt!,
                         isBold: false,
                     });
@@ -172,9 +172,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
             });
 
+            const monitorIds = incident.monitors?.map((monitor) => monitor._id) || []; 
+            
+            const namesOfResources = statusPageResources.filter((resource) => monitorIds.includes(resource.monitorId?.toString()));
+
             days[dayString]?.items.push({
                 eventTitle: incident.title || '',
                 eventDescription: incident.description,
+                eventResourcesAffected: namesOfResources.map((i)=>i.displayName || ''),
                 eventTimeline: timeline,
                 eventType: 'Incident',
                 eventViewRoute: RouteUtil.populateRouteParams(
