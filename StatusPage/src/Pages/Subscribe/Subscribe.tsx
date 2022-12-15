@@ -19,13 +19,18 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
             <div className="justify-center">
                 <div>
                     {!isSuccess && <h5>Subscribe to this page.</h5>}
-                    {isSuccess && <p
-                        className="text-center color-light-grey"
-                        style={{
-                            marginTop: '50px',
-                            marginBottom: '50px',
-                        }}
-                    > You have been subscribed successfully.</p>}
+                    {isSuccess && (
+                        <p
+                            className="text-center color-light-grey"
+                            style={{
+                                marginTop: '50px',
+                                marginBottom: '50px',
+                            }}
+                        >
+                            {' '}
+                            You have been subscribed successfully.
+                        </p>
+                    )}
 
                     {/* <Tabs
                 tabs={['Email', 'SMS', 'Webhook']}

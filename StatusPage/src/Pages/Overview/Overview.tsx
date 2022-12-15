@@ -115,7 +115,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
                 BaseModel.fromJSONArray(
                     (data['activeScheduledMaintenanceEvents'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenance
                 );
             const activeAnnouncements: Array<StatusPageAnnouncement> =
@@ -160,7 +160,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -194,7 +194,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -218,7 +218,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 if (
                     !Object.keys(dict).includes(
                         resource.monitor?.currentMonitorStatusId.toString() ||
-                        ''
+                            ''
                     )
                 ) {
                     dict[
@@ -259,7 +259,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                    resource.statusPageGroupId.toString()) ||
+                        resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
                 let currentStatus: MonitorStatus | undefined =
@@ -419,7 +419,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                    resource.statusPageGroupId.toString()) ||
+                        resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
                 hasReosurce = true;
@@ -436,7 +436,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         currentStatus.priority &&
                         currentMonitorStatus?.priority &&
                         currentMonitorStatus?.priority >
-                        currentStatus.priority) ||
+                            currentStatus.priority) ||
                     !currentStatus.priority
                 ) {
                     currentStatus = currentMonitorStatus!;
@@ -575,12 +575,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     eventViewRoute={RouteUtil.populateRouteParams(
                                         props.isPreviewPage
                                             ? (RouteMap[
-                                                PageMap
-                                                    .PREVIEW_INCIDENT_DETAIL
-                                            ] as Route)
+                                                  PageMap
+                                                      .PREVIEW_INCIDENT_DETAIL
+                                              ] as Route)
                                             : (RouteMap[
-                                                PageMap.INCIDENT_DETAIL
-                                            ] as Route),
+                                                  PageMap.INCIDENT_DETAIL
+                                              ] as Route),
                                         incidentGroup.incident.id!
                                     )}
                                 />
@@ -621,12 +621,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     eventViewRoute={RouteUtil.populateRouteParams(
                                         props.isPreviewPage
                                             ? (RouteMap[
-                                                PageMap
-                                                    .PREVIEW_SCHEDULED_EVENT_DETAIL
-                                            ] as Route)
+                                                  PageMap
+                                                      .PREVIEW_SCHEDULED_EVENT_DETAIL
+                                              ] as Route)
                                             : (RouteMap[
-                                                PageMap.SCHEDULED_EVENT_DETAIL
-                                            ] as Route),
+                                                  PageMap.SCHEDULED_EVENT_DETAIL
+                                              ] as Route),
                                         scheduledEventGroup.scheduledMaintenance
                                             .id!
                                     )}
@@ -638,10 +638,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     <div>
                         {currentStatus && statusPageResources.length > 0 && (
                             <Alert
-                                title={`${currentStatus.isOperationalState
+                                title={`${
+                                    currentStatus.isOperationalState
                                         ? `All`
                                         : 'Some'
-                                    } Resources are ${currentStatus.name}`}
+                                } Resources are ${currentStatus.name}`}
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
                                 size={AlertSize.Large}
@@ -692,7 +693,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                         }
                                                         isLastElement={
                                                             resourceGroups.length -
-                                                            1 ===
+                                                                1 ===
                                                             i
                                                         }
                                                         title={
@@ -712,8 +713,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     )}
 
                     {statusPageResources.length === 0 && (
-                        <ErrorMessage error=" No resources added to this status page. Please add
-                        some resources from OneUptime Dashboard."/>
+                        <ErrorMessage
+                            error=" No resources added to this status page. Please add
+                        some resources from OneUptime Dashboard."
+                        />
                     )}
                 </div>
             ) : (
