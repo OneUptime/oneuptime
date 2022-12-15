@@ -31,6 +31,60 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import EventItem, { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
+export const getIncidentEventItem: Function = (incident: Incident, incidentPublicNotes: Array<IncidentPublicNote>, incidentStateTimelines: Array<IncidentStateTimeline>, statusPageResources: Array<StatusPageResource>, isPreviewPage: boolean): EventItemComponentProps => { 
+    const timeline: Array<TimelineItem> = [];
+
+        for (const incidentPublicNote of incidentPublicNotes) {
+            if (
+                incidentPublicNote.incidentId?.toString() ===
+                incident.id?.toString()
+            ) {
+                timeline.push({
+                    text: (<span><b>Update</b> - <span>{incidentPublicNote?.note}</span></span>),
+                    date: incidentPublicNote?.createdAt!,
+                    isBold: false,
+                });
+            }
+        }
+
+        for (const incidentStateTimeline of incidentStateTimelines) {
+            if (
+                incidentStateTimeline.incidentId?.toString() ===
+                incident.id?.toString()
+            ) {
+                timeline.push({
+                    text: incidentStateTimeline.incidentState?.name || '',
+                    date: incidentStateTimeline?.createdAt!,
+                    isBold: true,
+                });
+            }
+        }
+
+        timeline.sort((a: TimelineItem, b: TimelineItem) => {
+            return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
+        });
+
+        const monitorIds = incident.monitors?.map((monitor) => monitor._id) || [];
+
+        const namesOfResources = statusPageResources.filter((resource) => monitorIds.includes(resource.monitorId?.toString()));
+
+        const data = {
+            eventTitle: incident.title || '',
+            eventDescription: incident.description,
+            eventResourcesAffected: namesOfResources.map((i) => i.displayName || ''),
+            eventTimeline: timeline,
+            eventType: 'Incident',
+            eventViewRoute: RouteUtil.populateRouteParams(
+                isPreviewPage
+                    ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                    : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                incident.id!
+            ),
+        };
+    
+    return data; 
+}
+
 const Detail: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -125,59 +179,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
             return;
         }
 
-
-        const timeline: Array<TimelineItem> = [];
-
-        for (const incidentPublicNote of incidentPublicNotes) {
-            if (
-                incidentPublicNote.incidentId?.toString() ===
-                incident.id?.toString()
-            ) {
-                timeline.push({
-                    text: (<span><b>Update</b> - <span>{incidentPublicNote?.note}</span></span>),
-                    date: incidentPublicNote?.createdAt!,
-                    isBold: false,
-                });
-            }
-        }
-
-        for (const incidentStateTimeline of incidentStateTimelines) {
-            if (
-                incidentStateTimeline.incidentId?.toString() ===
-                incident.id?.toString()
-            ) {
-                timeline.push({
-                    text: incidentStateTimeline.incidentState?.name || '',
-                    date: incidentStateTimeline?.createdAt!,
-                    isBold: true,
-                });
-            }
-        }
-
-        timeline.sort((a: TimelineItem, b: TimelineItem) => {
-            return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
-        });
-
-        const monitorIds = incident.monitors?.map((monitor) => monitor._id) || [];
-
-        const namesOfResources = statusPageResources.filter((resource) => monitorIds.includes(resource.monitorId?.toString()));
-
-        const data = {
-            eventTitle: incident.title || '',
-            eventDescription: incident.description,
-            eventResourcesAffected: namesOfResources.map((i) => i.displayName || ''),
-            eventTimeline: timeline,
-            eventType: 'Incident',
-            eventViewRoute: RouteUtil.populateRouteParams(
-                props.isPreviewPage
-                    ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                    : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-                incident.id!
-            ),
-        };
-
-
-        setParsedData(data);
+        setParsedData(getIncidentEventItem(incident, incidentPublicNotes, incidentStateTimelines, statusPageResources, props.isPreviewPage));
     }, [isLoading]);
 
     if (isLoading) {

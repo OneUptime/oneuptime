@@ -28,11 +28,8 @@ import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
+import { getIncidentEventItem } from './Detail';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -137,58 +134,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     items: [],
                 };
             }
-
-            /// get timeline.
-
-            const timeline: Array<TimelineItem> = [];
-
-            for (const incidentPublicNote of incidentPublicNotes) {
-                if (
-                    incidentPublicNote.incidentId?.toString() ===
-                    incident.id?.toString()
-                ) {
-                    timeline.push({
-                        text: (<span><b>Update</b> - <span>{incidentPublicNote?.note}</span></span>),
-                        date: incidentPublicNote?.createdAt!,
-                        isBold: false,
-                    });
-                }
-            }
-
-            for (const incidentStateTimeline of incidentStateTimelines) {
-                if (
-                    incidentStateTimeline.incidentId?.toString() ===
-                    incident.id?.toString()
-                ) {
-                    timeline.push({
-                        text: incidentStateTimeline.incidentState?.name || '',
-                        date: incidentStateTimeline?.createdAt!,
-                        isBold: true,
-                    });
-                }
-            }
-
-            timeline.sort((a: TimelineItem, b: TimelineItem) => {
-                return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
-            });
-
-            const monitorIds = incident.monitors?.map((monitor) => monitor._id) || []; 
             
-            const namesOfResources = statusPageResources.filter((resource) => monitorIds.includes(resource.monitorId?.toString()));
-
-            days[dayString]?.items.push({
-                eventTitle: incident.title || '',
-                eventDescription: incident.description,
-                eventResourcesAffected: namesOfResources.map((i)=>i.displayName || ''),
-                eventTimeline: timeline,
-                eventType: 'Incident',
-                eventViewRoute: RouteUtil.populateRouteParams(
-                    props.isPreviewPage
-                        ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                        : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-                    incident.id!
-                ),
-            });
+            days[dayString]?.items.push(getIncidentEventItem(incident, incidentPublicNotes, incidentStateTimelines, statusPageResources, props.isPreviewPage));
         }
 
         for (const key in days) {

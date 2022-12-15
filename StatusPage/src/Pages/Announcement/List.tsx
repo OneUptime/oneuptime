@@ -25,11 +25,9 @@ import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/sr
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import { getAnnouncementEventItem } from './Detail';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -121,22 +119,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 };
             }
 
-            days[dayString]?.items.push({
-                eventTitle: announcement.title || '',
-                eventDescription: announcement.description,
-                eventTimeline: [],
-                eventType: 'Announcement',
-                footerEventStatus: 'Announced at',
-                footerDateTime: announcement.showAnnouncementAt,
-                eventViewRoute: RouteUtil.populateRouteParams(
-                    props.isPreviewPage
-                        ? (RouteMap[
-                            PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
-                        ] as Route)
-                        : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
-                    announcement.id!
-                ),
-            });
+            days[dayString]?.items.push(getAnnouncementEventItem(announcement, !!props.isPreviewPage));
         }
 
         for (const key in days) {
