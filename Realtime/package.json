@@ -24,7 +24,7 @@
         "dotenv": "^16.0.0",
         "express": "^4.17.3",
         "lodash": "^4.17.21",
-        "socket.io": "^4.4.1",
+        "socket.io": "^4.5.4",
         "uuid": "^8.3.2",
         "winston": "^3.6.0",
         "winston-slack-webhook-transport": "^2.1.0"
