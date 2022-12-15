@@ -515,7 +515,7 @@ export default class StatusPageAPI extends BaseAPI<
 
                     let incidentStateTimelines: Array<IncidentStateTimeline> =
                         [];
-                    console.log('HERE');
+
                     if (incidentsOnStausPage.length > 0) {
                         incidentStateTimelines =
                             await IncidentStateTimelineService.findBy({

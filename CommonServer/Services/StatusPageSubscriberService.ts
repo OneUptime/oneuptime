@@ -11,6 +11,8 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
 import { Domain, HttpProtocol } from '../Config';
 import logger from '../Utils/Logger';
+import StatusPage from 'Model/Models/StatusPage';
+import StatusPageDomain from 'Model/Models/StatusPageDomain';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -24,19 +26,20 @@ export class Service extends DatabaseService<Model> {
             throw new BadDataException('Status Page ID is required.');
         }
 
-        const statuspage = await StatusPageService.findOneById({
-            id: data.data.statusPageId,
-            select: {
-                projectId: true,
-                pageTitle: true,
-                name: true,
-                isPublicStatusPage: true,
-            },
-            props: {
-                isRoot: true,
-                ignoreHooks: true,
-            },
-        });
+        const statuspage: StatusPage | null =
+            await StatusPageService.findOneById({
+                id: data.data.statusPageId,
+                select: {
+                    projectId: true,
+                    pageTitle: true,
+                    name: true,
+                    isPublicStatusPage: true,
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
 
         if (!statuspage || !statuspage.projectId) {
             throw new BadDataException('Status Page not found');
@@ -61,24 +64,25 @@ export class Service extends DatabaseService<Model> {
             // get status page domain for this status page.
             // if the domain is not found, use the internal sttaus page preview link.
 
-            const domains = await StatusPageDomainService.findBy({
-                query: {
-                    statusPageId: createdItem.statusPageId,
-                    isSslProvisioned: true,
-                },
-                select: {
-                    fullDomain: true,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-            });
+            const domains: Array<StatusPageDomain> =
+                await StatusPageDomainService.findBy({
+                    query: {
+                        statusPageId: createdItem.statusPageId,
+                        isSslProvisioned: true,
+                    },
+                    select: {
+                        fullDomain: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                });
 
             let statusPageURL: string = domains
-                .map((d) => {
+                .map((d: StatusPageDomain) => {
                     return d.fullDomain;
                 })
                 .join(', ');

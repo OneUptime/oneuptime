@@ -365,12 +365,7 @@ RunCron(
             const key: string = JSON.parse(cert.blob || '{}').privateKeyPem;
             let crt: string = JSON.parse(certBlob.blob || '{}').cert;
 
-            // Add chain to crt.
-            console.log('Lookign for chain');
-            console.log(JSON.parse(certBlob.blob || '{}'));
-
             if (JSON.parse(certBlob.blob || '{}').chain) {
-                console.log('Chain found');
                 crt += '\n' + '\n' + JSON.parse(certBlob.blob || '{}').chain;
             }
 

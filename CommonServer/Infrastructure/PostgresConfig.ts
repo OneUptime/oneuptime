@@ -1,4 +1,4 @@
-import { DataSource } from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
 import {
     DatabaseHost,
     DatabaseName,
@@ -13,7 +13,7 @@ import DatabaseType from 'Common/Types/DatabaseType';
 import AppEnvironment from 'Common/Types/AppEnvironment';
 import Faker from 'Common/Utils/Faker';
 
-export const dataSourceOptions = {
+export const dataSourceOptions: DataSourceOptions = {
     type: DatabaseType.Postgres,
     host: DatabaseHost.toString(),
     port: DatabasePort.toNumber(),
@@ -27,9 +27,9 @@ export const dataSourceOptions = {
     synchronize: Env === AppEnvironment.Development,
 };
 
-export const datasource = new DataSource(dataSourceOptions);
+export const datasource: DataSource = new DataSource(dataSourceOptions);
 
-export const testDataSourceOptions = {
+export const testDataSourceOptions: DataSourceOptions = {
     type: DatabaseType.Postgres,
     host: DatabaseHost.toString(),
     port: DatabasePort.toNumber(),

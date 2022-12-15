@@ -31,7 +31,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         null
     );
 
-    const getFooter = (): ReactElement => {
+    const getFooter: Function = (): ReactElement => {
         if (!BILLING_ENABLED) {
             return <></>;
         }
