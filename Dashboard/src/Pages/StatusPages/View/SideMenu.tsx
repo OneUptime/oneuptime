@@ -182,7 +182,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Layers}
+                    icon={IconProp.Layout}
                 />
 
                 <SideMenuItem
@@ -200,7 +200,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <SideMenuItem
                     link={{
-                        title: 'Navigation Menu',
+                        title: 'Navigation',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
@@ -208,7 +208,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Layers}
+                    icon={IconProp.Compass}
                 />
             </SideMenuSection>
 
