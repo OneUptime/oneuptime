@@ -33,6 +33,7 @@ import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
+import { getScheduledEventEventItem } from './Detail';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -148,57 +149,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     items: [],
                 };
             }
-
-            /// get timeline.
-
-            const timeline: Array<TimelineItem> = [];
-
-            for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
-                if (
-                    scheduledMaintenancePublicNote.scheduledMaintenanceId?.toString() ===
-                    scheduledMaintenance.id?.toString()
-                ) {
-                    timeline.push({
-                        text: scheduledMaintenancePublicNote?.note || '',
-                        date: scheduledMaintenancePublicNote?.createdAt!,
-                        isBold: false,
-                    });
-                }
-            }
-
-            for (const scheduledMaintenanceEventstateTimeline of scheduledMaintenanceStateTimelines) {
-                if (
-                    scheduledMaintenanceEventstateTimeline.scheduledMaintenanceId?.toString() ===
-                    scheduledMaintenance.id?.toString()
-                ) {
-                    timeline.push({
-                        text:
-                            scheduledMaintenanceEventstateTimeline
-                                .scheduledMaintenanceState?.name || '',
-                        date: scheduledMaintenanceEventstateTimeline?.createdAt!,
-                        isBold: true,
-                    });
-                }
-            }
-
-            timeline.sort((a: TimelineItem, b: TimelineItem) => {
-                return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
-            });
-
-            days[dayString]?.items.push({
-                eventTitle: scheduledMaintenance.title || '',
-                eventDescription: scheduledMaintenance.description,
-                eventTimeline: timeline,
-                eventType: 'Scheduled Maintenance',
-                eventViewRoute: RouteUtil.populateRouteParams(
-                    props.isPreviewPage
-                        ? (RouteMap[
-                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                        ] as Route)
-                        : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
-                    scheduledMaintenance.id!
-                ),
-            });
+            
+            days[dayString]?.items.push(getScheduledEventEventItem(scheduledMaintenance, scheduledMaintenanceEventsPublicNotes, scheduledMaintenanceStateTimelines, !!props.isPreviewPage));
         }
 
         for (const key in days) {
