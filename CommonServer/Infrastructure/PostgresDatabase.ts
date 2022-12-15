@@ -1,52 +1,16 @@
 import { DataSource, DataSourceOptions } from 'typeorm';
-import {
-    DatabaseHost,
-    DatabaseName,
-    DatabasePassword,
-    DatabasePort,
-    DatabaseUsername,
-    Env,
-} from '../Config';
-
-import Entities from 'Model/Models/Index';
-import AppEnvironment from 'Common/Types/AppEnvironment';
-import DatabaseType from 'Common/Types/DatabaseType';
-import Faker from 'Common/Utils/Faker';
 import logger from '../Utils/Logger';
+import { dataSourceOptions, testDataSourceOptions } from './PostgresConfig';
 
 export default class Database {
     private dataSource!: DataSource | null;
 
     public getDatasourceOptions(): DataSourceOptions {
-        return {
-            type: DatabaseType.Postgres,
-            host: DatabaseHost.toString(),
-            port: DatabasePort.toNumber(),
-            username: DatabaseUsername,
-            password: DatabasePassword,
-            database: DatabaseName,
-            migrationsTableName: 'migrations',
-            entities: Entities,
-            //logging: 'all',
-            synchronize:
-                Env === AppEnvironment.Test ||
-                Env === AppEnvironment.Development,
-        };
+        return dataSourceOptions;
     }
 
     public getTestDatasourceOptions(): DataSourceOptions {
-        return {
-            type: DatabaseType.Postgres,
-            host: DatabaseHost.toString(),
-            port: DatabasePort.toNumber(),
-            username: DatabaseUsername,
-            password: DatabasePassword,
-            database: DatabaseName + Faker.random16Numbers(),
-            entities: Entities,
-            synchronize:
-                Env === AppEnvironment.Test ||
-                Env === AppEnvironment.Development,
-        };
+        return testDataSourceOptions;
     }
 
     public getDataSource(): DataSource | null {
