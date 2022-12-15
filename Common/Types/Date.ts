@@ -316,10 +316,10 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-        let formatstring: string = 'MMMM Do YYYY, HH:mm';
+        let formatstring: string = 'MMM DD YYYY, HH:mm';
 
         if (onlyShowDate) {
-            formatstring = 'MMMM Do YYYY';
+            formatstring = 'MMM DD, YYYY';
         }
 
         return moment(date).format(formatstring);
@@ -329,10 +329,10 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-        let formatstring: string = 'MMMM Do YYYY, HH:mm';
+        let formatstring: string = 'MMM DD YYYY, HH:mm';
 
         if (onlyShowDate) {
-            formatstring = 'MMMM Do YYYY';
+            formatstring = 'MMM DD, YYYY';
         }
 
         const momentDate: moment.Moment = moment(date).local();

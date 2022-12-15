@@ -337,9 +337,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Incident Timeline not found.');
             }
 
+            const monitorIds = activeIncident.monitors?.map((monitor) => monitor._id) || []; 
+            
+            const namesOfResources = statusPageResources.filter((resource) => monitorIds.includes(resource.monitorId?.toString()));
+
             const group: IncidentGroup = {
                 incident: activeIncident,
                 incidentState: activeIncident.currentIncidentState,
+                incidentResources: namesOfResources,
                 publicNote: incidentPublicNotes.find(
                     (publicNote: IncidentPublicNote) => {
                         return (
@@ -383,10 +388,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     throw new BadDataException('Incident Timeline not found.');
                 }
 
+                const monitorIds = activeEvent.monitors?.map((monitor) => monitor._id) || []; 
+            
+                const namesOfResources = statusPageResources.filter((resource) => monitorIds.includes(resource.monitorId?.toString()));
+
                 const group: ScheduledMaintenanceGroup = {
                     scheduledMaintenance: activeEvent,
                     scheduledMaintenanceState:
                         activeEvent.currentScheduledMaintenanceState,
+                    scheduledEventResources: namesOfResources,
                     publicNote: scheduledMaintenanceEventsPublicNotes.find(
                         (publicNote: ScheduledMaintenancePublicNote) => {
                             return (
@@ -499,7 +509,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
         if (incidentGroup.publicNote) {
             timeline.push({
-                text: incidentGroup.publicNote?.note || '',
+                text: (<span><b>Update</b> - {incidentGroup.publicNote?.note}</span>),
                 date: incidentGroup.publicNote?.createdAt!,
                 isBold: false,
             });
@@ -562,6 +572,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         incidentGroup.incidentSeverity.color ||
                                         Red
                                     }
+                                    eventResourcesAffected={incidentGroup.incidentResources.map((i)=> i.displayName?.toString() || '') || []}
                                     eventTitle={
                                         incidentGroup.incident.title || ''
                                     }
@@ -613,6 +624,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     eventTimeline={getScheduledEventGroupEventTimeline(
                                         scheduledEventGroup
                                     )}
+                                    eventResourcesAffected={scheduledEventGroup.scheduledEventResources.map((i)=> i.displayName?.toString() || '') || []}
+                                    
                                     footerDateTime={
                                         scheduledEventGroup.scheduledMaintenance
                                             .endsAt!

@@ -8,6 +8,7 @@ export interface ComponentProps {
     cardTitleRight?: string | undefined;
     cardColor: Color;
     eventTitle: string;
+    eventResourcesAffected?: Array<string> | undefined,
     eventDescription?: string | undefined;
     eventMiniDescription?: string | undefined;
     eventTimeline: Array<TimelineItem>;
