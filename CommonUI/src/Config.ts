@@ -9,7 +9,8 @@ export const env: Function = (key: string): string => {
     return process.env[key] || '';
 };
 
-export const HTTP_PROTOCOL: Protocol = env('HTTP_PROTOCOL') === "http" ? Protocol.HTTP : Protocol.HTTPS;
+export const HTTP_PROTOCOL: Protocol =
+    env('HTTP_PROTOCOL') === 'http' ? Protocol.HTTP : Protocol.HTTPS;
 
 export const DOMAIN: string = env('DOMAIN') || '';
 
@@ -41,46 +42,32 @@ export const ACCOUNTS_ROUTE: Route = new Route(env('ACCOUNTS_ROUTE'));
 export const HOME_ROUTE: Route = new Route(env('HOME_ROUTE'));
 
 export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
+    env('DOMAIN')
 );
 
-export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
-);
+export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
-export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
-);
+export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
+    env('DOMAIN')
 );
 
 export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
+    env('DOMAIN')
 );
 
-export const HELM_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
-);
+export const HELM_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
-export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
-);
+export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const ADMIN_DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
+    env('DOMAIN')
 );
-export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
-);
-export const HOME_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
-);
+export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const HOME_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
-export const FILE_HOSTNAME: Hostname = Hostname.fromString(
-   env('DOMAIN')
-);
+export const FILE_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const DASHBOARD_API_URL: URL = new URL(
     HTTP_PROTOCOL,

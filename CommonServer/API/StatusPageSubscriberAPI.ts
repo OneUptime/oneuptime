@@ -1,4 +1,3 @@
-
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import StatusPageSubscriberService, {
     Service as StatusPageSubscriberServiceType,
@@ -19,14 +18,15 @@ export default class StatusPageSubscriberAPI extends BaseAPI<
         super(StatusPageSubscriber, StatusPageSubscriberService);
 
         this.router.get(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/unsubscribe/:id`,
+            `/${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/unsubscribe/:id`,
             async (
                 req: ExpressRequest,
                 res: ExpressResponse,
                 next: NextFunction
             ) => {
                 try {
-
                     await this.service.updateOneBy({
                         query: {
                             _id: req.params['id'] as string,
@@ -37,18 +37,18 @@ export default class StatusPageSubscriberAPI extends BaseAPI<
                         props: {
                             isRoot: true,
                             ignoreHooks: true,
-                        }
+                        },
                     });
 
-                    return Response.sendHtmlResponse(req, res, '<html><body><p> You have been unsubscribed.</p><body><html>');
+                    return Response.sendHtmlResponse(
+                        req,
+                        res,
+                        '<html><body><p> You have been unsubscribed.</p><body><html>'
+                    );
                 } catch (err) {
                     next(err);
                 }
             }
         );
-
-
-
-       
     }
 }

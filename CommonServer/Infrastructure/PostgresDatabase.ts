@@ -25,6 +25,7 @@ export default class Database {
             username: DatabaseUsername,
             password: DatabasePassword,
             database: DatabaseName,
+            migrationsTableName: 'migrations',
             entities: Entities,
             //logging: 'all',
             synchronize:

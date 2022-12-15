@@ -575,12 +575,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     eventViewRoute={RouteUtil.populateRouteParams(
                                         props.isPreviewPage
                                             ? (RouteMap[
-                                                PageMap
-                                                    .PREVIEW_INCIDENT_DETAIL
-                                            ] as Route)
+                                                  PageMap
+                                                      .PREVIEW_INCIDENT_DETAIL
+                                              ] as Route)
                                             : (RouteMap[
-                                                PageMap.INCIDENT_DETAIL
-                                            ] as Route),
+                                                  PageMap.INCIDENT_DETAIL
+                                              ] as Route),
                                         incidentGroup.incident.id!
                                     )}
                                 />
@@ -621,12 +621,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     eventViewRoute={RouteUtil.populateRouteParams(
                                         props.isPreviewPage
                                             ? (RouteMap[
-                                                PageMap
-                                                    .PREVIEW_SCHEDULED_EVENT_DETAIL
-                                            ] as Route)
+                                                  PageMap
+                                                      .PREVIEW_SCHEDULED_EVENT_DETAIL
+                                              ] as Route)
                                             : (RouteMap[
-                                                PageMap.SCHEDULED_EVENT_DETAIL
-                                            ] as Route),
+                                                  PageMap.SCHEDULED_EVENT_DETAIL
+                                              ] as Route),
                                         scheduledEventGroup.scheduledMaintenance
                                             .id!
                                     )}
@@ -638,10 +638,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     <div>
                         {currentStatus && statusPageResources.length > 0 && (
                             <Alert
-                                title={`${currentStatus.isOperationalState
+                                title={`${
+                                    currentStatus.isOperationalState
                                         ? `All`
                                         : 'Some'
-                                    } Resources are ${currentStatus.name}`}
+                                } Resources are ${currentStatus.name}`}
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
                                 size={AlertSize.Large}
@@ -649,64 +650,75 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         )}
                     </div>
 
-                    {statusPageResources.length > 0 && <div>
-                        <AccordianGroup>
-                            {statusPageResources.filter(
-                                (resources: StatusPageResource) => {
-                                    return !resources.statusPageGroupId;
-                                }
-                            ).length > 0 ? (
-                                <Accordian
-                                    key={Math.random()}
-                                    title={undefined}
-                                    isLastElement={resourceGroups.length === 0}
-                                >
-                                    {getMonitorOverviewListInGroup(null)}
-                                </Accordian>
-                            ) : (
-                                <></>
-                            )}
-                            <div
-                                key={Math.random()}
-                                style={{
-                                    padding: '0px',
-                                }}
-                            >
-                                {resourceGroups.length > 0 &&
-                                    resourceGroups.map(
-                                        (
-                                            resourceGroup: StatusPageGroup,
-                                            i: number
-                                        ) => {
-                                            return (
-                                                <Accordian
-                                                    key={i}
-                                                    rightElement={getRightAccordianElement(
-                                                        resourceGroup
-                                                    )}
-                                                    isInitiallyExpanded={
-                                                        resourceGroup.isExpandedByDefault
-                                                    }
-                                                    isLastElement={
-                                                        resourceGroups.length -
-                                                        1 ===
-                                                        i
-                                                    }
-                                                    title={resourceGroup.name!}
-                                                >
-                                                    {getMonitorOverviewListInGroup(
-                                                        resourceGroup
-                                                    )}
-                                                </Accordian>
-                                            );
+                    {statusPageResources.length > 0 && (
+                        <div>
+                            <AccordianGroup>
+                                {statusPageResources.filter(
+                                    (resources: StatusPageResource) => {
+                                        return !resources.statusPageGroupId;
+                                    }
+                                ).length > 0 ? (
+                                    <Accordian
+                                        key={Math.random()}
+                                        title={undefined}
+                                        isLastElement={
+                                            resourceGroups.length === 0
                                         }
-                                    )}
-                            </div>
-                        </AccordianGroup>
-                    </div>}
+                                    >
+                                        {getMonitorOverviewListInGroup(null)}
+                                    </Accordian>
+                                ) : (
+                                    <></>
+                                )}
+                                <div
+                                    key={Math.random()}
+                                    style={{
+                                        padding: '0px',
+                                    }}
+                                >
+                                    {resourceGroups.length > 0 &&
+                                        resourceGroups.map(
+                                            (
+                                                resourceGroup: StatusPageGroup,
+                                                i: number
+                                            ) => {
+                                                return (
+                                                    <Accordian
+                                                        key={i}
+                                                        rightElement={getRightAccordianElement(
+                                                            resourceGroup
+                                                        )}
+                                                        isInitiallyExpanded={
+                                                            resourceGroup.isExpandedByDefault
+                                                        }
+                                                        isLastElement={
+                                                            resourceGroups.length -
+                                                                1 ===
+                                                            i
+                                                        }
+                                                        title={
+                                                            resourceGroup.name!
+                                                        }
+                                                    >
+                                                        {getMonitorOverviewListInGroup(
+                                                            resourceGroup
+                                                        )}
+                                                    </Accordian>
+                                                );
+                                            }
+                                        )}
+                                </div>
+                            </AccordianGroup>
+                        </div>
+                    )}
 
-                    {statusPageResources.length === 0 && <p> No resources added to this Status Page, please add some resources from OneUptime dashboard.</p>}
-
+                    {statusPageResources.length === 0 && (
+                        <p>
+                            {' '}
+                            No resources added to this Status Page, please add
+                            some resources from OneUptime dashboard.
+                        </p>
+                    )}
                 </div>
             ) : (
                 <></>

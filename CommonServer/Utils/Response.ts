@@ -264,7 +264,6 @@ export default class Response {
         this.logResponse(req, res, { text: text as string });
     }
 
-
     public static sendHtmlResponse(
         req: ExpressRequest,
         res: ExpressResponse,
@@ -281,7 +280,7 @@ export default class Response {
         oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
 
         oneUptimeResponse.logBody = { html: html as string };
-        oneUptimeResponse.writeHead(200, { 'Content-Type':'text/html'});
+        oneUptimeResponse.writeHead(200, { 'Content-Type': 'text/html' });
         oneUptimeResponse.end(html);
         this.logResponse(req, res, { html: html as string });
     }

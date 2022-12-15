@@ -16,10 +16,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-
-            <div
-                className='justify-center'
-            >
+            <div className="justify-center">
                 <div>
                     <p>Subscribe.</p>
 
@@ -29,8 +26,6 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                     setCurrentTab(tab);
                 }}
             /> */}
-
-
 
                     {currentTab === 'Email' ? (
                         <ModelForm<StatusPageSubscriber>
@@ -51,7 +46,9 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                             ]}
                             formType={FormType.Create}
                             submitButtonText={'Subscribe'}
-                            onBeforeCreate={async (item: StatusPageSubscriber) => {
+                            onBeforeCreate={async (
+                                item: StatusPageSubscriber
+                            ) => {
                                 const id: ObjectID = LocalStorage.getItem(
                                     'statusPageId'
                                 ) as ObjectID;

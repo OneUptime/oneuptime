@@ -30,7 +30,6 @@ import StatusPagePrivateUserService, {
     Service as StatusPagePrivateUserServiceType,
 } from 'CommonServer/Services/StatusPagePrivateUserService';
 
-
 import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
 import StatusPageFooterLinkService, {
     Service as StatusPageFooterLinkServiceType,
@@ -286,7 +285,6 @@ app.use(
         ScheduledMaintenanceStateTimelineService
     ).getRouter()
 );
-
 
 app.use(
     new BaseAPI<StatusPagePrivateUser, StatusPagePrivateUserServiceType>(

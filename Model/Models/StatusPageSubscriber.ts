@@ -24,7 +24,11 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateStatusPageSubscriber, Permission.Public],
+    create: [
+        Permission.ProjectOwner,
+        Permission.CanCreateStatusPageSubscriber,
+        Permission.Public,
+    ],
     read: [Permission.ProjectOwner, Permission.CanReadStatusPageSubscriber],
     delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageSubscriber],
     update: [Permission.ProjectOwner, Permission.CanEditStatusPageSubscriber],
@@ -132,7 +136,7 @@ export default class StatusPageSubscriber extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateStatusPageSubscriber,
-            Permission.Public
+            Permission.Public,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageSubscriber],
         update: [
@@ -153,7 +157,7 @@ export default class StatusPageSubscriber extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateStatusPageSubscriber,
-            Permission.Public
+            Permission.Public,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageSubscriber],
         update: [
@@ -174,7 +178,7 @@ export default class StatusPageSubscriber extends BaseModel {
         create: [
             Permission.ProjectOwner,
             Permission.CanCreateStatusPageSubscriber,
-            Permission.Public
+            Permission.Public,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageSubscriber],
         update: [
@@ -256,7 +260,6 @@ export default class StatusPageSubscriber extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
-
 
     @ColumnAccessControl({
         create: [],

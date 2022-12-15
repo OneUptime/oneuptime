@@ -49,22 +49,21 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         );
         if (id) {
             return new ObjectID(id);
-        } else {
-            // get status page id by hostname. 
-            const response: HTTPResponse<JSONObject> =
-                await BaseAPI.post<JSONObject>(
-                    URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
-                        `/status-page/domain`
-                    ),
-                    {
-                        domain: Navigation.getHostname().toString()
-                    },
-                    {}
-                );
+        }
+        // get status page id by hostname.
+        const response: HTTPResponse<JSONObject> =
+            await BaseAPI.post<JSONObject>(
+                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                    `/status-page/domain`
+                ),
+                {
+                    domain: Navigation.getHostname().toString(),
+                },
+                {}
+            );
 
-            if (response.data && response.data['statusPageId']) {
-                return new ObjectID(response.data['statusPageId'] as string);
-            }
+        if (response.data && response.data['statusPageId']) {
+            return new ObjectID(response.data['statusPageId'] as string);
         }
 
         throw new BadDataException('Status Page ID not found');

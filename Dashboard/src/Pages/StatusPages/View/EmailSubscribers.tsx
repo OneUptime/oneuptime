@@ -131,27 +131,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['isUnsubscribed']) {
                                 return (
-                                    <Pill
-                                        color={
-                                            Red
-                                        }
-                                        text={
-                                           "Unsubscribed"
-                                        }
-                                    />
-                                );
-                            } else {
-                                return (
-                                    <Pill
-                                        color={
-                                            Green
-                                        }
-                                        text={
-                                           "Subscribed"
-                                        }
-                                    />
+                                    <Pill color={Red} text={'Unsubscribed'} />
                                 );
                             }
+                            return <Pill color={Green} text={'Subscribed'} />;
                         },
                     },
                     {

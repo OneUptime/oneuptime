@@ -20,9 +20,8 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         data: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
-
         if (!data.data.statusPageId) {
-            throw new BadDataException("Status Page ID is required.")
+            throw new BadDataException('Status Page ID is required.');
         }
 
         const statuspage = await StatusPageService.findOneById({
@@ -31,33 +30,33 @@ export class Service extends DatabaseService<Model> {
                 projectId: true,
                 pageTitle: true,
                 name: true,
-                isPublicStatusPage: true
+                isPublicStatusPage: true,
             },
             props: {
                 isRoot: true,
                 ignoreHooks: true,
-            }
+            },
         });
 
         if (!statuspage || !statuspage.projectId) {
-            throw new BadDataException("Status Page not found");
+            throw new BadDataException('Status Page not found');
         }
 
         data.data.projectId = statuspage.projectId;
 
         return { createBy: data, carryForward: statuspage };
-
     }
-
 
     protected override async onCreateSuccess(
         onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
-
-        if (createdItem.statusPageId && createdItem.subscriberEmail && createdItem._id) {
-            // Call mail service and send an email. 
-
+        if (
+            createdItem.statusPageId &&
+            createdItem.subscriberEmail &&
+            createdItem._id
+        ) {
+            // Call mail service and send an email.
 
             // get status page domain for this status page.
             // if the domain is not found, use the internal sttaus page preview link.
@@ -65,28 +64,38 @@ export class Service extends DatabaseService<Model> {
             const domains = await StatusPageDomainService.findBy({
                 query: {
                     statusPageId: createdItem.statusPageId,
-                    isSslProvisioned: true
+                    isSslProvisioned: true,
                 },
                 select: {
-                    fullDomain: true
+                    fullDomain: true,
                 },
                 skip: 0,
                 limit: LIMIT_PER_PROJECT,
                 props: {
                     isRoot: true,
                     ignoreHooks: true,
-                }
+                },
             });
 
-
-            let statusPageURL: string = domains.map((d) => d.fullDomain).join(", ");
+            let statusPageURL: string = domains
+                .map((d) => {
+                    return d.fullDomain;
+                })
+                .join(', ');
 
             if (domains.length === 0) {
                 // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-                statusPageURL = new URL(HttpProtocol, Domain).addRoute("/status-page/" + createdItem.statusPageId.toString()).toString();
+                statusPageURL = new URL(HttpProtocol, Domain)
+                    .addRoute(
+                        '/status-page/' + createdItem.statusPageId.toString()
+                    )
+                    .toString();
             }
 
-            const statusPageName: string = onCreate.carryForward.pageTitle || onCreate.carryForward.name || 'Status Page';
+            const statusPageName: string =
+                onCreate.carryForward.pageTitle ||
+                onCreate.carryForward.name ||
+                'Status Page';
 
             MailService.sendMail({
                 toEmail: createdItem.subscriberEmail,
@@ -94,8 +103,14 @@ export class Service extends DatabaseService<Model> {
                 vars: {
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
-                    isPublicStatusPage: onCreate.carryForward.isPublicStatusPage,
-                    unsubscribeUrl: new URL(HttpProtocol, Domain).addRoute("/api/status-page-subscriber/unsubscribe/" + createdItem._id.toString()).toString() 
+                    isPublicStatusPage:
+                        onCreate.carryForward.isPublicStatusPage,
+                    unsubscribeUrl: new URL(HttpProtocol, Domain)
+                        .addRoute(
+                            '/api/status-page-subscriber/unsubscribe/' +
+                                createdItem._id.toString()
+                        )
+                        .toString(),
                 },
                 subject: 'You have been subscribed to ' + statusPageName,
             }).catch((err: Error) => {
