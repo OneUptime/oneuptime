@@ -209,8 +209,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-            <h3>Incidents</h3>
-            <EventHistoryList {...parsedData} />
+            {incidents && incidents.length > 0 ? <h3>Incidents</h3> : <></>}
+            {incidents && incidents.length > 0 ? <EventHistoryList {...parsedData} /> : <></>}
+            {incidents.length === 0 ? (
+                        <ErrorMessage
+                            error="No incidents reported on this status page."
+                        />
+                    ) : <></>}
         </Page>
     );
 };

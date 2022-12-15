@@ -95,7 +95,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                        [],
+                    [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -115,7 +115,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -193,8 +193,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 eventViewRoute: RouteUtil.populateRouteParams(
                     props.isPreviewPage
                         ? (RouteMap[
-                              PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                          ] as Route)
+                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                        ] as Route)
                         : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
                     scheduledMaintenance.id!
                 ),
@@ -224,8 +224,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-            <h3>Scheduled Maintenance Events</h3>
-            <EventHistoryList {...parsedData} />
+            
+            {scheduledMaintenanceEvents && scheduledMaintenanceEvents.length > 0 ? <h3>Scheduled Maintenance Events</h3> : <></>}
+
+            {scheduledMaintenanceEvents && scheduledMaintenanceEvents.length > 0 ? <EventHistoryList {...parsedData} /> : <></>}
+
+            {scheduledMaintenanceEvents.length === 0 ? (
+                <ErrorMessage
+                    error="No events reported on this status page."
+                />
+            ) : <></>}
         </Page>
     );
 };
