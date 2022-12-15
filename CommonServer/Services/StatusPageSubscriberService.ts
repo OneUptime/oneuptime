@@ -22,9 +22,44 @@ export class Service extends DatabaseService<Model> {
     protected override async onBeforeCreate(
         data: CreateBy<Model>
     ): Promise<OnCreate<Model>> {
+
         if (!data.data.statusPageId) {
             throw new BadDataException('Status Page ID is required.');
         }
+
+        if (data.data.subscriberEmail) {
+            const subscriber: Model | null = await this.findOneBy({
+                query: {
+                    statusPageId: data.data.statusPageId,
+                    subscriberEmail: data.data.subscriberEmail
+                },
+                select: {
+                    _id: true,
+                    isUnsubscribed: true
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true
+                }
+            });
+
+            if (subscriber && !subscriber.isUnsubscribed) {
+                throw new BadDataException("You are already subscribed to this status page.");
+            }
+
+            // if the user is unsubscribed, delete this record and it'll create a new one. 
+
+            await this.deleteOneBy({
+                query: {
+                    _id: subscriber?._id!
+                },
+                props: {
+                    ignoreHooks: true,
+                    isRoot: true
+                }
+            });
+        }
+
 
         const statuspage: StatusPage | null =
             await StatusPageService.findOneById({
@@ -44,6 +79,8 @@ export class Service extends DatabaseService<Model> {
         if (!statuspage || !statuspage.projectId) {
             throw new BadDataException('Status Page not found');
         }
+
+
 
         data.data.projectId = statuspage.projectId;
 
