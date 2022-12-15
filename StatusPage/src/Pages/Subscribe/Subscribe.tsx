@@ -13,12 +13,19 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     const [currentTab, _setCurrentTab] = useState<string>('Email');
-
+    const [isSuccess, setIsSuccess] = useState<boolean>(false);
     return (
         <Page>
             <div className="justify-center">
                 <div>
-                    <p>Subscribe.</p>
+                    {!isSuccess && <h5>Subscribe to this page.</h5>}
+                    {isSuccess && <p
+                        className="text-center color-light-grey"
+                        style={{
+                            marginTop: '50px',
+                            marginBottom: '50px',
+                        }}
+                    > You have been subscribed successfully.</p>}
 
                     {/* <Tabs
                 tabs={['Email', 'SMS', 'Webhook']}
@@ -27,7 +34,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                 }}
             /> */}
 
-                    {currentTab === 'Email' ? (
+                    {currentTab === 'Email' && !isSuccess ? (
                         <ModelForm<StatusPageSubscriber>
                             modelType={StatusPageSubscriber}
                             id="email-form"
@@ -36,7 +43,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                                     field: {
                                         subscriberEmail: true,
                                     },
-                                    title: 'Email',
+                                    title: 'Please enter your Email',
                                     description:
                                         'Status page updates will be sent to this email.',
                                     fieldType: FormFieldSchemaType.Email,
@@ -62,7 +69,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                                 return item;
                             }}
                             onSuccess={(_value: JSONObject) => {
-                                //LoginUtil.login(value);
+                                setIsSuccess(true);
                             }}
                             maxPrimaryButtonWidth={true}
                         />
