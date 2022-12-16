@@ -64,10 +64,15 @@ RUN npm run compile
 RUN mkdir /usr/src/CommonUI
 WORKDIR /usr/src/CommonUI
 COPY ./CommonUI/package*.json /usr/src/CommonUI/
-RUN npm install --force
-COPY ./CommonUI /usr/src/CommonUI
+RUN npm install
+RUN mkdir /usr/src/CommonUI/temp
+COPY ./CommonUI /usr/src/CommonUI/temp
+# Remove node modules copies from local computer. 
+RUN rm -rf /usr/src/CommonUI/temp/node_modules
+RUN cp -a /usr/src/CommonUI/temp/. /usr/src/CommonUI/
+RUN cd /usr/src/CommonUI/
+RUN rm -rf /usr/src/CommonUI/temp/
 RUN npm run compile
-
 #SET ENV Variables
 ENV PRODUCTION=true
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
