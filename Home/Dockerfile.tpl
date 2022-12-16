@@ -70,7 +70,6 @@ WORKDIR /usr/src/app
 COPY ./Home/package*.json /usr/src/app/
 RUN npm install
 
-
 # Expose ports.
 #   - 1444: OneUptime Home
 EXPOSE 1444
