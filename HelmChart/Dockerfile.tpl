@@ -1,5 +1,5 @@
 # Pull base image nodejs image.
-FROM node:18-alpine
+FROM node:alpine
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
