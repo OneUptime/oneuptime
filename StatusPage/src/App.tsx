@@ -24,7 +24,8 @@ import PageMap from './Utils/PageMap';
 
 import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import RouteParams from './Utils/RouteParams';
 
 const App: FunctionComponent = () => {

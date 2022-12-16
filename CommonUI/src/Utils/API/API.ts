@@ -11,7 +11,7 @@ import URL from 'Common/Types/API/URL';
 import Navigation from '../Navigation';
 import Dictionary from 'Common/Types/Dictionary';
 import PermissionUtil from '../Permission';
-import { JSONFunctions } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import {
     UserGlobalAccessPermission,
     UserTenantAccessPermission,

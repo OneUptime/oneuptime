@@ -13,7 +13,7 @@ import TableColumn, {
     getTableColumns,
     TableColumnMetadata,
 } from '../Types/Database/TableColumn';
-import { JSONArray, JSONFunctions, JSONObject, JSONValue } from '../Types/JSON';
+import { JSONArray, JSONObject, JSONValue } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
 import Dictionary from '../Types/Dictionary';
 import HashedString from '../Types/HashedString';
@@ -32,6 +32,7 @@ import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessContr
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
 import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
+import JSONFunctions from '../Types/JSONFunctions';
 
 export type DbTypes =
     | string

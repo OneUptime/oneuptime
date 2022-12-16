@@ -502,7 +502,7 @@ export default class ModelPermission {
         populate: Populate<TBaseModel>;
     } {
         for (const key in populate) {
-            if (typeof populate[key] === Typeof.Object) {
+            if (typeof (populate as JSONObject)[key] === Typeof.Object) {
                 (select as any)[key] = { ...(populate as any)[key], _id: true };
 
                 (populate as any)[key] = true;
@@ -535,7 +535,7 @@ export default class ModelPermission {
             ModelPermission.getExcludedColumns();
 
         for (const key in populate) {
-            if (typeof populate[key] === Typeof.Object) {
+            if (typeof (populate as JSONObject)[key] === Typeof.Object) {
                 const tableColumnMetadata: TableColumnMetadata =
                     model.getTableColumnMetadata(key);
 

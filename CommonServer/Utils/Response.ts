@@ -10,7 +10,6 @@ import {
     JSONObject,
     JSONArray,
     JSONObjectOrArray,
-    JSONFunctions,
 } from 'Common/Types/JSON';
 import { File } from 'Common/Types/File';
 import Exception from 'Common/Types/Exception/Exception';
@@ -19,6 +18,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import URL from 'Common/Types/API/URL';
 import BaseModel from 'Common/Models/BaseModel';
 import EmptyResponse from 'Common/Types/API/EmptyResponse';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class Response {
     private static logResponse(

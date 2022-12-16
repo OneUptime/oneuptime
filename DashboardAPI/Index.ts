@@ -1,10 +1,10 @@
 import 'ejs';
-import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import BaseAPI from 'CommonServer/API/BaseAPI';
 import App from 'CommonServer/Utils/StartServer';
+import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 
 import User from 'Model/Models/User';
 import UserService, {

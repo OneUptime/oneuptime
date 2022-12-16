@@ -1,4 +1,5 @@
-import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import Redis, { ClientType } from './Redis';
 import DatabaseNotConnectedException from 'Common/Types/Exception/DatabaseNotConnectedException';
 import OneUptimeDate from 'Common/Types/Date';

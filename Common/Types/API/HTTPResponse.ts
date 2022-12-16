@@ -1,10 +1,10 @@
 import BaseModel from '../../Models/BaseModel';
 import {
     JSONArray,
-    JSONFunctions,
     JSONObject,
     JSONObjectOrArray,
 } from '../JSON';
+import JSONFunctions from '../JSONFunctions';
 import Typeof from '../Typeof';
 
 export default class HTTPResponse<
