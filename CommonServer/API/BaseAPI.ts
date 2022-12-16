@@ -389,9 +389,9 @@ export default class BaseAPI<
             body['data'] as JSONObject
         ) as PartialEntity<TBaseModel>;
 
-        delete item['_id'];
-        delete item['createdAt'];
-        delete item['updatedAt'];
+        delete (item as any)['_id'];
+        delete (item as any)['createdAt'];
+        delete (item as any)['updatedAt'];
 
         await this.service.updateBy({
             query: {
