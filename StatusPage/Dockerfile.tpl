@@ -64,7 +64,7 @@ RUN npm run compile
 RUN mkdir /usr/src/CommonUI
 WORKDIR /usr/src/CommonUI
 COPY ./CommonUI/package*.json /usr/src/CommonUI/
-RUN npm install
+RUN npm install --force
 RUN mkdir /usr/src/CommonUI/temp
 COPY ./CommonUI /usr/src/CommonUI/temp
 # Remove node modules copies from local computer. 
