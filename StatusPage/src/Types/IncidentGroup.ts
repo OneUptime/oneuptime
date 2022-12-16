@@ -11,5 +11,5 @@ export default interface IncidentGroup {
     publicNote?: IncidentPublicNote | undefined | null;
     incidentState: IncidentState;
     incidentStateTimeline: IncidentStateTimeline;
-    incidentResources: Array<StatusPageResource>
+    incidentResources: Array<StatusPageResource>;
 }

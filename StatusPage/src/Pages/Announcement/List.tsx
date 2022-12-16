@@ -85,7 +85,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -119,7 +119,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 };
             }
 
-            days[dayString]?.items.push(getAnnouncementEventItem(announcement, !!props.isPreviewPage));
+            days[dayString]?.items.push(
+                getAnnouncementEventItem(
+                    announcement,
+                    Boolean(props.isPreviewPage)
+                )
+            );
         }
 
         for (const key in days) {
@@ -145,16 +150,23 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-            
-            {announcements && announcements.length > 0 ? <h3>Announcements</h3> : <></>}
+            {announcements && announcements.length > 0 ? (
+                <h3>Announcements</h3>
+            ) : (
+                <></>
+            )}
 
-            {announcements && announcements.length > 0 ? <EventHistoryList {...parsedData} /> : <></>}
+            {announcements && announcements.length > 0 ? (
+                <EventHistoryList {...parsedData} />
+            ) : (
+                <></>
+            )}
 
             {announcements.length === 0 ? (
-                <ErrorMessage
-                    error="No announcements reported on this status page."
-                />
-            ) : <></>}
+                <ErrorMessage error="No announcements reported on this status page." />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

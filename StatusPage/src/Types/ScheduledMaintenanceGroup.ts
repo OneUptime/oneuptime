@@ -9,5 +9,5 @@ export default interface ScheduledMaintenanceGroup {
     publicNote?: ScheduledMaintenancePublicNote | undefined | null;
     scheduledMaintenanceState: ScheduledMaintenanceState;
     scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline;
-    scheduledEventResources: Array<StatusPageResource>
+    scheduledEventResources: Array<StatusPageResource>;
 }

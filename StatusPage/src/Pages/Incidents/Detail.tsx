@@ -18,7 +18,6 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
 import BaseModel from 'Common/Models/BaseModel';
-import { ComponentProps as EventItemComponentProps } from 'CommonUI/src/Components/EventItem/EventItem';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import Incident from 'Model/Models/Incident';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
@@ -28,62 +27,86 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import EventItem, { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
+import EventItem, {
+    TimelineItem,
+    ComponentProps as EventItemComponentProps,
+} from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import Monitor from 'Model/Models/Monitor';
 
-export const getIncidentEventItem: Function = (incident: Incident, incidentPublicNotes: Array<IncidentPublicNote>, incidentStateTimelines: Array<IncidentStateTimeline>, statusPageResources: Array<StatusPageResource>, isPreviewPage: boolean): EventItemComponentProps => { 
+export const getIncidentEventItem: Function = (
+    incident: Incident,
+    incidentPublicNotes: Array<IncidentPublicNote>,
+    incidentStateTimelines: Array<IncidentStateTimeline>,
+    statusPageResources: Array<StatusPageResource>,
+    isPreviewPage: boolean
+): EventItemComponentProps => {
     const timeline: Array<TimelineItem> = [];
 
-        for (const incidentPublicNote of incidentPublicNotes) {
-            if (
-                incidentPublicNote.incidentId?.toString() ===
-                incident.id?.toString()
-            ) {
-                timeline.push({
-                    text: (<span><b>Update</b> - <span>{incidentPublicNote?.note}</span></span>),
-                    date: incidentPublicNote?.createdAt!,
-                    isBold: false,
-                });
-            }
+    for (const incidentPublicNote of incidentPublicNotes) {
+        if (
+            incidentPublicNote.incidentId?.toString() ===
+            incident.id?.toString()
+        ) {
+            timeline.push({
+                text: (
+                    <span>
+                        <b>Update</b> - <span>{incidentPublicNote?.note}</span>
+                    </span>
+                ),
+                date: incidentPublicNote?.createdAt!,
+                isBold: false,
+            });
         }
+    }
 
-        for (const incidentStateTimeline of incidentStateTimelines) {
-            if (
-                incidentStateTimeline.incidentId?.toString() ===
-                incident.id?.toString()
-            ) {
-                timeline.push({
-                    text: incidentStateTimeline.incidentState?.name || '',
-                    date: incidentStateTimeline?.createdAt!,
-                    isBold: true,
-                });
-            }
+    for (const incidentStateTimeline of incidentStateTimelines) {
+        if (
+            incidentStateTimeline.incidentId?.toString() ===
+            incident.id?.toString()
+        ) {
+            timeline.push({
+                text: incidentStateTimeline.incidentState?.name || '',
+                date: incidentStateTimeline?.createdAt!,
+                isBold: true,
+            });
         }
+    }
 
-        timeline.sort((a: TimelineItem, b: TimelineItem) => {
-            return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
+    timeline.sort((a: TimelineItem, b: TimelineItem) => {
+        return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
+    });
+
+    const monitorIds: Array<string | undefined> =
+        incident.monitors?.map((monitor: Monitor) => {
+            return monitor._id;
+        }) || [];
+
+    const namesOfResources: Array<StatusPageResource> =
+        statusPageResources.filter((resource: StatusPageResource) => {
+            return monitorIds.includes(resource.monitorId?.toString());
         });
 
-        const monitorIds = incident.monitors?.map((monitor) => monitor._id) || [];
+    const data: EventItemComponentProps = {
+        eventTitle: incident.title || '',
+        eventDescription: incident.description,
+        eventResourcesAffected: namesOfResources.map(
+            (i: StatusPageResource) => {
+                return i.displayName || '';
+            }
+        ),
+        eventTimeline: timeline,
+        eventType: 'Incident',
+        eventViewRoute: RouteUtil.populateRouteParams(
+            isPreviewPage
+                ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+            incident.id!
+        ),
+    };
 
-        const namesOfResources = statusPageResources.filter((resource) => monitorIds.includes(resource.monitorId?.toString()));
-
-        const data = {
-            eventTitle: incident.title || '',
-            eventDescription: incident.description,
-            eventResourcesAffected: namesOfResources.map((i) => i.displayName || ''),
-            eventTimeline: timeline,
-            eventType: 'Incident',
-            eventViewRoute: RouteUtil.populateRouteParams(
-                isPreviewPage
-                    ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                    : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-                incident.id!
-            ),
-        };
-    
-    return data; 
-}
+    return data;
+};
 
 const Detail: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -111,7 +134,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 'statusPageId'
             ) as ObjectID;
 
-            const incidentId = Navigation.getLastParam()?.toString().replace("/", "");
+            const incidentId: string | undefined = Navigation.getLastParam()
+                ?.toString()
+                .replace('/', '');
 
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
@@ -158,7 +183,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -174,12 +199,19 @@ const Detail: FunctionComponent<PageComponentProps> = (
             return;
         }
 
-
         if (!incident) {
             return;
         }
 
-        setParsedData(getIncidentEventItem(incident, incidentPublicNotes, incidentStateTimelines, statusPageResources, props.isPreviewPage));
+        setParsedData(
+            getIncidentEventItem(
+                incident,
+                incidentPublicNotes,
+                incidentStateTimelines,
+                statusPageResources,
+                props.isPreviewPage
+            )
+        );
     }, [isLoading]);
 
     if (isLoading) {
@@ -196,13 +228,12 @@ const Detail: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-
             {incident ? <EventItem {...parsedData} /> : <></>}
             {!incident ? (
-                <ErrorMessage
-                    error="No incident found with this ID."
-                />
-            ) : <></>}
+                <ErrorMessage error="No incident found with this ID." />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

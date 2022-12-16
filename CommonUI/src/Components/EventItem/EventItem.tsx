@@ -12,7 +12,7 @@ export interface TimelineItem {
 }
 export interface ComponentProps {
     eventTitle: string;
-    eventResourcesAffected?: Array<string> | undefined,
+    eventResourcesAffected?: Array<string> | undefined;
     eventDescription?: string | undefined;
     eventTimeline: Array<TimelineItem>;
     eventMiniDescription?: string | undefined;
@@ -49,27 +49,28 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 className="active-event-box-body"
                 style={{ marginTop: '0px', paddingTop: '0px' }}
             >
-
-                {props.eventResourcesAffected && props.eventResourcesAffected?.length > 0 ? <div
-                    key={0}
-                    className="active-event-box-body-description"
-                >
-                    {' '}
-                    <span
-                        style={{
-                            fontWeight: 400,
-                        }}
-                    >
-                        <b>Resources Affected</b> - {props.eventResourcesAffected?.join(",")}
-                    </span>{' '}
-                </div> : <></>}
-
+                {props.eventResourcesAffected &&
+                props.eventResourcesAffected?.length > 0 ? (
+                    <div key={0} className="active-event-box-body-description">
+                        {' '}
+                        <span
+                            style={{
+                                fontWeight: 400,
+                            }}
+                        >
+                            <b>Resources Affected</b> -{' '}
+                            {props.eventResourcesAffected?.join(',')}
+                        </span>{' '}
+                    </div>
+                ) : (
+                    <></>
+                )}
 
                 {props.eventTimeline &&
                     props.eventTimeline.map((item: TimelineItem, i: number) => {
                         return (
                             <div
-                                key={i+1}
+                                key={i + 1}
                                 className="active-event-box-body-description"
                             >
                                 {' '}

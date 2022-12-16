@@ -661,7 +661,6 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 />
             )}
 
-
             {icon === IconProp.Layout && (
                 <Layout
                     size={size}
@@ -670,7 +669,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 />
             )}
 
-{icon === IconProp.Compass && (
+            {icon === IconProp.Compass && (
                 <Compass
                     size={size}
                     strokeWidth={thick ? thick : ''}

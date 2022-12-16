@@ -134,8 +134,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     items: [],
                 };
             }
-            
-            days[dayString]?.items.push(getIncidentEventItem(incident, incidentPublicNotes, incidentStateTimelines, statusPageResources, props.isPreviewPage));
+
+            days[dayString]?.items.push(
+                getIncidentEventItem(
+                    incident,
+                    incidentPublicNotes,
+                    incidentStateTimelines,
+                    statusPageResources,
+                    props.isPreviewPage
+                )
+            );
         }
 
         for (const key in days) {
@@ -161,16 +169,27 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-            {incidents && incidents.length > 0 ? <div>
-                <h4>Incidents</h4>
-                <p>Here is the incident history for all the resources on this status page.</p>
-            </div> : <></>}
-            {incidents && incidents.length > 0 ? <EventHistoryList {...parsedData} /> : <></>}
+            {incidents && incidents.length > 0 ? (
+                <div>
+                    <h4>Incidents</h4>
+                    <p>
+                        Here is the incident history for all the resources on
+                        this status page.
+                    </p>
+                </div>
+            ) : (
+                <></>
+            )}
+            {incidents && incidents.length > 0 ? (
+                <EventHistoryList {...parsedData} />
+            ) : (
+                <></>
+            )}
             {incidents.length === 0 ? (
-                        <ErrorMessage
-                            error="No incidents reported on this status page."
-                        />
-                    ) : <></>}
+                <ErrorMessage error="No incidents reported on this status page." />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

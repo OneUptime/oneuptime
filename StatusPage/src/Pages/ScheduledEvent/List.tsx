@@ -28,11 +28,7 @@ import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePub
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
 import { getScheduledEventEventItem } from './Detail';
 
 const Overview: FunctionComponent<PageComponentProps> = (
@@ -96,7 +92,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -116,7 +112,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -149,8 +145,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     items: [],
                 };
             }
-            
-            days[dayString]?.items.push(getScheduledEventEventItem(scheduledMaintenance, scheduledMaintenanceEventsPublicNotes, scheduledMaintenanceStateTimelines, !!props.isPreviewPage));
+
+            days[dayString]?.items.push(
+                getScheduledEventEventItem(
+                    scheduledMaintenance,
+                    scheduledMaintenanceEventsPublicNotes,
+                    scheduledMaintenanceStateTimelines,
+                    Boolean(props.isPreviewPage)
+                )
+            );
         }
 
         for (const key in days) {
@@ -176,16 +179,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-            
-            {scheduledMaintenanceEvents && scheduledMaintenanceEvents.length > 0 ? <h3>Scheduled Maintenance Events</h3> : <></>}
+            {scheduledMaintenanceEvents &&
+            scheduledMaintenanceEvents.length > 0 ? (
+                <h3>Scheduled Maintenance Events</h3>
+            ) : (
+                <></>
+            )}
 
-            {scheduledMaintenanceEvents && scheduledMaintenanceEvents.length > 0 ? <EventHistoryList {...parsedData} /> : <></>}
+            {scheduledMaintenanceEvents &&
+            scheduledMaintenanceEvents.length > 0 ? (
+                <EventHistoryList {...parsedData} />
+            ) : (
+                <></>
+            )}
 
             {scheduledMaintenanceEvents.length === 0 ? (
-                <ErrorMessage
-                    error="No events reported on this status page."
-                />
-            ) : <></>}
+                <ErrorMessage error="No events reported on this status page." />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

@@ -39,6 +39,7 @@ import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Monitor from 'Model/Models/Monitor';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -337,9 +338,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Incident Timeline not found.');
             }
 
-            const monitorIds = activeIncident.monitors?.map((monitor) => monitor._id) || []; 
-            
-            const namesOfResources = statusPageResources.filter((resource) => monitorIds.includes(resource.monitorId?.toString()));
+            const monitorIds: Array<string | undefined> =
+                activeIncident.monitors?.map((monitor: Monitor) => {
+                    return monitor._id;
+                }) || [];
+
+            const namesOfResources: Array<StatusPageResource> =
+                statusPageResources.filter((resource: StatusPageResource) => {
+                    return monitorIds.includes(resource.monitorId?.toString());
+                });
 
             const group: IncidentGroup = {
                 incident: activeIncident,
@@ -388,9 +395,19 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     throw new BadDataException('Incident Timeline not found.');
                 }
 
-                const monitorIds = activeEvent.monitors?.map((monitor) => monitor._id) || []; 
-            
-                const namesOfResources = statusPageResources.filter((resource) => monitorIds.includes(resource.monitorId?.toString()));
+                const monitorIds: Array<string | undefined> =
+                    activeEvent.monitors?.map((monitor: Monitor) => {
+                        return monitor._id;
+                    }) || [];
+
+                const namesOfResources: Array<StatusPageResource> =
+                    statusPageResources.filter(
+                        (resource: StatusPageResource) => {
+                            return monitorIds.includes(
+                                resource.monitorId?.toString()
+                            );
+                        }
+                    );
 
                 const group: ScheduledMaintenanceGroup = {
                     scheduledMaintenance: activeEvent,
@@ -509,7 +526,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
         if (incidentGroup.publicNote) {
             timeline.push({
-                text: (<span><b>Update</b> - {incidentGroup.publicNote?.note}</span>),
+                text: (
+                    <span>
+                        <b>Update</b> - {incidentGroup.publicNote?.note}
+                    </span>
+                ),
                 date: incidentGroup.publicNote?.createdAt!,
                 isBold: false,
             });
@@ -572,7 +593,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         incidentGroup.incidentSeverity.color ||
                                         Red
                                     }
-                                    eventResourcesAffected={incidentGroup.incidentResources.map((i)=> i.displayName?.toString() || '') || []}
+                                    eventResourcesAffected={
+                                        incidentGroup.incidentResources.map(
+                                            (i: StatusPageResource) => {
+                                                return (
+                                                    i.displayName?.toString() ||
+                                                    ''
+                                                );
+                                            }
+                                        ) || []
+                                    }
                                     eventTitle={
                                         incidentGroup.incident.title || ''
                                     }
@@ -624,8 +654,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     eventTimeline={getScheduledEventGroupEventTimeline(
                                         scheduledEventGroup
                                     )}
-                                    eventResourcesAffected={scheduledEventGroup.scheduledEventResources.map((i)=> i.displayName?.toString() || '') || []}
-                                    
+                                    eventResourcesAffected={
+                                        scheduledEventGroup.scheduledEventResources.map(
+                                            (i: StatusPageResource) => {
+                                                return (
+                                                    i.displayName?.toString() ||
+                                                    ''
+                                                );
+                                            }
+                                        ) || []
+                                    }
                                     footerDateTime={
                                         scheduledEventGroup.scheduledMaintenance
                                             .endsAt!

@@ -27,11 +27,18 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import EventItem, { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
+import EventItem, {
+    TimelineItem,
+    ComponentProps as EventItemComponentProps,
+} from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { ComponentProps as EventItemComponentProps } from 'CommonUI/src/Components/EventItem/EventItem';
 
-export const getScheduledEventEventItem: Function = (scheduledMaintenance: ScheduledMaintenance,scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote>, scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>, isPreviewPage: boolean ) => {
+export const getScheduledEventEventItem: Function = (
+    scheduledMaintenance: ScheduledMaintenance,
+    scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote>,
+    scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>,
+    isPreviewPage: boolean
+) => {
     /// get timeline.
 
     const timeline: Array<TimelineItem> = [];
@@ -68,22 +75,19 @@ export const getScheduledEventEventItem: Function = (scheduledMaintenance: Sched
         return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
     });
 
-   return {
+    return {
         eventTitle: scheduledMaintenance.title || '',
         eventDescription: scheduledMaintenance.description,
         eventTimeline: timeline,
         eventType: 'Scheduled Maintenance',
         eventViewRoute: RouteUtil.populateRouteParams(
-           isPreviewPage
-                ? (RouteMap[
-                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                ] as Route)
+            isPreviewPage
+                ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route)
                 : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
             scheduledMaintenance.id!
         ),
     };
-}
-
+};
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -117,8 +121,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Status Page ID is required');
             }
 
-            const eventId = Navigation.getLastParam()?.toString().replace("/", "");
-            
+            const eventId: string | undefined = Navigation.getLastParam()
+                ?.toString()
+                .replace('/', '');
+
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
                     URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
@@ -136,7 +142,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
-            const scheduledMaintenanceEvent:ScheduledMaintenance =
+            const scheduledMaintenanceEvent: ScheduledMaintenance =
                 BaseModel.fromJSONObject(
                     (data['scheduledMaintenanceEvent'] as JSONObject) || [],
                     ScheduledMaintenance
@@ -149,7 +155,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 BaseModel.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -169,7 +175,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -187,8 +193,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
         if (!scheduledMaintenanceEvent) {
             return;
-       }
-        setParsedData(getScheduledEventEventItem(scheduledMaintenanceEvent, scheduledMaintenanceEventsPublicNotes, scheduledMaintenanceStateTimelines, !!props.isPreviewPage));
+        }
+        setParsedData(
+            getScheduledEventEventItem(
+                scheduledMaintenanceEvent,
+                scheduledMaintenanceEventsPublicNotes,
+                scheduledMaintenanceStateTimelines,
+                Boolean(props.isPreviewPage)
+            )
+        );
     }, [isLoading]);
 
     if (isLoading) {
@@ -205,14 +218,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-
-        {scheduledMaintenanceEvent ? <EventItem {...parsedData} /> : <></>}
-        {!scheduledMaintenanceEvent ? (
-            <ErrorMessage
-                error="No incident found with this ID."
-            />
-        ) : <></>}
-    </Page>
+            {scheduledMaintenanceEvent ? <EventItem {...parsedData} /> : <></>}
+            {!scheduledMaintenanceEvent ? (
+                <ErrorMessage error="No incident found with this ID." />
+            ) : (
+                <></>
+            )}
+        </Page>
     );
 };
 

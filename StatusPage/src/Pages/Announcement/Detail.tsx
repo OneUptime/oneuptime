@@ -25,10 +25,15 @@ import Route from 'Common/Types/API/Route';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import EventItem, { ComponentProps as EventItemComponentProps } from 'CommonUI/src/Components/EventItem/EventItem';
+import EventItem, {
+    ComponentProps as EventItemComponentProps,
+} from 'CommonUI/src/Components/EventItem/EventItem';
 
-export const getAnnouncementEventItem = (announcement: StatusPageAnnouncement, isPreviewPage: boolean): EventItemComponentProps => {
-    return ({
+export const getAnnouncementEventItem: Function = (
+    announcement: StatusPageAnnouncement,
+    isPreviewPage: boolean
+): EventItemComponentProps => {
+    return {
         eventTitle: announcement.title || '',
         eventDescription: announcement.description,
         eventTimeline: [],
@@ -37,14 +42,12 @@ export const getAnnouncementEventItem = (announcement: StatusPageAnnouncement, i
         footerDateTime: announcement.showAnnouncementAt,
         eventViewRoute: RouteUtil.populateRouteParams(
             isPreviewPage
-                ? (RouteMap[
-                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
-                ] as Route)
+                ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
                 : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
             announcement.id!
         ),
-    });
-}
+    };
+};
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -54,9 +57,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [_statusPageResources, setStatusPageResources] = useState<
         Array<StatusPageResource>
     >([]);
-    const [announcement, setAnnouncement] = useState<
-        StatusPageAnnouncement | null
-    >(null);
+    const [announcement, setAnnouncement] =
+        useState<StatusPageAnnouncement | null>(null);
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
 
@@ -71,7 +73,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Status Page ID is required');
             }
 
-            const announcementId = Navigation.getLastParam()?.toString().replace("/", "");
+            const announcementId: string | undefined = Navigation.getLastParam()
+                ?.toString()
+                .replace('/', '');
 
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
@@ -106,7 +110,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -126,7 +130,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
             return;
         }
 
-        setParsedData(getAnnouncementEventItem(announcement, !!props.isPreviewPage));
+        setParsedData(
+            getAnnouncementEventItem(announcement, Boolean(props.isPreviewPage))
+        );
     }, [isLoading]);
 
     if (isLoading) {
@@ -143,13 +149,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-
             {announcement ? <EventItem {...parsedData} /> : <></>}
             {!announcement ? (
-                <ErrorMessage
-                    error="No announcement found with this ID."
-                />
-            ) : <></>}
+                <ErrorMessage error="No announcement found with this ID." />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };
