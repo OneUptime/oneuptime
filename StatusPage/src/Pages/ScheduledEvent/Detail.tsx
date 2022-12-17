@@ -87,7 +87,7 @@ export const getScheduledEventEventItem: Function = (
         eventDescription: scheduledMaintenance.description,
         eventTimeline: timeline,
         eventType: 'Scheduled Maintenance',
-        eventViewRoute: RouteUtil.populateRouteParams(
+        eventViewRoute: !isSummary ? undefined : RouteUtil.populateRouteParams(
             isPreviewPage
                 ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route)
                 : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
@@ -149,9 +149,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
+            
+            const rawAnnouncements: JSONArray = data['scheduledMaintenanceEvents'] as JSONArray || [];
+            
+
             const scheduledMaintenanceEvent: ScheduledMaintenance =
                 JSONFunctions.fromJSONObject(
-                    (data['scheduledMaintenanceEvent'] as JSONObject) || [],
+                    (rawAnnouncements[0] as JSONObject) || {},
                     ScheduledMaintenance
                 );
             const statusPageResources: Array<StatusPageResource> =

@@ -122,7 +122,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
             days[dayString]?.items.push(
                 getAnnouncementEventItem(
                     announcement,
-                    Boolean(props.isPreviewPage)
+                    Boolean(props.isPreviewPage),
+                    true
                 )
             );
         }

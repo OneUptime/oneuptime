@@ -31,7 +31,8 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
-    isPreviewPage: boolean
+    isPreviewPage: boolean,
+    isSummary: boolean
 ): EventItemComponentProps => {
     return {
         eventTitle: announcement.title || '',
@@ -40,7 +41,7 @@ export const getAnnouncementEventItem: Function = (
         eventType: 'Announcement',
         footerEventStatus: 'Announced at',
         footerDateTime: announcement.showAnnouncementAt,
-        eventViewRoute: RouteUtil.populateRouteParams(
+        eventViewRoute: !isSummary ? undefined : RouteUtil.populateRouteParams(
             isPreviewPage
                 ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
                 : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
@@ -87,9 +88,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 );
             const data: JSONObject = response.data;
 
+            const rawAnnouncements: JSONArray = data['announcements'] as JSONArray || [];
+           
             const announcement: StatusPageAnnouncement =
                 JSONFunctions.fromJSONObject(
-                    (data['announcements'] as JSONObject) || [],
+                    (rawAnnouncements[0] as JSONObject) || {},
                     StatusPageAnnouncement
                 );
 

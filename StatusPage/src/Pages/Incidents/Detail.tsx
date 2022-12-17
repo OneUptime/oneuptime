@@ -106,7 +106,7 @@ export const getIncidentEventItem: Function = (
         ),
         eventTimeline: timeline,
         eventType: 'Incident',
-        eventViewRoute: RouteUtil.populateRouteParams(
+        eventViewRoute: !isSummary ? undefined : RouteUtil.populateRouteParams(
             isPreviewPage
                 ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
                 : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
@@ -165,8 +165,10 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
+            
+            const rawIncidents: JSONArray = data['incidents'] as JSONArray || [];
             const incident: Incident = JSONFunctions.fromJSONObject(
-                (data['incident'] as JSONObject) || [],
+                (rawIncidents[0] as JSONObject) || {},
                 Incident
             );
             const statusPageResources: Array<StatusPageResource> =
@@ -221,7 +223,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 props.isPreviewPage
             )
         );
-    }, [isLoading]);
+    }, [isLoading, incident]);
 
     if (isLoading) {
         return <PageLoader isVisible={true} />;
