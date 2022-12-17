@@ -37,7 +37,8 @@ export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
     scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote>,
     scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>,
-    isPreviewPage: boolean
+    isPreviewPage: boolean,
+    isSummary: boolean
 ) => {
     /// get timeline.
 
@@ -53,6 +54,9 @@ export const getScheduledEventEventItem: Function = (
                 date: scheduledMaintenancePublicNote?.createdAt!,
                 isBold: false,
             });
+            if (isSummary) {
+                break;
+            }
         }
     }
 
@@ -68,6 +72,9 @@ export const getScheduledEventEventItem: Function = (
                 date: scheduledMaintenanceEventstateTimeline?.createdAt!,
                 isBold: true,
             });
+            if (isSummary) {
+                break;
+            }
         }
     }
 

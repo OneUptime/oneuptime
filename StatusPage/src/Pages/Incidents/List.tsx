@@ -141,7 +141,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     incidentPublicNotes,
                     incidentStateTimelines,
                     statusPageResources,
-                    props.isPreviewPage
+                    props.isPreviewPage,
+                    true
                 )
             );
         }

@@ -39,7 +39,8 @@ export const getIncidentEventItem: Function = (
     incidentPublicNotes: Array<IncidentPublicNote>,
     incidentStateTimelines: Array<IncidentStateTimeline>,
     statusPageResources: Array<StatusPageResource>,
-    isPreviewPage: boolean
+    isPreviewPage: boolean,
+    isSummary: boolean
 ): EventItemComponentProps => {
     const timeline: Array<TimelineItem> = [];
 
@@ -57,6 +58,10 @@ export const getIncidentEventItem: Function = (
                 date: incidentPublicNote?.createdAt!,
                 isBold: false,
             });
+            // If this incident is a sumamry then dont include all the notes .
+            if (isSummary) {
+                break;
+            }
         }
     }
 
@@ -70,6 +75,10 @@ export const getIncidentEventItem: Function = (
                 date: incidentStateTimeline?.createdAt!,
                 isBold: true,
             });
+            // If this incident is a sumamry then dont include all the notes .
+            if (isSummary) {
+                break;
+            }
         }
     }
 

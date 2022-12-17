@@ -151,7 +151,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     scheduledMaintenance,
                     scheduledMaintenanceEventsPublicNotes,
                     scheduledMaintenanceStateTimelines,
-                    Boolean(props.isPreviewPage)
+                    Boolean(props.isPreviewPage),
+                    true
                 )
             );
         }
