@@ -138,7 +138,7 @@ export default class Response {
             req,
             res,
             JSONFunctions.serializeArray(
-                BaseModel.toJSONArray(list as Array<BaseModel>, modelType)
+                JSONFunctions.toJSONArray(list as Array<BaseModel>, modelType)
             ),
             count
         );
@@ -155,7 +155,7 @@ export default class Response {
             res,
             item
                 ? JSONFunctions.serialize(
-                      BaseModel.toJSONObject(item, modelType)
+                       JSONFunctions.toJSONObject(item, modelType)
                   )
                 : {}
         );

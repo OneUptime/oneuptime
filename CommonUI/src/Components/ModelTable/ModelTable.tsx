@@ -752,7 +752,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                                 BaseModel.fromJSONObject(item, props.modelType);
 
                             if (props.onBeforeView) {
-                                item = BaseModel.toJSONObject(
+                                item =  JSONFunctions.toJSONObject(
                                     await props.onBeforeView(baseModel),
                                     props.modelType
                                 );
@@ -806,7 +806,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     ) => {
                         try {
                             if (props.onBeforeEdit) {
-                                item = BaseModel.toJSONObject(
+                                item =  JSONFunctions.toJSONObject(
                                     await props.onBeforeEdit(
                                         BaseModel.fromJSONObject(
                                             item,
@@ -841,7 +841,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     ) => {
                         try {
                             if (props.onBeforeDelete) {
-                                item = BaseModel.toJSONObject(
+                                item =  JSONFunctions.toJSONObject(
                                     await props.onBeforeDelete(
                                         BaseModel.fromJSONObject(
                                             item,
@@ -925,7 +925,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 dragDropIdField={'_id'}
                 dragDropIndexField={props.dragDropIndexField}
                 totalItemsCount={totalItemsCount}
-                data={BaseModel.toJSONObjectArray(data, props.modelType)}
+                data={ JSONFunctions.toJSONObjectArray(data, props.modelType)}
                 filterError={tableFilterError}
                 id={props.id}
                 columns={tableColumns}
@@ -1001,7 +1001,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             <OrderedStatesList
                 error={error}
                 isLoading={isLoading}
-                data={BaseModel.toJSONObjectArray(data, props.modelType)}
+                data={ JSONFunctions.toJSONObjectArray(data, props.modelType)}
                 id={props.id}
                 titleField={props.orderedStatesListProps?.titleField || ''}
                 descriptionField={
@@ -1048,7 +1048,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 currentPageNumber={currentPageNumber}
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
-                data={BaseModel.toJSONObjectArray(data, props.modelType)}
+                data={ JSONFunctions.toJSONObjectArray(data, props.modelType)}
                 id={props.id}
                 fields={fields}
                 itemsOnPage={itemsOnPage}
