@@ -41,7 +41,7 @@ const ActiveEvent: FunctionComponent<ComponentProps> = (
                     </div>
                 </div>
             </div>
-            <EventItem {...props} />
+            <EventItem {...props} isDetailItem={false} />
         </div>
     );
 };

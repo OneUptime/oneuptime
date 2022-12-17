@@ -32,6 +32,8 @@ import EventItem, {
     ComponentProps as EventItemComponentProps,
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import Color from 'Common/Types/Color';
+import { Green } from 'Common/Types/BrandColors';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
@@ -39,9 +41,13 @@ export const getScheduledEventEventItem: Function = (
     scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>,
     isPreviewPage: boolean,
     isSummary: boolean
-) => {
+): EventItemComponentProps => {
     /// get timeline.
 
+
+    let currentStateStatus: string = '';
+    let currentStatusColor: Color = Green;
+    
     const timeline: Array<TimelineItem> = [];
 
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
@@ -72,6 +78,12 @@ export const getScheduledEventEventItem: Function = (
                 date: scheduledMaintenanceEventstateTimeline?.createdAt!,
                 isBold: true,
             });
+
+            if (!currentStateStatus) {
+                currentStateStatus = scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState?.name || '';
+                currentStatusColor = scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState?.color || Green;
+            }
+
             if (isSummary) {
                 break;
             }
@@ -93,6 +105,9 @@ export const getScheduledEventEventItem: Function = (
                 : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
             scheduledMaintenance.id!
         ),
+        isDetailItem: !isSummary,
+        currentStatus: currentStateStatus, 
+        currentStatusColor: currentStatusColor
     };
 };
 

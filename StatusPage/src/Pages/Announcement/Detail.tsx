@@ -47,6 +47,7 @@ export const getAnnouncementEventItem: Function = (
                 : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
             announcement.id!
         ),
+        isDetailItem: !isSummary
     };
 };
 

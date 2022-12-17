@@ -33,6 +33,8 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
+import Color from 'Common/Types/Color';
+import { Green } from 'Common/Types/BrandColors';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
@@ -43,6 +45,9 @@ export const getIncidentEventItem: Function = (
     isSummary: boolean
 ): EventItemComponentProps => {
     const timeline: Array<TimelineItem> = [];
+
+    let currentStateStatus: string = '';
+    let currentStatusColor: Color = Green;
 
     for (const incidentPublicNote of incidentPublicNotes) {
         if (
@@ -58,6 +63,8 @@ export const getIncidentEventItem: Function = (
                 date: incidentPublicNote?.createdAt!,
                 isBold: false,
             });
+
+           
             // If this incident is a sumamry then dont include all the notes .
             if (isSummary) {
                 break;
@@ -70,11 +77,18 @@ export const getIncidentEventItem: Function = (
             incidentStateTimeline.incidentId?.toString() ===
             incident.id?.toString()
         ) {
+
             timeline.push({
                 text: incidentStateTimeline.incidentState?.name || '',
                 date: incidentStateTimeline?.createdAt!,
                 isBold: true,
             });
+
+            if (!currentStateStatus) {
+                currentStateStatus = incidentStateTimeline.incidentState?.name || '';
+                currentStatusColor = incidentStateTimeline.incidentState?.color || Green;
+            }
+
             // If this incident is a sumamry then dont include all the notes .
             if (isSummary) {
                 break;
@@ -112,6 +126,9 @@ export const getIncidentEventItem: Function = (
                 : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
             incident.id!
         ),
+        isDetailItem: !isSummary,
+        currentStatus: currentStateStatus, 
+        currentStatusColor: currentStatusColor
     };
 
     return data;
