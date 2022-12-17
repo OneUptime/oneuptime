@@ -152,21 +152,21 @@ const Detail: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const incidentPublicNotes: Array<IncidentPublicNote> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            const incident: Incident = BaseModel.fromJSONObject(
+            const incident: Incident =  JSONFunctions.fromJSONObject(
                 (data['incident'] as JSONObject) || [],
                 Incident
             );
             const statusPageResources: Array<StatusPageResource> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const incidentStateTimelines: Array<IncidentStateTimeline> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );

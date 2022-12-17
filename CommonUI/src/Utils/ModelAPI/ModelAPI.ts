@@ -147,7 +147,7 @@ export default class ModelAPI {
             apiUrl,
             {
                 data: JSONFunctions.serialize(
-                    BaseModel.toJSON(model, modelType)
+                    JSONFunctions.toJSON(model, modelType)
                 ),
                 miscDataProps: miscDataProps || {},
             },
@@ -214,7 +214,7 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            const list: Array<TBaseModel> = BaseModel.fromJSONArray(
+            const list: Array<TBaseModel> =  JSONFunctions.fromJSONArray(
                 result.data as JSONArray,
                 modelType
             );

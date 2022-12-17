@@ -18,6 +18,7 @@ import Project from 'Model/Models/Project';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../StatusPage/StatusPagesLabel';
 import MonitorStatus from 'Model/Models/MonitorStatus';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
     query?: Query<ScheduledMaintenance> | undefined;
@@ -243,7 +244,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         return (
                             <MonitorsElement
                                 monitors={
-                                    Monitor.fromJSON(
+                                    JSONFunctions.fromJSON(
                                         (item['monitors'] as JSONArray) || [],
                                         Monitor
                                     ) as Array<Monitor>
@@ -275,7 +276,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         return (
                             <StatusPagesElement
                                 statusPages={
-                                    StatusPage.fromJSON(
+                                    JSONFunctions.fromJSON(
                                         (item['statusPages'] as JSONArray) ||
                                             [],
                                         StatusPage
@@ -323,7 +324,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         return (
                             <LabelsElement
                                 labels={
-                                    Label.fromJSON(
+                                    JSONFunctions.fromJSON(
                                         (item['labels'] as JSONArray) || [],
                                         Label
                                     ) as Array<Label>

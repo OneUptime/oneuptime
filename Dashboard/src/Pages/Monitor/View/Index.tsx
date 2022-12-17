@@ -28,6 +28,7 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -238,7 +239,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                 return (
                                     <LabelsElement
                                         labels={
-                                            Label.fromJSON(
+                                            JSONFunctions.fromJSON(
                                                 (item['labels'] as JSONArray) ||
                                                     [],
                                                 Label

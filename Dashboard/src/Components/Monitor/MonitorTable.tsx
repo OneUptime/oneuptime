@@ -15,6 +15,7 @@ import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Route from 'Common/Types/API/Route';
 import Project from 'Model/Models/Project';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
@@ -186,7 +187,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                         return (
                             <LabelsElement
                                 labels={
-                                    Label.fromJSON(
+                                    JSONFunctions.fromJSON(
                                         (item['labels'] as JSONArray) || [],
                                         Label
                                     ) as Array<Label>

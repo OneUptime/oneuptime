@@ -27,6 +27,7 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Yellow } from 'Common/Types/BrandColors';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -176,10 +177,10 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             if (item['user']) {
                                 return (
                                     <UserElement
-                                        user={new User().fromJSON(
+                                        user={JSONFunctions.fromJSON(
                                             item['user'] as JSONObject,
                                             User
-                                        )}
+                                        ) as User}
                                     />
                                 );
                             }
@@ -344,7 +345,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        Label.fromJSON(
+                                        JSONFunctions.fromJSON(
                                             (item['labels'] as JSONArray) || [],
                                             Label
                                         ) as Array<Label>

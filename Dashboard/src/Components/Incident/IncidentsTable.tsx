@@ -17,6 +17,7 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Route from 'Common/Types/API/Route';
 import Project from 'Model/Models/Project';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
     query?: Query<Incident> | undefined;
@@ -261,7 +262,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         return (
                             <MonitorsElement
                                 monitors={
-                                    Monitor.fromJSON(
+                                    JSONFunctions.fromJSON(
                                         (item['monitors'] as JSONArray) || [],
                                         Monitor
                                     ) as Array<Monitor>
@@ -300,7 +301,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         return (
                             <LabelsElement
                                 labels={
-                                    Label.fromJSON(
+                                    JSONFunctions.fromJSON(
                                         (item['labels'] as JSONArray) || [],
                                         Label
                                     ) as Array<Label>

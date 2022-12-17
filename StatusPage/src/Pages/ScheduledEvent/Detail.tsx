@@ -136,24 +136,24 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
             const scheduledMaintenanceEvent: ScheduledMaintenance =
-                BaseModel.fromJSONObject(
+                 JSONFunctions.fromJSONObject(
                     (data['scheduledMaintenanceEvent'] as JSONObject) || [],
                     ScheduledMaintenance
                 );
             const statusPageResources: Array<StatusPageResource> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline

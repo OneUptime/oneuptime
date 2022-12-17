@@ -18,6 +18,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -131,10 +132,10 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             if (item['createdByUser']) {
                                 return (
                                     <UserElement
-                                        user={new User().fromJSON(
+                                        user={JSONFunctions.fromJSON(
                                             item['createdByUser'] as JSONObject,
                                             User
-                                        )}
+                                        ) as User}
                                     />
                                 );
                             }

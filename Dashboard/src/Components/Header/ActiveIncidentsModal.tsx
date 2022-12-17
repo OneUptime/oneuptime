@@ -12,6 +12,7 @@ import Color from 'Common/Types/Color';
 import Route from 'Common/Types/API/Route';
 import ProjectElement from '../Project/Project';
 import Project from 'Model/Models/Project';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export interface ComponentProps {
     onClose: () => void;
@@ -81,7 +82,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                 return (
                                     <ProjectElement
                                         project={
-                                            Project.fromJSON(
+                                            JSONFunctions.fromJSON(
                                                 (item[
                                                     'project'
                                                 ] as JSONObject) || [],
@@ -193,7 +194,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
                                 return (
                                     <MonitorsElement
                                         monitors={
-                                            Monitor.fromJSON(
+                                            JSONFunctions.fromJSON(
                                                 (item[
                                                     'monitors'
                                                 ] as JSONArray) || [],

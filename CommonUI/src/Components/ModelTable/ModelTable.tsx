@@ -53,6 +53,7 @@ import SubscriptionPlan, {
 } from 'Common/Types/Billing/SubscriptionPlan';
 import Pill from '../Pill/Pill';
 import { Yellow } from 'Common/Types/BrandColors';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export enum ShowTableAs {
     Table,
@@ -326,7 +327,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 if (column.tooltipText) {
                     classicColumn.tooltipText = (item: JSONObject): string => {
                         return column.tooltipText!(
-                            BaseModel.fromJSONObject(item, props.modelType)
+                             JSONFunctions.fromJSONObject(item, props.modelType)
                         );
                     };
                 }
@@ -656,7 +657,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 if (column.tooltipText) {
                     tooltipText = (item: JSONObject): string => {
                         return column.tooltipText!(
-                            BaseModel.fromJSONObject(item, props.modelType)
+                             JSONFunctions.fromJSONObject(item, props.modelType)
                         );
                     };
                 }
@@ -749,7 +750,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     ) => {
                         try {
                             const baseModel: TBaseModel =
-                                BaseModel.fromJSONObject(item, props.modelType);
+                                 JSONFunctions.fromJSONObject(item, props.modelType);
 
                             if (props.onBeforeView) {
                                 item =  JSONFunctions.toJSONObject(
@@ -808,7 +809,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             if (props.onBeforeEdit) {
                                 item =  JSONFunctions.toJSONObject(
                                     await props.onBeforeEdit(
-                                        BaseModel.fromJSONObject(
+                                         JSONFunctions.fromJSONObject(
                                             item,
                                             props.modelType
                                         )
@@ -843,7 +844,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             if (props.onBeforeDelete) {
                                 item =  JSONFunctions.toJSONObject(
                                     await props.onBeforeDelete(
-                                        BaseModel.fromJSONObject(
+                                         JSONFunctions.fromJSONObject(
                                             item,
                                             props.modelType
                                         )
@@ -1244,7 +1245,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             currentDeleteableItem['_id']
                         ) {
                             deleteItem(
-                                BaseModel.fromJSON(
+                                JSONFunctions.fromJSON(
                                     currentDeleteableItem,
                                     props.modelType
                                 )

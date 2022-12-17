@@ -64,12 +64,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const announcements: Array<StatusPageAnnouncement> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['announcements'] as JSONArray) || [],
                     StatusPageAnnouncement
                 );
             const statusPageResources: Array<StatusPageResource> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );

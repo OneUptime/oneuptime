@@ -22,6 +22,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -275,7 +276,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        Label.fromJSON(
+                                        JSONFunctions.fromJSON(
                                             (item['labels'] as JSONArray) || [],
                                             Label
                                         ) as Array<Label>

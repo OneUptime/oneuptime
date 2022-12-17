@@ -107,59 +107,59 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
             const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['activeScheduledMaintenanceEvents'] as JSONArray) ||
                         [],
                     ScheduledMaintenance
                 );
             const activeAnnouncements: Array<StatusPageAnnouncement> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['activeAnnouncements'] as JSONArray) || [],
                     StatusPageAnnouncement
                 );
             const incidentPublicNotes: Array<IncidentPublicNote> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            const activeIncidents: Array<Incident> = BaseModel.fromJSONArray(
+            const activeIncidents: Array<Incident> =  JSONFunctions.fromJSONArray(
                 (data['activeIncidents'] as JSONArray) || [],
                 Incident
             );
             const monitorStatusTimelines: Array<MonitorStatusTimeline> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['monitorStatusTimelines'] as JSONArray) || [],
                     MonitorStatusTimeline
                 );
             const resourceGroups: Array<StatusPageGroup> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['resourceGroups'] as JSONArray) || [],
                     StatusPageGroup
                 );
             const monitorStatuses: Array<MonitorStatus> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['monitorStatuses'] as JSONArray) || [],
                     MonitorStatus
                 );
             const statusPageResources: Array<StatusPageResource> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const incidentStateTimelines: Array<IncidentStateTimeline> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-                BaseModel.fromJSONArray(
+                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline

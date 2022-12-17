@@ -37,6 +37,7 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import Typeof from 'Common/Types/Typeof';
 import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import { ButtonStyleType } from '../Button/Button';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export enum FormType {
     Create,
@@ -72,7 +73,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     initialValues?: FormValues<TBaseModel> | undefined;
     modelIdToEdit?: ObjectID | undefined;
     onError?: ((error: string) => void) | undefined;
-    onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    onBeforeCreate?: ((item: TBaseModel | BaseModel) => Promise<TBaseModel | BaseModel>) | undefined;
     saveRequestOptions?: RequestOptions | undefined;
     doNotFetchExistingModel?: boolean | undefined;
 }
@@ -192,7 +193,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             throw new BadDataException('Model ID to update not found.');
         }
 
-        let item: TBaseModel | null = await ModelAPI.getItem(
+        let item: BaseModel | null = await ModelAPI.getItem(
             props.modelType,
             props.modelIdToEdit,
             getSelectFields(),
@@ -200,10 +201,10 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
         );
 
         if (!(item instanceof BaseModel) && item) {
-            item = new props.modelType().fromJSON(
+            item = JSONFunctions.fromJSON(
                 item as JSONObject,
                 props.modelType
-            );
+            ) as BaseModel;
         }
 
         if (!item) {
@@ -254,7 +255,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
             }
         }
 
-        setItemToEdit(item);
+        setItemToEdit(item as TBaseModel);
     };
 
     const fetchDropdownOptions: Function = async (
@@ -429,17 +430,17 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 }
             }
 
-            let tBaseModel: TBaseModel = model.fromJSON(
+            let tBaseModel: BaseModel = JSONFunctions.fromJSON(
                 valuesToSend,
                 props.modelType
-            );
+            ) as BaseModel;
 
             if (props.onBeforeCreate && props.formType === FormType.Create) {
                 tBaseModel = await props.onBeforeCreate(tBaseModel);
             }
 
             result = await ModelAPI.createOrUpdate<TBaseModel>(
-                tBaseModel,
+                tBaseModel as TBaseModel,
                 props.modelType,
                 props.formType,
                 props.apiUrl,

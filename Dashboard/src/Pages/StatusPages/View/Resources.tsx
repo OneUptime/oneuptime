@@ -29,6 +29,7 @@ import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -233,7 +234,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             return (
                                 <MonitorElement
                                     monitor={
-                                        Monitor.fromJSON(
+                                        JSONFunctions.fromJSON(
                                             (item['monitor'] as JSONObject) ||
                                                 [],
                                             Monitor
