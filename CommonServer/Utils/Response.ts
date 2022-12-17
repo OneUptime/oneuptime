@@ -6,11 +6,7 @@ import {
     ExpressRequest,
     OneUptimeResponse,
 } from './Express';
-import {
-    JSONObject,
-    JSONArray,
-    JSONObjectOrArray,
-} from 'Common/Types/JSON';
+import { JSONObject, JSONArray, JSONObjectOrArray } from 'Common/Types/JSON';
 import { File } from 'Common/Types/File';
 import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
@@ -155,7 +151,7 @@ export default class Response {
             res,
             item
                 ? JSONFunctions.serialize(
-                       JSONFunctions.toJSONObject(item, modelType)
+                      JSONFunctions.toJSONObject(item, modelType)
                   )
                 : {}
         );

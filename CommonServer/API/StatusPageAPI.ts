@@ -677,10 +677,11 @@ export default class StatusPageAPI extends BaseAPI<
                                 scheduledMaintenanceEventsPublicNotes,
                                 ScheduledMaintenancePublicNote
                             ),
-                        activeScheduledMaintenanceEvents: JSONFunctions.toJSONArray(
-                            activeScheduledMaintenanceEvents,
-                            ScheduledMaintenance
-                        ),
+                        activeScheduledMaintenanceEvents:
+                            JSONFunctions.toJSONArray(
+                                activeScheduledMaintenanceEvents,
+                                ScheduledMaintenance
+                            ),
                         activeAnnouncements: JSONFunctions.toJSONArray(
                             activeAnnouncements,
                             StatusPageAnnouncement

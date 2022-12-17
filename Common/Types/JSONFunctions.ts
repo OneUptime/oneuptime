@@ -22,13 +22,10 @@ import InBetween from './Database/InBetween';
 import Domain from './Domain';
 import NotNull from './Database/NotNull';
 import { JSONArray, JSONObject, JSONValue, ObjectType } from './JSON';
-import  {
-    TableColumnMetadata,
-} from '../Types/Database/TableColumn';
+import { TableColumnMetadata } from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
 
 export default class JSONFunctions {
-
     public static toJSON(
         model: BaseModel,
         modelType: { new (): BaseModel }
@@ -109,7 +106,7 @@ export default class JSONFunctions {
 
         return array;
     }
-    
+
     private static _fromJSON<T extends BaseModel>(
         json: JSONObject,
         type: { new (): T }
@@ -134,11 +131,10 @@ export default class JSONFunctions {
                         json[key] = (json[key] as Array<any>)[0];
                     }
 
-                    (baseModel as any)[key] =
-                        this.fromJSON(
-                            json[key] as JSONObject,
-                            tableColumnMetadata.modelType
-                        );
+                    (baseModel as any)[key] = this.fromJSON(
+                        json[key] as JSONObject,
+                        tableColumnMetadata.modelType
+                    );
                 } else if (
                     json[key] &&
                     tableColumnMetadata.modelType &&

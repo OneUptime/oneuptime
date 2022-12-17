@@ -1,8 +1,8 @@
-import moment from "moment";
-import OneUptimeDate from "../Date";
-import InBetween from "./InBetween";
+import moment from 'moment';
+import OneUptimeDate from '../Date';
+import InBetween from './InBetween';
 
-export default class DatabaseDate { 
+export default class DatabaseDate {
     public static asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
         date: string | Date
     ): InBetween {

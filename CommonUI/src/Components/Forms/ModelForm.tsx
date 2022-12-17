@@ -73,7 +73,9 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     initialValues?: FormValues<TBaseModel> | undefined;
     modelIdToEdit?: ObjectID | undefined;
     onError?: ((error: string) => void) | undefined;
-    onBeforeCreate?: ((item: TBaseModel | BaseModel) => Promise<TBaseModel | BaseModel>) | undefined;
+    onBeforeCreate?:
+        | ((item: TBaseModel | BaseModel) => Promise<TBaseModel | BaseModel>)
+        | undefined;
     saveRequestOptions?: RequestOptions | undefined;
     doNotFetchExistingModel?: boolean | undefined;
 }

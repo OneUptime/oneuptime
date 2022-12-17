@@ -7,6 +7,7 @@ import React, {
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
@@ -17,7 +18,6 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
 import EventHistoryList, {
     ComponentProps as EventHistoryListComponentProps,
 } from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
@@ -64,12 +64,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const announcements: Array<StatusPageAnnouncement> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['announcements'] as JSONArray) || [],
                     StatusPageAnnouncement
                 );
             const statusPageResources: Array<StatusPageResource> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );

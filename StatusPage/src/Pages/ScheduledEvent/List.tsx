@@ -12,12 +12,12 @@ import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
 import EventHistoryList, {
     ComponentProps as EventHistoryListComponentProps,
 } from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
@@ -73,24 +73,24 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
             const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceEvents'] as JSONArray) || [],
                     ScheduledMaintenance
                 );
             const statusPageResources: Array<StatusPageResource> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline

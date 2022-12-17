@@ -177,10 +177,12 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             if (item['user']) {
                                 return (
                                     <UserElement
-                                        user={JSONFunctions.fromJSON(
-                                            item['user'] as JSONObject,
-                                            User
-                                        ) as User}
+                                        user={
+                                            JSONFunctions.fromJSON(
+                                                item['user'] as JSONObject,
+                                                User
+                                            ) as User
+                                        }
                                     />
                                 );
                             }

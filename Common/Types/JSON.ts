@@ -112,5 +112,4 @@ export interface JSONObject {
 
 export type JSONArray = Array<JSONObject>;
 
-
 export type JSONObjectOrArray = JSONObject | JSONArray;

@@ -10,6 +10,7 @@ import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -17,7 +18,6 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import Incident from 'Model/Models/Incident';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
@@ -152,21 +152,21 @@ const Detail: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const incidentPublicNotes: Array<IncidentPublicNote> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            const incident: Incident =  JSONFunctions.fromJSONObject(
+            const incident: Incident = JSONFunctions.fromJSONObject(
                 (data['incident'] as JSONObject) || [],
                 Incident
             );
             const statusPageResources: Array<StatusPageResource> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const incidentStateTimelines: Array<IncidentStateTimeline> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );

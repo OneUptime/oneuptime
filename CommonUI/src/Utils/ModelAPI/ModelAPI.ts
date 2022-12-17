@@ -214,7 +214,7 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            const list: Array<TBaseModel> =  JSONFunctions.fromJSONArray(
+            const list: Array<TBaseModel> = JSONFunctions.fromJSONArray(
                 result.data as JSONArray,
                 modelType
             );

@@ -129,10 +129,14 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             if (item['createdByUser']) {
                                 return (
                                     <UserElement
-                                        user={JSONFunctions.fromJSON(
-                                            item['createdByUser'] as JSONObject,
-                                            User
-                                        ) as User}
+                                        user={
+                                            JSONFunctions.fromJSON(
+                                                item[
+                                                    'createdByUser'
+                                                ] as JSONObject,
+                                                User
+                                            ) as User
+                                        }
                                     />
                                 );
                             }

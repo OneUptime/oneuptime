@@ -192,7 +192,7 @@ const App: FunctionComponent = () => {
         >
             <Routes>
                 <PageRoute
-                    path={RouteMap[PageMap.INIT]?.toString()}
+                    path={RouteMap[PageMap.INIT]?.toString() || ''}
                     element={
                         <Init
                             pageRoute={RouteMap[PageMap.INIT] as Route}
@@ -204,7 +204,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.INIT_PROJECT]?.toString()}
+                    path={RouteMap[PageMap.INIT_PROJECT]?.toString() || ''}
                     element={
                         <Init
                             pageRoute={RouteMap[PageMap.INIT_PROJECT] as Route}
@@ -216,7 +216,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.WELCOME]?.toString()}
+                    path={RouteMap[PageMap.WELCOME]?.toString() || ''}
                     element={
                         <Welcome
                             pageRoute={RouteMap[PageMap.WELCOME] as Route}
@@ -231,7 +231,7 @@ const App: FunctionComponent = () => {
                 {/* Home */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.HOME]?.toString()}
+                    path={RouteMap[PageMap.HOME]?.toString() || ''}
                     element={
                         <Home
                             pageRoute={RouteMap[PageMap.HOME] as Route}
@@ -241,9 +241,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.HOME_NOT_OPERATIONAL_MONITORS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.HOME_NOT_OPERATIONAL_MONITORS
+                        ]?.toString() || ''
+                    }
                     element={
                         <NotOperationalMonitors
                             pageRoute={
@@ -257,9 +259,13 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                        ]?.toString() ||
+                        '' ||
+                        ''
+                    }
                     element={
                         <OngoingScheduledEvents
                             pageRoute={
@@ -275,7 +281,7 @@ const App: FunctionComponent = () => {
 
                 {/* Monitors */}
                 <PageRoute
-                    path={RouteMap[PageMap.MONITORS]?.toString()}
+                    path={RouteMap[PageMap.MONITORS]?.toString() || ''}
                     element={
                         <MonitorPage
                             pageRoute={RouteMap[PageMap.MONITORS] as Route}
@@ -285,7 +291,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.MONITORS_INOPERATIONAL]?.toString()}
+                    path={
+                        RouteMap[PageMap.MONITORS_INOPERATIONAL]?.toString() ||
+                        ''
+                    }
                     element={
                         <MonitorInoperational
                             pageRoute={
@@ -299,7 +308,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.MONITOR_VIEW]?.toString()}
+                    path={RouteMap[PageMap.MONITOR_VIEW]?.toString() || ''}
                     element={
                         <MonitorView
                             pageRoute={RouteMap[PageMap.MONITOR_VIEW] as Route}
@@ -309,7 +318,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.MONITOR_VIEW_DELETE]?.toString()}
+                    path={
+                        RouteMap[PageMap.MONITOR_VIEW_DELETE]?.toString() || ''
+                    }
                     element={
                         <MonitorViewDelete
                             pageRoute={
@@ -321,9 +332,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.MONITOR_VIEW_STATUS_TIMELINE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                        ]?.toString() || ''
+                    }
                     element={
                         <MonitorViewStatusTimeline
                             pageRoute={
@@ -337,7 +350,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.MONITOR_VIEW_INCIDENTS]?.toString()}
+                    path={
+                        RouteMap[PageMap.MONITOR_VIEW_INCIDENTS]?.toString() ||
+                        ''
+                    }
                     element={
                         <MonitorIncidents
                             pageRoute={
@@ -353,7 +369,7 @@ const App: FunctionComponent = () => {
                 {/* Status Pages */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.STATUS_PAGES]?.toString()}
+                    path={RouteMap[PageMap.STATUS_PAGES]?.toString() || ''}
                     element={
                         <StatusPages
                             pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
@@ -363,9 +379,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_SUBSCRIBER_SETTINGS
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPageViewSubscriberSettings
                             pageRoute={RouteMap[PageMap.STATUS_PAGES] as Route}
@@ -375,7 +393,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.STATUS_PAGE_VIEW]?.toString()}
+                    path={RouteMap[PageMap.STATUS_PAGE_VIEW]?.toString() || ''}
                     element={
                         <StatusPagesView
                             pageRoute={
@@ -387,7 +405,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE]?.toString()}
+                    path={
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_DELETE]?.toString() ||
+                        ''
+                    }
                     element={
                         <StatusPagesViewDelete
                             pageRoute={
@@ -401,9 +422,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_BRANDING
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_BRANDING
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewBranding
                             pageRoute={
@@ -417,9 +440,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_CUSTOM_HTML_CSS
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewCustomHtmlCss
                             pageRoute={
@@ -433,9 +458,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewAdvancedOptions
                             pageRoute={
@@ -449,9 +476,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewEmailSubscribers
                             pageRoute={
@@ -465,9 +494,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPageViewPrivateUser
                             pageRoute={
@@ -481,9 +512,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewSMSSubscribers
                             pageRoute={
@@ -497,9 +530,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewHeaderStyle
                             pageRoute={
@@ -513,9 +548,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_FOOTER_STYLE
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewFooterStyle
                             pageRoute={
@@ -529,9 +566,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewNavBarStyle
                             pageRoute={
@@ -545,9 +584,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewWebhookSubscribers
                             pageRoute={
@@ -561,9 +602,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_EMBEDDED
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_EMBEDDED
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewEmbedded
                             pageRoute={
@@ -577,9 +620,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_RESOURCES
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_RESOURCES
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewResources
                             pageRoute={
@@ -593,9 +638,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_DOMAINS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_DOMAINS
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewDomains
                             pageRoute={
@@ -609,7 +656,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS]?.toString()}
+                    path={
+                        RouteMap[PageMap.STATUS_PAGE_VIEW_GROUPS]?.toString() ||
+                        ''
+                    }
                     element={
                         <StatusPagesViewGroups
                             pageRoute={
@@ -623,9 +673,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.STATUS_PAGE_VIEW_ANNOUNCEMENTS
+                        ]?.toString() || ''
+                    }
                     element={
                         <StatusPagesViewAnnouncement
                             pageRoute={
@@ -641,7 +693,7 @@ const App: FunctionComponent = () => {
                 {/* Incidents */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.INCIDENTS]?.toString()}
+                    path={RouteMap[PageMap.INCIDENTS]?.toString() || ''}
                     element={
                         <Incidents
                             pageRoute={RouteMap[PageMap.INCIDENTS] as Route}
@@ -651,7 +703,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.UNRESOLVED_INCIDENTS]?.toString()}
+                    path={
+                        RouteMap[PageMap.UNRESOLVED_INCIDENTS]?.toString() || ''
+                    }
                     element={
                         <UnresolvedIncidents
                             pageRoute={
@@ -663,7 +717,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.INCIDENT_VIEW]?.toString()}
+                    path={RouteMap[PageMap.INCIDENT_VIEW]?.toString() || ''}
                     element={
                         <IncidentView
                             pageRoute={RouteMap[PageMap.INCIDENT_VIEW] as Route}
@@ -673,7 +727,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.INCIDENT_VIEW_DELETE]?.toString()}
+                    path={
+                        RouteMap[PageMap.INCIDENT_VIEW_DELETE]?.toString() || ''
+                    }
                     element={
                         <IncidentViewDelete
                             pageRoute={
@@ -685,9 +741,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.INCIDENT_VIEW_STATE_TIMELINE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.INCIDENT_VIEW_STATE_TIMELINE
+                        ]?.toString() || ''
+                    }
                     element={
                         <IncidentViewStateTimeline
                             pageRoute={
@@ -701,7 +759,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.INCIDENT_INTERNAL_NOTE]?.toString()}
+                    path={
+                        RouteMap[PageMap.INCIDENT_INTERNAL_NOTE]?.toString() ||
+                        ''
+                    }
                     element={
                         <IncidentInternalNote
                             pageRoute={
@@ -715,7 +776,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.INCIDENT_PUBLIC_NOTE]?.toString()}
+                    path={
+                        RouteMap[PageMap.INCIDENT_PUBLIC_NOTE]?.toString() || ''
+                    }
                     element={
                         <IncidentPublicNote
                             pageRoute={
@@ -729,9 +792,11 @@ const App: FunctionComponent = () => {
                 {/* Scheduled Events */}
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SCHEDULED_MAINTENANCE_EVENTS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                        ]?.toString() || ''
+                    }
                     element={
                         <ScheduledMaintenanceEvents
                             pageRoute={
@@ -745,9 +810,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                        ]?.toString() || ''
+                    }
                     element={
                         <OngoingScheduledMaintenanceEvents
                             pageRoute={
@@ -761,9 +828,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SCHEDULED_MAINTENANCE_VIEW
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW
+                        ]?.toString() || ''
+                    }
                     element={
                         <ScheduledMaintenanceEventView
                             pageRoute={
@@ -777,9 +846,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                        ]?.toString() || ''
+                    }
                     element={
                         <ScheduledMaintenanceEventViewDelete
                             pageRoute={
@@ -793,9 +864,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                        ]?.toString() || ''
+                    }
                     element={
                         <ScheduledMaintenanceEventViewStateTimeline
                             pageRoute={
@@ -810,9 +883,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                        ]?.toString() || ''
+                    }
                     element={
                         <ScheduledMaintenanceEventInternalNote
                             pageRoute={
@@ -826,9 +901,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                        ]?.toString() || ''
+                    }
                     element={
                         <ScheduledMaintenanceEventPublicNote
                             pageRoute={
@@ -844,7 +921,7 @@ const App: FunctionComponent = () => {
                 {/* Logs */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.LOGS]?.toString()}
+                    path={RouteMap[PageMap.LOGS]?.toString() || ''}
                     element={
                         <Logs
                             pageRoute={RouteMap[PageMap.LOGS] as Route}
@@ -856,7 +933,7 @@ const App: FunctionComponent = () => {
                 {/* Settings Routes */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS]?.toString()}
+                    path={RouteMap[PageMap.SETTINGS]?.toString() || ''}
                     element={
                         <ProjectSettings
                             pageRoute={RouteMap[PageMap.SETTINGS] as Route}
@@ -866,7 +943,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_DANGERZONE]?.toString()}
+                    path={
+                        RouteMap[PageMap.SETTINGS_DANGERZONE]?.toString() || ''
+                    }
                     element={
                         <SettingsDangerZone
                             onProjectDeleted={() => {
@@ -884,9 +963,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SETTINGS_MONITORS_STATUS
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_MONITORS_STATUS
+                        ]?.toString() || ''
+                    }
                     element={
                         <SettingsMonitors
                             pageRoute={
@@ -900,9 +981,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SETTINGS_INCIDENTS_STATE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_INCIDENTS_STATE
+                        ]?.toString() || ''
+                    }
                     element={
                         <SettingsIncidents
                             pageRoute={
@@ -916,9 +999,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                        ]?.toString() || ''
+                    }
                     element={
                         <SettingsScheduledMaintenanceState
                             pageRoute={
@@ -932,9 +1017,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SETTINGS_INCIDENTS_SEVERITY
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_INCIDENTS_SEVERITY
+                        ]?.toString() || ''
+                    }
                     element={
                         <SettingsIncidentSeverity
                             pageRoute={
@@ -948,7 +1035,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_DOMAINS]?.toString()}
+                    path={RouteMap[PageMap.SETTINGS_DOMAINS]?.toString() || ''}
                     element={
                         <SettingsDomains
                             pageRoute={
@@ -960,7 +1047,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_CUSTOM_SMTP]?.toString()}
+                    path={
+                        RouteMap[PageMap.SETTINGS_CUSTOM_SMTP]?.toString() || ''
+                    }
                     element={
                         <SettingCustomSMTP
                             pageRoute={
@@ -972,7 +1061,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_APIKEYS]?.toString()}
+                    path={RouteMap[PageMap.SETTINGS_APIKEYS]?.toString() || ''}
                     element={
                         <SettingsApiKeys
                             pageRoute={
@@ -984,7 +1073,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_APIKEY_VIEW]?.toString()}
+                    path={
+                        RouteMap[PageMap.SETTINGS_APIKEY_VIEW]?.toString() || ''
+                    }
                     element={
                         <SettingsApiKeyView
                             pageRoute={
@@ -996,7 +1087,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_BILLING]?.toString()}
+                    path={RouteMap[PageMap.SETTINGS_BILLING]?.toString() || ''}
                     element={
                         <SettingsBilling
                             pageRoute={
@@ -1008,9 +1099,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.SETTINGS_BILLING_INVOICES
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.SETTINGS_BILLING_INVOICES
+                        ]?.toString() || ''
+                    }
                     element={
                         <SettingsInvoices
                             pageRoute={
@@ -1024,7 +1117,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_LABELS]?.toString()}
+                    path={RouteMap[PageMap.SETTINGS_LABELS]?.toString() || ''}
                     element={
                         <SettingLabels
                             pageRoute={
@@ -1036,7 +1129,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_TEAMS]?.toString()}
+                    path={RouteMap[PageMap.SETTINGS_TEAMS]?.toString() || ''}
                     element={
                         <SettingsTeams
                             pageRoute={
@@ -1048,7 +1141,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SETTINGS_TEAM_VIEW]?.toString()}
+                    path={
+                        RouteMap[PageMap.SETTINGS_TEAM_VIEW]?.toString() || ''
+                    }
                     element={
                         <SettingsTeamView
                             pageRoute={
@@ -1062,7 +1157,7 @@ const App: FunctionComponent = () => {
                 {/* On Call Duty */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.ON_CALL_DUTY]?.toString()}
+                    path={RouteMap[PageMap.ON_CALL_DUTY]?.toString() || ''}
                     element={
                         <OnCallDutyPage
                             pageRoute={
@@ -1075,7 +1170,7 @@ const App: FunctionComponent = () => {
 
                 {/* Misc Routes */}
                 <PageRoute
-                    path={RouteMap[PageMap.LOGOUT]?.toString()}
+                    path={RouteMap[PageMap.LOGOUT]?.toString() || ''}
                     element={
                         <Logout
                             pageRoute={RouteMap[PageMap.LOGOUT] as Route}

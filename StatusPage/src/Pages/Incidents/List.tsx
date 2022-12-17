@@ -14,10 +14,10 @@ import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
 import EventHistoryList, {
     ComponentProps as EventHistoryListComponentProps,
 } from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
@@ -70,21 +70,21 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const incidentPublicNotes: Array<IncidentPublicNote> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            const incidents: Array<Incident> =  JSONFunctions.fromJSONArray(
+            const incidents: Array<Incident> = JSONFunctions.fromJSONArray(
                 (data['incidents'] as JSONArray) || [],
                 Incident
             );
             const statusPageResources: Array<StatusPageResource> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const incidentStateTimelines: Array<IncidentStateTimeline> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );

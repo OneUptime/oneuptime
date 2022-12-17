@@ -286,7 +286,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                                                 filterData[
                                                                     column.key
                                                                 ] =
-                                                                DatabaseDate.asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
+                                                                    DatabaseDate.asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
                                                                         changedValue
                                                                     );
                                                             }

@@ -12,12 +12,12 @@ import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
@@ -136,24 +136,24 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
             const scheduledMaintenanceEvent: ScheduledMaintenance =
-                 JSONFunctions.fromJSONObject(
+                JSONFunctions.fromJSONObject(
                     (data['scheduledMaintenanceEvent'] as JSONObject) || [],
                     ScheduledMaintenance
                 );
             const statusPageResources: Array<StatusPageResource> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline

@@ -15,7 +15,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
     let user: JSONObject | null | undefined = null;
 
     if (props.user instanceof User) {
-        user =  JSONFunctions.toJSONObject(props.user, User);
+        user = JSONFunctions.toJSONObject(props.user, User);
     } else {
         user = props.user;
     }

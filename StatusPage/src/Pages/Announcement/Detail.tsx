@@ -17,7 +17,6 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
@@ -28,6 +27,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import EventItem, {
     ComponentProps as EventItemComponentProps,
 } from 'CommonUI/src/Components/EventItem/EventItem';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
@@ -88,13 +88,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const announcement: StatusPageAnnouncement =
-                 JSONFunctions.fromJSONObject(
+                JSONFunctions.fromJSONObject(
                     (data['announcements'] as JSONObject) || [],
                     StatusPageAnnouncement
                 );
 
             const statusPageResources: Array<StatusPageResource> =
-                 JSONFunctions.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );

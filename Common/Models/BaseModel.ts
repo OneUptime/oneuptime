@@ -296,8 +296,6 @@ export default class BaseModel extends BaseEntity {
         }
     }
 
-
-
     public isDefaultValueColumn(columnName: string): boolean {
         return Boolean(getTableColumn(this, columnName).isDefaultValueColumn);
     }
