@@ -968,7 +968,7 @@ export default class ModelPermission {
                 !model.allowAccessIfSubscriptionIsUnpaid
             ) {
                 throw new PaymentRequiredException(
-                    'Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Billing to proceed.'
+                    'Your current subscription is in an unpaid state. Looks like your payment method failed. Please add a new payment method in Project Settings > Invoices to pay unpaid invoices.'
                 );
             }
 
