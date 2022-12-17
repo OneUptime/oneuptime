@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node --require ts-node/register Index.ts",
     "compile": "tsc",
-    "dev": "nodemon",
+    "dev": "npx nodemon",
     "audit": "npm audit --audit-level=low",
     "dep-check": "depcheck ./ --skip-missing=true",
     "test": "jest"
@@ -30,6 +30,7 @@
     "@types/jest": "^27.5.0",
     "@types/node": "^17.0.31",
     "jest": "^28.1.0",
+    "nodemon": "^2.0.20",
     "ts-jest": "^28.0.2",
     "ts-node": "^10.9.1",
     "typescript": "^4.8.4"
