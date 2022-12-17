@@ -90,6 +90,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
     createInitialValues?: FormValues<TBaseModel> | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    onCreateSuccess?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
     showTableAs?: ShowTableAs | undefined;
     singularName?: string | undefined;
@@ -1186,10 +1187,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                               }`
                             : `Save Changes`
                     }
-                    onSuccess={(_item: TBaseModel) => {
+                    onSuccess={(item: TBaseModel) => {
                         setShowModal(false);
                         setCurrentPageNumber(1);
                         fetchItems();
+                        if (props.onCreateSuccess) {
+                            props.onCreateSuccess(item);
+                        }
                     }}
                     onBeforeCreate={async (item: TBaseModel) => {
                         if (

@@ -28,6 +28,8 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Label from 'Model/Models/Label';
 import LabelsElement from '../../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import GlobalEvent from 'CommonUI/src/Utils/GlobalEvents';
+import EventName from '../../../Utils/EventName';
 
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -353,6 +355,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         }
                                         incidentType={IncidentType.Resolve}
                                         onActionComplete={() => {
+                                            GlobalEvent.dispatchEvent(EventName.ACTIVE_INCIDENTS_COUNT_REFRESH);
                                             fetchItems();
                                         }}
                                     />

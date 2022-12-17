@@ -18,6 +18,8 @@ import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Route from 'Common/Types/API/Route';
 import Project from 'Model/Models/Project';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import EventName from '../../Utils/EventName';
 
 export interface ComponentProps {
     query?: Query<Incident> | undefined;
@@ -36,6 +38,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             modelType={Incident}
             id="incidents-table"
             isDeleteable={false}
+            onCreateSuccess={() => {
+                GlobalEvents.dispatchEvent(EventName.ACTIVE_INCIDENTS_COUNT_REFRESH);
+            }}
             query={props.query}
             isEditable={false}
             isCreateable={true}

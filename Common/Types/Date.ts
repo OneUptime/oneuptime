@@ -315,20 +315,20 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-        let formatstring: string = 'MMM DD YYYY, HH:mm z';
+        let formatstring: string = 'MMM DD YYYY, HH:mm';
 
         if (onlyShowDate) {
             formatstring = 'MMM DD, YYYY';
         }
 
-        return moment(date).format(formatstring);
+        return moment(date).format(formatstring) +' '+ (onlyShowDate ? '' :  moment.tz(moment.tz.guess()).zoneAbbr());
     }
 
     public static getDateAsLocalFormattedString(
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-        let formatstring: string = 'MMM DD YYYY, HH:mm z';
+        let formatstring: string = 'MMM DD YYYY, HH:mm';
 
         if (onlyShowDate) {
             formatstring = 'MMM DD, YYYY';
@@ -336,7 +336,7 @@ export default class OneUptimeDate {
 
         const momentDate: moment.Moment = moment(date).local();
 
-        return momentDate.format(formatstring);
+        return momentDate.format(formatstring) +' '+ (onlyShowDate ? '' : moment.tz(moment.tz.guess()).zoneAbbr());
     }
 
     public static getDateString(date: Date): string {
