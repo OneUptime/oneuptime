@@ -24,4 +24,18 @@ jobs:
       - name: Show how to fix lint
         if: ${{ failure() }}
         run: echo "Please run `npm run fix` in your root directory to fix the lint automatically."
+        
+  circular-dependency-checker:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y curl gcc
+      - run: sudo apt-get install -y build-essential
+      - run: sudo apt-get install -y nodejs
+      - run: npm install
+      - run: bash find-circular-deps.sh
 
