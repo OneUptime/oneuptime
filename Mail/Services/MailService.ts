@@ -14,6 +14,25 @@ import Hostname from 'Common/Types/API/Hostname';
 import Port from 'Common/Types/Port';
 import { JSONObject } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
+import { IsDevelopment } from 'CommonServer/Config';
+
+Handlebars.registerHelper('ifCond', function (v1, v2, options) {
+    if (v1 === v2) {
+        //@ts-ignore
+        return options.fn(this);
+    }
+    //@ts-ignore
+    return options.inverse(this);
+});
+
+Handlebars.registerHelper('ifNotCond', function (v1, v2, options) {
+    if (v1 != v2) {
+        //@ts-ignore
+        return options.fn(this);
+    }
+    //@ts-ignore
+    return options.inverse(this);
+});
 
 export default class MailService {
     public static isSMTPConfigValid(obj: JSONObject): boolean {
@@ -30,8 +49,8 @@ export default class MailService {
         if (!Email.isValid(obj['SMTP_EMAIL'].toString())) {
             logger.error(
                 'SMTP_EMAIL env var ' +
-                    obj['SMTP_EMAIL'] +
-                    ' is not a valid email'
+                obj['SMTP_EMAIL'] +
+                ' is not a valid email'
             );
             return false;
         }
@@ -105,7 +124,7 @@ export default class MailService {
         // Localcache templates, so we dont read from disk all the time.
 
         let templateData: string;
-        if (LocalCache.hasValue('email-templates', emailTemplateType)) {
+        if (LocalCache.hasValue('email-templates', emailTemplateType) && !IsDevelopment) {
             templateData = LocalCache.getString(
                 'email-templates',
                 emailTemplateType

@@ -1,5 +1,5 @@
 {
     "watch": ["./","../Common", "../CommonServer", "../Model"],
-    "ext": "ts,json,tsx,env,js,jsx",
+    "ext": "ts,json,tsx,env,js,jsx,hbs",
     "exec": "node --inspect=0.0.0.0:9229 --require ts-node/register Index.ts"
 }

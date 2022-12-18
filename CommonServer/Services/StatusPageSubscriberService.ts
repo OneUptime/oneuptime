@@ -9,7 +9,7 @@ import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import StatusPageDomainService from './StatusPageDomainService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
-import { Domain, HttpProtocol } from '../Config';
+import { Domain, FileRoute, HttpProtocol } from '../Config';
 import logger from '../Utils/Logger';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
@@ -71,6 +71,7 @@ export class Service extends DatabaseService<Model> {
                     pageTitle: true,
                     name: true,
                     isPublicStatusPage: true,
+                    logoFileId: true
                 },
                 props: {
                     isRoot: true,
@@ -143,6 +144,8 @@ export class Service extends DatabaseService<Model> {
                 templateType: EmailTemplateType.SubscribedToStatusPage,
                 vars: {
                     statusPageName: statusPageName,
+                    logoUrl: onCreate.carryForward.logoFileId ? new URL(HttpProtocol, Domain).addRoute(FileRoute).addRoute("/image/"+onCreate.carryForward.logoFileId)
+                            .toString() : '',
                     statusPageUrl: statusPageURL,
                     isPublicStatusPage:
                         onCreate.carryForward.isPublicStatusPage ? "true" : "false",

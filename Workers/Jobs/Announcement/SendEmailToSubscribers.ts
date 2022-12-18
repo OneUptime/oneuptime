@@ -52,6 +52,17 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
             continue;
         }
 
+        await StatusPageAnnouncementService.updateOneById({
+            id: announcement.id!,
+            data: {
+                isStatusPageSubscribersNotified: true, 
+            },
+            props: {
+                isRoot: true, 
+                ignoreHooks: true
+            }
+        })
+
         for (const statuspage of announcement.statusPages) {
 
             if (!statuspage.id) {
@@ -119,12 +130,8 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                         vars: {
                             statusPageName: statusPageName,
                             statusPageUrl: statusPageURL,
-                            logoUrl: new URL(HttpProtocol, Domain).addRoute(FileRoute)
-                            .addRoute(
-                                '/status-page-subscriber/unsubscribe/' +
-                                subscriber._id.toString()
-                            )
-                            .toString(),
+                            logoUrl: statuspage.logoFileId ? new URL(HttpProtocol, Domain).addRoute(FileRoute).addRoute("/image/"+statuspage.logoFileId)
+                            .toString() : '',
                             isPublicStatusPage:
                                 statuspage.isPublicStatusPage ? "true" : "false",
                             announcementTitle: announcement.title || '',
@@ -136,7 +143,7 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                                 )
                                 .toString(),
                         },
-                        subject: 'You have been subscribed to ' + statusPageName,
+                        subject: statusPageName+ ' - New Announcement',
                     }).catch((err: Error) => {
                         logger.error(err);
                     });

@@ -7,6 +7,9 @@ import App from 'CommonServer/Utils/StartServer';
 import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
 import './Jobs/PaymentProvider/CheckSubscriptionStatus';
 
+// Announcements. 
+import './Jobs/Announcement/SendEmailToSubscribers';
+
 // Certs Routers
 import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';
 import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
