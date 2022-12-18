@@ -3,7 +3,6 @@ import StatusPageSubscriberService from 'CommonServer/Services/StatusPageSubscri
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import IncidentService from 'CommonServer/Services/IncidentService';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
@@ -13,20 +12,21 @@ import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from 'CommonServer/Utils/Logger';
-import Incident from 'Model/Models/Incident';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import StatusPageResourceService from 'CommonServer/Services/StatusPageResourceService';
 import Dictionary from 'Common/Types/Dictionary';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
+import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 
 RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
     // get all scheduled events of all the projects.
-    const incidents: Array<Incident> =
-        await IncidentService.findBy({
+    const scheduledEvents: Array<ScheduledMaintenance> =
+        await ScheduledMaintenanceService.findBy({
             query: {
-                isStatusPageSubscribersNotifiedOnIncidentCreated: false,
+                isStatusPageSubscribersNotifiedOnEventScheduled: false,
                 createdAt: QueryHelper.lessThan(
                     OneUptimeDate.getCurrentDate()
                 ),
@@ -40,41 +40,92 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                 _id: true,
                 title: true,
                 description: true,
+                startsAt: true
             },
             populate: {
                 monitors: {
                     _id: true,
                 },
-                incidentSeverity: {
-                    name: true, 
-                }
             },
         });
 
-
-    for (const incident of incidents) {
-
-        if (!incident.monitors || incident.monitors.length === 0) {
-            continue;
-        }
-
-        await IncidentService.updateOneById({
-            id: incident.id!,
-            data: {
-                isStatusPageSubscribersNotifiedOnIncidentCreated: true,
+    const ongoingEvents: Array<ScheduledMaintenance> =
+        await ScheduledMaintenanceService.findBy({
+            query: {
+                isStatusPageSubscribersNotifiedOnEventOngoing: false,
+                startsAt: QueryHelper.lessThan(
+                    OneUptimeDate.getCurrentDate()
+                ),
             },
             props: {
                 isRoot: true,
-                ignoreHooks: true,
+            },
+            limit: LIMIT_MAX,
+            skip: 0,
+            select: {
+                _id: true,
+                title: true,
+                description: true,
+                startsAt: true
+            },
+            populate: {
+                monitors: {
+                    _id: true,
+                },
             },
         });
+
+    
+    const scheduledEventsIds = scheduledEvents.map((i) => i._id?.toString());
+    const ongoingEventIds = ongoingEvents.map((i) => i._id?.toString());
+
+
+    const totalEvents = [...ongoingEvents, ...scheduledEvents];
+    
+
+    for (const event of totalEvents) {
+
+        if (!event.monitors || event.monitors.length === 0) {
+            continue;
+        }
+
+        let isOngoing: boolean = false; 
+
+        if (ongoingEventIds.includes(event._id?.toString())) {
+            isOngoing = true;
+            await ScheduledMaintenanceService.updateOneById({
+                id: event.id!,
+                data: {
+                    isStatusPageSubscribersNotifiedOnEventOngoing: true,
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
+    
+        } 
+
+        if (scheduledEventsIds.includes(event._id?.toString())) {
+            await ScheduledMaintenanceService.updateOneById({
+                id: event.id!,
+                data: {
+                    isStatusPageSubscribersNotifiedOnEventScheduled: true,
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
+    
+        } 
 
 
         // get status page resources from monitors. 
 
         const sattusPageResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
             query: {
-                monitorId: QueryHelper.in(incident.monitors.filter((m) => m._id).map((m) => new ObjectID(m._id!)))
+                monitorId: QueryHelper.in(event.monitors.filter((m) => m._id).map((m) => new ObjectID(m._id!)))
             },
             props: {
                 isRoot: true,
@@ -183,7 +234,7 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                     MailService.sendMail({
                         toEmail: subscriber.subscriberEmail,
                         templateType:
-                            EmailTemplateType.SubscriberIncidentCreated,
+                            EmailTemplateType.SubscriberScheduledMaintenanceEventCreated,
                         vars: {
                             statusPageName: statusPageName,
                             statusPageUrl: statusPageURL,
@@ -199,10 +250,11 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                                 ? 'true'
                                 : 'false',
                             resourcesAffected: statusPageToResources[statuspage._id!]?.map((r) => r.displayName).join(", ") || 'None',
-                            incidentSeverity:  incident.incidentSeverity?.name || ' - ',
-                            incidentTitle: incident.title || '',
-                            incidentDescription:
-                                incident.description || '',
+                            eventStatus: isOngoing ? 'Ongoing' : 'Scheduled',
+                            scheduledAt: OneUptimeDate.getDateAsFormattedString(event.startsAt!),
+                            eventTitle: event.title || '',
+                            eventDescription:
+                            event.description || '',
                             unsubscribeUrl: new URL(HttpProtocol, Domain)
                                 .addRoute(
                                     '/api/status-page-subscriber/unsubscribe/' +
@@ -210,7 +262,7 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                                 )
                                 .toString(),
                         },
-                        subject: statusPageName + ' - New Incident',
+                        subject: statusPageName + ` - ${isOngoing ? 'Ongoing' : 'Scheduled'} Maintenance Event`,
                     }).catch((err: Error) => {
                         logger.error(err);
                     });

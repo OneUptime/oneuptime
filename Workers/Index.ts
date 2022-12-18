@@ -3,8 +3,7 @@ import Redis from 'CommonServer/Infrastructure/Redis';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 
-// Worker import.
-import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
+// Payments.
 import './Jobs/PaymentProvider/CheckSubscriptionStatus';
 
 // Announcements.
@@ -12,6 +11,10 @@ import './Jobs/Announcement/SendEmailToSubscribers';
 
 // Incidents
 import './Jobs/Incident/SendEmailToSubscribers';
+
+// Scheduled Event
+import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
+import './Jobs/ScheduledMaintenance/SendEmailToSubscribers';
 
 // Certs Routers
 import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';

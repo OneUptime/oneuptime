@@ -388,5 +388,5 @@ export default class Incident extends BaseModel {
         type: ColumnType.Boolean,
         default: false,
     })
-    public isStatusPageSubscribersNotified?: boolean = undefined;
+    public isStatusPageSubscribersNotifiedOnIncidentCreated?: boolean = undefined;
 }

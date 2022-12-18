@@ -8,6 +8,7 @@ enum EmailTemplateType {
     SubscribedToStatusPage = 'SubscribedToStatusPage.hbs',
     SubscriberAnnouncementCreated = 'SubscriberAnnouncementCreated.hbs',
     SubscriberIncidentCreated = 'SubscriberIncidentCreated.hbs',
+    SubscriberScheduledMaintenanceEventCreated = 'SubscriberScheduledMaintenanceEventCreated.hbs',
 }
 
 export default EmailTemplateType;
