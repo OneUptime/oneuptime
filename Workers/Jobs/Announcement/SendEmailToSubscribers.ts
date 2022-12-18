@@ -21,7 +21,9 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
         await StatusPageAnnouncementService.findBy({
             query: {
                 isStatusPageSubscribersNotified: false,
-                showAnnouncementAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
+                showAnnouncementAt: QueryHelper.lessThan(
+                    OneUptimeDate.getCurrentDate()
+                ),
             },
             props: {
                 isRoot: true,
@@ -39,7 +41,7 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                     name: true,
                     pageTitle: true,
                     isPublicStatusPage: true,
-                    logoFileId: true, 
+                    logoFileId: true,
                 },
             },
         });
@@ -47,7 +49,6 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
     // change their state to Ongoing.
 
     for (const announcement of announcements) {
-
         if (!announcement.statusPages) {
             continue;
         }
@@ -55,43 +56,44 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
         await StatusPageAnnouncementService.updateOneById({
             id: announcement.id!,
             data: {
-                isStatusPageSubscribersNotified: true, 
+                isStatusPageSubscribersNotified: true,
             },
             props: {
-                isRoot: true, 
-                ignoreHooks: true
-            }
-        })
+                isRoot: true,
+                ignoreHooks: true,
+            },
+        });
 
         for (const statuspage of announcement.statusPages) {
-
             if (!statuspage.id) {
                 continue;
             }
 
-            const domains = await StatusPageDomainService.findBy({
-                query: {
-                    statusPageId: statuspage.id,
-                    isSslProvisioned: true
-                },
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-                skip: 0,
-                limit: LIMIT_PER_PROJECT,
-                select: {
-                    fullDomain: true,
-                }
-            });
+            const domains: Array<StatusPageDomain> =
+                await StatusPageDomainService.findBy({
+                    query: {
+                        statusPageId: statuspage.id,
+                        isSslProvisioned: true,
+                    },
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                    skip: 0,
+                    limit: LIMIT_PER_PROJECT,
+                    select: {
+                        fullDomain: true,
+                    },
+                });
 
-            const subscribers: Array<StatusPageSubscriber> = await StatusPageSubscriberService.getSubscribersByStatusPage(statuspage.id!, {
-                isRoot: true,
-                ignoreHooks: true,
-            });
-
-
-
+            const subscribers: Array<StatusPageSubscriber> =
+                await StatusPageSubscriberService.getSubscribersByStatusPage(
+                    statuspage.id!,
+                    {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    }
+                );
 
             let statusPageURL: string = domains
                 .map((d: StatusPageDomain) => {
@@ -102,48 +104,52 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
             if (domains.length === 0) {
                 // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
                 statusPageURL = new URL(HttpProtocol, Domain)
-                    .addRoute(
-                        '/status-page/' + statuspage.id.toString()
-                    )
+                    .addRoute('/status-page/' + statuspage.id.toString())
                     .toString();
             }
 
             const statusPageName: string =
-                statuspage.pageTitle ||
-                statuspage.name ||
-                'Status Page';
+                statuspage.pageTitle || statuspage.name || 'Status Page';
 
-            // Send email to Email subscribers. 
+            // Send email to Email subscribers.
 
             for (const subscriber of subscribers) {
-
                 if (!subscriber._id) {
                     continue;
                 }
-                
+
                 if (subscriber.subscriberEmail) {
-                    // send email here. 
+                    // send email here.
 
                     MailService.sendMail({
                         toEmail: subscriber.subscriberEmail,
-                        templateType: EmailTemplateType.SubscriberAnnouncementCreated,
+                        templateType:
+                            EmailTemplateType.SubscriberAnnouncementCreated,
                         vars: {
                             statusPageName: statusPageName,
                             statusPageUrl: statusPageURL,
-                            logoUrl: statuspage.logoFileId ? new URL(HttpProtocol, Domain).addRoute(FileRoute).addRoute("/image/"+statuspage.logoFileId)
-                            .toString() : '',
-                            isPublicStatusPage:
-                                statuspage.isPublicStatusPage ? "true" : "false",
+                            logoUrl: statuspage.logoFileId
+                                ? new URL(HttpProtocol, Domain)
+                                      .addRoute(FileRoute)
+                                      .addRoute(
+                                          '/image/' + statuspage.logoFileId
+                                      )
+                                      .toString()
+                                : '',
+                            isPublicStatusPage: statuspage.isPublicStatusPage
+                                ? 'true'
+                                : 'false',
                             announcementTitle: announcement.title || '',
-                            announcementDescription: announcement.description || '',
+                            announcementDescription:
+                                announcement.description || '',
                             unsubscribeUrl: new URL(HttpProtocol, Domain)
                                 .addRoute(
                                     '/api/status-page-subscriber/unsubscribe/' +
-                                    subscriber._id.toString()
+                                        subscriber._id.toString()
                                 )
                                 .toString(),
                         },
-                        subject: statusPageName+ ' - New Announcement',
+                        subject: statusPageName + ' - New Announcement',
                     }).catch((err: Error) => {
                         logger.error(err);
                     });

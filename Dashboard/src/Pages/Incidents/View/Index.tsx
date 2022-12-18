@@ -355,7 +355,9 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         }
                                         incidentType={IncidentType.Resolve}
                                         onActionComplete={() => {
-                                            GlobalEvent.dispatchEvent(EventName.ACTIVE_INCIDENTS_COUNT_REFRESH);
+                                            GlobalEvent.dispatchEvent(
+                                                EventName.ACTIVE_INCIDENTS_COUNT_REFRESH
+                                            );
                                             fetchItems();
                                         }}
                                     />

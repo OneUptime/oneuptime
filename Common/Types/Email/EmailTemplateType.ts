@@ -6,7 +6,7 @@ enum EmailTemplateType {
     InviteMember = 'InviteMember.hbs',
     EmailChanged = 'EmailChanged.hbs',
     SubscribedToStatusPage = 'SubscribedToStatusPage.hbs',
-    SubscriberAnnouncementCreated = 'SubscriberAnnouncementCreated.hbs'
+    SubscriberAnnouncementCreated = 'SubscriberAnnouncementCreated.hbs',
 }
 
 export default EmailTemplateType;

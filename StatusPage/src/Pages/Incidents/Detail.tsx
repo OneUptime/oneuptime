@@ -64,7 +64,6 @@ export const getIncidentEventItem: Function = (
                 isBold: false,
             });
 
-           
             // If this incident is a sumamry then dont include all the notes .
             if (isSummary) {
                 break;
@@ -77,7 +76,6 @@ export const getIncidentEventItem: Function = (
             incidentStateTimeline.incidentId?.toString() ===
             incident.id?.toString()
         ) {
-
             timeline.push({
                 text: incidentStateTimeline.incidentState?.name || '',
                 date: incidentStateTimeline?.createdAt!,
@@ -85,8 +83,10 @@ export const getIncidentEventItem: Function = (
             });
 
             if (!currentStateStatus) {
-                currentStateStatus = incidentStateTimeline.incidentState?.name || '';
-                currentStatusColor = incidentStateTimeline.incidentState?.color || Green;
+                currentStateStatus =
+                    incidentStateTimeline.incidentState?.name || '';
+                currentStatusColor =
+                    incidentStateTimeline.incidentState?.color || Green;
             }
 
             // If this incident is a sumamry then dont include all the notes .
@@ -120,15 +120,17 @@ export const getIncidentEventItem: Function = (
         ),
         eventTimeline: timeline,
         eventType: 'Incident',
-        eventViewRoute: !isSummary ? undefined : RouteUtil.populateRouteParams(
-            isPreviewPage
-                ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-            incident.id!
-        ),
+        eventViewRoute: !isSummary
+            ? undefined
+            : RouteUtil.populateRouteParams(
+                  isPreviewPage
+                      ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                      : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                  incident.id!
+              ),
         isDetailItem: !isSummary,
-        currentStatus: currentStateStatus, 
-        currentStatusColor: currentStatusColor
+        currentStatus: currentStateStatus,
+        currentStatusColor: currentStatusColor,
     };
 
     return data;
@@ -182,8 +184,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            
-            const rawIncidents: JSONArray = data['incidents'] as JSONArray || [];
+
+            const rawIncidents: JSONArray =
+                (data['incidents'] as JSONArray) || [];
             const incident: Incident = JSONFunctions.fromJSONObject(
                 (rawIncidents[0] as JSONObject) || {},
                 Incident

@@ -305,7 +305,6 @@ export default class StatusPageAnnouncement extends BaseModel {
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.CurrentUser],

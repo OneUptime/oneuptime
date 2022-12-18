@@ -36,23 +36,37 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 className="active-event-box-body"
                 style={{ marginBottom: '0px', paddingBottom: '0px' }}
             >
-                <div className='justify-space-between'>
-                    <h2 className="active-event-box-body-title" style={{
-                        fontSize: props.isDetailItem ? "20px" : "16px"
-                    }}>
+                <div className="justify-space-between">
+                    <h2
+                        className="active-event-box-body-title"
+                        style={{
+                            fontSize: props.isDetailItem ? '20px' : '16px',
+                        }}
+                    >
                         {props.eventTitle}
                     </h2>
-                    {props.currentStatus && props.currentStatusColor && <div>
-                        <Pill text={props.currentStatus} color={props.currentStatusColor} />
-                    </div>}
+                    {props.currentStatus && props.currentStatusColor && (
+                        <div>
+                            <Pill
+                                text={props.currentStatus}
+                                color={props.currentStatusColor}
+                            />
+                        </div>
+                    )}
                 </div>
                 {props.eventDescription && (
-                    <p style={{ marginTop: "10px" }} className="active-event-box-body-description">
+                    <p
+                        style={{ marginTop: '10px' }}
+                        className="active-event-box-body-description"
+                    >
                         {props.eventDescription}
                     </p>
                 )}
                 {props.eventMiniDescription && (
-                    <p style={{ marginTop: "10px" }} className="small active-event-box-body-description">
+                    <p
+                        style={{ marginTop: '10px' }}
+                        className="small active-event-box-body-description"
+                    >
                         {props.eventMiniDescription}
                     </p>
                 )}
@@ -62,8 +76,12 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 style={{ marginTop: '0px', paddingTop: '0px' }}
             >
                 {props.eventResourcesAffected &&
-                    props.eventResourcesAffected?.length > 0 ? (
-                    <div key={0} className="active-event-box-body-description" style={{ marginTop: "10px" }}>
+                props.eventResourcesAffected?.length > 0 ? (
+                    <div
+                        key={0}
+                        className="active-event-box-body-description"
+                        style={{ marginTop: '10px' }}
+                    >
                         {' '}
                         <span
                             style={{
@@ -84,7 +102,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                             <div
                                 key={i + 1}
                                 className="active-event-box-body-description"
-                                style={{ marginTop: "10px" }}
+                                style={{ marginTop: '10px' }}
                             >
                                 {' '}
                                 <span
@@ -105,7 +123,10 @@ const EventItem: FunctionComponent<ComponentProps> = (
                         );
                     })}
 
-                <div className="active-event-box-body-timestamp" style={{ marginTop: "10px" }}>
+                <div
+                    className="active-event-box-body-timestamp"
+                    style={{ marginTop: '10px' }}
+                >
                     {props.footerEventStatus && props.footerDateTime ? (
                         <span>
                             {props.footerEventStatus} at{' '}

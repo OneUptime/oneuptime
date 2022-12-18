@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 // import SearchBox from './SearchBox';
 // import Notifications from './Notifications';
 import Help from './Help';
@@ -53,8 +58,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
     const [projectCountRefreshToggle, setProjectCountRefreshToggle] =
         useState<boolean>(true);
-    
-        const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
+
+    const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
         useState<boolean>(true);
 
     const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] =
@@ -83,17 +88,21 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
     const refreshIncidentCount: Function = () => {
         setActiveIncidentToggleRefresh(!activeIncidentToggleRefresh);
-    }
+    };
 
     useEffect(() => {
-        
-        GlobalEvents.addEventListener(EventName.ACTIVE_INCIDENTS_COUNT_REFRESH, refreshIncidentCount);
+        GlobalEvents.addEventListener(
+            EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
+            refreshIncidentCount
+        );
 
         return () => {
-            // on unmount. 
-            GlobalEvents.removeEventListener(EventName.ACTIVE_INCIDENTS_COUNT_REFRESH, refreshIncidentCount);
-        }
-
+            // on unmount.
+            GlobalEvents.removeEventListener(
+                EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
+                refreshIncidentCount
+            );
+        };
     }, []);
 
     return (

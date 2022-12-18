@@ -321,7 +321,11 @@ export default class OneUptimeDate {
             formatstring = 'MMM DD, YYYY';
         }
 
-        return moment(date).format(formatstring) +' '+ (onlyShowDate ? '' :  moment.tz(moment.tz.guess()).zoneAbbr());
+        return (
+            moment(date).format(formatstring) +
+            ' ' +
+            (onlyShowDate ? '' : moment.tz(moment.tz.guess()).zoneAbbr())
+        );
     }
 
     public static getDateAsLocalFormattedString(
@@ -336,7 +340,11 @@ export default class OneUptimeDate {
 
         const momentDate: moment.Moment = moment(date).local();
 
-        return momentDate.format(formatstring) +' '+ (onlyShowDate ? '' : moment.tz(moment.tz.guess()).zoneAbbr());
+        return (
+            momentDate.format(formatstring) +
+            ' ' +
+            (onlyShowDate ? '' : moment.tz(moment.tz.guess()).zoneAbbr())
+        );
     }
 
     public static getDateString(date: Date): string {

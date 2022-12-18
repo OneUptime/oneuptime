@@ -20,7 +20,6 @@ app.use(new BaseAPI<File, FileServiceType>(File, FileService).getRouter());
 // File Serve API.
 app.use(new FileAPI().router);
 
-
 const init: Function = async (): Promise<void> => {
     try {
         // init the app

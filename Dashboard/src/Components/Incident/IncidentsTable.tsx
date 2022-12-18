@@ -39,7 +39,9 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             id="incidents-table"
             isDeleteable={false}
             onCreateSuccess={() => {
-                GlobalEvents.dispatchEvent(EventName.ACTIVE_INCIDENTS_COUNT_REFRESH);
+                GlobalEvents.dispatchEvent(
+                    EventName.ACTIVE_INCIDENTS_COUNT_REFRESH
+                );
             }}
             query={props.query}
             isEditable={false}

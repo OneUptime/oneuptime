@@ -7,7 +7,7 @@ import App from 'CommonServer/Utils/StartServer';
 import './Jobs/ScheduledMaintenance/ChangeStateToOngoing';
 import './Jobs/PaymentProvider/CheckSubscriptionStatus';
 
-// Announcements. 
+// Announcements.
 import './Jobs/Announcement/SendEmailToSubscribers';
 
 // Certs Routers

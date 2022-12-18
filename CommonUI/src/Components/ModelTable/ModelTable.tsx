@@ -1187,12 +1187,12 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                               }`
                             : `Save Changes`
                     }
-                    onSuccess={(item: TBaseModel) => {
+                    onSuccess={async (item: TBaseModel) => {
                         setShowModal(false);
                         setCurrentPageNumber(1);
                         fetchItems();
                         if (props.onCreateSuccess) {
-                            props.onCreateSuccess(item);
+                            await props.onCreateSuccess(item);
                         }
                     }}
                     onBeforeCreate={async (item: TBaseModel) => {

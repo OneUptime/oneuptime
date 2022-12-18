@@ -41,13 +41,15 @@ export const getAnnouncementEventItem: Function = (
         eventType: 'Announcement',
         footerEventStatus: 'Announced at',
         footerDateTime: announcement.showAnnouncementAt,
-        eventViewRoute: !isSummary ? undefined : RouteUtil.populateRouteParams(
-            isPreviewPage
-                ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
-                : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
-            announcement.id!
-        ),
-        isDetailItem: !isSummary
+        eventViewRoute: !isSummary
+            ? undefined
+            : RouteUtil.populateRouteParams(
+                  isPreviewPage
+                      ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
+                      : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
+                  announcement.id!
+              ),
+        isDetailItem: !isSummary,
     };
 };
 
@@ -89,8 +91,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 );
             const data: JSONObject = response.data;
 
-            const rawAnnouncements: JSONArray = data['announcements'] as JSONArray || [];
-           
+            const rawAnnouncements: JSONArray =
+                (data['announcements'] as JSONArray) || [];
+
             const announcement: StatusPageAnnouncement =
                 JSONFunctions.fromJSONObject(
                     (rawAnnouncements[0] as JSONObject) || {},

@@ -1,3 +1,4 @@
+import FileModel from 'Common/Models/FileModel';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
 import ObjectID from 'Common/Types/ObjectID';
 import FileService from 'CommonServer/Services/FileService';
@@ -5,16 +6,14 @@ import Express, {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-    ExpressRouter
+    ExpressRouter,
 } from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
 
 export default class FileAPI {
-
     public router!: ExpressRouter;
 
     public constructor() {
-
         this.router = Express.getRouter();
 
         this.router.get(
@@ -24,7 +23,7 @@ export default class FileAPI {
                 res: ExpressResponse,
                 _next: NextFunction
             ) => {
-                const file = await FileService.findOneById({
+                const file: FileModel | null = await FileService.findOneById({
                     id: new ObjectID(req.params['imageId']!),
                     props: {
                         isRoot: true,
@@ -33,18 +32,19 @@ export default class FileAPI {
                     select: {
                         file: true,
                         type: true,
-                    }
+                    },
                 });
 
-                console.log(file);
-
                 if (!file || !file.file || !file.type) {
-                    return Response.sendErrorResponse(req, res, new NotFoundException("File not found"));
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new NotFoundException('File not found')
+                    );
                 }
 
-                return Response.sendFileResponse(req ,res, file)
+                return Response.sendFileResponse(req, res, file);
             }
         );
-
     }
 }

@@ -44,10 +44,9 @@ export const getScheduledEventEventItem: Function = (
 ): EventItemComponentProps => {
     /// get timeline.
 
-
     let currentStateStatus: string = '';
     let currentStatusColor: Color = Green;
-    
+
     const timeline: Array<TimelineItem> = [];
 
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
@@ -80,8 +79,12 @@ export const getScheduledEventEventItem: Function = (
             });
 
             if (!currentStateStatus) {
-                currentStateStatus = scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState?.name || '';
-                currentStatusColor = scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState?.color || Green;
+                currentStateStatus =
+                    scheduledMaintenanceEventstateTimeline
+                        .scheduledMaintenanceState?.name || '';
+                currentStatusColor =
+                    scheduledMaintenanceEventstateTimeline
+                        .scheduledMaintenanceState?.color || Green;
             }
 
             if (isSummary) {
@@ -99,15 +102,19 @@ export const getScheduledEventEventItem: Function = (
         eventDescription: scheduledMaintenance.description,
         eventTimeline: timeline,
         eventType: 'Scheduled Maintenance',
-        eventViewRoute: !isSummary ? undefined : RouteUtil.populateRouteParams(
-            isPreviewPage
-                ? (RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route)
-                : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
-            scheduledMaintenance.id!
-        ),
+        eventViewRoute: !isSummary
+            ? undefined
+            : RouteUtil.populateRouteParams(
+                  isPreviewPage
+                      ? (RouteMap[
+                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                        ] as Route)
+                      : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
+                  scheduledMaintenance.id!
+              ),
         isDetailItem: !isSummary,
-        currentStatus: currentStateStatus, 
-        currentStatusColor: currentStatusColor
+        currentStatus: currentStateStatus,
+        currentStatusColor: currentStatusColor,
     };
 };
 
@@ -164,9 +171,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
-            
-            const rawAnnouncements: JSONArray = data['scheduledMaintenanceEvents'] as JSONArray || [];
-            
+
+            const rawAnnouncements: JSONArray =
+                (data['scheduledMaintenanceEvents'] as JSONArray) || [];
 
             const scheduledMaintenanceEvent: ScheduledMaintenance =
                 JSONFunctions.fromJSONObject(

@@ -71,7 +71,7 @@ export class Service extends DatabaseService<Model> {
                     pageTitle: true,
                     name: true,
                     isPublicStatusPage: true,
-                    logoFileId: true
+                    logoFileId: true,
                 },
                 props: {
                     isRoot: true,
@@ -144,11 +144,18 @@ export class Service extends DatabaseService<Model> {
                 templateType: EmailTemplateType.SubscribedToStatusPage,
                 vars: {
                     statusPageName: statusPageName,
-                    logoUrl: onCreate.carryForward.logoFileId ? new URL(HttpProtocol, Domain).addRoute(FileRoute).addRoute("/image/"+onCreate.carryForward.logoFileId)
-                            .toString() : '',
+                    logoUrl: onCreate.carryForward.logoFileId
+                        ? new URL(HttpProtocol, Domain)
+                              .addRoute(FileRoute)
+                              .addRoute(
+                                  '/image/' + onCreate.carryForward.logoFileId
+                              )
+                              .toString()
+                        : '',
                     statusPageUrl: statusPageURL,
-                    isPublicStatusPage:
-                        onCreate.carryForward.isPublicStatusPage ? "true" : "false",
+                    isPublicStatusPage: onCreate.carryForward.isPublicStatusPage
+                        ? 'true'
+                        : 'false',
                     unsubscribeUrl: new URL(HttpProtocol, Domain)
                         .addRoute(
                             '/api/status-page-subscriber/unsubscribe/' +
@@ -165,23 +172,25 @@ export class Service extends DatabaseService<Model> {
         return createdItem;
     }
 
-
-    public async getSubscribersByStatusPage(statusPageId: ObjectID, props: DatabaseCommonInteractionProps): Promise<Array<Model>> {
+    public async getSubscribersByStatusPage(
+        statusPageId: ObjectID,
+        props: DatabaseCommonInteractionProps
+    ): Promise<Array<Model>> {
         return await this.findBy({
             query: {
                 statusPageId: statusPageId,
                 isUnsubscribed: false,
             },
             select: {
-                _id: true, 
-                subscriberEmail: true, 
-                subscriberPhone: true, 
-                subscriberWebhook: true, 
+                _id: true,
+                subscriberEmail: true,
+                subscriberPhone: true,
+                subscriberWebhook: true,
             },
             skip: 0,
-            limit: LIMIT_PER_PROJECT, 
-            props: props
-        })
+            limit: LIMIT_PER_PROJECT,
+            props: props,
+        });
     }
 }
 export default new Service();
