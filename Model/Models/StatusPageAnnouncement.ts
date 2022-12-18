@@ -304,4 +304,18 @@ export default class StatusPageAnnouncement extends BaseModel {
     )
     @JoinColumn({ name: 'deletedByUserId' })
     public deletedByUser?: User = undefined;
+
+
+    @ColumnAccessControl({
+        create: [],
+        read: [Permission.CurrentUser],
+
+        update: [],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isStatusPageSubscribersNotified?: boolean = undefined;
 }

@@ -13,6 +13,8 @@ import { Domain, HttpProtocol } from '../Config';
 import logger from '../Utils/Logger';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import ObjectID from 'Common/Types/ObjectID';
+import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -143,7 +145,7 @@ export class Service extends DatabaseService<Model> {
                     statusPageName: statusPageName,
                     statusPageUrl: statusPageURL,
                     isPublicStatusPage:
-                        onCreate.carryForward.isPublicStatusPage,
+                        onCreate.carryForward.isPublicStatusPage ? "true" : "false",
                     unsubscribeUrl: new URL(HttpProtocol, Domain)
                         .addRoute(
                             '/api/status-page-subscriber/unsubscribe/' +
@@ -158,6 +160,25 @@ export class Service extends DatabaseService<Model> {
         }
 
         return createdItem;
+    }
+
+
+    public async getSubscribersByStatusPage(statusPageId: ObjectID, props: DatabaseCommonInteractionProps): Promise<Array<Model>> {
+        return await this.findBy({
+            query: {
+                statusPageId: statusPageId,
+                isUnsubscribed: false,
+            },
+            select: {
+                _id: true, 
+                subscriberEmail: true, 
+                subscriberPhone: true, 
+                subscriberWebhook: true, 
+            },
+            skip: 0,
+            limit: LIMIT_PER_PROJECT, 
+            props: props
+        })
     }
 }
 export default new Service();

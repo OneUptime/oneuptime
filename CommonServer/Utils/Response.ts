@@ -7,7 +7,6 @@ import {
     OneUptimeResponse,
 } from './Express';
 import { JSONObject, JSONArray, JSONObjectOrArray } from 'Common/Types/JSON';
-import { File } from 'Common/Types/File';
 import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
 import PositiveNumber from 'Common/Types/PositiveNumber';
@@ -15,6 +14,7 @@ import URL from 'Common/Types/API/URL';
 import BaseModel from 'Common/Models/BaseModel';
 import EmptyResponse from 'Common/Types/API/EmptyResponse';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import FileModel from 'Common/Models/FileModel';
 
 export default class Response {
     private static logResponse(
@@ -72,29 +72,19 @@ export default class Response {
     public static async sendFileResponse(
         req: ExpressRequest | ExpressRequest,
         res: ExpressResponse,
-        file: File
+        file: FileModel
     ): Promise<void> {
         /** Create read stream */
 
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-        /*
-         * const gfs: GridFSBucket = new GridFSBucket(await Database.getDatabase(), {
-         *     bucketName: 'uploads',
-         * });
-         */
-
-        /*
-         * const readstream: GridFSBucketReadStream = gfs.openDownloadStreamByName(
-         *     file.name
-         * );
-         */
-
         /** Set the proper content type */
-        oneUptimeResponse.set('Content-Type', file.contentType);
+        oneUptimeResponse.set('Content-Type', file.type);
         oneUptimeResponse.status(200);
         /** Return response */
         // readstream.pipe(res);
+
+        oneUptimeResponse.send(file.file);
 
         this.logResponse(req, res);
     }
