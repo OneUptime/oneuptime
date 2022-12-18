@@ -24,4 +24,3 @@ jobs:
       - name: Show how to fix lint
         if: ${{ failure() }}
         run: echo "Please run `npm run fix` in your root directory to fix the lint automatically."
-

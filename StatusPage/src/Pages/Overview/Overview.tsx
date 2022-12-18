@@ -11,12 +11,12 @@ import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -39,6 +39,7 @@ import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Monitor from 'Model/Models/Monitor';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -106,59 +107,60 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data[
                         'scheduledMaintenanceEventsPublicNotes'
                     ] as JSONArray) || [],
                     ScheduledMaintenancePublicNote
                 );
             const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['activeScheduledMaintenanceEvents'] as JSONArray) ||
                         [],
                     ScheduledMaintenance
                 );
             const activeAnnouncements: Array<StatusPageAnnouncement> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['activeAnnouncements'] as JSONArray) || [],
                     StatusPageAnnouncement
                 );
             const incidentPublicNotes: Array<IncidentPublicNote> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            const activeIncidents: Array<Incident> = BaseModel.fromJSONArray(
-                (data['activeIncidents'] as JSONArray) || [],
-                Incident
-            );
+            const activeIncidents: Array<Incident> =
+                JSONFunctions.fromJSONArray(
+                    (data['activeIncidents'] as JSONArray) || [],
+                    Incident
+                );
             const monitorStatusTimelines: Array<MonitorStatusTimeline> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['monitorStatusTimelines'] as JSONArray) || [],
                     MonitorStatusTimeline
                 );
             const resourceGroups: Array<StatusPageGroup> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['resourceGroups'] as JSONArray) || [],
                     StatusPageGroup
                 );
             const monitorStatuses: Array<MonitorStatus> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['monitorStatuses'] as JSONArray) || [],
                     MonitorStatus
                 );
             const statusPageResources: Array<StatusPageResource> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const incidentStateTimelines: Array<IncidentStateTimeline> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
                         [],
                     ScheduledMaintenanceStateTimeline
@@ -337,9 +339,20 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Incident Timeline not found.');
             }
 
+            const monitorIds: Array<string | undefined> =
+                activeIncident.monitors?.map((monitor: Monitor) => {
+                    return monitor._id;
+                }) || [];
+
+            const namesOfResources: Array<StatusPageResource> =
+                statusPageResources.filter((resource: StatusPageResource) => {
+                    return monitorIds.includes(resource.monitorId?.toString());
+                });
+
             const group: IncidentGroup = {
                 incident: activeIncident,
                 incidentState: activeIncident.currentIncidentState,
+                incidentResources: namesOfResources,
                 publicNote: incidentPublicNotes.find(
                     (publicNote: IncidentPublicNote) => {
                         return (
@@ -383,10 +396,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     throw new BadDataException('Incident Timeline not found.');
                 }
 
+                const monitorIds: Array<string | undefined> =
+                    activeEvent.monitors?.map((monitor: Monitor) => {
+                        return monitor._id;
+                    }) || [];
+
+                const namesOfResources: Array<StatusPageResource> =
+                    statusPageResources.filter(
+                        (resource: StatusPageResource) => {
+                            return monitorIds.includes(
+                                resource.monitorId?.toString()
+                            );
+                        }
+                    );
+
                 const group: ScheduledMaintenanceGroup = {
                     scheduledMaintenance: activeEvent,
                     scheduledMaintenanceState:
                         activeEvent.currentScheduledMaintenanceState,
+                    scheduledEventResources: namesOfResources,
                     publicNote: scheduledMaintenanceEventsPublicNotes.find(
                         (publicNote: ScheduledMaintenancePublicNote) => {
                             return (
@@ -499,7 +527,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
         if (incidentGroup.publicNote) {
             timeline.push({
-                text: incidentGroup.publicNote?.note || '',
+                text: (
+                    <span>
+                        <b>Update</b> - {incidentGroup.publicNote?.note}
+                    </span>
+                ),
                 date: incidentGroup.publicNote?.createdAt!,
                 isBold: false,
             });
@@ -562,6 +594,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         incidentGroup.incidentSeverity.color ||
                                         Red
                                     }
+                                    eventResourcesAffected={
+                                        incidentGroup.incidentResources.map(
+                                            (i: StatusPageResource) => {
+                                                return (
+                                                    i.displayName?.toString() ||
+                                                    ''
+                                                );
+                                            }
+                                        ) || []
+                                    }
                                     eventTitle={
                                         incidentGroup.incident.title || ''
                                     }
@@ -613,6 +655,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     eventTimeline={getScheduledEventGroupEventTimeline(
                                         scheduledEventGroup
                                     )}
+                                    eventResourcesAffected={
+                                        scheduledEventGroup.scheduledEventResources.map(
+                                            (i: StatusPageResource) => {
+                                                return (
+                                                    i.displayName?.toString() ||
+                                                    ''
+                                                );
+                                            }
+                                        ) || []
+                                    }
                                     footerDateTime={
                                         scheduledEventGroup.scheduledMaintenance
                                             .endsAt!
@@ -636,7 +688,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     )}
 
                     <div>
-                        {currentStatus && (
+                        {currentStatus && statusPageResources.length > 0 && (
                             <Alert
                                 title={`${
                                     currentStatus.isOperationalState
@@ -650,61 +702,74 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         )}
                     </div>
 
-                    <div>
-                        <AccordianGroup>
-                            {statusPageResources.filter(
-                                (resources: StatusPageResource) => {
-                                    return !resources.statusPageGroupId;
-                                }
-                            ).length > 0 ? (
-                                <Accordian
-                                    key={Math.random()}
-                                    title={undefined}
-                                    isLastElement={resourceGroups.length === 0}
-                                >
-                                    {getMonitorOverviewListInGroup(null)}
-                                </Accordian>
-                            ) : (
-                                <></>
-                            )}
-                            <div
-                                key={Math.random()}
-                                style={{
-                                    padding: '0px',
-                                }}
-                            >
-                                {resourceGroups.length > 0 &&
-                                    resourceGroups.map(
-                                        (
-                                            resourceGroup: StatusPageGroup,
-                                            i: number
-                                        ) => {
-                                            return (
-                                                <Accordian
-                                                    key={i}
-                                                    rightElement={getRightAccordianElement(
-                                                        resourceGroup
-                                                    )}
-                                                    isInitiallyExpanded={
-                                                        resourceGroup.isExpandedByDefault
-                                                    }
-                                                    isLastElement={
-                                                        resourceGroups.length -
-                                                            1 ===
-                                                        i
-                                                    }
-                                                    title={resourceGroup.name!}
-                                                >
-                                                    {getMonitorOverviewListInGroup(
-                                                        resourceGroup
-                                                    )}
-                                                </Accordian>
-                                            );
+                    {statusPageResources.length > 0 && (
+                        <div>
+                            <AccordianGroup>
+                                {statusPageResources.filter(
+                                    (resources: StatusPageResource) => {
+                                        return !resources.statusPageGroupId;
+                                    }
+                                ).length > 0 ? (
+                                    <Accordian
+                                        key={Math.random()}
+                                        title={undefined}
+                                        isLastElement={
+                                            resourceGroups.length === 0
                                         }
-                                    )}
-                            </div>
-                        </AccordianGroup>
-                    </div>
+                                    >
+                                        {getMonitorOverviewListInGroup(null)}
+                                    </Accordian>
+                                ) : (
+                                    <></>
+                                )}
+                                <div
+                                    key={Math.random()}
+                                    style={{
+                                        padding: '0px',
+                                    }}
+                                >
+                                    {resourceGroups.length > 0 &&
+                                        resourceGroups.map(
+                                            (
+                                                resourceGroup: StatusPageGroup,
+                                                i: number
+                                            ) => {
+                                                return (
+                                                    <Accordian
+                                                        key={i}
+                                                        rightElement={getRightAccordianElement(
+                                                            resourceGroup
+                                                        )}
+                                                        isInitiallyExpanded={
+                                                            resourceGroup.isExpandedByDefault
+                                                        }
+                                                        isLastElement={
+                                                            resourceGroups.length -
+                                                                1 ===
+                                                            i
+                                                        }
+                                                        title={
+                                                            resourceGroup.name!
+                                                        }
+                                                    >
+                                                        {getMonitorOverviewListInGroup(
+                                                            resourceGroup
+                                                        )}
+                                                    </Accordian>
+                                                );
+                                            }
+                                        )}
+                                </div>
+                            </AccordianGroup>
+                        </div>
+                    )}
+
+                    {statusPageResources.length === 0 && (
+                        <ErrorMessage
+                            error=" No resources added to this status page. Please add
+                        some resources from OneUptime Dashboard."
+                        />
+                    )}
                 </div>
             ) : (
                 <></>

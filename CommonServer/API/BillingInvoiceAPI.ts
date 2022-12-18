@@ -1,6 +1,6 @@
-import BaseModel from 'Common/Models/BaseModel';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import Permission, { UserPermission } from 'Common/Types/Permission';
 import BillingInvoice from 'Model/Models/BillingInvoice';
 import Project from 'Model/Models/Project';
@@ -100,7 +100,7 @@ export default class UserAPI extends BaseAPI<
                     const body: JSONObject = req.body;
 
                     const item: BillingInvoice =
-                        BaseModel.fromJSON<BillingInvoice>(
+                        JSONFunctions.fromJSON<BillingInvoice>(
                             body['data'] as JSONObject,
                             this.entityType
                         ) as BillingInvoice;

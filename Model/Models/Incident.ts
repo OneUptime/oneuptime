@@ -112,11 +112,10 @@ export default class Incident extends BaseModel {
         read: [Permission.ProjectOwner, Permission.CanReadProjectIncident],
         update: [Permission.ProjectOwner, Permission.CanEditProjectIncident],
     })
-    @TableColumn({ required: false, type: TableColumnType.LongText })
+    @TableColumn({ required: false, type: TableColumnType.Description })
     @Column({
         nullable: true,
-        type: ColumnType.LongText,
-        length: ColumnLength.LongText,
+        type: ColumnType.VeryLongText,
     })
     public description?: string = undefined;
 

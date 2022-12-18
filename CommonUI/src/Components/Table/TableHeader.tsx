@@ -19,6 +19,7 @@ import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import InBetween from 'Common/Types/Database/InBetween';
+import DatabaseDate from 'Common/Types/Database/Date';
 
 export type FilterData = Dictionary<
     | string
@@ -285,7 +286,7 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                                                                 filterData[
                                                                     column.key
                                                                 ] =
-                                                                    OneUptimeDate.asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
+                                                                    DatabaseDate.asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
                                                                         changedValue
                                                                     );
                                                             }

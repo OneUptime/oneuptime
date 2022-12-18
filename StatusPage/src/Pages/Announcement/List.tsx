@@ -7,6 +7,7 @@ import React, {
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
@@ -17,7 +18,6 @@ import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
 import EventHistoryList, {
     ComponentProps as EventHistoryListComponentProps,
 } from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
@@ -25,11 +25,9 @@ import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/sr
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import { getAnnouncementEventItem } from './Detail';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -66,12 +64,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const announcements: Array<StatusPageAnnouncement> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['announcements'] as JSONArray) || [],
                     StatusPageAnnouncement
                 );
             const statusPageResources: Array<StatusPageResource> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
@@ -121,22 +119,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 };
             }
 
-            days[dayString]?.items.push({
-                eventTitle: announcement.title || '',
-                eventDescription: announcement.description,
-                eventTimeline: [],
-                eventType: 'Announcement',
-                footerEventStatus: 'Announced at',
-                footerDateTime: announcement.showAnnouncementAt,
-                eventViewRoute: RouteUtil.populateRouteParams(
-                    props.isPreviewPage
-                        ? (RouteMap[
-                              PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
-                          ] as Route)
-                        : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
-                    announcement.id!
-                ),
-            });
+            days[dayString]?.items.push(
+                getAnnouncementEventItem(
+                    announcement,
+                    Boolean(props.isPreviewPage),
+                    true
+                )
+            );
         }
 
         for (const key in days) {
@@ -162,8 +151,23 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-            <h3>Announcements</h3>
-            <EventHistoryList {...parsedData} />
+            {announcements && announcements.length > 0 ? (
+                <h3>Announcements</h3>
+            ) : (
+                <></>
+            )}
+
+            {announcements && announcements.length > 0 ? (
+                <EventHistoryList {...parsedData} />
+            ) : (
+                <></>
+            )}
+
+            {announcements.length === 0 ? (
+                <ErrorMessage error="No announcements reported on this status page." />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

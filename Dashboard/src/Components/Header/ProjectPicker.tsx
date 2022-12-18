@@ -31,6 +31,28 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         null
     );
 
+    const getFooter: Function = (): ReactElement => {
+        if (!BILLING_ENABLED) {
+            return <></>;
+        }
+
+        return (
+            <div
+                className="show-as-link"
+                onClick={() => {
+                    setIsSubscriptionPlanYearly(!isSubsriptionPlanYearly);
+                    refreshFields();
+                }}
+            >
+                {isSubsriptionPlanYearly ? (
+                    <span>Switch to monthly pricing?</span>
+                ) : (
+                    <span> Switch to yearly pricing?</span>
+                )}
+            </div>
+        );
+    };
+
     const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
 
@@ -215,23 +237,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         fields: [...fields],
                         formType: FormType.Create,
                     }}
-                    footer={
-                        <div
-                            className="show-as-link"
-                            onClick={() => {
-                                setIsSubscriptionPlanYearly(
-                                    !isSubsriptionPlanYearly
-                                );
-                                refreshFields();
-                            }}
-                        >
-                            {isSubsriptionPlanYearly ? (
-                                <span>Switch to monthly pricing?</span>
-                            ) : (
-                                <span> Switch to yearly pricing?</span>
-                            )}
-                        </div>
-                    }
+                    footer={getFooter()}
                 />
             ) : (
                 <></>

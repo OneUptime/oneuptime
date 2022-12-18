@@ -1,4 +1,4 @@
-name: Dashboard Docker Build
+name: Status Page Docker Build
 
 on:
   pull_request: 

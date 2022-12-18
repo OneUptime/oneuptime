@@ -133,7 +133,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanCreateStatusPageResource,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
     })
     @TableColumn({
         manyToOneRelationColumn: 'monitorId',
@@ -160,7 +160,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanCreateStatusPageResource,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID, required: true })
@@ -177,7 +177,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanCreateStatusPageResource,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
     })
     @TableColumn({
         manyToOneRelationColumn: 'statusPageGroupId',
@@ -204,7 +204,7 @@ export default class StatusPageResource extends BaseModel {
             Permission.CanCreateStatusPageResource,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [],
+        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID, required: false })

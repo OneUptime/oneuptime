@@ -12,7 +12,8 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
-import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import CreateBy from '../Types/Database/CreateBy';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
@@ -389,9 +390,9 @@ export default class BaseAPI<
             body['data'] as JSONObject
         ) as PartialEntity<TBaseModel>;
 
-        delete item['_id'];
-        delete item['createdAt'];
-        delete item['updatedAt'];
+        delete (item as any)['_id'];
+        delete (item as any)['createdAt'];
+        delete (item as any)['updatedAt'];
 
         await this.service.updateBy({
             query: {
@@ -411,7 +412,7 @@ export default class BaseAPI<
         await this.onBeforeCreate(req, res);
         const body: JSONObject = req.body;
 
-        const item: TBaseModel = BaseModel.fromJSON<TBaseModel>(
+        const item: TBaseModel = JSONFunctions.fromJSON<TBaseModel>(
             body['data'] as JSONObject,
             this.entityType
         ) as TBaseModel;

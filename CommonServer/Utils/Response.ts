@@ -6,19 +6,15 @@ import {
     ExpressRequest,
     OneUptimeResponse,
 } from './Express';
-import {
-    JSONObject,
-    JSONArray,
-    JSONObjectOrArray,
-    JSONFunctions,
-} from 'Common/Types/JSON';
-import { File } from 'Common/Types/File';
+import { JSONObject, JSONArray, JSONObjectOrArray } from 'Common/Types/JSON';
 import Exception from 'Common/Types/Exception/Exception';
 import ListData from 'Common/Types/ListData';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import URL from 'Common/Types/API/URL';
 import BaseModel from 'Common/Models/BaseModel';
 import EmptyResponse from 'Common/Types/API/EmptyResponse';
+import JSONFunctions from 'Common/Types/JSONFunctions';
+import FileModel from 'Common/Models/FileModel';
 
 export default class Response {
     private static logResponse(
@@ -76,29 +72,19 @@ export default class Response {
     public static async sendFileResponse(
         req: ExpressRequest | ExpressRequest,
         res: ExpressResponse,
-        file: File
+        file: FileModel
     ): Promise<void> {
         /** Create read stream */
 
         const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
 
-        /*
-         * const gfs: GridFSBucket = new GridFSBucket(await Database.getDatabase(), {
-         *     bucketName: 'uploads',
-         * });
-         */
-
-        /*
-         * const readstream: GridFSBucketReadStream = gfs.openDownloadStreamByName(
-         *     file.name
-         * );
-         */
-
         /** Set the proper content type */
-        oneUptimeResponse.set('Content-Type', file.contentType);
+        oneUptimeResponse.set('Content-Type', file.type);
         oneUptimeResponse.status(200);
         /** Return response */
         // readstream.pipe(res);
+
+        oneUptimeResponse.send(file.file);
 
         this.logResponse(req, res);
     }
@@ -138,7 +124,7 @@ export default class Response {
             req,
             res,
             JSONFunctions.serializeArray(
-                BaseModel.toJSONArray(list as Array<BaseModel>, modelType)
+                JSONFunctions.toJSONArray(list as Array<BaseModel>, modelType)
             ),
             count
         );
@@ -155,7 +141,7 @@ export default class Response {
             res,
             item
                 ? JSONFunctions.serialize(
-                      BaseModel.toJSONObject(item, modelType)
+                      JSONFunctions.toJSONObject(item, modelType)
                   )
                 : {}
         );
@@ -262,5 +248,26 @@ export default class Response {
         oneUptimeResponse.logBody = { text: text as string };
         oneUptimeResponse.status(200).send(text);
         this.logResponse(req, res, { text: text as string });
+    }
+
+    public static sendHtmlResponse(
+        req: ExpressRequest,
+        res: ExpressResponse,
+        html: string
+    ): void {
+        const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+        const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+        oneUptimeResponse.set(
+            'ExpressRequest-Id',
+            oneUptimeRequest.id.toString()
+        );
+
+        oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+
+        oneUptimeResponse.logBody = { html: html as string };
+        oneUptimeResponse.writeHead(200, { 'Content-Type': 'text/html' });
+        oneUptimeResponse.end(html);
+        this.logResponse(req, res, { html: html as string });
     }
 }

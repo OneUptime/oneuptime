@@ -12,6 +12,7 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -125,7 +126,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                             return (
                                 <LabelsElement
                                     labels={
-                                        Label.fromJSON(
+                                        JSONFunctions.fromJSON(
                                             (item['labels'] as JSONArray) || [],
                                             Label
                                         ) as Array<Label>

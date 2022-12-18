@@ -27,9 +27,9 @@ import Response from 'CommonServer/Utils/Response';
 import JSONWebToken from 'CommonServer/Utils/JsonWebToken';
 import OneUptimeDate from 'Common/Types/Date';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import BaseModel from 'Common/Models/BaseModel';
 import Route from 'Common/Types/API/Route';
 import logger from 'CommonServer/Utils/Logger';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -47,7 +47,10 @@ router.post(
 
             const data: JSONObject = req.body['data'];
 
-            const user: User = User.fromJSON(data as JSONObject, User) as User;
+            const user: User = JSONFunctions.fromJSON(
+                data as JSONObject,
+                User
+            ) as User;
 
             if (IsBillingEnabled) {
                 //ALERT: Delete data.role so user don't accidently sign up as master-admin from the API.
@@ -140,7 +143,7 @@ router.post(
 
                 return Response.sendJsonObjectResponse(req, res, {
                     token: token,
-                    user: BaseModel.toJSON(savedUser, User),
+                    user: JSONFunctions.toJSON(savedUser, User),
                 });
             }
 
@@ -161,7 +164,10 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = User.fromJSON(data as JSONObject, User) as User;
+            const user: User = JSONFunctions.fromJSON(
+                data as JSONObject,
+                User
+            ) as User;
 
             const alreadySavedUser: User | null = await UserService.findOneBy({
                 query: { email: user.email! },
@@ -232,11 +238,10 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const token: EmailVerificationToken =
-                EmailVerificationToken.fromJSON(
-                    data as JSONObject,
-                    EmailVerificationToken
-                ) as EmailVerificationToken;
+            const token: EmailVerificationToken = JSONFunctions.fromJSON(
+                data as JSONObject,
+                EmailVerificationToken
+            ) as EmailVerificationToken;
 
             const alreadySavedToken: EmailVerificationToken | null =
                 await EmailVerificationTokenService.findOneBy({
@@ -324,7 +329,10 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = User.fromJSON(data as JSONObject, User) as User;
+            const user: User = JSONFunctions.fromJSON(
+                data as JSONObject,
+                User
+            ) as User;
 
             await user.password?.hashValue(EncryptionSecret);
 
@@ -401,7 +409,10 @@ router.post(
         try {
             const data: JSONObject = req.body['data'];
 
-            const user: User = User.fromJSON(data as JSONObject, User) as User;
+            const user: User = JSONFunctions.fromJSON(
+                data as JSONObject,
+                User
+            ) as User;
 
             await user.password?.hashValue(EncryptionSecret);
 
@@ -471,7 +482,7 @@ router.post(
 
                 return Response.sendJsonObjectResponse(req, res, {
                     token: token,
-                    user: BaseModel.toJSON(alreadySavedUser, User),
+                    user: JSONFunctions.toJSON(alreadySavedUser, User),
                 });
             }
             throw new BadDataException(

@@ -9,11 +9,8 @@ export const env: Function = (key: string): string => {
     return process.env[key] || '';
 };
 
-export const HTTP_PROTOCOL: Protocol = window.location.protocol.includes(
-    'https'
-)
-    ? Protocol.HTTPS
-    : Protocol.HTTP;
+export const HTTP_PROTOCOL: Protocol =
+    env('HTTP_PROTOCOL') === 'http' ? Protocol.HTTP : Protocol.HTTPS;
 
 export const DOMAIN: string = env('DOMAIN') || '';
 
@@ -45,46 +42,32 @@ export const ACCOUNTS_ROUTE: Route = new Route(env('ACCOUNTS_ROUTE'));
 export const HOME_ROUTE: Route = new Route(env('HOME_ROUTE'));
 
 export const DASHBOARD_API_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+    env('DOMAIN')
 );
 
-export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
-);
+export const IDENTITY_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
-export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
-);
+export const DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const INTEGRATION_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+    env('DOMAIN')
 );
 
 export const STATUS_PAGE_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+    env('DOMAIN')
 );
 
-export const HELM_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
-);
+export const HELM_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
-export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
-);
+export const API_DOCS_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const ADMIN_DASHBOARD_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
+    env('DOMAIN')
 );
-export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
-);
-export const HOME_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
-);
+export const ACCOUNTS_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
+export const HOME_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
-export const FILE_HOSTNAME: Hostname = Hostname.fromString(
-    window.location.hostname
-);
+export const FILE_HOSTNAME: Hostname = Hostname.fromString(env('DOMAIN'));
 
 export const DASHBOARD_API_URL: URL = new URL(
     HTTP_PROTOCOL,
@@ -143,3 +126,6 @@ export const SubscriptionPlans: Array<SubscriptionPlan> =
 
 export const StatusPageCNameRecord: string =
     env('STATUS_PAGE_CNAME_RECORD') || '';
+
+export const AnalyticsKey: string = env('ANALYTICS_KEY') || '';
+export const AnalyticsHost: string = env('ANALYTICS_HOST');

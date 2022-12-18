@@ -15,7 +15,6 @@ import BaseAPI from './BaseAPI';
 import Response from '../Utils/Response';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import BaseModel from 'Common/Models/BaseModel';
 import StatusPageFooterLinkService from '../Services/StatusPageFooterLinkService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
@@ -51,6 +50,7 @@ import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenance
 import ScheduledMaintenanceStateTimelineService from '../Services/ScheduledMaintenanceStateTimelineService';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -68,7 +68,7 @@ export default class StatusPageAPI extends BaseAPI<
                 next: NextFunction
             ) => {
                 try {
-                    if (req.body['domain']) {
+                    if (!req.body['domain']) {
                         throw new BadDataException(
                             'domain is required in request body'
                         );
@@ -249,12 +249,12 @@ export default class StatusPageAPI extends BaseAPI<
                         });
 
                     const response: JSONObject = {
-                        statusPage: BaseModel.toJSON(item, StatusPage),
-                        footerLinks: BaseModel.toJSONArray(
+                        statusPage: JSONFunctions.toJSON(item, StatusPage),
+                        footerLinks: JSONFunctions.toJSONArray(
                             footerLinks,
                             StatusPageFooterLink
                         ),
-                        headerLinks: BaseModel.toJSONArray(
+                        headerLinks: JSONFunctions.toJSONArray(
                             headerLinks,
                             StatusPageHeaderLink
                         ),
@@ -447,7 +447,7 @@ export default class StatusPageAPI extends BaseAPI<
                     if (monitorsOnStatusPage.length > 0) {
                         activeIncidents = await IncidentService.findBy({
                             query: {
-                                monitors: QueryHelper.in(monitorsOnStatusPage),
+                                monitors: monitorsOnStatusPage as any,
                                 currentIncidentState: {
                                     isResolvedState: false,
                                 } as any,
@@ -547,7 +547,7 @@ export default class StatusPageAPI extends BaseAPI<
                     const activeAnnouncements: Array<StatusPageAnnouncement> =
                         await StatusPageAnnouncementService.findBy({
                             query: {
-                                statusPages: QueryHelper.in([objectId]),
+                                statusPages: objectId as any,
                                 showAnnouncementAt: QueryHelper.lessThan(today),
                                 endAnnouncementAt:
                                     QueryHelper.greaterThan(today),
@@ -574,7 +574,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 currentScheduledMaintenanceState: {
                                     isOngoingState: true,
                                 } as any,
-                                statusPages: QueryHelper.in([objectId]),
+                                statusPages: objectId as any,
                                 projectId: statusPage.projectId!,
                             },
                             select: {
@@ -673,48 +673,49 @@ export default class StatusPageAPI extends BaseAPI<
 
                     const response: JSONObject = {
                         scheduledMaintenanceEventsPublicNotes:
-                            BaseModel.toJSONArray(
+                            JSONFunctions.toJSONArray(
                                 scheduledMaintenanceEventsPublicNotes,
                                 ScheduledMaintenancePublicNote
                             ),
-                        activeScheduledMaintenanceEvents: BaseModel.toJSONArray(
-                            activeScheduledMaintenanceEvents,
-                            ScheduledMaintenance
-                        ),
-                        activeAnnouncements: BaseModel.toJSONArray(
+                        activeScheduledMaintenanceEvents:
+                            JSONFunctions.toJSONArray(
+                                activeScheduledMaintenanceEvents,
+                                ScheduledMaintenance
+                            ),
+                        activeAnnouncements: JSONFunctions.toJSONArray(
                             activeAnnouncements,
                             StatusPageAnnouncement
                         ),
-                        incidentPublicNotes: BaseModel.toJSONArray(
+                        incidentPublicNotes: JSONFunctions.toJSONArray(
                             incidentPublicNotes,
                             IncidentPublicNote
                         ),
-                        activeIncidents: BaseModel.toJSONArray(
+                        activeIncidents: JSONFunctions.toJSONArray(
                             activeIncidents,
                             Incident
                         ),
-                        monitorStatusTimelines: BaseModel.toJSONArray(
+                        monitorStatusTimelines: JSONFunctions.toJSONArray(
                             monitorStatusTimelines,
                             MonitorStatusTimeline
                         ),
-                        resourceGroups: BaseModel.toJSONArray(
+                        resourceGroups: JSONFunctions.toJSONArray(
                             groups,
                             StatusPageGroup
                         ),
-                        monitorStatuses: BaseModel.toJSONArray(
+                        monitorStatuses: JSONFunctions.toJSONArray(
                             monitorStatuses,
                             MonitorStatus
                         ),
-                        statusPageResources: BaseModel.toJSONArray(
+                        statusPageResources: JSONFunctions.toJSONArray(
                             statusPageResources,
                             StatusPageResource
                         ),
-                        incidentStateTimelines: BaseModel.toJSONArray(
+                        incidentStateTimelines: JSONFunctions.toJSONArray(
                             incidentStateTimelines,
                             IncidentStateTimeline
                         ),
                         scheduledMaintenanceStateTimelines:
-                            BaseModel.toJSONArray(
+                            JSONFunctions.toJSONArray(
                                 scheduledMaintenanceStateTimelines,
                                 ScheduledMaintenanceStateTimeline
                             ),
@@ -972,14 +973,14 @@ export default class StatusPageAPI extends BaseAPI<
 
         let query: Query<ScheduledMaintenance> = {
             startsAt: QueryHelper.inBetween(last14Days, today),
-            statusPages: QueryHelper.in([statusPageId]),
+            statusPages: [statusPageId] as any,
             projectId: statusPage.projectId!,
         };
 
         if (scheduledMaintenanceId) {
             query = {
                 _id: scheduledMaintenanceId.toString(),
-                statusPages: QueryHelper.in([statusPageId]),
+                statusPages: [statusPageId] as any,
                 projectId: statusPage.projectId!,
             };
         }
@@ -1081,19 +1082,19 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         const response: JSONObject = {
-            scheduledMaintenanceEventsPublicNotes: BaseModel.toJSONArray(
+            scheduledMaintenanceEventsPublicNotes: JSONFunctions.toJSONArray(
                 scheduledMaintenanceEventsPublicNotes,
                 ScheduledMaintenancePublicNote
             ),
-            scheduledMaintenanceEvents: BaseModel.toJSONArray(
+            scheduledMaintenanceEvents: JSONFunctions.toJSONArray(
                 scheduledMaintenanceEvents,
                 ScheduledMaintenance
             ),
-            statusPageResources: BaseModel.toJSONArray(
+            statusPageResources: JSONFunctions.toJSONArray(
                 statusPageResources,
                 StatusPageResource
             ),
-            scheduledMaintenanceStateTimelines: BaseModel.toJSONArray(
+            scheduledMaintenanceStateTimelines: JSONFunctions.toJSONArray(
                 scheduledMaintenanceStateTimelines,
                 ScheduledMaintenanceStateTimeline
             ),
@@ -1138,14 +1139,14 @@ export default class StatusPageAPI extends BaseAPI<
         const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
 
         let query: Query<StatusPageAnnouncement> = {
-            statusPages: QueryHelper.in([statusPageId]),
+            statusPages: [statusPageId] as any,
             showAnnouncementAt: QueryHelper.inBetween(last14Days, today),
             projectId: statusPage.projectId!,
         };
 
         if (announcementId) {
             query = {
-                statusPages: QueryHelper.in([statusPageId]),
+                statusPages: [statusPageId] as any,
                 _id: announcementId.toString(),
                 projectId: statusPage.projectId!,
             };
@@ -1196,11 +1197,11 @@ export default class StatusPageAPI extends BaseAPI<
             });
 
         const response: JSONObject = {
-            announcements: BaseModel.toJSONArray(
+            announcements: JSONFunctions.toJSONArray(
                 announcements,
                 StatusPageAnnouncement
             ),
-            statusPageResources: BaseModel.toJSONArray(
+            statusPageResources: JSONFunctions.toJSONArray(
                 statusPageResources,
                 StatusPageResource
             ),
@@ -1276,14 +1277,14 @@ export default class StatusPageAPI extends BaseAPI<
         const last14Days: Date = OneUptimeDate.getSomeDaysAgo(14);
 
         let incidentQuery: Query<Incident> = {
-            monitors: QueryHelper.in(monitorsOnStatusPage),
+            monitors: monitorsOnStatusPage as any,
             projectId: statusPage.projectId!,
             createdAt: QueryHelper.inBetween(last14Days, today),
         };
 
         if (incidentId) {
             incidentQuery = {
-                monitors: QueryHelper.in(monitorsOnStatusPage),
+                monitors: monitorsOnStatusPage as any,
                 projectId: statusPage.projectId!,
                 _id: incidentId.toString(),
             };
@@ -1384,16 +1385,16 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         const response: JSONObject = {
-            incidentPublicNotes: BaseModel.toJSONArray(
+            incidentPublicNotes: JSONFunctions.toJSONArray(
                 incidentPublicNotes,
                 IncidentPublicNote
             ),
-            incidents: BaseModel.toJSONArray(incidents, Incident),
-            statusPageResources: BaseModel.toJSONArray(
+            incidents: JSONFunctions.toJSONArray(incidents, Incident),
+            statusPageResources: JSONFunctions.toJSONArray(
                 statusPageResources,
                 StatusPageResource
             ),
-            incidentStateTimelines: BaseModel.toJSONArray(
+            incidentStateTimelines: JSONFunctions.toJSONArray(
                 incidentStateTimelines,
                 IncidentStateTimeline
             ),

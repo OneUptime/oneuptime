@@ -10,7 +10,8 @@ import { DASHBOARD_API_URL } from '../../Config';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { JSONArray, JSONFunctions, JSONObject } from 'Common/Types/JSON';
+import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import { FormType } from '../../Components/Forms/ModelForm';
 import Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
@@ -146,7 +147,7 @@ export default class ModelAPI {
             apiUrl,
             {
                 data: JSONFunctions.serialize(
-                    BaseModel.toJSON(model, modelType)
+                    JSONFunctions.toJSON(model, modelType)
                 ),
                 miscDataProps: miscDataProps || {},
             },
@@ -213,7 +214,7 @@ export default class ModelAPI {
             );
 
         if (result.isSuccess()) {
-            const list: Array<TBaseModel> = BaseModel.fromJSONArray(
+            const list: Array<TBaseModel> = JSONFunctions.fromJSONArray(
                 result.data as JSONArray,
                 modelType
             );

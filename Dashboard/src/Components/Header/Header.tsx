@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 // import SearchBox from './SearchBox';
 // import Notifications from './Notifications';
 import Help from './Help';
@@ -29,6 +34,8 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import UserProfileModal from './UserProfileModal';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import EventName from '../../Utils/EventName';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -50,6 +57,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         useState<boolean>(false);
 
     const [projectCountRefreshToggle, setProjectCountRefreshToggle] =
+        useState<boolean>(true);
+
+    const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
         useState<boolean>(true);
 
     const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] =
@@ -75,6 +85,25 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             setPaymentMethodCountLoading(false);
         }
     }, [props.selectedProject]);
+
+    const refreshIncidentCount: Function = () => {
+        setActiveIncidentToggleRefresh(!activeIncidentToggleRefresh);
+    };
+
+    useEffect(() => {
+        GlobalEvents.addEventListener(
+            EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
+            refreshIncidentCount
+        );
+
+        return () => {
+            // on unmount.
+            GlobalEvents.removeEventListener(
+                EventName.ACTIVE_INCIDENTS_COUNT_REFRESH,
+                refreshIncidentCount
+            );
+        };
+    }, []);
 
     return (
         <>
@@ -122,6 +151,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     marginRight: '10px',
                                 }}
                             />
+
                             <CounterModelAlert<Incident>
                                 alertType={AlertType.DANGER}
                                 modelType={Incident}
@@ -130,6 +160,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         order: 1,
                                     },
                                 }}
+                                refreshToggle={activeIncidentToggleRefresh}
                                 singularName="Active Incident"
                                 pluralName="Active Incidents"
                                 requestOptions={{

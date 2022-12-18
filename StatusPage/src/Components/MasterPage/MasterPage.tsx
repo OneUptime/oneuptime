@@ -11,7 +11,8 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import useAsyncEffect from 'use-async-effect';
-import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import RouteParams from '../../Utils/RouteParams';
@@ -49,6 +50,21 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         );
         if (id) {
             return new ObjectID(id);
+        }
+        // get status page id by hostname.
+        const response: HTTPResponse<JSONObject> =
+            await BaseAPI.post<JSONObject>(
+                URL.fromString(DASHBOARD_API_URL.toString()).addRoute(
+                    `/status-page/domain`
+                ),
+                {
+                    domain: Navigation.getHostname().toString(),
+                },
+                {}
+            );
+
+        if (response.data && response.data['statusPageId']) {
+            return new ObjectID(response.data['statusPageId'] as string);
         }
 
         throw new BadDataException('Status Page ID not found');

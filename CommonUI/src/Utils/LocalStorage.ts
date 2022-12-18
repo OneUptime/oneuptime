@@ -1,7 +1,8 @@
 import URL from 'Common/Types/API/URL';
 import Email from 'Common/Types/Email';
-import { JSONFunctions, JSONObject, JSONValue } from 'Common/Types/JSON';
+import { JSONObject, JSONValue } from 'Common/Types/JSON';
 import Typeof from 'Common/Types/Typeof';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export default class LocalStorage {
     public static setItem(key: string, value: JSONValue | Email | URL): void {

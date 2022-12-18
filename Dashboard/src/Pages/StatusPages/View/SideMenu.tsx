@@ -81,7 +81,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Email}
                 />
-                <SideMenuItem
+                {/* <SideMenuItem
                     link={{
                         title: 'SMS Subscribers',
                         to: RouteUtil.populateRouteParams(
@@ -105,7 +105,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.Webhook}
-                />
+                /> */}
 
                 <SideMenuItem
                     link={{
@@ -135,7 +135,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Image}
                 />
 
-                <SideMenuItem
+                {/* <SideMenuItem
                     link={{
                         title: 'Embedded Status Page',
                         to: RouteUtil.populateRouteParams(
@@ -146,7 +146,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         ),
                     }}
                     icon={IconProp.Circle}
-                />
+                /> */}
 
                 <SideMenuItem
                     link={{
@@ -182,7 +182,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Layers}
+                    icon={IconProp.Layout}
                 />
 
                 <SideMenuItem
@@ -200,7 +200,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 
                 <SideMenuItem
                     link={{
-                        title: 'Navigation Menu',
+                        title: 'Navigation',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
                                 PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
@@ -208,7 +208,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Layers}
+                    icon={IconProp.Compass}
                 />
             </SideMenuSection>
 

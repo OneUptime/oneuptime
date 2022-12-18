@@ -320,4 +320,5 @@ export class Service extends DatabaseService<TeamMember> {
         }
     }
 }
+
 export default new Service();

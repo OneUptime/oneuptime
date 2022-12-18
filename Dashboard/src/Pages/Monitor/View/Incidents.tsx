@@ -18,6 +18,7 @@ import MonitorStatus from 'Model/Models/MonitorStatus';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Incident from 'Model/Models/Incident';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -209,7 +210,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                             return (
                                 <MonitorsElement
                                     monitors={
-                                        Monitor.fromJSON(
+                                        JSONFunctions.fromJSON(
                                             (item['monitors'] as JSONArray) ||
                                                 [],
                                             Monitor

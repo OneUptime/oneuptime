@@ -7,7 +7,9 @@
     "dependencies": {
         "@types/lodash": "^4.14.182",
         "eslint-plugin-progress": "^0.0.1",
-        "the-new-css-reset": "^1.7.3"
+        "the-new-css-reset": "^1.7.3",
+        "ts-node": "^10.9.1",
+        "typeorm": "^0.3.11"
     },
     "devDependencies": {
         "@babel/core": "^7.17.8",
@@ -28,6 +30,7 @@
         "eslint-plugin-unused-imports": "^2.0.0",
         "husky": "^7.0.0",
         "lint-staged": "^12.3.7",
+        "nodemon": "^2.0.20",
         "prettier": "^2.6.0"
     },
     "scripts": {
@@ -45,6 +48,7 @@
         "ps": "sudo docker compose ps",
         "logs": "sudo docker compose logs --tail=100 -f $npm_config_services",
         "write-logs": "sudo docker compose logs -f $npm_config_services > logs.txt",
+        "build": "npm run prerun && sudo docker compose build $npm_config_services",
         "force-build": "npm run prerun && sudo docker compose build --no-cache $npm_config_services",
         "force-build-dev": "npm run config-to-dev && npm run force-build",
         "kill": "npm run stop",

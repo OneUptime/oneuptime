@@ -9,12 +9,16 @@ import FileService, {
     Service as FileServiceType,
 } from 'CommonServer/Services/FileService';
 import BaseAPI from 'CommonServer/API/BaseAPI';
+import FileAPI from './API/File';
 
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'File';
 
 app.use(new BaseAPI<File, FileServiceType>(File, FileService).getRouter());
+
+// File Serve API.
+app.use(new FileAPI().router);
 
 const init: Function = async (): Promise<void> => {
     try {

@@ -15,6 +15,7 @@ import {
     Power,
     Image,
     Globe,
+    Layout,
     MoreVertical,
     CreditCard,
     File,
@@ -60,6 +61,7 @@ import {
     Codesandbox,
     Star,
     ArrowDown,
+    Compass,
 } from 'react-feather';
 
 export enum SizeProp {
@@ -82,6 +84,8 @@ export enum ThickProp {
 export enum IconProp {
     File,
     Automation,
+    Layout,
+    Compass,
     User,
     Disc,
     Settings,
@@ -651,6 +655,22 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
             {icon === IconProp.Download && (
                 <ArrowDown
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Layout && (
+                <Layout
+                    size={size}
+                    strokeWidth={thick ? thick : ''}
+                    color={color ? color.toString() : (undefined as any)}
+                />
+            )}
+
+            {icon === IconProp.Compass && (
+                <Compass
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : (undefined as any)}

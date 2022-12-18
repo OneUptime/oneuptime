@@ -22,7 +22,7 @@
         "use-async-effect": "^2.2.6"
     },
     "scripts": {
-        "dev": "nodemon",
+        "dev": "npx nodemon",
         "build": "webpack build --mode=production",
         "test": "react-app-rewired test",
         "eject": "webpack eject",
@@ -55,6 +55,7 @@
         "@types/react-router-dom": "^5.3.3",
         "css-loader": "^6.7.1",
         "customize-cra": "^1.0.0",
+        "nodemon": "^2.0.20",
         "react-app-rewired": "^2.2.1",
         "sass": "^1.51.0",
         "sass-loader": "^12.6.0",

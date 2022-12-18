@@ -14,10 +14,10 @@ import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
-import BaseModel from 'Common/Models/BaseModel';
 import EventHistoryList, {
     ComponentProps as EventHistoryListComponentProps,
 } from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
@@ -28,18 +28,15 @@ import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
+import { getIncidentEventItem } from './Detail';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    const [_statusPageResources, setStatusPageResources] = useState<
+    const [statusPageResources, setStatusPageResources] = useState<
         Array<StatusPageResource>
     >([]);
     const [incidentPublicNotes, setIncidentPublicNotes] = useState<
@@ -73,21 +70,21 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const data: JSONObject = response.data;
 
             const incidentPublicNotes: Array<IncidentPublicNote> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['incidentPublicNotes'] as JSONArray) || [],
                     IncidentPublicNote
                 );
-            const incidents: Array<Incident> = BaseModel.fromJSONArray(
+            const incidents: Array<Incident> = JSONFunctions.fromJSONArray(
                 (data['incidents'] as JSONArray) || [],
                 Incident
             );
             const statusPageResources: Array<StatusPageResource> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['statusPageResources'] as JSONArray) || [],
                     StatusPageResource
                 );
             const incidentStateTimelines: Array<IncidentStateTimeline> =
-                BaseModel.fromJSONArray(
+                JSONFunctions.fromJSONArray(
                     (data['incidentStateTimelines'] as JSONArray) || [],
                     IncidentStateTimeline
                 );
@@ -138,52 +135,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 };
             }
 
-            /// get timeline.
-
-            const timeline: Array<TimelineItem> = [];
-
-            for (const incidentPublicNote of incidentPublicNotes) {
-                if (
-                    incidentPublicNote.incidentId?.toString() ===
-                    incident.id?.toString()
-                ) {
-                    timeline.push({
-                        text: incidentPublicNote?.note || '',
-                        date: incidentPublicNote?.createdAt!,
-                        isBold: false,
-                    });
-                }
-            }
-
-            for (const incidentStateTimeline of incidentStateTimelines) {
-                if (
-                    incidentStateTimeline.incidentId?.toString() ===
-                    incident.id?.toString()
-                ) {
-                    timeline.push({
-                        text: incidentStateTimeline.incidentState?.name || '',
-                        date: incidentStateTimeline?.createdAt!,
-                        isBold: true,
-                    });
-                }
-            }
-
-            timeline.sort((a: TimelineItem, b: TimelineItem) => {
-                return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
-            });
-
-            days[dayString]?.items.push({
-                eventTitle: incident.title || '',
-                eventDescription: incident.description,
-                eventTimeline: timeline,
-                eventType: 'Incident',
-                eventViewRoute: RouteUtil.populateRouteParams(
-                    props.isPreviewPage
-                        ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                        : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-                    incident.id!
-                ),
-            });
+            days[dayString]?.items.push(
+                getIncidentEventItem(
+                    incident,
+                    incidentPublicNotes,
+                    incidentStateTimelines,
+                    statusPageResources,
+                    props.isPreviewPage,
+                    true
+                )
+            );
         }
 
         for (const key in days) {
@@ -209,8 +170,27 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
     return (
         <Page>
-            <h3>Incidents</h3>
-            <EventHistoryList {...parsedData} />
+            {incidents && incidents.length > 0 ? (
+                <div>
+                    <h4>Incidents</h4>
+                    <p>
+                        Here is the incident history for all the resources on
+                        this status page.
+                    </p>
+                </div>
+            ) : (
+                <></>
+            )}
+            {incidents && incidents.length > 0 ? (
+                <EventHistoryList {...parsedData} />
+            ) : (
+                <></>
+            )}
+            {incidents.length === 0 ? (
+                <ErrorMessage error="No incidents reported on this status page." />
+            ) : (
+                <></>
+            )}
         </Page>
     );
 };

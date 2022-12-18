@@ -8,29 +8,31 @@
         "body-parser": "^1.19.2",
         "chai": "^4.3.6",
         "chai-http": "^4.3.0",
+        "Common": "file:../Common",
+        "CommonServer": "file:../CommonServer",
         "cors": "^2.8.5",
-        "dotenv": "^16.0.0",
         "depcheck": "^1.4.3",
+        "dotenv": "^16.0.0",
         "ejs": "^3.1.6",
         "express": "^4.17.3",
         "jsonwebtoken": "^8.5.1",
         "mocha": "^9.2.2",
         "moment": "^2.29.1",
-        "winston": "^3.6.0",
-        "CommonServer": "file:../CommonServer",
-        "Common": "file:../Common"
+        "ts-node": "^10.9.1",
+        "winston": "^3.6.0"
     },
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "node --require ts-node/register Index.ts",
         "compile": "tsc",
-        "dev": "nodemon",
+        "dev": "npx nodemon",
         "test": "mocha --exit test/index.ts",
         "audit": "npm audit --audit-level=low",
         "dep-check": "depcheck ./ --skip-missing=true --ignores='ejs'"
     },
     "resolutions": {},
     "devDependencies": {
+        "nodemon": "^2.0.20",
         "npm-force-resolutions": "0.0.10",
         "ts-node-dev": "^1.1.8"
     }

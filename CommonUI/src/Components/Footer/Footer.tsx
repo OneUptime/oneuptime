@@ -61,11 +61,11 @@ const Footer: FunctionComponent<ComponentProps> = (
 
                     {!props.copyright && (
                         <div className="row">
-                            {props.links &&
-                                props.links.filter((link: FooterLink) => {
-                                    return !link.showOnRightIfNoCopyright;
-                                }).length > 0 && (
-                                    <div className="col-md-6">
+                            <div className="col-md-6">
+                                {props.links &&
+                                    props.links.filter((link: FooterLink) => {
+                                        return !link.showOnRightIfNoCopyright;
+                                    }).length > 0 && (
                                         <p>
                                             {props.links &&
                                                 props.links
@@ -100,8 +100,8 @@ const Footer: FunctionComponent<ComponentProps> = (
                                                         }
                                                     )}
                                         </p>
-                                    </div>
-                                )}
+                                    )}
+                            </div>
                             {props.links &&
                                 props.links.filter((link: FooterLink) => {
                                     return link.showOnRightIfNoCopyright;

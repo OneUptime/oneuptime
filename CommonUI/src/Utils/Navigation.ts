@@ -2,6 +2,7 @@ import Route from 'Common/Types/API/Route';
 import { NavigateFunction, Location, Params } from 'react-router-dom';
 import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import Hostname from 'Common/Types/API/Hostname';
 
 abstract class Navigation {
     private static navigateHook: NavigateFunction;
@@ -60,6 +61,10 @@ abstract class Navigation {
 
     public static getCurrentRoute(): Route {
         return new Route(this.location.pathname);
+    }
+
+    public static getHostname(): Hostname {
+        return new Hostname(window.location.hostname);
     }
 
     public static getCurrentURL(): URL {

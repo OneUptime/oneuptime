@@ -385,7 +385,7 @@ export class BillingService {
 
         if (paymentMethods.length === 0) {
             throw new BadDataException(
-                'Payment Method not added. Please add a payment method.'
+                'Payment Method not added. Please go to Project Settings > Billing and add a payment method.'
             );
         }
 

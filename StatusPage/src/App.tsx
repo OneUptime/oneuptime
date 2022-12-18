@@ -24,7 +24,8 @@ import PageMap from './Utils/PageMap';
 
 import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import RouteParams from './Utils/RouteParams';
 
 const App: FunctionComponent = () => {
@@ -77,7 +78,7 @@ const App: FunctionComponent = () => {
                 {/* Live */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.OVERVIEW]?.toString()}
+                    path={RouteMap[PageMap.OVERVIEW]?.toString() || ''}
                     element={
                         <Overview
                             pageRoute={RouteMap[PageMap.OVERVIEW] as Route}
@@ -90,7 +91,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SCHEDULED_EVENT_DETAIL]?.toString()}
+                    path={
+                        RouteMap[PageMap.SCHEDULED_EVENT_DETAIL]?.toString() ||
+                        ''
+                    }
                     element={
                         <ScheduledEventDetail
                             pageRoute={
@@ -107,7 +111,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SCHEDULED_EVENT_LIST]?.toString()}
+                    path={
+                        RouteMap[PageMap.SCHEDULED_EVENT_LIST]?.toString() || ''
+                    }
                     element={
                         <ScheduledEventList
                             pageRoute={
@@ -122,7 +128,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.INCIDENT_DETAIL]?.toString()}
+                    path={RouteMap[PageMap.INCIDENT_DETAIL]?.toString() || ''}
                     element={
                         <IncidentDetail
                             pageRoute={
@@ -137,7 +143,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.INCIDENT_LIST]?.toString()}
+                    path={RouteMap[PageMap.INCIDENT_LIST]?.toString() || ''}
                     element={
                         <IncidentList
                             pageRoute={RouteMap[PageMap.INCIDENT_LIST] as Route}
@@ -150,7 +156,9 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.ANNOUNCEMENT_DETAIL]?.toString()}
+                    path={
+                        RouteMap[PageMap.ANNOUNCEMENT_DETAIL]?.toString() || ''
+                    }
                     element={
                         <AnnouncementDetail
                             pageRoute={
@@ -165,7 +173,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.ANNOUNCEMENT_LIST]?.toString()}
+                    path={RouteMap[PageMap.ANNOUNCEMENT_LIST]?.toString() || ''}
                     element={
                         <AnnouncementList
                             pageRoute={
@@ -180,7 +188,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SUBSCRIBE]?.toString()}
+                    path={RouteMap[PageMap.SUBSCRIBE]?.toString() || ''}
                     element={
                         <Subscribe
                             pageRoute={RouteMap[PageMap.SUBSCRIBE] as Route}
@@ -195,7 +203,7 @@ const App: FunctionComponent = () => {
                 {/* Preview */}
 
                 <PageRoute
-                    path={RouteMap[PageMap.PREVIEW_OVERVIEW]?.toString()}
+                    path={RouteMap[PageMap.PREVIEW_OVERVIEW]?.toString() || ''}
                     element={
                         <Overview
                             onLoadComplete={() => {
@@ -210,7 +218,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.PREVIEW_SUBSCRIBE]?.toString()}
+                    path={RouteMap[PageMap.PREVIEW_SUBSCRIBE]?.toString() || ''}
                     element={
                         <Subscribe
                             onLoadComplete={() => {
@@ -225,9 +233,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                        ]?.toString() || ''
+                    }
                     element={
                         <ScheduledEventDetail
                             onLoadComplete={() => {
@@ -244,9 +254,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                        ]?.toString() || ''
+                    }
                     element={
                         <ScheduledEventList
                             onLoadComplete={() => {
@@ -263,7 +275,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL]?.toString()}
+                    path={
+                        RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL]?.toString() ||
+                        ''
+                    }
                     element={
                         <IncidentDetail
                             onLoadComplete={() => {
@@ -280,7 +295,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.PREVIEW_INCIDENT_LIST]?.toString()}
+                    path={
+                        RouteMap[PageMap.PREVIEW_INCIDENT_LIST]?.toString() ||
+                        ''
+                    }
                     element={
                         <IncidentList
                             onLoadComplete={() => {
@@ -295,9 +313,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                        ]?.toString() || ''
+                    }
                     element={
                         <AnnouncementDetail
                             onLoadComplete={() => {
@@ -314,9 +334,11 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[
-                        PageMap.PREVIEW_ANNOUNCEMENT_LIST
-                    ]?.toString()}
+                    path={
+                        RouteMap[
+                            PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                        ]?.toString() || ''
+                    }
                     element={
                         <AnnouncementList
                             onLoadComplete={() => {

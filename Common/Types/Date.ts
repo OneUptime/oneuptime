@@ -1,6 +1,5 @@
 import PositiveNumber from './PositiveNumber';
-import moment from 'moment';
-import InBetween from './Database/InBetween';
+import moment from 'moment-timezone';
 
 export default class OneUptimeDate {
     public static getCurrentDate(): Date {
@@ -316,28 +315,36 @@ export default class OneUptimeDate {
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-        let formatstring: string = 'MMMM Do YYYY, HH:mm';
+        let formatstring: string = 'MMM DD YYYY, HH:mm';
 
         if (onlyShowDate) {
-            formatstring = 'MMMM Do YYYY';
+            formatstring = 'MMM DD, YYYY';
         }
 
-        return moment(date).format(formatstring);
+        return (
+            moment(date).format(formatstring) +
+            ' ' +
+            (onlyShowDate ? '' : moment.tz(moment.tz.guess()).zoneAbbr())
+        );
     }
 
     public static getDateAsLocalFormattedString(
         date: string | Date,
         onlyShowDate?: boolean
     ): string {
-        let formatstring: string = 'MMMM Do YYYY, HH:mm';
+        let formatstring: string = 'MMM DD YYYY, HH:mm';
 
         if (onlyShowDate) {
-            formatstring = 'MMMM Do YYYY';
+            formatstring = 'MMM DD, YYYY';
         }
 
         const momentDate: moment.Moment = moment(date).local();
 
-        return momentDate.format(formatstring);
+        return (
+            momentDate.format(formatstring) +
+            ' ' +
+            (onlyShowDate ? '' : moment.tz(moment.tz.guess()).zoneAbbr())
+        );
     }
 
     public static getDateString(date: Date): string {
@@ -359,29 +366,5 @@ export default class OneUptimeDate {
     public static asDateForDatabaseQuery(date: string | Date): string {
         const formatstring: string = 'YYYY-MM-DD';
         return moment(date).local().format(formatstring);
-    }
-
-    public static asDateStartOfTheDayEndOfTheDayForDatabaseQuery(
-        date: string | Date
-    ): InBetween {
-        let startValue: string | Date = date;
-
-        if (!(startValue instanceof Date)) {
-            startValue = OneUptimeDate.fromString(startValue);
-        }
-
-        let endValue: string | Date = date;
-
-        if (!(endValue instanceof Date)) {
-            endValue = OneUptimeDate.fromString(endValue);
-        }
-
-        startValue = OneUptimeDate.getStartOfDay(startValue);
-        endValue = OneUptimeDate.getEndOfDay(endValue);
-
-        return new InBetween(
-            moment(startValue).format('YYYY-MM-DD HH:mm:ss'),
-            moment(endValue).format('YYYY-MM-DD HH:mm:ss')
-        );
     }
 }

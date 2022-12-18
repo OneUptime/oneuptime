@@ -53,6 +53,7 @@ import SubscriptionPlan, {
 } from 'Common/Types/Billing/SubscriptionPlan';
 import Pill from '../Pill/Pill';
 import { Yellow } from 'Common/Types/BrandColors';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export enum ShowTableAs {
     Table,
@@ -89,6 +90,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     onBeforeFetch?: (() => Promise<JSONObject>) | undefined;
     createInitialValues?: FormValues<TBaseModel> | undefined;
     onBeforeCreate?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+    onCreateSuccess?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
     createVerb?: string;
     showTableAs?: ShowTableAs | undefined;
     singularName?: string | undefined;
@@ -326,7 +328,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 if (column.tooltipText) {
                     classicColumn.tooltipText = (item: JSONObject): string => {
                         return column.tooltipText!(
-                            BaseModel.fromJSONObject(item, props.modelType)
+                            JSONFunctions.fromJSONObject(item, props.modelType)
                         );
                     };
                 }
@@ -518,7 +520,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 onClick: () => {
                     fetchItems();
                 },
-                disabled: isLoading,
+                disabled: isTableFilterFetchLoading,
                 icon: IconProp.Refresh,
             });
         }
@@ -534,7 +536,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     }
                     setShowTableFilter(newValue);
                 },
-                disabled: isLoading,
+                disabled: isTableFilterFetchLoading,
                 icon: IconProp.Filter,
             });
         }
@@ -656,7 +658,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 if (column.tooltipText) {
                     tooltipText = (item: JSONObject): string => {
                         return column.tooltipText!(
-                            BaseModel.fromJSONObject(item, props.modelType)
+                            JSONFunctions.fromJSONObject(item, props.modelType)
                         );
                     };
                 }
@@ -749,10 +751,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     ) => {
                         try {
                             const baseModel: TBaseModel =
-                                BaseModel.fromJSONObject(item, props.modelType);
+                                JSONFunctions.fromJSONObject(
+                                    item,
+                                    props.modelType
+                                );
 
                             if (props.onBeforeView) {
-                                item = BaseModel.toJSONObject(
+                                item = JSONFunctions.toJSONObject(
                                     await props.onBeforeView(baseModel),
                                     props.modelType
                                 );
@@ -806,9 +811,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     ) => {
                         try {
                             if (props.onBeforeEdit) {
-                                item = BaseModel.toJSONObject(
+                                item = JSONFunctions.toJSONObject(
                                     await props.onBeforeEdit(
-                                        BaseModel.fromJSONObject(
+                                        JSONFunctions.fromJSONObject(
                                             item,
                                             props.modelType
                                         )
@@ -841,9 +846,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     ) => {
                         try {
                             if (props.onBeforeDelete) {
-                                item = BaseModel.toJSONObject(
+                                item = JSONFunctions.toJSONObject(
                                     await props.onBeforeDelete(
-                                        BaseModel.fromJSONObject(
+                                        JSONFunctions.fromJSONObject(
                                             item,
                                             props.modelType
                                         )
@@ -925,7 +930,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 dragDropIdField={'_id'}
                 dragDropIndexField={props.dragDropIndexField}
                 totalItemsCount={totalItemsCount}
-                data={BaseModel.toJSONObjectArray(data, props.modelType)}
+                data={JSONFunctions.toJSONObjectArray(data, props.modelType)}
                 filterError={tableFilterError}
                 id={props.id}
                 columns={tableColumns}
@@ -1001,7 +1006,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             <OrderedStatesList
                 error={error}
                 isLoading={isLoading}
-                data={BaseModel.toJSONObjectArray(data, props.modelType)}
+                data={JSONFunctions.toJSONObjectArray(data, props.modelType)}
                 id={props.id}
                 titleField={props.orderedStatesListProps?.titleField || ''}
                 descriptionField={
@@ -1048,7 +1053,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 currentPageNumber={currentPageNumber}
                 isLoading={isLoading}
                 totalItemsCount={totalItemsCount}
-                data={BaseModel.toJSONObjectArray(data, props.modelType)}
+                data={JSONFunctions.toJSONObjectArray(data, props.modelType)}
                 id={props.id}
                 fields={fields}
                 itemsOnPage={itemsOnPage}
@@ -1182,10 +1187,13 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                               }`
                             : `Save Changes`
                     }
-                    onSuccess={(_item: TBaseModel) => {
+                    onSuccess={async (item: TBaseModel) => {
                         setShowModal(false);
                         setCurrentPageNumber(1);
                         fetchItems();
+                        if (props.onCreateSuccess) {
+                            await props.onCreateSuccess(item);
+                        }
                     }}
                     onBeforeCreate={async (item: TBaseModel) => {
                         if (
@@ -1244,7 +1252,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                             currentDeleteableItem['_id']
                         ) {
                             deleteItem(
-                                BaseModel.fromJSON(
+                                JSONFunctions.fromJSON(
                                     currentDeleteableItem,
                                     props.modelType
                                 )

@@ -11,7 +11,7 @@ const PageLoader: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     if (props.isVisible) {
         return (
-            <div className="row text-center vertical-center">
+            <div className="row text-center vertical-center width-max flex text-center">
                 <Loader loaderType={LoaderType.Bar} color={Black} size={200} />
             </div>
         );

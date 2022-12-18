@@ -363,18 +363,20 @@ RunCron(
             }
 
             const key: string = JSON.parse(cert.blob || '{}').privateKeyPem;
-            const crt: string = JSON.parse(certBlob.blob || '{}').cert;
+            let crt: string = JSON.parse(certBlob.blob || '{}').cert;
+
+            if (JSON.parse(certBlob.blob || '{}').chain) {
+                crt += '\n' + '\n' + JSON.parse(certBlob.blob || '{}').chain;
+            }
 
             // Write to disk.
             fs.writeFileSync(
                 `/usr/src/Certs/StatusPageCerts/${cert.key}.crt`,
-                crt,
-                { flag: 'wx' }
+                crt
             );
             fs.writeFileSync(
                 `/usr/src/Certs/StatusPageCerts/${cert.key}.key`,
-                key,
-                { flag: 'wx' }
+                key
             );
         }
     }
@@ -443,8 +445,6 @@ const checkCnameValidation: Function = async (
     fulldomain: string,
     token: string
 ): Promise<boolean> => {
-    logger.info('Check CNAMeValidation.');
-
     try {
         const agent: https.Agent = new https.Agent({
             rejectUnauthorized: false,

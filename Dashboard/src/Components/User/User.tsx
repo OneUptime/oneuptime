@@ -1,5 +1,5 @@
-import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import Icon, { IconProp, ThickProp } from 'CommonUI/src/Components/Icon/Icon';
 import User from 'Model/Models/User';
 import React, { FunctionComponent, ReactElement } from 'react';
@@ -15,7 +15,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
     let user: JSONObject | null | undefined = null;
 
     if (props.user instanceof User) {
-        user = BaseModel.toJSONObject(props.user, User);
+        user = JSONFunctions.toJSONObject(props.user, User);
     } else {
         user = props.user;
     }

@@ -15,7 +15,8 @@ import {
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import AccessTokenService from '../Services/AccessTokenService';
-import { JSONFunctions, JSONObject } from 'Common/Types/JSON';
+import { JSONObject } from 'Common/Types/JSON';
+import JSONFunctions from 'Common/Types/JSONFunctions';
 import HashedString from 'Common/Types/HashedString';
 
 export default class UserMiddleware {
