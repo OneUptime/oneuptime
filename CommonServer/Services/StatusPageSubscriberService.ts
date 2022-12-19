@@ -102,37 +102,11 @@ export class Service extends DatabaseService<Model> {
             // get status page domain for this status page.
             // if the domain is not found, use the internal sttaus page preview link.
 
-            const domains: Array<StatusPageDomain> =
-                await StatusPageDomainService.findBy({
-                    query: {
-                        statusPageId: createdItem.statusPageId,
-                        isSslProvisioned: true,
-                    },
-                    select: {
-                        fullDomain: true,
-                    },
-                    skip: 0,
-                    limit: LIMIT_PER_PROJECT,
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true,
-                    },
-                });
+            
 
-            let statusPageURL: string = domains
-                .map((d: StatusPageDomain) => {
-                    return d.fullDomain;
-                })
-                .join(', ');
+            let statusPageURL: string = await StatusPageService.getStatusPageURL(createdItem.statusPageId);
 
-            if (domains.length === 0) {
-                // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-                statusPageURL = new URL(HttpProtocol, Domain)
-                    .addRoute(
-                        '/status-page/' + createdItem.statusPageId.toString()
-                    )
-                    .toString();
-            }
+            
 
             const statusPageName: string =
                 onCreate.carryForward.pageTitle ||

@@ -4,6 +4,11 @@ import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommon
 import ObjectID from 'Common/Types/ObjectID';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import StatusPage from 'Model/Models/StatusPage';
+import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import StatusPageDomainService from './StatusPageDomainService';
+import URL from 'Common/Types/API/URL';
+import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import { Domain, HttpProtocol } from '../Config';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -49,6 +54,42 @@ export class Service extends DatabaseService<StatusPage> {
         }
 
         return false;
+    }
+
+    public async getStatusPageURL(statusPageId: ObjectID): Promise<string> {
+        const domains: Array<StatusPageDomain> =
+            await StatusPageDomainService.findBy({
+                query: {
+                    statusPageId: statusPageId,
+                    isSslProvisioned: true,
+                },
+                select: {
+                    fullDomain: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
+
+        let statusPageURL: string = domains
+            .map((d: StatusPageDomain) => {
+                return d.fullDomain;
+            })
+            .join(', ');
+
+        if (domains.length === 0) {
+            // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
+            statusPageURL = new URL(HttpProtocol, Domain)
+                .addRoute(
+                    '/status-page/' + statusPageId.toString()
+                )
+                .toString();
+        }
+
+        return statusPageURL;
     }
 }
 export default new Service();
