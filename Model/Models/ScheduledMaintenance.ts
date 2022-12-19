@@ -566,6 +566,4 @@ export default class ScheduledMaintenance extends BaseModel {
         default: false,
     })
     public isStatusPageSubscribersNotifiedOnEventOngoing?: boolean = undefined;
-
-
 }

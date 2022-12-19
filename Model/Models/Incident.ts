@@ -377,7 +377,6 @@ export default class Incident extends BaseModel {
     })
     public changeMonitorStatusToId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [],

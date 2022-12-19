@@ -20,6 +20,7 @@ import StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
+import Monitor from 'Model/Models/Monitor';
 
 RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
     // get all scheduled events of all the projects.
@@ -27,9 +28,7 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
         await ScheduledMaintenanceService.findBy({
             query: {
                 isStatusPageSubscribersNotifiedOnEventScheduled: false,
-                createdAt: QueryHelper.lessThan(
-                    OneUptimeDate.getCurrentDate()
-                ),
+                createdAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
             },
             props: {
                 isRoot: true,
@@ -40,7 +39,7 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                 _id: true,
                 title: true,
                 description: true,
-                startsAt: true
+                startsAt: true,
             },
             populate: {
                 monitors: {
@@ -53,9 +52,7 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
         await ScheduledMaintenanceService.findBy({
             query: {
                 isStatusPageSubscribersNotifiedOnEventOngoing: false,
-                startsAt: QueryHelper.lessThan(
-                    OneUptimeDate.getCurrentDate()
-                ),
+                startsAt: QueryHelper.lessThan(OneUptimeDate.getCurrentDate()),
             },
             props: {
                 isRoot: true,
@@ -66,7 +63,7 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                 _id: true,
                 title: true,
                 description: true,
-                startsAt: true
+                startsAt: true,
             },
             populate: {
                 monitors: {
@@ -75,21 +72,28 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
             },
         });
 
-    
-    const scheduledEventsIds = scheduledEvents.map((i) => i._id?.toString());
-    const ongoingEventIds = ongoingEvents.map((i) => i._id?.toString());
+    const scheduledEventsIds: Array<string | undefined> = scheduledEvents.map(
+        (i: ScheduledMaintenance) => {
+            return i._id?.toString();
+        }
+    );
+    const ongoingEventIds: Array<string | undefined> = ongoingEvents.map(
+        (i: ScheduledMaintenance) => {
+            return i._id?.toString();
+        }
+    );
 
-
-    const totalEvents = [...ongoingEvents, ...scheduledEvents];
-    
+    const totalEvents: Array<ScheduledMaintenance> = [
+        ...ongoingEvents,
+        ...scheduledEvents,
+    ];
 
     for (const event of totalEvents) {
-
         if (!event.monitors || event.monitors.length === 0) {
             continue;
         }
 
-        let isOngoing: boolean = false; 
+        let isOngoing: boolean = false;
 
         if (ongoingEventIds.includes(event._id?.toString())) {
             isOngoing = true;
@@ -103,8 +107,7 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                     ignoreHooks: true,
                 },
             });
-    
-        } 
+        }
 
         if (scheduledEventsIds.includes(event._id?.toString())) {
             await ScheduledMaintenanceService.updateOneById({
@@ -117,33 +120,39 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                     ignoreHooks: true,
                 },
             });
-    
-        } 
+        }
 
+        // get status page resources from monitors.
 
-        // get status page resources from monitors. 
-
-        const sattusPageResources: Array<StatusPageResource> = await StatusPageResourceService.findBy({
-            query: {
-                monitorId: QueryHelper.in(event.monitors.filter((m) => m._id).map((m) => new ObjectID(m._id!)))
-            },
-            props: {
-                isRoot: true,
-                ignoreHooks: true
-            },
-            skip: 0,
-            limit: LIMIT_PER_PROJECT,
-            select: {
-                _id: true,
-                displayName: true,
-                statusPageId: true,
-            }
-        });
+        const sattusPageResources: Array<StatusPageResource> =
+            await StatusPageResourceService.findBy({
+                query: {
+                    monitorId: QueryHelper.in(
+                        event.monitors
+                            .filter((m: Monitor) => {
+                                return m._id;
+                            })
+                            .map((m: Monitor) => {
+                                return new ObjectID(m._id!);
+                            })
+                    ),
+                },
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                select: {
+                    _id: true,
+                    displayName: true,
+                    statusPageId: true,
+                },
+            });
 
         const statusPageToResources: Dictionary<Array<StatusPageResource>> = {};
 
         for (const resource of sattusPageResources) {
-
             if (!resource.statusPageId) {
                 continue;
             }
@@ -152,12 +161,18 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                 statusPageToResources[resource.statusPageId?.toString()] = [];
             }
 
-            statusPageToResources[resource.statusPageId?.toString()]?.push(resource);
+            statusPageToResources[resource.statusPageId?.toString()]?.push(
+                resource
+            );
         }
 
         const statusPages: Array<StatusPage> = await StatusPageService.findBy({
             query: {
-                _id: QueryHelper.in(Object.keys(statusPageToResources).map((i) => new ObjectID(i)))
+                _id: QueryHelper.in(
+                    Object.keys(statusPageToResources).map((i: string) => {
+                        return new ObjectID(i);
+                    })
+                ),
             },
             props: {
                 isRoot: true,
@@ -171,8 +186,8 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                 pageTitle: true,
                 isPublicStatusPage: true,
                 logoFileId: true,
-            }
-        })
+            },
+        });
 
         for (const statuspage of statusPages) {
             if (!statuspage.id) {
@@ -240,29 +255,39 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                             statusPageUrl: statusPageURL,
                             logoUrl: statuspage.logoFileId
                                 ? new URL(HttpProtocol, Domain)
-                                    .addRoute(FileRoute)
-                                    .addRoute(
-                                        '/image/' + statuspage.logoFileId
-                                    )
-                                    .toString()
+                                      .addRoute(FileRoute)
+                                      .addRoute(
+                                          '/image/' + statuspage.logoFileId
+                                      )
+                                      .toString()
                                 : '',
                             isPublicStatusPage: statuspage.isPublicStatusPage
                                 ? 'true'
                                 : 'false',
-                            resourcesAffected: statusPageToResources[statuspage._id!]?.map((r) => r.displayName).join(", ") || 'None',
+                            resourcesAffected:
+                                statusPageToResources[statuspage._id!]
+                                    ?.map((r: StatusPageResource) => {
+                                        return r.displayName;
+                                    })
+                                    .join(', ') || 'None',
                             eventStatus: isOngoing ? 'Ongoing' : 'Scheduled',
-                            scheduledAt: OneUptimeDate.getDateAsFormattedString(event.startsAt!),
+                            scheduledAt: OneUptimeDate.getDateAsFormattedString(
+                                event.startsAt!
+                            ),
                             eventTitle: event.title || '',
-                            eventDescription:
-                            event.description || '',
+                            eventDescription: event.description || '',
                             unsubscribeUrl: new URL(HttpProtocol, Domain)
                                 .addRoute(
                                     '/api/status-page-subscriber/unsubscribe/' +
-                                    subscriber._id.toString()
+                                        subscriber._id.toString()
                                 )
                                 .toString(),
                         },
-                        subject: statusPageName + ` - ${isOngoing ? 'Ongoing' : 'Scheduled'} Maintenance Event`,
+                        subject:
+                            statusPageName +
+                            ` - ${
+                                isOngoing ? 'Ongoing' : 'Scheduled'
+                            } Maintenance Event`,
                     }).catch((err: Error) => {
                         logger.error(err);
                     });
