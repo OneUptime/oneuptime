@@ -29,7 +29,6 @@ import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { getAnnouncementEventItem } from './Detail';
 import UserUtil from '../../Utils/User';
-import User from '../../Utils/User';
 import Route from 'Common/Types/API/Route';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
@@ -50,7 +49,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     if (
         props.statusPageId &&
         props.isPrivatePage &&
-        !User.isLoggedIn(props.statusPageId)
+        !UserUtil.isLoggedIn(props.statusPageId)
     ) {
         Navigation.navigate(
             new Route(

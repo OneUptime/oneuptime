@@ -154,7 +154,7 @@ export default class StatusPageAPI extends BaseAPI<
                         headerHTML: true,
                         footerHTML: true,
                         enableSubscribers: true,
-                        isPublicStatusPage: true
+                        isPublicStatusPage: true,
                     };
 
                     const populate: Populate<StatusPage> = {

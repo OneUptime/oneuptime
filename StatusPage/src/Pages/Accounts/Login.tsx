@@ -62,7 +62,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                                 style={{ marginBottom: '40px' }}
                                             >
                                                 <img
-                                                     style={{ height: '70px' }}
+                                                    style={{ height: '70px' }}
                                                     src={`${URL.fromString(
                                                         FILE_URL.toString()
                                                     ).addRoute(
@@ -93,6 +93,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                                     field: {
                                                         email: true,
                                                     },
+                                                    forceShow: true,
                                                     title: 'Email',
                                                     fieldType:
                                                         FormFieldSchemaType.Email,
@@ -104,6 +105,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                                     },
                                                     title: 'Password',
                                                     required: true,
+                                                    forceShow: true,
                                                     validation: {
                                                         minLength: 6,
                                                     },
@@ -125,11 +127,16 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                             submitButtonText={'Login'}
                                             onSuccess={(value: JSONObject) => {
                                                 LoginUtil.login(value);
+                                                Navigation.navigate(
+                                                    new Route(
+                                                        props.isPreviewPage
+                                                            ? `/status-page/${props.statusPageId}/`
+                                                            : '/'
+                                                    )
+                                                );
                                             }}
                                             maxPrimaryButtonWidth={true}
                                         />
-
-                                        
                                     </div>
                                 </div>
                             </div>

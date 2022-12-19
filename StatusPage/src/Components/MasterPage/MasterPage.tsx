@@ -39,7 +39,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     const [masterPageData, setMasterPageData] = useState<JSONObject | null>(
         null
     );
-   
+
     const [headerHtml, setHeaderHtml] = useState<null | string>(null);
     const [footerHtml, setFooterHTML] = useState<null | string>(null);
 
@@ -74,7 +74,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         try {
             setIsLoading(true);
             const id: ObjectID = await getId();
-           
+
             LocalStorage.setItem('statusPageId', id);
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
@@ -154,7 +154,11 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-    if (Navigation.getCurrentRoute().toString().includes("login") || Navigation.getCurrentRoute().toString().includes("forgot-password") || Navigation.getCurrentRoute().toString().includes("reset-password")) {
+    if (
+        Navigation.getCurrentRoute().toString().includes('login') ||
+        Navigation.getCurrentRoute().toString().includes('forgot-password') ||
+        Navigation.getCurrentRoute().toString().includes('reset-password')
+    ) {
         return <>{props.children}</>;
     }
 

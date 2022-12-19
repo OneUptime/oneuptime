@@ -62,7 +62,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                                             style={{ marginBottom: '40px' }}
                                         >
                                             <img
-                                                 style={{ height: '70px' }}
+                                                style={{ height: '70px' }}
                                                 src={`${URL.fromString(
                                                     FILE_URL.toString()
                                                 ).addRoute(
@@ -77,7 +77,10 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                                             </h5>
                                             {!isSuccess && (
                                                 <p className="text-muted mt-2 mb-0">
-                                                    Please enter your email and
+                                                    If you have forgotten your
+                                                    password for{' '}
+                                                    {props.statusPageName},
+                                                    please enter your email and
                                                     the password reset link will
                                                     be sent to you.{' '}
                                                 </p>
@@ -99,12 +102,22 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                                                 }
                                                 id="login-form"
                                                 apiUrl={apiUrl}
+                                                onBeforeCreate={(
+                                                    item: StatusPagePrivateUser
+                                                ): Promise<StatusPagePrivateUser> => {
+                                                    item.statusPageId =
+                                                        props.statusPageId!;
+                                                    return Promise.resolve(
+                                                        item
+                                                    );
+                                                }}
                                                 fields={[
                                                     {
                                                         field: {
                                                             email: true,
                                                         },
                                                         title: 'Email',
+                                                        forceShow: true,
                                                         fieldType:
                                                             FormFieldSchemaType.Email,
                                                         required: true,

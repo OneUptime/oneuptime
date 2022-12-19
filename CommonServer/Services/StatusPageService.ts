@@ -12,6 +12,7 @@ import { Domain, HttpProtocol } from '../Config';
 import { ExpressRequest } from '../Utils/Express';
 import JSONWebToken from '../Utils/JsonWebToken';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+import logger from '../Utils/Logger';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -23,42 +24,47 @@ export class Service extends DatabaseService<StatusPage> {
         props: DatabaseCommonInteractionProps,
         req: ExpressRequest
     ): Promise<boolean> {
-        const count: PositiveNumber = await this.countBy({
-            query: {
-                _id: statusPageId.toString(),
-                isPublicStatusPage: true,
-            },
-            skip: 0,
-            limit: 1,
-            props: {
-                isRoot: true,
-            },
-        });
+        try {
+            const count: PositiveNumber = await this.countBy({
+                query: {
+                    _id: statusPageId.toString(),
+                    isPublicStatusPage: true,
+                },
+                skip: 0,
+                limit: 1,
+                props: {
+                    isRoot: true,
+                },
+            });
 
-        if (count.positiveNumber > 0) {
-            return true;
-        }
+            if (count.positiveNumber > 0) {
+                return true;
+            }
 
-        // if it does not have public access, check if this user has access.
+            // if it does not have public access, check if this user has access.
 
-        const items: Array<StatusPage> = await this.findBy({
-            query: {
-                _id: statusPageId.toString(),
-            },
-            select: {
-                _id: true,
-            },
-            skip: 0,
-            limit: 1,
-            props: props,
-        });
+            const items: Array<StatusPage> = await this.findBy({
+                query: {
+                    _id: statusPageId.toString(),
+                },
+                select: {
+                    _id: true,
+                },
+                skip: 0,
+                limit: 1,
+                props: props,
+            });
 
-        if (items.length > 0) {
-            return true;
+            if (items.length > 0) {
+                return true;
+            }
+        } catch (err) {
+            logger.error(err);
         }
 
         // token decode.
-        const token: string | Array<string> | undefined = req.headers['status-page-token'];
+        const token: string | Array<string> | undefined =
+            req.headers['status-page-token'];
 
         if (!token) {
             return false;

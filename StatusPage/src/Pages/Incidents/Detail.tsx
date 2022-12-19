@@ -36,7 +36,6 @@ import Monitor from 'Model/Models/Monitor';
 import UserUtil from '../../Utils/User';
 import Color from 'Common/Types/Color';
 import { Green } from 'Common/Types/BrandColors';
-import User from '../../Utils/User';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
@@ -144,7 +143,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
     if (
         props.statusPageId &&
         props.isPrivatePage &&
-        !User.isLoggedIn(props.statusPageId)
+        !UserUtil.isLoggedIn(props.statusPageId)
     ) {
         Navigation.navigate(
             new Route(

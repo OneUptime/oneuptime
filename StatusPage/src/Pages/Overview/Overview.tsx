@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import Accordian from 'CommonUI/src/Components/Accordian/Accordian';
@@ -225,7 +230,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
             setIsLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
         loadPage();

@@ -61,7 +61,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                             style={{ marginBottom: '40px' }}
                                         >
                                             <img
-                                                 style={{ height: '70px' }}
+                                                style={{ height: '70px' }}
                                                 src={`${URL.fromString(
                                                     FILE_URL.toString()
                                                 ).addRoute(
@@ -72,7 +72,8 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                         </div>
                                         <div className="text-center">
                                             <h5 className="mb-0">
-                                                Create a new password for your
+                                                Create a new password for your{' '}
+                                                {props.statusPageName}
                                                 account.
                                             </h5>
                                             {!isSuccess && (
@@ -118,6 +119,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                                         field: {
                                                             password: true,
                                                         },
+                                                        forceShow: true,
                                                         fieldType:
                                                             FormFieldSchemaType.Password,
                                                         validation: {
@@ -137,6 +139,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                                             toMatchField:
                                                                 'password',
                                                         },
+                                                        forceShow: true,
                                                         fieldType:
                                                             FormFieldSchemaType.Password,
                                                         placeholder:

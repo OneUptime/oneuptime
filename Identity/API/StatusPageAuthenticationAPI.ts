@@ -44,13 +44,13 @@ router.post(
                 StatusPagePrivateUser
             ) as StatusPagePrivateUser;
 
-            if (!data['statusPageId']) {
+            if (!user.statusPageId) {
                 throw new BadDataException('Status Page ID is required.');
             }
 
             const statusPage: StatusPage | null =
                 await StatusPageService.findOneById({
-                    id: new ObjectID(data['statusPageId'] as string),
+                    id: user.statusPageId!,
                     props: {
                         isRoot: true,
                         ignoreHooks: true,
@@ -77,9 +77,7 @@ router.post(
                 await StatusPagePrivateUserService.findOneBy({
                     query: {
                         email: user.email!,
-                        statusPageId: new ObjectID(
-                            data['statusPageId'] as string
-                        ),
+                        statusPageId: user.statusPageId!,
                     },
                     select: {
                         _id: true,

@@ -17,24 +17,23 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    
     protected override async onCreateSuccess(
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
         // send email to the user.
-        const token = ObjectID.generate().toString();
+        const token: string = ObjectID.generate().toString();
         await this.updateOneById({
-            id: createdItem.id!, 
+            id: createdItem.id!,
             data: {
-                resetPasswordToken:token,
-                resetPasswordExpires: OneUptimeDate.getOneDayAfter()
+                resetPasswordToken: token,
+                resetPasswordExpires: OneUptimeDate.getOneDayAfter(),
             },
             props: {
-                isRoot: true, 
-                ignoreHooks: true, 
-            }
-        })
+                isRoot: true,
+                ignoreHooks: true,
+            },
+        });
 
         const statusPage: StatusPage | null =
             await StatusPageService.findOneById({
@@ -71,15 +70,13 @@ export class Service extends DatabaseService<Model> {
                 statusPageUrl: statusPageURL,
                 logoUrl: statusPage.logoFileId
                     ? new URL(HttpProtocol, Domain)
-                        .addRoute(FileRoute)
-                        .addRoute('/image/' + statusPage.logoFileId)
-                        .toString()
+                          .addRoute(FileRoute)
+                          .addRoute('/image/' + statusPage.logoFileId)
+                          .toString()
                     : '',
                 homeURL: statusPageURL,
                 tokenVerifyUrl: URL.fromString(statusPageURL)
-                    .addRoute(
-                        '/reset-password/' + token
-                    )
+                    .addRoute('/reset-password/' + token)
                     .toString(),
             },
         }).catch((err: Error) => {

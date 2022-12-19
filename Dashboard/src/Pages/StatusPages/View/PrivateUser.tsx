@@ -123,29 +123,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['password']) {
                                 return (
-                                    <Pill
-                                        color={
-                                            Green
-                                        }
-                                        text={
-                                            'Signed up'
-                                        }
-                                    />
-                                );
-                            } else {
-                                return (
-                                    <Pill
-                                        color={
-                                            Yellow
-                                        }
-                                        text={
-                                            'Invite Sent'
-                                        }
-                                    />
+                                    <Pill color={Green} text={'Signed up'} />
                                 );
                             }
+                            return <Pill color={Yellow} text={'Invite Sent'} />;
                         },
-                    }
+                    },
                 ]}
                 currentPlan={SubscriptionPlan.getPlanSelect(
                     props.currentProject?.paymentProviderPlanId!
