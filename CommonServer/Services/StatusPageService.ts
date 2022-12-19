@@ -57,11 +57,11 @@ export class Service extends DatabaseService<StatusPage> {
             return true;
         }
 
-        // token decode. 
-        const token = req.headers['status-page-token']; 
+        // token decode.
+        const token: string | Array<string> | undefined = req.headers['status-page-token'];
 
         if (!token) {
-            return false; 
+            return false;
         }
 
         const decoded: JSONWebTokenData = JSONWebToken.decode(token as string);

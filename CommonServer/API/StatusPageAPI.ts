@@ -100,7 +100,6 @@ export default class StatusPageAPI extends BaseAPI<
 
                     const objectId: ObjectID = statusPageDomain.statusPageId!;
 
-                    
                     return Response.sendJsonObjectResponse(req, res, {
                         statusPageId: objectId.toString(),
                     });
@@ -268,8 +267,6 @@ export default class StatusPageAPI extends BaseAPI<
                             req
                         ))
                     ) {
-                        
-
                         throw new NotAuthorizedException(
                             'You are not authorize to access this status page'
                         );
@@ -289,19 +286,11 @@ export default class StatusPageAPI extends BaseAPI<
                                 isRoot: true,
                             },
                         });
-                    
-                    
-            
 
                     if (!statusPage) {
                         throw new BadDataException('Status Page not found');
                     }
-
-
-                    if (!statusPage.isPublicStatusPage) {
-                        
-                    }
-
+                    
                     //get monitor statuses
 
                     const monitorStatuses: Array<MonitorStatus> =
@@ -738,7 +727,7 @@ export default class StatusPageAPI extends BaseAPI<
                         objectId,
                         null,
                         await this.getDatabaseCommonInteractionProps(req),
-                        req, 
+                        req
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -768,7 +757,7 @@ export default class StatusPageAPI extends BaseAPI<
                             objectId,
                             null,
                             await this.getDatabaseCommonInteractionProps(req),
-                            req, 
+                            req
                         );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -797,7 +786,7 @@ export default class StatusPageAPI extends BaseAPI<
                         objectId,
                         null,
                         await this.getDatabaseCommonInteractionProps(req),
-                        req, 
+                        req
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -830,7 +819,7 @@ export default class StatusPageAPI extends BaseAPI<
                         objectId,
                         incidentId,
                         await this.getDatabaseCommonInteractionProps(req),
-                        req, 
+                        req
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -864,7 +853,7 @@ export default class StatusPageAPI extends BaseAPI<
                             objectId,
                             scheduledMaintenanceId,
                             await this.getDatabaseCommonInteractionProps(req),
-                            req, 
+                            req
                         );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -897,7 +886,7 @@ export default class StatusPageAPI extends BaseAPI<
                         objectId,
                         announcementId,
                         await this.getDatabaseCommonInteractionProps(req),
-                        req, 
+                        req
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);

@@ -11,31 +11,39 @@ import URL from 'Common/Types/API/URL';
 import { RESET_PASSWORD_API_URL } from '../../Utils/ApiPaths';
 import ObjectID from 'Common/Types/ObjectID';
 
-export interface ComponentProps { 
+export interface ComponentProps {
     statusPageId: ObjectID | null;
     isPreviewPage: boolean;
-    statusPageName: string; 
+    statusPageName: string;
     logoFileId: ObjectID;
     isPrivatePage: boolean;
 }
 
-const ResetPassword:  FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+const ResetPassword: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+) => {
     const apiUrl: URL = RESET_PASSWORD_API_URL;
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
     if (!props.statusPageId) {
-        return <></>
+        return <></>;
     }
 
-
     if (UserUtil.isLoggedIn(props.statusPageId)) {
-        Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+            )
+        );
     }
 
     if (!props.isPrivatePage) {
-        Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+            )
+        );
     }
-
 
     return (
         <div className="auth-page">
@@ -54,12 +62,18 @@ const ResetPassword:  FunctionComponent<ComponentProps> = (props: ComponentProps
                                         >
                                             <img
                                                 style={{ height: '40px' }}
-                                                src={`${URL.fromString(FILE_URL.toString()).addRoute("/image/" + props.logoFileId.toString())}`}
+                                                src={`${URL.fromString(
+                                                    FILE_URL.toString()
+                                                ).addRoute(
+                                                    '/image/' +
+                                                        props.logoFileId.toString()
+                                                )}`}
                                             />
                                         </div>
                                         <div className="text-center">
                                             <h5 className="mb-0">
-                                                Create a new password for your account. 
+                                                Create a new password for your
+                                                account.
                                             </h5>
                                             {!isSuccess && (
                                                 <p className="text-muted mt-2 mb-0">
@@ -79,7 +93,9 @@ const ResetPassword:  FunctionComponent<ComponentProps> = (props: ComponentProps
 
                                         {!isSuccess && (
                                             <ModelForm<StatusPagePrivateUser>
-                                                modelType={StatusPagePrivateUser}
+                                                modelType={
+                                                    StatusPagePrivateUser
+                                                }
                                                 id="register-form"
                                                 onBeforeCreate={(
                                                     item: StatusPagePrivateUser
@@ -148,7 +164,9 @@ const ResetPassword:  FunctionComponent<ComponentProps> = (props: ComponentProps
                                                 <Link
                                                     to={
                                                         new Route(
-                                                            props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'
+                                                            props.isPreviewPage
+                                                                ? `/status-page/${props.statusPageId}/login`
+                                                                : '/login'
                                                         )
                                                     }
                                                     className="underline-on-hover text-primary fw-semibold"

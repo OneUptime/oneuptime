@@ -139,15 +139,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
     ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
-    
-        if (props.statusPageId && props.isPrivatePage && !UserUtil.isLoggedIn(props.statusPageId)) {
-            Navigation.navigate(new Route( props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'))
-        }
+
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !UserUtil.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
+    }
 
     useAsyncEffect(async () => {
         try {
             if (!props.statusPageId) {
-                return
+                return;
             }
             setIsLoading(true);
 
@@ -169,7 +179,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     ),
                     {},
                     {
-                        'status-page-token': UserUtil.getAccessToken(props.statusPageId)
+                        'status-page-token': UserUtil.getAccessToken(
+                            props.statusPageId
+                        ),
                     }
                 );
             const data: JSONObject = response.data;

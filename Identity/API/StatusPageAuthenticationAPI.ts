@@ -67,7 +67,8 @@ router.post(
                 throw new BadDataException('Status Page not found');
             }
 
-            const statusPageName: string | undefined = statusPage.pageTitle || statusPage.name;
+            const statusPageName: string | undefined =
+                statusPage.pageTitle || statusPage.name;
 
             const statusPageURL: string =
                 await StatusPageService.getStatusPageURL(statusPage.id!);
@@ -206,7 +207,8 @@ router.post(
                 throw new BadDataException('Status Page not found');
             }
 
-            const statusPageName: string | undefined = statusPage.pageTitle || statusPage.name;
+            const statusPageName: string | undefined =
+                statusPage.pageTitle || statusPage.name;
 
             const statusPageURL: string =
                 await StatusPageService.getStatusPageURL(statusPage.id!);
@@ -272,7 +274,7 @@ router.post(
                         _id: true,
                         password: true,
                         email: true,
-                        statusPageId: true
+                        statusPageId: true,
                     },
                     props: {
                         isRoot: true,
@@ -287,7 +289,10 @@ router.post(
 
                 return Response.sendJsonObjectResponse(req, res, {
                     token: token,
-                    user: JSONFunctions.toJSON(alreadySavedUser, StatusPagePrivateUser),
+                    user: JSONFunctions.toJSON(
+                        alreadySavedUser,
+                        StatusPagePrivateUser
+                    ),
                 });
             }
             throw new BadDataException(

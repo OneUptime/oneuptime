@@ -52,7 +52,8 @@ export class Service extends DatabaseService<Model> {
             throw new BadDataException('Status Page not found');
         }
 
-        const statusPageName: string | undefined = statusPage.pageTitle || statusPage.name;
+        const statusPageName: string | undefined =
+            statusPage.pageTitle || statusPage.name;
 
         const statusPageURL: string = await StatusPageService.getStatusPageURL(
             statusPage.id!

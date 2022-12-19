@@ -13,28 +13,37 @@ import { FILE_URL } from 'CommonUI/src/Config';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 
-
-export interface ComponentProps { 
+export interface ComponentProps {
     statusPageId: ObjectID | null;
     isPreviewPage: boolean;
-    statusPageName: string; 
+    statusPageName: string;
     logoFileId: ObjectID;
     isPrivatePage: boolean;
 }
 
-const LoginPage: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+const LoginPage: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+) => {
     const apiUrl: URL = LOGIN_API_URL;
 
     if (!props.statusPageId) {
-        return <></>
+        return <></>;
     }
 
     if (!props.isPrivatePage) {
-        Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+            )
+        );
     }
 
     if (UserUtil.isLoggedIn(props.statusPageId)) {
-        Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+            )
+        );
     }
 
     return (
@@ -48,21 +57,32 @@ const LoginPage: FunctionComponent<ComponentProps> = (props: ComponentProps) => 
                             <div className="w-100">
                                 <div className="d-flex flex-column h-100">
                                     <div className="auth-content my-auto">
-                                        {props.logoFileId ? <div
-                                            className="mt-4 text-center"
-                                            style={{ marginBottom: '40px' }}
-                                        >
-                                            <img
-                                                style={{ height: '40px' }}
-                                                src={`${URL.fromString(FILE_URL.toString()).addRoute("/image/" + props.logoFileId.toString())}`}
-                                            />
-                                        </div> : <></>}
+                                        {props.logoFileId ? (
+                                            <div
+                                                className="mt-4 text-center"
+                                                style={{ marginBottom: '40px' }}
+                                            >
+                                                <img
+                                                    style={{ height: '40px' }}
+                                                    src={`${URL.fromString(
+                                                        FILE_URL.toString()
+                                                    ).addRoute(
+                                                        '/image/' +
+                                                            props.logoFileId.toString()
+                                                    )}`}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <></>
+                                        )}
                                         <div className="text-center">
                                             <h5 className="mb-0">
                                                 Welcome back!
                                             </h5>
                                             <p className="text-muted mt-2 mb-0">
-                                                Please login to view {props.statusPageName || 'Status Page'}
+                                                Please login to view{' '}
+                                                {props.statusPageName ||
+                                                    'Status Page'}
                                             </p>
                                         </div>
 
@@ -93,7 +113,9 @@ const LoginPage: FunctionComponent<ComponentProps> = (props: ComponentProps) => 
                                                     sideLink: {
                                                         text: 'Forgot password?',
                                                         url: new Route(
-                                                            props.isPreviewPage ? `/status-page/${props.statusPageId}/forgot-password` : '/forgot-password'
+                                                            props.isPreviewPage
+                                                                ? `/status-page/${props.statusPageId}/forgot-password`
+                                                                : '/forgot-password'
                                                         ),
                                                         openLinkInNewTab: false,
                                                     },
@@ -106,7 +128,6 @@ const LoginPage: FunctionComponent<ComponentProps> = (props: ComponentProps) => 
                                                 LoginUtil.login(value);
                                             }}
                                             maxPrimaryButtonWidth={true}
-                                            
                                         />
 
                                         <div className="mt-5 text-center">

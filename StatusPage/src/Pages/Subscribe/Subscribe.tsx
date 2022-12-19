@@ -18,8 +18,18 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
     const [currentTab, _setCurrentTab] = useState<string>('Email');
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
-    if (props.statusPageId && props.isPrivatePage && !User.isLoggedIn(props.statusPageId)) {
-        Navigation.navigate(new Route( props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'))
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !User.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
     }
 
     return (

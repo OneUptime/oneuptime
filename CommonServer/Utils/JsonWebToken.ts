@@ -20,23 +20,19 @@ class JSONWebToken {
             jsonObj = {
                 data: data.toString(),
             };
-        } else if ((data instanceof User)) {
+        } else if (data instanceof User) {
             jsonObj = {
                 userId: data.id!.toString(),
                 email: data.email!.toString(),
                 name: data.name!.toString(),
                 isMasterAdmin: data.isMasterAdmin!,
             };
-
-           
-        }else if ((data instanceof StatusPagePrivateUser)) {
+        } else if (data instanceof StatusPagePrivateUser) {
             jsonObj = {
                 userId: data.id!.toString(),
                 email: data.email!.toString(),
                 statusPageId: data.statusPageId?.toString(),
             };
-
-           
         } else {
             jsonObj = {
                 userId: data.userId.toString(),
@@ -62,9 +58,11 @@ class JSONWebToken {
                 return {
                     userId: new ObjectID(decoded['userId'] as string),
                     email: new Email(decoded['email'] as string),
-                    statusPageId: new ObjectID(decoded['statusPageId'] as string),
+                    statusPageId: new ObjectID(
+                        decoded['statusPageId'] as string
+                    ),
                     isMasterAdmin: false,
-                    name: new Name('User')
+                    name: new Name('User'),
                 };
             }
 

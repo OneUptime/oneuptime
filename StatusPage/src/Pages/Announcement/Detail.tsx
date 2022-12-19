@@ -46,11 +46,11 @@ export const getAnnouncementEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                isPreviewPage
-                    ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
-                    : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
-                announcement.id!
-            ),
+                  isPreviewPage
+                      ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
+                      : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
+                  announcement.id!
+              ),
         isDetailItem: !isSummary,
     };
 };
@@ -68,21 +68,27 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
 
-
-    if (props.statusPageId && props.isPrivatePage && !User.isLoggedIn(props.statusPageId)) {
-        Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'))
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !User.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
     }
 
     useAsyncEffect(async () => {
         try {
-
             if (!props.statusPageId) {
                 return;
             }
 
             setIsLoading(true);
-
-
 
             const id: ObjectID = LocalStorage.getItem(
                 'statusPageId'
@@ -102,7 +108,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     ),
                     {},
                     {
-                        'status-page-token': UserUtil.getAccessToken(props.statusPageId)
+                        'status-page-token': UserUtil.getAccessToken(
+                            props.statusPageId
+                        ),
                     }
                 );
             const data: JSONObject = response.data;
@@ -133,7 +141,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');

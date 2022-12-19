@@ -157,15 +157,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         return <ErrorMessage error={error} />;
     }
 
-    if (props.children instanceof LoginPage) {
-        return <>{props.children}</>;
-    }
-
-    if (props.children instanceof ForgotPassword) {
-        return <>{props.children}</>;
-    }
-
-    if (props.children instanceof ResetPassword) {
+    if (Navigation.getCurrentRoute().toString().includes("login") || Navigation.getCurrentRoute().toString().includes("forgot-password") || Navigation.getCurrentRoute().toString().includes("reset-password")) {
         return <>{props.children}</>;
     }
 

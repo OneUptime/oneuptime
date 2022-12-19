@@ -6,10 +6,10 @@ export const LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
     new Route('/status-page/login')
 );
 
-export const FORGOT_PASSWORD_API_URL: URL = URL.fromURL(
-    IDENTITY_URL
-).addRoute(new Route('/status-page/forgot-password'));
+export const FORGOT_PASSWORD_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+    new Route('/status-page/forgot-password')
+);
 
-export const RESET_PASSWORD_API_URL: URL = URL.fromURL(
-    IDENTITY_URL
-).addRoute(new Route('/status-page/reset-password'));
+export const RESET_PASSWORD_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+    new Route('/status-page/reset-password')
+);

@@ -46,16 +46,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
     >([]);
     const [parsedData, setParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
-    
-        if (props.statusPageId && props.isPrivatePage && !User.isLoggedIn(props.statusPageId)) {
-            Navigation.navigate(new Route( props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'))
-        }
+
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !User.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
+    }
 
     useAsyncEffect(async () => {
         try {
-
             if (!props.statusPageId) {
-                return
+                return;
             }
             setIsLoading(true);
 
@@ -72,7 +81,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     ),
                     {},
                     {
-                        'status-page-token': UserUtil.getAccessToken(props.statusPageId)
+                        'status-page-token': UserUtil.getAccessToken(
+                            props.statusPageId
+                        ),
                     }
                 );
             const data: JSONObject = response.data;

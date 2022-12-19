@@ -19,7 +19,7 @@ import ScheduledEventList from './Pages/ScheduledEvent/List';
 import ScheduledEventDetail from './Pages/ScheduledEvent/Detail';
 import Subscribe from './Pages/Subscribe/Subscribe';
 
-// Accounts. 
+// Accounts.
 import Login from './Pages/Accounts/Login';
 import ForgotPassword from './Pages/Accounts/ForgotPassword';
 import ResetPassword from './Pages/Accounts/ResetPassword';
@@ -41,9 +41,11 @@ const App: FunctionComponent = () => {
 
     const [isPreview, setIsPreview] = useState<boolean>(false);
     const [statusPageName, setStatusPageName] = useState<string>('');
-    const [statusPageLogoFileId, setStatusPageLogoFileId] = useState<string>('');
+    const [statusPageLogoFileId, setStatusPageLogoFileId] =
+        useState<string>('');
     const [statusPageId, setStatusPageId] = useState<string>('');
-    const [isPrivateStatusPage, setIsPrivateStatusPage] = useState<boolean>(false);
+    const [isPrivateStatusPage, setIsPrivateStatusPage] =
+        useState<boolean>(false);
 
     useEffect(() => {
         setIsPreview(isPreviewPage());
@@ -83,22 +85,19 @@ const App: FunctionComponent = () => {
                     setJavaScript(javascript);
                 }
 
-
                 const statusPageName: string | null =
                     JSONFunctions.getJSONValueInPath(
                         masterpage || {},
                         'statusPage.pageTitle'
                     ) as string | null;
-                
-                
-                    const isPrivateStatusPage: boolean  =
+
+                const isPrivateStatusPage: boolean =
                     !JSONFunctions.getJSONValueInPath(
                         masterpage || {},
                         'statusPage.isPublicStatusPage'
-                        ) as boolean;
-                
-                setIsPrivateStatusPage(isPrivateStatusPage);
+                    ) as boolean;
 
+                setIsPrivateStatusPage(isPrivateStatusPage);
 
                 const statusPageId: string | null =
                     JSONFunctions.getJSONValueInPath(
@@ -108,15 +107,12 @@ const App: FunctionComponent = () => {
 
                 setStatusPageId(statusPageId || '');
 
-
                 setStatusPageName(statusPageName || 'Status Page');
 
-
-                const fileId: string | null =
-                    JSONFunctions.getJSONValueInPath(
-                        masterpage || {},
-                        'statusPage.logoFileId'
-                    ) as string | null;
+                const fileId: string | null = JSONFunctions.getJSONValueInPath(
+                    masterpage || {},
+                    'statusPage.logoFileId'
+                ) as string | null;
 
                 setStatusPageLogoFileId(fileId || '');
             }}
@@ -132,19 +128,17 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
-                            
                         />
                     }
                 />
-
 
                 <PageRoute
                     path={RouteMap[PageMap.LOGIN]?.toString() || ''}
                     element={
                         <Login
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
@@ -157,7 +151,7 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.RESET_PASSWORD]?.toString() || ''}
                     element={
                         <ResetPassword
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
@@ -170,7 +164,7 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.FORGOT_PASSWORD]?.toString() || ''}
                     element={
                         <ForgotPassword
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
@@ -188,13 +182,13 @@ const App: FunctionComponent = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                PageMap.SCHEDULED_EVENT_DETAIL
+                                    PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                         />
                     }
@@ -212,7 +206,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                         />
                     }
@@ -228,7 +222,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                         />
                     }
@@ -242,7 +236,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                         />
                     }
@@ -260,7 +254,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                         />
                     }
@@ -276,7 +270,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                         />
                     }
@@ -290,7 +284,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                         />
                     }
@@ -305,7 +299,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_OVERVIEW] as Route
@@ -321,7 +315,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route
@@ -341,11 +335,11 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -363,11 +357,11 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                         />
@@ -384,11 +378,11 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_INCIDENT_DETAIL
+                                    PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -405,7 +399,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route
@@ -425,11 +419,11 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -447,27 +441,22 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
                         />
                     }
                 />
 
-
                 <PageRoute
-                    path={
-                        RouteMap[
-                            PageMap.PREVIEW_LOGIN
-                        ]?.toString() || ''
-                    }
+                    path={RouteMap[PageMap.PREVIEW_LOGIN]?.toString() || ''}
                     element={
                         <Login
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
@@ -476,16 +465,14 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-
                 <PageRoute
                     path={
-                        RouteMap[
-                            PageMap.PREVIEW_RESET_PASSWORD
-                        ]?.toString() || ''
+                        RouteMap[PageMap.PREVIEW_RESET_PASSWORD]?.toString() ||
+                        ''
                     }
                     element={
                         <ResetPassword
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
@@ -494,17 +481,14 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-
-
                 <PageRoute
                     path={
-                        RouteMap[
-                            PageMap.PREVIEW_FORGOT_PASSWORD
-                        ]?.toString() || ''
+                        RouteMap[PageMap.PREVIEW_FORGOT_PASSWORD]?.toString() ||
+                        ''
                     }
                     element={
                         <ForgotPassword
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             statusPageName={statusPageName}
                             logoFileId={new ObjectID(statusPageLogoFileId)}
@@ -522,7 +506,7 @@ const App: FunctionComponent = () => {
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
-                             isPreviewPage={isPreview}
+                            isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={RouteMap[PageMap.NOT_FOUND] as Route}
                         />

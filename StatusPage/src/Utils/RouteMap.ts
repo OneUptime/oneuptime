@@ -16,7 +16,6 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.RSS]: new Route(`/rss`),
     [PageMap.SUBSCRIBE]: new Route(`/subscribe`),
 
-
     [PageMap.LOGIN]: new Route(`/login`),
     [PageMap.FORGOT_PASSWORD]: new Route(`/forgot-password`),
     [PageMap.RESET_PASSWORD]: new Route(`/reset-password`),
@@ -51,10 +50,15 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.NOT_FOUND]: new Route(`status-page/not-found`),
 
-    [PageMap.PREVIEW_LOGIN]: new Route(`/status-page/${RouteParams.StatusPageId}/login`),
-    [PageMap.PREVIEW_FORGOT_PASSWORD]: new Route(`/status-page/${RouteParams.StatusPageId}/forgot-password`),
-    [PageMap.PREVIEW_RESET_PASSWORD]: new Route(`/status-page/${RouteParams.StatusPageId}/reset-password`),
-
+    [PageMap.PREVIEW_LOGIN]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/login`
+    ),
+    [PageMap.PREVIEW_FORGOT_PASSWORD]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/forgot-password`
+    ),
+    [PageMap.PREVIEW_RESET_PASSWORD]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/reset-password`
+    ),
 };
 
 export class RouteUtil {

@@ -141,11 +141,20 @@ export const getIncidentEventItem: Function = (
 const Detail: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-
-    if (props.statusPageId && props.isPrivatePage && !User.isLoggedIn(props.statusPageId)) {
-        Navigation.navigate(new Route( props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'))
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !User.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
     }
-    
+
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [statusPageResources, setStatusPageResources] = useState<
@@ -164,7 +173,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
     useAsyncEffect(async () => {
         try {
             if (!props.statusPageId) {
-                return
+                return;
             }
             setIsLoading(true);
 
@@ -186,7 +195,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     ),
                     {},
                     {
-                        'status-page-token': UserUtil.getAccessToken(props.statusPageId)
+                        'status-page-token': UserUtil.getAccessToken(
+                            props.statusPageId
+                        ),
                     }
                 );
             const data: JSONObject = response.data;
