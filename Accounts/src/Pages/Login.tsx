@@ -36,7 +36,7 @@ const LoginPage: FunctionComponent = () => {
                                             style={{ marginBottom: '40px' }}
                                         >
                                             <img
-                                                style={{ height: '40px' }}
+                                                style={{ height: '50px' }}
                                                 src={`${OneUptimeLogo}`}
                                             />
                                         </div>

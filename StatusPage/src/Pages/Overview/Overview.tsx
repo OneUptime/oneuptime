@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import Accordian from 'CommonUI/src/Components/Accordian/Accordian';
@@ -9,7 +14,6 @@ import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
-import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -40,6 +44,8 @@ import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Monitor from 'Model/Models/Monitor';
+import User from '../../Utils/User';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -86,8 +92,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
         null
     );
 
-    useAsyncEffect(async () => {
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !User.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
+    }
+
+    const loadPage: Function = async () => {
         try {
+            if (!props.statusPageId) {
+                return;
+            }
             setIsLoading(true);
 
             const id: ObjectID = LocalStorage.getItem(
@@ -102,7 +125,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/overview/${id.toString()}`
                     ),
                     {},
-                    {}
+                    {
+                        'status-page-token': User.getAccessToken(
+                            props.statusPageId
+                        ),
+                    }
                 );
             const data: JSONObject = response.data;
 
@@ -203,7 +230,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
             setIsLoading(false);
         }
+    };
+
+    useEffect(() => {
+        loadPage();
     }, []);
+
+    useEffect(() => {
+        loadPage();
+    }, [props.statusPageId, props.isPreviewPage, props.isPrivatePage]);
 
     const getOverallMonitorStatus: Function = (
         statusPageResources: Array<StatusPageResource>,

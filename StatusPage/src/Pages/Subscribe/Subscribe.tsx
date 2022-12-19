@@ -8,12 +8,30 @@ import { JSONObject } from 'Common/Types/JSON';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
+import User from '../../Utils/User';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Route from 'Common/Types/API/Route';
 
 const PageNotFound: FunctionComponent<PageComponentProps> = (
-    _props: PageComponentProps
+    props: PageComponentProps
 ): ReactElement => {
     const [currentTab, _setCurrentTab] = useState<string>('Email');
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
+
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !User.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
+    }
+
     return (
         <Page>
             <div className="justify-center">

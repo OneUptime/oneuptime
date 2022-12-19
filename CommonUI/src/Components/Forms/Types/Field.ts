@@ -14,6 +14,7 @@ export default interface Field<TEntity> {
     description?: string;
     field: SelectFormFields<TEntity>;
     placeholder?: string;
+    forceShow?: boolean; // show this field even if user does not have permissions to view.
     disabled?: boolean;
     required?: boolean;
     dropdownOptions?: Array<DropdownOption> | undefined;

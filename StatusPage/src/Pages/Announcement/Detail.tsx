@@ -28,6 +28,7 @@ import EventItem, {
     ComponentProps as EventItemComponentProps,
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import UserUtil from '../../Utils/User';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
@@ -66,8 +67,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
 
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !UserUtil.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
+    }
+
     useAsyncEffect(async () => {
         try {
+            if (!props.statusPageId) {
+                return;
+            }
+
             setIsLoading(true);
 
             const id: ObjectID = LocalStorage.getItem(
@@ -87,7 +106,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/announcements/${id.toString()}/${announcementId}`
                     ),
                     {},
-                    {}
+                    {
+                        'status-page-token': UserUtil.getAccessToken(
+                            props.statusPageId
+                        ),
+                    }
                 );
             const data: JSONObject = response.data;
 

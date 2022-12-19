@@ -34,6 +34,7 @@ import EventItem, {
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Color from 'Common/Types/Color';
 import { Green } from 'Common/Types/BrandColors';
+import UserUtil from '../../Utils/User';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
@@ -139,8 +140,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventItemComponentProps | null>(null);
 
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !UserUtil.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
+    }
+
     useAsyncEffect(async () => {
         try {
+            if (!props.statusPageId) {
+                return;
+            }
             setIsLoading(true);
 
             const id: ObjectID = LocalStorage.getItem(
@@ -160,7 +178,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/scheduled-maintenance-events/${id.toString()}/${eventId}`
                     ),
                     {},
-                    {}
+                    {
+                        'status-page-token': UserUtil.getAccessToken(
+                            props.statusPageId
+                        ),
+                    }
                 );
             const data: JSONObject = response.data;
 

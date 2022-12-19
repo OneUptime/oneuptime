@@ -169,11 +169,12 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 }
 
                 if (
-                    fieldPermissions &&
-                    PermissionHelper.doesPermissionsIntersect(
-                        userPermissions,
-                        fieldPermissions
-                    )
+                    field.forceShow ||
+                    (fieldPermissions &&
+                        PermissionHelper.doesPermissionsIntersect(
+                            userPermissions,
+                            fieldPermissions
+                        ))
                 ) {
                     fieldsToSet.push(field);
                 }

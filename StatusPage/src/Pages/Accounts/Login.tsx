@@ -1,23 +1,48 @@
 import React, { FunctionComponent } from 'react';
-import User from 'Model/Models/User';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
-import Link from 'CommonUI/src/Components/Link/Link';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import { LOGIN_API_URL } from '../../Utils/ApiPaths';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import LoginUtil from '../../Utils/Login';
-import UserUtil from 'CommonUI/src/Utils/User';
+import UserUtil from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import { DASHBOARD_URL } from 'CommonUI/src/Config';
+import { FILE_URL } from 'CommonUI/src/Config';
+import ObjectID from 'Common/Types/ObjectID';
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 
-const LoginPage: FunctionComponent = () => {
+export interface ComponentProps {
+    statusPageId: ObjectID | null;
+    isPreviewPage: boolean;
+    statusPageName: string;
+    logoFileId: ObjectID;
+    isPrivatePage: boolean;
+}
+
+const LoginPage: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
+) => {
     const apiUrl: URL = LOGIN_API_URL;
 
-    if (UserUtil.isLoggedIn()) {
-        Navigation.navigate(DASHBOARD_URL);
+    if (!props.statusPageId) {
+        return <></>;
+    }
+
+    if (!props.isPrivatePage) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+            )
+        );
+    }
+
+    if (UserUtil.isLoggedIn(props.statusPageId)) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'
+            )
+        );
     }
 
     return (
@@ -31,37 +56,44 @@ const LoginPage: FunctionComponent = () => {
                             <div className="w-100">
                                 <div className="d-flex flex-column h-100">
                                     <div className="auth-content my-auto">
-                                        <div
-                                            className="mt-4 text-center"
-                                            style={{ marginBottom: '40px' }}
-                                        >
-                                            <img
-                                                style={{ height: '40px' }}
-                                                src={`${OneUptimeLogo}`}
-                                            />
-                                        </div>
+                                        {props.logoFileId ? (
+                                            <div
+                                                className="mt-4 text-center"
+                                                style={{ marginBottom: '40px' }}
+                                            >
+                                                <img
+                                                    style={{ height: '70px' }}
+                                                    src={`${URL.fromString(
+                                                        FILE_URL.toString()
+                                                    ).addRoute(
+                                                        '/image/' +
+                                                            props.logoFileId.toString()
+                                                    )}`}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <></>
+                                        )}
                                         <div className="text-center">
                                             <h5 className="mb-0">
                                                 Welcome back!
                                             </h5>
                                             <p className="text-muted mt-2 mb-0">
-                                                Join thousands of business that
-                                                use OneUptime{' '}
-                                            </p>
-                                            <p className="text-muted mb-2">
-                                                to help them stay online all the
-                                                time.
+                                                Please login to view{' '}
+                                                {props.statusPageName ||
+                                                    'Status Page'}
                                             </p>
                                         </div>
 
-                                        <ModelForm<User>
-                                            modelType={User}
+                                        <ModelForm<StatusPagePrivateUser>
+                                            modelType={StatusPagePrivateUser}
                                             id="login-form"
                                             fields={[
                                                 {
                                                     field: {
                                                         email: true,
                                                     },
+                                                    forceShow: true,
                                                     title: 'Email',
                                                     fieldType:
                                                         FormFieldSchemaType.Email,
@@ -73,6 +105,7 @@ const LoginPage: FunctionComponent = () => {
                                                     },
                                                     title: 'Password',
                                                     required: true,
+                                                    forceShow: true,
                                                     validation: {
                                                         minLength: 6,
                                                     },
@@ -81,7 +114,9 @@ const LoginPage: FunctionComponent = () => {
                                                     sideLink: {
                                                         text: 'Forgot password?',
                                                         url: new Route(
-                                                            '/accounts/forgot-password'
+                                                            props.isPreviewPage
+                                                                ? `/status-page/${props.statusPageId}/forgot-password`
+                                                                : '/forgot-password'
                                                         ),
                                                         openLinkInNewTab: false,
                                                     },
@@ -92,41 +127,16 @@ const LoginPage: FunctionComponent = () => {
                                             submitButtonText={'Login'}
                                             onSuccess={(value: JSONObject) => {
                                                 LoginUtil.login(value);
+                                                Navigation.navigate(
+                                                    new Route(
+                                                        props.isPreviewPage
+                                                            ? `/status-page/${props.statusPageId}/`
+                                                            : '/'
+                                                    )
+                                                );
                                             }}
                                             maxPrimaryButtonWidth={true}
-                                            footer={
-                                                <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
-                                                    <p>
-                                                        <Link
-                                                            to={
-                                                                new Route(
-                                                                    '/accounts/login/sso'
-                                                                )
-                                                            }
-                                                        >
-                                                            Use single sign-on
-                                                            (SSO) instead
-                                                        </Link>
-                                                    </p>
-                                                </div>
-                                            }
                                         />
-
-                                        <div className="mt-5 text-center">
-                                            <p className="text-muted mb-0">
-                                                Don&apos;t have an account?{' '}
-                                                <Link
-                                                    to={
-                                                        new Route(
-                                                            '/accounts/register'
-                                                        )
-                                                    }
-                                                    className="underline-on-hover text-primary fw-semibold"
-                                                >
-                                                    Register.
-                                                </Link>
-                                            </p>
-                                        </div>
                                     </div>
                                 </div>
                             </div>

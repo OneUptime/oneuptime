@@ -33,6 +33,7 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
+import UserUtil from '../../Utils/User';
 import Color from 'Common/Types/Color';
 import { Green } from 'Common/Types/BrandColors';
 
@@ -139,6 +140,20 @@ export const getIncidentEventItem: Function = (
 const Detail: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !UserUtil.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
+    }
+
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [statusPageResources, setStatusPageResources] = useState<
@@ -156,6 +171,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
 
     useAsyncEffect(async () => {
         try {
+            if (!props.statusPageId) {
+                return;
+            }
             setIsLoading(true);
 
             const id: ObjectID = LocalStorage.getItem(
@@ -175,7 +193,11 @@ const Detail: FunctionComponent<PageComponentProps> = (
                         `/status-page/incidents/${id.toString()}/${incidentId?.toString()}`
                     ),
                     {},
-                    {}
+                    {
+                        'status-page-token': UserUtil.getAccessToken(
+                            props.statusPageId
+                        ),
+                    }
                 );
             const data: JSONObject = response.data;
 

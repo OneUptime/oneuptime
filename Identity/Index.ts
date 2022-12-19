@@ -4,12 +4,18 @@ import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import App from 'CommonServer/Utils/StartServer';
 import AuthenticationAPI from './API/AuthenticationAPI';
+import StatusPageAuthenticationAPI from './API/StatusPageAuthenticationAPI';
 
 const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'identity';
 
 app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
+
+app.use(
+    [`/${APP_NAME}/status-page`, '/staus-page'],
+    StatusPageAuthenticationAPI
+);
 
 const init: Function = async (): Promise<void> => {
     try {

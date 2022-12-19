@@ -14,6 +14,9 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import { JSONObject } from 'Common/Types/JSON';
+import Pill from 'CommonUI/src/Components/Pill/Pill';
+import { Green, Yellow } from 'Common/Types/BrandColors';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -114,9 +117,17 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             password: true,
                         },
-                        title: 'Password',
+                        title: 'Status',
                         type: FieldType.Password,
                         isFilterable: false,
+                        getElement: (item: JSONObject): ReactElement => {
+                            if (item['password']) {
+                                return (
+                                    <Pill color={Green} text={'Signed up'} />
+                                );
+                            }
+                            return <Pill color={Yellow} text={'Invite Sent'} />;
+                        },
                     },
                 ]}
                 currentPlan={SubscriptionPlan.getPlanSelect(

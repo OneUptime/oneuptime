@@ -28,6 +28,9 @@ import Dictionary from 'Common/Types/Dictionary';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { getAnnouncementEventItem } from './Detail';
+import UserUtil from '../../Utils/User';
+import Route from 'Common/Types/API/Route';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -43,8 +46,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const [parsedData, setParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
 
+    if (
+        props.statusPageId &&
+        props.isPrivatePage &&
+        !UserUtil.isLoggedIn(props.statusPageId)
+    ) {
+        Navigation.navigate(
+            new Route(
+                props.isPreviewPage
+                    ? `/status-page/${props.statusPageId}/login`
+                    : '/login'
+            )
+        );
+    }
+
     useAsyncEffect(async () => {
         try {
+            if (!props.statusPageId) {
+                return;
+            }
             setIsLoading(true);
 
             const id: ObjectID = LocalStorage.getItem(
@@ -59,7 +79,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/announcements/${id.toString()}`
                     ),
                     {},
-                    {}
+                    {
+                        'status-page-token': UserUtil.getAccessToken(
+                            props.statusPageId
+                        ),
+                    }
                 );
             const data: JSONObject = response.data;
 

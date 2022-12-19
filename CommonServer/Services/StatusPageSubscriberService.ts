@@ -6,13 +6,11 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageService from './StatusPageService';
 import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import StatusPageDomainService from './StatusPageDomainService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
 import { Domain, FileRoute, HttpProtocol } from '../Config';
 import logger from '../Utils/Logger';
 import StatusPage from 'Model/Models/StatusPage';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import ObjectID from 'Common/Types/ObjectID';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
@@ -102,37 +100,10 @@ export class Service extends DatabaseService<Model> {
             // get status page domain for this status page.
             // if the domain is not found, use the internal sttaus page preview link.
 
-            const domains: Array<StatusPageDomain> =
-                await StatusPageDomainService.findBy({
-                    query: {
-                        statusPageId: createdItem.statusPageId,
-                        isSslProvisioned: true,
-                    },
-                    select: {
-                        fullDomain: true,
-                    },
-                    skip: 0,
-                    limit: LIMIT_PER_PROJECT,
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true,
-                    },
-                });
-
-            let statusPageURL: string = domains
-                .map((d: StatusPageDomain) => {
-                    return d.fullDomain;
-                })
-                .join(', ');
-
-            if (domains.length === 0) {
-                // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-                statusPageURL = new URL(HttpProtocol, Domain)
-                    .addRoute(
-                        '/status-page/' + createdItem.statusPageId.toString()
-                    )
-                    .toString();
-            }
+            const statusPageURL: string =
+                await StatusPageService.getStatusPageURL(
+                    createdItem.statusPageId
+                );
 
             const statusPageName: string =
                 onCreate.carryForward.pageTitle ||

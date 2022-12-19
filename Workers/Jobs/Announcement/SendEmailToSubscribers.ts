@@ -2,18 +2,17 @@ import { EVERY_MINUTE } from '../../Utils/CronTime';
 import StatusPageSubscriberService from 'CommonServer/Services/StatusPageSubscriberService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import StatusPageAnnouncementService from 'CommonServer/Services/StatusPageAnnouncementService';
 import RunCron from '../../Utils/Cron';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import { Domain, FileRoute, HttpProtocol } from 'CommonServer/Config';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from 'CommonServer/Utils/Logger';
+import StatusPageService from 'CommonServer/Services/StatusPageService';
 
 RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
     // get all scheduled events of all the projects.
@@ -69,23 +68,6 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                 continue;
             }
 
-            const domains: Array<StatusPageDomain> =
-                await StatusPageDomainService.findBy({
-                    query: {
-                        statusPageId: statuspage.id,
-                        isSslProvisioned: true,
-                    },
-                    props: {
-                        isRoot: true,
-                        ignoreHooks: true,
-                    },
-                    skip: 0,
-                    limit: LIMIT_PER_PROJECT,
-                    select: {
-                        fullDomain: true,
-                    },
-                });
-
             const subscribers: Array<StatusPageSubscriber> =
                 await StatusPageSubscriberService.getSubscribersByStatusPage(
                     statuspage.id!,
@@ -95,19 +77,8 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                     }
                 );
 
-            let statusPageURL: string = domains
-                .map((d: StatusPageDomain) => {
-                    return d.fullDomain;
-                })
-                .join(', ');
-
-            if (domains.length === 0) {
-                // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
-                statusPageURL = new URL(HttpProtocol, Domain)
-                    .addRoute('/status-page/' + statuspage.id.toString())
-                    .toString();
-            }
-
+            const statusPageURL: string =
+                await StatusPageService.getStatusPageURL(statuspage.id);
             const statusPageName: string =
                 statuspage.pageTitle || statuspage.name || 'Status Page';
 
