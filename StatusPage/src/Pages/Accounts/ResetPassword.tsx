@@ -61,7 +61,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                             style={{ marginBottom: '40px' }}
                                         >
                                             <img
-                                                style={{ height: '40px' }}
+                                                 style={{ height: '70px' }}
                                                 src={`${URL.fromString(
                                                     FILE_URL.toString()
                                                 ).addRoute(

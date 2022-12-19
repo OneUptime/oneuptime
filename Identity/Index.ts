@@ -11,6 +11,7 @@ const app: ExpressApplication = Express.getExpressApp();
 const APP_NAME: string = 'identity';
 
 app.use([`/${APP_NAME}`, '/'], AuthenticationAPI);
+
 app.use(
     [`/${APP_NAME}/status-page`, '/staus-page'],
     StatusPageAuthenticationAPI

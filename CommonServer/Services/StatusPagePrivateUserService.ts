@@ -6,7 +6,6 @@ import StatusPageService from './StatusPageService';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import OneUptimeDate from 'Common/Types/Date';
-import CreateBy from '../Types/Database/CreateBy';
 import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import URL from 'Common/Types/API/URL';
@@ -18,20 +17,24 @@ export class Service extends DatabaseService<Model> {
         super(Model, postgresDatabase);
     }
 
-    protected override async onBeforeCreate(
-        data: CreateBy<Model>
-    ): Promise<OnCreate<Model>> {
-        data.data.resetPasswordToken = ObjectID.generate().toString();
-        data.data.resetPasswordExpires = OneUptimeDate.getOneDayAfter();
-
-        return { createBy: data, carryForward: null };
-    }
-
+    
     protected override async onCreateSuccess(
         _onCreate: OnCreate<Model>,
         createdItem: Model
     ): Promise<Model> {
         // send email to the user.
+        const token = ObjectID.generate().toString();
+        await this.updateOneById({
+            id: createdItem.id!, 
+            data: {
+                resetPasswordToken:token,
+                resetPasswordExpires: OneUptimeDate.getOneDayAfter()
+            },
+            props: {
+                isRoot: true, 
+                ignoreHooks: true, 
+            }
+        })
 
         const statusPage: StatusPage | null =
             await StatusPageService.findOneById({
@@ -65,16 +68,17 @@ export class Service extends DatabaseService<Model> {
             templateType: EmailTemplateType.StatusPageWelcomeEmail,
             vars: {
                 statusPageName: statusPageName!,
+                statusPageUrl: statusPageURL,
                 logoUrl: statusPage.logoFileId
                     ? new URL(HttpProtocol, Domain)
-                          .addRoute(FileRoute)
-                          .addRoute('/image/' + statusPage.logoFileId)
-                          .toString()
+                        .addRoute(FileRoute)
+                        .addRoute('/image/' + statusPage.logoFileId)
+                        .toString()
                     : '',
                 homeURL: statusPageURL,
                 tokenVerifyUrl: URL.fromString(statusPageURL)
                     .addRoute(
-                        '/reset-password/' + createdItem.resetPasswordToken
+                        '/reset-password/' + token
                     )
                     .toString(),
             },

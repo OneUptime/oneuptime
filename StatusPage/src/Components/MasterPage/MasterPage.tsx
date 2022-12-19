@@ -23,9 +23,6 @@ import BaseModel from 'Common/Models/BaseModel';
 import File from 'Model/Models/File';
 import { ImageFunctions } from 'CommonUI/src/Components/Image/Image';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import LoginPage from '../../Pages/Accounts/Login';
-import ForgotPassword from '../../Pages/Accounts/ForgotPassword';
-import ResetPassword from '../../Pages/Accounts/ResetPassword';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -42,7 +39,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
     const [masterPageData, setMasterPageData] = useState<JSONObject | null>(
         null
     );
-    const [statusPageId, setStatusPageId] = useState<ObjectID | null>(null);
+   
     const [headerHtml, setHeaderHtml] = useState<null | string>(null);
     const [footerHtml, setFooterHTML] = useState<null | string>(null);
 
@@ -77,7 +74,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         try {
             setIsLoading(true);
             const id: ObjectID = await getId();
-            setStatusPageId(id);
+           
             LocalStorage.setItem('statusPageId', id);
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
@@ -240,9 +237,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 marginLeft: 'auto !important',
             }}
         >
-            {React.cloneElement(props.children as any, {
-                statusPageId: statusPageId,
-            })}
+            {props.children}
         </MasterPage>
     );
 };

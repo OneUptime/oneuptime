@@ -18,7 +18,7 @@ const RouteMap: Dictionary<Route> = {
 
     [PageMap.LOGIN]: new Route(`/login`),
     [PageMap.FORGOT_PASSWORD]: new Route(`/forgot-password`),
-    [PageMap.RESET_PASSWORD]: new Route(`/reset-password`),
+    [PageMap.RESET_PASSWORD]: new Route(`/reset-password/:token`),
 
     [PageMap.PREVIEW_OVERVIEW]: new Route(
         `/status-page/${RouteParams.StatusPageId}`
@@ -57,7 +57,7 @@ const RouteMap: Dictionary<Route> = {
         `/status-page/${RouteParams.StatusPageId}/forgot-password`
     ),
     [PageMap.PREVIEW_RESET_PASSWORD]: new Route(
-        `/status-page/${RouteParams.StatusPageId}/reset-password`
+        `/status-page/${RouteParams.StatusPageId}/reset-password/:token`
     ),
 };
 

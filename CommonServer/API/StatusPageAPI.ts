@@ -154,6 +154,7 @@ export default class StatusPageAPI extends BaseAPI<
                         headerHTML: true,
                         footerHTML: true,
                         enableSubscribers: true,
+                        isPublicStatusPage: true
                     };
 
                     const populate: Populate<StatusPage> = {
@@ -290,7 +291,7 @@ export default class StatusPageAPI extends BaseAPI<
                     if (!statusPage) {
                         throw new BadDataException('Status Page not found');
                     }
-                    
+
                     //get monitor statuses
 
                     const monitorStatuses: Array<MonitorStatus> =

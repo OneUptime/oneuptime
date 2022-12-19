@@ -130,6 +130,7 @@ const App: FunctionComponent = () => {
                             }}
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -190,6 +191,7 @@ const App: FunctionComponent = () => {
                             }}
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -208,6 +210,7 @@ const App: FunctionComponent = () => {
                             }}
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -224,6 +227,7 @@ const App: FunctionComponent = () => {
                             }}
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -238,6 +242,7 @@ const App: FunctionComponent = () => {
                             }}
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -256,6 +261,7 @@ const App: FunctionComponent = () => {
                             }}
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -272,6 +278,7 @@ const App: FunctionComponent = () => {
                             }}
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -286,6 +293,7 @@ const App: FunctionComponent = () => {
                             }}
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -304,6 +312,7 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_OVERVIEW] as Route
                             }
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -320,6 +329,7 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route
                             }
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -342,6 +352,7 @@ const App: FunctionComponent = () => {
                                     PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -364,6 +375,7 @@ const App: FunctionComponent = () => {
                                     PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -385,6 +397,7 @@ const App: FunctionComponent = () => {
                                     PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -404,6 +417,7 @@ const App: FunctionComponent = () => {
                             pageRoute={
                                 RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route
                             }
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -426,6 +440,7 @@ const App: FunctionComponent = () => {
                                     PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -448,6 +463,7 @@ const App: FunctionComponent = () => {
                                     PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />

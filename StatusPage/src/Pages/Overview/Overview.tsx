@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import Accordian from 'CommonUI/src/Components/Accordian/Accordian';
@@ -9,7 +9,6 @@ import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
-import useAsyncEffect from 'use-async-effect';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
@@ -102,7 +101,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         );
     }
 
-    useAsyncEffect(async () => {
+    const loadPage: Function = async () => {
         try {
             if (!props.statusPageId) {
                 return;
@@ -226,7 +225,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
             }
             setIsLoading(false);
         }
+    }
+
+    useEffect(() => {
+        loadPage();
     }, []);
+
+    useEffect(() => {
+        loadPage();
+    }, [props.statusPageId, props.isPreviewPage, props.isPrivatePage]);
 
     const getOverallMonitorStatus: Function = (
         statusPageResources: Array<StatusPageResource>,

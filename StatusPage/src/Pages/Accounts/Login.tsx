@@ -1,7 +1,6 @@
 import React, { FunctionComponent } from 'react';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import Link from 'CommonUI/src/Components/Link/Link';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import { LOGIN_API_URL } from '../../Utils/ApiPaths';
 import URL from 'Common/Types/API/URL';
@@ -63,7 +62,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                                 style={{ marginBottom: '40px' }}
                                             >
                                                 <img
-                                                    style={{ height: '40px' }}
+                                                     style={{ height: '70px' }}
                                                     src={`${URL.fromString(
                                                         FILE_URL.toString()
                                                     ).addRoute(
@@ -130,21 +129,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                             maxPrimaryButtonWidth={true}
                                         />
 
-                                        <div className="mt-5 text-center">
-                                            <p className="text-muted mb-0">
-                                                Don&apos;t have an account?{' '}
-                                                <Link
-                                                    to={
-                                                        new Route(
-                                                            '/accounts/register'
-                                                        )
-                                                    }
-                                                    className="underline-on-hover text-primary fw-semibold"
-                                                >
-                                                    Register.
-                                                </Link>
-                                            </p>
-                                        </div>
+                                        
                                     </div>
                                 </div>
                             </div>
