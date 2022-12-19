@@ -26,7 +26,7 @@ import logger from 'CommonServer/Utils/Logger';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import StatusPage from 'Model/Models/StatusPage';
-import StatusPageService from 'CommonServer/Services/StatusPageService'
+import StatusPageService from 'CommonServer/Services/StatusPageService';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -46,46 +46,50 @@ router.post(
             ) as StatusPagePrivateUser;
 
             if (!data['statusPageId']) {
-                throw new BadDataException("Status Page ID is required.")
+                throw new BadDataException('Status Page ID is required.');
             }
 
-            const statusPage: StatusPage | null = await StatusPageService.findOneById({
-                id: new ObjectID(data['statusPageId'] as string),
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-                select: {
-                    _id: true,
-                    name: true,
-                    pageTitle: true,
-                    logoFileId: true, 
-                }
-            });
+            const statusPage: StatusPage | null =
+                await StatusPageService.findOneById({
+                    id: new ObjectID(data['statusPageId'] as string),
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                    select: {
+                        _id: true,
+                        name: true,
+                        pageTitle: true,
+                        logoFileId: true,
+                    },
+                });
 
             if (!statusPage) {
-                throw new BadDataException("Status Page not found");
+                throw new BadDataException('Status Page not found');
             }
 
+            const statusPageName: string | undefined = statusPage.pageTitle || statusPage.name;
 
-            const statusPageName = statusPage.pageTitle || statusPage.name; 
+            const statusPageURL: string =
+                await StatusPageService.getStatusPageURL(statusPage.id!);
 
-            let statusPageURL: string = await StatusPageService.getStatusPageURL(statusPage.id!);
-
-            const alreadySavedUser: StatusPagePrivateUser | null = await StatusPagePrivateUserService.findOneBy({
-                query: {
-                    email: user.email!,
-                    statusPageId: new ObjectID(data['statusPageId'] as string)
-                },
-                select: {
-                    _id: true,
-                    password: true,
-                    email: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
+            const alreadySavedUser: StatusPagePrivateUser | null =
+                await StatusPagePrivateUserService.findOneBy({
+                    query: {
+                        email: user.email!,
+                        statusPageId: new ObjectID(
+                            data['statusPageId'] as string
+                        ),
+                    },
+                    select: {
+                        _id: true,
+                        password: true,
+                        email: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (alreadySavedUser) {
                 const token: string = ObjectID.generate().toString();
@@ -104,22 +108,20 @@ router.post(
 
                 MailService.sendMail({
                     toEmail: user.email!,
-                    subject: 'Password Reset Request for '+statusPageName,
+                    subject: 'Password Reset Request for ' + statusPageName,
                     templateType: EmailTemplateType.StatusPageForgotPassword,
                     vars: {
                         statusPageName: statusPageName!,
                         logoUrl: statusPage.logoFileId
-                        ? new URL(HttpProtocol, Domain)
-                              .addRoute(FileRoute)
-                              .addRoute(
-                                  '/image/' + statusPage.logoFileId
-                              )
-                              .toString()
-                        : '',
+                            ? new URL(HttpProtocol, Domain)
+                                  .addRoute(FileRoute)
+                                  .addRoute('/image/' + statusPage.logoFileId)
+                                  .toString()
+                            : '',
                         homeURL: statusPageURL,
-                        tokenVerifyUrl: URL.fromString(statusPageURL).addRoute(
-                                '/reset-password/' + token
-                            ).toString(),
+                        tokenVerifyUrl: URL.fromString(statusPageURL)
+                            .addRoute('/reset-password/' + token)
+                            .toString(),
                     },
                 }).catch((err: Error) => {
                     logger.error(err);
@@ -154,21 +156,22 @@ router.post(
 
             await user.password?.hashValue(EncryptionSecret);
 
-            const alreadySavedUser: StatusPagePrivateUser | null = await StatusPagePrivateUserService.findOneBy({
-                query: {
-                    resetPasswordToken:
-                        (user.resetPasswordToken as string) || '',
-                },
-                select: {
-                    _id: true,
-                    password: true,
-                    email: true,
-                    resetPasswordExpires: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
+            const alreadySavedUser: StatusPagePrivateUser | null =
+                await StatusPagePrivateUserService.findOneBy({
+                    query: {
+                        resetPasswordToken:
+                            (user.resetPasswordToken as string) || '',
+                    },
+                    select: {
+                        _id: true,
+                        password: true,
+                        email: true,
+                        resetPasswordExpires: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (!alreadySavedUser) {
                 throw new BadDataException(
@@ -185,28 +188,29 @@ router.post(
                 );
             }
 
-            const statusPage: StatusPage | null = await StatusPageService.findOneById({
-                id: new ObjectID(data['statusPageId'] as string),
-                props: {
-                    isRoot: true,
-                    ignoreHooks: true,
-                },
-                select: {
-                    _id: true,
-                    name: true,
-                    pageTitle: true,
-                    logoFileId: true, 
-                }
-            });
+            const statusPage: StatusPage | null =
+                await StatusPageService.findOneById({
+                    id: new ObjectID(data['statusPageId'] as string),
+                    props: {
+                        isRoot: true,
+                        ignoreHooks: true,
+                    },
+                    select: {
+                        _id: true,
+                        name: true,
+                        pageTitle: true,
+                        logoFileId: true,
+                    },
+                });
 
             if (!statusPage) {
-                throw new BadDataException("Status Page not found");
+                throw new BadDataException('Status Page not found');
             }
 
+            const statusPageName: string | undefined = statusPage.pageTitle || statusPage.name;
 
-            const statusPageName = statusPage.pageTitle || statusPage.name; 
-
-            let statusPageURL: string = await StatusPageService.getStatusPageURL(statusPage.id!);
+            const statusPageURL: string =
+                await StatusPageService.getStatusPageURL(statusPage.id!);
 
             await StatusPagePrivateUserService.updateOneById({
                 id: alreadySavedUser.id!,
@@ -230,9 +234,7 @@ router.post(
                     logoUrl: statusPage.logoFileId
                         ? new URL(HttpProtocol, Domain)
                               .addRoute(FileRoute)
-                              .addRoute(
-                                  '/image/' + statusPage.logoFileId
-                              )
+                              .addRoute('/image/' + statusPage.logoFileId)
                               .toString()
                         : '',
                 },
@@ -264,20 +266,20 @@ router.post(
 
             await user.password?.hashValue(EncryptionSecret);
 
-            const alreadySavedUser: StatusPagePrivateUser | null = await StatusPagePrivateUserService.findOneBy({
-                query: { email: user.email!, password: user.password! },
-                select: {
-                    _id: true,
-                    password: true,
-                    email: true,
-                },
-                props: {
-                    isRoot: true,
-                },
-            });
+            const alreadySavedUser: StatusPagePrivateUser | null =
+                await StatusPagePrivateUserService.findOneBy({
+                    query: { email: user.email!, password: user.password! },
+                    select: {
+                        _id: true,
+                        password: true,
+                        email: true,
+                    },
+                    props: {
+                        isRoot: true,
+                    },
+                });
 
             if (alreadySavedUser) {
-               
                 const token: string = JSONWebToken.sign(
                     alreadySavedUser,
                     OneUptimeDate.getSecondsInDays(new PositiveNumber(30))

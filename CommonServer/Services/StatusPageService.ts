@@ -83,9 +83,7 @@ export class Service extends DatabaseService<StatusPage> {
         if (domains.length === 0) {
             // 'https://local.oneuptime.com/status-page/40092fb5-cc33-4995-b532-b4e49c441c98'
             statusPageURL = new URL(HttpProtocol, Domain)
-                .addRoute(
-                    '/status-page/' + statusPageId.toString()
-                )
+                .addRoute('/status-page/' + statusPageId.toString())
                 .toString();
         }
 

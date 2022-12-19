@@ -2,13 +2,11 @@ import { EVERY_MINUTE } from '../../Utils/CronTime';
 import StatusPageSubscriberService from 'CommonServer/Services/StatusPageSubscriberService';
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
+import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import StatusPageAnnouncementService from 'CommonServer/Services/StatusPageAnnouncementService';
 import RunCron from '../../Utils/Cron';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import { Domain, FileRoute, HttpProtocol } from 'CommonServer/Config';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
@@ -70,8 +68,6 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                 continue;
             }
 
-
-
             const subscribers: Array<StatusPageSubscriber> =
                 await StatusPageSubscriberService.getSubscribersByStatusPage(
                     statuspage.id!,
@@ -81,7 +77,8 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                     }
                 );
 
-            let statusPageURL: string = await StatusPageService.getStatusPageURL(statuspage.id);
+            const statusPageURL: string =
+                await StatusPageService.getStatusPageURL(statuspage.id);
             const statusPageName: string =
                 statuspage.pageTitle || statuspage.name || 'Status Page';
 
@@ -104,11 +101,11 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                             statusPageUrl: statusPageURL,
                             logoUrl: statuspage.logoFileId
                                 ? new URL(HttpProtocol, Domain)
-                                    .addRoute(FileRoute)
-                                    .addRoute(
-                                        '/image/' + statuspage.logoFileId
-                                    )
-                                    .toString()
+                                      .addRoute(FileRoute)
+                                      .addRoute(
+                                          '/image/' + statuspage.logoFileId
+                                      )
+                                      .toString()
                                 : '',
                             isPublicStatusPage: statuspage.isPublicStatusPage
                                 ? 'true'
@@ -119,7 +116,7 @@ RunCron('Announcement:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                             unsubscribeUrl: new URL(HttpProtocol, Domain)
                                 .addRoute(
                                     '/api/status-page-subscriber/unsubscribe/' +
-                                    subscriber._id.toString()
+                                        subscriber._id.toString()
                                 )
                                 .toString(),
                         },

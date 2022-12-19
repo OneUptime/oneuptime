@@ -6,13 +6,11 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageService from './StatusPageService';
 import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import StatusPageDomainService from './StatusPageDomainService';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
 import { Domain, FileRoute, HttpProtocol } from '../Config';
 import logger from '../Utils/Logger';
 import StatusPage from 'Model/Models/StatusPage';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import ObjectID from 'Common/Types/ObjectID';
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
@@ -102,11 +100,10 @@ export class Service extends DatabaseService<Model> {
             // get status page domain for this status page.
             // if the domain is not found, use the internal sttaus page preview link.
 
-            
-
-            let statusPageURL: string = await StatusPageService.getStatusPageURL(createdItem.statusPageId);
-
-            
+            const statusPageURL: string =
+                await StatusPageService.getStatusPageURL(
+                    createdItem.statusPageId
+                );
 
             const statusPageName: string =
                 onCreate.carryForward.pageTitle ||

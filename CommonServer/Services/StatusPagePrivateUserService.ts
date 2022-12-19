@@ -20,7 +20,7 @@ export class Service extends DatabaseService<Model> {
 
     protected override async onBeforeCreate(
         data: CreateBy<Model>
-    ): Promise<OnCreate<Model>> { 
+    ): Promise<OnCreate<Model>> {
         data.data.resetPasswordToken = ObjectID.generate().toString();
         data.data.resetPasswordExpires = OneUptimeDate.getOneDayAfter();
 
@@ -30,59 +30,58 @@ export class Service extends DatabaseService<Model> {
     protected override async onCreateSuccess(
         _onCreate: OnCreate<Model>,
         createdItem: Model
-    ): Promise<Model> { 
+    ): Promise<Model> {
+        // send email to the user.
 
-        // send email to the user. 
-
-        const statusPage: StatusPage | null = await StatusPageService.findOneById({
-            id: createdItem.statusPageId!,
-            props: {
-                isRoot: true,
-                ignoreHooks: true,
-            },
-            select: {
-                _id: true,
-                name: true,
-                pageTitle: true,
-                logoFileId: true, 
-            }
-        });
+        const statusPage: StatusPage | null =
+            await StatusPageService.findOneById({
+                id: createdItem.statusPageId!,
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+                select: {
+                    _id: true,
+                    name: true,
+                    pageTitle: true,
+                    logoFileId: true,
+                },
+            });
 
         if (!statusPage) {
-            throw new BadDataException("Status Page not found");
+            throw new BadDataException('Status Page not found');
         }
 
+        const statusPageName: string | undefined = statusPage.pageTitle || statusPage.name;
 
-        const statusPageName = statusPage.pageTitle || statusPage.name; 
-
-        let statusPageURL: string = await StatusPageService.getStatusPageURL(statusPage.id!);
-
+        const statusPageURL: string = await StatusPageService.getStatusPageURL(
+            statusPage.id!
+        );
 
         MailService.sendMail({
             toEmail: createdItem.email!,
-            subject: 'You have been invited to '+statusPageName,
+            subject: 'You have been invited to ' + statusPageName,
             templateType: EmailTemplateType.StatusPageWelcomeEmail,
             vars: {
                 statusPageName: statusPageName!,
                 logoUrl: statusPage.logoFileId
-                ? new URL(HttpProtocol, Domain)
-                      .addRoute(FileRoute)
-                      .addRoute(
-                          '/image/' + statusPage.logoFileId
-                      )
-                      .toString()
-                : '',
+                    ? new URL(HttpProtocol, Domain)
+                          .addRoute(FileRoute)
+                          .addRoute('/image/' + statusPage.logoFileId)
+                          .toString()
+                    : '',
                 homeURL: statusPageURL,
-                tokenVerifyUrl: URL.fromString(statusPageURL).addRoute(
+                tokenVerifyUrl: URL.fromString(statusPageURL)
+                    .addRoute(
                         '/reset-password/' + createdItem.resetPasswordToken
-                    ).toString(),
+                    )
+                    .toString(),
             },
         }).catch((err: Error) => {
             logger.error(err);
         });
 
         return createdItem;
-
     }
 }
 export default new Service();

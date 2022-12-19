@@ -6,8 +6,6 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import IncidentService from 'CommonServer/Services/IncidentService';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import { Domain, FileRoute, HttpProtocol } from 'CommonServer/Config';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
@@ -137,8 +135,6 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                 continue;
             }
 
-          
-
             const subscribers: Array<StatusPageSubscriber> =
                 await StatusPageSubscriberService.getSubscribersByStatusPage(
                     statuspage.id!,
@@ -148,7 +144,8 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                     }
                 );
 
-                let statusPageURL: string = await StatusPageService.getStatusPageURL(statuspage.id);
+            const statusPageURL: string =
+                await StatusPageService.getStatusPageURL(statuspage.id);
             const statusPageName: string =
                 statuspage.pageTitle || statuspage.name || 'Status Page';
 

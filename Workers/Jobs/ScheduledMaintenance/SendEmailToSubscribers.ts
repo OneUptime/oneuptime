@@ -5,8 +5,6 @@ import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import RunCron from '../../Utils/Cron';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
 import { Domain, FileRoute, HttpProtocol } from 'CommonServer/Config';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
@@ -194,8 +192,6 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                 continue;
             }
 
-
-
             const subscribers: Array<StatusPageSubscriber> =
                 await StatusPageSubscriberService.getSubscribersByStatusPage(
                     statuspage.id!,
@@ -205,7 +201,8 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                     }
                 );
 
-            let statusPageURL: string = await StatusPageService.getStatusPageURL(statuspage.id);
+            const statusPageURL: string =
+                await StatusPageService.getStatusPageURL(statuspage.id);
 
             const statusPageName: string =
                 statuspage.pageTitle || statuspage.name || 'Status Page';
@@ -229,11 +226,11 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                             statusPageUrl: statusPageURL,
                             logoUrl: statuspage.logoFileId
                                 ? new URL(HttpProtocol, Domain)
-                                    .addRoute(FileRoute)
-                                    .addRoute(
-                                        '/image/' + statuspage.logoFileId
-                                    )
-                                    .toString()
+                                      .addRoute(FileRoute)
+                                      .addRoute(
+                                          '/image/' + statuspage.logoFileId
+                                      )
+                                      .toString()
                                 : '',
                             isPublicStatusPage: statuspage.isPublicStatusPage
                                 ? 'true'
@@ -253,13 +250,14 @@ RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
                             unsubscribeUrl: new URL(HttpProtocol, Domain)
                                 .addRoute(
                                     '/api/status-page-subscriber/unsubscribe/' +
-                                    subscriber._id.toString()
+                                        subscriber._id.toString()
                                 )
                                 .toString(),
                         },
                         subject:
                             statusPageName +
-                            ` - ${isOngoing ? 'Ongoing' : 'Scheduled'
+                            ` - ${
+                                isOngoing ? 'Ongoing' : 'Scheduled'
                             } Maintenance Event`,
                     }).catch((err: Error) => {
                         logger.error(err);
