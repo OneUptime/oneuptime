@@ -1,6 +1,5 @@
 import React, { FunctionComponent, useState } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import User from 'Model/Models/User';
 import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -17,6 +16,7 @@ export interface ComponentProps {
     isPreviewPage: boolean;
     statusPageName: string; 
     logoFileId: ObjectID;
+    isPrivatePage: boolean;
 }
 
 const ResetPassword:  FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -29,6 +29,10 @@ const ResetPassword:  FunctionComponent<ComponentProps> = (props: ComponentProps
 
 
     if (UserUtil.isLoggedIn(props.statusPageId)) {
+        Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
+    }
+
+    if (!props.isPrivatePage) {
         Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
     }
 

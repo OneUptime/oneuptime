@@ -19,6 +19,7 @@ export interface ComponentProps {
     isPreviewPage: boolean;
     statusPageName: string; 
     logoFileId: ObjectID;
+    isPrivatePage: boolean;
 }
 
 const LoginPage: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -26,6 +27,10 @@ const LoginPage: FunctionComponent<ComponentProps> = (props: ComponentProps) => 
 
     if (!props.statusPageId) {
         return <></>
+    }
+
+    if (!props.isPrivatePage) {
+        Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
     }
 
     if (UserUtil.isLoggedIn(props.statusPageId)) {

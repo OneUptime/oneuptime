@@ -16,6 +16,7 @@ export interface ComponentProps {
     isPreviewPage: boolean;
     statusPageName: string; 
     logoFileId: ObjectID;
+    isPrivatePage: boolean;
 }
 
 const ForgotPassword:  FunctionComponent<ComponentProps> = (props: ComponentProps)=> {
@@ -28,7 +29,10 @@ const ForgotPassword:  FunctionComponent<ComponentProps> = (props: ComponentProp
         return <></>
     }
 
-
+    if (!props.isPrivatePage) {
+        Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
+    }
+    
     if (UserUtil.isLoggedIn(props.statusPageId)) {
         Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
     }
