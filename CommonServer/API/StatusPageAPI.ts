@@ -100,17 +100,7 @@ export default class StatusPageAPI extends BaseAPI<
 
                     const objectId: ObjectID = statusPageDomain.statusPageId!;
 
-                    if (
-                        !(await this.service.hasReadAccess(
-                            objectId,
-                            await this.getDatabaseCommonInteractionProps(req)
-                        ))
-                    ) {
-                        throw new NotAuthorizedException(
-                            'You are not authorize to access this status page'
-                        );
-                    }
-
+                    
                     return Response.sendJsonObjectResponse(req, res, {
                         statusPageId: objectId.toString(),
                     });
@@ -134,17 +124,6 @@ export default class StatusPageAPI extends BaseAPI<
                     const objectId: ObjectID = new ObjectID(
                         req.params['statusPageId'] as string
                     );
-
-                    if (
-                        !(await this.service.hasReadAccess(
-                            objectId,
-                            await this.getDatabaseCommonInteractionProps(req)
-                        ))
-                    ) {
-                        throw new NotAuthorizedException(
-                            'You are not authorize to access this status page'
-                        );
-                    }
 
                     const select: Select<StatusPage> = {
                         _id: true,
@@ -285,9 +264,12 @@ export default class StatusPageAPI extends BaseAPI<
                     if (
                         !(await this.service.hasReadAccess(
                             objectId,
-                            await this.getDatabaseCommonInteractionProps(req)
+                            await this.getDatabaseCommonInteractionProps(req),
+                            req
                         ))
                     ) {
+                        
+
                         throw new NotAuthorizedException(
                             'You are not authorize to access this status page'
                         );
@@ -301,14 +283,23 @@ export default class StatusPageAPI extends BaseAPI<
                             select: {
                                 _id: true,
                                 projectId: true,
+                                isPublicStatusPage: true,
                             },
                             props: {
                                 isRoot: true,
                             },
                         });
+                    
+                    
+            
 
                     if (!statusPage) {
                         throw new BadDataException('Status Page not found');
+                    }
+
+
+                    if (!statusPage.isPublicStatusPage) {
+                        
                     }
 
                     //get monitor statuses
@@ -746,7 +737,8 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getIncidents(
                         objectId,
                         null,
-                        await this.getDatabaseCommonInteractionProps(req)
+                        await this.getDatabaseCommonInteractionProps(req),
+                        req, 
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -775,7 +767,8 @@ export default class StatusPageAPI extends BaseAPI<
                         await this.getScheduledMaintenanceEvents(
                             objectId,
                             null,
-                            await this.getDatabaseCommonInteractionProps(req)
+                            await this.getDatabaseCommonInteractionProps(req),
+                            req, 
                         );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -803,7 +796,8 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getAnnouncements(
                         objectId,
                         null,
-                        await this.getDatabaseCommonInteractionProps(req)
+                        await this.getDatabaseCommonInteractionProps(req),
+                        req, 
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -835,7 +829,8 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getIncidents(
                         objectId,
                         incidentId,
-                        await this.getDatabaseCommonInteractionProps(req)
+                        await this.getDatabaseCommonInteractionProps(req),
+                        req, 
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -868,7 +863,8 @@ export default class StatusPageAPI extends BaseAPI<
                         await this.getScheduledMaintenanceEvents(
                             objectId,
                             scheduledMaintenanceId,
-                            await this.getDatabaseCommonInteractionProps(req)
+                            await this.getDatabaseCommonInteractionProps(req),
+                            req, 
                         );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -900,7 +896,8 @@ export default class StatusPageAPI extends BaseAPI<
                     const response: JSONObject = await this.getAnnouncements(
                         objectId,
                         announcementId,
-                        await this.getDatabaseCommonInteractionProps(req)
+                        await this.getDatabaseCommonInteractionProps(req),
+                        req, 
                     );
 
                     return Response.sendJsonObjectResponse(req, res, response);
@@ -914,9 +911,10 @@ export default class StatusPageAPI extends BaseAPI<
     public async getScheduledMaintenanceEvents(
         statusPageId: ObjectID,
         scheduledMaintenanceId: ObjectID | null,
-        props: DatabaseCommonInteractionProps
+        props: DatabaseCommonInteractionProps,
+        req: ExpressRequest
     ): Promise<JSONObject> {
-        if (!(await this.service.hasReadAccess(statusPageId, props))) {
+        if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
             throw new NotAuthorizedException(
                 'You are not authorize to access this status page'
             );
@@ -1106,9 +1104,10 @@ export default class StatusPageAPI extends BaseAPI<
     public async getAnnouncements(
         statusPageId: ObjectID,
         announcementId: ObjectID | null,
-        props: DatabaseCommonInteractionProps
+        props: DatabaseCommonInteractionProps,
+        req: ExpressRequest
     ): Promise<JSONObject> {
-        if (!(await this.service.hasReadAccess(statusPageId, props))) {
+        if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
             throw new NotAuthorizedException(
                 'You are not authorize to access this status page'
             );
@@ -1213,9 +1212,10 @@ export default class StatusPageAPI extends BaseAPI<
     public async getIncidents(
         statusPageId: ObjectID,
         incidentId: ObjectID | null,
-        props: DatabaseCommonInteractionProps
+        props: DatabaseCommonInteractionProps,
+        req: ExpressRequest
     ): Promise<JSONObject> {
-        if (!(await this.service.hasReadAccess(statusPageId, props))) {
+        if (!(await this.service.hasReadAccess(statusPageId, props, req))) {
             throw new NotAuthorizedException(
                 'You are not authorize to access this status page'
             );

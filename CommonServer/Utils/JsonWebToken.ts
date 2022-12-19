@@ -7,10 +7,11 @@ import { EncryptionSecret } from '../Config';
 import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Name from 'Common/Types/Name';
 import User from 'Model/Models/User';
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 
 class JSONWebToken {
     public static sign(
-        data: JSONWebTokenData | User | string,
+        data: JSONWebTokenData | User | StatusPagePrivateUser | string,
         expiresInSeconds: number
     ): string {
         let jsonObj: JSONObject;
@@ -19,19 +20,29 @@ class JSONWebToken {
             jsonObj = {
                 data: data.toString(),
             };
-        } else if (!(data instanceof User)) {
-            jsonObj = {
-                userId: data.userId.toString(),
-                email: data.email.toString(),
-                name: data.name.toString(),
-                isMasterAdmin: data.isMasterAdmin,
-            };
-        } else {
+        } else if ((data instanceof User)) {
             jsonObj = {
                 userId: data.id!.toString(),
                 email: data.email!.toString(),
                 name: data.name!.toString(),
                 isMasterAdmin: data.isMasterAdmin!,
+            };
+
+           
+        }else if ((data instanceof StatusPagePrivateUser)) {
+            jsonObj = {
+                userId: data.id!.toString(),
+                email: data.email!.toString(),
+                statusPageId: data.statusPageId?.toString(),
+            };
+
+           
+        } else {
+            jsonObj = {
+                userId: data.userId.toString(),
+                email: data.email.toString(),
+                name: data.name.toString(),
+                isMasterAdmin: data.isMasterAdmin,
             };
         }
 
@@ -46,6 +57,16 @@ class JSONWebToken {
                 jwt.verify(token, EncryptionSecret.toString()) as string
             );
             const decoded: JSONObject = JSON.parse(decodedToken);
+
+            if (decoded['statusPageId']) {
+                return {
+                    userId: new ObjectID(decoded['userId'] as string),
+                    email: new Email(decoded['email'] as string),
+                    statusPageId: new ObjectID(decoded['statusPageId'] as string),
+                    isMasterAdmin: false,
+                    name: new Name('User')
+                };
+            }
 
             return {
                 userId: new ObjectID(decoded['userId'] as string),

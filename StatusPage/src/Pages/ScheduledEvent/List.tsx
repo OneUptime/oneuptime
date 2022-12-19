@@ -30,6 +30,9 @@ import Dictionary from 'Common/Types/Dictionary';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { getScheduledEventEventItem } from './Detail';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Route from 'Common/Types/API/Route';
+import User from '../../Utils/User';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -51,9 +54,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
     ] = useState<Array<ScheduledMaintenanceStateTimeline>>([]);
     const [parsedData, setParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
+    
+        if (props.statusPageId && props.isPrivatePage && !User.isLoggedIn(props.statusPageId)) {
+            Navigation.navigate(new Route( props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'))
+        }
 
     useAsyncEffect(async () => {
         try {
+            if (!props.statusPageId) {
+                return
+            }
             setIsLoading(true);
 
             const id: ObjectID = LocalStorage.getItem(
@@ -68,7 +78,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/scheduled-maintenance-events/${id.toString()}`
                     ),
                     {},
-                    {}
+                    {
+                        'status-page-token': User.getAccessToken(props.statusPageId)
+                    }
                 );
             const data: JSONObject = response.data;
 

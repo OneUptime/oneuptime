@@ -1,4 +1,4 @@
-import UserUtil from 'CommonUI/src/Utils/User';
+import UserUtil from './User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Email from 'Common/Types/Email';
 import ObjectID from 'Common/Types/ObjectID';
@@ -16,10 +16,12 @@ export default abstract class LoginUtil {
         ) as User;
         const token: string = value['token'] as string;
 
-        UserUtil.setAccessToken(token);
-        UserUtil.setEmail(user.email as Email);
-        UserUtil.setUserId(user.id as ObjectID);
-        UserUtil.setName(user.name as Name);
+        const statusPageId: ObjectID = new ObjectID(value['statusPageId'] as string);
+
+        UserUtil.setAccessToken(statusPageId, token);
+        UserUtil.setEmail(statusPageId, user.email as Email);
+        UserUtil.setUserId(statusPageId, user.id as ObjectID);
+        UserUtil.setName(statusPageId, user.name as Name);
 
         // go to dashboard, user should be logged in.
         Navigation.navigate(DASHBOARD_URL);

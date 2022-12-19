@@ -1,17 +1,38 @@
 import React, { FunctionComponent, useState } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
-import User from 'Model/Models/User';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
 import Link from 'CommonUI/src/Components/Link/Link';
 import { FORGOT_PASSWORD_API_URL } from '../../Utils/ApiPaths';
 import URL from 'Common/Types/API/URL';
+import ObjectID from 'Common/Types/ObjectID';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import UserUtil from '../../Utils/User';
+import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
+import { FILE_URL } from 'CommonUI/src/Config';
 
-const ForgotPassword: FunctionComponent = () => {
+export interface ComponentProps { 
+    statusPageId: ObjectID | null;
+    isPreviewPage: boolean;
+    statusPageName: string; 
+    logoFileId: ObjectID;
+}
+
+const ForgotPassword:  FunctionComponent<ComponentProps> = (props: ComponentProps)=> {
     const apiUrl: URL = FORGOT_PASSWORD_API_URL;
 
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
+
+
+    if (!props.statusPageId) {
+        return <></>
+    }
+
+
+    if (UserUtil.isLoggedIn(props.statusPageId)) {
+        Navigation.navigate(new Route(props.isPreviewPage ? `/status-page/${props.statusPageId}` : '/'));
+    }
+
 
     return (
         <div className="auth-page">
@@ -30,7 +51,7 @@ const ForgotPassword: FunctionComponent = () => {
                                         >
                                             <img
                                                 style={{ height: '40px' }}
-                                                src={`${OneUptimeLogo}`}
+                                                src={`${URL.fromString(FILE_URL.toString()).addRoute("/image/" + props.logoFileId.toString())}`}
                                             />
                                         </div>
                                         <div className="text-center">
@@ -55,8 +76,8 @@ const ForgotPassword: FunctionComponent = () => {
                                         </div>
 
                                         {!isSuccess && (
-                                            <ModelForm<User>
-                                                modelType={User}
+                                            <ModelForm<StatusPagePrivateUser>
+                                                modelType={StatusPagePrivateUser}
                                                 id="login-form"
                                                 apiUrl={apiUrl}
                                                 fields={[
@@ -84,7 +105,7 @@ const ForgotPassword: FunctionComponent = () => {
                                                             <Link
                                                                 to={
                                                                     new Route(
-                                                                        '/accounts/login'
+                                                                        props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'
                                                                     )
                                                                 }
                                                             >
@@ -103,7 +124,7 @@ const ForgotPassword: FunctionComponent = () => {
                                                 <Link
                                                     to={
                                                         new Route(
-                                                            '/accounts/login'
+                                                            props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'
                                                         )
                                                     }
                                                     className="underline-on-hover text-primary fw-semibold"

@@ -40,6 +40,8 @@ import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
 import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Monitor from 'Model/Models/Monitor';
+import User from '../../Utils/User';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -86,8 +88,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
         null
     );
 
+    if (props.statusPageId && props.isPrivatePage && !User.isLoggedIn(props.statusPageId)) {
+        Navigation.navigate(new Route( props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'))
+    }
+
     useAsyncEffect(async () => {
         try {
+            if (!props.statusPageId) {
+                return
+            }
             setIsLoading(true);
 
             const id: ObjectID = LocalStorage.getItem(
@@ -102,7 +111,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/overview/${id.toString()}`
                     ),
                     {},
-                    {}
+                    {
+                        'status-page-token': User.getAccessToken(props.statusPageId)
+                    }
                 );
             const data: JSONObject = response.data;
 

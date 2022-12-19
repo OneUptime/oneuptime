@@ -9,6 +9,9 @@ import StatusPageDomainService from './StatusPageDomainService';
 import URL from 'Common/Types/API/URL';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import { Domain, HttpProtocol } from '../Config';
+import { ExpressRequest } from '../Utils/Express';
+import JSONWebToken from '../Utils/JsonWebToken';
+import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 
 export class Service extends DatabaseService<StatusPage> {
     public constructor(postgresDatabase?: PostgresDatabase) {
@@ -17,7 +20,8 @@ export class Service extends DatabaseService<StatusPage> {
 
     public async hasReadAccess(
         statusPageId: ObjectID,
-        props: DatabaseCommonInteractionProps
+        props: DatabaseCommonInteractionProps,
+        req: ExpressRequest
     ): Promise<boolean> {
         const count: PositiveNumber = await this.countBy({
             query: {
@@ -50,6 +54,19 @@ export class Service extends DatabaseService<StatusPage> {
         });
 
         if (items.length > 0) {
+            return true;
+        }
+
+        // token decode. 
+        const token = req.headers['status-page-token']; 
+
+        if (!token) {
+            return false; 
+        }
+
+        const decoded: JSONWebTokenData = JSONWebToken.decode(token as string);
+
+        if (decoded.statusPageId?.toString() === statusPageId.toString()) {
             return true;
         }
 

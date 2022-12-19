@@ -11,7 +11,6 @@ import Express, {
     NextFunction,
 } from 'CommonServer/Utils/Express';
 import { JSONObject } from 'Common/Types/JSON';
-import User from 'Model/Models/User';
 import StatusPagePrivateUserService from 'CommonServer/Services/StatusPagePrivateUserService';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -261,8 +260,8 @@ router.post(
 
             const user: StatusPagePrivateUser = JSONFunctions.fromJSON(
                 data as JSONObject,
-                User
-            ) as User;
+                StatusPagePrivateUser
+            ) as StatusPagePrivateUser;
 
             await user.password?.hashValue(EncryptionSecret);
 
@@ -273,6 +272,7 @@ router.post(
                         _id: true,
                         password: true,
                         email: true,
+                        statusPageId: true
                     },
                     props: {
                         isRoot: true,
@@ -287,7 +287,7 @@ router.post(
 
                 return Response.sendJsonObjectResponse(req, res, {
                     token: token,
-                    user: JSONFunctions.toJSON(alreadySavedUser, User),
+                    user: JSONFunctions.toJSON(alreadySavedUser, StatusPagePrivateUser),
                 });
             }
             throw new BadDataException(

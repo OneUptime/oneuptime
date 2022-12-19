@@ -32,6 +32,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import RouteParams from './Utils/RouteParams';
+import ObjectID from 'Common/Types/ObjectID';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -39,6 +40,9 @@ const App: FunctionComponent = () => {
     Navigation.setParams(useParams());
 
     const [isPreview, setIsPreview] = useState<boolean>(false);
+    const [statusPageName, setStatusPageName] = useState<string>('');
+    const [statusPageLogoFileId, setStatusPageLogoFileId] = useState<string>('');
+    const [statusPageId, setStatusPageId] = useState<string>('');
 
     useEffect(() => {
         setIsPreview(isPreviewPage());
@@ -77,6 +81,34 @@ const App: FunctionComponent = () => {
                 if (javascript) {
                     setJavaScript(javascript);
                 }
+
+
+                const statusPageName: string | null =
+                    JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage.pageTitle'
+                    ) as string | null;
+
+
+                const statusPageId: string | null =
+                    JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage._id'
+                    ) as string | null;
+
+                setStatusPageId(statusPageId || '');
+
+
+                setStatusPageName(statusPageName || 'Status Page');
+
+
+                const fileId: string | null =
+                    JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage.logoFileId'
+                    ) as string | null;
+
+                setStatusPageLogoFileId(fileId || '');
             }}
         >
             <Routes>
@@ -100,7 +132,10 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.LOGIN]?.toString() || ''}
                     element={
                         <Login
-
+                            isPreviewPage={isPreview}
+                            statusPageName={statusPageName}
+                            logoFileId={new ObjectID(statusPageLogoFileId)}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -109,8 +144,10 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.RESET_PASSWORD]?.toString() || ''}
                     element={
                         <ResetPassword
-
-
+                            isPreviewPage={isPreview}
+                            statusPageName={statusPageName}
+                            logoFileId={new ObjectID(statusPageLogoFileId)}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -119,7 +156,10 @@ const App: FunctionComponent = () => {
                     path={RouteMap[PageMap.FORGOT_PASSWORD]?.toString() || ''}
                     element={
                         <ForgotPassword
-
+                            isPreviewPage={isPreview}
+                            statusPageName={statusPageName}
+                            logoFileId={new ObjectID(statusPageLogoFileId)}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -397,7 +437,10 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <Login
-
+                            isPreviewPage={isPreview}
+                            statusPageName={statusPageName}
+                            logoFileId={new ObjectID(statusPageLogoFileId)}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -411,7 +454,10 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ResetPassword
-
+                            isPreviewPage={isPreview}
+                            statusPageName={statusPageName}
+                            logoFileId={new ObjectID(statusPageLogoFileId)}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />
@@ -426,7 +472,10 @@ const App: FunctionComponent = () => {
                     }
                     element={
                         <ForgotPassword
-
+                            isPreviewPage={isPreview}
+                            statusPageName={statusPageName}
+                            logoFileId={new ObjectID(statusPageLogoFileId)}
+                            statusPageId={new ObjectID(statusPageId)}
                         />
                     }
                 />

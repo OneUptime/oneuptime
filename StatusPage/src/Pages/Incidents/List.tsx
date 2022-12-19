@@ -30,6 +30,9 @@ import Dictionary from 'Common/Types/Dictionary';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { getIncidentEventItem } from './Detail';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import User from '../../Utils/User';
+import Route from 'Common/Types/API/Route';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -48,9 +51,17 @@ const Overview: FunctionComponent<PageComponentProps> = (
     >([]);
     const [parsedData, setParsedData] =
         useState<EventHistoryListComponentProps | null>(null);
+    
+    
+        if (props.statusPageId && props.isPrivatePage && !User.isLoggedIn(props.statusPageId)) {
+            Navigation.navigate(new Route( props.isPreviewPage ? `/status-page/${props.statusPageId}/login` : '/login'))
+        }
 
     useAsyncEffect(async () => {
         try {
+            if (!props.statusPageId) {
+                return
+            }
             setIsLoading(true);
 
             const id: ObjectID = LocalStorage.getItem(
@@ -65,7 +76,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         `/status-page/incidents/${id.toString()}`
                     ),
                     {},
-                    {}
+                    {
+                        'status-page-token': User.getAccessToken(props.statusPageId)
+                    }
                 );
             const data: JSONObject = response.data;
 

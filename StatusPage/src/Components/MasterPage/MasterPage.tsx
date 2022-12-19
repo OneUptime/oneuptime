@@ -23,6 +23,9 @@ import BaseModel from 'Common/Models/BaseModel';
 import File from 'Model/Models/File';
 import { ImageFunctions } from 'CommonUI/src/Components/Image/Image';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import LoginPage from '../../Pages/Accounts/Login';
+import ForgotPassword from '../../Pages/Accounts/ForgotPassword';
+import ResetPassword from '../../Pages/Accounts/ResetPassword';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -152,6 +155,18 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
 
     if (error) {
         return <ErrorMessage error={error} />;
+    }
+
+    if (props.children instanceof LoginPage) {
+        return <>{props.children}</>;
+    }
+
+    if (props.children instanceof ForgotPassword) {
+        return <>{props.children}</>;
+    }
+
+    if (props.children instanceof ResetPassword) {
+        return <>{props.children}</>;
     }
 
     return (
