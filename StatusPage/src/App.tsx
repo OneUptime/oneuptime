@@ -19,6 +19,11 @@ import ScheduledEventList from './Pages/ScheduledEvent/List';
 import ScheduledEventDetail from './Pages/ScheduledEvent/Detail';
 import Subscribe from './Pages/Subscribe/Subscribe';
 
+// Accounts. 
+import Login from './Pages/Accounts/Login';
+import ForgotPassword from './Pages/Accounts/ForgotPassword';
+import ResetPassword from './Pages/Accounts/ResetPassword';
+
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
@@ -90,6 +95,35 @@ const App: FunctionComponent = () => {
                     }
                 />
 
+
+                <PageRoute
+                    path={RouteMap[PageMap.LOGIN]?.toString() || ''}
+                    element={
+                        <Login
+
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.RESET_PASSWORD]?.toString() || ''}
+                    element={
+                        <ResetPassword
+
+
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.FORGOT_PASSWORD]?.toString() || ''}
+                    element={
+                        <ForgotPassword
+
+                        />
+                    }
+                />
+
                 <PageRoute
                     path={
                         RouteMap[PageMap.SCHEDULED_EVENT_DETAIL]?.toString() ||
@@ -99,7 +133,7 @@ const App: FunctionComponent = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_EVENT_DETAIL
+                                PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
@@ -246,7 +280,7 @@ const App: FunctionComponent = () => {
                             isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -267,7 +301,7 @@ const App: FunctionComponent = () => {
                             isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                         />
@@ -287,7 +321,7 @@ const App: FunctionComponent = () => {
                             isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_INCIDENT_DETAIL
+                                PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -326,7 +360,7 @@ const App: FunctionComponent = () => {
                             isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                         />
@@ -347,9 +381,52 @@ const App: FunctionComponent = () => {
                             isPreviewPage={isPreview}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
+                        />
+                    }
+                />
+
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.PREVIEW_LOGIN
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <Login
+
+                        />
+                    }
+                />
+
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.PREVIEW_RESET_PASSWORD
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <ResetPassword
+
+                        />
+                    }
+                />
+
+
+
+                <PageRoute
+                    path={
+                        RouteMap[
+                            PageMap.PREVIEW_FORGOT_PASSWORD
+                        ]?.toString() || ''
+                    }
+                    element={
+                        <ForgotPassword
+
                         />
                     }
                 />
