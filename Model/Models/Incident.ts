@@ -376,4 +376,16 @@ export default class Incident extends BaseModel {
         transformer: ObjectID.getDatabaseTransformer(),
     })
     public changeMonitorStatusToId?: ObjectID = undefined;
+
+    @ColumnAccessControl({
+        create: [],
+        read: [],
+        update: [],
+    })
+    @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
+    @Column({
+        type: ColumnType.Boolean,
+        default: false,
+    })
+    public isStatusPageSubscribersNotifiedOnIncidentCreated?: boolean = undefined;
 }

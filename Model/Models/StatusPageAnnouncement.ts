@@ -307,8 +307,7 @@ export default class StatusPageAnnouncement extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.CurrentUser],
-
+        read: [],
         update: [],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
