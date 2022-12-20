@@ -15,7 +15,10 @@ const app: ExpressApplication = Express.getExpressApp();
 
 const APP_NAME: string = 'File';
 
-app.use(`/${APP_NAME.toLocaleLowerCase()}`, new BaseAPI<File, FileServiceType>(File, FileService).getRouter());
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<File, FileServiceType>(File, FileService).getRouter()
+);
 
 // File Serve API.
 app.use(`/${APP_NAME.toLocaleLowerCase()}`, new FileAPI().router);
