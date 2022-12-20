@@ -25,7 +25,7 @@ export default class UserAPI extends BaseAPI<
         super(BillingPaymentMethod, BillingPaymentMethodService);
 
         this.router.post(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/setup`,
+            `${new this.entityType().getCrudApiPath()?.toString()}/setup`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,

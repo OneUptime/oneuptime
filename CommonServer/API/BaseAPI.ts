@@ -39,10 +39,9 @@ export default class BaseAPI<
     public constructor(type: { new (): TBaseModel }, service: TBaseService) {
         this.entityType = type;
         const router: ExpressRouter = Express.getRouter();
-
         // Create
         router.post(
-            `/${new this.entityType().getCrudApiPath()?.toString()}`,
+            `${new this.entityType().getCrudApiPath()?.toString()}`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -59,7 +58,7 @@ export default class BaseAPI<
 
         // List
         router.post(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/get-list`,
+            `${new this.entityType().getCrudApiPath()?.toString()}/get-list`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -76,7 +75,7 @@ export default class BaseAPI<
 
         // count
         router.post(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/count`,
+            `${new this.entityType().getCrudApiPath()?.toString()}/count`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -93,7 +92,7 @@ export default class BaseAPI<
 
         // Get Item
         router.post(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/:id/get-item`,
             UserMiddleware.getUserMiddleware,
@@ -112,7 +111,7 @@ export default class BaseAPI<
 
         // Update
         router.put(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
+            `${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -129,7 +128,7 @@ export default class BaseAPI<
 
         // Delete
         router.delete(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/:id`,
+            `${new this.entityType().getCrudApiPath()?.toString()}/:id`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
