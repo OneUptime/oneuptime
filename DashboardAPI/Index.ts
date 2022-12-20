@@ -191,25 +191,37 @@ const app: ExpressApplication = Express.getExpressApp();
 const APP_NAME: string = 'api';
 
 //attach api's
-app.use(new BaseAPI<User, UserServiceType>(User, UserService).getRouter());
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<User, UserServiceType>(User, UserService).getRouter()
+);
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Project, ProjectServiceType>(
         Project,
         ProjectService
     ).getRouter()
 );
-app.use(new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter());
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<Probe, ProbeServiceType>(Probe, ProbeService).getRouter()
+);
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageAnnouncement, StatusPageAnnouncementServiceType>(
         StatusPageAnnouncement,
         StatusPageAnnouncementService
     ).getRouter()
 );
 
-app.use(new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter());
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<Team, TeamServiceType>(Team, TeamService).getRouter()
+);
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<TeamMember, TeamMemberServiceType>(
         TeamMember,
         TeamMemberService
@@ -217,6 +229,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<TeamPermission, TeamPermissionServiceType>(
         TeamPermission,
         TeamPermissionService
@@ -224,6 +237,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<MonitorStatus, MonitorStatusServiceType>(
         MonitorStatus,
         MonitorStatusService
@@ -231,6 +245,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<IncidentState, IncidentStateServiceType>(
         IncidentState,
         IncidentStateService
@@ -238,6 +253,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<
         ScheduledMaintenanceState,
         ScheduledMaintenanceStateServiceType
@@ -245,6 +261,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageResource, StatusPageResourceServiceType>(
         StatusPageResource,
         StatusPageResourceService
@@ -252,10 +269,12 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Domain, DomainServiceType>(Domain, DomainService).getRouter()
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageGroup, StatusPageGroupServiceType>(
         StatusPageGroup,
         StatusPageGroupService
@@ -263,6 +282,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageDomain, StatusPageDomainServiceType>(
         StatusPageDomain,
         StatusPageDomainService
@@ -270,6 +290,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<IncidentStateTimeline, IncidentStateTimelineServiceType>(
         IncidentStateTimeline,
         IncidentStateTimelineService
@@ -277,6 +298,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<
         ScheduledMaintenanceStateTimeline,
         ScheduledMaintenanceStateTimelineServiceType
@@ -287,6 +309,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPagePrivateUser, StatusPagePrivateUserServiceType>(
         StatusPagePrivateUser,
         StatusPagePrivateUserService
@@ -294,6 +317,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Incident, IncidentServiceType>(
         Incident,
         IncidentService
@@ -301,6 +325,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<ScheduledMaintenance, ScheduledMaintenanceServiceType>(
         ScheduledMaintenance,
         ScheduledMaintenanceService
@@ -308,9 +333,11 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<ApiKey, ApiKeyServiceType>(ApiKey, ApiKeyService).getRouter()
 );
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
         ApiKeyPermission,
         ApiKeyPermissionService
@@ -318,6 +345,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(
         StatusPageHeaderLink,
         StatusPageHeaderLinkService
@@ -325,6 +353,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<StatusPageFooterLink, StatusPageFooterLinkServiceType>(
         StatusPageFooterLink,
         StatusPageFooterLinkService
@@ -332,9 +361,11 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<ApiKey, ApiKeyServiceType>(ApiKey, ApiKeyService).getRouter()
 );
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<ApiKeyPermission, ApiKeyPermissionServiceType>(
         ApiKeyPermission,
         ApiKeyPermissionService
@@ -342,15 +373,20 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<IncidentSeverity, IncidentSeverityServiceType>(
         IncidentSeverity,
         IncidentSeverityService
     ).getRouter()
 );
 
-app.use(new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter());
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<Label, LabelServiceType>(Label, LabelService).getRouter()
+);
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<EmailVerificationToken, EmailVerificationTokenServiceType>(
         EmailVerificationToken,
         EmailVerificationTokenService
@@ -358,6 +394,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<ProjectSmtpConfig, ProjectSMTPConfigServiceType>(
         ProjectSmtpConfig,
         ProjectSmtpConfigService
@@ -365,6 +402,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<Monitor, MonitorServiceType>(
         Monitor,
         MonitorService
@@ -372,18 +410,29 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<MonitorTimelineStatus, MonitorTimelineStatusServiceType>(
         MonitorTimelineStatus,
         MonitorTimelineStatusService
     ).getRouter()
 );
 
-app.use(new StatusPageAPI().getRouter());
-app.use(new StatusPageSubscriberAPI().getRouter());
-app.use(new BillingPaymentMethodAPI().getRouter());
-app.use(new BillingInvoiceAPI().getRouter());
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, new StatusPageAPI().getRouter());
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new StatusPageSubscriberAPI().getRouter()
+);
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BillingPaymentMethodAPI().getRouter()
+);
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BillingInvoiceAPI().getRouter()
+);
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<
         ScheduledMaintenancePublicNote,
         ScheduledMaintenancePublicNoteServiceType
@@ -394,6 +443,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<
         ScheduledMaintenanceInternalNote,
         ScheduledMaintenanceInternalNoteServiceType
@@ -404,6 +454,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<IncidentPublicNote, IncidentPublicNoteServiceType>(
         IncidentPublicNote,
         IncidentPublicNoteService
@@ -411,6 +462,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<IncidentInternalNote, IncidentInternalNoteServiceType>(
         IncidentInternalNote,
         IncidentInternalNoteService
@@ -418,6 +470,7 @@ app.use(
 );
 
 app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
     new BaseAPI<OnCallDuty, OnCallDutyServiceType>(
         OnCallDuty,
         OnCallDutyService

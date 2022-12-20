@@ -17,7 +17,7 @@ export default class FileAPI {
         this.router = Express.getRouter();
 
         this.router.get(
-            `//image/:imageId`,
+            `/image/:imageId`,
             async (
                 req: ExpressRequest,
                 res: ExpressResponse,

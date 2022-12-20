@@ -18,7 +18,7 @@ export default class StatusPageSubscriberAPI extends BaseAPI<
         super(StatusPageSubscriber, StatusPageSubscriberService);
 
         this.router.get(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/unsubscribe/:id`,
             async (

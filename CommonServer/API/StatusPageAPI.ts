@@ -60,7 +60,7 @@ export default class StatusPageAPI extends BaseAPI<
         super(StatusPage, StatusPageService);
 
         this.router.post(
-            `/${new this.entityType().getCrudApiPath()?.toString()}/domain`,
+            `${new this.entityType().getCrudApiPath()?.toString()}/domain`,
             UserMiddleware.getUserMiddleware,
             async (
                 req: ExpressRequest,
@@ -110,7 +110,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         this.router.post(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/master-page/:statusPageId`,
             UserMiddleware.getUserMiddleware,
@@ -247,7 +247,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         this.router.post(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/overview/:statusPageId`,
             UserMiddleware.getUserMiddleware,
@@ -710,7 +710,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         this.router.post(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/incidents/:statusPageId`,
             UserMiddleware.getUserMiddleware,
@@ -739,7 +739,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         this.router.post(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/scheduled-maintenance-events/:statusPageId`,
             UserMiddleware.getUserMiddleware,
@@ -769,7 +769,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         this.router.post(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/announcements/:statusPageId`,
             UserMiddleware.getUserMiddleware,
@@ -798,7 +798,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         this.router.post(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/incidents/:statusPageId/:incidentId`,
             UserMiddleware.getUserMiddleware,
@@ -831,7 +831,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         this.router.post(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/scheduled-maintenance-events/:statusPageId/:scheduledMaintenanceId`,
             UserMiddleware.getUserMiddleware,
@@ -865,7 +865,7 @@ export default class StatusPageAPI extends BaseAPI<
         );
 
         this.router.post(
-            `/${new this.entityType()
+            `${new this.entityType()
                 .getCrudApiPath()
                 ?.toString()}/announcements/:statusPageId/:announcementId`,
             UserMiddleware.getUserMiddleware,
