@@ -27,7 +27,7 @@ const APP_NAME: string = 'workers';
 const app: ExpressApplication = Express.getExpressApp();
 
 //cert routes.
-app.use(StausPageCerts);
+app.use(`/${APP_NAME.toLocaleLowerCase()}`, StausPageCerts);
 
 const init: Function = async (): Promise<void> => {
     try {
