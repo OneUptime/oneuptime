@@ -69,9 +69,12 @@ app.get('/enterprise/demo', (_req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/product/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/public-status-page');
-});
+app.get(
+    '/product/status-page',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect('/product/public-status-page');
+    }
+);
 
 app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/public-status-page');
@@ -111,9 +114,12 @@ app.get(
     }
 );
 
-app.get('/private-status-page', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/private-status-page');
-});
+app.get(
+    '/private-status-page',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.redirect('/product/private-status-page');
+    }
+);
 
 app.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('https://status.oneuptime.com');
