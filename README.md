@@ -78,8 +78,3 @@ We <3 contributions big and small. In priority order (although everything is app
 - Write tests for some of our codebase. [See issues here](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)
 - Work on any issue you like. [See issues here](https://github.com/OneUptime/oneuptime/issues)
 - Open new issues and create new feature requests that you would like to see. [Open issues here](https://github.com/OneUptime/oneuptime/issues)
-
-
-# Contribute
-
-For contribution guidelines, see [CONTRIBUTING](/CONTRIBUTING.md).
