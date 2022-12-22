@@ -65,6 +65,21 @@ bash install.sh
 
 Your instance should be up and running, if that does not work. Please send an email to support@oneuptime.com.
 
+## Philosophy
+
+Our mission is to reduce downtime and increase the number of successful products in the world. To do that, we build a platform that help you understand causes of the downtime, incidents and help reduce toil. Our product is open-source, free and available for everyone to use. 
+
+## Contributing
+
+We <3 contributions big and small. In priority order (although everything is appreciated) with the most helpful first:
+
+- Give us feedback in our [Customer Slack community](https://oneuptimesupport.slack.com/join/shared_invite/zt-1kavkds2f-gegm_wePorvwvM3M_SaoCQ#/shared-invite/email)
+- Talk to developers in our [Developer Slack community](https://join.slack.com/t/oneuptimedev/shared_invite/zt-17r8o7gkz-nITGan_PS9JYJV6WMm_TsQ)
+- Write tests for some of our codebase. [See issues here](https://github.com/OneUptime/oneuptime/issues?q=is%3Aopen+is%3Aissue+label%3A%22write+tests%22)
+- Work on any issue you like. [See issues here](https://github.com/OneUptime/oneuptime/issues)
+- Open new issues and create new feature requests that you would like to see. [Open issues here](https://github.com/OneUptime/oneuptime/issues)
+
+
 # Contribute
 
 For contribution guidelines, see [CONTRIBUTING](/CONTRIBUTING.md).
