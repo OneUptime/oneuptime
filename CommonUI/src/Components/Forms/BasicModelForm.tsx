@@ -1,4 +1,9 @@
-import React, { MutableRefObject, ReactElement, useEffect, useState } from 'react';
+import React, {
+    MutableRefObject,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
@@ -11,10 +16,10 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     id: string;
     onSubmit: (values: FormValues<TBaseModel>) => void;
     onValidate?:
-    | undefined
-    | ((
-        values: FormValues<TBaseModel>
-    ) => FormikErrors<FormValues<TBaseModel>>);
+        | undefined
+        | ((
+              values: FormValues<TBaseModel>
+          ) => FormikErrors<FormValues<TBaseModel>>);
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     submitButtonStyleType?: ButtonStyleType | undefined;
@@ -35,7 +40,6 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
-
     const [formFields, setFormFields] = useState<Fields<TBaseModel>>([]);
 
     let initialValues: FormValues<TBaseModel> = {};
@@ -66,9 +70,10 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
                     ) &&
                     !field.description
                 ) {
-                    field.description = props.model.getDisplayColumnDescriptionAs(
-                        Object.keys(field.field)[0] as string
-                    ) as string;
+                    field.description =
+                        props.model.getDisplayColumnDescriptionAs(
+                            Object.keys(field.field)[0] as string
+                        ) as string;
                 }
             }
 
@@ -76,9 +81,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
         }
 
         setFormFields(fields);
-    }, [props.fields])
-
-
+    }, [props.fields]);
 
     return (
         <BasicForm<TBaseModel>
