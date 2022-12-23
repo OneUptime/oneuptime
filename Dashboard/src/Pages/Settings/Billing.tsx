@@ -213,20 +213,23 @@ const Settings: FunctionComponent<ComponentProps> = (
                                     );
                                 }
 
+                                const isYearlyPlan: boolean =
+                                    SubscriptionPlan.isYearlyPlan(
+                                        item['paymentProviderPlanId'] as string
+                                    );
+
                                 let description: string = plan.isCustomPricing()
                                     ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
                                     : `$${
-                                          isSubsriptionPlanYearly
+                                          isYearlyPlan
                                               ? plan.getYearlySubscriptionAmountInUSD()
                                               : plan.getMonthlySubscriptionAmountInUSD()
                                       } / month per user. Billed ${
-                                          isSubsriptionPlanYearly
-                                              ? 'yearly'
-                                              : 'monthly'
+                                          isYearlyPlan ? 'yearly' : 'monthly'
                                       }.`;
 
                                 if (
-                                    isSubsriptionPlanYearly &&
+                                    isYearlyPlan &&
                                     plan.getYearlySubscriptionAmountInUSD() ===
                                         0
                                 ) {
@@ -235,7 +238,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 }
 
                                 if (
-                                    !isSubsriptionPlanYearly &&
+                                    !isYearlyPlan &&
                                     plan.getMonthlySubscriptionAmountInUSD() ===
                                         0
                                 ) {

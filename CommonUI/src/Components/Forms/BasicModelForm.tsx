@@ -1,4 +1,9 @@
-import React, { MutableRefObject, ReactElement } from 'react';
+import React, {
+    MutableRefObject,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
 import FormValues from './Types/FormValues';
@@ -35,46 +40,53 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
 const BasicModelForm: Function = <TBaseModel extends BaseModel>(
     props: ComponentProps<TBaseModel>
 ): ReactElement => {
+    const [formFields, setFormFields] = useState<Fields<TBaseModel>>([]);
+
     let initialValues: FormValues<TBaseModel> = {};
 
     if (props.initialValues) {
         initialValues = { ...props.initialValues };
     }
 
-    const fields: Fields<TBaseModel> = [];
-    // Prep
-    for (const field of props.fields) {
-        if (Object.keys(field.field).length > 0) {
-            if (
-                props.model.getDisplayColumnTitleAs(
-                    Object.keys(field.field)[0] as string
-                ) &&
-                !field.title
-            ) {
-                field.title = props.model.getDisplayColumnTitleAs(
-                    Object.keys(field.field)[0] as string
-                ) as string;
+    useEffect(() => {
+        const fields: Fields<TBaseModel> = [];
+        // Prep
+        for (const field of props.fields) {
+            if (Object.keys(field.field).length > 0) {
+                if (
+                    props.model.getDisplayColumnTitleAs(
+                        Object.keys(field.field)[0] as string
+                    ) &&
+                    !field.title
+                ) {
+                    field.title = props.model.getDisplayColumnTitleAs(
+                        Object.keys(field.field)[0] as string
+                    ) as string;
+                }
+
+                if (
+                    props.model.getDisplayColumnDescriptionAs(
+                        Object.keys(field.field)[0] as string
+                    ) &&
+                    !field.description
+                ) {
+                    field.description =
+                        props.model.getDisplayColumnDescriptionAs(
+                            Object.keys(field.field)[0] as string
+                        ) as string;
+                }
             }
 
-            if (
-                props.model.getDisplayColumnDescriptionAs(
-                    Object.keys(field.field)[0] as string
-                ) &&
-                !field.description
-            ) {
-                field.description = props.model.getDisplayColumnDescriptionAs(
-                    Object.keys(field.field)[0] as string
-                ) as string;
-            }
+            fields.push(field);
         }
 
-        fields.push(field);
-    }
+        setFormFields(fields);
+    }, [props.fields]);
 
     return (
         <BasicForm<TBaseModel>
             isLoading={props.isLoading || false}
-            fields={fields}
+            fields={formFields}
             id={props.id}
             onValidate={
                 props.onValidate ? props.onValidate : DefaultValidateFunction
