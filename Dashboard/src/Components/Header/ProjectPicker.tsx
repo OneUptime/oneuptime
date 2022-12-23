@@ -41,7 +41,6 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                 className="show-as-link"
                 onClick={() => {
                     setIsSubscriptionPlanYearly(!isSubsriptionPlanYearly);
-                    refreshFields();
                 }}
             >
                 {isSubsriptionPlanYearly ? (
