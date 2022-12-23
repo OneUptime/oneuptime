@@ -190,6 +190,12 @@ export default class SubscriptionPlan {
         return true;
     }
 
+    public static isYearlyPlan(planId: string): boolean {
+        const plan: SubscriptionPlan | undefined =
+            this.getSubscriptionPlanById(planId);
+        return plan?.getYearlyPlanId() === planId;
+    }
+
     public static isUnpaid(subscriptionStatus: string): boolean {
         if (
             subscriptionStatus === 'incomplete' ||

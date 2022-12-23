@@ -113,7 +113,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                             title: 'Description',
                         },
                     ],
-                    modelId: Navigation.getLastParam(),
+                    modelId: Navigation.getLastParamAsObjectID().toString(),
                 }}
             />
 
@@ -361,9 +361,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
 
             <ModelDelete
                 modelType={Team}
-                modelId={
-                    new ObjectID(Navigation.getLastParam()?.toString() || '')
-                }
+                modelId={Navigation.getLastParamAsObjectID()}
                 onDeleteSuccess={() => {
                     Navigation.navigate(
                         RouteMap[PageMap.SETTINGS_TEAMS] as Route

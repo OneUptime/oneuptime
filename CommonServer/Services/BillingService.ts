@@ -3,6 +3,7 @@ import OneUptimeDate from 'Common/Types/Date';
 import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
+import Typeof from 'Common/Types/Typeof';
 import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../Config';
 
@@ -82,7 +83,7 @@ export class BillingService {
         plan: SubscriptionPlan,
         quantity: number,
         isYearly: boolean,
-        hasTrial: boolean
+        trial: boolean | Date | undefined
     ): Promise<{
         id: string;
         trialEndsAt: Date | null;
@@ -91,6 +92,16 @@ export class BillingService {
             throw new BadDataException(
                 'Billing is not enabled for this server.'
             );
+        }
+
+        let trialDate: Date | null = null;
+
+        if (typeof trial === Typeof.Boolean) {
+            trialDate = OneUptimeDate.getSomeDaysAfter(plan.getTrialPeriod());
+        }
+
+        if (trial instanceof Date) {
+            trialDate = trial;
         }
 
         const subscription: Stripe.Response<Stripe.Subscription> =
@@ -105,21 +116,15 @@ export class BillingService {
                     },
                 ],
                 trial_end:
-                    hasTrial && plan.getTrialPeriod() > 0
-                        ? OneUptimeDate.toUnixTimestamp(
-                              OneUptimeDate.getSomeDaysAfter(
-                                  plan.getTrialPeriod()
-                              )
-                          )
+                    trialDate && plan.getTrialPeriod() > 0
+                        ? OneUptimeDate.toUnixTimestamp(trialDate)
                         : 'now',
             });
 
         return {
             id: subscription.id,
             trialEndsAt:
-                hasTrial && plan.getTrialPeriod() > 0
-                    ? OneUptimeDate.getSomeDaysAfter(plan.getTrialPeriod())
-                    : null,
+                trialDate && plan.getTrialPeriod() > 0 ? trialDate : null,
         };
     }
 
@@ -168,7 +173,7 @@ export class BillingService {
             );
         }
 
-        let subscription: Stripe.Response<Stripe.Subscription> =
+        const subscription: Stripe.Response<Stripe.Subscription> =
             await this.stripe.subscriptions.retrieve(subscriptionId);
 
         if (!subscription) {
@@ -184,33 +189,22 @@ export class BillingService {
             );
         }
 
-        subscription = await this.stripe.subscriptions.update(subscriptionId, {
-            items: [
-                {
-                    price: isYearly
-                        ? newPlan.getYearlyPlanId()
-                        : newPlan.getMonthlyPlanId(),
-                    quantity: quantity,
-                },
-            ],
-            trial_end:
-                endTrialAt && OneUptimeDate.isInTheFuture(endTrialAt)
-                    ? OneUptimeDate.toUnixTimestamp(endTrialAt)
-                    : 'now',
-        });
+        await this.cancelSubscription(subscriptionId);
 
-        const subscriptionItemId: string | undefined =
-            subscription.items.data[0]?.id;
-
-        if (!subscriptionItemId) {
-            throw new BadDataException('Subscription Item not found');
-        }
-
-        await this.stripe.subscriptionItems.del(subscriptionItemId);
+        const subscribetoPlan: {
+            id: string;
+            trialEndsAt: Date | null;
+        } = await this.subscribeToPlan(
+            subscription.customer.toString(),
+            newPlan,
+            quantity,
+            isYearly,
+            endTrialAt
+        );
 
         return {
-            id: subscription.id,
-            trialEndsAt: endTrialAt,
+            id: subscribetoPlan.id,
+            trialEndsAt: subscribetoPlan.trialEndsAt || undefined,
         };
     }
 

@@ -3,6 +3,7 @@ import { NavigateFunction, Location, Params } from 'react-router-dom';
 import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Hostname from 'Common/Types/API/Hostname';
+import ObjectID from 'Common/Types/ObjectID';
 
 abstract class Navigation {
     private static navigateHook: NavigateFunction;
@@ -57,6 +58,14 @@ abstract class Navigation {
         return URL.fromString(window.location.href).getLastRoute(
             getFromLastRoute
         );
+    }
+
+    public static getLastParamAsObjectID(getFromLastRoute?: number): ObjectID {
+        const param: Route | null = URL.fromString(
+            window.location.href
+        ).getLastRoute(getFromLastRoute);
+
+        return new ObjectID(param?.toString().replace('/', '') || '');
     }
 
     public static getCurrentRoute(): Route {

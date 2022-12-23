@@ -144,7 +144,10 @@ export class Service extends DatabaseService<Model> {
                         throw new BadDataException('Invalid plan');
                     }
 
-                    await BillingService.changePlan(
+                    const subscription: {
+                        id: string;
+                        trialEndsAt?: Date | undefined;
+                    } = await BillingService.changePlan(
                         project.paymentProviderSubscriptionId as string,
                         plan,
                         project.paymentProviderSubscriptionSeats as number,
@@ -152,6 +155,18 @@ export class Service extends DatabaseService<Model> {
                             updateBy.data.paymentProviderPlanId,
                         project.trialEndsAt
                     );
+
+                    await this.updateOneById({
+                        id: new ObjectID(updateBy.data._id! as string),
+                        data: {
+                            paymentProviderSubscriptionId: subscription.id,
+                            trialEndsAt: subscription.trialEndsAt || new Date(),
+                        },
+                        props: {
+                            isRoot: true,
+                            ignoreHooks: true,
+                        },
+                    });
                 }
             }
         }
