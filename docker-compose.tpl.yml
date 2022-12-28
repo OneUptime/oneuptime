@@ -15,11 +15,13 @@ services:
         {{ else }}
         image:  oneuptime/haraka:{{ .Env.APP_TAG }}
         {{ end }}
+        restart: always
         env_file:
             - ./Haraka/.env
     
     redis:
         image: redis:7.0.3
+        restart: always
         ports:
             - '6379:6379'
         command: redis-server --requirepass "{{ .Env.REDIS_PASSWORD }}"
@@ -50,6 +52,7 @@ services:
         {{ else }}
         image:  oneuptime/mail:{{ .Env.APP_TAG }}
         {{ end }}
+        restart: always
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
@@ -85,6 +88,7 @@ services:
         {{ else }}
         image:  oneuptime/accounts:{{ .Env.APP_TAG }}
         {{ end }}
+        restart: always
         env_file:
             - ./Common/.env
             - ./CommonUI/.env
@@ -119,6 +123,7 @@ services:
         {{ else }}
         image:  oneuptime/dashboard:{{ .Env.APP_TAG }}
         {{ end }}
+        restart: always
         env_file:
             - ./Common/.env
             - ./CommonUI/.env
@@ -157,6 +162,7 @@ services:
         {{ else }}
         image:  oneuptime/status-page:{{ .Env.APP_TAG }}
         {{ end }}
+        restart: always
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
@@ -195,6 +201,7 @@ services:
         {{ else }}
         image:  oneuptime/dashboard-api:{{ .Env.APP_TAG }}
         {{ end }}
+        restart: always
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
@@ -240,6 +247,7 @@ services:
         {{ else }}
         image:  oneuptime/workers:{{ .Env.APP_TAG }}
         {{ end }}
+        restart: always
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
@@ -285,6 +293,7 @@ services:
         {{ else }}
         image:  oneuptime/identity:{{ .Env.APP_TAG }}
         {{ end }}
+        restart: always
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
@@ -329,6 +338,7 @@ services:
         {{ else }}
         image:  oneuptime/file:{{ .Env.APP_TAG }}
         {{ end }}
+        restart: always
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
@@ -361,6 +371,7 @@ services:
             {{ if eq .Env.ENVIRONMENT "development" }}
             - '9235:9229' # Debugging port.
             {{ end }}
+        restart: always
         env_file:
             - ./Common/.env
             - ./CommonServer/.env
