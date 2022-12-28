@@ -153,10 +153,10 @@ touch config.env
 #Run a scirpt to merge config.env.tpl to config.env
 ts-node-esm ./Scripts/Install/MergeEnvTemplate.ts
 
-sudo cat config.env.temp | sudo gomplate > config.env
+cat config.env.temp | gomplate > config.env
 
 
-sudo rm config.env.temp
+rm config.env.temp
 
 # Load env values from config.env
 export $(grep -v '^#' config.env | xargs)
@@ -166,17 +166,17 @@ export $(grep -v '^#' config.env | xargs)
 
 for directory_name in $(find . -type d -maxdepth 1) ; do
     if [ -f "$directory_name/.env.tpl" ]; then
-        sudo cat $directory_name/.env.tpl | sudo gomplate > $directory_name/.env
+        cat $directory_name/.env.tpl | gomplate > $directory_name/.env
     fi
 
     if [ -f "$directory_name/Dockerfile.tpl" ]; then
-        sudo cat $directory_name/Dockerfile.tpl | sudo gomplate > $directory_name/Dockerfile
+        cat $directory_name/Dockerfile.tpl | gomplate > $directory_name/Dockerfile
     fi
 done
 
 # Convert template to docker-compose. 
-sudo cat docker-compose.tpl.yml | sudo gomplate > docker-compose.yml
+cat docker-compose.tpl.yml | gomplate > docker-compose.yml
 
 
 # Convert nginx conf template to nginx
-sudo cat ./Nginx/default.tpl.conf | sudo gomplate > ./Nginx/default.conf
+cat ./Nginx/default.tpl.conf | gomplate > ./Nginx/default.conf
