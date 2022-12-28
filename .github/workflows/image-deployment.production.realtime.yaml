@@ -1,4 +1,4 @@
-name: Realtime Test Image Deploy to DockerHub
+name: Realtime Production Image Deploy to DockerHub
 
 on:
   push:

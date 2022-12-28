@@ -1,4 +1,4 @@
-name: Status Page Test Image Deploy to DockerHub
+name: Status Page Production Image Deploy to DockerHub
 
 on:
   push:

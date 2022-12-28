@@ -1,4 +1,4 @@
-name: Accounts Test Image Deploy to DockerHub
+name: Accounts Production Image Deploy to DockerHub
 
 on:
   push:

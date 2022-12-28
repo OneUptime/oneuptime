@@ -1,4 +1,4 @@
-name: Mail Test Image Deploy to DockerHub
+name: Mail Production Image Deploy to DockerHub
 
 on:
   push:

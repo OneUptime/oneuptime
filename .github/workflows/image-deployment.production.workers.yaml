@@ -1,4 +1,4 @@
-name: Workers Test Image Deploy to DockerHub
+name: Workers Production Image Deploy to DockerHub
 
 on:
   push:
