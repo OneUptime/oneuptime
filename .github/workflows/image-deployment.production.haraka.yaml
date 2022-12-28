@@ -1,4 +1,4 @@
-name: Haraka Test Image Deploy to DockerHub
+name: Haraka Production Image Deploy to DockerHub
 
 on:
   push:

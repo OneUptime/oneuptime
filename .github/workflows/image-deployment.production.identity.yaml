@@ -1,4 +1,4 @@
-name: Identity Test Image Deploy to DockerHub
+name: Identity Production Image Deploy to DockerHub
 
 on:
   push:

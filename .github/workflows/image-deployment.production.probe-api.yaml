@@ -1,4 +1,4 @@
-name: ProbeAPI Test Image Deploy to DockerHub
+name: ProbeAPI Production Image Deploy to DockerHub
 
 on:
   push:
