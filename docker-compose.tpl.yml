@@ -7,9 +7,14 @@ services:
     haraka:
         ports:
             - '2525:2525'
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
             network: host
-            context: ./Haraka
+            context: .
+            dockerfile: ./Haraka/Dockerfile
+        {{ else }}
+        image:  oneuptime/haraka:{{ .Env.APP_TAG }}
+        {{ end }}
         env_file:
             - ./Haraka/.env
     
@@ -393,10 +398,14 @@ services:
             - dashboard
             - home
         restart: always
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
         build:
-            dockerfile: ./Nginx/Dockerfile
             network: host
             context: .
+            dockerfile: ./Nginx/Dockerfile
+        {{ else }}
+        image:  oneuptime/nginx:{{ .Env.APP_TAG }}
+        {{ end }}
         ports:
             - '80:80'
             - '443:443'
