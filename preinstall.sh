@@ -62,7 +62,7 @@ GIT_REPO_URL=$(git config --get remote.origin.url)
 
 if [[ $GIT_REPO_URL != *oneuptime* ]] # * is used for pattern matching
 then
-  sudo git clone https://github.com/OneUptime/oneuptime.git || true
+  git clone https://github.com/OneUptime/oneuptime.git || true
   cd oneuptime
 fi
 
@@ -70,7 +70,7 @@ fi
 if [ -z "$CI_PIPELINE_ID" ]
 then
 # try to clone - if folder is already there pull latest for that branch
-sudo git pull
+git pull
 fi
 
 cd ..
