@@ -166,17 +166,17 @@ export $(grep -v '^#' config.env | xargs)
 
 for directory_name in $(find . -type d -maxdepth 1) ; do
     if [ -f "$directory_name/.env.tpl" ]; then
-        cat $directory_name/.env.tpl | gomplate > $directory_name/.env
+        sudo cat $directory_name/.env.tpl | sudo gomplate > $directory_name/.env
     fi
 
     if [ -f "$directory_name/Dockerfile.tpl" ]; then
-        cat $directory_name/Dockerfile.tpl | gomplate > $directory_name/Dockerfile
+        sudo cat $directory_name/Dockerfile.tpl | sudo gomplate > $directory_name/Dockerfile
     fi
 done
 
 # Convert template to docker-compose. 
-cat docker-compose.tpl.yml | gomplate > docker-compose.yml
+sudo cat docker-compose.tpl.yml | sudo gomplate > docker-compose.yml
 
 
 # Convert nginx conf template to nginx
-cat ./Nginx/default.tpl.conf | gomplate > ./Nginx/default.conf
+sudo cat ./Nginx/default.tpl.conf | sudo gomplate > ./Nginx/default.conf
