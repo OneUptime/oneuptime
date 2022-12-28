@@ -60,7 +60,7 @@ SMTP_HOST=smtp.yourcompany.com
 Then, run install: 
 
 ```
-bash install.sh
+sudo bash install.sh
 ```
 
 Your instance should be up and running, if that does not work. Please send an email to support@oneuptime.com.
