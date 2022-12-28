@@ -58,7 +58,8 @@
         "prune": "docker system prune",
         "remove-all-containers": "docker stop $(docker ps -a -q) && docker rm $(docker ps -a -q) || echo 'No running containers'",
         "prepare": "husky install",
-        "backup": "sudo bash backup.sh"
+        "backup": "sudo bash backup.sh",
+        "update": "npm run prerun && sudo docker compose pull && npm run start"
     },
     "repository": {
         "type": "git",
