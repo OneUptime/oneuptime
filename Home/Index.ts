@@ -121,10 +121,6 @@ app.get(
     }
 );
 
-app.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('https://status.oneuptime.com');
-});
-
 app.get(
     '/product/uptime-monitoring',
     (_req: ExpressRequest, res: ExpressResponse) => {

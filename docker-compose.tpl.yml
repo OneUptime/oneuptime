@@ -150,7 +150,6 @@ services:
     status-page:
         ports:
             - '3105:3105' # HTTP UI Port
-            - '3106:3106' # HTTP API Port
             {{ if eq .Env.ENVIRONMENT "development" }}
             - 9764:9229 # Debugging port.
             {{ end }}
@@ -165,7 +164,6 @@ services:
         restart: always
         env_file:
             - ./Common/.env
-            - ./CommonServer/.env
             - ./CommonUI/.env
             - ./StatusPage/.env
 

@@ -51,6 +51,9 @@ import ScheduledMaintenanceStateTimelineService from '../Services/ScheduledMaint
 import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import Query from '../Types/Database/Query';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
+import GreenlockChallengeService from '../Services/GreenlockChallengeService';
+import NotFoundException from 'Common/Types/Exception/NotFoundException';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -58,6 +61,75 @@ export default class StatusPageAPI extends BaseAPI<
 > {
     public constructor() {
         super(StatusPage, StatusPageService);
+
+        // CNAME verification api
+        this.router.get(
+            `${new this.entityType().getCrudApiPath()?.toString()}/status-page-api/cname-verification/:token`,
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                const host: string | undefined = req.get('host');
+        
+                if (!host) {
+                    throw new BadDataException('Host not found');
+                }
+        
+                const domain: StatusPageDomain | null =
+                    await StatusPageDomainService.findOneBy({
+                        query: {
+                            cnameVerificationToken: req.params['token'] as string,
+                            fullDomain: host,
+                        },
+                        select: {
+                            _id: true,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+        
+                if (!domain) {
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new BadDataException('Invalid token.')
+                    );
+                }
+        
+                return Response.sendEmptyResponse(req, res);
+            }
+        );
+
+        // ACME Challenge Validation.
+        this.router.get(
+            `${new this.entityType().getCrudApiPath()?.toString()}/.well-known/acme-challenge/:token`,
+            async (req: ExpressRequest, res: ExpressResponse) => {
+                const challenge: GreenlockChallenge | null =
+                    await GreenlockChallengeService.findOneBy({
+                        query: {
+                            token: req.params['token'] as string,
+                        },
+                        select: {
+                            challenge: true,
+                        },
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+
+                if (!challenge) {
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new NotFoundException('Challenge not found')
+                    );
+                }
+
+                return Response.sendTextResponse(
+                    req,
+                    res,
+                    challenge.challenge as string
+                );
+            }
+        );
 
         this.router.post(
             `${new this.entityType().getCrudApiPath()?.toString()}/domain`,

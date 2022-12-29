@@ -13,7 +13,7 @@ router.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
 
 // General status
 router.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.send({ status: 'status' });
+    res.send({ status: 'ok' });
 });
 
 //Healthy probe
