@@ -23,6 +23,6 @@ jobs:
         # Build and deploy accounts.
       - run: sudo docker login --username $DOCKERHUB_USERNAME --password $DOCKERHUB_PASSWORD
       - run: sudo docker buildx create --use
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/haraka:5.0.$CI_PIPELINE_ID-test --push -f ./Haraka/Dockerfile ./Haraka
-      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/haraka:test --push -f ./Haraka/Dockerfile ./Haraka
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/haraka:5.0.$CI_PIPELINE_ID-test --push -f ./Haraka/Dockerfile .
+      - run: sudo docker buildx build --platform linux/amd64,linux/arm64 --tag oneuptime/haraka:test --push -f ./Haraka/Dockerfile .
       

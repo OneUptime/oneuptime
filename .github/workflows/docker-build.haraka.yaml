@@ -22,4 +22,4 @@ jobs:
         
       # build images
       - name: build docker image
-        run: sudo docker build -f ./Haraka/Dockerfile ./Haraka
+        run: sudo docker build -f ./Haraka/Dockerfile .
