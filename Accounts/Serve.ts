@@ -14,6 +14,25 @@ const app: ExpressApplication = Express.getExpressApp();
 
 app.use(ExpressStatic(path.join(__dirname, 'public')));
 
+app.get([`/${APP_NAME}/env.js`, '/env.js'], (_req: ExpressRequest, res: ExpressResponse) => {
+    const script = `
+    if(!process){
+      process = {}
+    }
+
+    if(!process.env){
+      process.env = {}
+    }
+    const envVars = ${JSON.stringify(process.env)};
+    process.env = JSON.parse(envVars);
+
+    window.process = process;
+  `;
+
+    res.writeHead(200, { "Content-Type": "text/javascript" });
+    res.send(script);
+});
+
 app.use(`/${APP_NAME}`, ExpressStatic(path.join(__dirname, 'public')));
 
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {

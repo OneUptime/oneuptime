@@ -32,7 +32,7 @@ RUN apk add bash
 RUN apk add curl
 
 # install software
-COPY haraka.sh /
+COPY ./Haraka/haraka.sh /
 RUN chmod 755 /haraka.sh
 
 EXPOSE 2525
