@@ -270,4 +270,25 @@ export default class Response {
         oneUptimeResponse.end(html);
         this.logResponse(req, res, { html: html as string });
     }
+
+    public static sendJavaScriptResponse(
+        req: ExpressRequest,
+        res: ExpressResponse,
+        javascript: string
+    ): void {
+        const oneUptimeRequest: OneUptimeRequest = req as OneUptimeRequest;
+        const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+        oneUptimeResponse.set(
+            'ExpressRequest-Id',
+            oneUptimeRequest.id.toString()
+        );
+
+        oneUptimeResponse.set('Pod-Id', process.env['POD_NAME']);
+
+        oneUptimeResponse.logBody = { javascript: javascript as string };
+        oneUptimeResponse.writeHead(200, { 'Content-Type': 'text/javascript' });
+        oneUptimeResponse.end(javascript);
+        this.logResponse(req, res, { javascript: javascript as string });
+    }
 }

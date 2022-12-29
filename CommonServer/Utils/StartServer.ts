@@ -12,8 +12,8 @@ import Express, {
     ExpressApplication,
     RequestHandler,
     OneUptimeRequest,
+    ExpressStatic,
 } from './Express';
-
 // Connect common api's.
 import CommonAPI from '../API/Index';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
@@ -93,11 +93,41 @@ app.use(logRequest);
 
 const init: Function = async (
     appName: string,
-    port?: Port
+    port?: Port,
+    isFrontendApp?: boolean
 ): Promise<ExpressApplication> => {
     await Express.launchApplication(appName, port);
     LocalCache.setString('app', 'name', appName);
     CommonAPI(appName);
+
+    if (isFrontendApp) {
+        app.use(ExpressStatic('/usr/src/app/public'));
+
+        app.get(
+            [`/${appName}/env.js`, '/env.js'],
+            (req: ExpressRequest, res: ExpressResponse) => {
+                const script: string = `
+    if(!window.process){
+      window.process = {}
+    }
+
+    if(!window.process.env){
+      window.process.env = {}
+    }
+    const envVars = '${JSON.stringify(process.env)}';
+    window.process.env = JSON.parse(envVars);
+  `;
+
+                Response.sendJavaScriptResponse(req, res, script);
+            }
+        );
+
+        app.use(`/${appName}`, ExpressStatic('/usr/src/app/public'));
+
+        app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
+            res.sendFile('/usr/src/app/public/index.html');
+        });
+    }
 
     // Attach Error Handler.
     app.use(
