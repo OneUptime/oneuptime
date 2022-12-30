@@ -24,7 +24,8 @@ export const dataSourceOptions: DataSourceOptions = {
     migrations: Migrations,
     entities: Entities,
     //logging: 'all',
-    synchronize: Env === AppEnvironment.Development,
+    // synchronize: Env === AppEnvironment.Development,
+    synchronize: true
 };
 
 export const datasource: DataSource = new DataSource(dataSourceOptions);
