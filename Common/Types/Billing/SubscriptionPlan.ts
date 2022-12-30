@@ -102,6 +102,10 @@ export default class SubscriptionPlan {
     public static getSubscriptionPlans(): Array<SubscriptionPlan> {
         const plans: Array<SubscriptionPlan> = [];
 
+        if (window && window.process && window.process.env) {
+            process.env = window.process.env;
+        }
+
         for (const key in process.env) {
             if (key.startsWith('SUBSCRIPTION_PLAN_')) {
                 const content: string = (process.env[key] as string) || '';
