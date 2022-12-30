@@ -68,8 +68,6 @@ RUN npm install
 #   - 3003:  accounts
 EXPOSE 3003
 
-RUN chown -R 1000:1000 "/root/.npm"
-
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
 CMD [ "npm", "run", "dev" ]
