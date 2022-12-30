@@ -87,6 +87,14 @@ if [[ ! $(which node) && ! $(node --version) ]]; then
     fi
 fi
 
+
+if [[ ! $(which npm) && ! $(npm --version) ]]; then
+    if [[ "$OSTYPE" != "darwin"* ]]; then
+        echo "Setting up NPM"
+        sudo apt-get install -y npm
+    fi
+fi
+
 if [[ ! $(which docker) && ! $(docker --version) ]]; then
   echo "Setting up Docker"
   sudo curl -sSL https://get.docker.com/ | sh  
