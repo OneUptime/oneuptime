@@ -54,9 +54,11 @@ export default class SubscriptionPlan {
         return this.name;
     }
 
-    public static isFreePlan(planId: string,  env: JSONObject): boolean {
-        const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanById(planId, env);
+    public static isFreePlan(planId: string, env: JSONObject): boolean {
+        const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(
+            planId,
+            env
+        );
         if (plan) {
             if (
                 plan.getMonthlyPlanId() === planId &&
@@ -76,9 +78,14 @@ export default class SubscriptionPlan {
         return false;
     }
 
-    public static isCustomPricingPlan(planId: string,  env: JSONObject): boolean {
-        const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanById(planId, env);
+    public static isCustomPricingPlan(
+        planId: string,
+        env: JSONObject
+    ): boolean {
+        const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(
+            planId,
+            env
+        );
         if (plan) {
             if (plan.getMonthlyPlanId() === planId && plan.isCustomPricing()) {
                 return true;
@@ -147,13 +154,15 @@ export default class SubscriptionPlan {
         });
     }
 
-    public static isValidPlanId(planId: string,  env: JSONObject): boolean {
+    public static isValidPlanId(planId: string, env: JSONObject): boolean {
         return Boolean(this.getSubscriptionPlanById(planId, env));
     }
 
-    public static getPlanSelect(planId: string,  env: JSONObject): PlanSelect {
-        const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanById(planId, env);
+    public static getPlanSelect(planId: string, env: JSONObject): PlanSelect {
+        const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(
+            planId,
+            env
+        );
         if (!plan) {
             throw new BadDataException('Plan ID is invalid');
         }
@@ -198,9 +207,11 @@ export default class SubscriptionPlan {
         return true;
     }
 
-    public static isYearlyPlan(planId: string,  env: JSONObject): boolean {
-        const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanById(planId, env);
+    public static isYearlyPlan(planId: string, env: JSONObject): boolean {
+        const plan: SubscriptionPlan | undefined = this.getSubscriptionPlanById(
+            planId,
+            env
+        );
         return plan?.getYearlyPlanId() === planId;
     }
 

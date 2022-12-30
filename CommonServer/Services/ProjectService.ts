@@ -59,7 +59,10 @@ export class Service extends DatabaseService<Model> {
             }
 
             if (
-                !SubscriptionPlan.isValidPlanId(data.data.paymentProviderPlanId, getAllEnvVars())
+                !SubscriptionPlan.isValidPlanId(
+                    data.data.paymentProviderPlanId,
+                    getAllEnvVars()
+                )
             ) {
                 throw new BadDataException('Plan is invalid.');
             }
@@ -137,7 +140,8 @@ export class Service extends DatabaseService<Model> {
                 ) {
                     const plan: SubscriptionPlan | undefined =
                         SubscriptionPlan.getSubscriptionPlanById(
-                            updateBy.data.paymentProviderPlanId! as string, getAllEnvVars()
+                            updateBy.data.paymentProviderPlanId! as string,
+                            getAllEnvVars()
                         );
 
                     if (!plan) {
@@ -248,7 +252,8 @@ export class Service extends DatabaseService<Model> {
 
             const plan: SubscriptionPlan | undefined =
                 SubscriptionPlan.getSubscriptionPlanById(
-                    createdItem.paymentProviderPlanId!, getAllEnvVars()
+                    createdItem.paymentProviderPlanId!,
+                    getAllEnvVars()
                 );
 
             if (!plan) {
@@ -647,7 +652,10 @@ export class Service extends DatabaseService<Model> {
         }
 
         return {
-            plan: SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId, getAllEnvVars()),
+            plan: SubscriptionPlan.getPlanSelect(
+                project.paymentProviderPlanId,
+                getAllEnvVars()
+            ),
             isSubscriptionUnpaid: SubscriptionPlan.isUnpaid(
                 project.paymentProviderSubscriptionStatus || 'active'
             ),

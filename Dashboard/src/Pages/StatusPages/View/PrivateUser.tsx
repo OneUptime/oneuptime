@@ -132,7 +132,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 currentPlan={SubscriptionPlan.getPlanSelect(
-                    props.currentProject?.paymentProviderPlanId!, getAllEnvVars()
+                    props.currentProject?.paymentProviderPlanId!,
+                    getAllEnvVars()
                 )}
             />
         </Page>

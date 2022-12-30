@@ -6,7 +6,6 @@ import Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
 
-
 export const getAllEnvVars: Function = (): JSONObject => {
     return process.env;
 };

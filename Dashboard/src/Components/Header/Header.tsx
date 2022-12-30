@@ -209,10 +209,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         props.selectedProject?.id &&
                         props.selectedProject.paymentProviderPlanId &&
                         !SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId, getAllEnvVars()
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
                         ) &&
                         !SubscriptionPlan.isCustomPricingPlan(
-                            props.selectedProject.paymentProviderPlanId, getAllEnvVars()
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
                         ) &&
                         !isPaymentMethodCountLoading &&
                         paymentMethodCount === 0 ? (
@@ -240,7 +242,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         props.selectedProject?.id &&
                         props.selectedProject.paymentProviderPlanId &&
                         SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId, getAllEnvVars()
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
                         ) ? (
                             <Upgrade projectId={props.selectedProject.id} />
                         ) : (
