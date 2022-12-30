@@ -6,7 +6,7 @@ import URL from 'Common/Types/API/URL';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export const env: Function = (key: string): string => {
-    return process.env[key] || window.process.env[key] || '';
+    return window?.process?.env[key] || process?.env[key] || '';
 };
 
 export const HTTP_PROTOCOL: Protocol =

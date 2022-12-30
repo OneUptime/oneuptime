@@ -64,18 +64,22 @@ export default class StatusPageAPI extends BaseAPI<
 
         // CNAME verification api
         this.router.get(
-            `${new this.entityType().getCrudApiPath()?.toString()}/status-page-api/cname-verification/:token`,
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/status-page-api/cname-verification/:token`,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 const host: string | undefined = req.get('host');
-        
+
                 if (!host) {
                     throw new BadDataException('Host not found');
                 }
-        
+
                 const domain: StatusPageDomain | null =
                     await StatusPageDomainService.findOneBy({
                         query: {
-                            cnameVerificationToken: req.params['token'] as string,
+                            cnameVerificationToken: req.params[
+                                'token'
+                            ] as string,
                             fullDomain: host,
                         },
                         select: {
@@ -85,7 +89,7 @@ export default class StatusPageAPI extends BaseAPI<
                             isRoot: true,
                         },
                     });
-        
+
                 if (!domain) {
                     return Response.sendErrorResponse(
                         req,
@@ -93,14 +97,16 @@ export default class StatusPageAPI extends BaseAPI<
                         new BadDataException('Invalid token.')
                     );
                 }
-        
+
                 return Response.sendEmptyResponse(req, res);
             }
         );
 
         // ACME Challenge Validation.
         this.router.get(
-            `${new this.entityType().getCrudApiPath()?.toString()}/.well-known/acme-challenge/:token`,
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/.well-known/acme-challenge/:token`,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 const challenge: GreenlockChallenge | null =
                     await GreenlockChallengeService.findOneBy({
