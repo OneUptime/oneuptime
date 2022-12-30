@@ -18,6 +18,7 @@ import ProjectService from './ProjectService';
 import {
     DashboardRoute,
     Domain,
+    getAllEnvVars,
     HttpProtocol,
     IsBillingEnabled,
 } from '../Config';
@@ -296,7 +297,8 @@ export class Service extends DatabaseService<TeamMember> {
         ) {
             const plan: SubscriptionPlan | undefined =
                 SubscriptionPlan.getSubscriptionPlanById(
-                    project?.paymentProviderPlanId!
+                    project?.paymentProviderPlanId!,
+                    getAllEnvVars()
                 );
 
             if (!plan) {

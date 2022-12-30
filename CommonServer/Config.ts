@@ -4,6 +4,12 @@ import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import { JSONObject } from 'Common/Types/JSON';
+
+
+export const getAllEnvVars: Function = (): JSONObject => {
+    return process.env;
+};
 
 export const DisableSignup: boolean = process.env['DISABLE_SIGNUP'] === 'true';
 
@@ -144,7 +150,7 @@ export const IsDevelopment: boolean =
 export const IsTest: boolean = process.env['ENVIRONMENT'] === 'test';
 
 export const SubscriptionPlans: Array<SubscriptionPlan> =
-    SubscriptionPlan.getSubscriptionPlans();
+    SubscriptionPlan.getSubscriptionPlans(getAllEnvVars());
 
 export const AnalyticsKey: string = process.env['ANALYTICS_KEY'] || '';
 export const AnalyticsHost: string = process.env['ANALYTICS_HOST'] || '';

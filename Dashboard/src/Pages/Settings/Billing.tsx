@@ -219,7 +219,7 @@ const Settings: FunctionComponent<ComponentProps> = (
 
                                 const isYearlyPlan: boolean =
                                     SubscriptionPlan.isYearlyPlan(
-                                        item['paymentProviderPlanId'] as string
+                                        item['paymentProviderPlanId'] as string,getAllEnvVars()
                                     );
 
                                 let description: string = plan.isCustomPricing()

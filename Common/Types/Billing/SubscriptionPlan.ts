@@ -54,9 +54,9 @@ export default class SubscriptionPlan {
         return this.name;
     }
 
-    public static isFreePlan(planId: string): boolean {
+    public static isFreePlan(planId: string,  env: JSONObject): boolean {
         const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanById(planId);
+            this.getSubscriptionPlanById(planId, env);
         if (plan) {
             if (
                 plan.getMonthlyPlanId() === planId &&
@@ -76,9 +76,9 @@ export default class SubscriptionPlan {
         return false;
     }
 
-    public static isCustomPricingPlan(planId: string): boolean {
+    public static isCustomPricingPlan(planId: string,  env: JSONObject): boolean {
         const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanById(planId);
+            this.getSubscriptionPlanById(planId, env);
         if (plan) {
             if (plan.getMonthlyPlanId() === planId && plan.isCustomPricing()) {
                 return true;
@@ -101,7 +101,7 @@ export default class SubscriptionPlan {
     }
 
     public static getSubscriptionPlans(
-        env?: JSONObject
+        env: JSONObject
     ): Array<SubscriptionPlan> {
         const plans: Array<SubscriptionPlan> = [];
 
@@ -136,7 +136,7 @@ export default class SubscriptionPlan {
 
     public static getSubscriptionPlanById(
         planId: string,
-        env?: JSONObject
+        env: JSONObject
     ): SubscriptionPlan | undefined {
         const plans: Array<SubscriptionPlan> = this.getSubscriptionPlans(env);
         return plans.find((plan: SubscriptionPlan) => {
@@ -147,13 +147,13 @@ export default class SubscriptionPlan {
         });
     }
 
-    public static isValidPlanId(planId: string): boolean {
-        return Boolean(this.getSubscriptionPlanById(planId));
+    public static isValidPlanId(planId: string,  env: JSONObject): boolean {
+        return Boolean(this.getSubscriptionPlanById(planId, env));
     }
 
-    public static getPlanSelect(planId: string): PlanSelect {
+    public static getPlanSelect(planId: string,  env: JSONObject): PlanSelect {
         const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanById(planId);
+            this.getSubscriptionPlanById(planId, env);
         if (!plan) {
             throw new BadDataException('Plan ID is invalid');
         }
@@ -163,7 +163,7 @@ export default class SubscriptionPlan {
 
     public static getSubscriptionPlanFromPlanSelect(
         planSelect: PlanSelect,
-        env?: JSONObject
+        env: JSONObject
     ): SubscriptionPlan {
         const plan: SubscriptionPlan | undefined = this.getSubscriptionPlans(
             env
@@ -181,7 +181,7 @@ export default class SubscriptionPlan {
     public static isFeatureAccessibleOnCurrentPlan(
         featurePlan: PlanSelect,
         currentPlan: PlanSelect,
-        env?: JSONObject
+        env: JSONObject
     ): boolean {
         const featureSubscriptionPlan: SubscriptionPlan | undefined =
             this.getSubscriptionPlanFromPlanSelect(featurePlan, env);
@@ -198,9 +198,9 @@ export default class SubscriptionPlan {
         return true;
     }
 
-    public static isYearlyPlan(planId: string): boolean {
+    public static isYearlyPlan(planId: string,  env: JSONObject): boolean {
         const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanById(planId);
+            this.getSubscriptionPlanById(planId, env);
         return plan?.getYearlyPlanId() === planId;
     }
 

@@ -29,7 +29,7 @@ import Search from 'Common/Types/Database/Search';
 import { FindOperator } from 'typeorm';
 import { JSONObject } from 'Common/Types/JSON';
 import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
-import { IsBillingEnabled } from '../Config';
+import { getAllEnvVars, IsBillingEnabled } from '../Config';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 
 export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
@@ -979,7 +979,8 @@ export default class ModelPermission {
                 if (
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
                         model.createBillingPlan,
-                        props.currentPlan
+                        props.currentPlan,
+                        getAllEnvVars()
                     )
                 ) {
                     throw new PaymentRequiredException(
@@ -997,7 +998,8 @@ export default class ModelPermission {
                 if (
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
                         model.updateBillingPlan,
-                        props.currentPlan
+                        props.currentPlan,
+                        getAllEnvVars()
                     )
                 ) {
                     throw new PaymentRequiredException(
@@ -1015,7 +1017,8 @@ export default class ModelPermission {
                 if (
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
                         model.deleteBillingPlan,
-                        props.currentPlan
+                        props.currentPlan,
+                        getAllEnvVars()
                     )
                 ) {
                     throw new PaymentRequiredException(
@@ -1030,7 +1033,8 @@ export default class ModelPermission {
                 if (
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
                         model.readBillingPlan,
-                        props.currentPlan
+                        props.currentPlan,
+                        getAllEnvVars()
                     )
                 ) {
                     throw new PaymentRequiredException(

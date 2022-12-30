@@ -30,7 +30,7 @@ import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import IncidentSeverityService from './IncidentSeverityService';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
-import { IsBillingEnabled } from '../Config';
+import { getAllEnvVars, IsBillingEnabled } from '../Config';
 import BillingService from './BillingService';
 import DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
@@ -59,7 +59,7 @@ export class Service extends DatabaseService<Model> {
             }
 
             if (
-                !SubscriptionPlan.isValidPlanId(data.data.paymentProviderPlanId)
+                !SubscriptionPlan.isValidPlanId(data.data.paymentProviderPlanId, getAllEnvVars())
             ) {
                 throw new BadDataException('Plan is invalid.');
             }
@@ -137,7 +137,7 @@ export class Service extends DatabaseService<Model> {
                 ) {
                     const plan: SubscriptionPlan | undefined =
                         SubscriptionPlan.getSubscriptionPlanById(
-                            updateBy.data.paymentProviderPlanId! as string
+                            updateBy.data.paymentProviderPlanId! as string, getAllEnvVars()
                         );
 
                     if (!plan) {
@@ -248,7 +248,7 @@ export class Service extends DatabaseService<Model> {
 
             const plan: SubscriptionPlan | undefined =
                 SubscriptionPlan.getSubscriptionPlanById(
-                    createdItem.paymentProviderPlanId!
+                    createdItem.paymentProviderPlanId!, getAllEnvVars()
                 );
 
             if (!plan) {
@@ -647,7 +647,7 @@ export class Service extends DatabaseService<Model> {
         }
 
         return {
-            plan: SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId),
+            plan: SubscriptionPlan.getPlanSelect(project.paymentProviderPlanId, getAllEnvVars()),
             isSubscriptionUnpaid: SubscriptionPlan.isUnpaid(
                 project.paymentProviderSubscriptionStatus || 'active'
             ),

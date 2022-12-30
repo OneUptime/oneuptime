@@ -21,7 +21,7 @@ import ActiveIncidentsModal from './ActiveIncidentsModal';
 import Incident from 'Model/Models/Incident';
 import Logo from './Logo';
 import OneUptimeDate from 'Common/Types/Date';
-import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import Upgrade from './Upgrade';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -209,10 +209,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         props.selectedProject?.id &&
                         props.selectedProject.paymentProviderPlanId &&
                         !SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId
+                            props.selectedProject.paymentProviderPlanId, getAllEnvVars()
                         ) &&
                         !SubscriptionPlan.isCustomPricingPlan(
-                            props.selectedProject.paymentProviderPlanId
+                            props.selectedProject.paymentProviderPlanId, getAllEnvVars()
                         ) &&
                         !isPaymentMethodCountLoading &&
                         paymentMethodCount === 0 ? (
@@ -240,7 +240,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         props.selectedProject?.id &&
                         props.selectedProject.paymentProviderPlanId &&
                         SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId
+                            props.selectedProject.paymentProviderPlanId, getAllEnvVars()
                         ) ? (
                             <Upgrade projectId={props.selectedProject.id} />
                         ) : (
