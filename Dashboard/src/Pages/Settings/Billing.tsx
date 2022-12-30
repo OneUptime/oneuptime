@@ -29,7 +29,11 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import URL from 'Common/Types/API/URL';
-import { BILLING_PUBLIC_KEY, DASHBOARD_API_URL, getAllEnvVars } from 'CommonUI/src/Config';
+import {
+    BILLING_PUBLIC_KEY,
+    DASHBOARD_API_URL,
+    getAllEnvVars,
+} from 'CommonUI/src/Config';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -126,52 +130,51 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         fieldType: FormFieldSchemaType.RadioButton,
                         radioButtonOptions:
-                            SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()).map(
-                                (plan: SubscriptionPlan): RadioButton => {
-                                    let description: string =
-                                        plan.isCustomPricing()
-                                            ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                                            : `$${
-                                                  isSubsriptionPlanYearly
-                                                      ? plan.getYearlySubscriptionAmountInUSD()
-                                                      : plan.getMonthlySubscriptionAmountInUSD()
-                                              } / month per user. Billed ${
-                                                  isSubsriptionPlanYearly
-                                                      ? 'yearly'
-                                                      : 'monthly'
-                                              }. ${
-                                                  plan.getTrialPeriod() > 0
-                                                      ? `Free ${plan.getTrialPeriod()} days trial.`
-                                                      : ''
-                                              }`;
+                            SubscriptionPlan.getSubscriptionPlans(
+                                getAllEnvVars()
+                            ).map((plan: SubscriptionPlan): RadioButton => {
+                                let description: string = plan.isCustomPricing()
+                                    ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
+                                    : `$${
+                                          isSubsriptionPlanYearly
+                                              ? plan.getYearlySubscriptionAmountInUSD()
+                                              : plan.getMonthlySubscriptionAmountInUSD()
+                                      } / month per user. Billed ${
+                                          isSubsriptionPlanYearly
+                                              ? 'yearly'
+                                              : 'monthly'
+                                      }. ${
+                                          plan.getTrialPeriod() > 0
+                                              ? `Free ${plan.getTrialPeriod()} days trial.`
+                                              : ''
+                                      }`;
 
-                                    if (
-                                        isSubsriptionPlanYearly &&
-                                        plan.getYearlySubscriptionAmountInUSD() ===
-                                            0
-                                    ) {
-                                        description =
-                                            'This plan is free, forever. ';
-                                    }
-
-                                    if (
-                                        !isSubsriptionPlanYearly &&
-                                        plan.getMonthlySubscriptionAmountInUSD() ===
-                                            0
-                                    ) {
-                                        description =
-                                            'This plan is free, forever. ';
-                                    }
-
-                                    return {
-                                        value: isSubsriptionPlanYearly
-                                            ? plan.getYearlyPlanId()
-                                            : plan.getMonthlyPlanId(),
-                                        title: plan.getName(),
-                                        description: description,
-                                    };
+                                if (
+                                    isSubsriptionPlanYearly &&
+                                    plan.getYearlySubscriptionAmountInUSD() ===
+                                        0
+                                ) {
+                                    description =
+                                        'This plan is free, forever. ';
                                 }
-                            ),
+
+                                if (
+                                    !isSubsriptionPlanYearly &&
+                                    plan.getMonthlySubscriptionAmountInUSD() ===
+                                        0
+                                ) {
+                                    description =
+                                        'This plan is free, forever. ';
+                                }
+
+                                return {
+                                    value: isSubsriptionPlanYearly
+                                        ? plan.getYearlyPlanId()
+                                        : plan.getMonthlyPlanId(),
+                                    title: plan.getName(),
+                                    description: description,
+                                };
+                            }),
                         title: 'Please select a plan.',
                         required: true,
                         footerElement: (

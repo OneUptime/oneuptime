@@ -11,9 +11,8 @@ export const getAllEnvVars: Function = (): JSONObject => {
 };
 
 export const env: Function = (key: string): string => {
-    return getAllEnvVars()[key] as string || '';
+    return (getAllEnvVars()[key] as string) || '';
 };
-
 
 export const HTTP_PROTOCOL: Protocol =
     env('HTTP_PROTOCOL') === 'http' ? Protocol.HTTP : Protocol.HTTPS;

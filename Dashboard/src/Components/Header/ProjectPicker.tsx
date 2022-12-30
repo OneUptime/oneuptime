@@ -139,52 +139,45 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         minLength: 6,
                     },
                     fieldType: FormFieldSchemaType.RadioButton,
-                    radioButtonOptions:
-                        SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()).map(
-                            (plan: SubscriptionPlan): RadioButton => {
-                                let description: string = plan.isCustomPricing()
-                                    ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                                    : `$${
-                                          isSubsriptionPlanYearly
-                                              ? plan.getYearlySubscriptionAmountInUSD()
-                                              : plan.getMonthlySubscriptionAmountInUSD()
-                                      } / month per user. Billed ${
-                                          isSubsriptionPlanYearly
-                                              ? 'yearly'
-                                              : 'monthly'
-                                      }. ${
-                                          plan.getTrialPeriod() > 0
-                                              ? `Free ${plan.getTrialPeriod()} days trial.`
-                                              : ''
-                                      }`;
+                    radioButtonOptions: SubscriptionPlan.getSubscriptionPlans(
+                        getAllEnvVars()
+                    ).map((plan: SubscriptionPlan): RadioButton => {
+                        let description: string = plan.isCustomPricing()
+                            ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
+                            : `$${
+                                  isSubsriptionPlanYearly
+                                      ? plan.getYearlySubscriptionAmountInUSD()
+                                      : plan.getMonthlySubscriptionAmountInUSD()
+                              } / month per user. Billed ${
+                                  isSubsriptionPlanYearly ? 'yearly' : 'monthly'
+                              }. ${
+                                  plan.getTrialPeriod() > 0
+                                      ? `Free ${plan.getTrialPeriod()} days trial.`
+                                      : ''
+                              }`;
 
-                                if (
-                                    isSubsriptionPlanYearly &&
-                                    plan.getYearlySubscriptionAmountInUSD() ===
-                                        0
-                                ) {
-                                    description =
-                                        'This plan is free, forever. ';
-                                }
+                        if (
+                            isSubsriptionPlanYearly &&
+                            plan.getYearlySubscriptionAmountInUSD() === 0
+                        ) {
+                            description = 'This plan is free, forever. ';
+                        }
 
-                                if (
-                                    !isSubsriptionPlanYearly &&
-                                    plan.getMonthlySubscriptionAmountInUSD() ===
-                                        0
-                                ) {
-                                    description =
-                                        'This plan is free, forever. ';
-                                }
+                        if (
+                            !isSubsriptionPlanYearly &&
+                            plan.getMonthlySubscriptionAmountInUSD() === 0
+                        ) {
+                            description = 'This plan is free, forever. ';
+                        }
 
-                                return {
-                                    value: isSubsriptionPlanYearly
-                                        ? plan.getYearlyPlanId()
-                                        : plan.getMonthlyPlanId(),
-                                    title: plan.getName(),
-                                    description: description,
-                                };
-                            }
-                        ),
+                        return {
+                            value: isSubsriptionPlanYearly
+                                ? plan.getYearlyPlanId()
+                                : plan.getMonthlyPlanId(),
+                            title: plan.getName(),
+                            description: description,
+                        };
+                    }),
                     title: 'Please select a plan.',
                     required: true,
                 },

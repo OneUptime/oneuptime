@@ -100,12 +100,15 @@ export default class SubscriptionPlan {
         return this.monthlySubscriptionAmountInUSD === -1;
     }
 
-    public static getSubscriptionPlans(env?: JSONObject): Array<SubscriptionPlan> {
+    public static getSubscriptionPlans(
+        env?: JSONObject
+    ): Array<SubscriptionPlan> {
         const plans: Array<SubscriptionPlan> = [];
 
         for (const key in env || process.env) {
             if (key.startsWith('SUBSCRIPTION_PLAN_')) {
-                const content: string = ((env || process.env)[key] as string)  || '';
+                const content: string =
+                    ((env || process.env)[key] as string) || '';
                 const values: Array<string> = content.split(',');
 
                 if (values.length > 0) {
@@ -162,10 +165,11 @@ export default class SubscriptionPlan {
         planSelect: PlanSelect,
         env?: JSONObject
     ): SubscriptionPlan {
-        const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlans(env).find((plan: SubscriptionPlan) => {
-                return plan.getName() === planSelect;
-            });
+        const plan: SubscriptionPlan | undefined = this.getSubscriptionPlans(
+            env
+        ).find((plan: SubscriptionPlan) => {
+            return plan.getName() === planSelect;
+        });
 
         if (!plan) {
             throw new BadDataException('Invalid Plan');

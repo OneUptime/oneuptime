@@ -62,7 +62,9 @@ const Upgrade: FunctionComponent<ComponentProps> = (
                                 },
                                 fieldType: FormFieldSchemaType.RadioButton,
                                 radioButtonOptions:
-                                    SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()).map(
+                                    SubscriptionPlan.getSubscriptionPlans(
+                                        getAllEnvVars()
+                                    ).map(
                                         (
                                             plan: SubscriptionPlan
                                         ): RadioButton => {
