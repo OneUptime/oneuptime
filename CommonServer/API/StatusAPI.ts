@@ -7,7 +7,7 @@ import LocalCache from '../Infrastructure/LocalCache';
 
 const router: ExpressRouter = Express.getRouter();
 
-router.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
+router.get('/app-name', (_req: ExpressRequest, res: ExpressResponse) => {
     res.send({ app: LocalCache.getString('app', 'name') });
 });
 
