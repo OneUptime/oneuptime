@@ -5,6 +5,8 @@
 # Pull base image nodejs image.
 FROM node:18-alpine
 USER root
+RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
+
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
@@ -67,6 +69,8 @@ RUN npm install
 # Expose ports.
 #   - 3003:  accounts
 EXPOSE 3003
+
+
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
