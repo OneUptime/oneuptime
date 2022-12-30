@@ -102,6 +102,7 @@ export default class SubscriptionPlan {
     public static getSubscriptionPlans(): Array<SubscriptionPlan> {
         const plans: Array<SubscriptionPlan> = [];
 
+        // overrite window.process if that exists
         if (window && window.process && window.process.env) {
             process.env = window.process.env;
         }
