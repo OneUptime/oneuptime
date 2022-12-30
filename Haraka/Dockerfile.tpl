@@ -1,4 +1,5 @@
 FROM node:18-alpine
+USER root
 
 ARG PORT=25
 

@@ -4,6 +4,7 @@
 
 # Pull base image nodejs image.
 FROM node:18-alpine
+USER root
 
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
@@ -67,6 +68,7 @@ RUN npm install
 #   - 3003:  accounts
 EXPOSE 3003
 
+RUN chown -R 1000:1000 "/root/.npm"
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 #Run the app
