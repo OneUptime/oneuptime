@@ -11,7 +11,7 @@ import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModa
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
-import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Field from 'CommonUI/src/Components/Forms/Types/Field';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
@@ -140,7 +140,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     },
                     fieldType: FormFieldSchemaType.RadioButton,
                     radioButtonOptions:
-                        SubscriptionPlan.getSubscriptionPlans().map(
+                        SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()).map(
                             (plan: SubscriptionPlan): RadioButton => {
                                 let description: string = plan.isCustomPricing()
                                     ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`

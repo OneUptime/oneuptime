@@ -1,4 +1,5 @@
 import BadDataException from '../Exception/BadDataException';
+import { JSONObject } from '../JSON';
 
 export enum PlanSelect {
     Free = 'Free',
@@ -99,17 +100,12 @@ export default class SubscriptionPlan {
         return this.monthlySubscriptionAmountInUSD === -1;
     }
 
-    public static getSubscriptionPlans(): Array<SubscriptionPlan> {
+    public static getSubscriptionPlans(env?: JSONObject): Array<SubscriptionPlan> {
         const plans: Array<SubscriptionPlan> = [];
 
-        // overrite window.process if that exists
-        if (window && window.process && window.process.env) {
-            process.env = window.process.env;
-        }
-
-        for (const key in process.env) {
+        for (const key in env || process.env) {
             if (key.startsWith('SUBSCRIPTION_PLAN_')) {
-                const content: string = (process.env[key] as string) || '';
+                const content: string = ((env || process.env)[key] as string)  || '';
                 const values: Array<string> = content.split(',');
 
                 if (values.length > 0) {
@@ -136,9 +132,10 @@ export default class SubscriptionPlan {
     }
 
     public static getSubscriptionPlanById(
-        planId: string
+        planId: string,
+        env?: JSONObject
     ): SubscriptionPlan | undefined {
-        const plans: Array<SubscriptionPlan> = this.getSubscriptionPlans();
+        const plans: Array<SubscriptionPlan> = this.getSubscriptionPlans(env);
         return plans.find((plan: SubscriptionPlan) => {
             return (
                 plan.getMonthlyPlanId() === planId ||
@@ -162,10 +159,11 @@ export default class SubscriptionPlan {
     }
 
     public static getSubscriptionPlanFromPlanSelect(
-        planSelect: PlanSelect
+        planSelect: PlanSelect,
+        env?: JSONObject
     ): SubscriptionPlan {
         const plan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlans().find((plan: SubscriptionPlan) => {
+            this.getSubscriptionPlans(env).find((plan: SubscriptionPlan) => {
                 return plan.getName() === planSelect;
             });
 
@@ -178,12 +176,13 @@ export default class SubscriptionPlan {
 
     public static isFeatureAccessibleOnCurrentPlan(
         featurePlan: PlanSelect,
-        currentPlan: PlanSelect
+        currentPlan: PlanSelect,
+        env?: JSONObject
     ): boolean {
         const featureSubscriptionPlan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanFromPlanSelect(featurePlan);
+            this.getSubscriptionPlanFromPlanSelect(featurePlan, env);
         const currentSubscriptionPlan: SubscriptionPlan | undefined =
-            this.getSubscriptionPlanFromPlanSelect(currentPlan);
+            this.getSubscriptionPlanFromPlanSelect(currentPlan, env);
 
         if (
             featureSubscriptionPlan.getPlanOrder() >

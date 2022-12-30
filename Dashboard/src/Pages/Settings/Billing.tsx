@@ -29,7 +29,7 @@ import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import URL from 'Common/Types/API/URL';
-import { BILLING_PUBLIC_KEY, DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import { BILLING_PUBLIC_KEY, DASHBOARD_API_URL, getAllEnvVars } from 'CommonUI/src/Config';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe, Stripe } from '@stripe/stripe-js';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -126,7 +126,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                         },
                         fieldType: FormFieldSchemaType.RadioButton,
                         radioButtonOptions:
-                            SubscriptionPlan.getSubscriptionPlans().map(
+                            SubscriptionPlan.getSubscriptionPlans(getAllEnvVars()).map(
                                 (plan: SubscriptionPlan): RadioButton => {
                                     let description: string =
                                         plan.isCustomPricing()
@@ -204,7 +204,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                             getElement: (item: JSONObject): ReactElement => {
                                 const plan: SubscriptionPlan | undefined =
                                     SubscriptionPlan.getSubscriptionPlanById(
-                                        item['paymentProviderPlanId'] as string
+                                        item['paymentProviderPlanId'] as string,
+                                        getAllEnvVars()
                                     );
 
                                 if (!plan) {
