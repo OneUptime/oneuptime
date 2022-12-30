@@ -1,0 +1,24 @@
+// 
+// _pagination.scss
+// 
+
+// Pagination rounded (Custom)
+.pagination-rounded {
+    .page-link {
+        border-radius: 30px !important;
+        margin: 0 3px !important;
+        border: none;
+        width: 20px;
+        height: 20px;
+        padding: 0;
+        text-align: center;
+        line-height: 20px;
+    }
+}
+
+.pagination{
+    .page-item{
+        line-height: 12px;
+    }
+}
+

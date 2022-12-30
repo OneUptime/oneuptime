@@ -1,0 +1,56 @@
+//
+// avatar.scss
+//
+
+.avatar-xs {
+  height: 1rem;
+  width: 1rem;
+}
+
+.avatar-sm {
+  height: 2rem;
+  width: 2rem;
+}
+
+.avatar-md {
+  height: 3rem;
+  width: 3rem;
+}
+
+.avatar-lg {
+  height: 4rem;
+  width: 4rem;
+}
+
+.avatar-xl {
+  height: 5rem;
+  width: 5rem;
+}
+
+.avatar-title {
+  align-items: center;
+  background-color: $primary;
+  color: $white;
+  display: flex;
+  font-weight: $font-weight-medium;
+  height: 100%;
+  justify-content: center;
+  width: 100%;
+}
+
+// avatar group
+.avatar-group {
+  padding-left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  .avatar-group-item {
+    margin-left: -12px;
+    border: 2px solid $card-bg;
+    border-radius: 50%;
+    transition: all 0.2s;
+    &:hover{
+      position: relative;
+      transform: translateY(-2px);
+    }
+  }
+}

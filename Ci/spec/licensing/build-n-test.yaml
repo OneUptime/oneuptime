@@ -1,0 +1,20 @@
+test_licensing:
+    stage: BuildAndTest
+    script:
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh test_licensing licensing`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
+        - curl -sSL https://get.docker.com/ | sh #Install docker.
+        - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker build -t oneuptime/licensing:5.0.$CI_PIPELINE_ID ./licensing
+        - sudo docker ps
+        - sudo docker run --env-file ./licensing/.env --net=host oneuptime/licensing:5.0.$CI_PIPELINE_ID npm test
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh test_licensing licensing
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release

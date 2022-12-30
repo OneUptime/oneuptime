@@ -1,4 +1,0 @@
-*.pyc
-build/
-dist/
-oneuptime_sdk/*.egg-info

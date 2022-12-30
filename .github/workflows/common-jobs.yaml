@@ -1,15 +1,17 @@
 name: Common Jobs
 
-on: 
+on:
+  pull_request: 
   push:
     branches-ignore:
       - 'hotfix-*'   # excludes hotfix branches
       - 'release'
-      - 'staging-release'
 
 jobs:
   lint:
     runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -17,8 +19,8 @@ jobs:
       - run: sudo apt-get install -y curl gcc
       - run: sudo apt-get install -y build-essential
       - run: sudo apt-get install -y nodejs
-      - run: npm ci
+      - run: npm install
       - run: npm run lint
-      - run: chmod +x ./ci/scripts/cleanup.sh
-      - run: ./ci/scripts/cleanup.sh
-
+      - name: Show how to fix lint
+        if: ${{ failure() }}
+        run: echo "Please run `npm run fix` in your root directory to fix the lint automatically."

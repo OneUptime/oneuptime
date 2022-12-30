@@ -1,0 +1,85 @@
+
+####################################
+#IMPORTANT: Kube Reosurces below are ONLY for SaaS service
+####################################
+
+{{- if .Values.saas.exposeInitScriptContainer }}
+###########-----InitScript------#################
+# OneUptime InitScript
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+    namespace: {{ $.Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+    replicas: 1
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "InitScript" .Values.image.tag }}
+                  name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
+                  env:
+                      - name: BILLING_ENABLED
+                        value: 'true'
+                      - name: NODE_ENV
+                        value: 'development'
+                      - name: ONEUPTIME_HOST
+                        value: {{ $.Values.oneuptime.hosts.host1.host }}
+                      - name: NODE_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: spec.nodeName
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: POD_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: POD_IP
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: status.podIP
+                      - name: POD_SERVICE_ACCOUNT
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: spec.serviceAccountName
+                  ports:
+                      - containerPort: {{ $.Values.host.initScriptPort }}
+                        hostPort: {{ $.Values.host.initScriptPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+    namespace: {{ $.Release.Namespace }}
+spec:
+    ports:
+        - port: {{ $.Values.host.initScriptServicePort }}
+          protocol: TCP
+          targetPort: {{ $.Values.host.initScriptPort }}
+    selector:
+        app: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+    type: ClusterIP
+---
+###########################################
+{{- end }}

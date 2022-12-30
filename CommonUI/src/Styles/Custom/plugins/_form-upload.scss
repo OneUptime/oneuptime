@@ -1,0 +1,25 @@
+
+//
+// Form-Upload
+//
+
+/* Dropzone */
+.dropzone {
+  min-height: 230px;
+  border: 2px dashed $gray-400;
+  background: $card-bg;
+  border-radius: 6px;
+
+  .dz-message {
+    font-size: 24px;
+    width: 100%;
+  }
+}
+
+// Dark layout
+body[data-layout-mode="dark"] {
+  .dropzone {
+    background: lighten($gray-dark-200, 1%);
+    border-color: $gray-dark-300;
+  }
+}

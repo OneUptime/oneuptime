@@ -1,0 +1,421 @@
+// 
+// bootstrap-rtl.scss
+//
+
+
+// Dropdowns
+
+.dropdown-menu{
+    text-align: right;
+    left: auto !important;
+}
+
+.dropdown-menu[style]{
+    right: 0 !important;
+}
+
+.dropdown-menu-end[style] {
+    right: auto !important;
+    left: 0 !important;
+}
+
+// List
+
+ul {
+    padding-right: 0;
+}
+
+.list-inline-item:not(:last-child) {
+    margin-left: $list-inline-padding;
+    margin-right: 0px;
+}
+
+// border
+
+.border-right   { 
+    border-left: $border-width solid $border-color !important; 
+}
+
+.border-left    { 
+    border-right: $border-width solid $border-color !important; 
+}
+
+
+// Buttons
+
+.btn-label {
+        padding-right: 44px;
+        padding-left: 12px;
+    .label-icon{
+        left: auto;
+        right: 0;
+        border-right: 0;
+        border-left: 1px solid rgba($white, 0.4);
+    }
+
+    &.btn-light{
+        .label-icon{
+            border-right: 0;
+            border-left: 1px solid rgba($dark, 0.2);
+        }
+    }
+}
+
+
+
+.btn-group,
+.btn-group-vertical {
+    direction: ltr;
+}
+
+// pagination
+
+.pagination{
+    .page-item {
+        &:first-child {
+            .page-link {
+                margin-right: 0;//rtl
+                border-top-left-radius: 0px;
+                border-bottom-left-radius: 0px;
+                @include border-end-radius($border-radius);
+            }
+        }
+        &:last-child {
+            .page-link {
+                border-top-right-radius: 0px;
+                border-bottom-right-radius: 0px;
+                @include border-start-radius($border-radius);
+            }
+        }
+    }
+}
+
+.page-item:not(:first-child) .page-link {
+    margin-left: 0;
+    margin-right: -1px;
+}
+
+
+// dl
+
+dd {
+    margin-right: 0;
+}
+
+// Modal
+
+.custom-modal-title{
+    text-align: right;
+}
+
+.modal-header {
+    .btn-close {
+        margin: -0.5rem auto -0.5rem -0.5rem;
+        left: 0px;
+    }
+}
+
+.modal-demo {
+    .btn-close{
+        left: 25px;
+        right: auto;
+    }
+}
+
+
+.modal-footer {
+    > :not(:first-child) {
+        margin-right: .25rem;
+        margin-left: 0;
+    }
+
+    > :not(:last-child) {
+        margin-left: .25rem;
+        margin-right: 0;
+    }
+}
+
+
+// Alerts
+
+.alert-dismissible {
+    padding-right: $alert-padding-x;
+    .btn-close {
+        left: 0;
+        right: auto;
+    }
+}
+
+
+// Breadcrumb item arrow
+
+.breadcrumb-item {
+    +.breadcrumb-item {
+        padding-right: $breadcrumb-item-padding;
+        padding-left: 0px;
+    }
+}
+
+// toast
+
+.toast-header .btn-close{
+    margin-left: -0.375rem;
+    margin-right: 0.75rem;
+}
+
+
+// blockquote
+
+.blockquote{
+    border-left:0;
+    border-right: 4px solid $gray-300;
+    
+}
+
+.blockquote-reverse{
+    text-align: left !important;
+    border-right:0;
+    border-left: 4px solid $gray-300;
+}
+
+
+// ------------ FORM  //
+
+
+[type="tel"],
+[type="url"],
+[type="email"],
+[type="number"] {
+ &::placeholder{
+   text-align: right;
+ }
+}
+
+.form-floating {
+    > label{
+        left: auto;
+        right: 0;
+    }
+}
+
+.was-validated .form-control:invalid, 
+.form-control.is-invalid{
+    background-position: left calc(0.375em + 0.235rem) center;
+    padding-right: 0.75rem;
+    padding-left: calc(1.5em + 0.94rem);
+}
+
+.form-floating > .form-control:focus ~ label, 
+.form-floating > .form-control:not(:placeholder-shown) ~ label, 
+.form-floating > .form-select ~ label{
+    transform: scale(0.85) translateY(-0.5rem) translateX(1.15rem);
+}
+
+// radio
+
+.form-radio-outline{
+    .form-check-input{
+      &:checked{
+        &:after{
+          right: 3px;  
+        }
+      }
+    }
+}
+
+
+// checkbox
+
+.form-checkbox-outline{
+    .form-check-input{
+      &:checked{
+        &:after{
+          right: 1px;
+        }
+      }
+    }
+}
+
+
+
+// Switch sizes
+
+
+
+
+
+// Forms right check box
+
+.form-check-right {
+    padding-right: 0 !important;
+    padding-left: $form-check-padding-start !important;
+  
+    .form-check-input{
+        float: left !important;
+        margin-right: 0 !important;
+        margin-left: $form-check-padding-start * -1 !important;
+    }
+  }
+  
+  
+  .custom-control-right{
+    padding-left: 1.5rem !important;
+    padding-right: 0 !important;
+  
+    .custom-control-label{
+      display: block;
+      &:before, &:after{
+        right: auto;
+        left: -1.5rem;
+      }
+    }
+  
+    .custom-control-input{
+      right: auto;
+      left: 0;
+    }
+}
+
+
+// Forms
+
+
+
+.form-select{
+    background-position: left 0.75rem center;
+    padding: 0.47rem 0.75rem 0.47rem 1.75rem;
+}
+
+.form-select-sm{
+    padding-right: 0.5rem ;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+
+
+// Custom Checkbox-Radio 
+
+
+.form-check{
+    text-align: right;
+    padding-right: $form-check-padding-start;
+    padding-left: 0;
+    .form-check-input{
+        float: right;
+        margin-left: 0;
+        margin-right: $form-check-padding-start * -1;
+    }
+}
+
+.form-check-inline{
+    margin-left: 1rem;
+    margin-right: 0;
+}
+
+.custom-control {
+    padding-left: 0;
+}
+
+.custom-control-inline{
+    margin-right: 0;
+}
+
+.custom-control-label {
+    &::before {
+        left: auto;
+    }
+
+    // Foreground (icon)
+    &::after {
+        left: auto;
+    }
+}
+
+// form-switch
+
+.form-switch{
+    padding-left: 0;
+    padding-right: $form-switch-padding-start;
+
+    .form-check-input{
+        margin-right: $form-switch-padding-start * -1;
+        margin-left: 0;
+    }
+}
+
+
+// Input Group
+
+.input-group-prepend {
+    margin-left: -1px;
+    margin-right: 0;
+}
+
+.input-group-append {
+    margin-right: -1px;
+    margin-left: 0;
+}
+
+.input-group>.input-group-prepend>.btn,
+.input-group>.input-group-prepend>.input-group-text,
+.input-group>.input-group-append:not(:last-child)>.btn,
+.input-group>.input-group-append:not(:last-child)>.input-group-text,
+.input-group>.input-group-append:last-child>.btn:not(:last-child):not(.dropdown-toggle),
+.input-group>.input-group-append:last-child>.input-group-text:not(:last-child),
+.input-group>.custom-select:not(:last-child),
+.input-group>.form-control:not(:last-child) {
+    border-top-right-radius: $input-border-radius;
+    border-bottom-right-radius: $input-border-radius;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+
+.input-group > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+    margin-right: -1px;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-top-left-radius: $input-border-radius;
+    border-bottom-left-radius: $input-border-radius;
+  }
+
+.input-group:not(.has-validation) > :not(:last-child):not(.dropdown-toggle):not(.dropdown-menu),
+.input-group:not(.has-validation) > .dropdown-toggle:nth-last-child(n+3) {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: $input-border-radius;
+  border-bottom-right-radius: $input-border-radius;
+}
+
+
+
+.input-group>.input-group-append>.btn,
+.input-group>.input-group-append>.input-group-text,
+.input-group>.input-group-prepend:not(:first-child)>.btn,
+.input-group>.input-group-prepend:not(:first-child)>.input-group-text,
+.input-group>.input-group-prepend:first-child>.btn:not(:first-child),
+.input-group>.input-group-prepend:first-child>.input-group-text:not(:first-child),
+.input-group>.custom-select:not(:first-child),
+.input-group>.form-control:not(:first-child) {
+    border-top-left-radius: $input-border-radius;
+    border-bottom-left-radius: $input-border-radius;
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.dropdown-menu-end[style] {
+   right: auto !important;
+   left: 0 !important;
+  }
+
+  .accordion-button:not(.collapsed)::after,
+.accordion-button::after {
+  margin-right: auto;
+  margin-left: unset;
+}
+.wizard > .actions > ul {
+    display: block;
+    text-align: left;
+    padding-right: 0;
+}

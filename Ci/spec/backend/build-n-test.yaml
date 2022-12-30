@@ -1,0 +1,84 @@
+test_backend:
+    stage: BuildAndTest
+    script:
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh test_backend backend InitScript probe HttpTestServer`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
+        - chmod +x ./ci/scripts/docker-install.sh
+        - ./ci/scripts/docker-install.sh
+        - sudo apt-get install wget apt-transport-https gnupg lsb-release
+        - wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+        - echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+        - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 294AC4827C1A168A
+        - sudo apt-get update
+        - sudo apt-get install trivy
+        - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+        - sudo docker run --name redis -p 6379:6379 -d redis:7.0.3 redis-server
+        - sudo docker run --name realtime --env-file ./realtime/.env -e PORT=3300 --net=host -d oneuptime/realtime:latest
+        - sudo docker run --name=samlIdp -p 9876:8080 -p 8443:8443 -e SIMPLESAMLPHP_SP_ENTITY_ID=oneuptime.com -e SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE=http://localhost:3002/api/user/sso/callback -e SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE=http://localhost/simplesaml/module.php/saml/sp/saml2-logout.php/test-sp -v $PWD/saml/users.php:/var/www/simplesamlphp/config/authsources.php -d kristophjunge/test-saml-idp
+        - sudo docker build -t oneuptime/InitScript:5.0.$CI_PIPELINE_ID ./InitScript
+        - sudo docker run -e NODE_ENV=development -e BILLING_ENABLED=true -e IS_TESTING=true --net=host -d oneuptime/InitScript:5.0.$CI_PIPELINE_ID
+        - sudo docker build -t oneuptime/probe:5.0.$CI_PIPELINE_ID ./probe
+        - sudo docker run --name probe-1 --env-file ./probe/.env -e PORT=3024 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 1' -e PROBE_KEY=test-key --net=host -d oneuptime/probe:5.0.$CI_PIPELINE_ID
+        - sudo docker run --name probe-2 --env-file ./probe/.env -e PORT=3025 -e SERVER_URL=http://localhost:3020 -e PROBE_NAME='Probe 2' -e PROBE_KEY=test-key --net=host -d oneuptime/probe:5.0.$CI_PIPELINE_ID
+        - sudo docker build -t oneuptime/HttpTestServer:5.0.$CI_PIPELINE_ID ./HttpTestServer
+        - sudo docker run -p 3010:3010 -d oneuptime/HttpTestServer:5.0.$CI_PIPELINE_ID
+        - sudo docker ps
+        - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd backend
+        - npm install
+        - ENCRYPTION_KEY=$ENCRYPTION_KEY TEST_EMAIL_SMTP_PORT=$TEST_EMAIL_SMTP_PORT TEST_EMAIL_SMTP_SERVER=$TEST_EMAIL_SMTP_SERVER TEST_EMAIL=$TEST_EMAIL TEST_EMAIL_NAME=$TEST_EMAIL TEST_EMAIL_PASSWORD=$TEST_EMAIL_PASSWORD BILLING_ENABLED=true IS_TESTING=true DOCKER_UNMASKED_USERNAME=$DOCKER_UNMASKED_USERNAME DOCKER_UNMASKED_PASSWORD=$DOCKER_UNMASKED_PASSWORD DOCKER_SECURITY_SCAN_REGISTRY_URL=$DOCKER_SECURITY_SCAN_REGISTRY_URL DOCKER_SECURITY_SCAN_IMAGE_PATH=$DOCKER_SECURITY_SCAN_IMAGE_PATH DOCKER_SECURITY_SCAN_IMAGE_TAGS=$DOCKER_SECURITY_SCAN_IMAGE_TAGS GITHUB_UNMASKED_USERNAME=$GITHUB_UNMASKED_USERNAME GITHUB_UNMASKED_PASSWORD=$GITHUB_UNMASKED_PASSWORD GITHUB_SECURITY_SCAN_REPOSITORY_URL=$GITHUB_SECURITY_SCAN_REPOSITORY_URL npm test
+        - cd ..
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh test_backend backend InitScript probe HttpTestServer
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    artifacts:
+        name: 'coverage-$CI_COMMIT_SHORT_SHA'
+        when: always
+        paths:
+            - backend/coverage/lcov-report/
+        expire_in: 1 week
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release
+
+test_enterprise_backend:
+    stage: BuildAndTest
+    script:
+        - chmod +x ./ci/scripts/checkhash.sh
+        - export next_stage=`./ci/scripts/checkhash.sh test_enterprise_backend backend`
+        - if [[ $next_stage == *"skip"* ]]; then exit ${CI_JOB_SKIP_EXIT_CODE:-0}; fi
+        - chmod +x ./ci/scripts/docker-install.sh
+        - ./ci/scripts/docker-install.sh
+        - sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 294AC4827C1A168A
+        - sudo docker stop $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker rm $(sudo docker ps -aq) || echo 'No docker containers'
+        - sudo docker run --name mongo -p 27017:27017 -d mongo:4.2.3
+        - sudo docker run --name bredis -p 6379:6379 -d redis:7.0.3 redis-server
+        - sudo docker run --name realtime --env-file ./realtime/.env -e PORT=3300 --net=host -d oneuptime/realtime:latest
+        - sudo docker ps
+        - curl -sL https://deb.nodesource.com/setup_15.x | sudo -E bash -
+        - sudo apt-get install -y nodejs
+        - cd backend
+        - npm install
+        - npm run enterprise-test
+        - cd ..
+        - chmod +x ./ci/scripts/storehash.sh
+        - ./ci/scripts/storehash.sh test_enterprise_backend backend
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    artifacts:
+        name: 'coverage-$CI_COMMIT_SHORT_SHA'
+        when: always
+        paths:
+            - backend/coverage/lcov-report/
+        expire_in: 1 week
+    except:
+        refs:
+            - hotfix-master
+            - hotfix-release

@@ -1,0 +1,79 @@
+
+
+/* 
+Datatable
+*/
+
+// datatable
+
+div.dataTables_wrapper {
+  div.dataTables_filter{
+    text-align: right;
+
+    @media (max-width: 767px){
+      text-align: center;
+    }
+
+
+    input{
+      margin-left: 0.5em;
+      margin-right: 0;
+    }
+  }
+}
+
+.table, table{
+  &.dataTable{
+    &.dtr-inline.collapsed>tbody>tr>td{
+      position: relative;
+      &.dtr-control{
+        padding-left: 30px;
+        &:before{
+          top: 50%;
+          left: 5px;
+          height: 14px;
+          width: 14px;
+          margin-top: -9px;
+          display: block;
+          position: absolute;
+          color: $white;
+          border: 2px solid $white;
+          border-radius: 14px;
+          box-sizing: content-box;
+          text-align: center;
+          text-indent: 0 !important;
+          line-height: 14px;
+          content: '+';
+          background-color: $primary;
+        }
+      }
+    }
+
+    >thead{
+      >tr{
+        >th, >td{
+          &:not(.sorting_disabled){
+            padding-right: 30px;
+            padding-left: 12px;
+          }
+        }
+      }
+
+      .sorting, 
+      .sorting_asc, 
+      .sorting_desc, 
+      .sorting_asc_disabled, 
+      .sorting_desc_disabled{
+        &::before{
+          right: 1em;
+          left: auto;
+        }
+
+        &::after{
+          right: .5em;
+          left: auto;
+        }
+      }
+    }
+  }
+}

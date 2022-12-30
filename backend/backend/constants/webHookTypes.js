@@ -1,6 +1,0 @@
-// For webhook type
-module.exports = {
-    PROJECT_WEBHOOK: 'PROJECT_WEBHOOK',
-
-    EXTERNAL_SUBSCRIBER_WEBHOOK: 'EXTERNAL_SUBSCRIBER_WEBHOOK',
-};

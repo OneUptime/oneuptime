@@ -1,0 +1,61 @@
+// 
+// _progress.scss
+// 
+
+// Progress height small
+.progress-sm {
+  height: 5px;
+}
+
+
+// Progress height medium
+.progress-md {
+  height: 8px;
+}
+
+
+// Progress height large
+.progress-lg {
+  height: 12px;
+}
+
+// Progress height Extra large
+.progress-xl {
+  height: 16px;
+}
+
+.custom-progess{
+  position: relative;
+  .progress-icon{
+      position: absolute;
+      top: -12px;
+      .avatar-title{
+        background: $card-bg;
+      }
+  }
+}
+
+// animated-progess
+
+.animated-progess{
+  position: relative;
+  .progress-bar {
+    position: relative;
+    border-radius: 6px;
+    animation: animate-positive 2s;
+  }
+}
+
+@keyframes animate-positive {
+  0% {
+      width: 0;
+  }
+}
+
+body[data-layout-mode="dark"] {
+
+  // progress
+  .progress{
+      background-color: $gray-dark-300;
+  }
+}

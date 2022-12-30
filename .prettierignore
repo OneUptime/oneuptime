@@ -3,6 +3,7 @@ node_modules
 
 # dependencies
 /node_modules
+node_modules
 .vscode/
 .idea
 # testing
@@ -13,10 +14,7 @@ node_modules
 
 # misc
 .DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+
 env.js
 
 npm-debug.log*
@@ -51,5 +49,5 @@ LICENSE
 marketing/*/*
 licenses/*
 certifications/*
-api-docs/public/assets/*
-js-sdk/src/cli/server-monitor/out/scripts/prettify/*
+ApiDocs/public/assets/*
+JavaScriptSDK/src/cli/server-monitor/out/scripts/prettify/*

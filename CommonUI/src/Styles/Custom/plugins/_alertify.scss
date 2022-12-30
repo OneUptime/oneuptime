@@ -1,0 +1,117 @@
+
+//
+// alertify.scss
+//
+
+
+.alertify {
+    .ajs-header{
+        font-weight: $font-weight-medium;
+    }
+    .ajs-dialog{
+        box-shadow: $box-shadow;
+    }
+
+    .ajs-footer {
+        .ajs-buttons {
+            .ajs-button{
+                font-weight: $font-weight-medium;
+                &.ajs-ok{
+                    color: $primary;
+                }
+            }
+
+            &.ajs-primary{
+                text-align: right;
+            }
+        }
+    }
+
+    .ajs-body .ajs-content .ajs-input:focus-visible{
+        outline: none;
+    }
+
+    .ajs-commands{
+        right: 4px;
+        left: auto;
+        margin: -14px 0 0 24px;
+    }
+}
+
+
+.alertify-notifier {
+    .ajs-message{
+        background-color: $primary;
+        border-color: $primary;
+        color: $white;
+        text-shadow: none !important;
+        &.ajs-success{
+            background-color: $success;
+            border-color: $success;
+        }
+        &.ajs-error{
+            background-color: $danger;
+            border-color: $danger;
+        }
+        &.ajs-warning{
+            background-color: $warning;
+            border-color: $warning;
+        }
+    }
+
+
+    &.ajs-right {
+        right: 10px;
+        left: auto;
+        .ajs-message {
+            right: -320px;
+            left: auto;
+            &.ajs-visible {
+                right: 290px;
+                left: auto;
+            }
+        }
+    }
+
+    &.ajs-left {
+        left: 10px;
+        right: auto;
+        .ajs-message {
+            left: -300px;
+            right: auto;
+            &.ajs-visible {
+                left: 0;
+                right: auto;
+            }
+        }
+    }
+}
+
+
+body[data-layout-mode="dark"] {
+
+    .alertify {
+        .ajs-dialog{
+            background-color: $gray-dark-200;
+        }
+
+        .ajs-header, .ajs-footer{
+            color: $gray-dark-600;
+            background-color: $gray-dark-200;
+            border-color: $gray-dark-300;
+        }
+
+        .ajs-body{
+            color: $gray-dark-500;
+        }
+
+        .ajs-footer{
+            .ajs-buttons .ajs-button{
+                color: $gray-dark-500;
+                &.ajs-ok{
+                    color: $primary;
+                }
+            }
+        }
+    }
+}

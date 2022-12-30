@@ -3,22 +3,46 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": [        
-
+    "tasks": [
         {
-            "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/backend",
-            "name": "Backend: Debug with Docker",
+            "type": "docker-run",
+            "label": "docker-run: debug",
+            "dependsOn": [
+                "docker-build"
+            ],
+            "dockerRun": {
+                "command": "nest start --debug 127.0.0.1:9229"
+            },
+            "node": {
+                "enableDebugging": true
+            }
+        }
+    ],
+    "configurations": [
+        {
+            "name": "Node.js - Debug Current File",
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true,
+            "request": "launch",
+            "program": "${file}"
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/DashboardAPI",
+            "name": "Dashboard API: Debug with Docker",
             "port": 9232,
             "remoteRoot": "/usr/src/app",
             "request": "attach",
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/data-ingestor",
             "name": "Data Ingestor: Debug with Docker",
             "port": 9338,
@@ -27,11 +51,27 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/realtime",
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Mail",
+            "name": "Mail: Debug with Docker",
+            "port": 9110,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Realtime",
             "name": "Realtime: Debug with Docker",
             "port": 9250,
             "remoteRoot": "/usr/src/app",
@@ -39,11 +79,41 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/probe-api",
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Workers",
+            "name": "Workers: Debug with Docker",
+            "port": 9654,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/StatusPage",
+            "name": "Status Page API${cwd}: Debug with Docker",
+            "port": 9764,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/ProbeAPI",
             "name": "Probe API: Debug with Docker",
             "port": 9251,
             "remoteRoot": "/usr/src/app",
@@ -51,10 +121,68 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Identity",
+            "name": "Identity: Debug with Docker",
+            "port": 9132,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Identity",
+            "name": "File: Debug with Docker",
+            "port": 9012,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Alert",
+            "name": "Alert: Debug with Docker",
+            "port": 9133,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Alert",
+            "name": "Integration: Debug with Docker",
+            "port": 9134,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/licensing",
             "name": "Licensing: Debug with Docker",
             "port": 9233,
@@ -63,11 +191,13 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/http-test-server",
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/HttpTestServer",
             "name": "HTTP Test Server: Debug with Docker",
             "port": 9234,
             "remoteRoot": "/usr/src/app",
@@ -75,10 +205,12 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/home",
             "name": "Home: Debug with Docker",
             "port": 9235,
@@ -87,10 +219,12 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/script-runnner",
             "name": "Script Runner: Debug with Docker",
             "port": 9236,
@@ -99,11 +233,13 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
-            "localRoot": "${workspaceFolder}/init-script",
+            "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/InitScript",
             "name": "Init Script: Debug with Docker",
             "port": 9237,
             "remoteRoot": "/usr/src/app",
@@ -111,10 +247,12 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
         },
         {
-            "address": "0.0.0.0",
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/probe",
             "name": "Probe: Debug with Docker",
             "port": 9238,
@@ -123,7 +261,35 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "name": "CommonServer: Debug Tests",
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true,
+            "request": "launch",
+            "cwd": "${workspaceRoot}/CommonServer",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run-script",
+                "debug:test"
+            ],
+        },
+        {
+            "name": "Accounts: Debug Local Files",
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true,
+            "request": "launch",
+            "cwd": "${workspaceRoot}/Accounts",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run-script",
+                "dev"
+            ],
         }
     ]
 }

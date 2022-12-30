@@ -1,0 +1,164 @@
+// 
+// _demos.scss
+// 
+
+
+
+.grid-example{
+  background-color: rgba($primary, 0.05);
+  border-radius: 5px;
+  font-weight: $font-weight-medium;
+  padding: 10px 20px;
+  font-size: .8rem;
+}
+
+// Modals
+
+.bs-example-modal {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    z-index: 1;
+    display: block;
+  }
+
+[dir="rtl"]{
+  .modal-open{
+    padding-left: 0px !important;
+  }
+}
+
+// Icon demo ( Demo only )
+.icon-demo-content {
+    color: $gray-500;
+  
+    i{
+      display: inline-flex;
+      width: 40px;
+      height: 40px;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: $gray-600;
+      transition: all 0.4s;
+      border: 1px solid $border-color;
+      border-radius: 50%;
+      margin-right: 16px;
+      vertical-align: middle;
+    }
+  
+    .col-lg-4 {
+      margin-top: 24px;
+  
+      &:hover {
+        i {
+          background-color: rgba($primary, 0.2);
+          color: $primary;
+        }
+    }
+  }
+}
+
+
+// Grid
+
+.grid-structure {
+    .grid-container {
+        background-color: $gray-100;
+        margin-top: 10px;
+        font-size: .8rem;
+        font-weight: $font-weight-medium;
+        padding: 10px 20px;
+    }
+}
+
+
+// card radio
+
+.card-radio{
+  background-color: $card-bg;
+  border: 2px solid $card-border-color;
+  border-radius: $border-radius;
+  padding: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover{
+    cursor: pointer;
+  }
+}
+
+.card-radio-label{
+  display: block;
+}
+
+
+.card-radio-input{
+  display: none;
+  &:checked + .card-radio {
+    border-color: $primary !important;
+  }
+}
+
+.spin-left:before {
+  animation: spin-left 2s infinite linear;
+}
+
+.spin-right:before {
+  animation: spin-right 2s infinite linear;
+}
+
+@keyframes spin-left {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(-359deg);
+  }
+}
+
+
+@keyframes spin-right {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+
+body[data-layout-mode="dark"] {
+ 
+  // Grid
+  .grid-structure .grid-container, .grid-example {
+    background-color: lighten($gray-dark-200,2.5%);
+  }
+
+  .icon-demo-content{
+      color: $gray-dark-400;
+      i{
+        border-color: $gray-dark-300;
+        color: $gray-dark-400;
+      }
+  }
+
+  
+  // Lightbox 
+
+  .glightbox-clean {
+    .gslide-description{
+      background-color: $gray-dark-300;
+    }
+
+    .gslide-title{
+      color: $gray-dark-600;
+    }
+  }
+}
+
+

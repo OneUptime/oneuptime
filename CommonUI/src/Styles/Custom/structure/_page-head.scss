@@ -1,0 +1,12 @@
+// 
+// Page-title
+// 
+
+.page-title-box {
+    padding-bottom: $grid-gutter-width;
+
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0;
+    }
+}

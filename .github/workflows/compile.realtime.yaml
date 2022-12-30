@@ -1,0 +1,24 @@
+name: Compile Realtime
+
+on:
+  pull_request: 
+  push:
+    branches-ignore:
+      - 'hotfix-*'   
+      - 'release'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CI_PIPELINE_ID: ${{github.run_number}}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          check-latest: true
+      - run: cd Common && npm install
+      - run: cd Model && npm install
+      - run: cd CommonServer && npm install
+      - run: cd Realtime && npm install && npm run compile
+  

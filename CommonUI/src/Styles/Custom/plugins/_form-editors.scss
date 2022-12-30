@@ -1,0 +1,123 @@
+//
+// Form editors.scss
+//
+
+// CK Editor
+
+.ck{
+  &.ck-toolbar {
+    background-color: rgba($light, 0.75) !important;
+    border: 1px solid $input-border-color !important;
+
+    &.ck-toolbar_grouping>.ck-toolbar__items {
+      flex-wrap: wrap !important;
+    }
+
+    .ck.ck-toolbar__separator {
+      background: transparent !important;
+    }
+  }
+
+  &.ck-editor__main>.ck-editor__editable {
+    border-top: 0 !important;
+    background-color: $card-bg !important;
+    border-color: $input-border-color !important;
+    box-shadow: none !important;
+  }
+
+  &.ck-dropdown__panel,
+  &.ck-list {
+    background: $dropdown-bg !important;
+    border: 1px solid $dropdown-border-color !important;
+  }
+
+  &.ck-reset_all,
+  &.ck-reset_all * {
+    color: $body-color !important
+  }
+
+  &.ck-dropdown{
+    .ck-dropdown__panel{
+      &.ck-dropdown__panel_ne, &.ck-dropdown__panel_se{
+        left: 0;
+        right: auto !important;
+      }
+    }
+  }
+
+  &.ck-editor__editable_inline{
+    &[dir=ltr]{
+      text-align: left !important;
+    }
+  }
+}
+
+
+.ck-editor__editable {
+  min-height: 245px !important;
+}
+
+.ck, a.ck{
+  &.ck-button{
+    &.ck-on:not(.ck-disabled){
+      &:hover, &:active{
+        background: $light !important;
+        box-shadow: none !important;
+      }
+    }
+
+    &:focus, &:active{
+      background: $light !important;
+      border-color:  $light !important;
+    }
+  }
+}
+
+.ck.ck-tooltip .ck-tooltip__text{
+  background: $dark !important;
+  color: $light !important;
+}
+
+.ck.ck-toolbar .ck.ck-button.ck-on,
+a.ck.ck-button.ck-on,
+.ck.ck-button:not(.ck-disabled):hover,
+a.ck.ck-button:not(.ck-disabled):hover {
+  background: rgba($light, 0.75) !important;
+}
+
+
+// Dark layout
+body[data-layout-mode="dark"] {
+  .ck{
+    &.ck-toolbar{
+      background-color: $gray-dark-300 !important;
+      border-color: $gray-dark-300 !important;
+    }
+
+    &.ck-editor__main>.ck-editor__editable{
+      background-color: $gray-dark-200 !important;
+      border-color: $gray-dark-300 !important;
+    }
+
+    &.ck-icon :not([fill]){
+      fill: $gray-dark-500 !important;
+    }
+
+    &.ck-reset_all, &.ck-reset_all *{
+      color: $gray-dark-400 !important;
+    }
+  }
+
+  .ck.ck-toolbar .ck.ck-button.ck-on,
+  a.ck.ck-button.ck-on,
+  .ck.ck-button:not(.ck-disabled):hover,
+  a.ck.ck-button:not(.ck-disabled):hover {
+    background: rgba($gray-dark-400, 0.2) !important;
+  }
+}
+
+[dir="rtl"]{
+  .ck.ck-toolbar>.ck-toolbar__items{
+    flex-direction: row-reverse;
+  }
+}

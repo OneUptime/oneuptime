@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" id="contact">
+
+<head>
+  <meta charset="utf-8">
+  <title>OneUptime | Help and Support</title>
+
+  <meta name="description"
+    content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+  <%- include('head') -%>
+  <link rel="stylesheet" href="/css/contact.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro&display=swap">
+  <script src="/js/amplitude.js"></script>
+  <script type="module" async>
+    var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+    if (BILLING_ENABLED) {
+      amplitude.getInstance().logEvent('PAGE VIEW: HOME > SUPPORT');
+    }
+  </script>
+</head>
+
+<body>
+
+  <%- include('nav') -%>
+
+  <div class="globalContent">
+    <main>
+      <div class="oneuptimeBackground-container">
+        <div class="oneuptimeBackground-large">
+         
+        </div>
+      </div>
+
+
+      <div class="container Header-container">
+        <header class="Header">
+          <h1 class="Header-title common-PageTitle header-font header-size">
+            Friendly folks, standing by. </h1>
+          <p class="Header-subTitle common-IntroText">Always humans, never bots. The hands-down, sharpest and friendliest support team in the biz. <br/>Contact us and  <span class="highlight"> we’ll get back to you in less than 1 business day.</span></p>
+        </header>
+      </div>
+
+      <section id="callouts" class="ContactOptions-section">
+        <div class="container">
+          <div class="row">
+            <a href="mailto:sales@oneuptime.com" class="contactCalloutBox">
+              <div class="contactCalloutInnerContainer">
+                <div class="sales"></div>
+                <h2 class="ContactCalloutTitle common-BodyTitle">Sales</h2>
+                <p class="ContactCalloutTagline common-BodyText">We’d love to talk about how we can work together.</p>
+              </div>
+              <div class="ContactCalloutFooter">
+                <div class="common-BodyText common-Link common-Link--arrow">Contact sales</div>
+              </div>
+            </a>
+
+            <a href="mailto:support@oneuptime.com" class="contactCalloutBox">
+              <div class="contactCalloutInnerContainer">
+                <div class="contactCallout-Icon"></div>
+                <h2 class="ContactCalloutTitle common-BodyTitle">Help &amp; Support</h2>
+                <p class="ContactCalloutTagline common-BodyText">We’re here to help with any questions or code.</p>
+              </div>
+              <div class="ContactCalloutFooter">
+                <div class="common-BodyText common-Link common-Link--arrow support">Contact support</div>
+              </div>
+            </a>
+
+            <a href="mailto:press@oneuptime.com" class="contactCalloutBox">
+              <div class="contactCalloutInnerContainer">
+                <div class="contactCallout-Icon media"></div>
+                <h2 class="ContactCalloutTitle common-BodyTitle">Media &amp; Press</h2>
+                <p class="ContactCalloutTagline common-BodyText">Get OneUptime news, company info, and media resources.</p>
+              </div>
+              <div class="ContactCalloutFooter">
+                <div class="common-BodyText common-Link common-Link--arrow media">Contact our PR team</div>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <aside class="container">
+        <div class='inner-col'>
+          <section>
+            <h3 class="common-BodyTitle">Join us on Slack</h3>
+            <p class="common-BodyText">If you have technical questions, chat live with developers on our Slack Group.
+              <br /><a href='https://join.slack.com/t/oneuptimehelp/shared_invite/zt-f9it996u-Klha030kbWe6FhCDYUmwig' target="blank" class='common-Link '>Send me an invite to join.</a>
+          </section>
+          <section>
+            <h3 class="common-BodyTitle">General communication</h3>
+            <p class="common-BodyText">
+              For general queries, including partnership opportunities, please email
+              <a href='mailto:contact@oneuptime.com' class='common-Link '>contact@oneuptime.com</a>
+            </p>
+          </section>
+        </div>
+      </aside>
+
+    </main>
+
+  </div>
+
+  <%- include('footer') -%>
+
+</body>
+
+</html>

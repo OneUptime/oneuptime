@@ -1,0 +1,25 @@
+//
+// accordion.scss
+//
+
+body[data-layout-mode="dark"] {
+
+    // accordion
+
+    .accordion-button{
+      border-color: $gray-dark-300;
+      color: $gray-dark-600;
+      &:not(.collapsed){
+          background-color: rgba($primary, 0.2);
+          color: $primary;
+      }
+    }
+
+    .accordion-item{
+        border-color: $gray-dark-300;
+    }
+    
+    .accordion-collapse{
+        border-color: $gray-dark-300;
+    }
+}

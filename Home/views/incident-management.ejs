@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" id="contact">
+
+<head>
+    <title>OneUptime | Incident Orchestration and Response</title>
+
+    <meta name="description"
+        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+    <%- include('head') -%>
+    <link rel="stylesheet" href="/css/shared-site.css">
+    <link rel="stylesheet" href="/css/home.css">
+    <link rel="stylesheet" href="/css/products.css">
+    <script src="/js/amplitude.js"></script>
+    <script type="module" async>
+        var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (BILLING_ENABLED) {
+            amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > INCIDENT MANAGEMENT & RESPONSE');
+        }
+    </script>
+</head>
+
+<body>
+
+    <%- include('nav') -%>
+
+    <div class="globalContent">
+        <div id="main-content">
+
+            <section class="marquee nav-animation-element">
+
+                <div id="bubble-overlay">
+                    <div class="content">
+                        
+                        <header>
+                            <h1 class="Header-title common-PageTitle header-font header-size black">Incident Management &amp; Response</h1>
+                            <p style="margin-top:50px">Protect revenue and improve customer experiences by resolving critical incidents faster and preventing future occurrences.</p>
+                        </header>
+
+                    </div>
+                    
+                </div>
+
+            </section>
+
+            <div class="gif-container">
+                <img src="/img/animated-gif/incident-management.gif" class="imageshadow" alt="Incident Management" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%" />
+            </div>
+
+            <%- include('cta-buttons') -%>
+
+            
+
+            <section class="main basics" style="padding:0px">
+                <div class="content">
+                    <ul class="columns">
+                        <li class="automation">
+                            <h3>Automated Precision Response</h3>
+                            <p class="text-center">Go from single-responder triage to mobilizing the right cross-functional team in seconds from any device.</p>
+                        </li>
+                        <li class="help">
+                            <h3>Business-Wide Orchestration</h3>
+                            <p class="text-center">Keep stakeholders throughout the business informed in real-time, empowering the entire company to collaborate and respond proactively. </p>
+                        </li>
+                        <li class="bounce">
+                            <h3>Major Incident Learning</h3>
+                            <p class="text-center">Learn from major incidents by conducting postmortems. Create and curate a timeline of activity, allowing continuous learning and process improvement.</p>
+                        </li>
+                    </ul>
+
+                    <ul class="columns">
+                        <li class="stakeholders">
+                            <h3>Stakeholder Communication</h3>
+                            <p class="text-center">OneUptime engages the entire business by providing IT management, support, executive, marketing, sales, and legal teams with clear and concise business impacts in real time. </p>
+                        </li>
+                        <li class="service-integration">
+                            <h3>ITSM Integration</h3>
+                            <p class="text-center">Integrate with any ITSM or ticketing solution (JIRA, ServiceNow, BMC, etc.) to automatically create tickets from OneUptime incidents and vice versa. </p>
+                        </li>
+                        <li class="workshop">
+                            <h3>Incident Response Training</h3>
+                            <p class="text-center">Improve incident outcomes with professional training from OneUptime, built on proven response practices drawn from 11,000+ successful operations teams. </p>
+                        </li>
+                    </ul>
+
+                </div>
+
+                <%- include('cta-buttons') -%>
+
+                <%- include('customer-section') -%>
+                <div class="sectionBorderTop">
+                    <%- include('comparision-chart') -%>
+                </div>
+
+               <div class="split">
+                    <div class="content margin-0-in-mobile">
+
+                          <div class="left invisible-in-mobile">
+
+                            <h3 class="header" style="margin-top:250px">More Incident <br/> Orchestration &amp; <br/> and Response <br/> Features.</h3>
+                            <p class="common-BodyText" style="font-size:18px"><span class="highlight"
+                                    style="font-size:18px">Our real-time operations <br/> platform ensures less <br/> downtime and fewer outages, <br/> meaning happier customers <br/> and more productive teams.
+                                 </p>
+
+                        </div>
+
+                        <div class="right width-100-in-mobile margin-0-in-mobile">
+                            <ul>
+                                <li>
+                                    <h3>Connect to any third-party monitoring service</h3>
+                                </li>
+                                <li>
+                                    <h3>Use OneUptime's built-in monitoring service.</h3>
+                                </li>
+                                <li>
+                                    <h3>Support for vacations and leaves in on-call scheduling.</h3>
+                                </li>
+                                <li>
+                                    <h3>Support for Escalation policy.</h3>
+                                </li>
+                                <li>
+                                    <h3>Alerts multiple times if someone does not respond and then escalates.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Multiple incident stages - Investigating, Acknowledged, Resolved and more. </h3>
+
+                                </li>
+                                <li>
+                                    <h3>Create multiple on-call schedules.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Complete visibility on incident metrics.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Integrate with 1500+ integrations.</h3>
+                                </li>
+                                <li>
+                                    <h3>Integrate with fully extensible API.</h3>
+
+                                </li>
+
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+
+                <%- include('integration') -%> 
+              
+            </section>
+
+        </div>
+    </div>
+
+    <%- include('footer') -%>
+
+</body>
+
+
+</html>

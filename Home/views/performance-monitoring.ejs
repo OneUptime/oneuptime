@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en" id="contact">
+
+<head>
+    <title>OneUptime | Monitor Application Performance</title>
+
+    <meta name="description"
+        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+    <%- include('head') -%>
+    <link rel="stylesheet" href="/css/shared-site.css">
+    <link rel="stylesheet" href="/css/home.css">
+    <link rel="stylesheet" href="/css/products.css">
+    <script src="/js/amplitude.js"></script>
+    <script type="module" async>
+        var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (BILLING_ENABLED) {
+            amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > API MONITORING');
+        }
+    </script>
+</head>
+
+<body>
+
+    <%- include('nav') -%>
+
+    <div class="globalContent">
+        <div id="main-content">
+
+            <section class="marquee nav-animation-element">
+
+                <div id="bubble-overlay">
+                    <div class="content">
+                        
+                        <header>
+                            <h1 class="Header-title common-PageTitle header-font header-size black">Monitor the Performance of your Application</h1>
+                            <p style="margin-top:50px; font-size: 22px">Analyze the webtransaction time, throughput and error rate of your application. Improve poorly performing part of your application to improve user experience on your app.</p>
+                        </header>
+                    </div>   
+                    <div style="
+                    margin: 0 auto;
+                    ;">
+                        <div class="checkbox-items" style="max-width: 1000px; margin: auto;">
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img height="22" src="/img/check-mark-button.svg" /> </div> <div
+                                        class="checkbox-text">Web-Transaction Time</div> 
+                            </div>
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                        class="checkbox-text">Throughput</div> 
+                            </div>
+                            
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img height="22" src="/img/check-mark-button.svg" /></div> <div
+                                        class="checkbox-text">Error Rate</div> 
+                            </div>
+                            
+                        </div>
+                       
+                    </div>                 
+                </div>
+
+            </section>
+
+            <div class="gif-container">
+                <img src="/img/animated-gif/uptime-monitoring.gif" class="imageshadow" alt="Uptime Monitoring" id="uptime-monitoring-gif" style="border-radius: 5px;width: 100%;" />
+            </div>
+
+            <%- include('cta-buttons') -%>
+
+
+            <section class="main basics" style="padding:0px">
+                <div class="content">
+                    <ul class="columns">
+                        <li class="block-image reliability">
+                            <h3>Monitor Anything.</h3>
+                            <p class="text-center">Monitor web-transaction time, error rate, throughput and more.</p>
+                        </li>
+                        <li class="block-image moni">
+                            <h3>Detailed Metrics</h3>
+                            <p class="text-center">All teams get the same visibility for technical and business response orchestration, enabling better collaboration and rapid resolution. </p>
+                        </li>
+                        <li class="block-image time">
+                            <h3>Every second check.</h3>
+                            <p class="text-center">OneUptime checks the performance of your application every second to make sure you get alerted as soon as possible.</p>
+                        </li>
+                    </ul>
+                </div>
+
+                <%- include('cta-buttons') -%>
+              
+                <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
+                    <h2 class="header">How monitoring helps your business?</h2>
+                    <p class="common-BodyText"> See how OneUptime's complete monitoring platform can help you reach your business goals. </p>
+                </header>
+                <div class="content">
+                    <ul class="columns">
+                        <li class="block-image teams">
+                            <h3>Never lose a customer.</h3>
+                            <p class="text-center">Truth is downtimes happen. OneUptime keeps both your team and customers looped in about the downtime which increases customer trust. </p>
+                        </li>
+                        <li class="block-image customerexperience">
+                            <h3>Improve Customer Experience</h3>
+                            <p class="text-center">Understand and optimize the load performance of every element on your page for a better customer experience.</p>
+                        </li>
+                        <li class="block-image reli">
+                            <h3>Comply with your SLA</h3>
+                            <p class="text-center"> Showcase your SLA compliance to your potential customer to gain more leads. </p>
+                        </li>
+                    </ul>
+                </div>
+
+                <%- include('cta-buttons') -%>
+
+                <%- include('customer-section') -%>
+                <div class="sectionBorderTop">
+                    <%- include('comparision-chart') -%>
+                </div>
+
+                
+               <div class="split">
+                    <div class="content margin-0-in-mobile">
+
+                          <div class="left invisible-in-mobile">
+
+                            <h3 class="header" style="margin-top:250px">More Monitoring <br/>Features.</h3>
+                            <p class="common-BodyText" style="font-size:18px"><span class="highlight"
+                                    style="font-size:18px">Efficient IT and SRE management <br />depends on the right
+                                    information  <br />being shared with the right people </br> at the right time </span><br /><br /> OneUptime's monitoring lets you 
+                                <br />know know exactly what is  <br />wrong with your service, <br/>at the right time,  saving you critical <br/>minutes during downtime.
+                                 </p>
+
+                        </div>
+
+                        <div class="right width-100-in-mobile margin-0-in-mobile">
+                            <ul>
+                                <li>
+                                    <h3>Install agents at any location. Even in China.</h3>
+                                </li>
+                                <li>
+                                    <h3>Improve workflow with right alerts, to right people at the right time.</h3>
+                                </li>
+                                <li>
+                                    <h3>Reliable Alerting - No false alerts.</h3>
+                                </li>
+                                <li>
+                                    <h3>Get alerted when your critical site flows stop working correctly.</h3>
+                                </li>
+                                <li>
+                                    <h3>Automated Real Browser Testing.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Page speed monitoring and other insights. </h3>
+
+                                </li>
+                                <li>
+                                    <h3>Monitor Anything - Server, Containers, Website, Network, etc.</h3>
+                                </li>
+                                <li>
+                                    <h3>Complete visibilty on incident metrics.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Integrate with 1500+ integrations.</h3>
+                                </li>
+                                <li>
+                                    <h3>Integrate with fully extensible API.</h3>
+
+                                </li>
+
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+
+                
+               
+                <%- include('integration') -%> 
+            </section>
+
+
+
+
+
+        </div>
+    </div>
+
+    <%- include('footer') -%>
+
+</body>
+
+
+</html>

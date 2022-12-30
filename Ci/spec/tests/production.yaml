@@ -1,0 +1,23 @@
+## SMOKE TEST STAGE
+smoke_test_production:
+    stage: Tests
+    script:
+        - export HOME_URL=https://oneuptime.com
+        - export ACCOUNTS_URL=https://oneuptime.com/accounts
+        - export DASHBOARD_URL=https://oneuptime.com/dashboard
+        - export BACKEND_URL=https://oneuptime.com/api
+        - export STATUSPAGE_URL=https://statuspage.oneuptime.com
+        - export APIDOCS_URL=https://oneuptime.com/docs
+        - export LICENSING_URL=https://oneuptime.com/license
+        - cd tests
+        - npm install
+        - npm run test
+        - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - hotfix-release
+    environment:
+        name: production

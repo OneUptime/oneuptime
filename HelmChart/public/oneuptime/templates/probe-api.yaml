@@ -1,0 +1,153 @@
+###########-----ProbeAPI------##############
+
+# OneUptime Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+    namespace: {{ $.Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+        {{- if $.Values.saas.isRunningOnGCPMarketplace }}
+        app.kubernetes.io/name: "$name"
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+        app.kubernetes.io/component:  {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+        {{- end }}
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+    replicas: {{ $.Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "ProbeAPI" .Values.image.tag }}
+                  name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
+                  resources:
+                    requests:
+                      cpu: 450m
+                    limits:
+                      cpu: 700m
+                  env:
+                      - name: ONEUPTIME_SECRET
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                            key: clusterkey
+                      - name: NODE_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: spec.nodeName
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: POD_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: POD_IP
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: status.podIP
+                      - name: POD_SERVICE_ACCOUNT
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: spec.serviceAccountName
+                      - name: REALTIME_URL
+                        value: {{ template "oneuptime.realtimeUrl" $ }}
+                      - name: MONGO_URL
+                        value: {{ template "oneuptime.mongodbConnectionString" . }}
+                      - name: ONEUPTIME_HOST
+                        value: {{ $.Values.oneuptime.hosts.host1.host }}
+                      - name: DEPLOYMENT_NAME
+                        value: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+                      - name: CONTAINER_NAME
+                        value: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+                      - name: BACKEND_PROTOCOL
+                        value: {{ $.Values.backendProtocol }}
+                      - name: PORT
+                        value: {{ $.Values.host.fetchResourcesPort | quote }}
+                      - name: NODE_ENV
+                        value: {{ $.Values.nodeEnv }}
+                      - name: IS_TESTING
+                        value: {{ $.Values.isTesting | quote }}
+                      - name: DB_NAME
+                        value: {{ $.Values.mongo.databaseName }}
+                  ports:
+                      - containerPort: {{ $.Values.host.fetchResourcesPort }}
+                        hostPort: {{ $.Values.host.fetchResourcesPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+                {{- if $.Values.saas.isRunningOnGCPMarketplace }}
+                - name: ubbagent
+                  image: $imageUbbagent
+                  resources:
+                    requests:
+                      cpu: 250m
+                    limits:
+                      cpu: 500m
+                  env:
+                  - name: AGENT_CONFIG_FILE
+                    value: "/etc/ubbagent/config.yaml"
+                  - name: AGENT_LOCAL_PORT
+                    value: "4567"
+                  - name: AGENT_ENCODED_KEY
+                    valueFrom:
+                      secretKeyRef:
+                        name: $reportingSecret
+                        key: reporting-key
+                  - name: AGENT_CONSUMER_ID
+                    valueFrom:
+                      secretKeyRef:
+                        name: $reportingSecret
+                        key: consumer-id
+                  volumeMounts:
+                  - name: ubbagent-config
+                    mountPath: /etc/ubbagent
+                volumes:
+                - name: ubbagent-config
+                  configMap:
+                    name: ubbagent-config
+                {{- end }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
+---
+# OneUptime Backend Deployment
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+    namespace: {{ $.Release.Namespace }}
+spec:
+    ports:
+        - port: {{ $.Values.host.fetchResourcesServicePort }}
+          targetPort: {{ $.Values.host.fetchResourcesPort }}
+    selector:
+        app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+    type: ClusterIP
+---
+##################################################
+
+{{- if .Values.autoScaler.enabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+spec:
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
+---
+{{- end }}

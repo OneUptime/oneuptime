@@ -1,0 +1,425 @@
+version: '3.7'
+
+services:
+    ##IMPORTANT:
+    ## This container is an SMTP server used to send emails.
+    ## Setup private, tls_cert and tls_key keys before running this part
+    haraka:
+        ports:
+            - '2525:2525'
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Haraka/Dockerfile
+        {{ else }}
+        image:  oneuptime/haraka:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Haraka/.env
+    
+    redis:
+        image: redis:7.0.3
+        restart: always
+        ports:
+            - '6379:6379'
+        command: redis-server --requirepass "{{ .Env.REDIS_PASSWORD }}"
+        env_file:
+            - ./Redis/.env
+
+    postgres:
+        image: postgres:latest
+        restart: always
+        env_file:
+            - ./Postgres/.env
+        ports:
+            - '5400:5432'
+        volumes: 
+            - postgres:/var/lib/postgresql/data
+    
+    mail:
+        ports:
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - 9110:9229 # Debugging port.
+            {{ end }}
+            - 3190:3190
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Mail/Dockerfile
+        {{ else }}
+        image:  oneuptime/mail:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Mail/.env
+        depends_on:
+            - haraka
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./Mail:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+
+    
+
+    accounts:
+        ports:
+            - '3003:3003'
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Accounts/Dockerfile
+        {{ else }}
+        image:  oneuptime/accounts:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
+            - ./Accounts/.env
+
+        depends_on:
+            - identity
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./Accounts:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+
+    dashboard:
+        ports:
+            - '3009:3009'
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Dashboard/Dockerfile
+        {{ else }}
+        image:  oneuptime/dashboard:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
+            - ./Dashboard/.env
+
+        depends_on:
+            - identity
+            - accounts
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./Dashboard:/usr/src/app
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+    
+
+    status-page:
+        ports:
+            - '3105:3105' # HTTP UI Port
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - 9764:9229 # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./StatusPage/Dockerfile
+        {{ else }}
+        image:  oneuptime/status-page:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonUI/.env
+            - ./StatusPage/.env
+
+        depends_on:
+            - accounts
+            - dashboard-api
+            
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./StatusPage:/usr/src/app
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+
+    dashboard-api:
+        ports:
+            - '3002:3002'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9232:9229' # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./DashboardAPI/Dockerfile
+        {{ else }}
+        image:  oneuptime/dashboard-api:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./DashboardAPI/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - mail
+        links:
+            - redis
+            - postgres
+            - mail
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./DashboardAPI:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+    
+
+
+    workers:
+        ports:
+            - '3452:3452'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9654:9229' # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Workers/Dockerfile
+        {{ else }}
+        image:  oneuptime/workers:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Workers/.env
+
+        depends_on:
+            - postgres
+            - mail
+        links:
+            - postgres
+            - mail
+        volumes:
+            - ./Certs:/usr/src/Certs
+        {{ if eq .Env.ENVIRONMENT "development" }}
+            - ./Workers:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+    
+
+
+
+    identity:
+        ports:
+            - '3087:3087'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9132:9229' # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Identity/Dockerfile
+        {{ else }}
+        image:  oneuptime/identity:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Identity/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - mail
+        links:
+            - redis
+            - postgres
+            - mail
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./Identity:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+    
+
+    file:
+        ports:
+            - '3125:3125'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9012:9229' # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./File/Dockerfile
+        {{ else }}
+        image:  oneuptime/file:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./File/.env
+
+        depends_on:
+            - postgres
+        links:
+            - postgres
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./File:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+
+  
+    home:
+        ports:
+            - '1444:1444'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9235:9229' # Debugging port.
+            {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Home/.env
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Home/Dockerfile
+        {{ else }}
+        image:  oneuptime/home:{{ .Env.APP_TAG }}
+        {{ end }}
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./Home:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+    
+
+    nginx:
+        depends_on:
+            - identity
+            - accounts
+            - dashboard-api
+            - dashboard
+            - home
+        restart: always
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Nginx/Dockerfile
+        {{ else }}
+        image:  oneuptime/nginx:{{ .Env.APP_TAG }}
+        {{ end }}
+        ports:
+            - '80:80'
+            - '443:443'
+        volumes:
+            - ./Nginx/default.conf:/etc/nginx/conf.d/default.conf
+            - ./Certs:/etc/nginx/certs
+volumes:
+    postgres:

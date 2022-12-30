@@ -1,0 +1,37 @@
+{
+    "name": "realtime",
+    "version": "3.0.0",
+    "description": "A project to handle all realtime processing for OneUptime",
+    "main": "index.ts",
+    "scripts": {
+        "start": "node --require ts-node/register Index.ts",
+        "compile": "tsc",
+        "dev": "npx nodemon",
+        "audit": "npm audit --audit-level=low",
+        "dep-check": "depcheck ./ --skip-missing=true"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "type": "module",
+    "dependencies": {
+        "axios": "^0.26.1",
+        "Common": "file:../Common",
+        "CommonServer": "file:../CommonServer",
+        "cors": "^2.8.5",
+        "cross-env": "^7.0.3",
+        "dotenv": "^16.0.0",
+        "express": "^4.17.3",
+        "lodash": "^4.17.21",
+        "Model": "file:../Model",
+        "socket.io": "^4.5.4",
+        "ts-node": "^10.9.1",
+        "uuid": "^8.3.2",
+        "winston": "^3.6.0",
+        "winston-slack-webhook-transport": "^2.1.0"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.20",
+        "ts-node-dev": "1.1.8"
+    }
+}

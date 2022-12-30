@@ -1,0 +1,62 @@
+private
+public
+
+.git
+
+node_modules
+# See https://help.github.com/ignore-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+node_modules
+
+.idea
+# testing
+/coverage
+
+# production
+/build
+
+# misc
+.DS_Store
+
+env.js
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+yarn.lock
+Untitled-1
+*.local.sh
+*.local.yaml
+run
+stop
+
+nohup.out*
+
+encrypted-credentials.tar
+encrypted-credentials/
+
+_README.md
+
+# Important Add production values to gitignore.
+values-saas-production.yaml
+kubernetes/values-saas-production.yaml
+
+/private
+
+/tls_cert.pem
+/tls_key.pem
+/keys
+
+temp_readme.md
+
+tests/coverage
+
+settings.json
+
+GoSDK/tester/
+# tls
+tls_cert.pem
+tls_key.pem

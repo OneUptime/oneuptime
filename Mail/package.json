@@ -1,0 +1,30 @@
+{
+    "name": "mail",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "start": "node --require ts-node/register Index.ts",
+        "compile": "tsc",
+        "dev": "npx nodemon",
+        "test": "echo 'no tests'"
+    },
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "@types/node": "^17.0.27",
+        "@types/nodemailer": "^6.4.4",
+        "@types/nodemailer-express-handlebars": "^4.0.2",
+        "Common": "file:../Common",
+        "CommonServer": "file:../CommonServer",
+        "ejs": "^3.1.8",
+        "handlebars": "^4.7.7",
+        "Model": "file:../Model",
+        "nodemailer": "^6.7.3",
+        "nodemailer-express-handlebars": "^5.0.0",
+        "ts-node": "^10.9.1"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.20"
+    }
+}

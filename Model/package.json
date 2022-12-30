@@ -1,0 +1,22 @@
+{
+  "name": "model",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --passWithNoTests",
+    "compile": "tsc"
+  },
+  "dependencies": {
+    "Common": "file:../Common",
+    "typeorm": "^0.3.7"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.4.1",
+    "@types/node": "^17.0.22",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.1.4"
+  },
+  "author": "",
+  "license": "ISC"
+}

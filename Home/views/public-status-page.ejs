@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en" id="contact">
+
+<head>
+    <meta charset="utf-8">
+    <title>OneUptime | Public Status Page</title>
+
+    <meta name="description"
+        content="OneUptime lets you build UNLIMITED public and private status pages for your online business. Have UNLIMITED subscribers for just $22/mo">
+    <meta name="keywords" content="build status page, hosted status page, status page, create status page, build private status page, build public status page, private status page, public status page ">
+        
+    <%- include('head') -%>
+    <link rel="stylesheet" href="/css/shared-site.css">
+    <link rel="stylesheet" href="/css/home.css">
+    <link rel="stylesheet" href="/css/products.css">
+    <script src="/js/amplitude.js"></script>
+    <script type="module" async>
+        var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+        if (BILLING_ENABLED) {
+            amplitude.getInstance().logEvent('PAGE VIEW: HOME > PRODUCT > PUBLIC STATUS PAGE');
+        }
+    </script>
+    <script>
+        function onClickFunc(index) {
+            let playButton = document.getElementById(`playButton-${index}`);
+            let gif = document.getElementById(`gif-${index}`);
+            let videoDiv= document.getElementById(`videoDiv-${index}`);
+            let video= document.getElementById(`video-${index}`);
+            let grid = document.getElementById(`grid-${index}`);
+            playButton.style.display = "none";
+            gif.style.display="none";
+            videoDiv.style.display="block";
+            // grid.style.width="1000px";
+            video.src += "?autoplay=1";
+        }
+        function mouseOverFunc(index)
+        {
+            let playButton = document.getElementById(`playButton-${index}`);
+            playButton.src="/img/play-button-black.svg";
+            playButton.style.cursor="pointer";
+        }
+        function mouseOutFunc(index)
+        {
+            let playButton = document.getElementById(`playButton-${index}`);
+            playButton.src="/img/play-button-grey.svg";
+        }
+    </script>
+</head>
+
+<body>
+
+    <%- include('nav') -%>
+
+    <div class="globalContent">
+        
+        <div id="main-content">
+
+            <section class="marquee nav-animation-element top-section" style="height: unset !important;">
+                
+                <div id="bubble-overlay">
+                    
+                    <div class="content">
+                        
+                        <header>
+                            <h1 style="line-height: unset; font-size: 50px !important;" class="Header-title common-PageTitle header-font header-size black">Make incident communication efficient. Build your Status Page now.</h1>
+                            <div style="margin-top: -100px">
+                            <%- include("stars", {
+                                description1: '"Best status page product on the internet!"',
+                                name1: "- AlternativeTo",
+                                link1: "https://alternativeto.net/software/oneuptime/about",
+                                description2: '"..so much more than just a status page."',
+                                name2: "- Capterra",
+                                link2: "https://www.capterra.com/p/176513/OneUptime/",
+                                description3: '"...saved us SO MUCH in support costs"',
+                                name3: "- G2 Crowd",
+                                link3: "https://www.g2.com/products/oneuptime/reviews"
+                            }) %>
+                        </div>
+                            <p style="margin-top:50px; font-size: 22px;"><i><span class="red-highlight">Downtime happens.</span></i>  <br/><br/> <span class="highlight">Status Page helps you be more transparent with your customers and showcase reliability.</span> <span> Easily communicate real-time status to your customers, gain trust and increase revenue.</span> </p>
+                        </header>
+                    </div>
+                    <div style="
+                    margin: 0 auto;
+                    ;">
+                        <div class="checkbox-items" style="max-width: 1000px; margin: auto;">
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img alt='img' height="22" src="/img/check-mark-button.svg" /> </div> <div
+                                        class="checkbox-text">Unlimited Public Status Pages</div> 
+                            </div>
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img alt='img' height="22" src="/img/check-mark-button.svg" /></div> <div
+                                        class="checkbox-text">Unlimited Private Status Pages</div> 
+                            </div>
+                            
+                            <div class="checkbox-feature top-margin-10">
+                                <div><img alt='img' height="22" src="/img/check-mark-button.svg" /></div> <div
+                                        class="checkbox-text">Unlimited Subscribers</div> 
+                            </div>
+                            
+                        </div>
+                       
+                    </div>
+                    
+                </div>
+
+            </section>
+
+            <div class="vid_section">
+                <div class="grid-1"></div>
+                <div class="grid-2 text-center" id="grid-1">
+                    <img alt='img' src="/img/status-page-new.png" style="z-index: 2" class="imageshadow _gif" alt="Watch Status Page Demo" id="gif-1" style="border-radius: 5px;" />
+                    
+                    <img alt='img' class="play" style="z-index: 3" id="playButton-1" onmouseout="mouseOutFunc(1)"onmouseover="mouseOverFunc(1)"onclick="onClickFunc(1)" src="/img/play-button-grey.svg"/>
+                        <div id="videoDiv-1" class="videoClass">
+                        <iframe id="video-1" class="actualVideo" height="500" src="https://www.youtube.com/embed/HcHnZdxEZDI?modestbranding=1&rel=0&enablejsapi=1&controls=1&frameborder=0&allowfullscreen=1" rel="0" modestbranding="1" enablejsapi="1" controls="1" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                    </div>
+                    
+                </div>
+                <div class="grid-3">
+                    <img alt='img' src="/img/3mindemobg.png" />
+                </div>
+            </div>
+
+            <%- include('cta-buttons') -%>
+
+            <section class="main basics">
+                <div class="content">
+                    <ul class="columns">
+                        <li class="block-image trend my-top">
+                            <h3>Realtime Status</h3>
+                            <p class="text-center">Show realtime status of your product or service - home page, 
+                                websites, API, dashboards or more with a hosted status page.</p>
+                        </li>
+                        <li class="block-image cost my-top">
+                            <h3>Cut Support Costs</h3>
+                            <p class="text-center">Communicate any incidents through a status page.
+                                This saves your customers from creating a flood of support tickets. </p>
+                        </li>
+                        <li class="block-image reli my-top">
+                            <h3>Showcase Reliability</h3>
+                            <p class="text-center">Showcase the reliability of your platform and compliance with your SLA
+                                and build trust with your customers.</p>
+                        </li>
+                        
+                    </ul>
+
+                    <ul class="columns">
+                        <li class="block-image note">
+                            <h3>Post Investigation Notes</h3>
+                            <p class="text-center"> Have your team post notes and post-mortem when incidents happen and increase transparency and trust with customers.</p>
+                        </li>
+                        <li class="block-image security my-top">
+                            <h3>SLA Compliance</h3>
+                            <p class="text-center">Have OneUptime certify your SLA compliance and showcase that to your existing and potential customers.</p>
+                        </li>
+                        <li class="block-image moni my-top">
+                            <h3>Monitor Anything.</h3>
+                            <p class="text-center">An endpoint, applications, a container, cluster, network, or
+                                anything else. You name it. We monitor all of
+                                them for you. </p>
+                        </li>
+                        
+                    </ul>
+
+                </div>
+                <%- include('cta-buttons') -%>
+
+                <%- include('customer-section') -%>
+
+                
+                <%- include('feature-table', {
+                    title:"We don't just do Status Pages, <br/><span class='highlight'> We do <i>everything</i> in terms of SRE and DevOps. </span>",
+                    description: "Start with Status Pages and then expand into whole lot more without increasing your bottom line. <br/> One interface. One conversation. One permission model. Thousands of features. "
+                }) %>
+
+                <div class="sectionBorderTop">
+                    <%- include('comparision-chart') -%>
+                </div>
+               
+                <header style="text-align: center;padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
+                    <h2 class="header">Unlimited Subscribers</h2>
+                    <p class="common-BodyText"> Have any number of your customers subscribe to your status page, get alerts when services are down or degraded. </p>
+                </header>
+                <div class="content">
+                    <ul class="columns">
+                        <li class="block-image sms">
+                            <h3>Email, SMS and more</h3>
+                            <p class="text-center">Your customers can pick from different types of notifications channels - Email, SMS, RSS, Webhooks, or Atom Feeds.</p>
+                        </li>
+                        <li class="block-image notification1">
+                            <h3>Branded Notifications</h3>
+                            <p class="text-center">You can white-label or brand notification messages to your subscribers to suit your brand.  </p>
+                        </li>
+                        <li class="block-image callcenter">
+                            <h3>Improved Experience</h3>
+                            <p class="text-center"> Notify customers proactively when services are down or degraded. This improves trust and customer experience.</p>
+                        </li>
+                    </ul>
+                </div>
+                <%- include('cta-buttons') -%>
+
+                <header style="text-align: center;padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
+                    <h2 class="header">Branding and Customization</h2>
+                    <p class="common-BodyText"> Customize your status page and make it look like your brand. </p>
+                </header>
+                <div class="vid_section">
+                    <div class="grid-1">
+                        <img alt='img' src="/img/brandingbg.png" />
+                    </div>
+                    <div class="grid-2 text-center">
+                        <img alt='img' src="/img/animated-gif/status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Watch a demo on how to brand your status page" id="gif-2" style="border-radius: 5px;" />
+                        
+                        <img alt='img' class="play" style="z-index: 3" id="playButton-2" onmouseout="mouseOutFunc(2)"onmouseover="mouseOverFunc(2)"onclick="onClickFunc(2)" src="/img/play-button-grey.svg"/>
+                            <div id="videoDiv-2" class="videoClass">
+                            <iframe id="video-2" class="actualVideo" height="500" src="https://www.youtube.com/embed/qyIVRsQ2Klo?modestbranding=1&rel=0&enablejsapi=1&controls=1&frameborder=0&allowfullscreen=1" rel="0" modestbranding="1" enablejsapi="1" controls="1" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>
+                        
+                    </div>
+                    <div class="grid-3"></div>
+                </div>
+
+                <div class="content">
+                    <ul class="columns">
+                        <li class="block-image paint">
+                            <h3>Colors and styling.</h3>
+                            <p class="text-center">Our status page comes in multiple templates, change colors or styling to make it look like your own.</p>
+                        </li>
+                        <li class="block-image brand">
+                            <h3>Whitelabel and logos</h3>
+                            <p class="text-center"> Whitelabel the status page to your needs, add a logo, custom domain, custom SSL and more. </p>
+                        </li>
+                        <li class="block-image htmlcss">
+                            <h3>Edit HTML and CSS</h3>
+                            <p class="text-center"> We give you complete flexibility to design your own status page. Edit and implement your own HTML, and CSS. </p>
+                        </li>
+                    </ul>
+                </div>
+                <%- include('cta-buttons') -%>
+
+                <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
+                    <h2 class="header">Build Unlimited Status Pages</h2>
+                    <p class="common-BodyText"> Have unlimited number of private or public status pages with unlimited subscribers. All you can eat! </p>
+                </header>
+
+                <div class="vid_section">
+                    <div class="grid-1"></div>
+                    <div class="grid-2 text-center" id="grid-3">
+                        <img alt='img' src="/img/animated-gif/multiple-status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Multiple Status Pages" id="gif-3" style="border-radius: 5px;" />
+                        
+                        <img alt='img' class="play" style="z-index: 3" id="playButton-3" onmouseout="mouseOutFunc(3)"onmouseover="mouseOverFunc(3)"onclick="onClickFunc(3)" src="/img/play-button-grey.svg"/>
+                            <div id="videoDiv-3" class="videoClass">
+                            <iframe id="video-3" class="actualVideo" height="500" src="https://www.youtube.com/embed/8jVzo8pZHWM?modestbranding=1&rel=0&enablejsapi=1&controls=1&frameborder=0&allowfullscreen=1" rel="0" modestbranding="1" enablejsapi="1" controls="1" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>
+                        
+                    </div>
+                    <div class="grid-3">
+                        <img alt='img' src="/img/advancedbg.png" />
+                    </div>
+                </div>
+
+                <%- include('cta-buttons') -%>
+
+               <div class="split">
+                    <div class="content margin-0-in-mobile">
+
+                          <div class="left invisible-in-mobile">
+
+                            <h3 class="header" style="margin-top:250px">Advanced features included on any plan.</h3>
+                            <p class="common-BodyText" style="font-size:18px"><span class="highlight"
+                                    style="font-size:18px">Efficient IT and SRE management <br />depends on the right
+                                    information  <br />being shared with the right people </br> at the right time </span><br /><br /> Status Page ensures your customers
+                                <br />are notified proactively which<br />increases trust and improves customer service.
+                                 </p>
+
+                        </div>
+
+                        <div class="right width-100-in-mobile margin-0-in-mobile" style="width:100%">
+                            <ul style="width:100%">
+                                <li>
+                                    <h3>Inform users about future Scheduled Maintenance</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Embed Status Page anywhere - app, website or help-desk.</h3>
+                                </li>
+                                <li>
+                                    <h3>Notify customers by SMS or Email proactively.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Display system metrics.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Custom domain with SSL.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Create multiple status pages and multiple sub-projects.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Post investigation notes so your customers are informed.</h3>
+
+                                </li>
+                                <li>
+                                    <h3>Integrate with 1500+ integrations.</h3>
+                                </li>
+                                <li>
+                                    <h3>Integrate with fully extensible API.</h3>
+
+                                </li>
+
+                            </ul>
+                        </div>
+
+                    </div>
+                </div>
+
+                <header style="padding-top:50px; border-top: 1px solid rgba(0,0,0,.07); border-bottom:unset">
+                    <h2 class="header">Build Unlimited Private Status Pages</h2>
+                    <p class="common-BodyText"> Create private status pages for your internal team or your few select customers. Keep your company informed. <br/>Create internal dashboards and more. </p>
+                </header>
+
+
+                <div class="vid_section">
+                    <div class="grid-1"> <img alt='img' src="/img/status-pagedemo.png" /></div>
+                    <div class="grid-2 text-center" id="grid-1">
+                        <img alt='img' src="/img/animated-gif/private-status-page.gif" style="z-index: 2" class="imageshadow _gif" alt="Watch how to create private status page" id="gif-4" style="border-radius: 5px;" />
+                        
+                        <img alt='img' class="play" style="z-index: 3" id="playButton-4" onmouseout="mouseOutFunc(4)"onmouseover="mouseOverFunc(4)"onclick="onClickFunc(4)" src="/img/play-button-grey.svg"/>
+                            <div id="videoDiv-4" class="videoClass">
+                            <iframe id="video-4" class="actualVideo" height="500" src="https://www.youtube.com/embed/HcHnZdxEZDI?modestbranding=1&rel=0&enablejsapi=1&controls=1&frameborder=0&allowfullscreen=1" rel="0" modestbranding="1" enablejsapi="1" controls="1" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>      
+                        </div>
+                        
+                    </div>
+                    <div class="grid-3"></div>
+                </div>
+
+                <div class="content">
+                    <ul class="columns">
+                        <li class="block-image teams">
+                            <h3>Select Team Members</h3>
+                            <p class="text-center">Pick internal team members or customers who have access to your private status page. </p>
+                        </li>
+                        <li class="block-image informed">
+                            <h3>Keep company informed</h3>
+                            <p class="text-center">Pipe status updates into Slack to keep engineering, IT, and Ops teams on the same page. </p>
+                        </li>
+                        <li class="block-image dash">
+                            <h3>Internal Dashboards</h3>
+                            <p class="text-center"> Create internal reliability dashboards, hook it up to a TV and show them to your team.</p>
+                        </li>
+                    </ul>
+                </div>
+                <%- include('cta-buttons') -%>
+                
+                <!-- <%- include("testimonials", {
+                    title: "Software teams around the world love OneUptime!",
+                    description: "Software development teams around the world have switched to OneUptime to fundamentally improve their SRE workflow to build better and more reliable software.",
+                    quotes: [
+                        {
+                            quote: "Having a public status page built accountability in our team towards our customers ‘We were responsible for our software reliability.’",
+                            by: "Tony Yao, Autonomic"
+                        },
+                        {
+                            quote: "We are all collaborating on any ops issues, it increases transparency for our team.",
+                            by: "Laurent Canis, BNC National"
+                        },
+                        {
+                            quote: "No more replying to support emails from our customers. We just point them to our status page.",
+                            by: "Ross Mcduff, Lightspeed"
+                        },
+                        {
+                            quote: "Customer communication looks more effective and professional.",
+                            by: "Anton S, Loblaw"
+                        },
+                        {
+                            quote: "We can see exactly what the state of the software and our service is. Less confusion and we're much more efficient.",
+                            by: "Trevos Crosse, PNI Digital"
+                        }
+                    ]
+                }) %> -->
+               
+                <%- include('integration') -%> 
+            </section>
+        </div>
+    </div>
+
+    <%- include('footer') -%>
+
+</body>
+
+
+</html>

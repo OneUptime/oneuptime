@@ -1,0 +1,21 @@
+
+//
+// Pristine
+//
+
+.pristine-error {
+  margin-top: 2px;
+  color: $danger;
+}
+
+.has-success{
+  .form-control {
+    border-color: $success;
+  }
+}
+
+.has-danger{
+  .form-control {
+    border-color: $danger;
+  }
+}

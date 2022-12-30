@@ -4,58 +4,110 @@
         "ecmaFeatures": {
             "experimentalObjectRestSpread": true,
             "jsx": true,
+            "tsx": true,
             "spread": true
         },
-        "sourceType": "module"
+        "sourceType": "module",
+        "project": [
+            "./tsconfig.json"
+        ]
     },
     "env": {
         "browser": true,
         "node": true,
         "jquery": true,
         "es6": true,
-        "jest": true
+        "jest": true,
+        "jasmine": true
     },
     "plugins": [
         "react",
         "jsx-a11y",
-        "progress"
+        "progress",
+        "@typescript-eslint",
+        "unused-imports"
     ],
     "extends": [
         "eslint:recommended",
         "plugin:react/recommended",
         "plugin:prettier/recommended",
-        "prettier",
-        "prettier/react"
+        "prettier"
     ],
     "globals": {
-        "describe" :true,
-        "context" :true,
-        "before" :true,
-        "beforeEach" :true,
-        "after" :true,
-        "afterEach" :true,
-        "it" :true,
-        "expect" :true,
-        "workbox" :true,
-        "importScripts" :true
+        "describe": true,
+        "context": true,
+        "before": true,
+        "beforeEach": true,
+        "after": true,
+        "afterEach": true,
+        "it": true,
+        "expect": true,
+        "workbox": true,
+        "importScripts": true,
+        "$TSFixMe": true,
+        "NodeJS": true
     },
-    "parser": "babel-eslint",
+    "parser": "@typescript-eslint/parser",
     "rules": {
         "no-fallthrough": "error",
         "no-unreachable": "error",
         "no-cond-assign": "error",
         "valid-typeof": "error",
         "no-func-assign": "error",
+        "curly": "error",
         "no-extra-semi": "error",
+        "no-else-return": "error",
+        "no-div-regex": "error",
+        "no-octal": "error",
+        "no-extra-bind": "error",
+        "unicode-bom": "error",
+        "no-extra-boolean-cast": "error",
+        "wrap-regex": "error",
+        "wrap-iife": "error",
+        "yield-star-spacing": "error",
+        "no-implicit-coercion": "error",
+        "no-extra-label": "error",
+        "multiline-comment-style": "off",
+        "no-lonely-if": "error",
+        "no-floating-decimal": "error",
+        "eqeqeq": "error",
+        "dot-notation": "off", // Off because it messes up with typescript compiler.
+        "@typescript-eslint/dot-notation": "off", //temp off.
         "progress/activate": 1,
         "linebreak-style": [
             "error",
             "unix"
         ],
-        "no-unused-vars": "error",
+        "@typescript-eslint/no-empty-interface": [
+            "error",
+            {
+              "allowSingleExtends": true
+            }
+          ],
+        // https://www.npmjs.com/package/eslint-plugin-unused-imports
+        "no-unused-vars": "off",
+        "@typescript-eslint/no-unused-vars": "off",
+        "@typescript-eslint/no-extra-non-null-assertion": "error",
+        "@typescript-eslint/no-floating-promises":"error",
+        "@typescript-eslint/await-thenable":"error",
+        "unused-imports/no-unused-imports": "error",
+        "unused-imports/no-unused-vars": [
+            "error",
+            {
+                "vars": "all",
+                "varsIgnorePattern": "^_",
+                "args": "after-used",
+                "argsIgnorePattern": "^_"
+            }
+        ],
+        "@typescript-eslint/explicit-member-accessibility": [
+            "error"
+        ],
         "no-console": "error",
         "no-undef": "error",
         "no-empty": "error",
+        "prefer-arrow-callback": "error",
+        "constructor-super": "error",
         "no-case-declarations": "error",
         "no-mixed-spaces-and-tabs": "error",
         "no-useless-escape": "error",
@@ -74,6 +126,26 @@
         "react/boolean-prop-naming": "error",
         "react/no-is-mounted": "error",
         "react/no-find-dom-node": "error",
+        "one-var-declaration-per-line": "error",
+        "arrow-parens": "error",
+        "arrow-body-style": [
+            "error",
+            "always"
+        ],
+        "@typescript-eslint/typedef": [
+            "error",
+            {
+                "arrowParameter": true,
+                "variableDeclaration": true
+            }
+        ],
+        "@typescript-eslint/strict-boolean-expressions": "off", //Need to enable this very soon
+        "@typescript-eslint/explicit-function-return-type": [
+            "error",
+            {
+                "allowExpressions": true
+            }
+        ],
         "react/no-did-update-set-state": "error",
         "react/no-unknown-property": "error",
         "react/no-unused-prop-types": "error",
@@ -91,7 +163,13 @@
         "react/jsx-pascal-case": "error",
         "array-callback-return": "error",
         "no-loop-func": "error",
+        "no-duplicate-imports": "error",
+        "no-promise-executor-return": "error",
+        "capitalized-comments": "off", // this is turned off because come commented code should not be capitalized. 
+        "for-direction": "error",
+        "getter-return": "error",
         "jsx-a11y/anchor-is-valid": "error",
+        "no-async-promise-executor": "error",
         "prefer-const": [
             "error",
             {
@@ -103,7 +181,7 @@
     },
     "settings": {
         "react": {
-            "version": "16.5"
+            "version": "18.1.0"
         }
     }
 }

@@ -1,0 +1,68 @@
+//
+// right-sidebar.scss
+//
+
+.right-bar {
+  background-color: $card-bg;
+  box-shadow: 0 0 24px 0 rgba(0, 0, 0, 0.06), 0 1px 0 0 rgba(0, 0, 0, 0.02);
+  display: block;
+  transition: all 200ms ease-out;
+  width: $rightbar-width;
+  z-index: 9999;
+  float: right !important;
+  right: -($rightbar-width + 10px);
+  top: 0;
+  bottom: 0;
+
+  .right-bar-toggle {
+    background-color: lighten($dark, 7%);
+    height: 24px;
+    width: 24px;
+    line-height: 24px;
+    display: block;
+    color: $gray-200;
+    text-align: center;
+    border-radius: 50%;
+
+    &:hover {
+      background-color: lighten($dark, 10%);
+    }
+  }
+}
+
+// Rightbar overlay
+.rightbar-overlay {
+  background-color: rgba($dark, 0.55);
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: none;
+  z-index: 9998;
+  transition: all 0.2s ease-out;
+}
+
+.right-bar-enabled {
+  .right-bar {
+    right: 0;
+  }
+  .rightbar-overlay {
+    display: block;
+  }
+}
+
+@include media-breakpoint-down(md) {
+  .right-bar {
+    overflow: auto;
+    .slimscroll-menu {
+      height: auto !important;
+    }
+  }
+}
+
+body[data-layout-mode="dark"] {
+  .right-bar {
+    background-color: $gray-dark-200;
+  }
+}

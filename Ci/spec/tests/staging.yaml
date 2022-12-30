@@ -1,0 +1,14 @@
+smoke_test_staging:
+    stage: Tests
+    allow_failure: true
+    script:
+        - cd tests
+        - npm install
+        - npm run-script staging-test
+        - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - master
+            - hotfix-master

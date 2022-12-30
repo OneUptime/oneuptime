@@ -1,0 +1,34 @@
+##E2E Stage.
+e2e_docker_compose_test:
+    stage: BuildAndTest
+    script:
+        - sudo apt-get update
+        - curl -sSL https://get.docker.com/ | sh #Install docker.
+        # Install Docker Compose.
+        - sudo curl -L "https://github.com/docker/compose/releases/download/1.25.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        - sudo chmod +x /usr/local/bin/docker-compose
+        - sudo docker compose down -v
+        - export BILLING_ENABLED=true
+        # Install the cluster.
+        - chmod +x ./env-setup.sh
+        - ./env-setup.sh
+        - npm run ci-docker-saas
+        # Sleep for 5 mins to make sure docker started
+        - sleep 5m
+        # Set env var
+        - export HOME_URL=http://localhost:1444
+        - export ACCOUNTS_URL=http://localhost:3003
+        - export DASHBOARD_URL=http://localhost:3000
+        - export BACKEND_URL=http://localhost:3002
+        - export STATUSPAGE_URL=http://localhost:3006
+        - export APIDOCS_URL=http://localhost:1445
+        - cd tests
+        - npm install
+        - npm run test
+        - cd ..
+        - chmod +x ./ci/scripts/cleanup.sh
+        - ./ci/scripts/cleanup.sh
+    only:
+        refs:
+            - release
+            - master

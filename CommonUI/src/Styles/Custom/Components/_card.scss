@@ -1,0 +1,50 @@
+//
+// _card.scss
+//
+
+@use 'sass:math';
+
+.card {
+  margin-bottom: $grid-gutter-width;
+  border-color: #ababab;
+  --bs-card-border-color:#ababab;
+}
+
+.card-drop {
+  color: $body-color;
+}
+
+.card-title {
+  font-size: 15.4px;
+  margin: 0 0 7px 0;
+  color: #495057;
+  font-weight: 600;
+}
+
+.card-title-desc {
+  color: $card-title-desc;
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+.card-header-tabs {
+  margin-top: -$card-cap-padding-y;
+}
+
+.card-header-pills {
+  margin: math.div(-$card-cap-padding-y, 2);
+}
+
+body[data-layout-mode="dark"] {
+  .card,
+  .card-header,
+  .modal-content,
+  .offcanvas {
+    background-color: $gray-dark-200;
+    border-color: #ababab;
+  }
+
+  .card-title-desc {
+    color: $gray-dark-400;
+  }
+}

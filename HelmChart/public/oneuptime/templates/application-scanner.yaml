@@ -1,0 +1,110 @@
+#######-------- APPLICATION SCANNER --------#########
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" $.Release.Name "app-scan" }}
+    namespace: {{ $.Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "app-scan" }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+spec:
+  selector:
+      matchLabels:
+          app: {{ printf "%s-%s" $.Release.Name "app-scan" }}
+  replicas: 1
+  template:
+      metadata:
+          labels:
+              app: {{ printf "%s-%s" $.Release.Name "app-scan" }}
+      spec:
+          containers:
+              - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "ApplicationScanner" .Values.image.tag }}
+                name: {{ printf "%s-%s" $.Release.Name "app-scan" }}
+                imagePullPolicy: {{ $.Values.image.pullPolicy }}
+                resources:
+                  requests:
+                    cpu: 250m
+                  limits:
+                    cpu: 500m
+                env:
+                    - name: NODE_ENV
+                      value: {{ $.Values.nodeEnv }}
+                    - name: PORT
+                      value: {{ $.Values.host.applicationScannerPort | quote }}
+                    - name: SERVER_URL
+                      value: {{ template "oneuptime.serverUrl" $ }}
+                    - name: BILLING_ENABLED
+                      value: 'true'
+                    - name: APPLICATION_SCANNER_NAME
+                      value: {{ $.Values.applicationScanner.name }}
+                    - name: APPLICATION_SCANNER_KEY
+                      value: {{ $.Values.applicationScanner.key }}
+                    - name: ONEUPTIME_SECRET
+                      valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                            key: clusterkey
+                    - name: NODE_NAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: spec.nodeName
+                    - name: POD_NAME
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.name
+                    - name: POD_NAMESPACE
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.namespace
+                    - name: POD_IP
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: status.podIP
+                    - name: POD_SERVICE_ACCOUNT
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: spec.serviceAccountName
+                ports:
+                    - containerPort: {{ $.Values.host.applicationScannerPort }}
+                      hostPort: {{ $.Values.host.applicationScannerPort }}
+                      name: {{ printf "%s-%s" $.Release.Name "app-scan" }}
+          restartPolicy: {{ $.Values.image.restartPolicy }}
+---
+
+# OneUptime Application Scanner Deployment
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "app-scan"  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" $.Release.Name "app-scan"  }}
+    namespace: {{ $.Release.Namespace }}
+spec:
+    ports:
+        - port: {{ $.Values.host.applicationScannerServicePort }}
+          targetPort: {{ $.Values.host.applicationScannerPort }}
+    selector:
+        app: {{ printf "%s-%s" $.Release.Name "app-scan"  }}
+    type: ClusterIP
+---
+###################################
+
+
+{{- if .Values.autoScaler.enabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "app-scan"  }}
+spec:
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" $.Release.Name "app-scan"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
+---
+{{- end }}

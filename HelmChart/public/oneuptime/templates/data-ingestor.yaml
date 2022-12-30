@@ -1,0 +1,111 @@
+########-ingestor-#################
+#ingestor service and deployement
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+    namespace: {{ $.Release.Namespace }}
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+spec:
+    selector:
+        matchLabels:
+            app: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+    replicas: {{ $.Values.replicaCount }}
+    template:
+        metadata:
+            labels:
+                app: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+        spec:
+            containers:
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "data-ingestor" .Values.image.tag }}
+                  name: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+                  imagePullPolicy: {{ $.Values.image.pullPolicy }}
+                  resources:
+                    requests:
+                      cpu: 450m
+                    limits:
+                      cpu: 700m
+                  env:
+                      - name: SERVER_URL
+                        value: {{ template "oneuptime.serverUrl" $ }}
+                      - name: PORT
+                        value: {{ $.Values.host.dataIngestorPort | quote }}
+                      - name: MONGO_URL
+                        value: {{ template "oneuptime.mongodbConnectionString" . }}
+                      - name: SCRIPT_RUNNER_URL
+                        value: {{ template "oneuptime.scriptRunnerUrl" $ }}
+                      - name: REALTIME_URL
+                        value: {{ template "oneuptime.realtimeUrl" $ }}
+                      - name: ONEUPTIME_SECRET
+                        valueFrom:
+                          configMapKeyRef:
+                            name: {{ printf "%s-%s" $.Release.Name "configmap"  }}
+                            key: clusterkey
+                      - name: NODE_ENV
+                        value: {{ $.Values.nodeEnv }}
+                      - name: DB_NAME
+                        value: {{ $.Values.mongo.databaseName }}
+                      - name: NODE_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: spec.nodeName
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: POD_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: POD_IP
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: status.podIP
+                      - name: POD_SERVICE_ACCOUNT
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: spec.serviceAccountName
+                  ports:
+                      - containerPort: {{ $.Values.host.dataIngestorPort }}
+                        hostPort: {{ $.Values.host.dataIngestorPort }}
+                        name: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+            restartPolicy: {{ $.Values.image.restartPolicy }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        app: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+        app.kubernetes.io/part-of: oneuptime
+        app.kubernetes.io/managed-by: Helm
+    name: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+    namespace: {{ $.Release.Namespace }}
+spec:
+    ports:
+        - port: {{ $.Values.host.dataIngestorServicePort }}
+          targetPort: {{ $.Values.host.dataIngestorPort }}
+    selector:
+        app: {{ printf "%s-%s" $.Release.Name "ingestor" }}
+    type: ClusterIP
+---
+###########################
+
+{{- if .Values.autoScaler.enabled }}
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+spec:
+  maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
+  minReplicas: {{ $.Values.autoScaler.minReplicas }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
+  targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
+---
+{{- end }}

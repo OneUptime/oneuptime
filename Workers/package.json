@@ -1,0 +1,38 @@
+{
+  "name": "workers",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --require ts-node/register Index.ts",
+    "compile": "tsc",
+    "dev": "npx nodemon",
+    "audit": "npm audit --audit-level=low",
+    "dep-check": "depcheck ./ --skip-missing=true",
+    "test": "jest"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@greenlock/manager": "^3.1.0",
+    "@root/greenlock": "^4.0.5",
+    "@types/node-cron": "^3.0.4",
+    "acme-http-01-standalone": "^3.0.5",
+    "axios": "^1.2.1",
+    "Common": "file:../Common",
+    "CommonServer": "file:../CommonServer",
+    "greenlock": "^4.0.4",
+    "greenlock-store-fs": "^3.2.2",
+    "Model": "file:../Model",
+    "node-cron": "^3.0.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.5.0",
+    "@types/node": "^17.0.31",
+    "jest": "^28.1.0",
+    "nodemon": "^2.0.20",
+    "ts-jest": "^28.0.2",
+    "ts-node": "^10.9.1",
+    "typescript": "^4.8.4"
+  }
+}
