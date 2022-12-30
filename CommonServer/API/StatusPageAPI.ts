@@ -67,7 +67,7 @@ export default class StatusPageAPI extends BaseAPI<
             `${new this.entityType().getCrudApiPath()?.toString()}/status-page-api/cname-verification/:token`,
             async (req: ExpressRequest, res: ExpressResponse) => {
                 const host: string | undefined = req.get('host');
-        
+                console.log("HERE!")
                 if (!host) {
                     throw new BadDataException('Host not found');
                 }
@@ -102,6 +102,7 @@ export default class StatusPageAPI extends BaseAPI<
         this.router.get(
             `${new this.entityType().getCrudApiPath()?.toString()}/.well-known/acme-challenge/:token`,
             async (req: ExpressRequest, res: ExpressResponse) => {
+                console.log("HERE!")
                 const challenge: GreenlockChallenge | null =
                     await GreenlockChallengeService.findOneBy({
                         query: {
