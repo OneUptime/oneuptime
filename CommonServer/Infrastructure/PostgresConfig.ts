@@ -25,7 +25,7 @@ export const dataSourceOptions: DataSourceOptions = {
     entities: Entities,
     //logging: 'all',
     // synchronize: Env === AppEnvironment.Development,
-    synchronize: true
+    synchronize: true,
 };
 
 export const datasource: DataSource = new DataSource(dataSourceOptions);
