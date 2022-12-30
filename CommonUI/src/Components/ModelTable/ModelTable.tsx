@@ -47,7 +47,7 @@ import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import InBetween from 'Common/Types/Database/InBetween';
-import { BILLING_ENABLED } from '../../Config';
+import { BILLING_ENABLED, getAllEnvVars } from '../../Config';
 import SubscriptionPlan, {
     PlanSelect,
 } from 'Common/Types/Billing/SubscriptionPlan';
@@ -1085,7 +1085,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     new props.modelType().readBillingPlan &&
                     !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(
                         new props.modelType().readBillingPlan!,
-                        props.currentPlan
+                        props.currentPlan,
+                        getAllEnvVars()
                     ) && (
                         <span
                             style={{

@@ -4,9 +4,14 @@ import Route from 'Common/Types/API/Route';
 import Version from 'Common/Types/Version';
 import URL from 'Common/Types/API/URL';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import { JSONObject } from 'Common/Types/JSON';
+
+export const getAllEnvVars: Function = (): JSONObject => {
+    return window?.process?.env || process?.env || {};
+};
 
 export const env: Function = (key: string): string => {
-    return window?.process?.env[key] || process?.env[key] || '';
+    return (getAllEnvVars()[key] as string) || '';
 };
 
 export const HTTP_PROTOCOL: Protocol =
@@ -122,7 +127,7 @@ export const ACCOUNTS_URL: URL = new URL(
 export const HOME_URL: URL = new URL(HTTP_PROTOCOL, HOME_HOSTNAME, HOME_ROUTE);
 
 export const SubscriptionPlans: Array<SubscriptionPlan> =
-    SubscriptionPlan.getSubscriptionPlans();
+    SubscriptionPlan.getSubscriptionPlans(getAllEnvVars());
 
 export const StatusPageCNameRecord: string =
     env('STATUS_PAGE_CNAME_RECORD') || '';

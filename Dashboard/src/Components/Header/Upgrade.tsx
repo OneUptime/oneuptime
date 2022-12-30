@@ -9,6 +9,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import { getAllEnvVars } from 'CommonUI/src/Config';
 
 export interface ComponentProps {
     projectId: ObjectID;
@@ -61,7 +62,9 @@ const Upgrade: FunctionComponent<ComponentProps> = (
                                 },
                                 fieldType: FormFieldSchemaType.RadioButton,
                                 radioButtonOptions:
-                                    SubscriptionPlan.getSubscriptionPlans().map(
+                                    SubscriptionPlan.getSubscriptionPlans(
+                                        getAllEnvVars()
+                                    ).map(
                                         (
                                             plan: SubscriptionPlan
                                         ): RadioButton => {
