@@ -1,32 +1,32 @@
-###########-----ProbeAPI------##############
+###########-----probe-api------##############
 
 # OneUptime Backend Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-    name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+    name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
     namespace: {{ $.Release.Namespace }}
     labels:
-        app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+        app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
         {{- if $.Values.saas.isRunningOnGCPMarketplace }}
         app.kubernetes.io/name: "$name"
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-        app.kubernetes.io/component:  {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+        app.kubernetes.io/component:  {{ printf "%s-%s" $.Release.Name "probe-api"  }}
         {{- end }}
 spec:
     selector:
         matchLabels:
-            app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+            app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
     replicas: {{ $.Values.replicaCount }}
     template:
         metadata:
             labels:
-                app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+                app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "ProbeAPI" .Values.image.tag }}
-                  name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "probe-api" .Values.image.tag }}
+                  name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   resources:
                     requests:
@@ -66,9 +66,9 @@ spec:
                       - name: ONEUPTIME_HOST
                         value: {{ $.Values.oneuptime.hosts.host1.host }}
                       - name: DEPLOYMENT_NAME
-                        value: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+                        value: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
                       - name: CONTAINER_NAME
-                        value: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+                        value: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
                       - name: BACKEND_PROTOCOL
                         value: {{ $.Values.backendProtocol }}
                       - name: PORT
@@ -82,7 +82,7 @@ spec:
                   ports:
                       - containerPort: {{ $.Values.host.fetchResourcesPort }}
                         hostPort: {{ $.Values.host.fetchResourcesPort }}
-                        name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+                        name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
                 {{- if $.Values.saas.isRunningOnGCPMarketplace }}
                 - name: ubbagent
                   image: $imageUbbagent
@@ -121,17 +121,17 @@ apiVersion: v1
 kind: Service
 metadata:
     labels:
-        app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+        app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
         app.kubernetes.io/part-of: oneuptime
         app.kubernetes.io/managed-by: Helm
-    name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+    name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
     namespace: {{ $.Release.Namespace }}
 spec:
     ports:
         - port: {{ $.Values.host.fetchResourcesServicePort }}
           targetPort: {{ $.Values.host.fetchResourcesPort }}
     selector:
-        app: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+        app: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
     type: ClusterIP
 ---
 ##################################################
@@ -140,14 +140,14 @@ spec:
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+  name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
 spec:
   maxReplicas: {{ $.Values.autoScaler.maxReplicas }}
   minReplicas: {{ $.Values.autoScaler.minReplicas }}
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+    name: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
   targetCPUUtilizationPercentage: {{ $.Values.autoScaler.averageCpuUtilization }}
 ---
 {{- end }}

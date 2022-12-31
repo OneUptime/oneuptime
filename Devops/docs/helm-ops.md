@@ -50,7 +50,7 @@ Production:
 
 ```
 kubectl config use-context arn:aws:eks:us-east-2:972164494713:cluster/oneuptime-production
-helm upgrade -f ./HelmChart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./HelmChart/public/oneuptime
+helm upgrade -f ./HelmChart/public/oneuptime/values.yaml -f ./Kubernetes/values-saas-production.yaml fi ./HelmChart/public/oneuptime
 ```
 
 Use default values first and then use production values.

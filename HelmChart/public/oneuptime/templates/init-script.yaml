@@ -1,8 +1,8 @@
-########-InitScript-##########
+########-init-script-##########
 apiVersion: batch/v1
 kind: Job
 metadata:
-    name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+    name: {{ printf "%s-%s" $.Release.Name "init-script"  }}
     namespace: {{ $.Release.Namespace }}
     labels:
       app.kubernetes.io/part-of: oneuptime
@@ -11,8 +11,8 @@ spec:
     template:
         spec:
             containers:
-                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "InitScript" .Values.image.tag }}
-                  name: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+                - image: {{ printf "%s/%s/%s:%s" .Values.image.registry .Values.image.repository "init-script" .Values.image.tag }}
+                  name: {{ printf "%s-%s" $.Release.Name "init-script"  }}
                   imagePullPolicy: {{ $.Values.image.pullPolicy }}
                   env:
                       - name: NODE_NAME

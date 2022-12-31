@@ -42,9 +42,9 @@ spec:
             backend:
               serviceName: {{ printf "%s-%s" $.Release.Name "ingestor"  }}
               servicePort: 80
-          - path: /ProbeAPI
+          - path: /probe-api
             backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "ProbeAPI"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "probe-api"  }}
               servicePort: 80
           - path: /dashboard
             backend:
@@ -99,7 +99,7 @@ spec:
               servicePort: 80
           - path: /docs
             backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "ApiDocs"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "api-docs"  }}
               servicePort: 80
           - path: /license
             backend:
@@ -107,7 +107,7 @@ spec:
               servicePort: 80
           - path: /chart
             backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "HelmChart"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "helm-chart"  }}
               servicePort: 80
           {{- else }}
           - path: /
@@ -118,7 +118,7 @@ spec:
           {{- if $.Values.saas.exposeInitScriptContainer }}
           - path: /
             backend:
-              serviceName: {{ printf "%s-%s" $.Release.Name "InitScript"  }}
+              serviceName: {{ printf "%s-%s" $.Release.Name "init-script"  }}
               servicePort: 80
           {{- end }}   
 ---

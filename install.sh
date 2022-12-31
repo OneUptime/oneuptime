@@ -11,7 +11,7 @@ sudo docker compose pull
 
 
 # Create database if it does not exists
-sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postgres psql postgresql://$DATABASE_USERNAME:$DATABASE_PASSWORD@localhost:5400/postgres -c 'CREATE DATABASE oneuptimedb' || echo "Database created" 
+sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postgres psql postgresql://$DATABASE_USERNAME:$DATABASE_PASSWORD@localhost:5432/postgres -c 'CREATE DATABASE oneuptimedb' || echo "Database created" 
 
 # echo "Checking if async migrations are up to date"
 # sudo -E docker compose run init
