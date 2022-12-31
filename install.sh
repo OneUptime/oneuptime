@@ -27,7 +27,7 @@ bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/dashboar
 echo "Progress 2/10"
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/file/status)" != "200" ]]; do sleep 5; done'
 echo "Progress 3/10"
-bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/staus-page/status)" != "200" ]]; do sleep 5; done'
+bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/status-page/status)" != "200" ]]; do sleep 5; done'
 echo "Progress 4/10"
 bash -c 'while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' localhost/status)" != "200" ]]; do sleep 5; done'
 echo "Progress 5/10"
