@@ -124,15 +124,16 @@ const init: Function = async (
 
         app.use(`/${appName}`, ExpressStatic('/usr/src/app/public'));
 
-        app.get(`/${appName}/dist/bundle.js`, (_req: ExpressRequest, res: ExpressResponse) => {
-            res.sendFile('/usr/src/app/public/dist/bundle.js');
-        });
+        app.get(
+            `/${appName}/dist/bundle.js`,
+            (_req: ExpressRequest, res: ExpressResponse) => {
+                res.sendFile('/usr/src/app/public/dist/bundle.js');
+            }
+        );
 
         app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
             res.sendFile('/usr/src/app/public/index.html');
         });
-
-        
     }
 
     // Attach Error Handler.
