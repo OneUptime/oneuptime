@@ -77,7 +77,7 @@ CMD [ "npm", "run", "dev" ]
 # Copy app source
 COPY ./StatusPage /usr/src/app
 # Bundle app source
-RUN npm run compile
+RUN npm run build
 #Run the app
 CMD [ "npm", "start" ]
 {{ end }}
