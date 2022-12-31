@@ -32,7 +32,7 @@ helm install -f ./HelmChart/public/oneuptime/values.yaml -f ./kubernetes/values-
 ### Install on production
 
 ```
-helm install -f ./HelmChart/public/oneuptime/values.yaml -f ./kubernetes/values-saas-production.yaml fi ./HelmChart/public/oneuptime --namespace default
+helm install -f ./HelmChart/public/oneuptime/values.yaml -f ./Kubernetes/values-saas-production.yaml fi ./HelmChart/public/oneuptime --namespace default
 ```
 
 ### Update Cluster

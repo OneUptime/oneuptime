@@ -7,7 +7,7 @@ bash preinstall.sh
 # Pull latest changes
 git pull
 
-docker compose pull
+sudo docker compose pull
 
 
 # Create database if it does not exists
