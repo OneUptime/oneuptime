@@ -6,6 +6,8 @@ export $(grep -v '^#' config.env | xargs)
 
 echo "Starting backup...."
 
+git pull
+
 sudo docker run --net=host --rm \
 --env-file config.env \
 --volume=$(pwd)$DATABASE_BACKUP_DIRECTORY:/var/lib/postgresql/data \

@@ -6,6 +6,8 @@ export $(grep -v '^#' config.env | xargs)
 
 echo "Starting restore...."
 
+git pull
+
 sudo docker run --net=host --rm \
 --env-file config.env \
 --volume=$(pwd)$DATABASE_RESTORE_DIRECTORY:/var/lib/postgresql/data \
