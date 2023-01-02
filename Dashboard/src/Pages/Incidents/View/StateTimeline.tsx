@@ -63,6 +63,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             <ModelTable<IncidentStateTimeline>
                 modelType={IncidentStateTimeline}
                 id="table-incident-status-timeline"
+                name="Monitor > State Timeline"
                 isDeleteable={true}
                 isCreateable={true}
                 isViewable={false}
