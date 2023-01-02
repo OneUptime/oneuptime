@@ -7,6 +7,7 @@ import API from 'Common/Utils/API';
 import { ClusterKey, HttpProtocol, MailHostname } from '../Config';
 import Email from 'Common/Types/Email/EmailMessage';
 import EmailServer from 'Common/Types/Email/EmailServer';
+import Protocol from 'Common/Types/API/Protocol';
 
 export default class MailService {
     public static async sendMail(
@@ -30,7 +31,7 @@ export default class MailService {
         }
 
         return await API.post<EmptyResponseData>(
-            new URL(HttpProtocol, MailHostname, new Route('/email/send')),
+            new URL(Protocol.HTTP, MailHostname, new Route('/email/send')),
             body
         );
     }
