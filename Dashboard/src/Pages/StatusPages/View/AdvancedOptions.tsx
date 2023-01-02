@@ -60,6 +60,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         >
             <StatusPagePreviewLink modelId={modelId} />
             <CardModelDetail<StatusPage>
+                name="Statusn Page > Advanced Settings"
                 cardProps={{
                     title: 'Advanced Settings',
                     description: 'Advanced settings for this status page.',
