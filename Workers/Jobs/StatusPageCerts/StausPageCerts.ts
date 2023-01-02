@@ -1,4 +1,8 @@
-import { EVERY_FIVE_MINUTE, EVERY_HOUR, EVERY_MINUTE } from '../../Utils/CronTime';
+import {
+    EVERY_FIVE_MINUTE,
+    EVERY_HOUR,
+    EVERY_MINUTE,
+} from '../../Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import { IsDevelopment } from 'CommonServer/Config';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
@@ -327,7 +331,6 @@ RunCron(
     }
 );
 
-
 RunCron(
     'StatusPageCerts:WriteSelfSignedCertsToDisk',
     EVERY_FIVE_MINUTE,
@@ -366,11 +369,10 @@ RunCron(
             });
 
         const greenlockCertDomains: Array<string | undefined> = certs.map(
-            (cert) => {
+            (cert: GreenlockCertificate) => {
                 return cert.key;
             }
         );
-
 
         // Generate self signed certs
         for (const domain of stausPageDomains) {
@@ -395,12 +397,11 @@ RunCron(
                 props: {
                     ignoreHooks: true,
                     isRoot: true,
-                }
+                },
             });
         }
     }
 );
-
 
 RunCron(
     'StatusPageCerts:WriteGreelockCertsToDisk',
@@ -422,8 +423,6 @@ RunCron(
                     isRoot: true,
                 },
             });
-
-       
 
         for (const cert of certs) {
             if (!cert.isKeyPair) {

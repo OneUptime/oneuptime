@@ -323,7 +323,6 @@ export default class StatusPageDomain extends BaseModel {
     })
     public isSslProvisioned?: boolean = undefined;
 
-
     @ColumnAccessControl({
         create: [],
         read: [Permission.ProjectOwner, Permission.CanReadStatusPageDomain],
