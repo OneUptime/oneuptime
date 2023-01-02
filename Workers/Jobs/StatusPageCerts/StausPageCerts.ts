@@ -1,4 +1,4 @@
-import { EVERY_HOUR, EVERY_MINUTE } from '../../Utils/CronTime';
+import { EVERY_FIVE_MINUTE, EVERY_HOUR, EVERY_MINUTE } from '../../Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import { IsDevelopment } from 'CommonServer/Config';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
@@ -22,6 +22,7 @@ import axios, { AxiosResponse } from 'axios';
 import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import fs from 'fs';
+import SelfSignedSSL from '../../Utils/SelfSignedSSL';
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -326,8 +327,83 @@ RunCron(
     }
 );
 
+
 RunCron(
-    'StatusPageCerts:WriteCertsToDisk',
+    'StatusPageCerts:WriteSelfSignedCertsToDisk',
+    EVERY_FIVE_MINUTE,
+    async () => {
+        // Fetch all domains where certs are added to greenlock.
+
+        const certs: Array<GreenlockCertificate> =
+            await GreenlockCertificateService.findBy({
+                query: {},
+                select: {
+                    key: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        const stausPageDomains: Array<StatusPageDomain> =
+            await StatusPageDomainService.findBy({
+                query: {
+                    isCnameVerified: true,
+                    isSelfSignedSslGenerated: false,
+                },
+                select: {
+                    fullDomain: true,
+                    _id: true,
+                },
+                limit: LIMIT_MAX,
+                skip: 0,
+                props: {
+                    isRoot: true,
+                    ignoreHooks: true,
+                },
+            });
+
+        const greenlockCertDomains: Array<string | undefined> = certs.map(
+            (cert) => {
+                return cert.key;
+            }
+        );
+
+
+        // Generate self signed certs
+        for (const domain of stausPageDomains) {
+            if (greenlockCertDomains.includes(domain.fullDomain)) {
+                continue;
+            }
+
+            if (!domain.fullDomain) {
+                continue;
+            }
+
+            await SelfSignedSSL.generate(
+                '/usr/src/Certs/StatusPageCerts',
+                domain.fullDomain
+            );
+
+            await StatusPageDomainService.updateOneById({
+                id: domain.id!,
+                data: {
+                    isSelfSignedSslGenerated: true,
+                },
+                props: {
+                    ignoreHooks: true,
+                    isRoot: true,
+                }
+            });
+        }
+    }
+);
+
+
+RunCron(
+    'StatusPageCerts:WriteGreelockCertsToDisk',
     IsDevelopment ? EVERY_MINUTE : EVERY_HOUR,
     async () => {
         // Fetch all domains where certs are added to greenlock.
@@ -346,6 +422,8 @@ RunCron(
                     isRoot: true,
                 },
             });
+
+       
 
         for (const cert of certs) {
             if (!cert.isKeyPair) {
