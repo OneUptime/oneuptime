@@ -163,6 +163,7 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                         {!hasPasswordChanged ? (
                             <ModelForm<User>
                                 modelType={User}
+                                name="Change Password Form"
                                 onSuccess={() => {
                                     setHasPasswordChanged(true);
                                 }}

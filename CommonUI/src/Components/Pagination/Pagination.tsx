@@ -165,6 +165,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                     onClose={() => {
                         setShowPaginationModel(false);
                     }}
+                    name="Pagination Form"
                     submitButtonText={'Go to Page'}
                     onSubmit={(item: PaginationNavigationItem) => {
                         if (props.onNavigateToPage && !isNextDisabled) {

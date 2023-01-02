@@ -98,6 +98,7 @@ const ResetPassword: FunctionComponent<ComponentProps> = (
                                                     StatusPagePrivateUser
                                                 }
                                                 id="register-form"
+                                                name="Status Page > Reset Password"
                                                 onBeforeCreate={(
                                                     item: StatusPagePrivateUser
                                                 ) => {

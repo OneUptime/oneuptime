@@ -206,6 +206,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
             {showModal ? (
                 <ModelFormModal<Project>
                     modelType={Project}
+                    name="Create New Project"
                     title="Create New Project"
                     onClose={() => {
                         setShowModal(false);

@@ -14,6 +14,7 @@ import FormValues from '../Forms/Types/FormValues';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
+    name: string;
     modelType: { new (): TBaseModel };
     initialValues?: FormValues<TBaseModel> | undefined;
     onClose?: undefined | (() => void);
@@ -51,6 +52,7 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
                 <>
                     <ModelForm<TBaseModel>
                         {...props.formProps}
+                        name={props.name}
                         modelType={props.modelType}
                         modelIdToEdit={props.modelIdToEdit}
                         hideSubmitButton={true}

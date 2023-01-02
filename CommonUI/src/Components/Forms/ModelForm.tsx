@@ -59,6 +59,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     showAsColumns?: undefined | number;
     footer: ReactElement;
     onCancel?: undefined | (() => void);
+    name: string;
     onSuccess?:
         | undefined
         | ((data: TBaseModel | JSONObjectOrArray | Array<TBaseModel>) => void);
@@ -498,6 +499,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
                 description={props.description}
                 model={model}
                 id={props.id}
+                name={props.name}
                 fields={fields}
                 showAsColumns={props.showAsColumns}
                 footer={props.footer}

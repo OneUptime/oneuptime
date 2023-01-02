@@ -47,6 +47,7 @@ const SsoLoginPage: FunctionComponent = () => {
                                         <BasicModelForm<User>
                                             model={user}
                                             id="login-form"
+                                            name="SSO Login"
                                             fields={[
                                                 {
                                                     field: {

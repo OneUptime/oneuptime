@@ -61,6 +61,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                         <ModelForm<StatusPageSubscriber>
                             modelType={StatusPageSubscriber}
                             id="email-form"
+                            name="Status Page > Email Subscribe"
                             fields={[
                                 {
                                     field: {
@@ -104,6 +105,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                 <ModelForm<StatusPageSubscriber>
                     modelType={StatusPageSubscriber}
                     id="sms-form"
+                    name="Status Page > SMS Subscribe"
                     onBeforeCreate={async (item: StatusPageSubscriber) => {
                         const id: ObjectID = LocalStorage.getItem(
                             'statusPageId'
@@ -145,6 +147,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                 <ModelForm<StatusPageSubscriber>
                     modelType={StatusPageSubscriber}
                     id="webhook-form"
+                    name="Status Page > Webhooks Subscribe"
                     onBeforeCreate={async (item: StatusPageSubscriber) => {
                         const id: ObjectID = LocalStorage.getItem(
                             'statusPageId'

@@ -57,6 +57,7 @@ const ForgotPassword: FunctionComponent = () => {
                                         {!isSuccess && (
                                             <ModelForm<User>
                                                 modelType={User}
+                                                name="Forgot Password"
                                                 id="login-form"
                                                 apiUrl={apiUrl}
                                                 fields={[

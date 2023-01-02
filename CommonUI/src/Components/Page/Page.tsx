@@ -1,5 +1,6 @@
 import Link from 'Common/Types/Link';
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
+import Analytics from '../../Utils/Analytics';
 import Breadcrumbs from '../Breadcrumbs/Breadcrumbs';
 
 export interface ComponentProps {
@@ -12,6 +13,13 @@ export interface ComponentProps {
 const Page: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    useEffect(() => {
+        if (props.breadcrumbLinks && props.breadcrumbLinks.length > 0) {
+            Analytics.capture("Page View: " + props.breadcrumbLinks.map((link) => link.title).join(" > ").toString() || '');
+        }
+    }, [props.breadcrumbLinks]);
+
     return (
         <div className="page-content">
             <div className="container-fluid">

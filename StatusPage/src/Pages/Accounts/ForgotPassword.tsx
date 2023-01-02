@@ -101,6 +101,7 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                                                     StatusPagePrivateUser
                                                 }
                                                 id="login-form"
+                                                name="Status Page > Forgot Password"
                                                 apiUrl={apiUrl}
                                                 onBeforeCreate={(
                                                     item: StatusPagePrivateUser

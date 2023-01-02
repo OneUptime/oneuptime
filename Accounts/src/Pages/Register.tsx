@@ -58,6 +58,7 @@ const RegisterPage: FunctionComponent = () => {
                                             modelType={User}
                                             id="register-form"
                                             showAsColumns={2}
+                                            name="Register"
                                             maxPrimaryButtonWidth={true}
                                             initialValues={{
                                                 email: '',

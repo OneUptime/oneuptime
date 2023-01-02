@@ -38,6 +38,7 @@ const Upgrade: FunctionComponent<ComponentProps> = (
                 <ModelFormModal<Project>
                     modelType={Project}
                     title="Change Plan"
+                    name="Change Plan"
                     modelIdToEdit={props.projectId}
                     onClose={() => {
                         setShowModal(false);

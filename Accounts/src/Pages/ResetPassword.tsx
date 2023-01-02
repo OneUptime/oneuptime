@@ -58,6 +58,7 @@ const RegisterPage: FunctionComponent = () => {
                                             <ModelForm<User>
                                                 modelType={User}
                                                 id="register-form"
+                                                name="Reset Password"
                                                 onBeforeCreate={(
                                                     item: User
                                                 ) => {

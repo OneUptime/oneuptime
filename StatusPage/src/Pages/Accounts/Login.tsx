@@ -88,6 +88,7 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                                         <ModelForm<StatusPagePrivateUser>
                                             modelType={StatusPagePrivateUser}
                                             id="login-form"
+                                            name="Status Page Login"
                                             fields={[
                                                 {
                                                     field: {

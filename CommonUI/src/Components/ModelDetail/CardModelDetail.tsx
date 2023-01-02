@@ -24,6 +24,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     editButtonText?: undefined | string;
     formFields?: undefined | Fields<TBaseModel>;
     className?: string | undefined;
+    name: string;
 }
 
 const CardModelDetail: Function = <TBaseModel extends BaseModel>(
@@ -93,10 +94,12 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
                         setShowModal(false);
                         setRefresher(!refresher);
                     }}
+                    name={props.name}
                     modelType={props.modelDetailProps.modelType}
                     formProps={{
                         id: `edit-${model.singularName?.toLowerCase()}-from`,
                         fields: props.formFields || [],
+                        name: props.name,
                         formType: FormType.Update,
                         modelType: props.modelDetailProps.modelType,
                     }}

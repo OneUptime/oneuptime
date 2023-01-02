@@ -49,6 +49,7 @@ import Domain from 'Common/Types/Domain';
 import Typeof from 'Common/Types/Typeof';
 import URL from 'Common/Types/API/URL';
 import RadioButtons from '../RadioButtons/RadioButtons';
+import UiAnalytics from '../../Utils/Analytics';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>
@@ -58,6 +59,7 @@ export const DefaultValidateFunction: Function = (
 
 export interface ComponentProps<T extends Object> {
     id: string;
+    name: string;
     submitButtonStyleType?: ButtonStyleType | undefined;
     initialValues: FormValues<T>;
     onSubmit: (values: FormValues<T>) => void;
@@ -980,6 +982,8 @@ const BasicForm: Function = <T extends Object>(
                                 }
                             }
                         }
+
+                        UiAnalytics.capture("FORM SUBMIT: " + props.name);
 
                         props.onSubmit(values);
                         setSubmitting(false);

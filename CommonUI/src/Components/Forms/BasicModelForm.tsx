@@ -23,6 +23,7 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
     fields: Fields<TBaseModel>;
     submitButtonText?: undefined | string;
     submitButtonStyleType?: ButtonStyleType | undefined;
+    name: string;
     title?: undefined | string;
     description?: undefined | string;
     showAsColumns?: undefined | number;
@@ -91,6 +92,7 @@ const BasicModelForm: Function = <TBaseModel extends BaseModel>(
             onValidate={
                 props.onValidate ? props.onValidate : DefaultValidateFunction
             }
+            name={props.name}
             submitButtonStyleType={props.submitButtonStyleType}
             onSubmit={props.onSubmit}
             initialValues={initialValues}
