@@ -68,6 +68,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
         >
             {/* Incident View  */}
             <CardModelDetail
+                name="Incident Details"
                 cardProps={{
                     title: 'Incident Details',
                     description: "Here's more details for this monitor.",

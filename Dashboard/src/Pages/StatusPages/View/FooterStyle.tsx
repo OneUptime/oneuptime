@@ -65,6 +65,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <StatusPagePreviewLink modelId={modelId} />
 
             <CardModelDetail<StatusPage>
+                 name="Statusn Page > Branding > Copyright"
                 cardProps={{
                     title: 'Copyright Info',
                     description: 'Copyright info for your status page',
@@ -175,6 +176,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
             <CardModelDetail<StatusPage>
+                 name="Statusn Page > Branding > Footer Colors"
                 cardProps={{
                     title: 'Footer Colors',
                     description:
@@ -230,6 +232,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
             <CardModelDetail<StatusPage>
+                 name="Statusn Page > Branding > Advanced Footer Settings"
                 cardProps={{
                     title: 'Advanced Footer Settings',
                     description:

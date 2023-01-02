@@ -60,6 +60,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         >
             <StatusPagePreviewLink modelId={modelId} />
             <CardModelDetail<StatusPage>
+                name="Statusn Page > Branding > Subscriber"
                 cardProps={{
                     title: 'Subscriber Settings',
                     description: 'Subscriber settings for this status page.',

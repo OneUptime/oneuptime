@@ -113,6 +113,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             sideMenu={<DashboardSideMenu />}
         >
             <CardModelDetail
+                name="Plan Details"
                 cardProps={{
                     title: 'Current Plan',
                     description: "Here's more details on this Project.",

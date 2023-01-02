@@ -31,6 +31,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
         >
             {/* API Key View  */}
             <CardModelDetail
+                name="Project Details"
                 cardProps={{
                     title: 'Project Details',
                     description: "Here's more details on this Project.",

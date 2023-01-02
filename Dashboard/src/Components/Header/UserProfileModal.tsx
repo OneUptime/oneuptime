@@ -33,6 +33,7 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                         description: "Here's are some of your details.",
                         icon: IconProp.User,
                     }}
+                    name="User Profile > Basic Info"
                     isEditable={true}
                     formFields={[
                         {
@@ -110,6 +111,7 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
 
                 <div className="flex width-max">
                     <CardModelDetail<User>
+                        name="User Profile > Profile Picture"
                         cardProps={{
                             title: 'Profile Picture',
                             description: 'Please update your profile pic here.',

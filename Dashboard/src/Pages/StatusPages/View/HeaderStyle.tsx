@@ -65,6 +65,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <StatusPagePreviewLink modelId={modelId} />
 
             <CardModelDetail<StatusPage>
+                 name="Statusn Page > Branding > Header Style"
                 cardProps={{
                     title: 'Logo, Cover and Favicon',
                     description: 'These will show up on your status page.',
@@ -198,6 +199,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
             <CardModelDetail<StatusPage>
+                 name="Statusn Page > Branding > Header Colors"
                 cardProps={{
                     title: 'Header Colors',
                     description:
@@ -253,6 +255,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
             <CardModelDetail<StatusPage>
+                 name="Statusn Page > Branding > Cover Image Colors"
                 cardProps={{
                     title: 'Cover Image Colors',
                     description:
@@ -291,6 +294,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
             <CardModelDetail<StatusPage>
+                 name="Statusn Page > Branding > Advanced Header Settings"
                 cardProps={{
                     title: 'Advanced Header Settings',
                     description:

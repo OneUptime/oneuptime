@@ -61,6 +61,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
         >
             {/* API Key View  */}
             <CardModelDetail
+                name="Team Details"
                 cardProps={{
                     title: 'Team Details',
                     description: "Here's more details on this team.",

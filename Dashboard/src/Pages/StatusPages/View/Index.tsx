@@ -57,6 +57,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
 
             {/* StatusPage View  */}
             <CardModelDetail
+                 name="Statusn Page > Status Page Details"
                 cardProps={{
                     title: 'Status Page Details',
                     description: "Here's more details for this status page.",
