@@ -451,7 +451,7 @@ const checkCnameValidation: Function = async (
         });
 
         const result: AxiosResponse = await axios.get(
-            'https://' +
+            'http://' +
                 fulldomain +
                 '/status-page-api/cname-verification/' +
                 token,
