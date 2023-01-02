@@ -59,6 +59,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
         >
             <ModelTable<Domain>
                 modelType={Domain}
+                name="Settings > Domain"
                 query={{
                     projectId: props.currentProject?._id,
                 }}

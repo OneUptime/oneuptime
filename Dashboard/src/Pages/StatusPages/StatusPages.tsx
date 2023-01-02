@@ -37,6 +37,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                 isDeleteable={false}
                 isEditable={true}
                 isCreateable={true}
+                name="Status Pages"
                 isViewable={true}
                 cardProps={{
                     icon: IconProp.CheckCircle,

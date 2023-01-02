@@ -296,6 +296,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 isEditable={false}
                 isCreateable={false}
                 isViewable={false}
+                name="Settings > Billing > Add Payment Method"
                 cardProps={{
                     buttons: [
                         {

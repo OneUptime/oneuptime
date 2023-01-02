@@ -39,6 +39,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                     projectId: props.currentProject?._id,
                 }}
                 id="api-keys-table"
+                name="Settings > API Keys"
                 isDeleteable={false}
                 isEditable={true}
                 isCreateable={true}

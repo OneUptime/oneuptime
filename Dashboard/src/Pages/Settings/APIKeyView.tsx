@@ -142,6 +142,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 modelType={ApiKeyPermission}
                 id="api-key-permission-table"
                 isDeleteable={true}
+                name="Settings > API Key > Permissions"
                 query={{
                     apiKeyId: modelId,
                     projectId: props.currentProject?._id,

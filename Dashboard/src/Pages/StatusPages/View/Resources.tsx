@@ -94,6 +94,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 modelType={StatusPageResource}
                 id={`status-page-group-${statusPageGroupId?.toString() || ''}`}
                 isDeleteable={true}
+                name="Status Page > Resources"
                 sortBy="order"
                 sortOrder={SortOrder.Ascending}
                 isCreateable={true}

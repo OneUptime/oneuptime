@@ -67,6 +67,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             <ModelTable<ScheduledMaintenancePublicNote>
                 modelType={ScheduledMaintenancePublicNote}
                 id="table-scheduled-maintenance-internal-note"
+                name="Scheduled Maintenance Events > Public Notes"
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}

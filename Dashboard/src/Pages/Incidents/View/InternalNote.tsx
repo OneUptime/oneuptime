@@ -65,6 +65,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
             <ModelTable<IncidentInternalNote>
                 modelType={IncidentInternalNote}
                 id="table-incident-internal-note"
+                name="Monitor > Internal Note"
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}

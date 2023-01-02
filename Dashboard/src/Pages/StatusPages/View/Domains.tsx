@@ -66,6 +66,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     projectId: props.currentProject?._id,
                     statusPageId: modelId,
                 }}
+                name="Status Page > Domains"
                 id="domains-table"
                 isDeleteable={true}
                 isCreateable={true}

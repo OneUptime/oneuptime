@@ -36,6 +36,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
         <ModelTable<ScheduledMaintenance>
             modelType={ScheduledMaintenance}
             id="scheduledMaintenances-table"
+            name="Scheduled Maintenance Events"
             isDeleteable={false}
             query={props.query}
             isEditable={false}

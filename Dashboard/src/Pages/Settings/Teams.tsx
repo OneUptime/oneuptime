@@ -36,6 +36,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
             <ModelTable<Team>
                 modelType={Team}
                 id="teams-table"
+                name="Settings > Teams"
                 isDeleteable={false}
                 isEditable={true}
                 isCreateable={true}

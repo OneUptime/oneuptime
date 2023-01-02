@@ -70,6 +70,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}
+                name="Status Page > Announcements"
                 isViewable={false}
                 query={{
                     statusPages: [statusPage],

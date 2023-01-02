@@ -46,6 +46,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                     projectId: props.currentProject?._id,
                 }}
                 id="monitor-status-table"
+                name="Settings > Monitor Status"
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}

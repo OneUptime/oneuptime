@@ -65,6 +65,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
             <ModelTable<Incident>
                 modelType={Incident}
                 id="incidents-table"
+                name="Monitor > Incidents"
                 isDeleteable={false}
                 isEditable={false}
                 isCreateable={true}

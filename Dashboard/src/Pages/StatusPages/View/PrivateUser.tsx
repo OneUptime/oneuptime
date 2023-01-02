@@ -66,6 +66,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <ModelTable<StatusPagePrivateUser>
                 modelType={StatusPagePrivateUser}
                 id="status-page-group"
+                name="Status Page > Private Users"
                 isDeleteable={true}
                 isCreateable={true}
                 isViewable={false}

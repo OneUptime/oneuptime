@@ -65,6 +65,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <ModelTable<StatusPageSubscriber>
                 modelType={StatusPageSubscriber}
                 id="table-subscriber"
+                name="Status Page > SMS Subscribers"
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={false}

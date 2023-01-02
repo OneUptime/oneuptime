@@ -32,6 +32,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
     return (
         <ModelTable<Monitor>
             modelType={Monitor}
+            name="Monitors"
             id="Monitors-table"
             isDeleteable={false}
             isEditable={false}

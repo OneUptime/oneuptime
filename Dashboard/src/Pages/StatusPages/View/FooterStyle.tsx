@@ -106,6 +106,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 modelType={StatusPageFooterLink}
                 id="status-page-Footer-link"
                 isDeleteable={true}
+                name="Status Page > Footer Links"
                 sortBy="order"
                 sortOrder={SortOrder.Ascending}
                 isCreateable={true}

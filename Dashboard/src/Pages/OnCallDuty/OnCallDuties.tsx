@@ -35,6 +35,7 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
                 modelType={OnCallDuty}
                 id="on-call-duty-table"
                 isDeleteable={false}
+                name="Scheduled Maintenance Events > On Call Duties"
                 isEditable={true}
                 isCreateable={true}
                 isViewable={true}

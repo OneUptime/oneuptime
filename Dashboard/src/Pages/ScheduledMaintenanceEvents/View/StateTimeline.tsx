@@ -65,6 +65,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             <ModelTable<ScheduledMaintenanceStateTimeline>
                 modelType={ScheduledMaintenanceStateTimeline}
                 id="table-scheduledMaintenance-status-timeline"
+                name="Scheduled Maintenance Events > State Timeline"
                 isDeleteable={true}
                 isCreateable={true}
                 isViewable={false}

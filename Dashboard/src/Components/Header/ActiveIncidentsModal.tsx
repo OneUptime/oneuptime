@@ -30,6 +30,7 @@ const ActiveIncidentsModal: FunctionComponent<ComponentProps> = (
             >
                 <ModelTable<Incident>
                     modelType={Incident}
+                    name="Active Incidents"
                     id="incident-table"
                     isDeleteable={false}
                     query={{

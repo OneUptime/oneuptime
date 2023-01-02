@@ -42,6 +42,7 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
             <ModelTable<IncidentSeverity>
                 modelType={IncidentSeverity}
                 id="incident-state-table"
+                name="Settings > Incident Severity"
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}

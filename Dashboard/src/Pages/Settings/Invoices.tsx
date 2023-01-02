@@ -91,6 +91,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                     modelType={BillingInvoice}
                     id="invoices-table"
                     isDeleteable={false}
+                    name="Settings > Billing > Invoices"
                     isEditable={false}
                     isCreateable={false}
                     isViewable={false}

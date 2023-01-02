@@ -34,6 +34,7 @@ const ProjectInvitationsModal: FunctionComponent<ComponentProps> = (
             >
                 <ModelTable<TeamMember>
                     modelType={TeamMember}
+                    name="Project Invitations"
                     id="team-member-table"
                     isDeleteable={true}
                     query={{

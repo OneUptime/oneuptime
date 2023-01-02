@@ -65,6 +65,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
             <ModelTable<IncidentPublicNote>
                 modelType={IncidentPublicNote}
                 id="table-incident-internal-note"
+                name="Monitor > Public Note"
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}

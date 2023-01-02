@@ -63,6 +63,7 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
             <ModelTable<MonitorStatusTimeline>
                 modelType={MonitorStatusTimeline}
                 id="table-monitor-status-timeline"
+                name="Monitor > Status Timeline"
                 isDeleteable={true}
                 isCreateable={true}
                 isViewable={false}

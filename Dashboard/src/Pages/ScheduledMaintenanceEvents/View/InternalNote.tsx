@@ -67,6 +67,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
             <ModelTable<ScheduledMaintenanceInternalNote>
                 modelType={ScheduledMaintenanceInternalNote}
                 id="table-scheduled-maintenance-internal-note"
+                name="Scheduled Maintenance Events > Internal Note"
                 isDeleteable={true}
                 isCreateable={true}
                 isEditable={true}

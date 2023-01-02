@@ -63,6 +63,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <StatusPagePreviewLink modelId={modelId} />
             <ModelTable<StatusPageSubscriber>
                 modelType={StatusPageSubscriber}
+                name="Status Page > Webhook Subscribers"
                 id="table-subscriber"
                 isDeleteable={true}
                 isCreateable={true}

@@ -62,6 +62,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <ModelTable<StatusPageGroup>
                 modelType={StatusPageGroup}
                 id="status-page-group"
+                name="Status Page > Groups"
                 isDeleteable={true}
                 sortBy="order"
                 sortOrder={SortOrder.Ascending}

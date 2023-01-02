@@ -124,6 +124,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 modelType={TeamMember}
                 id="table-team-member"
                 isDeleteable={true}
+                name="Settings > Team > Member"
                 createVerb={'Invite'}
                 isCreateable={true}
                 isViewable={false}
@@ -215,9 +216,11 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             <ModelTable<TeamPermission>
                 modelType={TeamPermission}
                 id="table-team-permission"
+                
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
+                name="Settings > Team > Permissions"
                 isViewable={false}
                 query={{
                     teamId: modelId,

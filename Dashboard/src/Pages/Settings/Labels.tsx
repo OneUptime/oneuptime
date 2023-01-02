@@ -42,6 +42,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
                     projectId: props.currentProject?._id,
                 }}
                 id="labels-table"
+                name="Settings > Labels"
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}
