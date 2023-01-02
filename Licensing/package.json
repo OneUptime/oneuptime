@@ -15,7 +15,7 @@
         "dotenv": "^16.0.0",
         "ejs": "^3.1.6",
         "express": "^4.17.3",
-        "jsonwebtoken": "^8.5.1",
+        "jsonwebtoken": "^9.0.0",
         "mocha": "^9.2.2",
         "moment": "^2.29.1",
         "ts-node": "^10.9.1",
