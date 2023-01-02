@@ -353,7 +353,6 @@ RunCron(
         const stausPageDomains: Array<StatusPageDomain> =
             await StatusPageDomainService.findBy({
                 query: {
-                    isCnameVerified: true,
                     isSelfSignedSslGenerated: false,
                 },
                 select: {
