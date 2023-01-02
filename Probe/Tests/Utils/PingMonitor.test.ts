@@ -7,18 +7,18 @@ describe('Ping', () => {
     jest.setTimeout(10000);
     test('Ping.fetch should return appropriate object if the valid hostname is given', async () => {
         let result: PingResponse = await Ping.fetch(
-            new Hostname('oneuptime.com', 80)
+            new Hostname('google.com', 80)
         );
         expect(result.responseTimeInMS?.toNumber()).toBeGreaterThan(0);
         expect(result.responseTimeInMS?.toNumber()).toBeLessThanOrEqual(5000);
         expect(result.isAlive).toBe(true);
-        result = await Ping.fetch(new Hostname('www.oneuptime.com', 80), {
+        result = await Ping.fetch(new Hostname('www.google.com', 80), {
             timeout: new PositiveNumber(5000),
         });
         expect(result.isAlive).toBe(true);
         expect(result.responseTimeInMS?.toNumber()).toBeGreaterThan(0);
         expect(result.responseTimeInMS?.toNumber()).toBeLessThanOrEqual(5000);
-        result = await Ping.fetch(new Hostname('www.oneuptime.com', 65000), {
+        result = await Ping.fetch(new Hostname('www.google.com', 65000), {
             timeout: new PositiveNumber(5000),
         });
         expect(result.isAlive).toBe(false);
