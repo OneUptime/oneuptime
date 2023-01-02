@@ -76,6 +76,13 @@ app.get(
     }
 );
 
+app.get(
+    '/status',
+    (_req: ExpressRequest, res: ExpressResponse) => {
+        res.status(200).send({"status": "ok"})
+    }
+);
+
 app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/public-status-page');
 });
