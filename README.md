@@ -65,6 +65,14 @@ bash install.sh
 
 Your instance should be up and running, if that does not work. Please send an email to support@oneuptime.com.
 
+#### Updating to a new version
+
+To update: 
+
+```
+bash install.sh
+```
+
 ## Philosophy
 
 Our mission is to reduce downtime and increase the number of successful products in the world. To do that, we build a platform that help you understand causes of the downtime, incidents and help reduce toil. Our product is open-source, free and available for everyone to use. 
