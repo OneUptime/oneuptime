@@ -26,7 +26,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {
-                    title: 'Status Page',
+                    title: 'Status Pages',
                     to: RouteMap[PageMap.STATUS_PAGES] as Route,
                 },
             ]}

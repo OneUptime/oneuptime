@@ -20,7 +20,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                     to: RouteMap[PageMap.HOME] as Route,
                 },
                 {
-                    title: 'Scheduled Maintenance',
+                    title: 'Scheduled Maintenance Events',
                     to: RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
                 },
             ]}
