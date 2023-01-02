@@ -983,7 +983,7 @@ const BasicForm: Function = <T extends Object>(
                             }
                         }
 
-                        UiAnalytics.capture("FORM SUBMIT: " + props.name);
+                        UiAnalytics.capture('FORM SUBMIT: ' + props.name);
 
                         props.onSubmit(values);
                         setSubmitting(false);

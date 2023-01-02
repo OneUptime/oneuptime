@@ -7,7 +7,7 @@ import { DASHBOARD_URL } from 'CommonUI/src/Config';
 import { JSONObject } from 'Common/Types/JSON';
 import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import Analytics from "CommonUI/src/Utils/Analytics"
+import Analytics from 'CommonUI/src/Utils/Analytics';
 
 export default abstract class LoginUtil {
     public static login(value: JSONObject): void {

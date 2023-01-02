@@ -216,7 +216,6 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             <ModelTable<TeamPermission>
                 modelType={TeamPermission}
                 id="table-team-permission"
-                
                 isDeleteable={true}
                 isEditable={true}
                 isCreateable={true}

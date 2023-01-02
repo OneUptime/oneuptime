@@ -1174,11 +1174,15 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                               }`
                             : `Edit ${props.singularName || model.singularName}`
                     }
-                    name={modalType === ModalType.Create
-                        ? `${props.name} > ${props.createVerb || 'Create'} New ${
-                              props.singularName || model.singularName
-                          }`
-                        : `${props.name} > Edit ${props.singularName || model.singularName}` }
+                    name={
+                        modalType === ModalType.Create
+                            ? `${props.name} > ${
+                                  props.createVerb || 'Create'
+                              } New ${props.singularName || model.singularName}`
+                            : `${props.name} > Edit ${
+                                  props.singularName || model.singularName
+                              }`
+                    }
                     initialValues={
                         modalType === ModalType.Create
                             ? props.createInitialValues

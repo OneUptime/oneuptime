@@ -13,10 +13,17 @@ export interface ComponentProps {
 const Page: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     useEffect(() => {
         if (props.breadcrumbLinks && props.breadcrumbLinks.length > 0) {
-            Analytics.capture("Page View: " + props.breadcrumbLinks.map((link) => link.title).join(" > ").toString() || '');
+            Analytics.capture(
+                'Page View: ' +
+                    props.breadcrumbLinks
+                        .map((link: Link) => {
+                            return link.title;
+                        })
+                        .join(' > ')
+                        .toString() || ''
+            );
         }
     }, [props.breadcrumbLinks]);
 

@@ -1,6 +1,6 @@
-import Analytics from "Common/Utils/Analytics";
-import { AnalyticsHost, AnalyticsKey } from "../Config";
+import Analytics from 'Common/Utils/Analytics';
+import { AnalyticsHost, AnalyticsKey } from '../Config';
 
-const UiAnalytics = new Analytics(AnalyticsHost, AnalyticsKey);
+const UiAnalytics: Analytics = new Analytics(AnalyticsHost, AnalyticsKey);
 
 export default UiAnalytics;

@@ -3,8 +3,6 @@ import { JSONObject } from '../Types/JSON';
 import posthog from 'posthog-js';
 
 export default class Analytics {
-
-
     private _isInitialized: boolean = false;
     public get isInitialized(): boolean {
         return this._isInitialized;
@@ -28,7 +26,6 @@ export default class Analytics {
     }
 
     public capture(eventName: string, data?: JSONObject): void {
-
         if (!this.isInitialized) {
             return;
         }

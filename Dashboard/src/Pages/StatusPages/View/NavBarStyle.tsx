@@ -61,7 +61,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <StatusPagePreviewLink modelId={modelId} />
 
             <CardModelDetail<StatusPage>
-                 name="Statusn Page > Branding > Nav Bar Menu Colors"
+                name="Statusn Page > Branding > Nav Bar Menu Colors"
                 cardProps={{
                     title: 'Navigation Menu Colors',
                     description:

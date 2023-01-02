@@ -122,7 +122,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
         >
             {/* Monitor View  */}
             <CardModelDetail
-                 name="Monitor Details"
+                name="Monitor Details"
                 cardProps={{
                     title: 'Monitor Details',
                     description: "Here's more details for this monitor.",

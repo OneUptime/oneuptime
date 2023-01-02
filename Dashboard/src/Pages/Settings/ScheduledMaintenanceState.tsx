@@ -45,7 +45,6 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
             <ModelTable<ScheduledMaintenanceState>
                 modelType={ScheduledMaintenanceState}
                 id="ScheduledMaintenance-state-table"
-                
                 name="Settings > Sceduled Maintenance State"
                 isDeleteable={true}
                 isEditable={true}

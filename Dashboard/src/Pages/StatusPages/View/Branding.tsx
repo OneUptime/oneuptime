@@ -58,7 +58,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
         >
             <StatusPagePreviewLink modelId={modelId} />
             <CardModelDetail<StatusPage>
-                 name="Statusn Page > Branding > Title and Description"
+                name="Statusn Page > Branding > Title and Description"
                 cardProps={{
                     title: 'Title and Description',
                     description: 'This will also be used for SEO.',
@@ -113,7 +113,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
             <CardModelDetail<StatusPage>
-                 name="Statusn Page > Branding > Favicon"
+                name="Statusn Page > Branding > Favicon"
                 cardProps={{
                     title: 'Favicon',
                     description: 'Favicon will be used for SEO.',
@@ -154,7 +154,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             />
 
             <CardModelDetail<StatusPage>
-                 name="Statusn Page > Branding > Colors"
+                name="Statusn Page > Branding > Colors"
                 cardProps={{
                     title: 'Page Colors',
                     description:

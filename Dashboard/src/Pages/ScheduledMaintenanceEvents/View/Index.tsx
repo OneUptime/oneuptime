@@ -67,7 +67,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
         >
             {/* ScheduledMaintenance View  */}
             <CardModelDetail
-                 name='Scheduled Maintenance Details'
+                name="Scheduled Maintenance Details"
                 cardProps={{
                     title: 'Scheduled Maintenance Details',
                     description: "Here's more details for this event.",
