@@ -22,11 +22,12 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import DashboardNavigation from '../../Utils/Navigation';
 
 export interface ComponentProps extends PageComponentProps {}
 
 const Settings: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+    _props: ComponentProps
 ): ReactElement => {
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -103,7 +104,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                     }}
                     noItemsMessage={'No invoices so far.'}
                     query={{
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     }}
                     showRefreshButton={true}
                     showFilterButton={false}

@@ -5,8 +5,7 @@ import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-
+import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -20,9 +19,7 @@ import StatusPagePreviewLink from './StatusPagePreviewLink';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = new ObjectID(
-        Navigation.getLastParam(1)?.toString().substring(1) || ''
-    );
+    const modelId: ObjectID = DashboardNavigation.getProjectId()!;
 
     return (
         <Page
@@ -72,7 +69,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     statusPageId: modelId,
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                     subscriberPhone: new NotNull(),
                 }}
                 onBeforeCreate={(

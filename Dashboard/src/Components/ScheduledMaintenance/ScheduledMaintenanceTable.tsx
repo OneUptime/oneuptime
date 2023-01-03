@@ -14,16 +14,15 @@ import Label from 'Model/Models/Label';
 import LabelsElement from '../Label/Labels';
 import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Route from 'Common/Types/API/Route';
-import Project from 'Model/Models/Project';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../StatusPage/StatusPagesLabel';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import DashboardNavigation from '../../Utils/Navigation';
 
 export interface ComponentProps {
     query?: Query<ScheduledMaintenance> | undefined;
     viewPageRoute?: Route;
-    currentProject?: Project | undefined;
     noItemsMessage?: string | undefined;
     title?: string | undefined;
     description?: string | undefined;
@@ -190,7 +189,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: ScheduledMaintenanceState,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -235,7 +235,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: Monitor,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -267,7 +268,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: StatusPage,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -315,7 +317,8 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: Label,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',

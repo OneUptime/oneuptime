@@ -28,7 +28,7 @@ import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Yellow } from 'Common/Types/BrandColors';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -130,7 +130,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     teamId: modelId,
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                 }}
                 onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
                     if (!props.currentProject || !props.currentProject.id) {
@@ -223,7 +223,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     teamId: modelId,
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                 }}
                 onBeforeCreate={(
                     item: TeamPermission
@@ -325,7 +325,8 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         filterEntityType: Label,
                         filterQuery: {
-                            projectId: props.currentProject?._id,
+                            projectId:
+                                DashboardNavigation.getProjectId().toString(),
                         },
                         filterDropdownField: {
                             label: 'name',

@@ -13,7 +13,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const Labels: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -39,7 +39,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
             <ModelTable<Label>
                 modelType={Label}
                 query={{
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                 }}
                 id="labels-table"
                 name="Settings > Labels"

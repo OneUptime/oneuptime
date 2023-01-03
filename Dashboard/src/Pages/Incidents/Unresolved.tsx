@@ -6,7 +6,7 @@ import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
 import SideMenu from './SideMenu';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const IncidentsPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -33,7 +33,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 currentProject={props.currentProject || undefined}
                 viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
                 query={{
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                     currentIncidentState: {
                         isResolvedState: false,
                     },

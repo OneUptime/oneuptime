@@ -10,7 +10,7 @@ import ApiKey from 'Model/Models/ApiKey';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const APIKeys: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -36,7 +36,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
             <ModelTable<ApiKey>
                 modelType={ApiKey}
                 query={{
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                 }}
                 id="api-keys-table"
                 name="Settings > API Keys"

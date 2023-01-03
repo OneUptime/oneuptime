@@ -10,7 +10,7 @@ import Team from 'Model/Models/Team';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const Teams: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -49,7 +49,7 @@ const Teams: FunctionComponent<PageComponentProps> = (
                 }}
                 noItemsMessage={'No teams found.'}
                 query={{
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                 }}
                 formFields={[
                     {

@@ -40,11 +40,12 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import useAsyncEffect from 'use-async-effect';
 import CheckoutForm from './BillingPaymentMethodForm';
 import Text from 'Common/Types/Text';
+import DashboardNavigation from '../../Utils/Navigation';
 
 export interface ComponentProps extends PageComponentProps {}
 
 const Settings: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+    _props: ComponentProps
 ): ReactElement => {
     const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
@@ -285,7 +286,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             },
                         },
                     ],
-                    modelId: props.currentProject?._id,
+                    modelId: DashboardNavigation.getProjectId().toString(),
                 }}
             />
 
@@ -316,7 +317,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 }}
                 noItemsMessage={'No payment methods found.'}
                 query={{
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                 }}
                 showRefreshButton={true}
                 showFilterButton={true}

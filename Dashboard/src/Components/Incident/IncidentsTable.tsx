@@ -16,15 +16,14 @@ import LabelsElement from '../../Components/Label/Labels';
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
 import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Route from 'Common/Types/API/Route';
-import Project from 'Model/Models/Project';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
+import DashboardNavigation from '../../Utils/Navigation';
 
 export interface ComponentProps {
     query?: Query<Incident> | undefined;
     viewPageRoute?: Route;
-    currentProject?: Project | undefined;
     noItemsMessage?: string | undefined;
     title?: string | undefined;
     description?: string | undefined;
@@ -173,7 +172,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: IncidentState,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -214,7 +214,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: IncidentSeverity,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -260,7 +261,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: Monitor,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -299,7 +301,8 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: Label,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',

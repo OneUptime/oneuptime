@@ -17,7 +17,7 @@ import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import SortOrder from 'Common/Types/Database/SortOrder';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const Monitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -43,7 +43,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
             <ModelTable<MonitorStatus>
                 modelType={MonitorStatus}
                 query={{
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                 }}
                 id="monitor-status-table"
                 name="Settings > Monitor Status"

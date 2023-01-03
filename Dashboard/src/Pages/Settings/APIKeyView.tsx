@@ -23,7 +23,7 @@ import LabelsElement from '../../Components/Label/Labels';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -145,7 +145,7 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                 name="Settings > API Key > Permissions"
                 query={{
                     apiKeyId: modelId,
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                 }}
                 onBeforeCreate={(
                     item: ApiKeyPermission
@@ -253,7 +253,8 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         filterEntityType: Label,
                         filterQuery: {
-                            projectId: props.currentProject?._id,
+                            projectId:
+                                DashboardNavigation.getProjectId().toString(),
                         },
                         filterDropdownField: {
                             label: 'name',

@@ -60,6 +60,14 @@ abstract class Navigation {
         );
     }
 
+    public static getFirstParam(
+        getFromFirstRoute?: number
+    ): string | undefined {
+        const pathname: string = window.location.pathname;
+
+        return pathname.split('/')[getFromFirstRoute || 1];
+    }
+
     public static getLastParamAsObjectID(getFromLastRoute?: number): ObjectID {
         const param: Route | null = URL.fromString(
             window.location.href

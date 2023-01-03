@@ -5,7 +5,7 @@ import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
-import Navigation from 'CommonUI/src/Utils/Navigation';
+import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Monitor from 'Model/Models/Monitor';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -23,9 +23,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = new ObjectID(
-        Navigation.getLastParam(1)?.toString().substring(1) || ''
-    );
+    const modelId: ObjectID = DashboardNavigation.getProjectId()!;
 
     return (
         <Page
@@ -83,7 +81,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 onViewPage={(item: Incident) => {
                     return new Route(
                         `/dashboard/${
-                            props.currentProject?._id || ''
+                            DashboardNavigation.getProjectId().toString() || ''
                         }/incidents/${item._id}`
                     );
                 }}

@@ -11,6 +11,7 @@ import Project from 'Model/Models/Project';
 import ObjectID from 'Common/Types/ObjectID';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import PermissionUtil from 'CommonUI/src/Utils/Permission';
+import DashboardNavigation from '../../Utils/Navigation';
 
 export interface ComponentProps extends PageComponentProps {
     onProjectDeleted: () => void;
@@ -46,7 +47,11 @@ const Settings: FunctionComponent<ComponentProps> = (
 
             <ModelDelete
                 modelType={Project}
-                modelId={new ObjectID(props.currentProject?._id || '')}
+                modelId={
+                    new ObjectID(
+                        DashboardNavigation.getProjectId().toString() || ''
+                    )
+                }
                 onDeleteSuccess={() => {
                     ProjectUtil.clearCurrentProject();
                     PermissionUtil.clearProjectPermissions();

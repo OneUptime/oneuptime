@@ -13,14 +13,13 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import Query from 'CommonUI/src/Utils/ModelAPI/Query';
 import Route from 'Common/Types/API/Route';
-import Project from 'Model/Models/Project';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import DashboardNavigation from '../../Utils/Navigation';
 
 export interface ComponentProps {
     query?: Query<Monitor> | undefined;
     viewPageRoute?: Route;
-    currentProject?: Project | undefined;
     noItemsMessage?: string | undefined;
     title?: string | undefined;
     description?: string | undefined;
@@ -131,7 +130,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: MonitorStatus,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -178,7 +178,8 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                     isFilterable: true,
                     filterEntityType: Label,
                     filterQuery: {
-                        projectId: props.currentProject?._id,
+                        projectId:
+                            DashboardNavigation.getProjectId().toString(),
                     },
                     filterDropdownField: {
                         label: 'name',

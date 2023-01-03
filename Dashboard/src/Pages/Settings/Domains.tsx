@@ -21,7 +21,7 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const Domains: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -61,7 +61,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                 modelType={Domain}
                 name="Settings > Domain"
                 query={{
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                 }}
                 id="domains-table"
                 isDeleteable={true}

@@ -6,7 +6,7 @@ import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
 import SideMenu from './SideMenu';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -37,7 +37,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                     RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
                 }
                 query={{
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                     currentScheduledMaintenanceState: {
                         isOngoingState: true,
                     },

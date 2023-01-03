@@ -10,7 +10,7 @@ import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
-import Navigation from 'CommonUI/src/Utils/Navigation';
+import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -34,9 +34,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = new ObjectID(
-        Navigation.getLastParam(1)?.toString().substring(1) || ''
-    );
+    const modelId: ObjectID = DashboardNavigation.getProjectId()!;
 
     const [groups, setGroups] = useState<Array<StatusPageGroup>>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -102,7 +100,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 query={{
                     statusPageId: modelId,
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                     statusPageGroupId: statusPageGroupId,
                 }}
                 enableDragAndDrop={true}
@@ -225,7 +223,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         filterEntityType: Monitor,
                         filterQuery: {
-                            projectId: props.currentProject?._id,
+                            projectId:
+                                DashboardNavigation.getProjectId().toString(),
                         },
                         filterDropdownField: {
                             label: 'name',

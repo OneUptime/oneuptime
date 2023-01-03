@@ -6,7 +6,7 @@ import RouteMap from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import MonitorTable from '../../Components/Monitor/MonitorTable';
 import DashboardSideMenu from './SideMenu';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -37,7 +37,7 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
                 currentProject={props.currentProject || undefined}
                 viewPageRoute={RouteMap[PageMap.MONITORS] as Route}
                 query={{
-                    projectId: props.currentProject?._id,
+                    projectId: DashboardNavigation.getProjectId().toString(),
                     currentMonitorStatus: {
                         isOperationalState: false,
                     },

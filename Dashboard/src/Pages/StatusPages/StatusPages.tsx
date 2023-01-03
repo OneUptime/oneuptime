@@ -13,7 +13,7 @@ import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-
+import DashboardNavigation from '../../Utils/Navigation';
 const StatusPages: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -117,7 +117,8 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         filterEntityType: Label,
                         filterQuery: {
-                            projectId: props.currentProject?._id,
+                            projectId:
+                                DashboardNavigation.getProjectId().toString(),
                         },
                         filterDropdownField: {
                             label: 'name',
