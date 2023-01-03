@@ -271,8 +271,7 @@ router.post(
 
             const user: User | null = await UserService.findOneBy({
                 query: {
-                    email: token.email!,
-                    _id: token._id!,
+                    email: alreadySavedToken.email!,
                 },
                 props: {
                     isRoot: true,
