@@ -54,6 +54,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
 import GreenlockChallengeService from '../Services/GreenlockChallengeService';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
+import logger from '../Utils/Logger';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -74,12 +75,16 @@ export default class StatusPageAPI extends BaseAPI<
                     throw new BadDataException('Host not found');
                 }
 
+                const token: string = req.params['token'] as string;
+
+                logger.info(
+                    `CNAME Verification: Host:${host}  - Token:${token}`
+                );
+
                 const domain: StatusPageDomain | null =
                     await StatusPageDomainService.findOneBy({
                         query: {
-                            cnameVerificationToken: req.params[
-                                'token'
-                            ] as string,
+                            cnameVerificationToken: token,
                             fullDomain: host,
                         },
                         select: {
