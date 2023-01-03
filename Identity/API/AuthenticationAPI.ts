@@ -42,7 +42,11 @@ router.post(
     ): Promise<void> => {
         try {
             if (DisableSignup) {
-                return Response.sendErrorResponse(req, res, new BadRequestException('Sign up is disabled.');
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadRequestException('Sign up is disabled.')
+                );
             }
 
             const data: JSONObject = req.body['data'];
@@ -70,9 +74,13 @@ router.post(
             });
 
             if (alreadySavedUser && alreadySavedUser.password) {
-                return Response.sendErrorResponse(req, res, new BadDataException(
-                    `User with email ${user.email} already exists.`
-                ));
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException(
+                        `User with email ${user.email} already exists.`
+                    )
+                );
             }
 
             let savedUser: User | null = null;
@@ -147,7 +155,11 @@ router.post(
                 });
             }
 
-            return Response.sendErrorResponse(req, res, new BadRequestException('Failed to create a user'));
+            return Response.sendErrorResponse(
+                req,
+                res,
+                new BadRequestException('Failed to create a user')
+            );
         } catch (err) {
             return next(err);
         }
@@ -219,9 +231,13 @@ router.post(
                 return Response.sendEmptyResponse(req, res);
             }
 
-            return Response.sendErrorResponse(req, res, new BadDataException(
-                `No user is registered with ${user.email?.toString()}`
-            ));
+            return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    `No user is registered with ${user.email?.toString()}`
+                )
+            );
         } catch (err) {
             return next(err);
         }
@@ -258,15 +274,23 @@ router.post(
                 });
 
             if (!alreadySavedToken) {
-                return Response.sendErrorResponse(req, res, new BadDataException(
-                    'Invalid link. Please try to log in and we will resend you another link which you should be able to verify email with.'
-                ));
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException(
+                        'Invalid link. Please try to log in and we will resend you another link which you should be able to verify email with.'
+                    )
+                );
             }
 
             if (OneUptimeDate.hasExpired(alreadySavedToken.expires!)) {
-                return Response.sendErrorResponse(req, res, new BadDataException(
-                    'Link expired. Please try to log in and we will resend you another link which you should be able to verify email with.'
-                ));
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException(
+                        'Link expired. Please try to log in and we will resend you another link which you should be able to verify email with.'
+                    )
+                );
             }
 
             const user: User | null = await UserService.findOneBy({
@@ -283,9 +307,13 @@ router.post(
             });
 
             if (!user) {
-                return Response.sendErrorResponse(req, res, new BadDataException(
-                    'Invalid link. Please try to log in and we will resend you another link which you should be able to verify email with.'
-                ));
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException(
+                        'Invalid link. Please try to log in and we will resend you another link which you should be able to verify email with.'
+                    )
+                );
             }
 
             await UserService.updateOneBy({
@@ -354,18 +382,26 @@ router.post(
             });
 
             if (!alreadySavedUser) {
-                return Response.sendErrorResponse(req, res, new BadDataException(
-                    'Invalid link. Please go to forgot password page again and request a new link.'
-                ));
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException(
+                        'Invalid link. Please go to forgot password page again and request a new link.'
+                    )
+                );
             }
 
             if (
                 alreadySavedUser &&
                 OneUptimeDate.hasExpired(alreadySavedUser.resetPasswordExpires!)
             ) {
-                return Response.sendErrorResponse(req, res, new BadDataException(
-                    'Expired link. Please go to forgot password page again and request a new link.'
-                ));
+                return Response.sendErrorResponse(
+                    req,
+                    res,
+                    new BadDataException(
+                        'Expired link. Please go to forgot password page again and request a new link.'
+                    )
+                );
             }
 
             await UserService.updateOneById({
@@ -469,9 +505,13 @@ router.post(
                         logger.error(err);
                     });
 
-                    return Response.sendErrorResponse(req, res, new BadDataException(
-                        'Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.'
-                    ));
+                    return Response.sendErrorResponse(
+                        req,
+                        res,
+                        new BadDataException(
+                            'Email is not verified. We have sent you an email with the verification link. Please do not forget to check spam.'
+                        )
+                    );
                 }
 
                 const token: string = JSONWebToken.sign(
@@ -484,9 +524,13 @@ router.post(
                     user: JSONFunctions.toJSON(alreadySavedUser, User),
                 });
             }
-            return Response.sendErrorResponse(req, res, new BadDataException(
-                'Invalid login: Email or password does not match.'
-            ));
+            return Response.sendErrorResponse(
+                req,
+                res,
+                new BadDataException(
+                    'Invalid login: Email or password does not match.'
+                )
+            );
         } catch (err) {
             return next(err);
         }
