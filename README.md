@@ -16,7 +16,7 @@ OneUptime does:
 
 -   Uptime Monitoring just like Pingdom
 -   Status Page just like StatusPage.io
--   Incident Management just like Icident.io
+-   Incident Management just like Incident.io
 -   On-call rotation and alerts just like PagerDuty
 -   Tests just like Postman (Coming soon)
 -   Security just like Snyk (Coming soon)
@@ -32,7 +32,7 @@ All under one platform.
 
 The fastest and most reliable way to get started with OneUptime is signing up for free to [OneUptime Cloud](https://oneuptime.com). By using the hosted cloud service, you also support by funding OneUptime open source development. 
 
-### Open-source single-server deploy with Docker Compose.
+### Open-source hobby single-server deploy with Docker Compose.
 
 Deploy a signle-server instance in one line on Debian / Ubuntu with Docker (recommended 8GB memory, we only support Debian / Ubuntu as of today).
 
@@ -72,6 +72,10 @@ To update:
 ```
 bash install.sh
 ```
+
+### Production ready enterprise instance on Kubernetes and Helm. 
+
+We recommend that you run OneUptime on Kubernetes and Helm. [Readme can be found here](HelmChart/public/oneuptime/README.md)
 
 ## Philosophy
 
