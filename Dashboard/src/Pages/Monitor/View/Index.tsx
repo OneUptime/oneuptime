@@ -33,9 +33,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 const MonitorView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = new ObjectID(
-        Navigation.getLastParam()?.toString().substring(1) || ''
-    );
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     const [data, setData] = useState<Array<MonitorStatusTimeline>>([]);
     const [error, setError] = useState<string>('');

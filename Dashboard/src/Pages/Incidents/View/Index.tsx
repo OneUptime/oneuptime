@@ -34,9 +34,7 @@ import EventName from '../../../Utils/EventName';
 const IncidentView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = new ObjectID(
-        Navigation.getLastParam()?.toString().substring(1) || ''
-    );
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
         <Page

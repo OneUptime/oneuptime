@@ -32,9 +32,7 @@ import DashboardNavigation from '../../Utils/Navigation';
 const TeamView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = new ObjectID(
-        Navigation.getLastParam()?.toString().substring(1) || ''
-    );
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
         <Page

@@ -27,9 +27,7 @@ import DashboardNavigation from '../../Utils/Navigation';
 const APIKeyView: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = new ObjectID(
-        Navigation.getLastParam()?.toString().substring(1) || ''
-    );
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID();
 
     return (
         <Page
