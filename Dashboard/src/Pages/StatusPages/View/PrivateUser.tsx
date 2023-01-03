@@ -76,7 +76,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     item: StatusPagePrivateUser
                 ): Promise<StatusPagePrivateUser> => {
                     item.statusPageId = modelId;
-                    item.projectId = DashboardNavigation.getProjectId();
+                    item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
                 }}
                 cardProps={{

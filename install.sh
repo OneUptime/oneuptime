@@ -13,10 +13,11 @@ sudo docker compose pull
 # Create database if it does not exists
 sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postgres psql postgresql://$DATABASE_USERNAME:$DATABASE_PASSWORD@localhost:5432/postgres -c 'CREATE DATABASE oneuptimedb' || echo "Database created" 
 
-# echo "Checking if async migrations are up to date"
-# sudo -E docker compose run init
-
+# Start all containers.
 npm run start
+
+# Restart nginx just incase the config changes. 
+sudo docker compose restart nginx
 
 echo "We will need to wait ~5-10 minutes for things to settle down, migrations to finish, and TLS certs to be issued"
 echo ""

@@ -245,7 +245,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             props.selectedProject.paymentProviderPlanId,
                             getAllEnvVars()
                         ) ? (
-                            <Upgrade projectId={props.selectedProject.id} />
+                            <Upgrade />
                         ) : (
                             <></>
                         )}

@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactElement, useState } from 'react';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import Project from 'Model/Models/Project';
-import ObjectID from 'Common/Types/ObjectID';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -10,13 +9,9 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { getAllEnvVars } from 'CommonUI/src/Config';
+import DashboardNavigation from '../../Utils/Navigation';
 
-export interface ComponentProps {
-    projectId: ObjectID;
-}
-const Upgrade: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
-): ReactElement => {
+const Upgrade: FunctionComponent = (): ReactElement => {
     const [showModal, setShowModal] = useState<boolean>(false);
     const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
@@ -39,7 +34,7 @@ const Upgrade: FunctionComponent<ComponentProps> = (
                     modelType={Project}
                     title="Change Plan"
                     name="Change Plan"
-                    modelIdToEdit={props.projectId}
+                    modelIdToEdit={DashboardNavigation.getProjectId()!}
                     onClose={() => {
                         setShowModal(false);
                     }}
