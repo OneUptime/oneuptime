@@ -11,8 +11,9 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import DashboardNavigation from '../../Utils/Navigation';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const APIKeys: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
@@ -88,7 +89,7 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
                         field: {

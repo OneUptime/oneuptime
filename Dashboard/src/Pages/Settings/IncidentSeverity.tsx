@@ -16,9 +16,9 @@ import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import SortOrder from 'Common/Types/Database/SortOrder';
-
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
@@ -83,7 +83,7 @@ const IncidentSeverityPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 noItemsMessage={'No incident severity found.'}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 formFields={[
                     {
                         field: {

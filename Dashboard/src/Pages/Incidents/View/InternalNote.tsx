@@ -19,6 +19,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const IncidentDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -105,7 +106,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 showTableAs={ShowTableAs.List}
                 columns={[
                     {

@@ -18,6 +18,7 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import DashboardNavigation from '../../Utils/Navigation';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const Monitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -78,7 +79,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
 
                     return item;
                 }}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 onBeforeCreate={(
                     item: MonitorStatus
                 ): Promise<MonitorStatus> => {

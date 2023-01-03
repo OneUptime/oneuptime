@@ -34,7 +34,6 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
             }
         >
             <MonitorTable
-                
                 viewPageRoute={RouteMap[PageMap.MONITORS] as Route}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),

@@ -294,7 +294,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
                         field: {

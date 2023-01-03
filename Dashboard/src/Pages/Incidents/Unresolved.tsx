@@ -30,7 +30,6 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <IncidentsTable
-                
                 viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),

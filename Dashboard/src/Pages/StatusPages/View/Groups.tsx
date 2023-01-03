@@ -15,7 +15,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
-
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -122,7 +122,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
                         field: {

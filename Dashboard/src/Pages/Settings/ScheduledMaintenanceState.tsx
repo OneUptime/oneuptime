@@ -17,9 +17,9 @@ import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
@@ -110,7 +110,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 noItemsMessage={'No Scheduled Maintenance state found.'}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 formFields={[
                     {
                         field: {

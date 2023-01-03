@@ -32,7 +32,6 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ScheduledMaintenanceTable
-                
                 viewPageRoute={
                     RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
                 }

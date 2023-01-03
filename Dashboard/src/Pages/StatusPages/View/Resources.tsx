@@ -30,7 +30,7 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -208,7 +208,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
                         field: {

@@ -19,7 +19,7 @@ import { JSONObject } from 'Common/Types/JSON';
 import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -108,7 +108,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 showTableAs={ShowTableAs.List}
                 columns={[
                     {

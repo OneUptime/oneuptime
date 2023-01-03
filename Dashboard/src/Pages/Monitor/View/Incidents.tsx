@@ -19,9 +19,9 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Incident from 'Model/Models/Incident';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     const modelId: ObjectID = DashboardNavigation.getProjectId()!;
 
@@ -143,7 +143,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
                         field: {

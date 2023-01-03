@@ -130,10 +130,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                     },
                 ]}
-                currentPlan={BILLING_ENABLED ?  SubscriptionPlan.getPlanSelect(
-                    props.currentProject?.paymentProviderPlanId!,
-                    getAllEnvVars()
-                ) : undefined}
+                currentPlan={
+                    BILLING_ENABLED
+                        ? SubscriptionPlan.getPlanSelect(
+                              props.currentProject?.paymentProviderPlanId!,
+                              getAllEnvVars()
+                          )
+                        : undefined
+                }
             />
         </Page>
     );

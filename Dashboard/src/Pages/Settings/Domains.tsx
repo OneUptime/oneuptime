@@ -22,8 +22,9 @@ import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import DashboardNavigation from '../../Utils/Navigation';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const Domains: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     const [showVerificationModal, setShowVerificationModal] =
         useState<boolean>(false);
@@ -75,7 +76,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                 }}
                 refreshToggle={refreshToggle}
                 noItemsMessage={'No domains found.'}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 actionButtons={[
                     {
                         title: 'Verify Domain',

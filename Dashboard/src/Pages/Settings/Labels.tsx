@@ -14,8 +14,9 @@ import Pill from 'CommonUI/src/Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import DashboardNavigation from '../../Utils/Navigation';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const Labels: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+    _props: PageComponentProps
 ): ReactElement => {
     return (
         <Page
@@ -53,7 +54,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
                         'Labels help you categorize resources in your project and give granular permissions to access those resources to team members.',
                 }}
                 noItemsMessage={'No labels found.'}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 formFields={[
                     {
                         field: {

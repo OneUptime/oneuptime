@@ -17,7 +17,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
 import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
-
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const IncidentDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -106,7 +106,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
                         field: {

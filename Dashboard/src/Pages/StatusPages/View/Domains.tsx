@@ -16,7 +16,7 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
 import { StatusPageCNameRecord } from 'CommonUI/src/Config';
-
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -84,7 +84,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 noItemsMessage={'No custom domains found.'}
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 formFields={[
                     {
                         field: {

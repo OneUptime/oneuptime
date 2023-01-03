@@ -7,6 +7,7 @@ import PageComponentProps from '../PageComponentProps';
 import MonitorTable from '../../Components/Monitor/MonitorTable';
 import DashboardSideMenu from './SideMenu';
 import DashboardNavigation from '../../Utils/Navigation';
+
 const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -36,7 +37,6 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
             }
         >
             <MonitorTable
-                
                 viewPageRoute={RouteMap[PageMap.MONITORS] as Route}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),

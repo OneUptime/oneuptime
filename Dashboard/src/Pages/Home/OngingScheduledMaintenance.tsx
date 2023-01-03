@@ -7,6 +7,7 @@ import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
 import SideMenu from './SideMenu';
 import DashboardNavigation from '../../Utils/Navigation';
+
 const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -32,7 +33,6 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ScheduledMaintenanceTable
-                
                 viewPageRoute={
                     RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
                 }

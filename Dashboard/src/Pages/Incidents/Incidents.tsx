@@ -7,6 +7,8 @@ import Route from 'Common/Types/API/Route';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
 import SideMenu from './SideMenu';
 import DashboardNavigation from '../../Utils/Navigation';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+
 const IncidentsPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -26,8 +28,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <IncidentsTable
-                
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}

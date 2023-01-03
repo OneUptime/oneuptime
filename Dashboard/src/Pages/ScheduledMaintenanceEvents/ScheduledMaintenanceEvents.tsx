@@ -7,6 +7,7 @@ import Route from 'Common/Types/API/Route';
 import SideMenu from './SideMenu';
 import ScheduledMaintenancesTable from '../../Components/ScheduledMaintenance/ScheduledMaintenanceTable';
 import DashboardNavigation from '../../Utils/Navigation';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -26,8 +27,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ScheduledMaintenancesTable
-                
-                viewPageRoute={props.pageRoute}
+                viewPageRoute={Navigation.getCurrentRoute()}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
