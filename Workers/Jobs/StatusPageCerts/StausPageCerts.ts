@@ -6,7 +6,6 @@ import {
 import RunCron from '../../Utils/Cron';
 import { IsDevelopment } from 'CommonServer/Config';
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import https from 'https';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 // @ts-ignore
 import Greenlock from 'greenlock';
@@ -522,16 +521,11 @@ const checkCnameValidation: Function = async (
     token: string
 ): Promise<boolean> => {
     try {
-        const agent: https.Agent = new https.Agent({
-            rejectUnauthorized: false,
-        });
-
         const result: AxiosResponse = await axios.get(
             'http://' +
                 fulldomain +
                 '/status-page-api/cname-verification/' +
-                token,
-            { httpsAgent: agent }
+                token
         );
 
         if (result.status === 200) {
@@ -539,6 +533,9 @@ const checkCnameValidation: Function = async (
         }
         return false;
     } catch (err) {
+        logger.info('Failed checking for CNAME ' + fulldomain);
+        logger.info('Token: ' + token);
+        logger.info(err);
         return false;
     }
 };
