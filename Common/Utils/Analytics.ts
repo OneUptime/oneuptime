@@ -25,6 +25,13 @@ export default class Analytics {
         posthog.identify(email.toString());
     }
 
+    public logout(): void {
+        if (!this.isInitialized) {
+            return;
+        }
+        posthog.reset();
+    }
+
     public capture(eventName: string, data?: JSONObject): void {
         if (!this.isInitialized) {
             return;

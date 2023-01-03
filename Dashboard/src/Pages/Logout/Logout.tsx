@@ -8,11 +8,13 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { ACCOUNTS_URL } from 'CommonUI/src/Config';
+import UiAnalytics from 'CommonUI/src/Utils/Analytics';
 
 const Logout: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     useEffect(() => {
+        UiAnalytics.logout();
         UserUtil.logout();
         Navigation.navigate(ACCOUNTS_URL);
     }, []);
