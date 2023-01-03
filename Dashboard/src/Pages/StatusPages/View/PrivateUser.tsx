@@ -17,7 +17,7 @@ import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Yellow } from 'Common/Types/BrandColors';
-import { getAllEnvVars } from 'CommonUI/src/Config';
+import { getAllEnvVars, BILLING_ENABLED } from 'CommonUI/src/Config';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -130,10 +130,10 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                     },
                 ]}
-                currentPlan={SubscriptionPlan.getPlanSelect(
+                currentPlan={BILLING_ENABLED ?  SubscriptionPlan.getPlanSelect(
                     props.currentProject?.paymentProviderPlanId!,
                     getAllEnvVars()
-                )}
+                ) : undefined}
             />
         </Page>
     );
