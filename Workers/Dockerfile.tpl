@@ -11,6 +11,9 @@ RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm co
 # Install bash. 
 RUN apk update && apk add bash && apk add curl
 
+# Install open ssl.
+RUN apk add openssl
+
 
 # Install python
 RUN apk update && apk add --no-cache --virtual .gyp python3 make g++
