@@ -9,7 +9,6 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -18,11 +17,12 @@ import { JSONObject } from 'Common/Types/JSON';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Green, Yellow } from 'Common/Types/BrandColors';
 import { getAllEnvVars, BILLING_ENABLED } from 'CommonUI/src/Config';
+import Navigation from 'CommonUI/src/Utils/Navigation';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = DashboardNavigation.getProjectId()!;
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
         <Page
@@ -75,11 +75,8 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 onBeforeCreate={(
                     item: StatusPagePrivateUser
                 ): Promise<StatusPagePrivateUser> => {
-                    if (!props.currentProject || !props.currentProject.id) {
-                        throw new BadDataException('Project ID cannot be null');
-                    }
                     item.statusPageId = modelId;
-                    item.projectId = props.currentProject.id;
+                    item.projectId = DashboardNavigation.getProjectId();
                     return Promise.resolve(item);
                 }}
                 cardProps={{

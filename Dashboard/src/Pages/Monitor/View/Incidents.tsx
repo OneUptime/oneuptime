@@ -23,7 +23,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 const MonitorIncidents: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = DashboardNavigation.getProjectId()!;
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
         <Page

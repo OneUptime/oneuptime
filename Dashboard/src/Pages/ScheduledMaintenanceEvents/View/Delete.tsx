@@ -9,12 +9,11 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
-import DashboardNavigation from '../../../Utils/Navigation';
 
 const IncidentDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = DashboardNavigation.getProjectId()!;
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
         <Page

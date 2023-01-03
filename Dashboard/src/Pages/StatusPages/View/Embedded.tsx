@@ -10,12 +10,11 @@ import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagePreviewLink from './StatusPagePreviewLink';
-import DashboardNavigation from '../../../Utils/Navigation';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = DashboardNavigation.getProjectId()!;
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
         <Page
