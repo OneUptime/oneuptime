@@ -13,7 +13,7 @@ export default class Analytics {
 
     public constructor(apiHost: string, apiKey: string) {
         if (apiHost && apiKey) {
-            posthog.init(apiKey, { api_host: apiHost });
+            posthog.init(apiKey, { api_host: apiHost, autocapture: false });
             this.isInitialized = true;
         }
     }
