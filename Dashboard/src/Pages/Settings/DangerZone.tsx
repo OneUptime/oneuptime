@@ -49,7 +49,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                 modelType={Project}
                 modelId={
                     new ObjectID(
-                        DashboardNavigation.getProjectId().toString() || ''
+                        DashboardNavigation.getProjectId()?.toString() || ''
                     )
                 }
                 onDeleteSuccess={() => {

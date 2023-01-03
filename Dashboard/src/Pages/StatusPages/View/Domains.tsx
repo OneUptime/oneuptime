@@ -61,7 +61,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             <ModelTable<StatusPageDomain>
                 modelType={StatusPageDomain}
                 query={{
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                     statusPageId: modelId,
                 }}
                 name="Status Page > Domains"

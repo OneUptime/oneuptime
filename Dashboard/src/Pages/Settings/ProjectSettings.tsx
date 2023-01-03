@@ -63,7 +63,7 @@ const Settings: FunctionComponent<PageComponentProps> = (
                             title: 'Project Name',
                         },
                     ],
-                    modelId: DashboardNavigation.getProjectId().toString(),
+                    modelId: DashboardNavigation.getProjectId()?.toString(),
                 }}
             />
         </Page>

@@ -37,7 +37,7 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
                 currentProject={props.currentProject || undefined}
                 viewPageRoute={RouteMap[PageMap.MONITORS] as Route}
                 query={{
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                     currentMonitorStatus: {
                         isOperationalState: false,
                     },

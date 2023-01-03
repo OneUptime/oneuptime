@@ -100,7 +100,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 query={{
                     statusPageId: modelId,
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                     statusPageGroupId: statusPageGroupId,
                 }}
                 enableDragAndDrop={true}
@@ -224,7 +224,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         filterEntityType: Monitor,
                         filterQuery: {
                             projectId:
-                                DashboardNavigation.getProjectId().toString(),
+                                DashboardNavigation.getProjectId()?.toString(),
                         },
                         filterDropdownField: {
                             label: 'name',

@@ -105,7 +105,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                     noItemsMessage={'No invoices so far.'}
                     query={{
                         projectId:
-                            DashboardNavigation.getProjectId().toString(),
+                            DashboardNavigation.getProjectId()?.toString(),
                     }}
                     showRefreshButton={true}
                     showFilterButton={false}

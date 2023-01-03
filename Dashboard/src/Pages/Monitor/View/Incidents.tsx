@@ -81,7 +81,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 onViewPage={(item: Incident) => {
                     return new Route(
                         `/dashboard/${
-                            DashboardNavigation.getProjectId().toString() || ''
+                            DashboardNavigation.getProjectId()?.toString() || ''
                         }/incidents/${item._id}`
                     );
                 }}

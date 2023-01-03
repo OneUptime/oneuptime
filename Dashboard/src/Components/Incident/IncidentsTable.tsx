@@ -173,7 +173,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     filterEntityType: IncidentState,
                     filterQuery: {
                         projectId:
-                            DashboardNavigation.getProjectId().toString(),
+                            DashboardNavigation.getProjectId()?.toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -215,7 +215,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     filterEntityType: IncidentSeverity,
                     filterQuery: {
                         projectId:
-                            DashboardNavigation.getProjectId().toString(),
+                            DashboardNavigation.getProjectId()?.toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -262,7 +262,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     filterEntityType: Monitor,
                     filterQuery: {
                         projectId:
-                            DashboardNavigation.getProjectId().toString(),
+                            DashboardNavigation.getProjectId()?.toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -302,7 +302,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     filterEntityType: Label,
                     filterQuery: {
                         projectId:
-                            DashboardNavigation.getProjectId().toString(),
+                            DashboardNavigation.getProjectId()?.toString(),
                     },
                     filterDropdownField: {
                         label: 'name',

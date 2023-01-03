@@ -29,7 +29,7 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
                 currentProject={props.currentProject || undefined}
                 viewPageRoute={props.pageRoute}
                 query={{
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
             />
         </Page>

@@ -190,7 +190,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     filterEntityType: ScheduledMaintenanceState,
                     filterQuery: {
                         projectId:
-                            DashboardNavigation.getProjectId().toString(),
+                            DashboardNavigation.getProjectId()?.toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -236,7 +236,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     filterEntityType: Monitor,
                     filterQuery: {
                         projectId:
-                            DashboardNavigation.getProjectId().toString(),
+                            DashboardNavigation.getProjectId()?.toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -269,7 +269,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     filterEntityType: StatusPage,
                     filterQuery: {
                         projectId:
-                            DashboardNavigation.getProjectId().toString(),
+                            DashboardNavigation.getProjectId()?.toString(),
                     },
                     filterDropdownField: {
                         label: 'name',
@@ -318,7 +318,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                     filterEntityType: Label,
                     filterQuery: {
                         projectId:
-                            DashboardNavigation.getProjectId().toString(),
+                            DashboardNavigation.getProjectId()?.toString(),
                     },
                     filterDropdownField: {
                         label: 'name',

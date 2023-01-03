@@ -39,7 +39,7 @@ const Labels: FunctionComponent<PageComponentProps> = (
             <ModelTable<Label>
                 modelType={Label}
                 query={{
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 id="labels-table"
                 name="Settings > Labels"

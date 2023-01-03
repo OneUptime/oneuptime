@@ -72,7 +72,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     statusPages: [statusPage],
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(
                     item: StatusPageAnnouncement

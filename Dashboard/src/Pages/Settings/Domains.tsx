@@ -61,7 +61,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                 modelType={Domain}
                 name="Settings > Domain"
                 query={{
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 id="domains-table"
                 isDeleteable={true}

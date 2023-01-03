@@ -118,7 +118,7 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
                         filterEntityType: Label,
                         filterQuery: {
                             projectId:
-                                DashboardNavigation.getProjectId().toString(),
+                                DashboardNavigation.getProjectId()?.toString(),
                         },
                         filterDropdownField: {
                             label: 'name',

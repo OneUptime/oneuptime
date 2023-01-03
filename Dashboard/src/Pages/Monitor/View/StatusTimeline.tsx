@@ -67,7 +67,7 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     monitorId: modelId,
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(
                     item: MonitorStatusTimeline

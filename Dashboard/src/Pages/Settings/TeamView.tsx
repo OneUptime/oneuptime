@@ -130,7 +130,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     teamId: modelId,
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(item: TeamMember): Promise<TeamPermission> => {
                     if (!props.currentProject || !props.currentProject.id) {
@@ -223,7 +223,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     teamId: modelId,
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(
                     item: TeamPermission
@@ -326,7 +326,7 @@ const TeamView: FunctionComponent<PageComponentProps> = (
                         filterEntityType: Label,
                         filterQuery: {
                             projectId:
-                                DashboardNavigation.getProjectId().toString(),
+                                DashboardNavigation.getProjectId()?.toString(),
                         },
                         filterDropdownField: {
                             label: 'name',

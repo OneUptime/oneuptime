@@ -67,7 +67,7 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 query={{
                     incidentId: modelId,
-                    projectId: DashboardNavigation.getProjectId().toString(),
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
                 onBeforeCreate={(
                     item: IncidentStateTimeline
