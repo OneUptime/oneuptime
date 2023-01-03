@@ -16,9 +16,6 @@ sudo docker compose up -d postgres && sleep 30 && sudo docker compose exec postg
 # Start all containers.
 npm run start
 
-# Restart nginx just incase the config changes. 
-sudo docker compose restart nginx
-
 echo "We will need to wait ~5-10 minutes for things to settle down, migrations to finish, and TLS certs to be issued"
 echo ""
 echo "⏳ Waiting for OneUptime to boot (this will take a few minutes)"
