@@ -32,7 +32,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ScheduledMaintenanceTable
-                currentProject={props.currentProject || undefined}
+                
                 viewPageRoute={
                     RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route
                 }

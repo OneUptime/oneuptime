@@ -31,7 +31,7 @@ const Home: FunctionComponent<PageComponentProps> = (
             }
         >
             <IncidentsTable
-                currentProject={props.currentProject || undefined}
+                
                 viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),

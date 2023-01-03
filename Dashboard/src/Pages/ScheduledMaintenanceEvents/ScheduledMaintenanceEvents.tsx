@@ -26,7 +26,7 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <ScheduledMaintenancesTable
-                currentProject={props.currentProject || undefined}
+                
                 viewPageRoute={props.pageRoute}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),

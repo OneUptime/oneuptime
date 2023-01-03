@@ -30,7 +30,7 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
             }
         >
             <MonitorTable
-                currentProject={props.currentProject || undefined}
+                
                 viewPageRoute={RouteMap[PageMap.MONITORS] as Route}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
