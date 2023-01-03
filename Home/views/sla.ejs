@@ -2,9 +2,9 @@
     <h1>Service Level Agreement</h1>
     <p>Please Read Carefully Prior To Using This Product</p>
     <script src="/js/amplitude.js"></script>
-    <script type="module" async>var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1); var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
-        if (BILLING_ENABLED) {
-            amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > SLA');
+    <script type="module" async> var IS_DEV = window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1;
+        if(posthog){
+            posthog.capture('PAGE VIEW: HOME > LEGAL > SLA');
         }
     </script>
 </header>

@@ -4,9 +4,9 @@
 
     <p>Company and Contact Information</p>
     <script type="module" async>
-        var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
-        if (BILLING_ENABLED) {
-          amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > CONTACT');
+        
+        if(posthog){
+          posthog.capture('PAGE VIEW: HOME > LEGAL > CONTACT');
         }
       </script>
 </header>

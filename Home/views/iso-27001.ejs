@@ -4,9 +4,9 @@
 
     <p>The ISO/IEC 27000 family of standards helps organizations keep information assets secure.</p>
     <script type="module" async>
-        var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
-        if (BILLING_ENABLED) {
-            amplitude.getInstance().logEvent('PAGE VIEW: HOME > LEGAL > ISO 27001');
+        
+        if(posthog){
+            posthog.capture('PAGE VIEW: HOME > LEGAL > ISO 27001');
         }
     </script>
 </header>

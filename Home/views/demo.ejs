@@ -15,9 +15,9 @@
         <script src="/js/amplitude.js"></script>
         <script src="/js/getCookies.js"></script>
         <script type="module" async>
-            var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
-            if (BILLING_ENABLED) {
-                amplitude.getInstance().logEvent('PAGE VIEW: HOME > REQUEST DEMO');
+            
+            if(posthog){
+                posthog.capture('PAGE VIEW: HOME > REQUEST DEMO');
             }
         </script>
 
@@ -1168,9 +1168,9 @@
                         try {
                             var queryString = $('#demoform').serialize();
                             var formData = Object.fromEntries(new URLSearchParams(queryString));
-                            var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
-                            if (BILLING_ENABLED) {
-                                amplitude.getInstance().logEvent('EVENT: SUBMITTED REQUEST DEMO FORM', { data: formData });
+                            
+                            if(posthog){
+                                posthog.capture('EVENT: SUBMITTED REQUEST DEMO FORM', { data: formData });
                             }
                         } catch { }
                         return 0;
@@ -1188,9 +1188,9 @@
                 document.getElementById('demoform').addEventListener('click', function () {
                     var queryString = $('#demoform').serialize();
                     var formData = Object.fromEntries(new URLSearchParams(queryString));
-                    var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
-                    if (BILLING_ENABLED) {
-                        amplitude.getInstance().logEvent('EVENT: SUBMITTED REQUEST DEMO FORM', { data: formData });
+                    
+                    if(posthog){
+                        posthog.capture('EVENT: SUBMITTED REQUEST DEMO FORM', { data: formData });
                     }
                 })
             });

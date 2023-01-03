@@ -11,9 +11,9 @@
   <link rel="stylesheet" href="/css/home.css">
   <script defer src="/js/home.js"></script>
   <script>
-    var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
-    if (BILLING_ENABLED) {
-      amplitude.getInstance().logEvent('PAGE VIEW: HOME > NOT FOUND (404)');
+    
+    if(posthog){
+      posthog.capture('PAGE VIEW: HOME > NOT FOUND (404)');
     }
   </script>
 </head>

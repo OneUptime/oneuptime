@@ -1194,10 +1194,10 @@
                         $("#two").text(resources[i].two);
                         $("#three").text(resources[i].three);
 
-                        var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
+                        
 
-                        if (BILLING_ENABLED) {
-                            amplitude.getInstance().logEvent('PAGE VIEW: HOME > RESOURCES > ' + resources[i].title);
+                        if(posthog){
+                            posthog.capture('PAGE VIEW: HOME > RESOURCES > ' + resources[i].title);
                         }
 
                     }

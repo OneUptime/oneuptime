@@ -15,9 +15,9 @@
         <script defer src="/js/home.js"></script>
         <script src="/js/amplitude.js"></script>
         <script type="module" async>
-            var BILLING_ENABLED = !(window.location.href.indexOf('localhost') > -1 || window.location.href.indexOf('staging') > -1);
-            if (BILLING_ENABLED) {
-                amplitude.getInstance().logEvent('PAGE VIEW: HOME');
+            
+            if(posthog){
+                posthog.capture('PAGE VIEW: HOME');
             }
         </script>
         <script defer src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/js/bootstrap.bundle.min.js"
