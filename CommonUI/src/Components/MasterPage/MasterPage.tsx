@@ -33,15 +33,13 @@ const MasterPage: FunctionComponent<ComponentProps> = (
 
     return (
         <React.Fragment>
-            <div id="layout-wrapper">
+            <div>
                 {props.header && props.header}
-                {props.navBar && props.navBar}
+                {/* {props.navBar && props.navBar}
                 <div className="main-content" style={props.mainContentStyle}>
                     {props.children}
-                </div>
-                <div style={{ marginTop: '20px' }}>
-                    {props.footer && props.footer}
-                </div>
+                </div> */}
+                {props.footer && props.footer}
             </div>
         </React.Fragment>
     );
