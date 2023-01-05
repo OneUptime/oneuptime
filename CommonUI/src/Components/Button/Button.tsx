@@ -19,6 +19,7 @@ export enum ButtonStyleType {
     WARNING,
     WARNING_OUTLINE,
     LINK,
+    ICON
 }
 
 export enum ButtonSize {
@@ -100,14 +101,14 @@ const Button: FunctionComponent<ComponentProps> = ({
         }
     };
 
-    let buttonStyleCssClass: string = 'no-border-on-hover';
+    let buttonStyleCssClass: string = 'inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
 
     if (buttonStyle === ButtonStyleType.LINK) {
         buttonStyleCssClass = 'no-border-on-hover font-500';
     }
 
     if (buttonStyle === ButtonStyleType.DANGER) {
-        buttonStyleCssClass = 'btn-danger';
+        buttonStyleCssClass = 'inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
@@ -115,11 +116,15 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.PRIMARY) {
-        buttonStyleCssClass = 'btn-primary';
+        buttonStyleCssClass = 'inline-flex w-full justify-center rounded-md border border-transparent bg-slate-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.SECONDRY) {
         buttonStyleCssClass = 'btn-secondary';
+    }
+
+    if (buttonStyle === ButtonStyleType.ICON) {
+        buttonStyleCssClass = "rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
     }
 
     if (buttonStyle === ButtonStyleType.OUTLINE) {
@@ -155,81 +160,14 @@ const Button: FunctionComponent<ComponentProps> = ({
             data-testid={dataTestId}
             type={type}
             disabled={disabled}
-            className={`btn ${buttonStyleCssClass} ${buttonSize} waves-effect waves-light ${
-                !title && buttonStyle === ButtonStyleType.NORMAL
-                    ? 'no-border-on-hover'
-                    : ''
-            }`}
+            className={buttonStyleCssClass}
         >
-            {!isLoading && (
-                <div>
-                    <div>
-                        <div></div>
-                    </div>
-                    <span className="justify-center">
-                        <span>
-                            {icon && !showIconOnRight && (
-                                <Icon
-                                    icon={icon}
-                                    size={
-                                        iconSize ? iconSize : SizeProp.Regular
-                                    }
-                                    thick={
-                                        buttonSize === ButtonSize.Small ||
-                                        buttonStyle === ButtonStyleType.LINK
-                                            ? ThickProp.LessThick
-                                            : ThickProp.Thick
-                                    }
-                                />
-                            )}
-                        </span>
-                        {title ? (
-                            <div
-                                style={{
-                                    marginLeft:
-                                        icon && !showIconOnRight
-                                            ? '4px'
-                                            : '0px',
-                                    marginTop: '1px',
-                                }}
-                            >
-                                <b style={textStyle}>{title}</b>
-                            </div>
-                        ) : (
-                            <></>
-                        )}
-                        <span
-                            style={{
-                                marginLeft: '5px',
-                            }}
-                        >
-                            {icon && showIconOnRight && (
-                                <Icon
-                                    icon={icon}
-                                    size={
-                                        iconSize ? iconSize : SizeProp.Regular
-                                    }
-                                    thick={ThickProp.Thick}
-                                />
-                            )}
-                        </span>
-                        {shortcutKey && (
-                            <span className="newButtonKeycode">
-                                {shortcutKey}
-                            </span>
-                        )}
-                    </span>
-                </div>
-            )}
-            {isLoading && (
-                <div>
-                    <Loader
-                        loaderType={LoaderType.Beats}
-                        color={White}
-                        size={10}
-                    />
-                </div>
-            )}
+            {title && buttonStyle !== ButtonStyleType.ICON ? title :''}
+
+            {buttonStyle === ButtonStyleType.ICON && <>
+                <span className="sr-only">{title}</span>
+                <Icon icon={icon!} size={iconSize!} />
+            </>}
         </button>
     );
 };

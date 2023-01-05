@@ -78,7 +78,6 @@ export enum ThickProp {
     Normal = '',
     LessThick = '2px',
     Thick = '3px',
-    ExtraThick = '5px',
 }
 
 export enum IconProp {
@@ -153,6 +152,13 @@ export enum IconProp {
     Download,
 }
 
+export enum IconType { 
+    Danger = "Danger",
+    Success = "Success",
+    Info = "Info",
+    Warning = "Warning"
+}
+
 export interface ComponentProps {
     icon: IconProp;
     size?: SizeProp;
@@ -161,6 +167,7 @@ export interface ComponentProps {
     thick?: ThickProp;
     onClick?: (() => void) | undefined;
     style?: CSSProperties | undefined;
+    type?: IconType | undefined;
 }
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
@@ -170,7 +177,66 @@ const Icon: FunctionComponent<ComponentProps> = ({
     thick = ThickProp.Normal,
     onClick,
     style,
+    type
 }: ComponentProps): ReactElement => {
+
+
+    
+
+    let sizeClassName: string = "h-4 w-4";
+
+    if (size === SizeProp.Large) {
+        sizeClassName = "h-6 w-6"
+    } else if (size === SizeProp.Larger) {
+        sizeClassName = "h-8 w-8"
+    } else if (size === SizeProp.ExtraLarge) {
+        sizeClassName = "h-10 w-10"
+    } else if (size === SizeProp.ExtraSmall) {
+        sizeClassName = "h-1 w-1"
+    } else if (size === SizeProp.Small) {
+        sizeClassName = "h-3 w-3"
+    } else if (size === SizeProp.Smaller) {
+        sizeClassName = "h-2 w-2"
+    }
+
+    let strokeWidth: string = "stroke-1";
+
+    if (thick == ThickProp.LessThick) {
+        strokeWidth = "stroke-0";
+    } else if (thick === ThickProp.Thick) {
+        strokeWidth = "stroke-2";
+    }
+
+    let textColor: string = "";
+
+    if (type === IconType.Info) {
+        textColor = "text-slate-600"
+    } else if (type === IconType.Warning) { 
+        textColor = "text-yellow-600"
+    }else if (type === IconType.Success) { 
+        textColor = "text-green-600"
+    }else if (type === IconType.Danger) { 
+        textColor = "text-red-600"
+    }
+
+
+    const getSvgWrapper = (children: ReactElement): ReactElement => {
+        return (<svg onClick={() => {
+            onClick && onClick();
+        }} className={`${className} ${textColor} ${sizeClassName} ${strokeWidth}`} style={color ? { color: color.toString() } : {}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+            {children}
+        </svg>)
+    }
+
+
+    if (icon === IconProp.Close) {
+        return getSvgWrapper(
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        )
+    } else if (icon === IconProp.Alert) {
+        return getSvgWrapper(<path strokeLinecap="round" strokeLinejoin="round" d="M12 10.5v3.75m-9.303 3.376C1.83 19.126 2.914 21 4.645 21h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 4.88c-.866-1.501-3.032-1.501-3.898 0L2.697 17.626zM12 17.25h.007v.008H12v-.008z" />);
+    }
+
     return (
         <div
             style={{
@@ -198,13 +264,6 @@ const Icon: FunctionComponent<ComponentProps> = ({
             )}
             {icon === IconProp.Activity && (
                 <Activity
-                    size={size}
-                    strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString() : (undefined as any)}
-                />
-            )}
-            {icon === IconProp.Alert && (
-                <AlertOctagon
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : (undefined as any)}
@@ -418,13 +477,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                     color={color ? color.toString() : (undefined as any)}
                 />
             )}
-            {icon === IconProp.Close && (
-                <X
-                    size={size}
-                    strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString() : (undefined as any)}
-                />
-            )}
+
             {icon === IconProp.Add && (
                 <Plus
                     size={size}

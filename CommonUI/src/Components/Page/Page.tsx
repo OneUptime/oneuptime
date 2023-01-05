@@ -27,31 +27,33 @@ const Page: FunctionComponent<ComponentProps> = (
         }
     }, [props.breadcrumbLinks]);
 
-    return (
-        <div className="page-content">
-            <div className="container-fluid">
-                <div className="row">
-                    <div className="col-12">
-                        <div className="page-title-box d-sm-flex align-items-center justify-content-between">
-                            <h4 className="mb-0 font-size-18">{props.title}</h4>
-                            <Breadcrumbs links={props.breadcrumbLinks} />
-                        </div>
-                    </div>
-                </div>
-                {props.sideMenu && (
-                    <div className="row">
-                        <div className="col-12">
-                            {props.sideMenu}
-                            <div className="email-rightbar mb-3">
-                                {props.children}
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {!props.sideMenu && props.children}
-            </div>
-        </div>
-    );
+    // return (
+    //     <div className="page-content">
+    //         <div className="container-fluid">
+    //             <div className="row">
+    //                 <div className="col-12">
+    //                     <div className="page-title-box d-sm-flex align-items-center justify-content-between">
+    //                         <h4 className="mb-0 font-size-18">{props.title}</h4>
+    //                         <Breadcrumbs links={props.breadcrumbLinks} />
+    //                     </div>
+    //                 </div>
+    //             </div>
+    //             {props.sideMenu && (
+    //                 <div className="row">
+    //                     <div className="col-12">
+    //                         {props.sideMenu}
+    //                         <div className="email-rightbar mb-3">
+    //                             {props.children}
+    //                         </div>
+    //                     </div>
+    //                 </div>
+    //             )}
+    //             {!props.sideMenu && props.children}
+    //         </div>
+    //     </div>
+    // );
+
+    return <div className='grow'>{props.children}</div>
 };
 
 export default Page;

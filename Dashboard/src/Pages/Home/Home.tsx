@@ -11,39 +11,42 @@ import DashboardNavigation from '../../Utils/Navigation';
 const Home: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    return (
-        <Page
-            title={'Home'}
-            breadcrumbLinks={[
-                {
-                    title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
-                },
-                {
-                    title: 'Home',
-                    to: RouteMap[PageMap.HOME] as Route,
-                },
-            ]}
-            sideMenu={
-                <DashboardSideMenu
-                    project={props.currentProject || undefined}
-                />
-            }
-        >
-            <IncidentsTable
-                viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
-                query={{
-                    projectId: DashboardNavigation.getProjectId()?.toString(),
-                    currentIncidentState: {
-                        isResolvedState: false,
-                    },
-                }}
-                noItemsMessage="Nice work! No unresolved incidents so far."
-                title="Unresolved Incidents"
-                description="Here is a list of all the unresolved incidents for this project."
-            />
-        </Page>
-    );
+    // return (
+    //     <Page
+    //         title={'Home'}
+    //         breadcrumbLinks={[
+    //             {
+    //                 title: 'Project',
+    //                 to: RouteMap[PageMap.HOME] as Route,
+    //             },
+    //             {
+    //                 title: 'Home',
+    //                 to: RouteMap[PageMap.HOME] as Route,
+    //             },
+    //         ]}
+    //         sideMenu={
+    //             <DashboardSideMenu
+    //                 project={props.currentProject || undefined}
+    //             />
+    //         }
+    //     >
+    //         <IncidentsTable
+    //             viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
+    //             query={{
+    //                 projectId: DashboardNavigation.getProjectId()?.toString(),
+    //                 currentIncidentState: {
+    //                     isResolvedState: false,
+    //                 },
+    //             }}
+    //             noItemsMessage="Nice work! No unresolved incidents so far."
+    //             title="Unresolved Incidents"
+    //             description="Here is a list of all the unresolved incidents for this project."
+    //         />
+    //     </Page>
+    // );
+
+
+    
 };
 
 export default Home;

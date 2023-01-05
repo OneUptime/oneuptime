@@ -15,6 +15,9 @@ export interface ComponentProps {
 const MasterPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    let err = "Are you sure you want to deactivate your account? All of your data will be permanently removed from our servers forever. This action cannot be undone."
+
     if (props.isLoading) {
         return (
             <React.Fragment>
@@ -23,24 +26,24 @@ const MasterPage: FunctionComponent<ComponentProps> = (
         );
     }
 
-    if (props.error) {
+    if (err) {
         return (
             <React.Fragment>
-                <PageError message={props.error} />
+                <PageError message={err} />
             </React.Fragment>
         );
     }
 
     return (
         <React.Fragment>
-            <div>
+            <>
                 {props.header && props.header}
-                {/* {props.navBar && props.navBar}
-                <div className="main-content" style={props.mainContentStyle}>
+                {props.navBar && props.navBar}
+                
                     {props.children}
-                </div> */}
+               
                 {props.footer && props.footer}
-            </div>
+            </>
         </React.Fragment>
     );
 };
