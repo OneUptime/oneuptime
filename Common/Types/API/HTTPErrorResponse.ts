@@ -16,6 +16,10 @@ export default class HTTPErrorResponse extends HTTPResponse<JSONObject> {
             return this.data['data'] as string;
         }
 
+        if (this.data['message'] && Typeof.String === this.data['message']) {
+            return this.data['message'] as string;
+        }
+
         return this.data['error'] as string;
     }
 }
