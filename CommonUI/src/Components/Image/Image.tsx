@@ -1,3 +1,5 @@
+// Taiwind
+
 import Route from 'Common/Types/API/Route';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import File from 'Model/Models/File';
@@ -10,6 +12,7 @@ export interface ComponentProps {
     height?: number | undefined;
     file?: File | undefined;
     className?: string | undefined;
+    alt?: string | undefined;
 }
 
 export class ImageFunctions {
@@ -26,32 +29,27 @@ export class ImageFunctions {
 const Image: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+
+    const getImageElement: Function = (url: string): ReactElement => {
+        return (<img
+            onClick={() => {
+                props.onClick && props.onClick();
+            }}
+            alt={props.alt}
+            src={url}
+            height={props.height}
+            className={props.className}
+        />);
+    }
+
     if (props.imageUrl) {
-        return (
-            <img
-                onClick={() => {
-                    props.onClick && props.onClick();
-                }}
-                src={props.imageUrl.toString()}
-                height={props.height}
-                className={props.className}
-            />
-        );
+        return getImageElement(props.imageUrl.toString());
     }
 
     if (props.file && props.file.file && props.file.type) {
         const url: string = ImageFunctions.getImageURL(props.file);
-
-        return (
-            <img
-                onClick={() => {
-                    props.onClick && props.onClick();
-                }}
-                src={url}
-                height={props.height}
-                className={props.className}
-            />
-        );
+        return getImageElement(url);
     }
 
     throw new BadDataException('file or imageUrl required for <Image>');

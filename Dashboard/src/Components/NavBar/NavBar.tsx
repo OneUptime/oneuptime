@@ -21,17 +21,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <NavBar
-            rightContent={
-                <NavBarItem
-                    title="Project Settings"
-                    icon={IconProp.Settings}
-                    route={RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.SETTINGS] as Route
-                    )}
-                ></NavBarItem>
-            }
-        >
+        <NavBar>
             <NavBarItem
                 title="Home"
                 icon={IconProp.Home}
@@ -69,6 +59,14 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 icon={IconProp.CheckCircle}
                 route={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.STATUS_PAGES] as Route
+                )}
+            ></NavBarItem>
+
+            <NavBarItem
+                title="Project Settings"
+                icon={IconProp.Settings}
+                route={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SETTINGS] as Route
                 )}
             ></NavBarItem>
 

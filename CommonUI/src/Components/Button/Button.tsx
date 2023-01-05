@@ -120,7 +120,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.SECONDRY) {
-        buttonStyleCssClass = 'btn-secondary';
+        buttonStyleCssClass = 'inline-flex items-center rounded-md border border-transparent bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2';
     }
 
     if (buttonStyle === ButtonStyleType.ICON) {

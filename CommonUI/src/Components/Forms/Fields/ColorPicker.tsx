@@ -7,7 +7,7 @@ import React, {
 } from 'react';
 import { ChromePicker, ColorResult } from 'react-color';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
-import Input from '../../Input/Input';
+import Input from '../../Input/ColorInput';
 
 export interface ComponentProps {
     onChange: (value: Color | null) => void;

@@ -1,58 +1,26 @@
+// Tailwind
+
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
-    rightContent?: undefined | ReactElement | Array<ReactElement>;
-    maxWidth?: string | undefined;
-    navBarStyle?: React.CSSProperties | undefined;
+    isRenderedOnMobile?: boolean;
+    
 }
 
 const Navbar: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return (
-        <React.Fragment>
-            <div
-                className="topnav active"
-                style={{
-                    zIndex: 1000,
-                    ...props.navBarStyle,
-                }}
-            >
-                <div
-                    className="container-fluid active"
-                    style={{
-                        maxWidth: props.maxWidth,
-                    }}
-                >
-                    <nav
-                        className="navbar navbar-light navbar-expand-lg topnav-menu active"
-                        id="navigation"
-                    >
-                        <div
-                            id="topnav-menu-content"
-                            className="navbar-collapse collapse active"
-                        >
-                            <ul className="navbar-nav active">
-                                {props.children}
-                            </ul>
-                        </div>
-                        {props.rightContent && (
-                            <div
-                                style={{ justifyContent: 'right' }}
-                                id="topnav-menu-content"
-                                className="navbar-collapse collapse active"
-                            >
-                                <ul className="navbar-nav active">
-                                    {props.rightContent}
-                                </ul>
-                            </div>
-                        )}
-                    </nav>
-                </div>
-            </div>
-        </React.Fragment>
-    );
+
+    let className = "hidden lg:flex lg:space-x-8 lg:py-2";
+
+    if (props.isRenderedOnMobile) {
+        className = "space-y-1 px-2 pt-2 pb-3";
+    }
+
+    return (<nav className={className} aria-label="Global">
+        {props.children}
+    </nav>)
 };
 
 export default Navbar;

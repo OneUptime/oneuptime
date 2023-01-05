@@ -11,7 +11,7 @@ import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import FileModel from 'Common/Models/FileModel';
-import Input from '../Input/Input';
+import Input from '../Input/ColorInput';
 import Color from 'Common/Types/Color';
 
 export interface ComponentProps {

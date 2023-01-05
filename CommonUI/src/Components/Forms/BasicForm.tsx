@@ -37,7 +37,7 @@ import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import Exception from 'Common/Types/Exception/Exception';
 import HashedString from 'Common/Types/HashedString';
-import Input, { InputType } from '../Input/Input';
+import Input, { InputType } from '../Input/ColorInput';
 import Markdown from '../Markdown.tsx/MarkdownEditor';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';

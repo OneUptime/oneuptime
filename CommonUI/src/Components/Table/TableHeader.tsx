@@ -9,7 +9,7 @@ import Columns from './Types/Columns';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import Dictionary from 'Common/Types/Dictionary';
-import Input from '../Input/Input';
+import Input from '../Input/ColorInput';
 import FieldType from '../Types/FieldType';
 import Search from 'Common/Types/Database/Search';
 import OneUptimeDate from 'Common/Types/Date';

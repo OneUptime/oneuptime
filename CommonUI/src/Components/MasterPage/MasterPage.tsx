@@ -16,7 +16,6 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
 
-    let err = "Are you sure you want to deactivate your account? All of your data will be permanently removed from our servers forever. This action cannot be undone."
 
     if (props.isLoading) {
         return (
@@ -26,10 +25,10 @@ const MasterPage: FunctionComponent<ComponentProps> = (
         );
     }
 
-    if (err) {
+    if (props.error) {
         return (
             <React.Fragment>
-                <PageError message={err} />
+                <PageError message={props.error} />
             </React.Fragment>
         );
     }
@@ -38,10 +37,9 @@ const MasterPage: FunctionComponent<ComponentProps> = (
         <React.Fragment>
             <>
                 {props.header && props.header}
-                {props.navBar && props.navBar}
-                
-                    {props.children}
-               
+
+                {props.children}
+
                 {props.footer && props.footer}
             </>
         </React.Fragment>

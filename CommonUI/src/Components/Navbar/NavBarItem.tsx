@@ -1,3 +1,5 @@
+// Tailwind
+
 import Route from 'Common/Types/API/Route';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Navigation from '../../Utils/Navigation';
@@ -14,16 +16,21 @@ export interface ComponentProps {
 const NavBarItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+    const isActive = props.route && Navigation.isOnThisPage(props.route);
+
+    let classNames = "text-gray-900 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium";
+
+    if (isActive) {
+        classNames = "bg-gray-100 text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium"
+    }
+
+    if()
+
     return (
-        <li
-            className={`nav-item pointer dropdown ${
-                props.route && Navigation.isOnThisPage(props.route)
-                    ? 'active'
-                    : ''
-            }`}
-        >
+        <>
             <Link
-                className="flex nav-link dropdown-toggle arrow-none"
+                className={classNames}
                 to={props.route ? props.route : null}
             >
                 {props.icon ? <Icon icon={props.icon} /> : <></>}
@@ -31,7 +38,8 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
                 {props.children ? <div className="arrow-down"></div> : <></>}
             </Link>
             {props.children}
-        </li>
+        </>
+
     );
 };
 
