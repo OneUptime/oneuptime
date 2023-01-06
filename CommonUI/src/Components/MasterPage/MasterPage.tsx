@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageError from '../Error/PageError';
 import PageLoader from '../Loader/PageLoader';
+import TopSection from '../TopSection/TopSection';
 
 export interface ComponentProps {
     header?: undefined | ReactElement;
@@ -36,7 +37,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <>
-                {props.header && props.header}
+                <TopSection header={props.header} navbar={props.navBar} isRenderedOnMobile={false} />
 
                 {props.children}
 

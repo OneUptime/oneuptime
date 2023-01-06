@@ -10,9 +10,9 @@ export interface ComponentProps {
 const Search: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    if (!props.selectedProject) {
-        return <></>;
-    }
+    // if (!props.selectedProject) {
+    //     return <></>;
+    // }
 
     return <SearchBox key={2} onChange={props.onChange} />;
 };

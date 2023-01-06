@@ -11,6 +11,7 @@ export interface ComponentProps {
     icon?: undefined | IconProp;
     route?: undefined | Route;
     children?: undefined | ReactElement | Array<ReactElement>;
+    isRenderedOnMobile?: boolean;
 }
 
 const NavBarItem: FunctionComponent<ComponentProps> = (
@@ -25,7 +26,12 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
         classNames = "bg-gray-100 text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium"
     }
 
-    if()
+    if (props.isRenderedOnMobile) {
+        classNames = "text-gray-900 hover:bg-gray-50 hover:text-gray-900 block rounded-md py-2 px-3 text-base font-medium";
+        if (isActive) {
+            classNames = "bg-gray-100 text-gray-900 block rounded-md py-2 px-3 text-base font-medium"
+        }
+    }
 
     return (
         <>

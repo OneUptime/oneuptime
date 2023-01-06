@@ -18,7 +18,7 @@ const SearchBox: FunctionComponent<ComponentProps> = (
                 <div className="relative">
                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
 
-                        <Icon icon={IconProp.Search} size={SizeProp.Large} className="text-gray-400" />
+                        <Icon icon={IconProp.Search} size={SizeProp.Five} className="text-gray-400" />
                     </div>
                     <Input onChange={(value) => {
                         props.onChange(value);

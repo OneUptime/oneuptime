@@ -72,6 +72,7 @@ export enum SizeProp {
     Large = '18px',
     Larger = '21px',
     ExtraLarge = '25px',
+    Five='Five'
 }
 
 export enum ThickProp {
@@ -197,6 +198,8 @@ const Icon: FunctionComponent<ComponentProps> = ({
         sizeClassName = "h-3 w-3"
     } else if (size === SizeProp.Smaller) {
         sizeClassName = "h-2 w-2"
+    }else if (size === SizeProp.Five) {
+        sizeClassName = "h-5 w-5"
     }
 
     let strokeWidth: string = "stroke-1";

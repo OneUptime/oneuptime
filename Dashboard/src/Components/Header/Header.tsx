@@ -9,7 +9,6 @@ import React, {
 import Help from './Help';
 import UserProfile from './UserProfile';
 import ProjectPicker from './ProjectPicker';
-
 import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Model/Models/Project';
 import CounterModelAlert from 'CommonUI/src/Components/CounterModelAlert/CounterModelAlert';
@@ -36,6 +35,7 @@ import Route from 'Common/Types/API/Route';
 import UserProfileModal from './UserProfileModal';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
+import SearchBox from './SearchBox';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -110,21 +110,20 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             <Header
                 leftComponents={
                     <>
-                        {props.projects.length === 0 && (
-                            <Logo onClick={() => {}} />
-                        )}
-                        <ProjectPicker
+                        {/* {props.projects.length === 0 && (
+                            
+                        )} */}
+
+
+                        <Logo onClick={() => { }} />
+                        {/* <ProjectPicker
                             showProjectModal={props.showProjectModal}
                             onProjectModalClose={props.onProjectModalClose}
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
-                        />
-                        {/* <SearchBox
-                            key={2}
-                            selectedProject={props.selectedProject}
-                            onChange={(_value: string) => {}}
                         /> */}
-                        <div
+
+                        {/* <div
                             className="flex"
                             style={{
                                 marginLeft: '15px',
@@ -185,46 +184,50 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                             OneUptimeDate.getCurrentDate(),
                                             props.selectedProject?.trialEndsAt!
-                                        )} ${
-                                            OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                                                OneUptimeDate.getCurrentDate(),
-                                                props.selectedProject
-                                                    ?.trialEndsAt!
-                                            ) > 1
+                                        )} ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                            OneUptimeDate.getCurrentDate(),
+                                            props.selectedProject
+                                                ?.trialEndsAt!
+                                        ) > 1
                                                 ? 'days'
                                                 : 'day'
-                                        }`}
+                                            }`}
                                         style={{
                                             marginRight: '10px',
                                         }}
                                     />
                                 )}
-                        </div>
+                        </div> */}
                     </>
                 }
+                centerComponents={<><SearchBox
+                    key={2}
+                    selectedProject={props.selectedProject}
+                    onChange={(_value: string) => { }}
+                /> </>}
                 rightComponents={
                     <>
                         {/* <Notifications /> */}
-                        {BILLING_ENABLED &&
-                        props.selectedProject?.id &&
-                        props.selectedProject.paymentProviderPlanId &&
-                        !SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId,
-                            getAllEnvVars()
-                        ) &&
-                        !SubscriptionPlan.isCustomPricingPlan(
-                            props.selectedProject.paymentProviderPlanId,
-                            getAllEnvVars()
-                        ) &&
-                        !isPaymentMethodCountLoading &&
-                        paymentMethodCount === 0 ? (
+                        {/* {BILLING_ENABLED &&
+                            props.selectedProject?.id &&
+                            props.selectedProject.paymentProviderPlanId &&
+                            !SubscriptionPlan.isFreePlan(
+                                props.selectedProject.paymentProviderPlanId,
+                                getAllEnvVars()
+                            ) &&
+                            !SubscriptionPlan.isCustomPricingPlan(
+                                props.selectedProject.paymentProviderPlanId,
+                                getAllEnvVars()
+                            ) &&
+                            !isPaymentMethodCountLoading &&
+                            paymentMethodCount === 0 ? (
                             <Button
                                 title="Add Card Details"
                                 onClick={() => {
                                     Navigation.navigate(
                                         RouteUtil.populateRouteParams(
                                             RouteMap[
-                                                PageMap.SETTINGS_BILLING
+                                            PageMap.SETTINGS_BILLING
                                             ] as Route
                                         )
                                     );
@@ -239,14 +242,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             <></>
                         )}
                         {BILLING_ENABLED &&
-                        props.selectedProject?.id &&
-                        props.selectedProject.paymentProviderPlanId &&
-                        SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId,
-                            getAllEnvVars()
-                        ) ? (
-                                <Upgrade />
-                                
+                            props.selectedProject?.id &&
+                            props.selectedProject.paymentProviderPlanId &&
+                            SubscriptionPlan.isFreePlan(
+                                props.selectedProject.paymentProviderPlanId,
+                                getAllEnvVars()
+                            ) ? (
+                            <Upgrade />
+
                         ) : (
                             <></>
                         )}
@@ -255,7 +258,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             onClickUserProfle={() => {
                                 setShowProfileModal(true);
                             }}
-                        />
+                        />*/}
                     </>
                 }
             />
