@@ -3,7 +3,7 @@
 import Route from 'Common/Types/API/Route';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Navigation from '../../Utils/Navigation';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import Link from '../Link/Link';
 
 export interface ComponentProps {
@@ -20,7 +20,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
 
     const isActive = props.route && Navigation.isOnThisPage(props.route);
 
-    let classNames = "text-gray-900 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium";
+    let classNames = "text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium";
 
     if (isActive) {
         classNames = "bg-gray-100 text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium"
@@ -39,7 +39,7 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
                 className={classNames}
                 to={props.route ? props.route : null}
             >
-                {props.icon ? <Icon icon={props.icon} /> : <></>}
+                {props.icon ? <Icon icon={props.icon} className="mr-1 h-4 w-4" thick={ThickProp.Thick} /> : <></>}
                 <span>{props.title}</span>
                 {props.children ? <div className="arrow-down"></div> : <></>}
             </Link>

@@ -1,10 +1,8 @@
 import Project from 'Model/Models/Project';
 import Route from 'Common/Types/API/Route';
-import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
-import CircularIconImage from '../../Icon/CircularIconImage';
-import { IconProp } from '../../Icon/Icon';
-import Link from '../../Link/Link';
+import Icon, { IconProp } from '../../Icon/Icon';
+import Navigation from '../../../Utils/Navigation';
 
 export interface ComponentProps {
     icon: IconProp;
@@ -20,23 +18,16 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
         '/dashboard/' + props.project.id?.toString()
     );
 
-    return (
-        <Link
-            to={route}
-            className="flex items-center p-10 background-primary-on-hover"
-            onClick={() => {
-                props.onProjectSelected(props.project);
-            }}
-        >
-            <CircularIconImage
-                icon={props.icon}
-                iconColor={new Color('#000')}
-                backgroundColor={new Color('#fff')}
-            />
+    return (<li className="text-gray-900 relative cursor-default select-none py-2 pl-3 pr-9" id="listbox-option-0" role="option" onClick={() => {
+        props.onProjectSelected(props.project);
+        Navigation.navigate(route);
+    }}>
+        <div className="flex items-center">
 
-            <p className="mb-0">{title}</p>
-        </Link>
-    );
+            <Icon icon={props.icon} className="h-6 w-6 flex-shrink-0 rounded-full" />
+            <span className="font-normal ml-3 block truncate">{title}</span>
+        </div>
+    </li>)
 };
 
 export default ProjectPickerMenuItem;

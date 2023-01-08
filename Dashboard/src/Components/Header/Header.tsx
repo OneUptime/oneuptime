@@ -110,18 +110,18 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
             <Header
                 leftComponents={
                     <>
-                        {/* {props.projects.length === 0 && (
-                            
-                        )} */}
+                        {props.projects.length === 0 && (
+                            <Logo onClick={() => { }} />
+                        )}
 
 
-                        <Logo onClick={() => { }} />
-                        {/* <ProjectPicker
+                        
+                        <ProjectPicker
                             showProjectModal={props.showProjectModal}
                             onProjectModalClose={props.onProjectModalClose}
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
-                        /> */}
+                        />
 
                         {/* <div
                             className="flex"

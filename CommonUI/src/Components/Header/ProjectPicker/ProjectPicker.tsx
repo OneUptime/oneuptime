@@ -1,7 +1,6 @@
 import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
-import CircularIconImage from '../../Icon/CircularIconImage';
 import Icon, { IconProp } from '../../Icon/Icon';
 import Project from 'Model/Models/Project';
 import ProjectPickerMenu from './ProjectPickerMenu';
@@ -24,28 +23,20 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 
     const [filterValue, setFilterValue] = useState<string>('');
 
-    return (
-        <div className="d-inline-block dropdown">
-            <button
-                onClick={() => {
-                    setIsComponentVisible(!isComponentVisible);
-                }}
-                id="page-header-user-dropdown"
-                aria-haspopup="true"
-                className="btn header-item flex items-center pr-30"
-                aria-expanded="false"
-                style={{
-                    paddingLeft: '0px',
-                    marginLeft: '-8px',
-                }}
-            >
-                <CircularIconImage
-                    icon={props.selectedProjectIcon}
-                    iconColor={new Color('#000')}
-                    backgroundColor={new Color('#fff')}
-                />
-                <h6 className="mb-0">{props.selectedProjectName}</h6>
-                <Icon icon={IconProp.ChevronDown} />
+
+    return (<div>
+        <div className="relative mt-3">
+            <button onClick={() => {
+                setIsComponentVisible(!isComponentVisible);
+            }} type="button" className="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm" aria-haspopup="listbox" aria-expanded="true" aria-labelledby="listbox-label">
+                <span className="flex items-center">
+                    <Icon icon={props.selectedProjectIcon} className="h-6 w-6 flex-shrink-0 rounded-full" />
+
+                    <span className="ml-3 block truncate">{props.selectedProjectName}</span>
+                </span>
+                <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">
+                    <Icon icon={IconProp.UpDownArrow} className="h-5 w-5 text-gray-400" />
+                </span>
             </button>
             <div ref={ref}>
                 {isComponentVisible && (
@@ -94,11 +85,12 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
                                 props.onCreateProjectButtonClicked();
                             }}
                         />
-                    </ProjectPickerMenu>
-                )}
+                    </ProjectPickerMenu>)}
             </div>
+
+            
         </div>
-    );
+    </div>)
 };
 
 export default ProjectPicker;

@@ -36,7 +36,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
                         imageUrl={Route.fromString(`${props.iconImageUrl}`)}
                         alt={props.name}
                     />}
-                    {props.icon && <Icon icon={props.icon} size={SizeProp.Large} />}
+                    {props.icon && <Icon className='text-slate-400 hover:text-slate-500' icon={props.icon} size={SizeProp.Large} />}
                 </button>
                 {props.title}
                 {props.badge && props.badge > 0 && (
