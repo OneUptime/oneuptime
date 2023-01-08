@@ -72,13 +72,13 @@ export enum SizeProp {
     Large = '18px',
     Larger = '21px',
     ExtraLarge = '25px',
-    Five='Five'
+    Five = 'Five'
 }
 
 export enum ThickProp {
-    Normal = '',
-    LessThick = '2px',
-    Thick = '3px',
+    Normal = '0.5px',
+    LessThick = '1px',
+    Thick = '2px',
 }
 
 export enum IconProp {
@@ -153,7 +153,7 @@ export enum IconProp {
     Download,
 }
 
-export enum IconType { 
+export enum IconType {
     Danger = "Danger",
     Success = "Success",
     Info = "Info",
@@ -182,7 +182,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
 }: ComponentProps): ReactElement => {
 
 
-    
+
 
     let sizeClassName: string = "h-4 w-4";
 
@@ -198,7 +198,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
         sizeClassName = "h-3 w-3"
     } else if (size === SizeProp.Smaller) {
         sizeClassName = "h-2 w-2"
-    }else if (size === SizeProp.Five) {
+    } else if (size === SizeProp.Five) {
         sizeClassName = "h-5 w-5"
     }
 
@@ -214,11 +214,11 @@ const Icon: FunctionComponent<ComponentProps> = ({
 
     if (type === IconType.Info) {
         textColor = "text-slate-600"
-    } else if (type === IconType.Warning) { 
+    } else if (type === IconType.Warning) {
         textColor = "text-yellow-600"
-    }else if (type === IconType.Success) { 
+    } else if (type === IconType.Success) {
         textColor = "text-green-600"
-    }else if (type === IconType.Danger) { 
+    } else if (type === IconType.Danger) {
         textColor = "text-red-600"
     }
 
@@ -242,6 +242,21 @@ const Icon: FunctionComponent<ComponentProps> = ({
         return getSvgWrapper(<path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />);
     } else if (icon === IconProp.Notification) {
         return getSvgWrapper(<path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />);
+    } else if (icon === IconProp.Help) {
+        return getSvgWrapper(
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" />
+        )
+    } else if (icon === IconProp.Email) {
+        return getSvgWrapper(
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+        )
+    } else if (icon === IconProp.User) {
+        return getSvgWrapper(
+
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+
+
+        )
     }
 
     return (
@@ -295,14 +310,6 @@ const Icon: FunctionComponent<ComponentProps> = ({
                     size={size}
                     strokeWidth={thick ? thick : ''}
                     color={color ? color.toString() : (undefined as any)}
-                />
-            )}
-            
-            {icon === IconProp.Help && (
-                <HelpCircle
-                    size={size}
-                    strokeWidth={thick ? thick : ''}
-                    color={color ? color.toString() : (undefined as any as any)}
                 />
             )}
             {icon === IconProp.Logout && (

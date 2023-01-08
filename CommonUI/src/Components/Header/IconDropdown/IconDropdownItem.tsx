@@ -1,24 +1,24 @@
+import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp, SizeProp } from '../../Icon/Icon';
+import Icon, { IconProp, SizeProp, ThickProp } from '../../Icon/Icon';
 import Link from '../../Link/Link';
 
 export interface ComponentProps {
-    url: URL;
-    icon: IconProp;
+    url?: URL | Route;
+    icon?: IconProp;
     title: string;
+    onClick?: (() => void) | undefined;
 }
 
 const IconDropdown: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="col">
-            <Link className="dropdown-icon-item" to={props.url}>
-                <Icon icon={props.icon} size={SizeProp.ExtraLarge} />
-                <span>{props.title}</span>
-            </Link>
-        </div>
+        <Link className="block py-2 px-4 text-sm text-gray-700 flex hover:bg-gray-100" to={props.url} onClick={props.onClick}>
+            <div className='mr-1 mt-1'>{props.icon ? <Icon icon={props.icon} size={SizeProp.Regular} thick={ThickProp.Thick} /> : <></>}</div>
+            <span>{props.title}</span>
+        </Link>
     );
 };
 

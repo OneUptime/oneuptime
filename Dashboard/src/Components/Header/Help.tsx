@@ -8,7 +8,7 @@ import URL from 'Common/Types/API/URL';
 
 const Help: FunctionComponent = (): ReactElement => {
     return (
-        <HeaderIconDropdownButton icon={IconProp.Help}>
+        <HeaderIconDropdownButton icon={IconProp.Help} name="Help">
             <IconDropdwonMenu>
                 <IconDropdwonRow>
                     <IconDropdwonItem

@@ -252,13 +252,13 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
                         ) : (
                             <></>
-                        )}
+                        )} */}
                         <Help />
                         <UserProfile
                             onClickUserProfle={() => {
                                 setShowProfileModal(true);
                             }}
-                        />*/}
+                        />
                     </>
                 }
             />
