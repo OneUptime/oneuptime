@@ -9,7 +9,7 @@ import React, {
 import Icon, { IconProp } from '../Icon/Icon';
 import Input from './Input';
 
-export type InputType = 'text' | 'number' | 'date' | 'datetime-local' | 'url';
+
 
 export interface ComponentProps {
     initialValue?: undefined | string;

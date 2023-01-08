@@ -1,6 +1,5 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
-import ModalHeader from './ModalHeader';
 import ModalFooter from './ModalFooter';
 import ModalBody from './ModalBody';
 import ButtonType from '../Button/ButtonTypes';
@@ -9,6 +8,7 @@ import Icon, { IconProp, IconType, SizeProp, ThickProp } from '../Icon/Icon';
 
 export interface ComponentProps {
     title: string;
+    description?: string | undefined;
     children: Array<ReactElement> | ReactElement;
     onClose?: undefined | (() => void);
     submitButtonText?: undefined | string;
@@ -50,12 +50,13 @@ const Modal: FunctionComponent<ComponentProps> = (
                     {props.onClose && <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
                         <Button buttonStyle={ButtonStyleType.ICON} icon={IconProp.Close} iconSize={SizeProp.Large} title="Close" onClick={props.onClose} />
                     </div>}
-                    <div className="sm:flex sm:items-start sm:p-6">
+                    <div className="sm:p-6">
                         {props.icon && <div className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}>
                             <Icon thick={ThickProp.Thick} type={props.iconType === undefined ?  IconType.Info : props.iconType} icon={props.icon} size={SizeProp.Large} />
                         </div>}
                         <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                             <h3 className="text-lg font-medium leading-6 text-gray-900" id="modal-title">{props.title}</h3>
+                            {props.description && <h3 className="text-sm leading-6 text-gray-500">{props.description}</h3>}
                             <div className="mt-2">
                                 <ModalBody error={props.error}>
                                     {!props.isBodyLoading ? (
@@ -97,59 +98,6 @@ const Modal: FunctionComponent<ComponentProps> = (
             </div>
         </div>
     </div>)
-
-
-
-    return (
-        <div style={{ position: 'relative', zIndex: '1050', display: 'block' }}>
-            <div className="">
-                <div
-                    className="modal fade show"
-                    role="dialog"
-                    style={{ display: 'block' }}
-                >
-                    <div className="modal-dialog" role="document">
-                        <div className="modal-content">
-                            <ModalHeader
-                                title={props.title}
-                                onClose={
-                                    props.onClose ? props.onClose : undefined
-                                }
-                            />
-
-                            <ModalFooter
-                                submitButtonType={
-                                    props.submitButtonType
-                                        ? props.submitButtonType
-                                        : ButtonType.Button
-                                }
-                                submitButtonStyleType={
-                                    props.submitButtonStyleType
-                                        ? props.submitButtonStyleType
-                                        : ButtonStyleType.PRIMARY
-                                }
-                                submitButtonText={
-                                    props.submitButtonText
-                                        ? props.submitButtonText
-                                        : 'Save'
-                                }
-                                onSubmit={props.onSubmit}
-                                onClose={
-                                    props.onClose ? props.onClose : undefined
-                                }
-                                isLoading={props.isLoading || false}
-                                disableSubmitButton={
-                                    props.isBodyLoading ||
-                                    props.disableSubmitButton
-                                }
-                            />
-                        </div>
-                    </div>
-                </div>
-                <div className="modal-backdrop fade show"></div>
-            </div>
-        </div>
-    );
 };
 
 export default Modal;

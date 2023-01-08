@@ -122,10 +122,11 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     minLength: 6,
                 },
                 fieldType: FormFieldSchemaType.Text,
-                placeholder: 'Acme',
+                placeholder: 'My Project',
+                description: "Pick a friendly name.",
                 title: 'Project Name',
                 required: true,
-            },
+            }
         ];
 
         if (BILLING_ENABLED) {
@@ -208,6 +209,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     modelType={Project}
                     name="Create New Project"
                     title="Create New Project"
+                    description="Please create a new OneUptime project to get started."
                     onClose={() => {
                         setShowModal(false);
                         props.onProjectModalClose();
