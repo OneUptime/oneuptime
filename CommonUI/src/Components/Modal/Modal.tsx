@@ -54,7 +54,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                         {props.icon && <div className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}>
                             <Icon thick={ThickProp.Thick} type={props.iconType === undefined ?  IconType.Info : props.iconType} icon={props.icon} size={SizeProp.Large} />
                         </div>}
-                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left">
                             <h3 className="text-lg font-medium leading-6 text-gray-900" id="modal-title">{props.title}</h3>
                             {props.description && <h3 className="text-sm leading-6 text-gray-500">{props.description}</h3>}
                             <div className="mt-2">
