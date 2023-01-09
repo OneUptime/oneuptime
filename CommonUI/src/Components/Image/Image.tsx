@@ -29,19 +29,19 @@ export class ImageFunctions {
 const Image: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     const getImageElement: Function = (url: string): ReactElement => {
-        return (<img
-            onClick={() => {
-                props.onClick && props.onClick();
-            }}
-            alt={props.alt}
-            src={url}
-            height={props.height}
-            className={props.className}
-        />);
-    }
+        return (
+            <img
+                onClick={() => {
+                    props.onClick && props.onClick();
+                }}
+                alt={props.alt}
+                src={url}
+                height={props.height}
+                className={props.className}
+            />
+        );
+    };
 
     if (props.imageUrl) {
         return getImageElement(props.imageUrl.toString());

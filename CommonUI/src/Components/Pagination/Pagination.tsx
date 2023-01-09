@@ -116,7 +116,9 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                 }
                             }}
                             className={`page-item ${
-                                isPreviousDisabled ? 'disabled' : 'cursor-pointer'
+                                isPreviousDisabled
+                                    ? 'disabled'
+                                    : 'cursor-pointer'
                             }`}
                             style={{ padding: '0px' }}
                         >

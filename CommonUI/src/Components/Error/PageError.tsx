@@ -19,16 +19,19 @@ const PageError: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <Modal title={props.title || 'Oops, something went wrong.'}
+        <Modal
+            title={props.title || 'Oops, something went wrong.'}
             icon={IconProp.Alert}
             iconType={IconType.Danger}
             onSubmit={() => {
-            Navigation.reload();
-        }}
+                Navigation.reload();
+            }}
             submitButtonStyleType={ButtonStyleType.NORMAL}
-        submitButtonText="Reload Page">
+            submitButtonText="Reload Page"
+        >
             <p className="text-sm text-gray-500">{props.message}</p>
-        </Modal>)
+        </Modal>
+    );
 };
 
 export default PageError;

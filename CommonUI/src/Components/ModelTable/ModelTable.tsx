@@ -1113,7 +1113,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     {props.cardProps && (
                         <Card
                             {...props.cardProps}
-                           
                             buttons={cardButtons}
                             title={getCardTitle(props.cardProps.title)}
                         >
@@ -1147,7 +1146,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 {props.cardProps && (
                     <Card
                         {...props.cardProps}
-                       
                         buttons={cardButtons}
                         title={getCardTitle(props.cardProps.title)}
                     >

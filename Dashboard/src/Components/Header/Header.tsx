@@ -11,27 +11,13 @@ import UserProfile from './UserProfile';
 import ProjectPicker from './ProjectPicker';
 import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Model/Models/Project';
-import CounterModelAlert from 'CommonUI/src/Components/CounterModelAlert/CounterModelAlert';
-import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
-import TeamMember from 'Model/Models/TeamMember';
-import User from 'CommonUI/src/Utils/User';
 import ProjectInvitationsModal from './ProjectInvitationsModal';
 import ActiveIncidentsModal from './ActiveIncidentsModal';
-import Incident from 'Model/Models/Incident';
 import Logo from './Logo';
-import OneUptimeDate from 'Common/Types/Date';
-import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
-import Upgrade from './Upgrade';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import { BILLING_ENABLED } from 'CommonUI/src/Config';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import useAsyncEffect from 'use-async-effect';
-import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import Navigation from 'CommonUI/src/Utils/Navigation';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
-import Route from 'Common/Types/API/Route';
 import UserProfileModal from './UserProfileModal';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
@@ -111,11 +97,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 leftComponents={
                     <>
                         {props.projects.length === 0 && (
-                            <Logo onClick={() => { }} />
+                            <Logo onClick={() => {}} />
                         )}
 
-
-                        
                         <ProjectPicker
                             showProjectModal={props.showProjectModal}
                             onProjectModalClose={props.onProjectModalClose}
@@ -200,11 +184,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         </div> */}
                     </>
                 }
-                centerComponents={<><SearchBox
-                    key={2}
-                    selectedProject={props.selectedProject}
-                    onChange={(_value: string) => { }}
-                /> </>}
+                centerComponents={
+                    <>
+                        <SearchBox
+                            key={2}
+                            selectedProject={props.selectedProject}
+                            onChange={(_value: string) => {}}
+                        />{' '}
+                    </>
+                }
                 rightComponents={
                     <>
                         {/* <Notifications /> */}

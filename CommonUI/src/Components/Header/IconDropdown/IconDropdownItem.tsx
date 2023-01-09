@@ -15,8 +15,22 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <Link className="block py-2 px-4 text-sm text-gray-700 flex hover:bg-gray-100" to={props.url} onClick={props.onClick}>
-            <div className='mr-1 mt-1'>{props.icon ? <Icon icon={props.icon} size={SizeProp.Regular} thick={ThickProp.Thick} /> : <></>}</div>
+        <Link
+            className="block py-2 px-4 text-sm text-gray-700 flex hover:bg-gray-100"
+            to={props.url}
+            onClick={props.onClick}
+        >
+            <div className="mr-1 mt-1">
+                {props.icon ? (
+                    <Icon
+                        icon={props.icon}
+                        size={SizeProp.Regular}
+                        thick={ThickProp.Thick}
+                    />
+                ) : (
+                    <></>
+                )}
+            </div>
             <span>{props.title}</span>
         </Link>
     );

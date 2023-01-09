@@ -1,4 +1,3 @@
-
 // Tailwind
 
 import OneUptimeDate from 'Common/Types/Date';
@@ -34,18 +33,18 @@ export interface ComponentProps {
 const Input: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
-    let className = "";
+    let className = '';
 
     if (!props.className) {
-        className = "block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-slate-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm"
+        className =
+            'block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-slate-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm';
     } else {
         className = props.className;
     }
 
     if (props.error) {
-        className += " border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500"
+        className +=
+            ' border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500';
     }
 
     const [value, setValue] = useState<string>('');
@@ -58,7 +57,6 @@ const Input: FunctionComponent<ComponentProps> = (
             (input as any).value = displayValue;
         }
     }, [ref, displayValue]);
-
 
     useEffect(() => {
         if (props.type === 'date' || props.type === 'datetime-local') {
@@ -113,7 +111,6 @@ const Input: FunctionComponent<ComponentProps> = (
     return (
         <>
             <div className="relative mt-2 mb-1 rounded-md shadow-sm">
-
                 <input
                     autoFocus={true}
                     ref={ref}
@@ -127,7 +124,8 @@ const Input: FunctionComponent<ComponentProps> = (
                             value
                         ) {
                             const date: Date = OneUptimeDate.fromString(value);
-                            const dateString: string = OneUptimeDate.toString(date);
+                            const dateString: string =
+                                OneUptimeDate.toString(date);
                             setValue(dateString);
                             if (props.onChange) {
                                 props.onChange(dateString);
@@ -143,10 +141,11 @@ const Input: FunctionComponent<ComponentProps> = (
                     onKeyDown={
                         props.onEnterPress
                             ? (event: any) => {
-                                if (event.key === 'Enter') {
-                                    props.onEnterPress && props.onEnterPress();
-                                }
-                            }
+                                  if (event.key === 'Enter') {
+                                      props.onEnterPress &&
+                                          props.onEnterPress();
+                                  }
+                              }
                             : undefined
                     }
                     readOnly={props.readOnly || props.disabled || false}
@@ -160,11 +159,18 @@ const Input: FunctionComponent<ComponentProps> = (
                     }}
                 />
 
-                {props.error && <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                    <Icon icon={IconProp.ErrorSolid} className="h-5 w-5 text-red-500" />
-                </div>}
+                {props.error && (
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                        <Icon
+                            icon={IconProp.ErrorSolid}
+                            className="h-5 w-5 text-red-500"
+                        />
+                    </div>
+                )}
             </div>
-            {props.error && <p className="mt-1 text-sm text-red-400">{props.error}</p>}
+            {props.error && (
+                <p className="mt-1 text-sm text-red-400">{props.error}</p>
+            )}
         </>
     );
 };

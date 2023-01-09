@@ -18,16 +18,25 @@ const ProjectPickerMenuItem: FunctionComponent<ComponentProps> = (
         '/dashboard/' + props.project.id?.toString()
     );
 
-    return (<li className="text-gray-900 relative cursor-default select-none py-2 pl-3 pr-9" id="listbox-option-0" role="option" onClick={() => {
-        props.onProjectSelected(props.project);
-        Navigation.navigate(route);
-    }}>
-        <div className="flex items-center">
-
-            <Icon icon={props.icon} className="h-6 w-6 flex-shrink-0 rounded-full" />
-            <span className="font-normal ml-3 block truncate">{title}</span>
-        </div>
-    </li>)
+    return (
+        <li
+            className="text-gray-900 relative cursor-default select-none py-2 pl-3 pr-9"
+            id="listbox-option-0"
+            role="option"
+            onClick={() => {
+                props.onProjectSelected(props.project);
+                Navigation.navigate(route);
+            }}
+        >
+            <div className="flex items-center">
+                <Icon
+                    icon={props.icon}
+                    className="h-6 w-6 flex-shrink-0 rounded-full"
+                />
+                <span className="font-normal ml-3 block truncate">{title}</span>
+            </div>
+        </li>
+    );
 };
 
 export default ProjectPickerMenuItem;

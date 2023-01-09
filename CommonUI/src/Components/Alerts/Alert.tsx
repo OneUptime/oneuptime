@@ -141,7 +141,9 @@ const Alert: FunctionComponent<ComponentProps> = (
                         </span>
                     )}
                     <div
-                        className={`flex ${props.onClick ? 'cursor-pointer' : ''}`}
+                        className={`flex ${
+                            props.onClick ? 'cursor-pointer' : ''
+                        }`}
                         style={{
                             marginLeft: '5px',
                             marginTop: '1px',

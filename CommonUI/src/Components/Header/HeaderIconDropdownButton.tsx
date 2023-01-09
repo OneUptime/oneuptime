@@ -23,20 +23,35 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
     return (
         <div className="relative ml-4 flex-shrink-0">
             <div>
-                <button type="button" className="flex rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2" id="user-menu-button" aria-expanded="false" aria-haspopup="true" onClick={() => {
-                    props.onClick && props.onClick();
-                    setIsComponentVisible(!isComponentVisible);
-                }}>
+                <button
+                    type="button"
+                    className="flex rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+                    id="user-menu-button"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                    onClick={() => {
+                        props.onClick && props.onClick();
+                        setIsComponentVisible(!isComponentVisible);
+                    }}
+                >
                     <span className="sr-only">{props.name}</span>
-                    {props.iconImageUrl && <Image
-                        className="h-8 w-8 rounded-full"
-                        onClick={() => {
-                            props.onClick && props.onClick();
-                        }}
-                        imageUrl={Route.fromString(`${props.iconImageUrl}`)}
-                        alt={props.name}
-                    />}
-                    {props.icon && <Icon className='text-slate-400 hover:text-slate-500' icon={props.icon} size={SizeProp.Large} />}
+                    {props.iconImageUrl && (
+                        <Image
+                            className="h-8 w-8 rounded-full"
+                            onClick={() => {
+                                props.onClick && props.onClick();
+                            }}
+                            imageUrl={Route.fromString(`${props.iconImageUrl}`)}
+                            alt={props.name}
+                        />
+                    )}
+                    {props.icon && (
+                        <Icon
+                            className="text-slate-400 hover:text-slate-500"
+                            icon={props.icon}
+                            size={SizeProp.Large}
+                        />
+                    )}
                 </button>
                 {props.title}
                 {props.badge && props.badge > 0 && (
@@ -46,13 +61,9 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
                 )}
             </div>
 
-            <div  ref={ref}>{isComponentVisible && props.children}</div>
-
-    
+            <div ref={ref}>{isComponentVisible && props.children}</div>
         </div>
-    )
-
-   
+    );
 };
 
 export default HeaderIconDropdownButton;

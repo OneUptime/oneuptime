@@ -26,78 +26,109 @@ export interface ComponentProps {
 const Modal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    let iconBgColor: string = "bg-slate-100";
+    let iconBgColor: string = 'bg-slate-100';
 
     if (props.iconType === IconType.Info) {
-        iconBgColor = "bg-slate-100"
-    } else if (props.iconType === IconType.Warning) { 
-        iconBgColor = "bg-yellow-100"
-    }else if (props.iconType === IconType.Success) { 
-        iconBgColor = "bg-green-100"
-    }else if (props.iconType === IconType.Danger) { 
-        iconBgColor = "bg-red-100"
+        iconBgColor = 'bg-slate-100';
+    } else if (props.iconType === IconType.Warning) {
+        iconBgColor = 'bg-yellow-100';
+    } else if (props.iconType === IconType.Success) {
+        iconBgColor = 'bg-green-100';
+    } else if (props.iconType === IconType.Danger) {
+        iconBgColor = 'bg-red-100';
     }
 
+    return (
+        <div
+            className="relative z-10"
+            aria-labelledby="modal-title"
+            role="dialog"
+            aria-modal="true"
+        >
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
 
-    return (<div className="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
-                    {props.onClose && <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
-                        <Button buttonStyle={ButtonStyleType.ICON} icon={IconProp.Close} iconSize={SizeProp.Large} title="Close" onClick={props.onClose} />
-                    </div>}
-                    <div className="sm:p-6">
-                        {props.icon && <div className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}>
-                            <Icon thick={ThickProp.Thick} type={props.iconType === undefined ?  IconType.Info : props.iconType} icon={props.icon} size={SizeProp.Large} />
-                        </div>}
-                        <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left">
-                            <h3 className="text-lg font-medium leading-6 text-gray-900" id="modal-title">{props.title}</h3>
-                            {props.description && <h3 className="text-sm leading-6 text-gray-500">{props.description}</h3>}
-                            <div className="mt-2">
-                                <ModalBody error={props.error}>
-                                    {!props.isBodyLoading ? (
-                                        props.children
-                                    ) : (
-                                        <Loader />
-                                    )}
-                                </ModalBody>
+            <div className="fixed inset-0 z-10 overflow-y-auto">
+                <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
+                        {props.onClose && (
+                            <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
+                                <Button
+                                    buttonStyle={ButtonStyleType.ICON}
+                                    icon={IconProp.Close}
+                                    iconSize={SizeProp.Large}
+                                    title="Close"
+                                    onClick={props.onClose}
+                                />
+                            </div>
+                        )}
+                        <div className="sm:p-6">
+                            {props.icon && (
+                                <div
+                                    className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}
+                                >
+                                    <Icon
+                                        thick={ThickProp.Thick}
+                                        type={
+                                            props.iconType === undefined
+                                                ? IconType.Info
+                                                : props.iconType
+                                        }
+                                        icon={props.icon}
+                                        size={SizeProp.Large}
+                                    />
+                                </div>
+                            )}
+                            <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left">
+                                <h3
+                                    className="text-lg font-medium leading-6 text-gray-900"
+                                    id="modal-title"
+                                >
+                                    {props.title}
+                                </h3>
+                                {props.description && (
+                                    <h3 className="text-sm leading-6 text-gray-500">
+                                        {props.description}
+                                    </h3>
+                                )}
+                                <div className="mt-2">
+                                    <ModalBody error={props.error}>
+                                        {!props.isBodyLoading ? (
+                                            props.children
+                                        ) : (
+                                            <Loader />
+                                        )}
+                                    </ModalBody>
+                                </div>
                             </div>
                         </div>
+                        <ModalFooter
+                            submitButtonType={
+                                props.submitButtonType
+                                    ? props.submitButtonType
+                                    : ButtonType.Button
+                            }
+                            submitButtonStyleType={
+                                props.submitButtonStyleType
+                                    ? props.submitButtonStyleType
+                                    : ButtonStyleType.PRIMARY
+                            }
+                            submitButtonText={
+                                props.submitButtonText
+                                    ? props.submitButtonText
+                                    : 'Save'
+                            }
+                            onSubmit={props.onSubmit}
+                            onClose={props.onClose ? props.onClose : undefined}
+                            isLoading={props.isLoading || false}
+                            disableSubmitButton={
+                                props.isBodyLoading || props.disableSubmitButton
+                            }
+                        />
                     </div>
-                    <ModalFooter
-                        submitButtonType={
-                            props.submitButtonType
-                                ? props.submitButtonType
-                                : ButtonType.Button
-                        }
-                        submitButtonStyleType={
-                            props.submitButtonStyleType
-                                ? props.submitButtonStyleType
-                                : ButtonStyleType.PRIMARY
-                        }
-                        submitButtonText={
-                            props.submitButtonText
-                                ? props.submitButtonText
-                                : 'Save'
-                        }
-                        onSubmit={props.onSubmit}
-                        onClose={
-                            props.onClose ? props.onClose : undefined
-                        }
-                        isLoading={props.isLoading || false}
-                        disableSubmitButton={
-                            props.isBodyLoading ||
-                            props.disableSubmitButton
-                        }
-                    />
                 </div>
             </div>
         </div>
-    </div>)
+    );
 };
 
 export default Modal;

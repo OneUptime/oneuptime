@@ -16,8 +16,6 @@ export interface ComponentProps {
 const MasterPage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     if (props.isLoading) {
         return (
             <React.Fragment>
@@ -37,7 +35,11 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <>
-                <TopSection header={props.header} navbar={props.navBar} isRenderedOnMobile={false} />
+                <TopSection
+                    header={props.header}
+                    navbar={props.navBar}
+                    isRenderedOnMobile={false}
+                />
 
                 {props.children}
 

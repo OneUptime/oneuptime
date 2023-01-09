@@ -44,9 +44,6 @@ const Home: FunctionComponent<PageComponentProps> = (
             />
         </Page>
     );
-
-
-    
 };
 
 export default Home;

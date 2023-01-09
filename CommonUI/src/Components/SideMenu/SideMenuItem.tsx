@@ -1,10 +1,9 @@
 import Link from 'Common/Types/Link';
 import React, { FunctionComponent } from 'react';
 import Navigation from '../../Utils/Navigation';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import Icon, { IconProp } from '../Icon/Icon';
 import UILink from '../Link/Link';
-import { Black, Red, Yellow } from 'Common/Types/BrandColors';
-import Badge, { BadgeType } from '../Badge/Badge';
+import { BadgeType } from '../Badge/Badge';
 
 export interface ComponentProps {
     link: Link;
@@ -21,16 +20,21 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
 ) => {
     return (
         <UILink
-            className={`${props.className ? props.className : ''
-                }  ${Navigation.isOnThisPage(props.link.to) ? 'bg-gray-50 text-slate-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 group rounded-md px-3 py-2 flex items-center text-sm font-medium'
-                }`}
+            className={`${props.className ? props.className : ''}  ${
+                Navigation.isOnThisPage(props.link.to)
+                    ? 'bg-gray-50 text-slate-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 group rounded-md px-3 py-2 flex items-center text-sm font-medium'
+            }`}
             to={props.link.to}
         >
-
             {props.icon ? (
                 <>
                     <Icon
-                        className={Navigation.isOnThisPage(props.link.to) ? 'text-slate-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6' : 'text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6'}
+                        className={
+                            Navigation.isOnThisPage(props.link.to)
+                                ? 'text-slate-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6'
+                                : 'text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6'
+                        }
                         icon={props.icon}
                     />
                 </>

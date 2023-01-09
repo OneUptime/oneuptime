@@ -12,19 +12,20 @@ export interface ComponentProps {
 const Logo: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-    return (<div className="relative z-10 flex px-2 lg:px-0">
-        <div className="flex flex-shrink-0 items-center">
-            <Image
-                className="block h-8 w-auto"
-                onClick={() => {
-                    props.onClick && props.onClick();
-                }}
-                imageUrl={Route.fromString(`${OneUptimeLogo}`)}
-                alt={"OneUptime"}
-            />
+    return (
+        <div className="relative z-10 flex px-2 lg:px-0">
+            <div className="flex flex-shrink-0 items-center">
+                <Image
+                    className="block h-8 w-auto"
+                    onClick={() => {
+                        props.onClick && props.onClick();
+                    }}
+                    imageUrl={Route.fromString(`${OneUptimeLogo}`)}
+                    alt={'OneUptime'}
+                />
+            </div>
         </div>
-    </div>)
+    );
 };
 
 export default Logo;

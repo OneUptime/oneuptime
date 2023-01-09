@@ -3,7 +3,6 @@ import Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/CountModelSideMenuItem';
-import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import { BadgeType } from 'CommonUI/src/Components/Badge/Badge';
@@ -21,66 +20,61 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <SideMenu>
-            
-                <SideMenuItem<Incident>
-                    link={{
-                        title: 'Unresolved Incidents',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[PageMap.HOME] as Route
-                        ),
-                    }}
-                    icon={IconProp.Alert}
-                    badgeType={BadgeType.DANGER}
-                    modelType={Incident}
-                    countQuery={{
-                        projectId: props.project?._id,
-                        currentIncidentState: {
-                            isResolvedState: false,
-                        },
-                    }}
-                />
-           
-                <SideMenuItem<Monitor>
-                    link={{
-                        title: 'Inoperational Monitors',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap.HOME_NOT_OPERATIONAL_MONITORS
-                            ] as Route
-                        ),
-                    }}
-                    icon={IconProp.AltGlobe}
-                    countQuery={{
-                        projectId: props.project?._id,
-                        currentMonitorStatus: {
-                            isOperationalState: false,
-                        },
-                    }}
-                    modelType={Monitor}
-                    badgeType={BadgeType.DANGER}
-                />
-           
-                <SideMenuItem<Monitor>
-                    link={{
-                        title: 'Ongoing Events',
-                        to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                                PageMap
-                                    .HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-                            ] as Route
-                        ),
-                    }}
-                    icon={IconProp.Clock}
-                    countQuery={{
-                        projectId: props.project?._id,
-                        currentScheduledMaintenanceState: {
-                            isOngoingState: true,
-                        },
-                    }}
-                    modelType={ScheduledMaintenance}
-                    badgeType={BadgeType.WARNING}
-                />
-           
+            <SideMenuItem<Incident>
+                link={{
+                    title: 'Unresolved Incidents',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
+                }}
+                icon={IconProp.Alert}
+                badgeType={BadgeType.DANGER}
+                modelType={Incident}
+                countQuery={{
+                    projectId: props.project?._id,
+                    currentIncidentState: {
+                        isResolvedState: false,
+                    },
+                }}
+            />
+
+            <SideMenuItem<Monitor>
+                link={{
+                    title: 'Inoperational Monitors',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route
+                    ),
+                }}
+                icon={IconProp.AltGlobe}
+                countQuery={{
+                    projectId: props.project?._id,
+                    currentMonitorStatus: {
+                        isOperationalState: false,
+                    },
+                }}
+                modelType={Monitor}
+                badgeType={BadgeType.DANGER}
+            />
+
+            <SideMenuItem<Monitor>
+                link={{
+                    title: 'Ongoing Events',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[
+                            PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                        ] as Route
+                    ),
+                }}
+                icon={IconProp.Clock}
+                countQuery={{
+                    projectId: props.project?._id,
+                    currentScheduledMaintenanceState: {
+                        isOngoingState: true,
+                    },
+                }}
+                modelType={ScheduledMaintenance}
+                badgeType={BadgeType.WARNING}
+            />
         </SideMenu>
     );
 };

@@ -106,7 +106,6 @@ const Table: FunctionComponent<ComponentProps> = (
         );
     };
 
-
     return (
         <DragDropContext
             onDragEnd={(result: DropResult) => {
@@ -127,8 +126,12 @@ const Table: FunctionComponent<ComponentProps> = (
                                 columns={props.columns}
                                 onSortChanged={props.onSortChanged}
                                 showFilter={props.showFilter || false}
-                                onFilterChanged={props.onFilterChanged || undefined}
-                                isTableFilterLoading={props.isTableFilterLoading}
+                                onFilterChanged={
+                                    props.onFilterChanged || undefined
+                                }
+                                isTableFilterLoading={
+                                    props.isTableFilterLoading
+                                }
                                 filterError={props.filterError}
                                 enableDragAndDrop={props.enableDragAndDrop}
                                 onTableFilterRefreshClick={
@@ -154,7 +157,7 @@ const Table: FunctionComponent<ComponentProps> = (
                     />
                 )}
             </div>
-        </DragDropContext >
+        </DragDropContext>
     );
 };
 

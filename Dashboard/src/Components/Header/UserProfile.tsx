@@ -29,7 +29,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
                         }}
                         icon={IconProp.User}
                     />
-                   
+
                     <IconDropdwonItem
                         title="Log out"
                         url={RouteMap[PageMap.LOGOUT] as Route}

@@ -1,6 +1,6 @@
-import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import { IconProp } from '../Icon/Icon';
 
 export interface CardButtonSchema {
     title: string;
@@ -29,12 +29,19 @@ const Card: FunctionComponent<ComponentProps> = (
             <section>
                 <div className="shadow sm:overflow-hidden sm:rounded-md">
                     <div className="bg-white py-6 px-4 sm:p-6">
-                        <div className='flex justify-between'>
-                        <div>
-                            <h2 id="payment-details-heading" className="text-lg font-medium leading-6 text-gray-900">{props.title}</h2>
-                            <p className="mt-1 text-sm text-gray-500">{props.description}</p>
-                        </div>
-                        <div>
+                        <div className="flex justify-between">
+                            <div>
+                                <h2
+                                    id="payment-details-heading"
+                                    className="text-lg font-medium leading-6 text-gray-900"
+                                >
+                                    {props.title}
+                                </h2>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    {props.description}
+                                </p>
+                            </div>
+                            <div>
                                 {props.buttons?.map(
                                     (button: CardButtonSchema, i: number) => {
                                         return (
@@ -42,9 +49,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                                 style={
                                                     i > 0
                                                         ? {
-                                                            marginLeft:
-                                                                '10px',
-                                                        }
+                                                              marginLeft:
+                                                                  '10px',
+                                                          }
                                                         : {}
                                                 }
                                                 key={i}
@@ -68,19 +75,12 @@ const Card: FunctionComponent<ComponentProps> = (
                                     }
                                 )}
                             </div>
-                            </div>
+                        </div>
 
                         {props.children && (
-                            <div
-                                className="mt-6"
-                            >
-                                {props.children}
-                            </div>
+                            <div className="mt-6">{props.children}</div>
                         )}
-
-                       
                     </div>
-                   
                 </div>
             </section>
         </React.Fragment>

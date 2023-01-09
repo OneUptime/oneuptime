@@ -9,8 +9,6 @@ import React, {
 import Icon, { IconProp } from '../Icon/Icon';
 import Input from './Input';
 
-
-
 export interface ComponentProps {
     initialValue?: undefined | string;
     onClick?: undefined | (() => void);
@@ -34,14 +32,11 @@ const ColorInput: FunctionComponent<ComponentProps> = (
     const [value, setValue] = useState<string>('');
     const [color, setColor] = useState<string | null>(null);
 
-
-
     useEffect(() => {
         if (props.leftCircleColor) {
             setColor(props.leftCircleColor.toString());
         }
     }, [props.leftCircleColor]);
-
 
     useEffect(() => {
         if (props.initialValue) {
@@ -76,7 +71,7 @@ const ColorInput: FunctionComponent<ComponentProps> = (
                     }}
                 ></div>
             )}
-            <Input {...props} value={value} /> 
+            <Input {...props} value={value} />
             {color && !props.disabled && (
                 <Icon
                     icon={IconProp.Close}

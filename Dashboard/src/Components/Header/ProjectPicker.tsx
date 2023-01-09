@@ -123,10 +123,10 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                 },
                 fieldType: FormFieldSchemaType.Text,
                 placeholder: 'My Project',
-                description: "Pick a friendly name.",
+                description: 'Pick a friendly name.',
                 title: 'Project Name',
                 required: true,
-            }
+            },
         ];
 
         if (BILLING_ENABLED) {
