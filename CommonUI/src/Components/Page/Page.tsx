@@ -17,43 +17,46 @@ const Page: FunctionComponent<ComponentProps> = (
         if (props.breadcrumbLinks && props.breadcrumbLinks.length > 0) {
             Analytics.capture(
                 'Page View: ' +
-                    props.breadcrumbLinks
-                        .map((link: Link) => {
-                            return link.title;
-                        })
-                        .join(' > ')
-                        .toString() || ''
+                props.breadcrumbLinks
+                    .map((link: Link) => {
+                        return link.title;
+                    })
+                    .join(' > ')
+                    .toString() || ''
             );
         }
     }, [props.breadcrumbLinks]);
 
-    // return (
-    //     <div className="page-content">
-    //         <div className="container-fluid">
-    //             <div className="row">
-    //                 <div className="col-12">
-    //                     <div className="page-title-box d-sm-flex align-items-center justify-content-between">
-    //                         <h4 className="mb-0 font-size-18">{props.title}</h4>
-    //                         <Breadcrumbs links={props.breadcrumbLinks} />
-    //                     </div>
-    //                 </div>
-    //             </div>
-    //             {props.sideMenu && (
-    //                 <div className="row">
-    //                     <div className="col-12">
-    //                         {props.sideMenu}
-    //                         <div className="email-rightbar mb-3">
-    //                             {props.children}
-    //                         </div>
-    //                     </div>
-    //                 </div>
-    //             )}
-    //             {!props.sideMenu && props.children}
-    //         </div>
-    //     </div>
-    // );
+    return (
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-5 mb-5">
+            <div className=''>
+                <div className='mt-2'>
+                    <Breadcrumbs links={props.breadcrumbLinks} />
+                </div>
+                <div className="mt-2 md:flex md:items-center md:justify-between">
+                    <div className="min-w-0">
+                        <h2 className="text-xl leading-7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">{props.title}</h2>
+                    </div>
+                </div>
+            </div>
 
-    return <div className='grow'>{props.children}</div>
+            {props.sideMenu && <main className="mx-auto max-w-7xl pb-10 mt-5">
+                <div className="lg:grid lg:grid-cols-12 lg:gap-x-5">
+
+                    {props.sideMenu}
+
+                    <div className="space-y-6 sm:px-6 lg:col-span-9 lg:px-0">
+                        {props.children}
+                    </div>
+                </div>
+            </main>}
+
+
+            {!props.sideMenu && props.children}
+
+        </div>
+
+    );
 };
 
 export default Page;

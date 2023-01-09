@@ -11,7 +11,6 @@ import NotFound from './Pages/NotFound';
 import SsoLoginPage from './Pages/SsoLogin';
 import ForgotPasswordPage from './Pages/ForgotPassword';
 import RegisterPage from './Pages/Register';
-import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import VerifyEmail from './Pages/VerifyEmail';
 import ResetPasswordPage from './Pages/ResetPassword';

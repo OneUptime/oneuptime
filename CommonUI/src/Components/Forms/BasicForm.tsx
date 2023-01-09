@@ -159,6 +159,8 @@ const BasicForm: Function = <T extends Object>(
                             </span>
                         )}
                 </label>
+
+                {field.description && <p className="mt-1 text-sm text-gray-500">{field.description}</p>}
                 
                 <div className='mt-1'>
                     {field.fieldType === FormFieldSchemaType.Color && (
@@ -580,7 +582,6 @@ const BasicForm: Function = <T extends Object>(
                                             tabIndex={index}
                                             error={touched[fieldName] && errors[fieldName] ? errors[fieldName] : undefined}
                                             dataTestId={fieldType}
-                                            description={field.description}
                                             type={fieldType as InputType}
                                             onChange={(value: string) => {
                                                 setCurrentValue({

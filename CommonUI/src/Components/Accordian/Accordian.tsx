@@ -90,7 +90,7 @@ const Accordian: FunctionComponent<ComponentProps> = (
                         {props.title && (
                             <div
                                 className={`flex ${
-                                    props.onClick ? 'pointer' : ''
+                                    props.onClick ? 'cursor-pointer' : ''
                                 }`}
                                 style={{
                                     marginLeft: '5px',

@@ -21,41 +21,26 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
 ) => {
     return (
         <UILink
-            className={`${
-                props.className ? props.className : ''
-            } primary-on-hover justify-space-between pointer flex ${
-                Navigation.isOnThisPage(props.link.to) ? 'active' : ''
-            }`}
+            className={`${props.className ? props.className : ''
+                }  ${Navigation.isOnThisPage(props.link.to) ? 'bg-gray-50 text-slate-600 hover:bg-white group rounded-md px-3 py-2 flex items-center text-sm font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 group rounded-md px-3 py-2 flex items-center text-sm font-medium'
+                }`}
             to={props.link.to}
         >
-            <div className="flex">
-                <div>
-                    {props.icon ? (
-                        <>
-                            <Icon
-                                icon={props.icon}
-                                thick={ThickProp.LessThick}
-                                color={
-                                    Navigation.isOnThisPage(props.link.to)
-                                        ? Black
-                                        : null
-                                }
-                            />
-                        </>
-                    ) : (
-                        <></>
-                    )}
-                </div>
-                <div
-                    style={{
-                        marginTop: '1px',
-                        marginLeft: '4px',
-                    }}
-                >
-                    {' ' + props.link.title}
-                </div>
-            </div>
-            <div>
+
+            {props.icon ? (
+                <>
+                    <Icon
+                        className={Navigation.isOnThisPage(props.link.to) ? 'text-slate-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6' : 'text-gray-400 group-hover:text-gray-500 flex-shrink-0 -ml-1 mr-3 h-6 w-6'}
+                        icon={props.icon}
+                    />
+                </>
+            ) : (
+                <></>
+            )}
+
+            <span className="truncate">{props.link.title}</span>
+
+            {/* <div>
                 {props.badge ? (
                     <Badge
                         badgeCount={props.badge}
@@ -87,7 +72,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                 ) : (
                     <></>
                 )}
-            </div>
+            </div> */}
         </UILink>
     );
 };

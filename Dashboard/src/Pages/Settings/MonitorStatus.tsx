@@ -52,7 +52,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Activity,
+                    icon: IconProp.AltGlobe,
                     title: 'Monitor Status',
                     description:
                         'Define different status types (eg: Operational, Degraded, Down) here.',

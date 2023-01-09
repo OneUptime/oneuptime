@@ -54,7 +54,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Activity}
+                    icon={IconProp.AltGlobe}
                 />
                 <SideMenuItem
                     link={{

@@ -17,7 +17,6 @@ export interface ComponentProps {
     icon?: IconProp | undefined;
     buttons?: undefined | Array<CardButtonSchema>;
     children?: undefined | Array<ReactElement> | ReactElement;
-    cardBodyStyle?: undefined | CSSProperties;
     className?: string | undefined;
     style?: React.CSSProperties | undefined;
 }
@@ -27,29 +26,15 @@ const Card: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <div className={`${props.className || ''} row`} style={props.style}>
-                <div className="col-xl-12">
-                    <div className="card">
-                        <div className="card-header justify-space-between">
-                            <div>
-                                <h4 className="card-title flex">
-                                    {props.icon ? (
-                                        <span>
-                                            <Icon
-                                                icon={props.icon}
-                                                thick={ThickProp.Thick}
-                                            />
-                                        </span>
-                                    ) : (
-                                        <></>
-                                    )}
-                                    &nbsp;{props.title}
-                                </h4>
-                                <p className="card-title-desc">
-                                    {props.description}
-                                </p>
-                            </div>
-                            <div>
+            <section>
+                <div className="shadow sm:overflow-hidden sm:rounded-md">
+                    <div className="bg-white py-6 px-4 sm:p-6">
+                        <div className='flex justify-between'>
+                        <div>
+                            <h2 id="payment-details-heading" className="text-lg font-medium leading-6 text-gray-900">{props.title}</h2>
+                            <p className="mt-1 text-sm text-gray-500">{props.description}</p>
+                        </div>
+                        <div>
                                 {props.buttons?.map(
                                     (button: CardButtonSchema, i: number) => {
                                         return (
@@ -57,9 +42,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                                 style={
                                                     i > 0
                                                         ? {
-                                                              marginLeft:
-                                                                  '10px',
-                                                          }
+                                                            marginLeft:
+                                                                '10px',
+                                                        }
                                                         : {}
                                                 }
                                                 key={i}
@@ -83,18 +68,21 @@ const Card: FunctionComponent<ComponentProps> = (
                                     }
                                 )}
                             </div>
-                        </div>
+                            </div>
+
                         {props.children && (
                             <div
-                                className="card-body"
-                                style={props.cardBodyStyle || {}}
+                                className="mt-6"
                             >
                                 {props.children}
                             </div>
                         )}
+
+                       
                     </div>
+                   
                 </div>
-            </div>
+            </section>
         </React.Fragment>
     );
 };

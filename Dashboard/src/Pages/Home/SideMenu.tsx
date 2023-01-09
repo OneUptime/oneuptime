@@ -21,7 +21,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <SideMenu>
-            <SideMenuSection title="Incidents">
+            
                 <SideMenuItem<Incident>
                     link={{
                         title: 'Unresolved Incidents',
@@ -39,8 +39,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         },
                     }}
                 />
-            </SideMenuSection>
-            <SideMenuSection title="Monitors">
+           
                 <SideMenuItem<Monitor>
                     link={{
                         title: 'Inoperational Monitors',
@@ -50,7 +49,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             ] as Route
                         ),
                     }}
-                    icon={IconProp.Activity}
+                    icon={IconProp.AltGlobe}
                     countQuery={{
                         projectId: props.project?._id,
                         currentMonitorStatus: {
@@ -60,8 +59,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     modelType={Monitor}
                     badgeType={BadgeType.DANGER}
                 />
-            </SideMenuSection>
-            <SideMenuSection title="Scheduled Maintenance">
+           
                 <SideMenuItem<Monitor>
                     link={{
                         title: 'Ongoing Events',
@@ -82,7 +80,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     modelType={ScheduledMaintenance}
                     badgeType={BadgeType.WARNING}
                 />
-            </SideMenuSection>
+           
         </SideMenu>
     );
 };

@@ -69,7 +69,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                 <div
                     data-testid={props.dataTestId}
                     className={`alert-label-icon flex label-arrow alert ${cssClass}  ${sizeCssClass}  alert-dismissible fade show ${
-                        props.onClick ? 'pointer' : ''
+                        props.onClick ? 'cursor-pointer' : ''
                     }`}
                     style={
                         props.color
@@ -141,7 +141,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                         </span>
                     )}
                     <div
-                        className={`flex ${props.onClick ? 'pointer' : ''}`}
+                        className={`flex ${props.onClick ? 'cursor-pointer' : ''}`}
                         style={{
                             marginLeft: '5px',
                             marginTop: '1px',

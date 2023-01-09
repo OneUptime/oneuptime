@@ -29,7 +29,6 @@ export interface ComponentProps {
     tabIndex?: number | undefined;
     onEnterPress?: (() => void) | undefined;
     error?: string | undefined;
-    description?: string | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -166,7 +165,6 @@ const Input: FunctionComponent<ComponentProps> = (
                 </div>}
             </div>
             {props.error && <p className="mt-1 text-sm text-red-400">{props.error}</p>}
-            {!props.error && props.description && <p className="mt-1 text-sm text-gray-500">{props.description}</p>}
         </>
     );
 };

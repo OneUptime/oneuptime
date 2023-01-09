@@ -64,7 +64,7 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
   </head>
-  <body class="h-full bg-gray-50">
+  <body class="h-full bg-gray-100">
     <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH"
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -84,7 +84,15 @@
     <script src="/dashboard/dist/bundle.js"></script>
     <script>
       tailwind.config = {
-        
+        theme: {
+          extend:
+          {
+            fontFamily: {
+              'display': ['Inter', 'sans-serif'],
+              'body': ['Inter', 'sans-serif']
+            },
+          },
+        },
       }
     </script>
   </body>

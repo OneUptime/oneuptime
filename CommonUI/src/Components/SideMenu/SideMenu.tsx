@@ -12,20 +12,15 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         children = props.children;
     }
 
-    return (
-        <div className="email-leftbar card">
+    return (<aside className="py-6 px-2 sm:px-6 lg:col-span-3 lg:py-0 lg:px-0 mb-10">
+        <nav className="space-y-1">
             {children.map((child: ReactElement, i: number) => {
                 return (
-                    <div key={i}>
-                        {child}
-                        {i !== children.length - 1 && (
-                            <div className="mt-4"></div>
-                        )}
-                    </div>
+                    child
                 );
             })}
-        </div>
-    );
+        </nav>
+    </aside>)
 };
 
 export default SideMenu;

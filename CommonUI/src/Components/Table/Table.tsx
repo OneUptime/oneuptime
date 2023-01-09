@@ -106,6 +106,7 @@ const Table: FunctionComponent<ComponentProps> = (
         );
     };
 
+
     return (
         <DragDropContext
             onDragEnd={(result: DropResult) => {
@@ -117,23 +118,29 @@ const Table: FunctionComponent<ComponentProps> = (
                     );
             }}
         >
-            <div className="table-responsive">
-                <table className="table mb-0 table">
-                    <TableHeader
-                        id={`${props.id}-header`}
-                        columns={props.columns}
-                        onSortChanged={props.onSortChanged}
-                        showFilter={props.showFilter || false}
-                        onFilterChanged={props.onFilterChanged || undefined}
-                        isTableFilterLoading={props.isTableFilterLoading}
-                        filterError={props.filterError}
-                        enableDragAndDrop={props.enableDragAndDrop}
-                        onTableFilterRefreshClick={
-                            props.onTableFilterRefreshClick
-                        }
-                    />
-                    {getTablebody()}
-                </table>
+            <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="inline-block min-w-full py-2 align-middle">
+                    <div className="overflow-hidden border-t border-gray-200">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <TableHeader
+                                id={`${props.id}-header`}
+                                columns={props.columns}
+                                onSortChanged={props.onSortChanged}
+                                showFilter={props.showFilter || false}
+                                onFilterChanged={props.onFilterChanged || undefined}
+                                isTableFilterLoading={props.isTableFilterLoading}
+                                filterError={props.filterError}
+                                enableDragAndDrop={props.enableDragAndDrop}
+                                onTableFilterRefreshClick={
+                                    props.onTableFilterRefreshClick
+                                }
+                            />
+                            {getTablebody()}
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div className="bg-gray-50 text-right -mr-6 -ml-6 -mb-6">
                 {!props.disablePagination && (
                     <Pagination
                         singularLabel={props.singularLabel}
@@ -147,7 +154,7 @@ const Table: FunctionComponent<ComponentProps> = (
                     />
                 )}
             </div>
-        </DragDropContext>
+        </DragDropContext >
     );
 };
 

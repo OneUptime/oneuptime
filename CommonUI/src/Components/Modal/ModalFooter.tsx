@@ -55,7 +55,6 @@ const ModalFooter: FunctionComponent<ComponentProps> = (
                     onClick={() => {
                         props.onClose && props.onClose();
                     }}
-                    isLoading={props.isLoading || false}
                 />
             ) : (
                 <></>

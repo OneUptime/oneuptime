@@ -121,7 +121,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     return Promise.resolve(item);
                 }}
                 cardProps={{
-                    icon: IconProp.Activity,
+                    icon: IconProp.AltGlobe,
                     title: `${
                         statusPageGroupName
                             ? statusPageGroupName + ' - '

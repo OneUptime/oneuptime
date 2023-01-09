@@ -505,7 +505,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 title: `${props.createVerb || 'Create'} ${
                     props.singularName || model.singularName
                 }`,
-                buttonStyle: ButtonStyleType.OUTLINE,
+                buttonStyle: ButtonStyleType.NORMAL,
                 onClick: () => {
                     setModalType(ModalType.Create);
                     setShowModal(true);
@@ -1113,7 +1113,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     {props.cardProps && (
                         <Card
                             {...props.cardProps}
-                            cardBodyStyle={{ padding: '0px' }}
+                           
                             buttons={cardButtons}
                             title={getCardTitle(props.cardProps.title)}
                         >
@@ -1130,7 +1130,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     {props.cardProps && (
                         <Card
                             {...props.cardProps}
-                            cardBodyStyle={{ padding: '0px' }}
                             buttons={cardButtons}
                             title={getCardTitle(props.cardProps.title)}
                         >
@@ -1148,7 +1147,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 {props.cardProps && (
                     <Card
                         {...props.cardProps}
-                        cardBodyStyle={{ padding: '0px' }}
+                       
                         buttons={cardButtons}
                         title={getCardTitle(props.cardProps.title)}
                     >

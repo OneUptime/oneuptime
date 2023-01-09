@@ -35,7 +35,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 route={RouteUtil.populateRouteParams(
                     RouteMap[PageMap.MONITORS] as Route
                 )}
-                icon={IconProp.Activity}
+                icon={IconProp.AltGlobe}
             ></NavBarItem>
 
             <NavBarItem
