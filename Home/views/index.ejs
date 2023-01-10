@@ -25,6 +25,16 @@
 </head>
 
 <body>
+    <div id="rebrand" style="justify-content: center; align-items: center;background: black; width: 100%; padding: 20px; display: flex;">
+        <div>
+            <p style="margin: 0px; color:white; padding: 0px;">
+                <span style="height: 20px; display: flex; align-items: center; justify-content: center; font-size: 18px;">
+                    OneUptime is open-source on GitHub. &nbsp; <a style="color:white; font-weight: bold;" href="https://github.com/oneuptime/oneuptime" target="_blank">Please star the project here.</a>
+                </span>
+            </p>
+        </div>
+    </div>
+
     <%- include('nav') -%>
 
         <div class="globalContent">
@@ -321,6 +331,11 @@
         </div>
         <script>
             $(document).ready(function () {
+
+                $(function () {
+                    $('#header-nav').css("top","75px")
+                })
+
                 $(function () {
                     $('[data-toggle="tooltip"]').tooltip()
                 })
