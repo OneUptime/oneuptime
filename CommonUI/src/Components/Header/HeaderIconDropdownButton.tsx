@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 import useComponentOutsideClick from '../../Types/UseComponentOutsideClick';
 import Image from '../Image/Image';
@@ -19,6 +19,14 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
 ) => {
     const { ref, isComponentVisible, setIsComponentVisible } =
         useComponentOutsideClick(false);
+    const [isDropdownVisible, setDropdownVisible] = useState<boolean>(false);
+
+
+
+    useEffect(() => {
+        setDropdownVisible(isComponentVisible);
+    }, [isComponentVisible])
+
 
     return (
         <div className="relative ml-4 flex-shrink-0">
@@ -31,7 +39,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
                     aria-haspopup="true"
                     onClick={() => {
                         props.onClick && props.onClick();
-                        setIsComponentVisible(!isComponentVisible);
+                        setIsComponentVisible(!isDropdownVisible);
                     }}
                 >
                     <span className="sr-only">{props.name}</span>

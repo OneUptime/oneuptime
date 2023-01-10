@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import Icon, { IconProp } from '../../Icon/Icon';
 import Project from 'Model/Models/Project';
@@ -19,15 +19,21 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const { ref, isComponentVisible, setIsComponentVisible } =
         useComponentOutsideClick(false);
+    
+    const [isDropdownVisible, setDropdownVisible] = useState<boolean>(false);
 
     const [filterValue, setFilterValue] = useState<string>('');
 
+    useEffect(() => {
+        setDropdownVisible(isComponentVisible); 
+    }, [isComponentVisible])
+
     return (
-        <div>
-            <div className="relative mt-3">
+        <div className="w-64">
+            <div className="relative mt-3 w-full">
                 <button
                     onClick={() => {
-                        setIsComponentVisible(!isComponentVisible);
+                        setIsComponentVisible(!isDropdownVisible);
                     }}
                     type="button"
                     className="relative w-full cursor-default rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-left shadow-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500 sm:text-sm"

@@ -103,7 +103,15 @@ const Button: FunctionComponent<ComponentProps> = ({
     let buttonStyleCssClass: string =
         'inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     let loadingIconClassName: string = 'w-5 h-5 mr-3 -ml-1 mr-1 animate-spin';
-    const iconClassName: string = 'w-5 h-5 -ml-1 mr-1';
+    let iconClassName: string = 'w-5 h-5 -ml-1';
+
+    if (buttonStyle !== ButtonStyleType.ICON) { 
+        iconClassName += " mr-1";
+    } else {
+        iconClassName += " m-1";
+    }
+
+
 
     if (buttonStyle === ButtonStyleType.LINK) {
         buttonStyleCssClass = 'no-border-on-hover font-500';
@@ -178,7 +186,7 @@ const Button: FunctionComponent<ComponentProps> = ({
             disabled={disabled || isLoading}
             className={buttonStyleCssClass}
         >
-            {isLoading && (
+            {isLoading && buttonStyle !== ButtonStyleType.ICON &&  (
                 <Icon
                     icon={IconProp.Spinner}
                     className={loadingIconClassName}
@@ -186,17 +194,11 @@ const Button: FunctionComponent<ComponentProps> = ({
             )}
 
             {!isLoading && icon && (
-                <Icon icon={icon} className={iconClassName} />
+                <Icon icon={icon} className={iconClassName}  size={iconSize || undefined} />
             )}
 
             {title && buttonStyle !== ButtonStyleType.ICON ? title : ''}
 
-            {buttonStyle === ButtonStyleType.ICON && !isLoading && (
-                <>
-                    <span className="sr-only">{title}</span>
-                    <Icon icon={icon!} size={iconSize!} />
-                </>
-            )}
         </button>
     );
 };

@@ -1,7 +1,6 @@
-import Color from 'Common/Types/Color';
+
 import React, { FunctionComponent, ReactElement } from 'react';
-import CircularIconImage from '../../Icon/CircularIconImage';
-import { IconProp } from '../../Icon/Icon';
+import Icon, { IconProp } from '../../Icon/Icon';
 
 export interface ComponentProps {
     onCreateButtonClicked: () => void;
@@ -10,22 +9,24 @@ export interface ComponentProps {
 const CreateNewProjectButton: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return (
-        <div
-            className="flex items-center p-10 background-primary-on-hover"
-            onClick={() => {
-                props.onCreateButtonClicked();
-            }}
-        >
-            <CircularIconImage
-                icon={IconProp.Add}
-                iconColor={new Color('#000')}
-                backgroundColor={new Color('#fff')}
-            />
 
-            <p className="mb-0">Create New Project</p>
+    return ( <li
+        className="text-gray-900 relative cursor-default select-none py-2 pl-3 pr-9 bg-gray-200 cursor-pointer"
+        id="listbox-option-0"
+        role="option"
+        onClick={() => {
+            props.onCreateButtonClicked();
+        }}
+    >
+        <div className="flex items-center">
+            <Icon
+                icon={IconProp.Add}
+                className="h-6 w-6 flex-shrink-0 rounded-full"
+            />
+            <span className="font-normal ml-3 block truncate">Create New Project</span>
         </div>
-    );
+    </li>)
+
 };
 
 export default CreateNewProjectButton;

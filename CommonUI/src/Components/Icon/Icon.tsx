@@ -106,8 +106,8 @@ export enum IconType {
 
 export interface ComponentProps {
     icon: IconProp;
-    size?: SizeProp;
-    className?: string;
+    size?: SizeProp | undefined;
+    className?: string | undefined;
     color?: Color | null;
     thick?: ThickProp;
     onClick?: (() => void) | undefined;
@@ -209,14 +209,6 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 d="M12 10.5v3.75m-9.303 3.376C1.83 19.126 2.914 21 4.645 21h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 4.88c-.866-1.501-3.032-1.501-3.898 0L2.697 17.626zM12 17.25h.007v.008H12v-.008z"
             />
         );
-    } else if (icon == IconProp.Search) {
-        return getSvgWrapper(
-            <path
-                fillRule="evenodd"
-                d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
-                clipRule="evenodd"
-            />
-        );
     } else if (icon === IconProp.Notification) {
         return getSvgWrapper(
             <path
@@ -240,6 +232,13 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 strokeLinejoin="round"
                 d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
             />
+        );
+    }else if (icon === IconProp.Search) {
+        return getSvgWrapper(
+            
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+         
+          
         );
     } else if (icon === IconProp.User) {
         return getSvgWrapper(
@@ -443,11 +442,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
         );
     } else if (icon === IconProp.ChevronDown) {
         return getSvgWrapper(
-            <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
-            />
+            
+  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+
         );
     } else if (icon === IconProp.ChevronLeft) {
         return getSvgWrapper(

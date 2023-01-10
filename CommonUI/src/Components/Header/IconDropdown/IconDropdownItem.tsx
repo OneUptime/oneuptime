@@ -20,18 +20,16 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
             to={props.url}
             onClick={props.onClick}
         >
-            <div className="mr-1 mt-1">
+            <div className="mr-1 h-4 w-4">
                 {props.icon ? (
                     <Icon
                         icon={props.icon}
-                        size={SizeProp.Regular}
-                        thick={ThickProp.Thick}
                     />
                 ) : (
                     <></>
                 )}
             </div>
-            <span>{props.title}</span>
+            <span className="-mt-1">{props.title}</span>
         </Link>
     );
 };
