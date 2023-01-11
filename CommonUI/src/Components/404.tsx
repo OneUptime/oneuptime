@@ -16,7 +16,7 @@ const NotFound: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div className="mx-auto max-w-7xl sm:px-6 lg:px-8 rounded-lg drop-shadow-md">
+        <div className="mx-auto max-w-full sm:px-6 lg:px-8 rounded-lg drop-shadow-md">
             <div className="min-h-full bg-white py-16 px-6 sm:py-24 md:grid md:place-items-center lg:px-8">
                 <div className="mx-auto">
                     <main className="sm:flex">

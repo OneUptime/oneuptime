@@ -142,7 +142,7 @@ const BasicForm: Function = <T extends Object>(
         }
 
         return (
-            <div className="sm:col-span-4 mt-2" key={index}>
+            <div className="sm:col-span-4 mt-5 mb-2" key={index}>
                 <label className="block text-sm font-medium text-gray-700">
                     <span>{field.title}</span>
                     {field.sideLink &&
@@ -299,6 +299,12 @@ const BasicForm: Function = <T extends Object>(
                                 return (
                                     <>
                                         <TextArea
+                                            error={
+                                                touched[fieldName] &&
+                                                errors[fieldName]
+                                                    ? errors[fieldName]
+                                                    : undefined
+                                            }
                                             tabIndex={index}
                                             onChange={async (value: string) => {
                                                 setCurrentValue({
