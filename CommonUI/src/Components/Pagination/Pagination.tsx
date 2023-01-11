@@ -64,11 +64,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
         useState<boolean>(false);
 
     return (
-        <div className="justify-space-between">
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
             <div>
                 <p
-                    style={{ padding: '17px', margin: '0px' }}
-                    className="color-light-grey"
+                    className="text-sm text-gray-700"
                 >
                     {!props.isLoading && (
                         <span>
@@ -76,24 +75,18 @@ const Pagination: FunctionComponent<ComponentProps> = (
                             {props.totalItemsCount > 1
                                 ? props.pluralLabel
                                 : props.singularLabel}{' '}
-                            {`in total. Showing ${
-                                props.itemsOnPage *
-                                    (props.currentPageNumber - 1) +
+                            {`in total. Showing ${props.itemsOnPage *
+                                (props.currentPageNumber - 1) +
                                 1
-                            } to ${
-                                props.itemsOnPage * props.currentPageNumber
-                            } on this page.`}
+                                } to ${props.itemsOnPage * props.currentPageNumber
+                                } on this page.`}
                         </span>
                     )}
                 </p>
             </div>
             <div>
                 <nav
-                    className=""
-                    aria-label="Page navigation example"
-                    style={{
-                        height: '45px',
-                    }}
+                    className="isolate inline-flex -space-x-px rounded-md shadow-sm"
                 >
                     <ul
                         className="pagination"
@@ -115,28 +108,20 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`page-item ${
-                                isPreviousDisabled
-                                    ? 'disabled'
-                                    : 'cursor-pointer'
-                            }`}
-                            style={{ padding: '0px' }}
+                            className={`relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-20 cursor-pointer`}
+
                         >
                             <span className="page-link">Previous</span>
                         </li>
                         <li
-                            className={`page-item ${
-                                isCurrentPageButtonDisabled
-                                    ? 'disabled'
-                                    : 'cursor-pointer'
-                            }`}
-                            style={{ padding: '0px' }}
+                            className={`relative z-10 inline-flex items-center border border-slate-500 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 focus:z-20 cursor-pointer`}
+                            onClick={() => {
+                                setShowPaginationModel(true);
+                            }}
                         >
                             <span
-                                onClick={() => {
-                                    setShowPaginationModel(true);
-                                }}
-                                className="pointer page-link"
+
+
                             >
                                 {props.currentPageNumber}
                             </span>
@@ -150,12 +135,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`page-item ${
-                                isNextDisabled ? 'disabled' : ''
-                            }`}
-                            style={{ padding: '0px' }}
+                            className={`relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-20 cursor-pointer`}
+
                         >
-                            <span className="pointer page-link">Next</span>
+                            <span>Next</span>
                         </li>
                     </ul>
                 </nav>
@@ -186,11 +169,10 @@ const Pagination: FunctionComponent<ComponentProps> = (
                         fields: [
                             {
                                 title: 'Page Number',
-                                description: `You can enter page numbers from ${
-                                    minPageNumber !== maxPageNumber
-                                        ? minPageNumber + ' to ' + maxPageNumber
-                                        : minPageNumber
-                                }. Please enter it here:`,
+                                description: `You can enter page numbers from ${minPageNumber !== maxPageNumber
+                                    ? minPageNumber + ' to ' + maxPageNumber
+                                    : minPageNumber
+                                    }. Please enter it here:`,
                                 field: {
                                     pageNumber: true,
                                 },
