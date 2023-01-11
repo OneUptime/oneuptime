@@ -38,7 +38,6 @@ const TableRow: FunctionComponent<ComponentProps> = (
         return (
             <>
                 <tr
-                    className="table-row"
                     {...provided?.draggableProps}
                     ref={provided?.innerRef}
                 >
@@ -60,6 +59,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                             return (
                                 <td
                                     key={i}
+                                    className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6"
                                     style={{
                                         textAlign:
                                             column.type === FieldType.Actions

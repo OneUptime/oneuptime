@@ -13,9 +13,9 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
 
     return (
-        <aside className="py-6 px-2 sm:px-6 lg:col-span-3 lg:py-0 lg:px-0 mb-10">
+        <aside className="py-6 px-2 sm:px-6 lg:col-span-2 md:col-span-3 lg:py-0 lg:px-0 mb-10">
             <nav className="space-y-1">
-                {children.map((child: ReactElement, i: number) => {
+                {children.map((child: ReactElement) => {
                     return child;
                 })}
             </nav>

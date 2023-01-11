@@ -167,7 +167,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                             color: true,
                         },
                     },
-                    title: 'Current State',
+                    title: 'State',
                     type: FieldType.Entity,
                     isFilterable: true,
                     filterEntityType: IncidentState,
@@ -221,7 +221,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                         label: 'name',
                         value: '_id',
                     },
-                    title: 'Incident Severity',
+                    title: 'Severity',
                     type: FieldType.Entity,
                     getElement: (item: JSONObject): ReactElement => {
                         if (item['incidentSeverity']) {
@@ -285,7 +285,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                     field: {
                         createdAt: true,
                     },
-                    title: 'Created At',
+                    title: 'Created',
                     type: FieldType.DateTime,
                     isFilterable: true,
                 },
