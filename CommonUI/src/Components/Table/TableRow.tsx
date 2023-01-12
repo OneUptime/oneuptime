@@ -56,10 +56,15 @@ const TableRow: FunctionComponent<ComponentProps> = (
                     )}
                     {props.columns &&
                         props.columns.map((column: Column, i: number) => {
+
+                            let className = "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6"
+                            if (i == props.columns.length - 1) {
+                                className = "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6"
+                            }
                             return (
                                 <td
                                     key={i}
-                                    className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6"
+                                    className={className}
                                     style={{
                                         textAlign:
                                             column.type === FieldType.Actions

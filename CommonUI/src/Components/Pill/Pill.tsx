@@ -23,7 +23,7 @@ const Pill: FunctionComponent<ComponentProps> = (
     return (
         <span
             data-testid="pill"
-            className="rounded-pill badge"
+            className="rounded-full p-1 pl-3 pr-3"
             style={{
                 // https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 

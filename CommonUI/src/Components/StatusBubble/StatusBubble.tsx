@@ -14,7 +14,7 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
     return (
         <div className="flex" style={props.style}>
             <div
-                className="small-circle margin-5"
+                className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full mr-2"
                 style={{
                     backgroundColor: props.color
                         ? props.color.toString()
@@ -22,7 +22,7 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
                 }}
             ></div>
             <div
-                className="bold margin-5"
+                className="font-bold"
                 style={{
                     color: props.color
                         ? props.color.toString()
