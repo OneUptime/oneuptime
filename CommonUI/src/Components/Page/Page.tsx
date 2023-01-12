@@ -29,7 +29,7 @@ const Page: FunctionComponent<ComponentProps> = (
 
     return (
         <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-5">
-            <div className="">
+            <div className="mb-5">
                 <div className="mt-2">
                     <Breadcrumbs links={props.breadcrumbLinks} />
                 </div>
@@ -43,7 +43,7 @@ const Page: FunctionComponent<ComponentProps> = (
             </div>
 
             {props.sideMenu && (
-                <main className="mx-auto max-w-full pb-10 mt-5">
+                <main className="mx-auto max-w-full pb-10 mr-5">
                     <div className="lg:grid lg:grid-cols-12 lg:gap-x-5">
                         {props.sideMenu}
 

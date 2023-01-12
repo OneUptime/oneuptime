@@ -744,7 +744,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             if (props.isViewable && model.hasReadPermissions(permissions)) {
                 actionsSchema.push({
                     title: props.viewButtonText || 'View',
-                    buttonStyleType: ButtonStyleType.OUTLINE,
+                    buttonStyleType: ButtonStyleType.LINK,
                     onClick: async (
                         item: JSONObject,
                         onCompleteAction: Function,

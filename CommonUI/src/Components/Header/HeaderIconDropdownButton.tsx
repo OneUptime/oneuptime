@@ -33,7 +33,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
             <div>
                 <button
                     type="button"
-                    className="flex rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+                    className="flex rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     id="user-menu-button"
                     aria-expanded="false"
                     aria-haspopup="true"
@@ -55,7 +55,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
                     )}
                     {props.icon && (
                         <Icon
-                            className="text-slate-400 hover:text-slate-500"
+                            className="text-gray-400 hover:text-indigo-500"
                             icon={props.icon}
                             size={SizeProp.Large}
                         />

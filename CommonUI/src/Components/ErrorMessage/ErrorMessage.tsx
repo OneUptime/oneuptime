@@ -10,11 +10,7 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <p
-            className="text-center color-light-grey"
-            style={{
-                marginTop: '50px',
-                marginBottom: '50px',
-            }}
+            className="text-center my-10 text-gray-500 text-sm"
         >
             {props.error} <br />{' '}
             {props.onRefreshClick ? (
@@ -24,7 +20,7 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
                             props.onRefreshClick();
                         }
                     }}
-                    className="underline primary-on-hover"
+                    className="underline cursor-pointer hover:text-gray-700"
                 >
                     Refresh?
                 </span>

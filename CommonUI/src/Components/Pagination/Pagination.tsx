@@ -64,7 +64,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
         useState<boolean>(false);
 
     return (
-        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4">
             <div>
                 <p
                     className="text-sm text-gray-700"
@@ -88,14 +88,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 <nav
                     className="isolate inline-flex -space-x-px rounded-md shadow-sm"
                 >
-                    <ul
-                        className="pagination"
-                        style={{
-                            marginTop: '15px',
-                            marginBottom: '15px',
-                            marginRight: '15px',
-                        }}
-                    >
+                    <ul className='py-3'>
                         <li
                             onClick={() => {
                                 if (
@@ -114,7 +107,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                             <span className="page-link">Previous</span>
                         </li>
                         <li
-                            className={`relative z-10 inline-flex items-center border border-slate-500 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-600 focus:z-20 cursor-pointer`}
+                            className={`relative z-10 inline-flex items-center border border-indigo-500 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-600 focus:z-20 cursor-pointer`}
                             onClick={() => {
                                 setShowPaginationModel(true);
                             }}

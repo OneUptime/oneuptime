@@ -78,7 +78,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                                   color:
                                       rgb.red * 0.299 +
                                           rgb.green * 0.587 +
-                                          rgb.blue * 0.114 >
+                                          rgb.indigo * 0.114 >
                                       186
                                           ? '#000000'
                                           : '#ffffff',

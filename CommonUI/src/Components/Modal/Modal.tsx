@@ -26,10 +26,10 @@ export interface ComponentProps {
 const Modal: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    let iconBgColor: string = 'bg-slate-100';
+    let iconBgColor: string = 'bg-indigo-100';
 
     if (props.iconType === IconType.Info) {
-        iconBgColor = 'bg-slate-100';
+        iconBgColor = 'bg-indigo-100';
     } else if (props.iconType === IconType.Warning) {
         iconBgColor = 'bg-yellow-100';
     } else if (props.iconType === IconType.Success) {

@@ -101,7 +101,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     };
 
     let buttonStyleCssClass: string =
-        'inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
+        'inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     let loadingIconClassName: string = 'w-5 h-5 mr-3 -ml-1 mr-1 animate-spin';
     let iconClassName: string = 'w-5 h-5 -ml-1';
 
@@ -114,7 +114,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
 
     if (buttonStyle === ButtonStyleType.LINK) {
-        buttonStyleCssClass = 'no-border-on-hover font-500';
+        buttonStyleCssClass = 'text-indigo-600 hover:text-indigo-900';
     }
 
     if (buttonStyle === ButtonStyleType.DANGER) {
@@ -127,28 +127,28 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.PRIMARY) {
-        loadingIconClassName += ' text-slate-100';
+        loadingIconClassName += ' text-indigo-100';
         buttonStyleCssClass =
-            'inline-flex w-full justify-center rounded-md border border-transparent bg-slate-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
+            'inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
 
         if (disabled) {
-            buttonStyleCssClass += ' bg-slate-300';
+            buttonStyleCssClass += ' bg-indigo-300';
         }
     }
 
     if (buttonStyle === ButtonStyleType.SECONDRY) {
-        loadingIconClassName += ' text-slate-500';
+        loadingIconClassName += ' text-indigo-500';
         buttonStyleCssClass =
-            'inline-flex items-center rounded-md border border-transparent bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2';
+            'inline-flex items-center rounded-md border border-transparent bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
 
         if (disabled) {
-            buttonStyleCssClass += ' bg-slate-300';
+            buttonStyleCssClass += ' bg-indigo-300';
         }
     }
 
     if (buttonStyle === ButtonStyleType.ICON) {
         buttonStyleCssClass =
-            'rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2';
+            'rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
     }
 
     if (buttonStyle === ButtonStyleType.OUTLINE) {

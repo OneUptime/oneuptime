@@ -162,7 +162,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     let textColor: string = '';
 
     if (type === IconType.Info) {
-        textColor = 'text-slate-600';
+        textColor = 'text-indigo-600';
     } else if (type === IconType.Warning) {
         textColor = 'text-yellow-600';
     } else if (type === IconType.Success) {

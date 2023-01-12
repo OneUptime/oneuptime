@@ -18,7 +18,7 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                 willChange: 'transform',
                 top: '0px',
                 left: '0px',
-                transform: 'translate3d(0px, 70px, 0px)',
+                transform: 'tranblue3d(0px, 70px, 0px)',
             }}
         >
             {props.children}
