@@ -21,9 +21,9 @@ export enum ButtonStyleType {
 }
 
 export enum ButtonSize {
-    Normal = 'btn',
-    Small = 'btn-sm',
-    Large = 'btn-lg',
+    Normal = 'px-3 py-2',
+    Small = 'px-2 py-1',
+    Large = 'px-4 py-2',
 }
 /* Defining the props that the component will take. */
 
@@ -101,7 +101,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     };
 
     let buttonStyleCssClass: string =
-        'inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
+        'inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     let loadingIconClassName: string = 'w-5 h-5 mr-3 -ml-1 mr-1 animate-spin';
     let iconClassName: string = 'w-5 h-5 -ml-1';
 
@@ -119,17 +119,17 @@ const Button: FunctionComponent<ComponentProps> = ({
 
     if (buttonStyle === ButtonStyleType.DANGER) {
         buttonStyleCssClass =
-            'inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
+            'inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
-        buttonStyleCssClass = 'btn-outline-danger';
+        buttonStyleCssClass = 'inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.PRIMARY) {
         loadingIconClassName += ' text-indigo-100';
         buttonStyleCssClass =
-            'inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
+            'inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
 
         if (disabled) {
             buttonStyleCssClass += ' bg-indigo-300';
@@ -139,7 +139,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     if (buttonStyle === ButtonStyleType.SECONDRY) {
         loadingIconClassName += ' text-indigo-500';
         buttonStyleCssClass =
-            'inline-flex items-center rounded-md border border-transparent bg-indigo-100 px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
+            'inline-flex items-center rounded-md border border-transparent bg-indigo-100 text-sm font-medium text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
 
         if (disabled) {
             buttonStyleCssClass += ' bg-indigo-300';
@@ -161,7 +161,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.SUCCESS_OUTLINE) {
-        buttonStyleCssClass = 'btn-outline-success';
+        buttonStyleCssClass = 'inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.WARNING) {
@@ -169,8 +169,10 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.WARNING_OUTLINE) {
-        buttonStyleCssClass = 'btn-outline-warning';
+        buttonStyleCssClass = 'inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     }
+
+    buttonStyleCssClass += " " + buttonSize;
 
     return (
         <button

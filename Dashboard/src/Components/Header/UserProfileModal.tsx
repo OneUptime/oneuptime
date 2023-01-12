@@ -169,7 +169,7 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                                 onSuccess={() => {
                                     setHasPasswordChanged(true);
                                 }}
-                                submitButtonStyleType={ButtonStyleType.OUTLINE}
+                                submitButtonStyleType={ButtonStyleType.NORMAL}
                                 id="change-password-form"
                                 showAsColumns={1}
                                 doNotFetchExistingModel={true}

@@ -153,7 +153,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 
         return (
             <div
-                className="mb-3"
+                className="sm:col-span-1"
                 key={index}
                 id={props.id}
                 style={
@@ -166,7 +166,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                         : {}
                 }
             >
-                <label className="form-Label form-label justify-space-between width-max">
+                <label className="text-sm font-medium text-gray-500">
                     <span>{field.title}</span>
                     {field.sideLink &&
                         field.sideLink?.text &&
@@ -184,16 +184,12 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 {field.description && <p>{field.description}</p>}
 
                 <div
-                    className="form-control"
-                    style={{
-                        border: 'none',
-                        paddingLeft: '0px',
-                        paddingTop: '0px',
-                    }}
+                    className="mt-1 text-sm text-gray-900"
+                  
                 >
                     {data && data}
                     {!data && (
-                        <span className="color-light-grey">
+                        <span className="text-gray-500">
                             {field.placeholder}
                         </span>
                     )}
@@ -203,12 +199,9 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     return (
+        
         <div
-            className={`${
-                props.showDetailsInNumberOfColumns
-                    ? `justify-space-between`
-                    : ``
-            }`}
+            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2`}
         >
             {props.fields &&
                 props.fields.length > 0 &&

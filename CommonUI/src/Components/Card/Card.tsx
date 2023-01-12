@@ -9,6 +9,7 @@ export interface CardButtonSchema {
     disabled?: boolean | undefined;
     icon: IconProp;
     isLoading?: undefined | boolean;
+    className?: string | undefined;
 }
 
 export interface ComponentProps {

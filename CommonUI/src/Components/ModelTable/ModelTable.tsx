@@ -530,6 +530,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             headerbuttons.push({
                 title: '',
                 buttonStyle: ButtonStyleType.OUTLINE,
+                className: "",
                 onClick: () => {
                     const newValue: boolean = !showTableFilter;
                     if (!newValue) {

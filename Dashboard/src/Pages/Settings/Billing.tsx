@@ -307,7 +307,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 fetchSetupIntent();
                                 setShowPaymentMethodModal(true);
                             },
-                            buttonStyle: ButtonStyleType.OUTLINE,
+                            buttonStyle: ButtonStyleType.NORMAL,
                         },
                     ],
                     icon: IconProp.Billing,
