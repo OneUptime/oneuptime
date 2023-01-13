@@ -16,19 +16,12 @@ const SearchBox: FunctionComponent<ComponentProps> = (
             <div className="w-full sm:max-w-xs">
                 <label className="sr-only">Search</label>
                 <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                        <Icon
-                            icon={IconProp.Search}
-                            className="text-gray-40 h-5 w-5"
-                        />
-                    </div>
+                    
                     <Input
                         onChange={(value) => {
                             props.onChange(value);
                         }}
-                        id="search"
-                        name="search"
-                        className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                        className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-5 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
                         placeholder="Search"
                     />
                 </div>

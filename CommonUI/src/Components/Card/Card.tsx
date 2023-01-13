@@ -42,11 +42,11 @@ const Card: FunctionComponent<ComponentProps> = (
                                     {props.description}
                                 </p>
                             </div>
-                            <div>
+                            <div className='flex'>
                                 {props.buttons?.map(
                                     (button: CardButtonSchema, i: number) => {
                                         return (
-                                            <span
+                                            <div
                                                 style={
                                                     i > 0
                                                         ? {
@@ -63,6 +63,7 @@ const Card: FunctionComponent<ComponentProps> = (
                                                     buttonStyle={
                                                         button.buttonStyle
                                                     }
+                                                    className={button.className}
                                                     onClick={() => {
                                                         if (button.onClick) {
                                                             button.onClick();

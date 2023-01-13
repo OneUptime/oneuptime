@@ -16,6 +16,7 @@ export enum ButtonStyleType {
     SUCCESS_OUTLINE,
     WARNING,
     WARNING_OUTLINE,
+    ICON_LIGHT,
     LINK,
     ICON,
 }
@@ -43,6 +44,7 @@ export interface ComponentProps {
     buttonSize?: ButtonSize | undefined;
     dataTestId?: string;
     textStyle?: React.CSSProperties | undefined;
+    className?: string | undefined;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -61,6 +63,7 @@ const Button: FunctionComponent<ComponentProps> = ({
     buttonSize = ButtonSize.Normal,
     dataTestId,
     textStyle,
+    className
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -103,9 +106,9 @@ const Button: FunctionComponent<ComponentProps> = ({
     let buttonStyleCssClass: string =
         'inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     let loadingIconClassName: string = 'w-5 h-5 mr-3 -ml-1 mr-1 animate-spin';
-    let iconClassName: string = 'w-5 h-5 -ml-1';
+    let iconClassName: string = 'w-5 h-5';
 
-    if (buttonStyle !== ButtonStyleType.ICON) { 
+    if (buttonStyle !== ButtonStyleType.ICON && buttonStyle !== ButtonStyleType.ICON_LIGHT) { 
         iconClassName += " mr-1";
     } else {
         iconClassName += " m-1";
@@ -146,9 +149,14 @@ const Button: FunctionComponent<ComponentProps> = ({
         }
     }
 
-    if (buttonStyle === ButtonStyleType.ICON) {
+    if (buttonStyle === ButtonStyleType.ICON_LIGHT) {
         buttonStyleCssClass =
             'rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
+    }
+
+    if (buttonStyle === ButtonStyleType.ICON) {
+        buttonStyleCssClass =
+            'rounded-md bg-white text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
     }
 
     if (buttonStyle === ButtonStyleType.OUTLINE) {
@@ -173,6 +181,10 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     buttonStyleCssClass += " " + buttonSize;
+
+    if (className) {
+        buttonStyleCssClass += " " + className;
+    }
 
     return (
         <button

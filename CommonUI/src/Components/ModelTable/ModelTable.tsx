@@ -506,6 +506,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     props.singularName || model.singularName
                 }`,
                 buttonStyle: ButtonStyleType.NORMAL,
+                className: props.showFilterButton || props.showRefreshButton ? "mr-1" : ""
                 onClick: () => {
                     setModalType(ModalType.Create);
                     setShowModal(true);
@@ -517,7 +518,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         if (props.showRefreshButton) {
             headerbuttons.push({
                 title: '',
-                buttonStyle: ButtonStyleType.OUTLINE,
+                className: props.showFilterButton ? "p-1 px-1 pr-0 pl-0 py-0 mt-1": "py-0 pr-0 pl-1 mt-1",
+                buttonStyle: ButtonStyleType.ICON,
                 onClick: () => {
                     fetchItems();
                 },
@@ -529,8 +531,8 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         if (props.showFilterButton) {
             headerbuttons.push({
                 title: '',
-                buttonStyle: ButtonStyleType.OUTLINE,
-                className: "",
+                buttonStyle: ButtonStyleType.ICON,
+                className: props.showRefreshButton ?  "p-1 px-1 pr-0 pl-0 py-0 mt-1": "py-0 pr-0 pl-1 mt-1",
                 onClick: () => {
                     const newValue: boolean = !showTableFilter;
                     if (!newValue) {

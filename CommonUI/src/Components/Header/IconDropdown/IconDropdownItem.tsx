@@ -20,7 +20,7 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
             to={props.url}
             onClick={props.onClick}
         >
-            <div className="mr-1 h-4 w-4">
+            <div className="mr-1 h-5 w-5">
                 {props.icon ? (
                     <Icon
                         icon={props.icon}
@@ -29,7 +29,7 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
                     <></>
                 )}
             </div>
-            <span className="-mt-1">{props.title}</span>
+            <span className="">{props.title}</span>
         </Link>
     );
 };

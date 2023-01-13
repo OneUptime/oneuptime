@@ -48,7 +48,9 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <ComponentLoader />
+                            <div className='flex justify-center w-full'>
+                                <ComponentLoader />
+                            </div>
                         </td>
                     </tr>
                 </tbody>
