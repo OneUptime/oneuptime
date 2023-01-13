@@ -1,4 +1,4 @@
-import Select from 'react-select';
+import Select, { components } from 'react-select';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -20,8 +20,8 @@ export interface ComponentProps {
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?:
-        | undefined
-        | ((value: DropdownValue | Array<DropdownValue> | null) => void);
+    | undefined
+    | ((value: DropdownValue | Array<DropdownValue> | null) => void);
     value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -38,6 +38,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     const [selectedValue, setSelectedValue] = useState<
         DropdownOption | Array<DropdownOption> | null
     >(null);
+
 
     useEffect(() => {
         if (props.initialValue) {

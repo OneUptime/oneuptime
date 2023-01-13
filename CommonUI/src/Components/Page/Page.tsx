@@ -28,7 +28,7 @@ const Page: FunctionComponent<ComponentProps> = (
     }, [props.breadcrumbLinks]);
 
     return (
-        <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-5 h-full">
+        <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-20 h-full">
             <div className="mb-5">
                 <div className="mt-2">
                     <Breadcrumbs links={props.breadcrumbLinks} />

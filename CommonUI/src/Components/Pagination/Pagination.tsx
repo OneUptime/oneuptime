@@ -107,7 +107,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                             <span className="page-link">Previous</span>
                         </li>
                         <li
-                            className={`relative z-10 inline-flex items-center border border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-indigo-600 focus:z-20 cursor-pointer ${isCurrentPageButtonDisabled ? 'bg-gray-100' : ''}`}
+                            className={`relative z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 focus:z-20 cursor-pointer ${isCurrentPageButtonDisabled ? 'bg-gray-100' : ''}`}
                             onClick={() => {
                                 setShowPaginationModel(true);
                             }}
