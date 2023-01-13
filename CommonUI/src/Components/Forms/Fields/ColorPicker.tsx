@@ -7,7 +7,8 @@ import React, {
 } from 'react';
 import { ChromePicker, ColorResult } from 'react-color';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
-import Input from '../../Input/ColorInput';
+import Input from '../../Input/Input';
+import Icon, { IconProp } from '../../Icon/Icon';
 
 export interface ComponentProps {
     onChange: (value: Color | null) => void;
@@ -15,6 +16,15 @@ export interface ComponentProps {
     placeholder: string;
     onFocus?: (() => void) | undefined;
     tabIndex?: number | undefined;
+    onClick?: undefined | (() => void);
+    className?: undefined | string;
+    value?: string | undefined;
+    readOnly?: boolean | undefined;
+    disabled?: boolean | undefined;
+    onBlur?: (() => void) | undefined;
+    dataTestId?: string;
+    onEnterPress?: (() => void) | undefined;
+    error?: string | undefined;
 }
 
 const ColorPicker: FunctionComponent<ComponentProps> = (
@@ -39,17 +49,26 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <div>
+        <div className='flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm pl-10'>
+            
+            <div className='rounded h-5 w-5' style={{backgroundColor: color.toString()}}>
+
+            </div>
+
             <Input
-                leftCircleColor={new Color(color || props.placeholder)}
+                disabled={props.disabled}
+                onBlur={props.onBlur}
+                onEnterPress={props.onEnterPress}
+                className="border-none"
                 placeholder={props.placeholder}
-                className="pointer form-control white-background-on-readonly"
                 value={color}
                 readOnly={true}
                 type="text"
                 tabIndex={props.tabIndex}
                 onClick={() => {
-                    setIsComponentVisible(!isComponentVisible);
+                    if (!props.readOnly) {
+                        setIsComponentVisible(!isComponentVisible);
+                    }
                 }}
                 onChange={(value: string) => {
                     if (!value) {
@@ -58,6 +77,17 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                 }}
                 onFocus={props.onFocus || undefined}
             />
+            {color && !props.disabled && (
+                <Icon
+                    icon={IconProp.Close}
+                    onClick={() => {
+                        setColor('#000000');
+                        if (props.onChange) {
+                            props.onChange(null);
+                        }
+                    }}
+                />
+            )}
             {isComponentVisible ? (
                 <div
                     ref={ref}

@@ -114,6 +114,7 @@ const Input: FunctionComponent<ComponentProps> = (
                 <input
                     autoFocus={true}
                     ref={ref}
+                    onClick={props.onClick}
                     data-testid={props.dataTestId}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                         const value: string = e.target.value;

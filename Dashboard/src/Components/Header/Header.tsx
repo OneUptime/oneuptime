@@ -196,7 +196,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 rightComponents={
                     <>
                         {/* <Notifications /> */}
-                        {/* {BILLING_ENABLED &&
+                        {BILLING_ENABLED &&
                             props.selectedProject?.id &&
                             props.selectedProject.paymentProviderPlanId &&
                             !SubscriptionPlan.isFreePlan(
@@ -240,7 +240,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
 
                         ) : (
                             <></>
-                        )} */}
+                        )}
                         <Help />
                         <UserProfile
                             onClickUserProfle={() => {
