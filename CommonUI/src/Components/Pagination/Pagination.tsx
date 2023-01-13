@@ -67,7 +67,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
         <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4">
             <div>
                 <p
-                    className="text-sm text-gray-700"
+                    className="text-sm text-gray-500"
                 >
                     {!props.isLoading && (
                         <span>
@@ -101,13 +101,13 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-20 cursor-pointer`}
+                            className={`relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  focus:z-20 ${isPreviousDisabled ? 'bg-gray-100' : 'hover:bg-gray-50 cursor-pointer'}`}
 
                         >
                             <span className="page-link">Previous</span>
                         </li>
                         <li
-                            className={`relative z-10 inline-flex items-center border border-indigo-500 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-600 focus:z-20 cursor-pointer`}
+                            className={`relative z-10 inline-flex items-center border border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-indigo-600 focus:z-20 cursor-pointer ${isCurrentPageButtonDisabled ? 'bg-gray-100' : ''}`}
                             onClick={() => {
                                 setShowPaginationModel(true);
                             }}
@@ -128,7 +128,7 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 hover:bg-gray-50 focus:z-20 cursor-pointer`}
+                            className={`relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:z-20 ${isNextDisabled ? 'bg-gray-100' : ' hover:bg-gray-50 cursor-pointer'}`}
 
                         >
                             <span>Next</span>
