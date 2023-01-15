@@ -1132,18 +1132,11 @@ const BasicForm: Function = <T extends Object>(
                                 </div>
 
                                 <div
-                                    className="row"
-                                    style={{
-                                        display: 'flex',
-                                    }}
+                                    className="flex w-full justify-end pr-3"
                                 >
                                     {!props.hideSubmitButton && (
                                         <div
-                                            style={{
-                                                width: props.maxPrimaryButtonWidth
-                                                    ? '100%'
-                                                    : ' auto',
-                                            }}
+                                            
                                         >
                                             <Button
                                                 title={
@@ -1171,7 +1164,7 @@ const BasicForm: Function = <T extends Object>(
                                         </div>
                                     )}
                                     {props.onCancel && (
-                                        <div style={{ width: 'auto' }}>
+                                        <div>
                                             <Button
                                                 title={
                                                     props.cancelButtonText ||

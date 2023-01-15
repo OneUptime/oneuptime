@@ -17,6 +17,7 @@ export interface ComponentProps {
     description: string | ReactElement;
     buttons?: undefined | Array<CardButtonSchema>;
     children?: undefined | Array<ReactElement> | ReactElement;
+    className?: string | undefined
 }
 
 const Card: FunctionComponent<ComponentProps> = (
@@ -24,7 +25,7 @@ const Card: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <section>
+            <section className={props.className}>
                 <div className="shadow sm:overflow-hidden sm:rounded-md">
                     <div className="bg-white py-6 px-4 sm:p-6">
                         <div className="flex justify-between">
