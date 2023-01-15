@@ -1,7 +1,11 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
+import PageComponentProps from '../PageComponentProps';
+import Page from 'CommonUI/src/Components/Page/Page';
+import Route from 'Common/Types/API/Route';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 import User from 'Model/Models/User';
 import UserUtil from 'CommonUI/src/Utils/User';
-import FullPageModal from 'CommonUI/src/Components/FullPageModal/FullPageModal';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -10,24 +14,28 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 
-export interface ComponentProps {
-    onClose: () => void;
-}
 
-const UserProfileModal: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const Home: FunctionComponent<PageComponentProps> = (
+    _props: PageComponentProps
 ): ReactElement => {
     const [hasPasswordChanged, setHasPasswordChanged] =
         useState<boolean>(false);
-
+    
     return (
-        <>
-            <FullPageModal
-                onClose={() => {
-                    props.onClose && props.onClose();
-                }}
-            >
-                <CardModelDetail
+        <Page
+            title={'User Profile'}
+            breadcrumbLinks={[
+                {
+                    title: 'Home',
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                },
+                {
+                    title: 'User Profile',
+                    to: RouteMap[PageMap.USER_PROFILE] as Route,
+                },
+            ]}
+        >
+            <CardModelDetail
                     cardProps={{
                         title: 'Basic Info',
                         description: "Here's are some of your details.",
@@ -212,9 +220,8 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                         )}
                     </Card>
                 </div>
-            </FullPageModal>
-        </>
+        </Page>
     );
 };
 
-export default UserProfileModal;
+export default Home;

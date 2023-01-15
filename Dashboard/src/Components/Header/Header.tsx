@@ -18,7 +18,6 @@ import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import useAsyncEffect from 'use-async-effect';
-import UserProfileModal from './UserProfileModal';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
 import SearchBox from './SearchBox';
@@ -67,8 +66,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(
         null
     );
-
-    const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
 
     useAsyncEffect(async () => {
         if (
@@ -253,7 +250,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         <Help />
                         <UserProfile
                             onClickUserProfle={() => {
-                                setShowProfileModal(true);
+                                Navigation.navigate(RouteMap[PageMap.USER_PROFILE]!);
                             }}
                         />
                     </>
@@ -280,13 +277,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 />
             )}
 
-            {showProfileModal && (
-                <UserProfileModal
-                    onClose={() => {
-                        setShowProfileModal(false);
-                    }}
-                />
-            )}
 
             {showActiveIncidentsModal && (
                 <ActiveIncidentsModal

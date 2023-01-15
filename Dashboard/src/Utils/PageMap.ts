@@ -95,6 +95,9 @@ enum PageMap {
 
     // Misc
     LOGOUT = 'LOGOUT',
+    USER_PROFILE = 'USER_PROFILE',
+    ACTIVE_INCIDENTS = 'ACTIVE_INCIDENTS',
+    PROJECT_INVITATIONS = 'PROJECT_INVITATIONS'
 }
 
 export default PageMap;

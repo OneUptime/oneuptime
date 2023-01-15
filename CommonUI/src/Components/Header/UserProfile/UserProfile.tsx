@@ -2,27 +2,25 @@ import URL from 'Common/Types/API/URL';
 import Name from 'Common/Types/Name';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp } from '../../Icon/Icon';
-import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import Route from 'Common/Types/API/Route';
 import Image from '../../Image/Image';
 
 export interface ComponentProps {
     userFullName: Name;
-    children: ReactElement | Array<ReactElement>;
     userProfilePicture: URL | Route;
+    onClick: () => void; 
 }
 
 const UserProfile: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const { ref, isComponentVisible, setIsComponentVisible } =
-        useComponentOutsideClick(false);
+   
 
     return (
         <div className="d-inline-block dropdown">
             <button
                 onClick={() => {
-                    setIsComponentVisible(!isComponentVisible);
+                   props.onClick()
                 }}
                 id="page-header-user-dropdown"
                 aria-haspopup="true"
@@ -42,7 +40,7 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                 </span>
                 <Icon icon={IconProp.ChevronDown} />
             </button>
-            <div ref={ref}>{isComponentVisible && props.children}</div>
+            
         </div>
     );
 };
