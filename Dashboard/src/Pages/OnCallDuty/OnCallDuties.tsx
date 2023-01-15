@@ -24,11 +24,11 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
                 },
                 {
                     title: 'On Call Duty',
-                    to: RouteMap[PageMap.ON_CALL_DUTY] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.ON_CALL_DUTY] as Route),
                 },
             ]}
         >

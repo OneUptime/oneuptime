@@ -20,11 +20,11 @@ const Settings: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
                 },
                 {
                     title: 'Project Settings',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

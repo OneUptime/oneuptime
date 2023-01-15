@@ -16,15 +16,15 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
                 },
                 {
                     title: 'Monitors',
-                    to: RouteMap[PageMap.MONITORS] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route),
                 },
                 {
                     title: 'Inoperational Monitors',
-                    to: RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route),
                 },
             ]}
             sideMenu={

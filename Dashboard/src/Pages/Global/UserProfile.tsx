@@ -31,7 +31,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                 },
                 {
                     title: 'User Profile',
-                    to: RouteMap[PageMap.USER_PROFILE] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.USER_PROFILE] as Route),
                 },
             ]}
         >

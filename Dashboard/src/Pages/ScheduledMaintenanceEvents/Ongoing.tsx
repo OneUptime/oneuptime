@@ -17,11 +17,11 @@ const ScheduledMaintenancesPage: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
                 },
                 {
                     title: 'Scheduled Maintenance Events',
-                    to: RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route,
+                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS] as Route),
                 },
                 {
                     title: 'Ongoing Scheduled Maintenance',
