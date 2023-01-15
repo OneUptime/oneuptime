@@ -117,7 +117,7 @@ const Button: FunctionComponent<ComponentProps> = ({
 
 
     if (buttonStyle === ButtonStyleType.LINK) {
-        buttonStyleCssClass = 'text-indigo-600 hover:text-indigo-900';
+        buttonStyleCssClass = 'text-indigo-600 hover:text-indigo-900 flex space-x-2';
     }
 
     if (buttonStyle === ButtonStyleType.DANGER) {

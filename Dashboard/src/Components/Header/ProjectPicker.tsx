@@ -15,6 +15,7 @@ import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Field from 'CommonUI/src/Components/Forms/Types/Field';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
+import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -36,20 +37,9 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
             return <></>;
         }
 
-        return (
-            <div
-                className="show-as-link"
-                onClick={() => {
-                    setIsSubscriptionPlanYearly(!isSubsriptionPlanYearly);
-                }}
-            >
-                {isSubsriptionPlanYearly ? (
-                    <span>Switch to monthly pricing?</span>
-                ) : (
-                    <span> Switch to yearly pricing?</span>
-                )}
-            </div>
-        );
+        return <Toggle title='Yearly Plan' initialValue={isSubsriptionPlanYearly} description='(Save 20%)' onChange={(value: boolean) => {
+            setIsSubscriptionPlanYearly(value);
+        }} />
     };
 
     const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
@@ -144,18 +134,12 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         getAllEnvVars()
                     ).map((plan: SubscriptionPlan): RadioButton => {
                         let description: string = plan.isCustomPricing()
-                            ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                            : `$${
-                                  isSubsriptionPlanYearly
-                                      ? plan.getYearlySubscriptionAmountInUSD()
-                                      : plan.getMonthlySubscriptionAmountInUSD()
-                              } / month per user. Billed ${
-                                  isSubsriptionPlanYearly ? 'yearly' : 'monthly'
-                              }. ${
-                                  plan.getTrialPeriod() > 0
-                                      ? `Free ${plan.getTrialPeriod()} days trial.`
-                                      : ''
-                              }`;
+                            ? `Our sales team will contact you soon.`
+                            :  `Billed ${isSubsriptionPlanYearly ? 'yearly' : 'monthly'
+                            }. ${plan.getTrialPeriod() > 0
+                                ? `Free ${plan.getTrialPeriod()} days trial.`
+                                : ''
+                            }`;
 
                         if (
                             isSubsriptionPlanYearly &&
@@ -177,6 +161,11 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                                 : plan.getMonthlyPlanId(),
                             title: plan.getName(),
                             description: description,
+                            sideTitle: plan.isCustomPricing() ? 'Custom Price' : isSubsriptionPlanYearly
+                                ? "$" + (plan.getYearlySubscriptionAmountInUSD() * 12).toString()
+                                : "$" + plan.getMonthlySubscriptionAmountInUSD().toString(),
+                            sideDescription: plan.isCustomPricing() ? '' : isSubsriptionPlanYearly ?  `/year per user`: 
+                                `/month per user`
                         };
                     }),
                     title: 'Please select a plan.',

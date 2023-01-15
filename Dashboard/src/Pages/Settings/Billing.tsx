@@ -30,6 +30,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import URL from 'Common/Types/API/URL';
 import {
+    BILLING_ENABLED,
     BILLING_PUBLIC_KEY,
     DASHBOARD_API_URL,
     getAllEnvVars,
@@ -41,8 +42,9 @@ import useAsyncEffect from 'use-async-effect';
 import CheckoutForm from './BillingPaymentMethodForm';
 import Text from 'Common/Types/Text';
 import DashboardNavigation from '../../Utils/Navigation';
+import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 
-export interface ComponentProps extends PageComponentProps {}
+export interface ComponentProps extends PageComponentProps { }
 
 const Settings: FunctionComponent<ComponentProps> = (
     _props: ComponentProps
@@ -85,13 +87,24 @@ const Settings: FunctionComponent<ComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
             }
             setIsModalLoading(false);
         }
+    };
+
+
+    const getFooter: Function = (): ReactElement => {
+        if (!BILLING_ENABLED) {
+            return <></>;
+        }
+
+        return <Toggle title='Yearly Plan' initialValue={isSubsriptionPlanYearly} description='(Save 20%)' onChange={(value: boolean) => {
+            setIsSubscriptionPlanYearly(value);
+        }} />
     };
 
     return (
@@ -136,37 +149,25 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 getAllEnvVars()
                             ).map((plan: SubscriptionPlan): RadioButton => {
                                 let description: string = plan.isCustomPricing()
-                                    ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                                    : `$${
-                                          isSubsriptionPlanYearly
-                                              ? plan.getYearlySubscriptionAmountInUSD()
-                                              : plan.getMonthlySubscriptionAmountInUSD()
-                                      } / month per user. Billed ${
-                                          isSubsriptionPlanYearly
-                                              ? 'yearly'
-                                              : 'monthly'
-                                      }. ${
-                                          plan.getTrialPeriod() > 0
-                                              ? `Free ${plan.getTrialPeriod()} days trial.`
-                                              : ''
-                                      }`;
+                                    ? `Our sales team will contact you soon.`
+                                    : `Billed ${isSubsriptionPlanYearly ? 'yearly' : 'monthly'
+                                    }. ${plan.getTrialPeriod() > 0
+                                        ? `Free ${plan.getTrialPeriod()} days trial.`
+                                        : ''
+                                    }`;
 
                                 if (
                                     isSubsriptionPlanYearly &&
-                                    plan.getYearlySubscriptionAmountInUSD() ===
-                                        0
+                                    plan.getYearlySubscriptionAmountInUSD() === 0
                                 ) {
-                                    description =
-                                        'This plan is free, forever. ';
+                                    description = 'This plan is free, forever. ';
                                 }
 
                                 if (
                                     !isSubsriptionPlanYearly &&
-                                    plan.getMonthlySubscriptionAmountInUSD() ===
-                                        0
+                                    plan.getMonthlySubscriptionAmountInUSD() === 0
                                 ) {
-                                    description =
-                                        'This plan is free, forever. ';
+                                    description = 'This plan is free, forever. ';
                                 }
 
                                 return {
@@ -175,25 +176,17 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         : plan.getMonthlyPlanId(),
                                     title: plan.getName(),
                                     description: description,
+                                    sideTitle: plan.isCustomPricing() ? 'Custom Price' : isSubsriptionPlanYearly
+                                        ? "$" + (plan.getYearlySubscriptionAmountInUSD() * 12).toString()
+                                        : "$" + plan.getMonthlySubscriptionAmountInUSD().toString(),
+                                    sideDescription: plan.isCustomPricing() ? '' : isSubsriptionPlanYearly ? `/year per user` :
+                                        `/month per user`
                                 };
                             }),
                         title: 'Please select a plan.',
                         required: true,
                         footerElement: (
-                            <div
-                                className="show-as-link"
-                                onClick={() => {
-                                    setIsSubscriptionPlanYearly(
-                                        !isSubsriptionPlanYearly
-                                    );
-                                }}
-                            >
-                                {isSubsriptionPlanYearly ? (
-                                    <span>Switch to monthly pricing?</span>
-                                ) : (
-                                    <span> Switch to yearly pricing?</span>
-                                )}
-                            </div>
+                          getFooter()
                         ),
                     },
                 ]}
@@ -227,18 +220,16 @@ const Settings: FunctionComponent<ComponentProps> = (
 
                                 let description: string = plan.isCustomPricing()
                                     ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                                    : `$${
-                                          isYearlyPlan
-                                              ? plan.getYearlySubscriptionAmountInUSD()
-                                              : plan.getMonthlySubscriptionAmountInUSD()
-                                      } / month per user. Billed ${
-                                          isYearlyPlan ? 'yearly' : 'monthly'
-                                      }.`;
+                                    : `$${isYearlyPlan
+                                        ? plan.getYearlySubscriptionAmountInUSD()
+                                        : plan.getMonthlySubscriptionAmountInUSD()
+                                    } / month per user. Billed ${isYearlyPlan ? 'yearly' : 'monthly'
+                                    }.`;
 
                                 if (
                                     isYearlyPlan &&
                                     plan.getYearlySubscriptionAmountInUSD() ===
-                                        0
+                                    0
                                 ) {
                                     description =
                                         'This plan is free, forever. ';
@@ -247,7 +238,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 if (
                                     !isYearlyPlan &&
                                     plan.getMonthlySubscriptionAmountInUSD() ===
-                                        0
+                                    0
                                 ) {
                                     description =
                                         'This plan is free, forever. ';
@@ -276,7 +267,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         <div className="bold">
                                             {
                                                 item[
-                                                    'paymentProviderSubscriptionSeats'
+                                                'paymentProviderSubscriptionSeats'
                                                 ] as string
                                             }{' '}
                                             users in this project.
@@ -411,7 +402,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                             Navigation.navigate(
                                 RouteUtil.populateRouteParams(
                                     RouteMap[
-                                        PageMap.SETTINGS_DANGERZONE
+                                    PageMap.SETTINGS_DANGERZONE
                                     ] as Route
                                 )
                             );

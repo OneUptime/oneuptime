@@ -14,7 +14,7 @@ import Project from 'Model/Models/Project';
 import ProjectInvitationsModal from './ProjectInvitationsModal';
 import ActiveIncidentsModal from './ActiveIncidentsModal';
 import Logo from './Logo';
-import { BILLING_ENABLED } from 'CommonUI/src/Config';
+import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import useAsyncEffect from 'use-async-effect';
@@ -22,6 +22,14 @@ import UserProfileModal from './UserProfileModal';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
 import SearchBox from './SearchBox';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
+import Upgrade from './Upgrade';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import Route from 'Common/Types/API/Route';
 
 export interface ComponentProps {
     projects: Array<Project>;

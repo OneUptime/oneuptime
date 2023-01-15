@@ -42,7 +42,7 @@ import List from '../List/List';
 import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
 import Field from '../Detail/Field';
 import FormValues from '../Forms/Types/FormValues';
-import { FilterData } from '../Table/TableHeader';
+import { FilterData } from '../Table/Filter';
 import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -506,7 +506,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     props.singularName || model.singularName
                 }`,
                 buttonStyle: ButtonStyleType.NORMAL,
-                className: props.showFilterButton || props.showRefreshButton ? "mr-1" : ""
+                className: props.showFilterButton || props.showRefreshButton ? "mr-1" : "",
                 onClick: () => {
                     setModalType(ModalType.Create);
                     setShowModal(true);

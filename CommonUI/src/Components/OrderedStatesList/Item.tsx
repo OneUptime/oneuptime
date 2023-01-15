@@ -25,7 +25,7 @@ const Item: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string>('');
 
     return (
-        <div className="ordered-list-item">
+        <div className="text-center border border-gray-300 hover:bg-gray-50 rounded p-10 space-y-4 w-fit">
             {error && (
                 <ConfirmModal
                     title={`Error`}
@@ -49,7 +49,7 @@ const Item: FunctionComponent<ComponentProps> = (
                     {props.getTitleElement(props.item)}
                 </div>
             )}
-            <div className="margin-10">
+            <div className="text-gray-500">
                 {props.getDescriptionElement && (
                     <div className="justify-center ">
                         {props.getDescriptionElement(props.item)}
@@ -64,7 +64,7 @@ const Item: FunctionComponent<ComponentProps> = (
                     </div>
                 )}
             </div>
-            <div className="margin-10">
+            <div className="">
                 {props.actionButtons?.map(
                     (button: ActionButtonSchema, i: number) => {
                         if (button.isVisible && !button.isVisible(props.item)) {
