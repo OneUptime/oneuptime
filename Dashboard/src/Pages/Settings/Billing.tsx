@@ -418,7 +418,6 @@ const Settings: FunctionComponent<ComponentProps> = (
 
             <Card
                 title={`Cancel Plan`}
-                icon={IconProp.Billing}
                 description={`If you would like to cancel the plan, you need to delete the project.`}
                 buttons={[
                     {

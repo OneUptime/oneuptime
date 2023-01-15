@@ -6,7 +6,11 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 const DashboardHeader: FunctionComponent = (): ReactElement => {
     return (
-        <HeaderIconDropdownButton icon={IconProp.Notification} badge={4}>
+        <HeaderIconDropdownButton
+            name="Notifications"
+            icon={IconProp.Notification}
+            badge={4}
+        >
             <Notifications>
                 <NotificationItem
                     title="Sample Title"

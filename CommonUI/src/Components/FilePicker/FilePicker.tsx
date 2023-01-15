@@ -136,9 +136,6 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 <div key={file.name} className="file-picker-thumb">
                     <div className="file-picker-delete-logo">
                         <Icon
-                            style={{
-                                marginTop: '-5px',
-                            }}
                             icon={IconProp.Close}
                             color={White}
                             thick={ThickProp.Thick}

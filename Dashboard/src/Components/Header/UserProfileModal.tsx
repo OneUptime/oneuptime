@@ -154,13 +154,10 @@ const UserProfileModal: FunctionComponent<ComponentProps> = (
                     />
 
                     <Card
-                        style={{ marginLeft: '30px' }}
-                        className="width-half"
                         title={'Update Password'}
                         description={
                             'You can set a new password here if you wish to do so.'
                         }
-                        icon={IconProp.Lock}
                     >
                         {!hasPasswordChanged ? (
                             <ModelForm<User>

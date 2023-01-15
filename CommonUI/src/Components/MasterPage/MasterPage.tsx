@@ -35,11 +35,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
         <React.Fragment>
             <>
                 <div className="sticky top-0">
-                    <TopSection
-                        header={props.header}
-                        navbar={props.navBar}
-                        isRenderedOnMobile={false}
-                    />
+                    <TopSection header={props.header} navbar={props.navBar} />
                 </div>
 
                 {props.children}

@@ -230,9 +230,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 }}
                                 buttonStyle={ButtonStyleType.LINK}
                                 icon={IconProp.Billing}
-                                textStyle={{
-                                    fontWeight: 500,
-                                }}
                             ></Button>
                         ) : (
                             <></>

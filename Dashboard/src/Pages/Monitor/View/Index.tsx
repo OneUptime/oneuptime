@@ -262,7 +262,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             <Card
                 title="Uptime Graph"
                 description="Here the 90 day uptime history of this monitor."
-                icon={IconProp.Graph}
             >
                 <MonitorUptimeGraph
                     error={error}
