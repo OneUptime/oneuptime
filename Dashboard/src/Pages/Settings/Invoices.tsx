@@ -8,7 +8,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Text from 'Common/Types/Text';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import BillingInvoice from 'Model/Models/BillingInvoice';

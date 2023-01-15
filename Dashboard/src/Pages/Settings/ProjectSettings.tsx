@@ -6,7 +6,7 @@ import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import DashboardNavigation from '../../Utils/Navigation';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';

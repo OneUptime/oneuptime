@@ -16,7 +16,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import RouteParams from '../../Utils/RouteParams';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 import BaseModel from 'Common/Models/BaseModel';

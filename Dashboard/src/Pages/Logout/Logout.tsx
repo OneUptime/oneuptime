@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Route from 'Common/Types/API/Route';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import UserUtil from 'CommonUI/src/Utils/User';
