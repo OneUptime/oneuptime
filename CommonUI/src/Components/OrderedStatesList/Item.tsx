@@ -25,7 +25,7 @@ const Item: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string>('');
 
     return (
-        <div className="text-center border border-gray-300 hover:bg-gray-50 rounded p-10 space-y-4 w-fit">
+        <div className="text-center border border-gray-300 rounded p-10 space-y-4 w-fit">
             {error && (
                 <ConfirmModal
                     title={`Error`}
@@ -64,7 +64,7 @@ const Item: FunctionComponent<ComponentProps> = (
                     </div>
                 )}
             </div>
-            <div className="">
+            <div className="flex justify-center">
                 {props.actionButtons?.map(
                     (button: ActionButtonSchema, i: number) => {
                         if (button.isVisible && !button.isVisible(props.item)) {
@@ -72,15 +72,9 @@ const Item: FunctionComponent<ComponentProps> = (
                         }
 
                         return (
-                            <span
-                                style={
-                                    i > 0
-                                        ? {
-                                              marginLeft: '10px',
-                                          }
-                                        : {}
-                                }
+                            <div
                                 key={i}
+                                className=""
                             >
                                 <Button
                                     buttonSize={ButtonSize.Small}
@@ -114,7 +108,7 @@ const Item: FunctionComponent<ComponentProps> = (
                                         }
                                     }}
                                 />
-                            </span>
+                            </div>
                         );
                     }
                 )}
