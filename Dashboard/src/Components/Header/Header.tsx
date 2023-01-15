@@ -28,8 +28,14 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Upgrade from './Upgrade';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import { IconProp, SizeProp } from 'CommonUI/src/Components/Icon/Icon';
 import Route from 'Common/Types/API/Route';
+import TeamMember from 'Model/Models/TeamMember';
+import User from 'CommonUI/src/Utils/User';
+import Incident from 'Model/Models/Incident';
+import OneUptimeDate from 'Common/Types/Date';
+import HeaderModelAlert from 'CommonUI/src/Components/HeaderAlert/HeaderModelAlert';
+import HeaderAlert from 'CommonUI/src/Components/HeaderAlert/HeaderAlert';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -105,7 +111,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 leftComponents={
                     <>
                         {props.projects.length === 0 && (
-                            <Logo onClick={() => {}} />
+                            <Logo onClick={() => { }} />
                         )}
 
                         <ProjectPicker
@@ -115,15 +121,13 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             onProjectSelected={props.onProjectSelected}
                         />
 
-                        {/* <div
+                        <div
                             className="flex"
-                            style={{
-                                marginLeft: '15px',
-                                marginTop: '15px',
-                            }}
+
                         >
-                            <CounterModelAlert<TeamMember>
-                                alertType={AlertType.INFO}
+                            <HeaderModelAlert<TeamMember>
+                                icon={IconProp.Folder}
+                                className="rounded-md m-3 bg-indigo-500 p-3 font-bold hover:bg-indigo-600 cursor-pointer ml-0"
                                 modelType={TeamMember}
                                 query={{
                                     userId: User.getUserId(),
@@ -143,9 +147,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 }}
                             />
 
-                            <CounterModelAlert<Incident>
-                                alertType={AlertType.DANGER}
+                            <HeaderModelAlert<Incident>
+                                icon={IconProp.Alert}
                                 modelType={Incident}
+                                className="rounded-md m-3 bg-red-500 p-3 font-bold hover:bg-red-600 cursor-pointer ml-0"
                                 query={{
                                     currentIncidentState: {
                                         order: 1,
@@ -171,8 +176,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     OneUptimeDate.getCurrentDate(),
                                     props.selectedProject?.trialEndsAt!
                                 ) > 0 && (
-                                    <Alert
-                                        type={AlertType.INFO}
+                                    <HeaderAlert
+                                        icon={IconProp.Clock}
+                                        className="rounded-md m-3 bg-indigo-500 p-3 font-bold ml-0"
                                         title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                             OneUptimeDate.getCurrentDate(),
                                             props.selectedProject?.trialEndsAt!
@@ -181,15 +187,13 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                             props.selectedProject
                                                 ?.trialEndsAt!
                                         ) > 1
-                                                ? 'days'
-                                                : 'day'
+                                            ? 'days'
+                                            : 'day'
                                             }`}
-                                        style={{
-                                            marginRight: '10px',
-                                        }}
+
                                     />
                                 )}
-                        </div> */}
+                        </div>
                     </>
                 }
                 centerComponents={
@@ -197,7 +201,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         <SearchBox
                             key={2}
                             selectedProject={props.selectedProject}
-                            onChange={(_value: string) => {}}
+                            onChange={(_value: string) => { }}
                         />{' '}
                     </>
                 }
@@ -205,42 +209,43 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     <>
                         {/* <Notifications /> */}
                         {BILLING_ENABLED &&
-                        props.selectedProject?.id &&
-                        props.selectedProject.paymentProviderPlanId &&
-                        !SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId,
-                            getAllEnvVars()
-                        ) &&
-                        !SubscriptionPlan.isCustomPricingPlan(
-                            props.selectedProject.paymentProviderPlanId,
-                            getAllEnvVars()
-                        ) &&
-                        !isPaymentMethodCountLoading &&
-                        paymentMethodCount === 0 ? (
+                            props.selectedProject?.id &&
+                            props.selectedProject.paymentProviderPlanId &&
+                            !SubscriptionPlan.isFreePlan(
+                                props.selectedProject.paymentProviderPlanId,
+                                getAllEnvVars()
+                            ) &&
+                            !SubscriptionPlan.isCustomPricingPlan(
+                                props.selectedProject.paymentProviderPlanId,
+                                getAllEnvVars()
+                            ) &&
+                            !isPaymentMethodCountLoading &&
+                            paymentMethodCount === 0 ? (
                             <Button
                                 title="Add Card Details"
                                 onClick={() => {
                                     Navigation.navigate(
                                         RouteUtil.populateRouteParams(
                                             RouteMap[
-                                                PageMap.SETTINGS_BILLING
+                                            PageMap.SETTINGS_BILLING
                                             ] as Route
                                         )
                                     );
                                 }}
                                 buttonStyle={ButtonStyleType.LINK}
                                 icon={IconProp.Billing}
+                                iconSize={SizeProp.Larger}
                             ></Button>
                         ) : (
                             <></>
                         )}
                         {BILLING_ENABLED &&
-                        props.selectedProject?.id &&
-                        props.selectedProject.paymentProviderPlanId &&
-                        SubscriptionPlan.isFreePlan(
-                            props.selectedProject.paymentProviderPlanId,
-                            getAllEnvVars()
-                        ) ? (
+                            props.selectedProject?.id &&
+                            props.selectedProject.paymentProviderPlanId &&
+                            SubscriptionPlan.isFreePlan(
+                                props.selectedProject.paymentProviderPlanId,
+                                getAllEnvVars()
+                            ) ? (
                             <Upgrade />
                         ) : (
                             <></>

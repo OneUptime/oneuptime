@@ -69,6 +69,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                 onBlur={props.onBlur}
                 onEnterPress={props.onEnterPress}
                 className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"
+                outerDivClassName='className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"'
                 placeholder={props.placeholder}
                 value={color || props.value}
                 readOnly={true}
@@ -85,7 +86,7 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
             {color && !props.disabled && (
                 <Icon
                     icon={IconProp.Close}
-                    className="text-gray-400 h-5 w-5"
+                    className="text-gray-400 h-5 w-5 cursor-pointer hover:text-gray-600"
                     onClick={() => {
                         setColor('#FFFFFF');
                         if (props.onChange) {

@@ -28,6 +28,7 @@ export interface ComponentProps {
     tabIndex?: number | undefined;
     onEnterPress?: (() => void) | undefined;
     error?: string | undefined;
+    outerDivClassName?: string | undefined;
 }
 
 const Input: FunctionComponent<ComponentProps> = (
@@ -110,7 +111,7 @@ const Input: FunctionComponent<ComponentProps> = (
 
     return (
         <>
-            <div className={props.className || `relative mt-2 mb-1 rounded-md shadow-sm w-full` }>
+            <div className={props.outerDivClassName || `relative mt-2 mb-1 rounded-md shadow-sm w-full` }>
                 <input
                     autoFocus={true}
                     ref={ref}

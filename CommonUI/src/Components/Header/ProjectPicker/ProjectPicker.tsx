@@ -34,7 +34,7 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
     }, [isComponentVisible]);
 
     return (
-        <div className="w-64">
+        <div className="w-64 mr-3">
             <div className="relative mt-3 w-full">
                 <button
                     onClick={() => {

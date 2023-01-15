@@ -2,14 +2,14 @@ import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
 
 export enum SizeProp {
-    ExtraSmall = '8px',
-    Smaller = '10px',
-    Small = '12px',
-    Regular = '15px',
-    Large = '18px',
-    Larger = '21px',
-    ExtraLarge = '25px',
-    Five = 'Five',
+    ExtraSmall,
+    Smaller,
+    Small,
+    Regular,
+    Large,
+    Larger,
+    ExtraLarge,
+    Five,
 }
 
 export enum ThickProp {
