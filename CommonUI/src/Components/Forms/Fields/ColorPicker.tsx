@@ -16,13 +16,11 @@ export interface ComponentProps {
     placeholder: string;
     onFocus?: (() => void) | undefined;
     tabIndex?: number | undefined;
-    onClick?: undefined | (() => void);
-    className?: undefined | string;
     value?: string | undefined;
     readOnly?: boolean | undefined;
     disabled?: boolean | undefined;
     onBlur?: (() => void) | undefined;
-    dataTestId?: string;
+    dataTestId?: string | undefined;
     onEnterPress?: (() => void) | undefined;
     error?: string | undefined;
 }
@@ -49,19 +47,21 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <div className='flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm pl-10'>
-            
-            <div className='rounded h-5 w-5' style={{backgroundColor: color.toString()}}>
-
-            </div>
+        <div className="flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm pl-10">
+            <div
+                className="rounded h-5 w-5"
+                style={{ backgroundColor: color.toString() }}
+            ></div>
 
             <Input
                 disabled={props.disabled}
+                dataTestId={props.dataTestId}
                 onBlur={props.onBlur}
+                error={props.error}
                 onEnterPress={props.onEnterPress}
                 className="border-none"
                 placeholder={props.placeholder}
-                value={color}
+                value={color || props.value}
                 readOnly={true}
                 type="text"
                 tabIndex={props.tabIndex}

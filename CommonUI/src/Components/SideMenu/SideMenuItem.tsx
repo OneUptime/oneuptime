@@ -3,7 +3,7 @@ import React, { FunctionComponent } from 'react';
 import Navigation from '../../Utils/Navigation';
 import Icon, { IconProp } from '../Icon/Icon';
 import UILink from '../Link/Link';
-import { BadgeType } from '../Badge/Badge';
+import Badge, { BadgeType } from '../Badge/Badge';
 
 export interface ComponentProps {
     link: Link;
@@ -44,7 +44,7 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
 
             <span className="truncate">{props.link.title}</span>
 
-            {/* <div>
+            <div>
                 {props.badge ? (
                     <Badge
                         badgeCount={props.badge}
@@ -57,9 +57,8 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                 {props.showAlert ? (
                     <>
                         <Icon
-                            className="float-end"
+                            className="float-end text-red-900"
                             icon={IconProp.Error}
-                            color={Red}
                         />
                     </>
                 ) : (
@@ -68,15 +67,14 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
                 {props.showWarning ? (
                     <>
                         <Icon
-                            className="float-end"
+                            className="float-end text-yellow-900"
                             icon={IconProp.Alert}
-                            color={Yellow}
                         />
                     </>
                 ) : (
                     <></>
                 )}
-            </div> */}
+            </div>
         </UILink>
     );
 };

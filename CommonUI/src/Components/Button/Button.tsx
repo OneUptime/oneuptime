@@ -38,12 +38,10 @@ export interface ComponentProps {
     isLoading?: undefined | boolean;
     style?: undefined | CSS.Properties;
     icon?: undefined | IconProp;
-    showIconOnRight?: undefined | boolean;
     iconSize?: undefined | SizeProp;
     buttonStyle?: undefined | ButtonStyleType;
     buttonSize?: ButtonSize | undefined;
     dataTestId?: string;
-    textStyle?: React.CSSProperties | undefined;
     className?: string | undefined;
 }
 
@@ -58,12 +56,10 @@ const Button: FunctionComponent<ComponentProps> = ({
     style,
     icon,
     iconSize,
-    showIconOnRight = false,
     buttonStyle = ButtonStyleType.NORMAL,
     buttonSize = ButtonSize.Normal,
     dataTestId,
-    textStyle,
-    className
+    className,
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -108,16 +104,18 @@ const Button: FunctionComponent<ComponentProps> = ({
     let loadingIconClassName: string = 'w-5 h-5 mr-3 -ml-1 mr-1 animate-spin';
     let iconClassName: string = 'w-5 h-5';
 
-    if (buttonStyle !== ButtonStyleType.ICON && buttonStyle !== ButtonStyleType.ICON_LIGHT) { 
-        iconClassName += " mr-1";
+    if (
+        buttonStyle !== ButtonStyleType.ICON &&
+        buttonStyle !== ButtonStyleType.ICON_LIGHT
+    ) {
+        iconClassName += ' mr-1';
     } else {
-        iconClassName += " m-1";
+        iconClassName += ' m-1';
     }
 
-
-
     if (buttonStyle === ButtonStyleType.LINK) {
-        buttonStyleCssClass = 'text-indigo-600 hover:text-indigo-900 flex space-x-2';
+        buttonStyleCssClass =
+            'text-indigo-600 hover:text-indigo-900 flex space-x-2';
     }
 
     if (buttonStyle === ButtonStyleType.DANGER) {
@@ -126,7 +124,8 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
-        buttonStyleCssClass = 'inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.PRIMARY) {
@@ -169,7 +168,8 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.SUCCESS_OUTLINE) {
-        buttonStyleCssClass = 'inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.WARNING) {
@@ -177,13 +177,14 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.WARNING_OUTLINE) {
-        buttonStyleCssClass = 'inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
-    buttonStyleCssClass += " " + buttonSize;
+    buttonStyleCssClass += ' ' + buttonSize;
 
     if (className) {
-        buttonStyleCssClass += " " + className;
+        buttonStyleCssClass += ' ' + className;
     }
 
     return (
@@ -200,7 +201,7 @@ const Button: FunctionComponent<ComponentProps> = ({
             disabled={disabled || isLoading}
             className={buttonStyleCssClass}
         >
-            {isLoading && buttonStyle !== ButtonStyleType.ICON &&  (
+            {isLoading && buttonStyle !== ButtonStyleType.ICON && (
                 <Icon
                     icon={IconProp.Spinner}
                     className={loadingIconClassName}
@@ -208,11 +209,14 @@ const Button: FunctionComponent<ComponentProps> = ({
             )}
 
             {!isLoading && icon && (
-                <Icon icon={icon} className={iconClassName}  size={iconSize || undefined} />
+                <Icon
+                    icon={icon}
+                    className={iconClassName}
+                    size={iconSize || undefined}
+                />
             )}
 
             {title && buttonStyle !== ButtonStyleType.ICON ? title : ''}
-
         </button>
     );
 };

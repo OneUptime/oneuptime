@@ -29,7 +29,7 @@ const PageError: FunctionComponent<ComponentProps> = (
             submitButtonStyleType={ButtonStyleType.NORMAL}
             submitButtonText="Reload Page"
         >
-            <p className="text-sm text-gray-500">{props.message}</p>
+            <p className="text-sm text-gray-500">{message}</p>
         </Modal>
     );
 };

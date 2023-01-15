@@ -37,10 +37,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
     const getRow: Function = (provided?: DraggableProvided): ReactElement => {
         return (
             <>
-                <tr
-                    {...provided?.draggableProps}
-                    ref={provided?.innerRef}
-                >
+                <tr {...provided?.draggableProps} ref={provided?.innerRef}>
                     {props.enableDragAndDrop && (
                         <td
                             style={{ width: '20px' }}
@@ -56,10 +53,11 @@ const TableRow: FunctionComponent<ComponentProps> = (
                     )}
                     {props.columns &&
                         props.columns.map((column: Column, i: number) => {
-
-                            let className = "whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6"
-                            if (i == props.columns.length - 1) {
-                                className = "whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6"
+                            let className: string =
+                                'whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6';
+                            if (i === props.columns.length - 1) {
+                                className =
+                                    'whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6';
                             }
                             return (
                                 <td

@@ -3,7 +3,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
+import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 import Item from './Item';
 
 export interface ComponentProps {
@@ -69,7 +69,7 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                             {props.onCreateNewItem &&
                                 isBegining &&
                                 props.shouldAddItemInTheBegining && (
-                                    <div className='text-center'>
+                                    <div className="text-center">
                                         <div
                                             className="text-center cursor-pointer text-gray-300 hover:bg-gray-50 text-center border rounded border-gray-300 p-5 w-fit"
                                             onClick={() => {
@@ -87,7 +87,6 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                             <div className="flex text-center">
                                                 <Icon
                                                     icon={IconProp.Add}
-                                                    
                                                     className="ml-5 mr-5 h-5 w-5 text-gray-500"
                                                 />{' '}
                                                 Add New Item
@@ -97,9 +96,8 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                         <div className="text-center m-10 ">
                                             <Icon
                                                 icon={IconProp.ChevronDown}
-                                        
-                                            size={SizeProp.Regular}
-                                            className="ml-5 mr-5 h-5 w-5 text-gray-500"
+                                                size={SizeProp.Regular}
+                                                className="ml-5 mr-5 h-5 w-5 text-gray-500"
                                             />
                                         </div>
                                     </div>
@@ -127,7 +125,7 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                             {props.onCreateNewItem &&
                                 ((isEnd && props.shouldAddItemInTheEnd) ||
                                     !isEnd) && (
-                                    <div className='text-center'>
+                                    <div className="text-center">
                                         <div
                                             className="text-center cursor-pointer text-gray-300 hover:bg-gray-50 border rounded border-gray-300 p-5 w-fit"
                                             onClick={() => {
@@ -145,7 +143,6 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                             <div className="flex text-center ">
                                                 <Icon
                                                     icon={IconProp.Add}
-                                                    
                                                     className="ml-5 mr-5 h-5 w-5 text-gray-500"
                                                 />{' '}
                                                 Add New Item
@@ -155,9 +152,8 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                             <div className="text-center m-10">
                                                 <Icon
                                                     icon={IconProp.ChevronDown}
-                                                    
-                                                size={SizeProp.Larger}
-                                                className="ml-5 mr-5 h-5 w-5 text-gray-500"
+                                                    size={SizeProp.Larger}
+                                                    className="ml-5 mr-5 h-5 w-5 text-gray-500"
                                                 />
                                             </div>
                                         )}

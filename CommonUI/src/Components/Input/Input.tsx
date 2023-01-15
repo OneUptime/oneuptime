@@ -24,7 +24,7 @@ export interface ComponentProps {
     type?: InputType;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
-    dataTestId?: string;
+    dataTestId?: string | undefined;
     tabIndex?: number | undefined;
     onEnterPress?: (() => void) | undefined;
     error?: string | undefined;
@@ -33,7 +33,7 @@ export interface ComponentProps {
 const Input: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    let className = '';
+    let className: string = '';
 
     if (!props.className) {
         className =
@@ -114,6 +114,7 @@ const Input: FunctionComponent<ComponentProps> = (
                 <input
                     autoFocus={true}
                     ref={ref}
+                    onFocus={props.onFocus}
                     onClick={props.onClick}
                     data-testid={props.dataTestId}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

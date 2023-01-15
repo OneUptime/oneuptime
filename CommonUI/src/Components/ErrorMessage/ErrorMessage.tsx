@@ -9,9 +9,7 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <p
-            className="text-center my-10 text-gray-500 text-sm"
-        >
+        <p className="text-center my-10 text-gray-500 text-sm">
             {props.error} <br />{' '}
             {props.onRefreshClick ? (
                 <span

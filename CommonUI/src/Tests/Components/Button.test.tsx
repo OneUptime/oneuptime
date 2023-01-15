@@ -98,10 +98,7 @@ describe('Button', () => {
 
     test('it should have buttonStyle OUTLINE', () => {
         render(
-            <Button
-                dataTestId="test-id"
-                buttonStyle={ButtonStyleType.NORMAL}
-            />
+            <Button dataTestId="test-id" buttonStyle={ButtonStyleType.NORMAL} />
         );
         const testId: HTMLElement = screen.getByTestId('test-id');
 

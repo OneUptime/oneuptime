@@ -48,7 +48,7 @@ const Table: FunctionComponent<ComponentProps> = (
                 <tbody>
                     <tr>
                         <td colSpan={props.columns.length}>
-                            <div className='flex justify-center w-full'>
+                            <div className="flex justify-center w-full">
                                 <ComponentLoader />
                             </div>
                         </td>
@@ -114,17 +114,10 @@ const Table: FunctionComponent<ComponentProps> = (
             <Filter
                 id={`${props.id}-filter`}
                 showFilter={props.showFilter || false}
-                onFilterChanged={
-                    props.onFilterChanged || undefined
-                }
-                isTableFilterLoading={
-                    props.isTableFilterLoading
-                }
+                onFilterChanged={props.onFilterChanged || undefined}
+                isTableFilterLoading={props.isTableFilterLoading}
                 filterError={props.filterError}
-
-                onTableFilterRefreshClick={
-                    props.onTableFilterRefreshClick
-                }
+                onTableFilterRefreshClick={props.onTableFilterRefreshClick}
                 columns={props.columns}
             />
             <DragDropContext

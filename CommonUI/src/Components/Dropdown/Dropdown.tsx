@@ -1,4 +1,4 @@
-import Select, { components } from 'react-select';
+import Select from 'react-select';
 import React, {
     FunctionComponent,
     ReactElement,
@@ -20,8 +20,8 @@ export interface ComponentProps {
     placeholder?: undefined | string;
     className?: undefined | string;
     onChange?:
-    | undefined
-    | ((value: DropdownValue | Array<DropdownValue> | null) => void);
+        | undefined
+        | ((value: DropdownValue | Array<DropdownValue> | null) => void);
     value?: DropdownOption | undefined;
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
@@ -38,7 +38,6 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     const [selectedValue, setSelectedValue] = useState<
         DropdownOption | Array<DropdownOption> | null
     >(null);
-
 
     useEffect(() => {
         if (props.initialValue) {
@@ -106,7 +105,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className={`${props.className || 'relative mt-2 mb-1 rounded-md shadow-sm w-full'}`}
+            className={`${
+                props.className ||
+                'relative mt-2 mb-1 rounded-md shadow-sm w-full'
+            }`}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();

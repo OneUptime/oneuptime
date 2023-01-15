@@ -1,5 +1,5 @@
 import Color from 'Common/Types/Color';
-import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export enum SizeProp {
     ExtraSmall = '8px',
@@ -95,7 +95,7 @@ export enum IconProp {
     ArrowCircleRight,
     Anouncement,
     Window,
-    AddFolder
+    AddFolder,
 }
 
 export enum IconType {
@@ -112,7 +112,6 @@ export interface ComponentProps {
     color?: Color | null;
     thick?: ThickProp;
     onClick?: (() => void) | undefined;
-    style?: CSSProperties | undefined;
     type?: IconType | undefined;
 }
 const Icon: FunctionComponent<ComponentProps> = ({
@@ -151,7 +150,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     let strokeWidth: string = '';
 
     if (thick) {
-        if (thick == ThickProp.LessThick) {
+        if (thick === ThickProp.LessThick) {
             strokeWidth = 'stroke-0';
         } else if (thick === ThickProp.Thick) {
             strokeWidth = 'stroke-2';
@@ -172,7 +171,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
         textColor = 'text-red-600';
     }
 
-    const getSvgWrapper = (
+    const getSvgWrapper: Function = (
         children: ReactElement | Array<ReactElement>
     ): ReactElement => {
         return (
@@ -219,9 +218,16 @@ const Icon: FunctionComponent<ComponentProps> = ({
             />
         );
     } else if (icon === IconProp.AddFolder) {
-        return getSvgWrapper( <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />);   
-    }
-    else if (icon === IconProp.Help) {
+        return getSvgWrapper(
+            <path
+                vectorEffect="non-scaling-stroke"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+            />
+        );
+    } else if (icon === IconProp.Help) {
         return getSvgWrapper(
             <path
                 strokeLinecap="round"
@@ -239,10 +245,11 @@ const Icon: FunctionComponent<ComponentProps> = ({
         );
     } else if (icon === IconProp.Search) {
         return getSvgWrapper(
-
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-
-
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+            />
         );
     } else if (icon === IconProp.User) {
         return getSvgWrapper(
@@ -286,7 +293,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 ></path>
             </>
         );
-    } else if (icon == IconProp.Home) {
+    } else if (icon === IconProp.Home) {
         return getSvgWrapper(
             <path
                 fillRule="evenodd"
@@ -294,7 +301,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 clipRule="evenodd"
             />
         );
-    } else if (icon == IconProp.ChevronRight) {
+    } else if (icon === IconProp.ChevronRight) {
         return getSvgWrapper(
             <path
                 fillRule="evenodd"
@@ -446,9 +453,11 @@ const Icon: FunctionComponent<ComponentProps> = ({
         );
     } else if (icon === IconProp.ChevronDown) {
         return getSvgWrapper(
-
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+            />
         );
     } else if (icon === IconProp.ChevronLeft) {
         return getSvgWrapper(
@@ -604,10 +613,11 @@ const Icon: FunctionComponent<ComponentProps> = ({
         );
     } else if (icon === IconProp.Edit) {
         return getSvgWrapper(
-
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-
-
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+            />
         );
     } else if (icon === IconProp.True) {
         return getSvgWrapper(

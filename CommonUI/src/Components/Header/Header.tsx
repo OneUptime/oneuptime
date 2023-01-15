@@ -4,7 +4,6 @@ export interface ComponentProps {
     leftComponents?: undefined | Array<ReactElement> | ReactElement;
     rightComponents?: undefined | Array<ReactElement> | ReactElement;
     centerComponents?: undefined | Array<ReactElement> | ReactElement;
-    isRenderedOnMobile?: boolean;
 }
 
 const Header: FunctionComponent<ComponentProps> = (

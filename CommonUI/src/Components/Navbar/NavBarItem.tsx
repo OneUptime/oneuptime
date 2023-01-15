@@ -17,9 +17,11 @@ export interface ComponentProps {
 const NavBarItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const isActive = props.route && Navigation.isOnThisPage(props.route);
+    const isActive: boolean = Boolean(
+        props.route && Navigation.isOnThisPage(props.route)
+    );
 
-    let classNames =
+    let classNames: string =
         'text-gray-500 hover:bg-gray-50 hover:text-gray-900 rounded-md py-2 px-3 inline-flex items-center text-sm font-medium';
 
     if (isActive) {

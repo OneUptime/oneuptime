@@ -1036,7 +1036,7 @@ const BasicForm: Function = <T extends Object>(
                         setSubmitting(false);
                     }}
                 >
-                    {({ errors, touched }) => {
+                    {({ errors, touched }: any) => {
                         return (
                             <Form autoComplete="off">
                                 <h1>{props.title}</h1>

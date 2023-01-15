@@ -32,7 +32,9 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
             }
             error={props.error}
         >
-            <div className='text-gray-500 mt-5 text-sm'>{props.description}</div>
+            <div className="text-gray-500 mt-5 text-sm">
+                {props.description}
+            </div>
         </Modal>
     );
 };

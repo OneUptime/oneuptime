@@ -22,7 +22,7 @@ const TextArea: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const [text, setText] = useState<string>('');
 
-    let className = '';
+    let className: string = '';
 
     if (!props.className) {
         className =

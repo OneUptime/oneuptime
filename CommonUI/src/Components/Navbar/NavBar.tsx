@@ -10,7 +10,7 @@ export interface ComponentProps {
 const Navbar: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    let className = 'hidden lg:flex lg:space-x-8 lg:py-2';
+    let className: string = 'hidden lg:flex lg:space-x-8 lg:py-2';
 
     if (props.isRenderedOnMobile) {
         className = 'space-y-1 px-2 pt-2 pb-3';

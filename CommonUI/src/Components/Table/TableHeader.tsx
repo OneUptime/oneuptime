@@ -1,8 +1,4 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useState,
-} from 'react';
+import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
@@ -22,9 +18,8 @@ const TableHeader: FunctionComponent<ComponentProps> = (
     const [currentSortColumn, setCurrentSortColumn] = useState<string>('');
     const [sortOrder, setSortOrder] = useState<SortOrder>(SortOrder.Ascending);
 
-
     return (
-        <thead className="bg-gray-50">
+        <thead className="bg-gray-50" id={props.id}>
             <tr>
                 {props.enableDragAndDrop && <th></th>}
                 {props.columns.map((column: Column, i: number) => {
@@ -34,8 +29,9 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                     return (
                         <th
                             key={i}
-                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${canSort ? 'cursor-pointer' : ''
-                                }`}
+                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
+                                canSort ? 'cursor-pointer' : ''
+                            }`}
                             onClick={() => {
                                 if (!column.key) {
                                     return;
@@ -63,10 +59,11 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                             }}
                         >
                             <div
-                                className={`flex ${column.type === FieldType.Actions
-                                    ? 'justify-end'
-                                    : 'justify-start'
-                                    }`}
+                                className={`flex ${
+                                    column.type === FieldType.Actions
+                                        ? 'justify-end'
+                                        : 'justify-start'
+                                }`}
                             >
                                 {column.title}
                                 {canSort &&
@@ -92,9 +89,6 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                     );
                 })}
             </tr>
-
-
-
         </thead>
     );
 };

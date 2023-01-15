@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import Icon, { IconProp } from '../../Icon/Icon';
 import Project from 'Model/Models/Project';
@@ -19,14 +24,14 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     const { ref, isComponentVisible, setIsComponentVisible } =
         useComponentOutsideClick(false);
-    
+
     const [isDropdownVisible, setDropdownVisible] = useState<boolean>(false);
 
     const [filterValue, setFilterValue] = useState<string>('');
 
     useEffect(() => {
-        setDropdownVisible(isComponentVisible); 
-    }, [isComponentVisible])
+        setDropdownVisible(isComponentVisible);
+    }, [isComponentVisible]);
 
     return (
         <div className="w-64">

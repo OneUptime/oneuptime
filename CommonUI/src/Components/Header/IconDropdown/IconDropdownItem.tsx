@@ -1,7 +1,7 @@
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp, SizeProp, ThickProp } from '../../Icon/Icon';
+import Icon, { IconProp } from '../../Icon/Icon';
 import Link from '../../Link/Link';
 
 export interface ComponentProps {
@@ -21,13 +21,7 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
             onClick={props.onClick}
         >
             <div className="mr-1 h-5 w-5">
-                {props.icon ? (
-                    <Icon
-                        icon={props.icon}
-                    />
-                ) : (
-                    <></>
-                )}
+                {props.icon ? <Icon icon={props.icon} /> : <></>}
             </div>
             <span className="">{props.title}</span>
         </Link>

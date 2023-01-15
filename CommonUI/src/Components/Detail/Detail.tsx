@@ -183,10 +183,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 </label>
                 {field.description && <p>{field.description}</p>}
 
-                <div
-                    className="mt-1 text-sm text-gray-900"
-                  
-                >
+                <div className="mt-1 text-sm text-gray-900">
                     {data && data}
                     {!data && (
                         <span className="text-gray-500">
@@ -199,10 +196,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     return (
-        
-        <div
-            className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2`}
-        >
+        <div className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2`}>
             {props.fields &&
                 props.fields.length > 0 &&
                 props.fields.map((field: Field, i: number) => {

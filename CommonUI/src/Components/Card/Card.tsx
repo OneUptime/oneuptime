@@ -15,11 +15,8 @@ export interface CardButtonSchema {
 export interface ComponentProps {
     title: string | ReactElement;
     description: string | ReactElement;
-    icon?: IconProp | undefined;
     buttons?: undefined | Array<CardButtonSchema>;
     children?: undefined | Array<ReactElement> | ReactElement;
-    className?: string | undefined;
-    style?: React.CSSProperties | undefined;
 }
 
 const Card: FunctionComponent<ComponentProps> = (
@@ -42,7 +39,7 @@ const Card: FunctionComponent<ComponentProps> = (
                                     {props.description}
                                 </p>
                             </div>
-                            <div className='flex'>
+                            <div className="flex">
                                 {props.buttons?.map(
                                     (button: CardButtonSchema, i: number) => {
                                         return (
@@ -72,7 +69,7 @@ const Card: FunctionComponent<ComponentProps> = (
                                                     disabled={button.disabled}
                                                     icon={button.icon}
                                                 />
-                                            </span>
+                                            </div>
                                         );
                                     }
                                 )}

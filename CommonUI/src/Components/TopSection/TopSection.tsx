@@ -3,7 +3,6 @@ import React, { FunctionComponent, ReactElement } from 'react';
 export interface ComponentProps {
     header: ReactElement | undefined;
     navbar: ReactElement | undefined;
-    isRenderedOnMobile: boolean;
 }
 
 const TopSection: FunctionComponent<ComponentProps> = (

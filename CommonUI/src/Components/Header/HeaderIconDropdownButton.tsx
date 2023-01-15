@@ -1,4 +1,9 @@
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 import useComponentOutsideClick from '../../Types/UseComponentOutsideClick';
 import Image from '../Image/Image';
@@ -21,12 +26,9 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
         useComponentOutsideClick(false);
     const [isDropdownVisible, setDropdownVisible] = useState<boolean>(false);
 
-
-
     useEffect(() => {
         setDropdownVisible(isComponentVisible);
-    }, [isComponentVisible])
-
+    }, [isComponentVisible]);
 
     return (
         <div className="relative ml-4 flex-shrink-0">

@@ -66,29 +66,27 @@ const Pagination: FunctionComponent<ComponentProps> = (
     return (
         <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4">
             <div>
-                <p
-                    className="text-sm text-gray-500"
-                >
+                <p className="text-sm text-gray-500">
                     {!props.isLoading && (
                         <span>
                             {props.totalItemsCount}{' '}
                             {props.totalItemsCount > 1
                                 ? props.pluralLabel
                                 : props.singularLabel}{' '}
-                            {`in total. Showing ${props.itemsOnPage *
-                                (props.currentPageNumber - 1) +
+                            {`in total. Showing ${
+                                props.itemsOnPage *
+                                    (props.currentPageNumber - 1) +
                                 1
-                                } to ${props.itemsOnPage * props.currentPageNumber
-                                } on this page.`}
+                            } to ${
+                                props.itemsOnPage * props.currentPageNumber
+                            } on this page.`}
                         </span>
                     )}
                 </p>
             </div>
             <div>
-                <nav
-                    className="isolate inline-flex -space-x-px rounded-md shadow-sm"
-                >
-                    <ul className='py-3'>
+                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm">
+                    <ul className="py-3">
                         <li
                             onClick={() => {
                                 if (
@@ -101,23 +99,23 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  focus:z-20 ${isPreviousDisabled ? 'bg-gray-100' : 'hover:bg-gray-50 cursor-pointer'}`}
-
+                            className={`relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  focus:z-20 ${
+                                isPreviousDisabled
+                                    ? 'bg-gray-100'
+                                    : 'hover:bg-gray-50 cursor-pointer'
+                            }`}
                         >
                             <span className="page-link">Previous</span>
                         </li>
                         <li
-                            className={`relative z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 focus:z-20 cursor-pointer ${isCurrentPageButtonDisabled ? 'bg-gray-100' : ''}`}
+                            className={`relative z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 focus:z-20 cursor-pointer ${
+                                isCurrentPageButtonDisabled ? 'bg-gray-100' : ''
+                            }`}
                             onClick={() => {
                                 setShowPaginationModel(true);
                             }}
                         >
-                            <span
-
-
-                            >
-                                {props.currentPageNumber}
-                            </span>
+                            <span>{props.currentPageNumber}</span>
                         </li>
                         <li
                             onClick={() => {
@@ -128,8 +126,11 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:z-20 ${isNextDisabled ? 'bg-gray-100' : ' hover:bg-gray-50 cursor-pointer'}`}
-
+                            className={`relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:z-20 ${
+                                isNextDisabled
+                                    ? 'bg-gray-100'
+                                    : ' hover:bg-gray-50 cursor-pointer'
+                            }`}
                         >
                             <span>Next</span>
                         </li>
@@ -162,10 +163,11 @@ const Pagination: FunctionComponent<ComponentProps> = (
                         fields: [
                             {
                                 title: 'Page Number',
-                                description: `You can enter page numbers from ${minPageNumber !== maxPageNumber
-                                    ? minPageNumber + ' to ' + maxPageNumber
-                                    : minPageNumber
-                                    }. Please enter it here:`,
+                                description: `You can enter page numbers from ${
+                                    minPageNumber !== maxPageNumber
+                                        ? minPageNumber + ' to ' + maxPageNumber
+                                        : minPageNumber
+                                }. Please enter it here:`,
                                 field: {
                                     pageNumber: true,
                                 },

@@ -10,7 +10,6 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     isLoading: boolean;
     error: string;
-    mainContentStyle?: React.CSSProperties | undefined;
 }
 
 const MasterPage: FunctionComponent<ComponentProps> = (
@@ -35,7 +34,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <>
-                <div className='sticky top-0'>
+                <div className="sticky top-0">
                     <TopSection
                         header={props.header}
                         navbar={props.navBar}

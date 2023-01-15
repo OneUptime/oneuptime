@@ -205,25 +205,25 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     <>
                         {/* <Notifications /> */}
                         {BILLING_ENABLED &&
-                            props.selectedProject?.id &&
-                            props.selectedProject.paymentProviderPlanId &&
-                            !SubscriptionPlan.isFreePlan(
-                                props.selectedProject.paymentProviderPlanId,
-                                getAllEnvVars()
-                            ) &&
-                            !SubscriptionPlan.isCustomPricingPlan(
-                                props.selectedProject.paymentProviderPlanId,
-                                getAllEnvVars()
-                            ) &&
-                            !isPaymentMethodCountLoading &&
-                            paymentMethodCount === 0 ? (
+                        props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        !SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
+                        ) &&
+                        !SubscriptionPlan.isCustomPricingPlan(
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
+                        ) &&
+                        !isPaymentMethodCountLoading &&
+                        paymentMethodCount === 0 ? (
                             <Button
                                 title="Add Card Details"
                                 onClick={() => {
                                     Navigation.navigate(
                                         RouteUtil.populateRouteParams(
                                             RouteMap[
-                                            PageMap.SETTINGS_BILLING
+                                                PageMap.SETTINGS_BILLING
                                             ] as Route
                                         )
                                     );
@@ -238,14 +238,13 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             <></>
                         )}
                         {BILLING_ENABLED &&
-                            props.selectedProject?.id &&
-                            props.selectedProject.paymentProviderPlanId &&
-                            SubscriptionPlan.isFreePlan(
-                                props.selectedProject.paymentProviderPlanId,
-                                getAllEnvVars()
-                            ) ? (
+                        props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
+                        ) ? (
                             <Upgrade />
-
                         ) : (
                             <></>
                         )}
