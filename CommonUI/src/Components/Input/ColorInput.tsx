@@ -75,7 +75,7 @@ const ColorInput: FunctionComponent<ComponentProps> = (
             {color && !props.disabled && (
                 <Icon
                     icon={IconProp.Close}
-                    color={Grey}
+                    className="h-3 w-3"
                     onClick={() => {
                         setValue('');
                         setColor('#000000');

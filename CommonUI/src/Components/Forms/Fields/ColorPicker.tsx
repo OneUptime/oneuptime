@@ -47,29 +47,34 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <div className="flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm pl-10">
-            <div
-                className="rounded h-5 w-5"
-                style={{ backgroundColor: color.toString() }}
-            ></div>
-
-            <Input
-                disabled={props.disabled}
-                dataTestId={props.dataTestId}
-                onBlur={props.onBlur}
-                error={props.error}
-                onEnterPress={props.onEnterPress}
-                className="border-none"
-                placeholder={props.placeholder}
-                value={color || props.value}
-                readOnly={true}
-                type="text"
-                tabIndex={props.tabIndex}
+        <div className="flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm">
+            <div 
                 onClick={() => {
                     if (!props.readOnly) {
                         setIsComponentVisible(!isComponentVisible);
                     }
                 }}
+                className="rounded h-5 w-5 border border-gray-200 cursor-pointer"
+                style={{ backgroundColor: color.toString() }}
+            ></div>
+
+            <Input
+                onClick={() => {
+                    if (!props.readOnly) {
+                        setIsComponentVisible(!isComponentVisible);
+                    }
+                }}
+                disabled={props.disabled}
+                dataTestId={props.dataTestId}
+                onBlur={props.onBlur}
+                onEnterPress={props.onEnterPress}
+                className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"
+                placeholder={props.placeholder}
+                value={color || props.value}
+                readOnly={true}
+                type="text"
+                tabIndex={props.tabIndex}
+
                 onChange={(value: string) => {
                     if (!value) {
                         return handleChange('');
@@ -80,8 +85,9 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
             {color && !props.disabled && (
                 <Icon
                     icon={IconProp.Close}
+                    className="text-gray-400 h-5 w-5"
                     onClick={() => {
-                        setColor('#000000');
+                        setColor('#FFFFFF');
                         if (props.onChange) {
                             props.onChange(null);
                         }
@@ -107,6 +113,10 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
                 </div>
             ) : (
                 <></>
+            )}
+
+            {props.error && (
+                <p className="mt-1 text-sm text-red-400">{props.error}</p>
             )}
         </div>
     );

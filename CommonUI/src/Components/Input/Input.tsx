@@ -110,7 +110,7 @@ const Input: FunctionComponent<ComponentProps> = (
 
     return (
         <>
-            <div className="relative mt-2 mb-1 rounded-md shadow-sm w-full">
+            <div className={props.className || `relative mt-2 mb-1 rounded-md shadow-sm w-full` }>
                 <input
                     autoFocus={true}
                     ref={ref}
