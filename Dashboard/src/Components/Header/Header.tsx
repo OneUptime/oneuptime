@@ -11,8 +11,6 @@ import UserProfile from './UserProfile';
 import ProjectPicker from './ProjectPicker';
 import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Model/Models/Project';
-import ProjectInvitationsModal from './ProjectInvitationsModal';
-import ActiveIncidentsModal from './ActiveIncidentsModal';
 import Logo from './Logo';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -49,17 +47,7 @@ export interface ComponentProps {
 const DashboardHeader: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [showProjectInvitationModal, setShowProjectInvitationModal] =
-        useState<boolean>(false);
 
-    const [showActiveIncidentsModal, setShowActiveIncidentsModal] =
-        useState<boolean>(false);
-
-    const [projectCountRefreshToggle, setProjectCountRefreshToggle] =
-        useState<boolean>(true);
-
-    const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
-        useState<boolean>(true);
 
     const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] =
         useState<boolean>(false);
@@ -135,9 +123,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 requestOptions={{
                                     isMultiTenantRequest: true,
                                 }}
-                                refreshToggle={projectCountRefreshToggle}
+
                                 onClick={() => {
-                                    setShowProjectInvitationModal(true);
+                                    Navigation.navigate(RouteMap[PageMap.PROJECT_INVITATIONS]!)
                                 }}
                                 style={{
                                     marginRight: '10px',
@@ -153,14 +141,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         order: 1,
                                     },
                                 }}
-                                refreshToggle={activeIncidentToggleRefresh}
+
                                 singularName="Active Incident"
                                 pluralName="Active Incidents"
                                 requestOptions={{
                                     isMultiTenantRequest: true,
                                 }}
                                 onClick={() => {
-                                    setShowActiveIncidentsModal(true);
+                                    Navigation.navigate(RouteMap[PageMap.ACTIVE_INCIDENTS]!)
                                 }}
                                 style={{
                                     marginRight: '10px',
@@ -257,34 +245,6 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 }
             />
 
-            {showProjectInvitationModal && (
-                <ProjectInvitationsModal
-                    onClose={() => {
-                        setShowProjectInvitationModal(false);
-                    }}
-                    onRequestAccepted={() => {
-                        props.onProjectRequestAccepted();
-                        setProjectCountRefreshToggle(
-                            !projectCountRefreshToggle
-                        );
-                    }}
-                    onRequestRejected={() => {
-                        props.onProjectRequestRejected();
-                        setProjectCountRefreshToggle(
-                            !projectCountRefreshToggle
-                        );
-                    }}
-                />
-            )}
-
-
-            {showActiveIncidentsModal && (
-                <ActiveIncidentsModal
-                    onClose={() => {
-                        setShowActiveIncidentsModal(false);
-                    }}
-                />
-            )}
         </>
     );
 };
