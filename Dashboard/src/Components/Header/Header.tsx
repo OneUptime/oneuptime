@@ -18,7 +18,6 @@ import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import useAsyncEffect from 'use-async-effect';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
 import EventName from '../../Utils/EventName';
-import SearchBox from './SearchBox';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -187,11 +186,11 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 }
                 centerComponents={
                     <>
-                        <SearchBox
+                        {/* <SearchBox
                             key={2}
                             selectedProject={props.selectedProject}
                             onChange={(_value: string) => { }}
-                        />{' '}
+                        />{' '} */}
                     </>
                 }
                 rightComponents={
