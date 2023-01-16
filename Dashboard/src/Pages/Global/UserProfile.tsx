@@ -138,7 +138,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                             fieldType: FormFieldSchemaType.ImageFile,
                             required: false,
                             placeholder:
-                                'Please upload your profile picture here.',
+                                'Upload profile picture',
                         },
                     ]}
                     modelDetailProps={{

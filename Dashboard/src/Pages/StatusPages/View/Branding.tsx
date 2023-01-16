@@ -126,7 +126,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Favicon',
                         fieldType: FormFieldSchemaType.ImageFile,
                         required: false,
-                        placeholder: 'Please favicon logo here.',
+                        placeholder: 'Upload Favicon.',
                     },
                 ]}
                 modelDetailProps={{

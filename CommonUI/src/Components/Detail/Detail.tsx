@@ -96,6 +96,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 data = (
                     <img
                         src={url}
+                        className={'rounded'}
                         style={{
                             height: '100px',
                         }}

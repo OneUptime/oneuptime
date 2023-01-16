@@ -79,7 +79,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Logo',
                         fieldType: FormFieldSchemaType.ImageFile,
                         required: false,
-                        placeholder: 'Please upload logo here.',
+                        placeholder: 'Upload logo',
                     },
                     {
                         field: {
@@ -88,7 +88,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         title: 'Cover',
                         fieldType: FormFieldSchemaType.ImageFile,
                         required: false,
-                        placeholder: 'Please cover logo here.',
+                        placeholder: 'Upload cover image',
                     },
                 ]}
                 modelDetailProps={{
