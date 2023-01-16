@@ -45,13 +45,13 @@ const Item: FunctionComponent<ComponentProps> = (
                 </div>
             )}
             {props.getTitleElement && (
-                <div className="justify-center ">
+                <div className="justify-center flex">
                     {props.getTitleElement(props.item)}
                 </div>
             )}
             <div className="text-gray-500">
                 {props.getDescriptionElement && (
-                    <div className="justify-center ">
+                    <div className="justify-center flex">
                         {props.getDescriptionElement(props.item)}
                     </div>
                 )}

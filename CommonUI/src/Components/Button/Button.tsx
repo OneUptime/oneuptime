@@ -4,6 +4,7 @@ import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
 import CSS from 'csstype';
 import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import { defaultProps } from 'react-select/dist/declarations/src/Select';
 
 export enum ButtonStyleType {
     PRIMARY,
@@ -115,7 +116,11 @@ const Button: FunctionComponent<ComponentProps> = ({
 
     if (buttonStyle === ButtonStyleType.LINK) {
         buttonStyleCssClass =
-            'text-indigo-600 hover:text-indigo-900 flex space-x-2';
+            'text-indigo-600 hover:text-indigo-900  space-x-2';
+        
+        if (icon) {
+            buttonStyleCssClass += " flex";
+        }
     }
 
     if (buttonStyle === ButtonStyleType.DANGER) {

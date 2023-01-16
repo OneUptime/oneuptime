@@ -324,7 +324,7 @@ export default class OneUptimeDate {
         return (
             moment(date).format(formatstring) +
             ' ' +
-            (onlyShowDate ? '' : moment.tz(moment.tz.guess()).zoneAbbr())
+            (onlyShowDate ? '' : this.getCurrentTimezoneString())
         );
     }
 
@@ -343,8 +343,12 @@ export default class OneUptimeDate {
         return (
             momentDate.format(formatstring) +
             ' ' +
-            (onlyShowDate ? '' : moment.tz(moment.tz.guess()).zoneAbbr())
+            (onlyShowDate ? '' : this.getCurrentTimezoneString())
         );
+    }
+
+    public static getCurrentTimezoneString(): string {
+        return moment.tz(moment.tz.guess()).zoneAbbr();
     }
 
     public static getDateString(date: Date): string {

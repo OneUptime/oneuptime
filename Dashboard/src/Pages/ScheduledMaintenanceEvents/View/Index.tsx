@@ -29,6 +29,7 @@ import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../../../Components/StatusPage/StatusPagesLabel';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import OneUptimeDate from 'Common/Types/Date';
 
 const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -99,7 +100,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             startsAt: true,
                         },
                         title: 'Event Starts At',
-                        description: 'This is in your local timezone',
+                        description: 'This is in your local timezone - '+OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',
@@ -109,7 +110,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             endsAt: true,
                         },
                         title: 'Ends At',
-                        description: 'This is in your local timezone',
+                        description: 'This is in your local timezone - '+OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',
