@@ -36,7 +36,11 @@ const ColorInput: FunctionComponent<ComponentProps> = (
                     }}
                 ></div>
             )}
-            <div>{props.value?.toString() || props.placeholder ||  'No Color Selected'}</div>
+            <div>
+                {props.value?.toString() ||
+                    props.placeholder ||
+                    'No Color Selected'}
+            </div>
         </div>
     );
 };

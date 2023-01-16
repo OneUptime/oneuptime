@@ -13,6 +13,8 @@ import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import EventName from '../../Utils/EventName';
 
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -65,6 +67,11 @@ const Home: FunctionComponent<PageComponentProps> = (
                 }
                 singularName="Project Invitation"
                 pluralName="Project Invitations"
+                onItemDeleted={() => {
+                    GlobalEvents.dispatchEvent(
+                        EventName.PROJECT_INVITATIONS_REFRESH
+                    );
+                }}
                 actionButtons={[
                     {
                         title: 'Accept',
@@ -96,6 +103,9 @@ const Home: FunctionComponent<PageComponentProps> = (
 
                                 onCompleteAction();
                             } catch (err) {
+                                GlobalEvents.dispatchEvent(
+                                    EventName.PROJECT_INVITATIONS_REFRESH
+                                );
                                 onCompleteAction();
                                 onError(err as Error);
                             }

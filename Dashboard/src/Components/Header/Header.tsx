@@ -36,8 +36,6 @@ import HeaderAlert from 'CommonUI/src/Components/HeaderAlert/HeaderAlert';
 export interface ComponentProps {
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
-    onProjectRequestAccepted: () => void;
-    onProjectRequestRejected: () => void;
     showProjectModal: boolean;
     onProjectModalClose: () => void;
     selectedProject: Project | null;

@@ -232,9 +232,15 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                             ];
                                         return enumKey?.toUpperCase() || '';
                                     })
-                                    .filter((item: string | undefined, pos: number, array: Array<string | undefined>) => {
-                                        return array.indexOf(item) === pos;
-                                    })
+                                    .filter(
+                                        (
+                                            item: string | undefined,
+                                            pos: number,
+                                            array: Array<string | undefined>
+                                        ) => {
+                                            return array.indexOf(item) === pos;
+                                        }
+                                    )
                                     .join(', ')}
                             {props.mimeTypes && props.mimeTypes?.length > 0 && (
                                 <span>.</span>

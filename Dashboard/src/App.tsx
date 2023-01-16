@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
     Routes,
@@ -100,6 +100,8 @@ import Project from 'Model/Models/Project';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
 import Welcome from './Pages/Onboarding/Welcome';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import EventName from './Utils/EventName';
 
 const App: FunctionComponent = () => {
     Navigation.setNavigateHook(useNavigate());
@@ -138,6 +140,21 @@ const App: FunctionComponent = () => {
             Navigation.navigate(new Route('/dashboard/' + project._id));
         }
     };
+
+    useEffect(() => {
+        GlobalEvents.addEventListener(
+            EventName.PROJECT_INVITATIONS_REFRESH,
+            fetchProjects
+        );
+
+        return () => {
+            // on unmount.
+            GlobalEvents.removeEventListener(
+                EventName.PROJECT_INVITATIONS_REFRESH,
+                fetchProjects
+            );
+        };
+    }, []);
 
     const fetchProjects: Function = async (): Promise<void> => {
         setLoading(true);
@@ -182,12 +199,6 @@ const App: FunctionComponent = () => {
             projects={projects}
             error={error}
             onProjectSelected={onProjectSelected}
-            onProjectRequestAccepted={() => {
-                fetchProjects();
-            }}
-            onProjectRequestRejected={() => {
-                fetchProjects();
-            }}
             showProjectModal={showProjectModal}
             onProjectModalClose={() => {
                 setShowProjectModal(false);

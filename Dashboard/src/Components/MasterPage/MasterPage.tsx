@@ -11,8 +11,6 @@ export interface ComponentProps {
     projects: Array<Project>;
     error: string;
     onProjectSelected: (project: Project) => void;
-    onProjectRequestAccepted: () => void;
-    onProjectRequestRejected: () => void;
     showProjectModal: boolean;
     onProjectModalClose: () => void;
     selectedProject: Project | null;
@@ -28,10 +26,8 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 <Header
                     projects={props.projects}
                     onProjectSelected={props.onProjectSelected}
-                    onProjectRequestAccepted={props.onProjectRequestAccepted}
                     showProjectModal={props.showProjectModal}
                     onProjectModalClose={props.onProjectModalClose}
-                    onProjectRequestRejected={props.onProjectRequestRejected}
                     selectedProject={props.selectedProject || null}
                 />
             }

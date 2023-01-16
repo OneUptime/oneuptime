@@ -1,4 +1,3 @@
-import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp } from '../Icon/Icon';
 
@@ -59,32 +58,34 @@ const Alert: FunctionComponent<ComponentProps> = (
             }}
         >
             <div className="flex ">
-                {!props.doNotShowIcon && <div className="flex-shrink-0">
-                    {AlertType.DANGER === type && (
-                        <Icon
-                            icon={IconProp.Alert}
-                            className="h-5 w-5 text-red-400"
-                        />
-                    )}
-                    {AlertType.WARNING === type && (
-                        <Icon
-                            icon={IconProp.Alert}
-                            className="h-5 w-5 text-yellow-400"
-                        />
-                    )}
-                    {AlertType.SUCCESS === type && (
-                        <Icon
-                            icon={IconProp.CheckCircle}
-                            className="h-5 w-5 text-green-400"
-                        />
-                    )}
-                    {AlertType.INFO === type && (
-                        <Icon
-                            icon={IconProp.Info}
-                            className="h-5 w-5 text-blue-400"
-                        />
-                    )}
-                </div>}
+                {!props.doNotShowIcon && (
+                    <div className="flex-shrink-0">
+                        {AlertType.DANGER === type && (
+                            <Icon
+                                icon={IconProp.Alert}
+                                className="h-5 w-5 text-red-400"
+                            />
+                        )}
+                        {AlertType.WARNING === type && (
+                            <Icon
+                                icon={IconProp.Alert}
+                                className="h-5 w-5 text-yellow-400"
+                            />
+                        )}
+                        {AlertType.SUCCESS === type && (
+                            <Icon
+                                icon={IconProp.CheckCircle}
+                                className="h-5 w-5 text-green-400"
+                            />
+                        )}
+                        {AlertType.INFO === type && (
+                            <Icon
+                                icon={IconProp.Info}
+                                className="h-5 w-5 text-blue-400"
+                            />
+                        )}
+                    </div>
+                )}
                 <div className="ml-3 flex-1 md:flex md:justify-between">
                     <p className={`text-sm ${className}-600`}>
                         <strong>{props.strongTitle}</strong>{' '}

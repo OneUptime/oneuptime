@@ -42,12 +42,19 @@ export interface ComponentProps {
 const Table: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+
+
+    let colspan: number = props.columns.length || 0;
+    if (props.actionButtons && props.actionButtons?.length > 0) {
+        colspan++;
+    }
+
     const getTablebody: Function = (): ReactElement => {
         if (props.isLoading) {
             return (
                 <tbody>
                     <tr>
-                        <td colSpan={props.columns.length}>
+                        <td colSpan={colspan}>
                             <div className="flex justify-center w-full">
                                 <ComponentLoader />
                             </div>
@@ -61,7 +68,7 @@ const Table: FunctionComponent<ComponentProps> = (
             return (
                 <tbody>
                     <tr>
-                        <td colSpan={props.columns.length}>
+                        <td colSpan={colspan}>
                             <ErrorMessage
                                 error={props.error}
                                 onRefreshClick={props.onRefreshClick}
@@ -76,7 +83,7 @@ const Table: FunctionComponent<ComponentProps> = (
             return (
                 <tbody>
                     <tr>
-                        <td colSpan={props.columns.length}>
+                        <td colSpan={colspan}>
                             <ErrorMessage
                                 error={
                                     props.noItemsMessage
