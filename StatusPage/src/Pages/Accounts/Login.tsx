@@ -56,7 +56,8 @@ const LoginPage: FunctionComponent<ComponentProps> = (
                             <div className="w-100">
                                 <div className="d-flex flex-column h-100">
                                     <div className="auth-content my-auto">
-                                        {props.logoFileId ? (
+                                        {props.logoFileId &&
+                                        props.logoFileId.toString() ? (
                                             <div
                                                 className="mt-4 text-center"
                                                 style={{ marginBottom: '40px' }}
