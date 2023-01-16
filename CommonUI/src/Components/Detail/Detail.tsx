@@ -11,7 +11,7 @@ import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import FileModel from 'Common/Models/FileModel';
-import Input from '../Input/ColorInput';
+import ColorViewer from '../ColorViewer/ColorViewer';
 import Color from 'Common/Types/Color';
 
 export interface ComponentProps {
@@ -28,10 +28,8 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
 
     const getColorField: Function = (color: Color): ReactElement => {
         return (
-            <Input
-                disabled={true}
-                leftCircleColor={color}
-                value={color.toString()}
+            <ColorViewer
+                value={color}
             />
         );
     };
