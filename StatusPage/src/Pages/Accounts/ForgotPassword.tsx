@@ -57,20 +57,27 @@ const ForgotPassword: FunctionComponent<ComponentProps> = (
                             <div className="w-100">
                                 <div className="d-flex flex-column h-100">
                                     <div className="auth-content my-auto">
-                                        <div
-                                            className="mt-4 text-center"
-                                            style={{ marginBottom: '40px' }}
-                                        >
-                                            <img
-                                                style={{ height: '70px' }}
-                                                src={`${URL.fromString(
-                                                    FILE_URL.toString()
-                                                ).addRoute(
-                                                    '/image/' +
-                                                        props.logoFileId.toString()
-                                                )}`}
-                                            />
-                                        </div>
+                                        {props.logoFileId &&
+                                            props.logoFileId.toString() && (
+                                                <div
+                                                    className="mt-4 text-center"
+                                                    style={{
+                                                        marginBottom: '40px',
+                                                    }}
+                                                >
+                                                    <img
+                                                        style={{
+                                                            height: '70px',
+                                                        }}
+                                                        src={`${URL.fromString(
+                                                            FILE_URL.toString()
+                                                        ).addRoute(
+                                                            '/image/' +
+                                                                props.logoFileId.toString()
+                                                        )}`}
+                                                    />
+                                                </div>
+                                            )}
                                         <div className="text-center">
                                             <h5 className="mb-0">
                                                 Forgot Password
