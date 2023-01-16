@@ -4,7 +4,6 @@ import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
 import CSS from 'csstype';
 import Icon, { IconProp, SizeProp } from '../Icon/Icon';
-import { defaultProps } from 'react-select/dist/declarations/src/Select';
 
 export enum ButtonStyleType {
     PRIMARY,
