@@ -207,7 +207,7 @@ const ModelDetail: Function = <TBaseModel extends BaseModel>(
     if (isLoading) {
         return (
             <div
-                className="row text-center"
+                className="row text-center flex justify-center"
                 style={{
                     marginTop: '50px',
                     marginBottom: '50px',
