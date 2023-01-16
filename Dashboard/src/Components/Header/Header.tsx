@@ -55,6 +55,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
         null
     );
 
+    const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
+    useState<boolean>(true);
+
+
     useAsyncEffect(async () => {
         if (
             props.selectedProject &&
@@ -141,7 +145,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         order: 1,
                                     },
                                 }}
-
+                                refreshToggle={activeIncidentToggleRefresh}
                                 singularName="Active Incident"
                                 pluralName="Active Incidents"
                                 requestOptions={{
