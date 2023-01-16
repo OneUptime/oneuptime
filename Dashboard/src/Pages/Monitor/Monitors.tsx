@@ -16,11 +16,15 @@ const MonitorPage: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.MONITORS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITORS] as Route
+                    ),
                 },
             ]}
             sideMenu={

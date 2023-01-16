@@ -21,15 +21,21 @@ const APIKeys: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'API Keys',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_APIKEYS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_APIKEYS] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

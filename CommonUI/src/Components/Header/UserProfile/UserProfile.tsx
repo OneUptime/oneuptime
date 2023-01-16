@@ -8,19 +8,17 @@ import Image from '../../Image/Image';
 export interface ComponentProps {
     userFullName: Name;
     userProfilePicture: URL | Route;
-    onClick: () => void; 
+    onClick: () => void;
 }
 
 const UserProfile: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-   
-
     return (
         <div className="d-inline-block dropdown">
             <button
                 onClick={() => {
-                   props.onClick()
+                    props.onClick();
                 }}
                 id="page-header-user-dropdown"
                 aria-haspopup="true"
@@ -40,7 +38,6 @@ const UserProfile: FunctionComponent<ComponentProps> = (
                 </span>
                 <Icon icon={IconProp.ChevronDown} />
             </button>
-            
         </div>
     );
 };

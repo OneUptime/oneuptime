@@ -20,15 +20,21 @@ const CustomSMTP: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'Custom SMTP',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_CUSTOM_SMTP] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

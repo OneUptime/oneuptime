@@ -46,8 +46,6 @@ export interface ComponentProps {
 const DashboardHeader: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] =
         useState<boolean>(false);
     const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(
@@ -55,8 +53,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
     );
 
     const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
-    useState<boolean>(true);
-
+        useState<boolean>(true);
 
     useAsyncEffect(async () => {
         if (
@@ -99,7 +96,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                 leftComponents={
                     <>
                         {props.projects.length === 0 && (
-                            <Logo onClick={() => { }} />
+                            <Logo onClick={() => {}} />
                         )}
 
                         <ProjectPicker
@@ -109,10 +106,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             onProjectSelected={props.onProjectSelected}
                         />
 
-                        <div
-                            className="flex"
-
-                        >
+                        <div className="flex">
                             <HeaderModelAlert<TeamMember>
                                 icon={IconProp.Folder}
                                 className="rounded-md m-3 bg-indigo-500 p-3 font-bold hover:bg-indigo-600 cursor-pointer ml-0"
@@ -126,9 +120,10 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 requestOptions={{
                                     isMultiTenantRequest: true,
                                 }}
-
                                 onClick={() => {
-                                    Navigation.navigate(RouteMap[PageMap.PROJECT_INVITATIONS]!)
+                                    Navigation.navigate(
+                                        RouteMap[PageMap.PROJECT_INVITATIONS]!
+                                    );
                                 }}
                                 style={{
                                     marginRight: '10px',
@@ -151,7 +146,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     isMultiTenantRequest: true,
                                 }}
                                 onClick={() => {
-                                    Navigation.navigate(RouteMap[PageMap.ACTIVE_INCIDENTS]!)
+                                    Navigation.navigate(
+                                        RouteMap[PageMap.ACTIVE_INCIDENTS]!
+                                    );
                                 }}
                                 style={{
                                     marginRight: '10px',
@@ -170,15 +167,15 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                         title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                             OneUptimeDate.getCurrentDate(),
                                             props.selectedProject?.trialEndsAt!
-                                        )} ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-                                            OneUptimeDate.getCurrentDate(),
-                                            props.selectedProject
-                                                ?.trialEndsAt!
-                                        ) > 1
-                                            ? 'days'
-                                            : 'day'
-                                            }`}
-
+                                        )} ${
+                                            OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+                                                OneUptimeDate.getCurrentDate(),
+                                                props.selectedProject
+                                                    ?.trialEndsAt!
+                                            ) > 1
+                                                ? 'days'
+                                                : 'day'
+                                        }`}
                                     />
                                 )}
                         </div>
@@ -197,25 +194,25 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                     <>
                         {/* <Notifications /> */}
                         {BILLING_ENABLED &&
-                            props.selectedProject?.id &&
-                            props.selectedProject.paymentProviderPlanId &&
-                            !SubscriptionPlan.isFreePlan(
-                                props.selectedProject.paymentProviderPlanId,
-                                getAllEnvVars()
-                            ) &&
-                            !SubscriptionPlan.isCustomPricingPlan(
-                                props.selectedProject.paymentProviderPlanId,
-                                getAllEnvVars()
-                            ) &&
-                            !isPaymentMethodCountLoading &&
-                            paymentMethodCount === 0 ? (
+                        props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        !SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
+                        ) &&
+                        !SubscriptionPlan.isCustomPricingPlan(
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
+                        ) &&
+                        !isPaymentMethodCountLoading &&
+                        paymentMethodCount === 0 ? (
                             <Button
                                 title="Add Card Details"
                                 onClick={() => {
                                     Navigation.navigate(
                                         RouteUtil.populateRouteParams(
                                             RouteMap[
-                                            PageMap.SETTINGS_BILLING
+                                                PageMap.SETTINGS_BILLING
                                             ] as Route
                                         )
                                     );
@@ -228,12 +225,12 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             <></>
                         )}
                         {BILLING_ENABLED &&
-                            props.selectedProject?.id &&
-                            props.selectedProject.paymentProviderPlanId &&
-                            SubscriptionPlan.isFreePlan(
-                                props.selectedProject.paymentProviderPlanId,
-                                getAllEnvVars()
-                            ) ? (
+                        props.selectedProject?.id &&
+                        props.selectedProject.paymentProviderPlanId &&
+                        SubscriptionPlan.isFreePlan(
+                            props.selectedProject.paymentProviderPlanId,
+                            getAllEnvVars()
+                        ) ? (
                             <Upgrade />
                         ) : (
                             <></>
@@ -241,13 +238,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         <Help />
                         <UserProfile
                             onClickUserProfle={() => {
-                                Navigation.navigate(RouteMap[PageMap.USER_PROFILE]!);
+                                Navigation.navigate(
+                                    RouteMap[PageMap.USER_PROFILE]!
+                                );
                             }}
                         />
                     </>
                 }
             />
-
         </>
     );
 };

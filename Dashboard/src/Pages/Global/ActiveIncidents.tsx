@@ -17,7 +17,6 @@ import ProjectElement from '../../Components/Project/Project';
 import Project from 'Model/Models/Project';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
-
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -27,15 +26,18 @@ const Home: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Home',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Active Incidents',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.ACTIVE_INCIDENTS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.ACTIVE_INCIDENTS] as Route
+                    ),
                 },
             ]}
         >
-
             <ModelTable<Incident>
                 modelType={Incident}
                 name="Active Incidents"
@@ -67,7 +69,8 @@ const Home: FunctionComponent<PageComponentProps> = (
                 pluralName="Active Incidents"
                 onViewPage={(item: Incident) => {
                     return new Route(
-                        `/dashboard/${item.projectId || item.project?._id || ''
+                        `/dashboard/${
+                            item.projectId || item.project?._id || ''
                         }/incidents/${item._id}`
                     );
                 }}
@@ -88,13 +91,11 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 <ProjectElement
                                     project={
                                         JSONFunctions.fromJSON(
-                                            (item[
-                                                'project'
-                                            ] as JSONObject) || [],
+                                            (item['project'] as JSONObject) ||
+                                                [],
                                             Project
                                         ) as Project
                                     }
-                                   
                                 />
                             );
                         },
@@ -131,14 +132,14 @@ const Home: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -165,14 +166,14 @@ const Home: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -198,13 +199,11 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 <MonitorsElement
                                     monitors={
                                         JSONFunctions.fromJSON(
-                                            (item[
-                                                'monitors'
-                                            ] as JSONArray) || [],
+                                            (item['monitors'] as JSONArray) ||
+                                                [],
                                             Monitor
                                         ) as Array<Monitor>
                                     }
-                                    
                                 />
                             );
                         },
@@ -218,7 +217,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-
         </Page>
     );
 };

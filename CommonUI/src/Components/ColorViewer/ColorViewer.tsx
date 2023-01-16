@@ -1,29 +1,25 @@
 import { Grey } from 'Common/Types/BrandColors';
 import Color from 'Common/Types/Color';
-import React, {
-    FunctionComponent,
-    ReactElement,
-} from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 
 export interface ComponentProps {
     placeholder?: undefined | string;
     className?: undefined | string;
     value?: Color | undefined;
     dataTestId?: string;
-    onClick?: (() => void) | undefined; 
+    onClick?: (() => void) | undefined;
 }
 
 const ColorInput: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     return (
         <div
             className={`flex ${props.className}`}
             onClick={() => {
                 props.onClick && props.onClick();
             }}
+            data-testid={props.dataTestId}
         >
             {props.value && (
                 <div
@@ -40,7 +36,7 @@ const ColorInput: FunctionComponent<ComponentProps> = (
                     }}
                 ></div>
             )}
-            <div>{props.value?.toString() || 'No Color Selected'}</div>
+            <div>{props.value?.toString() || props.placeholder ||  'No Color Selected'}</div>
         </div>
     );
 };

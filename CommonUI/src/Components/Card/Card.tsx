@@ -17,7 +17,7 @@ export interface ComponentProps {
     description: string | ReactElement;
     buttons?: undefined | Array<CardButtonSchema>;
     children?: undefined | Array<ReactElement> | ReactElement;
-    className?: string | undefined
+    className?: string | undefined;
 }
 
 const Card: FunctionComponent<ComponentProps> = (

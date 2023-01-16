@@ -23,16 +23,18 @@ const Home: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Home',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Project Invitations',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.PROJECT_INVITATIONS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.PROJECT_INVITATIONS] as Route
+                    ),
                 },
             ]}
         >
-
-
             <ModelTable<TeamMember>
                 modelType={TeamMember}
                 name="Project Invitations"
@@ -93,9 +95,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                 );
 
                                 onCompleteAction();
-                                
                             } catch (err) {
-                                
                                 onCompleteAction();
                                 onError(err as Error);
                             }
@@ -127,7 +127,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
             />
-
         </Page>
     );
 };

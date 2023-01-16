@@ -72,10 +72,7 @@ const Item: FunctionComponent<ComponentProps> = (
                         }
 
                         return (
-                            <div
-                                key={i}
-                                className=""
-                            >
+                            <div key={i} className="">
                                 <Button
                                     buttonSize={ButtonSize.Small}
                                     title={button.title}

@@ -12,7 +12,11 @@ const PageLoader: FunctionComponent<ComponentProps> = (
     if (props.isVisible) {
         return (
             <div className="m-auto w-full text-center w-max mt-52 align-middle flex items-center">
-                <Loader loaderType={LoaderType.Bar} color={VeryLightGrey} size={200} />
+                <Loader
+                    loaderType={LoaderType.Bar}
+                    color={VeryLightGrey}
+                    size={200}
+                />
             </div>
         );
     }

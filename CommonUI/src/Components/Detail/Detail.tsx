@@ -27,11 +27,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     const getColorField: Function = (color: Color): ReactElement => {
-        return (
-            <ColorViewer
-                value={color}
-            />
-        );
+        return <ColorViewer value={color} />;
     };
 
     const getField: Function = (field: Field, index: number): ReactElement => {

@@ -28,15 +28,21 @@ const Monitors: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'Monitors',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

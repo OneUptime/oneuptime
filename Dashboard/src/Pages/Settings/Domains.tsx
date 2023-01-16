@@ -45,15 +45,21 @@ const Domains: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'Domains',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_DOMAINS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_DOMAINS] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

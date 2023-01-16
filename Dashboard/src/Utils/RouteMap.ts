@@ -33,17 +33,11 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/incidents/unresolved`
     ),
 
-    [PageMap.USER_PROFILE]: new Route(
-        `/dashboard/user-profile`
-    ),
+    [PageMap.USER_PROFILE]: new Route(`/dashboard/user-profile`),
 
-    [PageMap.ACTIVE_INCIDENTS]: new Route(
-        `/dashboard/active-incidents`
-    ),
+    [PageMap.ACTIVE_INCIDENTS]: new Route(`/dashboard/active-incidents`),
 
-    [PageMap.PROJECT_INVITATIONS]: new Route(
-        `/dashboard/project-invitations`
-    ),
+    [PageMap.PROJECT_INVITATIONS]: new Route(`/dashboard/project-invitations`),
 
     [PageMap.INCIDENT_VIEW]: new Route(
         `/dashboard/${RouteParams.ProjectID}/incidents/${RouteParams.ModelID}`
@@ -271,11 +265,13 @@ const RouteMap: Dictionary<Route> = {
 };
 
 export class RouteUtil {
-
-    public static isGlobalRoute(route: Route) {
-        if (route.toString() === RouteMap[PageMap.USER_PROFILE]?.toString() ||
-            route.toString() === RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
-            route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString()) {
+    public static isGlobalRoute(route: Route): boolean {
+        if (
+            route.toString() === RouteMap[PageMap.USER_PROFILE]?.toString() ||
+            route.toString() ===
+                RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
+            route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString()
+        ) {
             return true;
         }
         return false;

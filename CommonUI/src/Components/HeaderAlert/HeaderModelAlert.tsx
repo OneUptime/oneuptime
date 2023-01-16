@@ -7,8 +7,8 @@ import { IconProp } from '../Icon/Icon';
 import HeaderAlert from './HeaderAlert';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
-    icon: IconProp
-    modelType: { new(): TBaseModel };
+    icon: IconProp;
+    modelType: { new (): TBaseModel };
     singularName: string;
     pluralName: string;
     query: Query<TBaseModel>;
@@ -50,7 +50,7 @@ const HeaderModelAlert: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -78,9 +78,16 @@ const HeaderModelAlert: Function = <TBaseModel extends BaseModel>(
         return <></>;
     }
 
-    return (<HeaderAlert title={`${count} ${count > 1 ? props.pluralName : props.singularName
-        }`} icon={props.icon} onClick={props.onClick} className={props.className} />)
-
+    return (
+        <HeaderAlert
+            title={`${count} ${
+                count > 1 ? props.pluralName : props.singularName
+            }`}
+            icon={props.icon}
+            onClick={props.onClick}
+            className={props.className}
+        />
+    );
 };
 
 export default HeaderModelAlert;

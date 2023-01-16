@@ -14,7 +14,6 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import StatusPage from 'Model/Models/StatusPage';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import StatusPagePreviewLink from './StatusPagePreviewLink';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import OneUptimeDate from 'Common/Types/Date';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
@@ -62,7 +61,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <StatusPagePreviewLink modelId={modelId} />
             <ModelTable<StatusPageAnnouncement>
                 modelType={StatusPageAnnouncement}
                 id="table-status-page-note"
@@ -122,7 +120,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             showAnnouncementAt: true,
                         },
                         title: 'Start Showing Announcement At',
-                        description: 'This is in your local timezone - '+OneUptimeDate.getCurrentTimezoneString(),
+                        description:
+                            'This is in your local timezone - ' +
+                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',
@@ -132,7 +132,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             endAnnouncementAt: true,
                         },
                         title: 'End Showing Announcement At',
-                        description: 'This is in your local timezone - '+OneUptimeDate.getCurrentTimezoneString(),
+                        description:
+                            'This is in your local timezone - ' +
+                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',

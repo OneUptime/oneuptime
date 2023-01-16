@@ -14,7 +14,6 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 
-
 const Home: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
@@ -27,11 +26,15 @@ const Home: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Home',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'User Profile',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.USER_PROFILE] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.USER_PROFILE] as Route
+                    ),
                 },
             ]}
         >
@@ -118,14 +121,13 @@ const Home: FunctionComponent<PageComponentProps> = (
             />
 
             <div className="w-full flex space-x-5 mt-5">
-
                 <CardModelDetail<User>
                     name="User Profile > Profile Picture"
                     cardProps={{
                         title: 'Profile Picture',
                         description: 'Please update your profile pic here.',
                         icon: IconProp.Image,
-                        className: "w-1/2"
+                        className: 'w-1/2',
                     }}
                     isEditable={true}
                     editButtonText={'Update Profile Picture'}
@@ -137,8 +139,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                             title: 'Profile Picture',
                             fieldType: FormFieldSchemaType.ImageFile,
                             required: false,
-                            placeholder:
-                                'Upload profile picture',
+                            placeholder: 'Upload profile picture',
                         },
                     ]}
                     modelDetailProps={{
@@ -160,7 +161,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                         ],
                         modelId: UserUtil.getUserId(),
                     }}
-                    
                 />
 
                 <Card
@@ -218,7 +218,6 @@ const Home: FunctionComponent<PageComponentProps> = (
                             formType={FormType.Update}
                             submitButtonText={'Update Password'}
                         />
-
                     ) : (
                         <p>Your password has been updated.</p>
                     )}

@@ -25,11 +25,15 @@ const StatusPages: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Status Pages',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.STATUS_PAGES] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.STATUS_PAGES] as Route
+                    ),
                 },
             ]}
         >

@@ -9,7 +9,6 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
-import StatusPagePreviewLink from './StatusPagePreviewLink';
 
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -51,7 +50,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <StatusPagePreviewLink modelId={modelId} />
             <ModelDelete
                 modelType={StatusPage}
                 modelId={modelId}

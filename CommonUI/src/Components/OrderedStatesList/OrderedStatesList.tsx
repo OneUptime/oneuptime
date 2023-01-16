@@ -65,7 +65,11 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                     const isBegining: boolean = !(i === 0);
 
                     return (
-                        <div key={i} id={props.id} className="items-center w-fit m-auto">
+                        <div
+                            key={i}
+                            id={props.id}
+                            className="items-center w-fit m-auto"
+                        >
                             {props.onCreateNewItem &&
                                 isBegining &&
                                 props.shouldAddItemInTheBegining && (
@@ -89,7 +93,9 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     icon={IconProp.Add}
                                                     className="m-auto h-5 w-5"
                                                 />{' '}
-                                                <span className='text-sm ml-2'>Add New Item</span>
+                                                <span className="text-sm ml-2">
+                                                    Add New Item
+                                                </span>
                                             </div>
                                         </div>
 
@@ -145,7 +151,9 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     icon={IconProp.Add}
                                                     className="m-auto h-5 w-5"
                                                 />{' '}
-                                                <span className='text-sm ml-2'>Add New Item</span>
+                                                <span className="text-sm ml-2">
+                                                    Add New Item
+                                                </span>
                                             </div>
                                         </div>
                                         {!isEnd && (

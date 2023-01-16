@@ -14,7 +14,6 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import NotNull from 'Common/Types/Database/NotNull';
-import StatusPagePreviewLink from './StatusPagePreviewLink';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -58,7 +57,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <StatusPagePreviewLink modelId={modelId} />
             <ModelTable<StatusPageSubscriber>
                 modelType={StatusPageSubscriber}
                 id="table-subscriber"

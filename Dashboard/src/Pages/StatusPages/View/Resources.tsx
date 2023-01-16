@@ -28,7 +28,6 @@ import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import StatusPagePreviewLink from './StatusPagePreviewLink';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (
@@ -301,7 +300,6 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <>
-                <StatusPagePreviewLink modelId={modelId} />
                 {isLoading ? <ComponentLoader /> : <></>}
 
                 {error ? <ErrorMessage error={error} /> : <></>}

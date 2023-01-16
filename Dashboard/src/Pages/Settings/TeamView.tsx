@@ -40,19 +40,27 @@ const TeamView: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.HOME] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'Teams',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_TEAMS] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_TEAMS] as Route
+                    ),
                 },
                 {
                     title: 'View Team',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_TEAM_VIEW] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

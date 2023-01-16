@@ -1131,13 +1131,9 @@ const BasicForm: Function = <T extends Object>(
                                     )}
                                 </div>
 
-                                <div
-                                    className="flex w-full justify-end pr-3"
-                                >
+                                <div className="flex w-full justify-end pr-3">
                                     {!props.hideSubmitButton && (
-                                        <div
-                                            
-                                        >
+                                        <div>
                                             <Button
                                                 title={
                                                     props.submitButtonText ||

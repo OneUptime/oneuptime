@@ -100,7 +100,9 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             startsAt: true,
                         },
                         title: 'Event Starts At',
-                        description: 'This is in your local timezone - '+OneUptimeDate.getCurrentTimezoneString(),
+                        description:
+                            'This is in your local timezone - ' +
+                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',
@@ -110,7 +112,9 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             endsAt: true,
                         },
                         title: 'Ends At',
-                        description: 'This is in your local timezone - '+OneUptimeDate.getCurrentTimezoneString(),
+                        description:
+                            'This is in your local timezone - ' +
+                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',

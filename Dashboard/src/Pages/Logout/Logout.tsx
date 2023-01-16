@@ -25,7 +25,9 @@ const Logout: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Logout',
-                    to: RouteUtil.populateRouteParams(RouteMap[PageMap.LOGOUT] as Route),
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.LOGOUT] as Route
+                    ),
                 },
             ]}
         >
