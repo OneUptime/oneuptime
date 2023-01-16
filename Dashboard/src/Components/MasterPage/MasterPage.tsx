@@ -36,7 +36,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 />
             }
             navBar={<NavBar show={props.projects.length > 0} />}
-            isLoading={props.isLoading}
+            isLoading={true}
             error={props.error}
         >
             {props.children}
