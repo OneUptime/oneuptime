@@ -75,7 +75,10 @@ export const getScheduledEventEventItem: Function = (
                 text:
                     scheduledMaintenanceEventstateTimeline
                         .scheduledMaintenanceState?.name || '',
-                date: scheduledMaintenanceEventstateTimeline?.createdAt!,
+                date: scheduledMaintenanceEventstateTimeline
+                    .scheduledMaintenanceState?.isScheduledState
+                    ? scheduledMaintenance.startsAt!
+                    : scheduledMaintenanceEventstateTimeline?.createdAt!,
                 isBold: true,
             });
 

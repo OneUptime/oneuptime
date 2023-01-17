@@ -655,6 +655,9 @@ export default class StatusPageAPI extends BaseAPI<
                                 currentScheduledMaintenanceState: {
                                     name: true,
                                     color: true,
+                                    isScheduledState: true,
+                                    isResolvedState: true,
+                                    isOngoingState: true,
                                 },
                                 monitors: {
                                     _id: true,
@@ -682,6 +685,7 @@ export default class StatusPageAPI extends BaseAPI<
                                 description: true,
                                 _id: true,
                                 endsAt: true,
+                                startsAt: true,
                             },
                             sort: {
                                 createdAt: SortOrder.Ascending,
@@ -690,6 +694,9 @@ export default class StatusPageAPI extends BaseAPI<
                                 currentScheduledMaintenanceState: {
                                     name: true,
                                     color: true,
+                                    isScheduledState: true,
+                                    isResolvedState: true,
+                                    isOngoingState: true,
                                 },
                                 monitors: {
                                     _id: true,
@@ -1110,6 +1117,9 @@ export default class StatusPageAPI extends BaseAPI<
                     currentScheduledMaintenanceState: {
                         name: true,
                         color: true,
+                        isScheduledState: true,
+                        isResolvedState: true,
+                        isOngoingState: true,
                     },
                     monitors: {
                         _id: true,
@@ -1137,6 +1147,7 @@ export default class StatusPageAPI extends BaseAPI<
                     description: true,
                     _id: true,
                     endsAt: true,
+                    startsAt: true,
                 },
                 sort: {
                     createdAt: SortOrder.Ascending,
@@ -1145,6 +1156,9 @@ export default class StatusPageAPI extends BaseAPI<
                     currentScheduledMaintenanceState: {
                         name: true,
                         color: true,
+                        isScheduledState: true,
+                        isResolvedState: true,
+                        isOngoingState: true,
                     },
                     monitors: {
                         _id: true,
@@ -1216,6 +1230,9 @@ export default class StatusPageAPI extends BaseAPI<
                         scheduledMaintenanceState: {
                             name: true,
                             color: true,
+                            isScheduledState: true,
+                            isResolvedState: true,
+                            isOngoingState: true,
                         },
                     },
                     sort: {
