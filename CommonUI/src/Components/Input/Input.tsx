@@ -52,12 +52,7 @@ const Input: FunctionComponent<ComponentProps> = (
     const [displayValue, setDisplayValue] = useState<string>('');
     const ref: any = useRef<any>(null);
 
-    useEffect(() => {
-        const input: any = ref.current;
-        if (input) {
-            (input as any).value = displayValue;
-        }
-    }, [ref, displayValue]);
+
 
     useEffect(() => {
         if (props.type === 'date' || props.type === 'datetime-local') {
@@ -90,6 +85,13 @@ const Input: FunctionComponent<ComponentProps> = (
     }, [value]);
 
     useEffect(() => {
+        const input: any = ref.current;
+        if (input) {
+            (input as any).value = displayValue;
+        }
+    }, [ref, displayValue]);
+
+    useEffect(() => {
         if (props.initialValue) {
             setValue(props.initialValue);
         }
@@ -106,7 +108,7 @@ const Input: FunctionComponent<ComponentProps> = (
     }, [props.initialValue]);
 
     useEffect(() => {
-        setValue(props.value ? props.value : '');
+        setValue(props.value ? props.value : props.initialValue || '');
     }, [props.value]);
 
     return (
