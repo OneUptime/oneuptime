@@ -160,12 +160,9 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         return (
             <Tooltip key={dayNumber} text={toolTipText || '100% Operational'}>
                 <div
-                    className="uptime-bar"
+                    className="rounded h-20 w-20"
                     style={{
                         backgroundColor: color.toString(),
-                        height: `${
-                            props.height ? props.height + 'px' : '55px'
-                        }`,
                     }}
                 ></div>
             </Tooltip>
@@ -182,7 +179,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         return elements;
     };
 
-    return <div className="flex">{getUptimeGraph()}</div>;
+    return <div className="flex space-x-1">{getUptimeGraph()}</div>;
 };
 
 export default DayUptimeGraph;

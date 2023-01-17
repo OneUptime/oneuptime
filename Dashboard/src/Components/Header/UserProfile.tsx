@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Route from 'Common/Types/API/Route';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';
 import HeaderIconDropdownButton from 'CommonUI/src/Components/Header/HeaderIconDropdownButton';
@@ -32,7 +32,7 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 
                     <IconDropdwonItem
                         title="Log out"
-                        url={RouteMap[PageMap.LOGOUT] as Route}
+                        url={RouteUtil.populateRouteParams(RouteMap[PageMap.LOGOUT] as Route)}
                         icon={IconProp.Logout}
                     />
                 </IconDropdwonMenu>
