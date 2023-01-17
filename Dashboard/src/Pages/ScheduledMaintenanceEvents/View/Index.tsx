@@ -313,6 +313,19 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                         },
                         {
                             field: {
+                                startsAt: true,
+                            },
+                            title: 'Starts At',
+                            fieldType: FieldType.DateTime,
+                        }, {
+                            field: {
+                                endsAt: true,
+                            },
+                            title: 'Ends At',
+                            fieldType: FieldType.DateTime,
+                        },
+                        {
+                            field: {
                                 createdAt: true,
                             },
                             title: 'Created At',

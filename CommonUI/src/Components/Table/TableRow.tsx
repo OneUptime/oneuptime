@@ -40,14 +40,13 @@ const TableRow: FunctionComponent<ComponentProps> = (
                 <tr {...provided?.draggableProps} ref={provided?.innerRef}>
                     {props.enableDragAndDrop && (
                         <td
-                            style={{ width: '20px' }}
-                            className="grabbable"
+                            className='ml-3 w-10'
                             {...provided?.dragHandleProps}
                         >
                             <Icon
                                 icon={IconProp.Drag}
                                 thick={ThickProp.Thick}
-                                className="grabbable"
+                                className=" h-6 w-6 text-gray-500 hover:text-gray-700 m-auto cursor-ns-resize"
                             />
                         </td>
                     )}
@@ -82,7 +81,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                        column.key
+                                                    column.key
                                                     ] as string,
                                                     true
                                                 )
@@ -90,11 +89,11 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 ''
                                             )
                                         ) : column.type ===
-                                          FieldType.DateTime ? (
+                                            FieldType.DateTime ? (
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                        column.key
+                                                    column.key
                                                     ] as string,
                                                     false
                                                 )
@@ -102,15 +101,17 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 ''
                                             )
                                         ) : column.type ===
-                                          FieldType.Boolean ? (
+                                            FieldType.Boolean ? (
                                             props.item[column.key] ? (
                                                 <Icon
-                                                    icon={IconProp.True}
+                                                    icon={IconProp.CheckCircle}
+                                                    className={'h-5 w-5 text-gray-500'}
                                                     thick={ThickProp.Thick}
                                                 />
                                             ) : (
                                                 <Icon
                                                     icon={IconProp.False}
+                                                    className={'h-5 w-5 text-gray-500'}
                                                     thick={ThickProp.Thick}
                                                 />
                                             )
@@ -131,7 +132,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         <></>
                                     )}
                                     {column.type === FieldType.Actions && (
-                                        <div>
+                                        <div className='flex justify-end'>
                                             {error && (
                                                 <div className="text-align-left">
                                                     <ConfirmModal
@@ -161,15 +162,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                     }
 
                                                     return (
-                                                        <span
-                                                            style={
-                                                                i > 0
-                                                                    ? {
-                                                                          marginLeft:
-                                                                              '10px',
-                                                                      }
-                                                                    : {}
-                                                            }
+                                                        <div
                                                             key={i}
                                                         >
                                                             <Button
@@ -187,7 +180,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                                 }
                                                                 isLoading={
                                                                     isButtonLoading[
-                                                                        i
+                                                                    i
                                                                     ]
                                                                 }
                                                                 onClick={() => {
@@ -234,7 +227,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                                     }
                                                                 }}
                                                             />
-                                                        </span>
+                                                        </div>
                                                     );
                                                 }
                                             )}
