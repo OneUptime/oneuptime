@@ -3,8 +3,9 @@ import Button, { ButtonStyleType } from '../Button/Button';
 import ModalFooter from './ModalFooter';
 import ModalBody from './ModalBody';
 import ButtonType from '../Button/ButtonTypes';
-import Loader from '../Loader/Loader';
+import Loader, { LoaderType } from '../Loader/Loader';
 import Icon, { IconProp, IconType, SizeProp, ThickProp } from '../Icon/Icon';
+import { VeryLightGrey } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
     title: string;
@@ -37,6 +38,8 @@ const Modal: FunctionComponent<ComponentProps> = (
     } else if (props.iconType === IconType.Danger) {
         iconBgColor = 'bg-red-100';
     }
+
+
 
     return (
         <div
@@ -95,7 +98,11 @@ const Modal: FunctionComponent<ComponentProps> = (
                                         {!props.isBodyLoading ? (
                                             props.children
                                         ) : (
-                                            <Loader />
+                                            <div className='modal-body mt-20 mb-20 flex justify-center'>
+                                                <Loader loaderType={LoaderType.Bar}
+                                                    color={VeryLightGrey}
+                                                    size={200} />
+                                            </div>
                                         )}
                                     </ModalBody>
                                 </div>
