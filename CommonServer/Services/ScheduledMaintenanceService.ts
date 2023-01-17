@@ -50,6 +50,29 @@ export class Service extends DatabaseService<Model> {
         return { createBy, carryForward: null };
     }
 
+    protected override async onCreateSuccess(
+        _onCreate: OnCreate<Model>,
+        createdItem: Model
+    ): Promise<Model> {
+        // create new scheduled maintenance state timeline.
+
+        const timeline: ScheduledMaintenanceStateTimeline =
+            new ScheduledMaintenanceStateTimeline();
+        timeline.projectId = createdItem.projectId!;
+        timeline.scheduledMaintenanceId = createdItem.id!;
+        timeline.scheduledMaintenanceStateId =
+            createdItem.currentScheduledMaintenanceStateId!;
+
+        await ScheduledMaintenanceStateTimelineService.create({
+            data: timeline,
+            props: {
+                isRoot: true,
+            },
+        });
+
+        return createdItem;
+    }
+
     public async changeAttachedMonitorStates(
         item: Model,
         props: DatabaseCommonInteractionProps

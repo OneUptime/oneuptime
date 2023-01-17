@@ -632,7 +632,7 @@ export default class StatusPageAPI extends BaseAPI<
 
                     // check if status page has active scheduled events.
 
-                    const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+                    const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
                         await ScheduledMaintenanceService.findBy({
                             query: {
                                 currentScheduledMaintenanceState: {
@@ -655,6 +655,9 @@ export default class StatusPageAPI extends BaseAPI<
                                 currentScheduledMaintenanceState: {
                                     name: true,
                                     color: true,
+                                    isScheduledState: true,
+                                    isResolvedState: true,
+                                    isOngoingState: true,
                                 },
                                 monitors: {
                                     _id: true,
@@ -667,8 +670,53 @@ export default class StatusPageAPI extends BaseAPI<
                             },
                         });
 
-                    const activeScheduledMaintenanceEventsOnStausPage: Array<ObjectID> =
-                        activeScheduledMaintenanceEvents.map(
+                    const futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+                        await ScheduledMaintenanceService.findBy({
+                            query: {
+                                currentScheduledMaintenanceState: {
+                                    isScheduledState: true,
+                                } as any,
+                                statusPages: objectId as any,
+                                projectId: statusPage.projectId!,
+                            },
+                            select: {
+                                createdAt: true,
+                                title: true,
+                                description: true,
+                                _id: true,
+                                endsAt: true,
+                                startsAt: true,
+                            },
+                            sort: {
+                                createdAt: SortOrder.Ascending,
+                            },
+                            populate: {
+                                currentScheduledMaintenanceState: {
+                                    name: true,
+                                    color: true,
+                                    isScheduledState: true,
+                                    isResolvedState: true,
+                                    isOngoingState: true,
+                                },
+                                monitors: {
+                                    _id: true,
+                                },
+                            },
+                            skip: 0,
+                            limit: LIMIT_PER_PROJECT,
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                    futureScheduledMaintenanceEvents.forEach(
+                        (event: ScheduledMaintenance) => {
+                            scheduledMaintenanceEvents.push(event);
+                        }
+                    );
+
+                    const scheduledMaintenanceEventsOnStausPage: Array<ObjectID> =
+                        scheduledMaintenanceEvents.map(
                             (event: ScheduledMaintenance) => {
                                 return event.id!;
                             }
@@ -677,14 +725,12 @@ export default class StatusPageAPI extends BaseAPI<
                     let scheduledMaintenanceEventsPublicNotes: Array<ScheduledMaintenancePublicNote> =
                         [];
 
-                    if (
-                        activeScheduledMaintenanceEventsOnStausPage.length > 0
-                    ) {
+                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
                         scheduledMaintenanceEventsPublicNotes =
                             await ScheduledMaintenancePublicNoteService.findBy({
                                 query: {
                                     scheduledMaintenanceId: QueryHelper.in(
-                                        activeScheduledMaintenanceEventsOnStausPage
+                                        scheduledMaintenanceEventsOnStausPage
                                     ),
                                     projectId: statusPage.projectId!,
                                 },
@@ -706,15 +752,13 @@ export default class StatusPageAPI extends BaseAPI<
                     let scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                         [];
 
-                    if (
-                        activeScheduledMaintenanceEventsOnStausPage.length > 0
-                    ) {
+                    if (scheduledMaintenanceEventsOnStausPage.length > 0) {
                         scheduledMaintenanceStateTimelines =
                             await ScheduledMaintenanceStateTimelineService.findBy(
                                 {
                                     query: {
                                         scheduledMaintenanceId: QueryHelper.in(
-                                            activeScheduledMaintenanceEventsOnStausPage
+                                            scheduledMaintenanceEventsOnStausPage
                                         ),
                                         projectId: statusPage.projectId!,
                                     },
@@ -741,11 +785,10 @@ export default class StatusPageAPI extends BaseAPI<
                                 scheduledMaintenanceEventsPublicNotes,
                                 ScheduledMaintenancePublicNote
                             ),
-                        activeScheduledMaintenanceEvents:
-                            JSONFunctions.toJSONArray(
-                                activeScheduledMaintenanceEvents,
-                                ScheduledMaintenance
-                            ),
+                        scheduledMaintenanceEvents: JSONFunctions.toJSONArray(
+                            scheduledMaintenanceEvents,
+                            ScheduledMaintenance
+                        ),
                         activeAnnouncements: JSONFunctions.toJSONArray(
                             activeAnnouncements,
                             StatusPageAnnouncement
@@ -1074,6 +1117,9 @@ export default class StatusPageAPI extends BaseAPI<
                     currentScheduledMaintenanceState: {
                         name: true,
                         color: true,
+                        isScheduledState: true,
+                        isResolvedState: true,
+                        isOngoingState: true,
                     },
                     monitors: {
                         _id: true,
@@ -1085,6 +1131,51 @@ export default class StatusPageAPI extends BaseAPI<
                     isRoot: true,
                 },
             });
+
+        const futureScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+            await ScheduledMaintenanceService.findBy({
+                query: {
+                    currentScheduledMaintenanceState: {
+                        isScheduledState: true,
+                    } as any,
+                    statusPages: [statusPageId] as any,
+                    projectId: statusPage.projectId!,
+                },
+                select: {
+                    createdAt: true,
+                    title: true,
+                    description: true,
+                    _id: true,
+                    endsAt: true,
+                    startsAt: true,
+                },
+                sort: {
+                    createdAt: SortOrder.Ascending,
+                },
+                populate: {
+                    currentScheduledMaintenanceState: {
+                        name: true,
+                        color: true,
+                        isScheduledState: true,
+                        isResolvedState: true,
+                        isOngoingState: true,
+                    },
+                    monitors: {
+                        _id: true,
+                    },
+                },
+                skip: 0,
+                limit: LIMIT_PER_PROJECT,
+                props: {
+                    isRoot: true,
+                },
+            });
+
+        futureScheduledMaintenanceEvents.forEach(
+            (event: ScheduledMaintenance) => {
+                scheduledMaintenanceEvents.push(event);
+            }
+        );
 
         const scheduledMaintenanceEventsOnStausPage: Array<ObjectID> =
             scheduledMaintenanceEvents.map((event: ScheduledMaintenance) => {
@@ -1139,6 +1230,9 @@ export default class StatusPageAPI extends BaseAPI<
                         scheduledMaintenanceState: {
                             name: true,
                             color: true,
+                            isScheduledState: true,
+                            isResolvedState: true,
+                            isOngoingState: true,
                         },
                     },
                     sort: {

@@ -75,7 +75,10 @@ export const getScheduledEventEventItem: Function = (
                 text:
                     scheduledMaintenanceEventstateTimeline
                         .scheduledMaintenanceState?.name || '',
-                date: scheduledMaintenanceEventstateTimeline?.createdAt!,
+                date: scheduledMaintenanceEventstateTimeline
+                    .scheduledMaintenanceState?.isScheduledState
+                    ? scheduledMaintenance.startsAt!
+                    : scheduledMaintenanceEventstateTimeline?.createdAt!,
                 isBold: true,
             });
 
@@ -98,11 +101,22 @@ export const getScheduledEventEventItem: Function = (
         return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
     });
 
+    let footerStatus: string = '';
+
+    if (timeline.length > 0) {
+        footerStatus = `${
+            timeline[timeline.length - 1]?.text
+        } at ${OneUptimeDate.getDateAsLocalFormattedString(
+            timeline[timeline.length - 1]?.date!
+        )}`;
+    }
+
     return {
         eventTitle: scheduledMaintenance.title || '',
         eventDescription: scheduledMaintenance.description,
         eventTimeline: timeline,
         eventType: 'Scheduled Maintenance',
+        footerEventStatus: footerStatus,
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
