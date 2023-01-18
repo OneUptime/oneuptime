@@ -8,7 +8,7 @@ import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -106,15 +106,9 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
+                showTableAs={ShowTableAs.List}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
-                    {
-                        field: {
-                            note: true,
-                        },
-                        title: 'Note',
-                        type: FieldType.Markdown,
-                    },
                     {
                         field: {
                             createdByUser: {
@@ -124,6 +118,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Posted By',
                         type: FieldType.Entity,
+                        isFilterable: true,
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['createdByUser']) {
                                 return (
@@ -147,9 +142,19 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
+                        isFilterable: true,
                         title: 'Posted At',
                         type: FieldType.DateTime,
                     },
+                    {
+                        field: {
+                            note: true,
+                        },
+                        isFilterable: true,
+                        title: 'Note',
+                        type: FieldType.Markdown,
+                    },
+                    
                 ]}
             />
         </Page>

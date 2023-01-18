@@ -19,6 +19,7 @@ import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { IconProp } from '../Icon/Icon';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
+
 import SortOrder from 'Common/Types/Database/SortOrder';
 import FieldType from '../Types/FieldType';
 import Dictionary from 'Common/Types/Dictionary';
@@ -38,7 +39,9 @@ import Navigation from '../../Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Populate from '../../Utils/ModelAPI/Populate';
+import List from '../List/List';
 import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
+import Field from '../Detail/Field';
 import FormValues from '../Forms/Types/FormValues';
 import { FilterData } from '../Table/Filter';
 import ModelTableColumn from './Column';
@@ -55,6 +58,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export enum ShowTableAs {
     Table,
+    List,
     OrderedStatesList,
 }
 
@@ -143,6 +147,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     const [orderedStatesListNewItemOrder, setOrderedStatesListNewItemOrder] =
         useState<number | null>(null);
 
+    const [onBeforeFetchData, setOnBeforeFetchData] = useState<
+        JSONObject | undefined
+    >(undefined);
     const [data, setData] = useState<Array<TBaseModel>>([]);
     const [query, setQuery] = useState<Query<TBaseModel>>({});
     const [currentPageNumber, setCurrentPageNumber] = useState<number>(1);
@@ -170,10 +177,36 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         props.initialItemsOnPage || 10
     );
 
+    const [fields, setFields] = useState<Array<Field>>([]);
+
     const [isTableFilterFetchLoading, setIsTableFilterFetchLoading] =
         useState(false);
 
     const [errorModalText, setErrorModalText] = useState<string>('');
+
+    useEffect(() => {
+        const detailFields: Array<Field> = [];
+        for (const column of tableColumns) {
+            if (!column.key) {
+                // if its an action column, ignore.
+                continue;
+            }
+
+            detailFields.push({
+                title: column.title,
+                description: column.description || '',
+                key: column.key || '',
+                fieldType: column.type,
+                getElement: column.getElement
+                    ? (item: JSONObject): ReactElement => {
+                          return column.getElement!(item, onBeforeFetchData);
+                      }
+                    : undefined,
+            });
+
+            setFields(detailFields);
+        }
+    }, [tableColumns]);
 
     const deleteItem: Function = async (item: TBaseModel) => {
         if (!item.id) {
@@ -324,6 +357,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
 
         if (props.onFetchInit) {
             props.onFetchInit(currentPageNumber, itemsOnPage);
+        }
+
+        if (props.onBeforeFetch) {
+            const jobject: JSONObject = await props.onBeforeFetch();
+            setOnBeforeFetchData(jobject);
         }
 
         try {
@@ -1016,6 +1054,38 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         );
     };
 
+    const getList: Function = (): ReactElement => {
+        return (
+            <List
+                singularLabel={
+                    props.singularName || model.singularName || 'Item'
+                }
+                pluralLabel={props.pluralName || model.pluralName || 'Items'}
+                error={error}
+                currentPageNumber={currentPageNumber}
+                isLoading={isLoading}
+                totalItemsCount={totalItemsCount}
+                data={JSONFunctions.toJSONObjectArray(data, props.modelType)}
+                id={props.id}
+                fields={fields}
+                itemsOnPage={itemsOnPage}
+                disablePagination={props.disablePagination || false}
+                onNavigateToPage={async (
+                    pageNumber: number,
+                    itemsOnPage: number
+                ) => {
+                    setCurrentPageNumber(pageNumber);
+                    setItemsOnPage(itemsOnPage);
+                }}
+                noItemsMessage={props.noItemsMessage || ''}
+                onRefreshClick={() => {
+                    fetchItems();
+                }}
+                actionButtons={actionButtonSchema}
+            />
+        );
+    };
+
     const getCardTitle: Function = (
         title: ReactElement | string
     ): ReactElement => {
@@ -1048,7 +1118,23 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
     };
 
     const getCardComponent: Function = (): ReactElement => {
-        if (showTableAs === ShowTableAs.Table) {
+        if (showTableAs === ShowTableAs.List) {
+            return (
+                <div>
+                    {props.cardProps && (
+                        <Card
+                            {...props.cardProps}
+                            buttons={cardButtons}
+                            title={getCardTitle(props.cardProps.title)}
+                        >
+                            {getList()}
+                        </Card>
+                    )}
+
+                    {!props.cardProps && getList()}
+                </div>
+            );
+        } else if (showTableAs === ShowTableAs.Table) {
             return (
                 <div>
                     {props.cardProps && (
