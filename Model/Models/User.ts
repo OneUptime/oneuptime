@@ -267,7 +267,7 @@ class User extends UserModel {
 
         update: [Permission.CurrentUser],
     })
-    @TableColumn({ type: TableColumnType.ObjectID })
+    @TableColumn({ type: TableColumnType.ObjectID, canReadOnPopulate: true })
     @Column({
         type: ColumnType.ObjectID,
         nullable: true,

@@ -189,7 +189,8 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                 {
                                     createdByUser: {
                                         name: true,
-                                        email: true,
+                                email: true,
+                                profilePictureId: true
                                     },
                                     scheduledMaintenanceState: {
                                         name: true,

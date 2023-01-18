@@ -115,6 +115,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             createdByUser: {
                                 name: true,
                                 email: true,
+                                profilePictureId: true
                             },
                         },
                         title: '',
@@ -136,7 +137,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                                         }
                                         suffix={"wrote"}
                                         usernameClassName={"text-base font-medium text-gray-900"}
-                                        suffixClassName={"text-base font-medium text-gray-600 mt-1"}
+                                        suffixClassName={"text-base font-medium text-gray-500 mt-1"}
                                     /> 
                                 );
                             }

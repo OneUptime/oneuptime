@@ -8,7 +8,7 @@ import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenanceInternalNote from 'Model/Models/ScheduledMaintenanceInternalNote';
-import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -18,6 +18,7 @@ import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import AlignItem from 'CommonUI/src/Types/AlignItem';
 const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -106,24 +107,22 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     },
                 ]}
                 showRefreshButton={true}
+                showTableAs={ShowTableAs.List}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
-                    {
-                        field: {
-                            note: true,
-                        },
-                        title: 'Note',
-                        type: FieldType.Markdown,
-                    },
                     {
                         field: {
                             createdByUser: {
                                 name: true,
                                 email: true,
+                                profilePictureId: true
                             },
                         },
-                        title: 'Posted By',
+                        title: '',
+
                         type: FieldType.Entity,
+                        isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['createdByUser']) {
                                 return (
@@ -136,10 +135,12 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                                                 User
                                             ) as User
                                         }
-                                    />
+                                        suffix={"wrote"}
+                                        usernameClassName={"text-base font-medium text-gray-900"}
+                                        suffixClassName={"text-base font-medium text-gray-500 mt-1"}
+                                    /> 
                                 );
                             }
-
                             return <></>;
                         },
                     },
@@ -147,8 +148,21 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Posted At',
+                        isFilterable: true,
+                        alignItem: AlignItem.Right,
+                        title: '',
                         type: FieldType.DateTime,
+                        contentClassName: "mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3"
+                    },
+                    {
+                        field: {
+                            note: true,
+                        },
+                        isFilterable: true,
+                        title: '',
+                        type: FieldType.Markdown,
+                        contentClassName: "-mt-3 space-y-6 text-sm text-gray-800",
+                        colSpan: 2
                     },
                 ]}
             />

@@ -74,6 +74,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                                                 ? IconType.Info
                                                 : props.iconType
                                         }
+                                        className={'p-1.5'}
                                         icon={props.icon}
                                         size={SizeProp.Large}
                                     />
