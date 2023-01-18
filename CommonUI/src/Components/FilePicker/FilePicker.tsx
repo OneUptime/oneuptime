@@ -55,6 +55,10 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     }, [props.mimeTypes]);
 
     useEffect(() => {
+        setInitalValue();
+    }, [props.initialValue]);
+
+    const setInitalValue: Function = () => {
         if (
             Array.isArray(props.initialValue) &&
             props.initialValue &&
@@ -64,10 +68,15 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         } else if (props.initialValue instanceof FileModel) {
             setFilesModel([props.initialValue as FileModel]);
         }
-    }, [props.initialValue]);
+    }
 
     useEffect(() => {
-        setFilesModel(props.value && props.value.length > 0 ? props.value : []);
+        if (props.value && props.value.length > 0) {
+            setFilesModel(props.value && props.value.length > 0 ? props.value : []);
+        } else {
+            setInitalValue();
+        }
+        
     }, [props.value]);
 
     const { getRootProps, getInputProps } = useDropzone({
