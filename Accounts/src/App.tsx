@@ -21,7 +21,7 @@ function App(): ReactElement {
     Navigation.setParams(useParams());
 
     return (
-        <div className="App">
+        <div className="m-auto h-screen">
             <Routes>
                 <Route path="/accounts" element={<LoginPage />} />
                 <Route path="/accounts/login" element={<LoginPage />} />

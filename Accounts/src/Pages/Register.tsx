@@ -4,7 +4,7 @@ import User from 'Model/Models/User';
 import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
+import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 import LoginUtil from '../Utils/Login';
 import { JSONObject } from 'Common/Types/JSON';
 import UserUtil from 'CommonUI/src/Utils/User';
@@ -21,161 +21,139 @@ const RegisterPage: FunctionComponent = () => {
     }
 
     return (
-        <div className="auth-page">
-            <div className="container-fluid p-0">
-                <div className="row g-0">
-                    <div className="col-xxl-3 col-lg-3 col-md-2"></div>
+        <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                <img className="mx-auto h-12 w-auto" src={OneUptimeLogo} alt="Your Company" />
+                <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-gray-900">Create your OneUptime account</h2>
+                <p className="mt-2 text-center text-sm text-gray-600">
+                    Join thousands of business that use OneUptime
+                    to help them stay online all the time. 
+                </p>
+                <p className="mt-2 text-center text-sm text-gray-600">
+                    No credit card required.
+                </p>
+            </div>
 
-                    <div className="col-xxl-6 col-lg-6 col-md-8">
-                        <div className="auth-full-page-content d-flex p-sm-5 p-4">
-                            <div className="w-100">
-                                <div className="d-flex flex-column h-100">
-                                    <div className="auth-content my-auto">
-                                        <div
-                                            className="mt-4 text-center"
-                                            style={{ marginBottom: '40px' }}
-                                        >
-                                            <img
-                                                style={{ height: '50px' }}
-                                                src={`${OneUptimeLogo}`}
-                                            />
-                                        </div>
-                                        <div className="text-center">
-                                            <h5 className="mb-0">
-                                                Create your OneUptime account.
-                                            </h5>
-                                            <p className="text-muted mt-2 mb-0">
-                                                Join thousands of business that
-                                                use OneUptime{' '}
-                                            </p>
-                                            <p className="text-muted mb-2">
-                                                to help them stay online all the
-                                                time. No credit card required.
-                                            </p>
-                                        </div>
+            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
 
-                                        <ModelForm<User>
-                                            modelType={User}
-                                            id="register-form"
-                                            showAsColumns={2}
-                                            name="Register"
-                                            maxPrimaryButtonWidth={true}
-                                            initialValues={{
-                                                email: '',
-                                                name: '',
-                                                companyName: '',
-                                                companyPhoneNumber: '',
-                                                password: '',
-                                                confirmPassword: '',
-                                            }}
-                                            fields={[
-                                                {
-                                                    field: {
-                                                        email: true,
-                                                    },
-                                                    fieldType:
-                                                        FormFieldSchemaType.Email,
-                                                    placeholder:
-                                                        'jeff@example.com',
-                                                    required: true,
-                                                    title: 'Email',
-                                                },
-                                                {
-                                                    field: {
-                                                        name: true,
-                                                    },
-                                                    fieldType:
-                                                        FormFieldSchemaType.Text,
-                                                    placeholder: 'Jeff Smith',
-                                                    required: true,
-                                                    title: 'Full Name',
-                                                },
-                                                {
-                                                    field: {
-                                                        companyName: true,
-                                                    },
-                                                    fieldType:
-                                                        FormFieldSchemaType.Text,
-                                                    placeholder: 'Acme, Inc.',
-                                                    required: true,
-                                                    title: 'Company Name',
-                                                },
-                                                {
-                                                    field: {
-                                                        companyPhoneNumber:
-                                                            true,
-                                                    },
-                                                    fieldType:
-                                                        FormFieldSchemaType.Phone,
-                                                    required: true,
-                                                    placeholder: '+11234567890',
-                                                    title: 'Phone Number',
-                                                },
-                                                {
-                                                    field: {
-                                                        password: true,
-                                                    },
-                                                    fieldType:
-                                                        FormFieldSchemaType.Password,
-                                                    validation: {
-                                                        minLength: 6,
-                                                    },
-                                                    placeholder: 'Password',
-                                                    title: 'Password',
-                                                    required: true,
-                                                },
-                                                {
-                                                    field: {
-                                                        password: true,
-                                                    },
-                                                    validation: {
-                                                        minLength: 6,
-                                                        toMatchField:
-                                                            'password',
-                                                    },
-                                                    fieldType:
-                                                        FormFieldSchemaType.Password,
-                                                    placeholder:
-                                                        'Confirm Password',
-                                                    title: 'Confirm Password',
-                                                    overideFieldKey:
-                                                        'confirmPassword',
-                                                    required: true,
-                                                },
-                                            ]}
-                                            apiUrl={apiUrl}
-                                            formType={FormType.Create}
-                                            submitButtonText={'Sign Up'}
-                                            onSuccess={(value: JSONObject) => {
-                                                LoginUtil.login(value);
-                                            }}
-                                        />
+                    <ModelForm<User>
+                        modelType={User}
+                        id="register-form"
+                        showAsColumns={2}
+                        name="Register"
+                        maxPrimaryButtonWidth={true}
+                        initialValues={{
+                            email: '',
+                            name: '',
+                            companyName: '',
+                            companyPhoneNumber: '',
+                            password: '',
+                            confirmPassword: '',
+                        }}
+                        fields={[
+                            {
+                                field: {
+                                    email: true,
+                                },
+                                fieldType:
+                                    FormFieldSchemaType.Email,
+                                placeholder:
+                                    'jeff@example.com',
+                                required: true,
+                                title: 'Email',
+                            },
+                            {
+                                field: {
+                                    name: true,
+                                },
+                                fieldType:
+                                    FormFieldSchemaType.Text,
+                                placeholder: 'Jeff Smith',
+                                required: true,
+                                title: 'Full Name',
+                            },
+                            {
+                                field: {
+                                    companyName: true,
+                                },
+                                fieldType:
+                                    FormFieldSchemaType.Text,
+                                placeholder: 'Acme, Inc.',
+                                required: true,
+                                title: 'Company Name',
+                            },
+                            {
+                                field: {
+                                    companyPhoneNumber:
+                                        true,
+                                },
+                                fieldType:
+                                    FormFieldSchemaType.Phone,
+                                required: true,
+                                placeholder: '+11234567890',
+                                title: 'Phone Number',
+                            },
+                            {
+                                field: {
+                                    password: true,
+                                },
+                                fieldType:
+                                    FormFieldSchemaType.Password,
+                                validation: {
+                                    minLength: 6,
+                                },
+                                placeholder: 'Password',
+                                title: 'Password',
+                                required: true,
+                            },
+                            {
+                                field: {
+                                    password: true,
+                                },
+                                validation: {
+                                    minLength: 6,
+                                    toMatchField:
+                                        'password',
+                                },
+                                fieldType:
+                                    FormFieldSchemaType.Password,
+                                placeholder:
+                                    'Confirm Password',
+                                title: 'Confirm Password',
+                                overideFieldKey:
+                                    'confirmPassword',
+                                required: true,
+                            },
+                        ]}
+                        apiUrl={apiUrl}
+                        formType={FormType.Create}
+                        submitButtonText={'Sign Up'}
+                        onSuccess={(value: JSONObject) => {
+                            LoginUtil.login(value);
+                        }}
+                    />
 
-                                        <div className="mt-5 text-center">
-                                            <p className="text-muted mb-0">
-                                                Already have an account?{' '}
-                                                <Link
-                                                    to={
-                                                        new Route(
-                                                            '/accounts/login'
-                                                        )
-                                                    }
-                                                    className="underline-on-hover text-primary fw-semibold"
-                                                >
-                                                    Log in.
-                                                </Link>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div className="col-xxl-3 col-lg-3 col-md-2"></div>
+                </div>
+                <div className="mt-5 text-center text-gray-500">
+                    <p className="text-muted mb-0">
+                        Already have an account?{' '}
+                        <Link
+                            to={
+                                new Route(
+                                    '/accounts/login'
+                                )
+                            }
+                            className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+                        >
+                            Log in.
+                        </Link>
+                    </p>
                 </div>
             </div>
         </div>
+
     );
 };
 
