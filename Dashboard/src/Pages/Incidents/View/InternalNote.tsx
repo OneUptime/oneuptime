@@ -8,9 +8,7 @@ import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
-import ModelTable, {
-    ShowTableAs,
-} from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -107,7 +105,6 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
-                showTableAs={ShowTableAs.List}
                 columns={[
                     {
                         field: {

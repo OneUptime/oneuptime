@@ -40,7 +40,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                 <tr {...provided?.draggableProps} ref={provided?.innerRef}>
                     {props.enableDragAndDrop && (
                         <td
-                            className='ml-3 w-10'
+                            className="ml-3 w-10"
                             {...provided?.dragHandleProps}
                         >
                             <Icon
@@ -81,7 +81,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                    column.key
+                                                        column.key
                                                     ] as string,
                                                     true
                                                 )
@@ -89,11 +89,11 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 ''
                                             )
                                         ) : column.type ===
-                                            FieldType.DateTime ? (
+                                          FieldType.DateTime ? (
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                    column.key
+                                                        column.key
                                                     ] as string,
                                                     false
                                                 )
@@ -101,17 +101,21 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 ''
                                             )
                                         ) : column.type ===
-                                            FieldType.Boolean ? (
+                                          FieldType.Boolean ? (
                                             props.item[column.key] ? (
                                                 <Icon
                                                     icon={IconProp.CheckCircle}
-                                                    className={'h-5 w-5 text-gray-500'}
+                                                    className={
+                                                        'h-5 w-5 text-gray-500'
+                                                    }
                                                     thick={ThickProp.Thick}
                                                 />
                                             ) : (
                                                 <Icon
                                                     icon={IconProp.False}
-                                                    className={'h-5 w-5 text-gray-500'}
+                                                    className={
+                                                        'h-5 w-5 text-gray-500'
+                                                    }
                                                     thick={ThickProp.Thick}
                                                 />
                                             )
@@ -132,7 +136,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         <></>
                                     )}
                                     {column.type === FieldType.Actions && (
-                                        <div className='flex justify-end'>
+                                        <div className="flex justify-end">
                                             {error && (
                                                 <div className="text-align-left">
                                                     <ConfirmModal
@@ -162,9 +166,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                     }
 
                                                     return (
-                                                        <div
-                                                            key={i}
-                                                        >
+                                                        <div key={i}>
                                                             <Button
                                                                 buttonSize={
                                                                     ButtonSize.Small
@@ -180,7 +182,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                                 }
                                                                 isLoading={
                                                                     isButtonLoading[
-                                                                    i
+                                                                        i
                                                                     ]
                                                                 }
                                                                 onClick={() => {

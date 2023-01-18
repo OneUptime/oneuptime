@@ -317,7 +317,8 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             },
                             title: 'Starts At',
                             fieldType: FieldType.DateTime,
-                        }, {
+                        },
+                        {
                             field: {
                                 endsAt: true,
                             },

@@ -32,7 +32,9 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 
                     <IconDropdwonItem
                         title="Log out"
-                        url={RouteUtil.populateRouteParams(RouteMap[PageMap.LOGOUT] as Route)}
+                        url={RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.LOGOUT] as Route
+                        )}
                         icon={IconProp.Logout}
                     />
                 </IconDropdwonMenu>

@@ -23,7 +23,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             placeholder={props.placeholder}
             onChange={props.onChange ? props.onChange : () => {}}
             onFocus={props.onFocus ? props.onFocus : () => {}}
-            onBlur={props.onBlur ? props.onBlur : () => { }}
+            onBlur={props.onBlur ? props.onBlur : () => {}}
             error={props.error}
         />
     );

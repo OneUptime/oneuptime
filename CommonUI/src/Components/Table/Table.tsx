@@ -42,8 +42,6 @@ export interface ComponentProps {
 const Table: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
-
     let colspan: number = props.columns.length || 0;
     if (props.actionButtons && props.actionButtons?.length > 0) {
         colspan++;

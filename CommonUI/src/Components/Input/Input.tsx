@@ -52,8 +52,6 @@ const Input: FunctionComponent<ComponentProps> = (
     const [displayValue, setDisplayValue] = useState<string>('');
     const ref: any = useRef<any>(null);
 
-
-
     useEffect(() => {
         if (props.type === 'date' || props.type === 'datetime-local') {
             if (value && (value as unknown) instanceof Date) {

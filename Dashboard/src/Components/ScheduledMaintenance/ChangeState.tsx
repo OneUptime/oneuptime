@@ -78,7 +78,7 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div className='-ml-3 mt-2'>
+        <div className="-ml-3 mt-2">
             <Button
                 isLoading={isLoading}
                 buttonSize={ButtonSize.Small}

@@ -23,7 +23,6 @@ export interface ComponentProps {
     endDate: Date;
     events: Array<Event>;
     defaultLabel: string;
-    height?: number | undefined;
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (

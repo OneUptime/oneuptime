@@ -39,8 +39,6 @@ const Modal: FunctionComponent<ComponentProps> = (
         iconBgColor = 'bg-red-100';
     }
 
-
-
     return (
         <div
             className="relative z-10"
@@ -98,10 +96,12 @@ const Modal: FunctionComponent<ComponentProps> = (
                                         {!props.isBodyLoading ? (
                                             props.children
                                         ) : (
-                                            <div className='modal-body mt-20 mb-20 flex justify-center'>
-                                                <Loader loaderType={LoaderType.Bar}
+                                            <div className="modal-body mt-20 mb-20 flex justify-center">
+                                                <Loader
+                                                    loaderType={LoaderType.Bar}
                                                     color={VeryLightGrey}
-                                                    size={200} />
+                                                    size={200}
+                                                />
                                             </div>
                                         )}
                                     </ModalBody>

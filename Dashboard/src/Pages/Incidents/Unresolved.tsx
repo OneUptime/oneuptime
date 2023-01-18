@@ -36,7 +36,9 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
             ]}
         >
             <IncidentsTable
-                viewPageRoute={RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENTS] as Route)}
+                viewPageRoute={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.INCIDENTS] as Route
+                )}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                     currentIncidentState: {

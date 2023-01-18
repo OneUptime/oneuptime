@@ -111,7 +111,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 try {
                     setError(
                         (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                            'Server Error. Please try again'
                     );
                 } catch (e) {
                     setError('Server Error. Please try again');
@@ -220,17 +220,18 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                 <p className="pl-1">or drag and drop</p>
                             </div>
                             <p className="text-xs text-gray-500">
-                                {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                                    <span>File types: </span>
-                                )}
+                                {props.mimeTypes &&
+                                    props.mimeTypes?.length > 0 && (
+                                        <span>File types: </span>
+                                    )}
                                 {props.mimeTypes &&
                                     props.mimeTypes
                                         .map((type: MimeType) => {
                                             const enumKey: string | undefined =
                                                 Object.keys(MimeType)[
-                                                Object.values(MimeType).indexOf(
-                                                    type
-                                                )
+                                                    Object.values(
+                                                        MimeType
+                                                    ).indexOf(type)
                                                 ];
                                             return enumKey?.toUpperCase() || '';
                                         })
@@ -240,13 +241,16 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                                 pos: number,
                                                 array: Array<string | undefined>
                                             ) => {
-                                                return array.indexOf(item) === pos;
+                                                return (
+                                                    array.indexOf(item) === pos
+                                                );
                                             }
                                         )
                                         .join(', ')}
-                                {props.mimeTypes && props.mimeTypes?.length > 0 && (
-                                    <span>.</span>
-                                )}
+                                {props.mimeTypes &&
+                                    props.mimeTypes?.length > 0 && (
+                                        <span>.</span>
+                                    )}
                                 &nbsp;10 MB or less.
                             </p>
                         </div>
