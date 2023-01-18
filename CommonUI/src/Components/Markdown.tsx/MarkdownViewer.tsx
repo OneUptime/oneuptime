@@ -17,7 +17,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         <div>
             <ReactMarkdown
                 components={{
-                    // Map `h1` (`# heading`) to use `h2`s.
+                    // because tailwind does not supply <h1 ... /> styles https://tailwindcss.com/docs/preflight#headings-are-unstyled
                     h1: ({ node, ...props }) => <h1 className='text-4xl font-bold' {...props} />,
                     h2: ({node, ...props}) => <h1 className='text-3xl font-bold' {...props} />,
                     h3: ({node, ...props}) => <h1 className='text-2xl font-bold' {...props} />,
