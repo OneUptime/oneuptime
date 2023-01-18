@@ -18,6 +18,7 @@ import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import AlignItem from 'CommonUI/src/Types/AlignItem';
 const PublicNote: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
@@ -116,9 +117,11 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                                 email: true,
                             },
                         },
-                        title: 'Posted By',
+                        title: '',
+
                         type: FieldType.Entity,
                         isFilterable: true,
+                        
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['createdByUser']) {
                                 return (
@@ -131,10 +134,12 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                                                 User
                                             ) as User
                                         }
-                                    />
+                                        suffix={"wrote"}
+                                        usernameClassName={"text-base font-medium text-gray-900"}
+                                        suffixClassName={"text-base font-medium text-gray-600"}
+                                    /> 
                                 );
                             }
-
                             return <></>;
                         },
                     },
@@ -143,16 +148,19 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                             createdAt: true,
                         },
                         isFilterable: true,
-                        title: 'Posted At',
+                        alignItem: AlignItem.Right,
+                        title: '',
                         type: FieldType.DateTime,
+                        contentClassName: "mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3"
                     },
                     {
                         field: {
                             note: true,
                         },
                         isFilterable: true,
-                        title: 'Note',
+                        title: '',
                         type: FieldType.Markdown,
+                        colSpan: 2
                     },
                     
                 ]}

@@ -197,6 +197,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 description: column.description || '',
                 key: column.key || '',
                 fieldType: column.type,
+                colSpan: column.colSpan,
+                contentClassName: column.contentClassName,
+                alignItem: column.alignItem,
                 getElement: column.getElement
                     ? (item: JSONObject): ReactElement => {
                           return column.getElement!(item, onBeforeFetchData);
@@ -334,6 +337,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         );
                     };
                 }
+
+                classicColumn.colSpan = column.colSpan;
+                classicColumn.alignItem = column.alignItem;
+                classicColumn.contentClassName = column.contentClassName;
             }
 
             setColumns(classicColumns);
@@ -1123,11 +1130,14 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <div>
                     {props.cardProps && (
                         <Card
+                            bodyClassName='-ml-6 -mr-6 bg-gray-50 border-top'
                             {...props.cardProps}
                             buttons={cardButtons}
                             title={getCardTitle(props.cardProps.title)}
                         >
-                            {getList()}
+                            <div className='ml-6 mr-6 mt-6 pt-6'>
+                                {getList()}
+                                </div>
                         </Card>
                     )}
 
