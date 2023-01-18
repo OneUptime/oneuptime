@@ -207,7 +207,7 @@ export default class ApiKey extends BaseModel {
     public expiresAt?: Date = undefined;
 
     @ColumnAccessControl({
-        create: [],
+        create: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         read: [Permission.ProjectOwner, Permission.CanReadProjectApiKey],
         update: [Permission.ProjectOwner, Permission.CanEditProjectApiKey],
     })
