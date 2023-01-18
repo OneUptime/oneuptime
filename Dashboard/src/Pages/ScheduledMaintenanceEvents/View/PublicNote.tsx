@@ -136,7 +136,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                                         }
                                         suffix={"wrote"}
                                         usernameClassName={"text-base font-medium text-gray-900"}
-                                        suffixClassName={"text-base font-medium text-gray-600"}
+                                        suffixClassName={"text-base font-medium text-gray-600 mt-1"}
                                     /> 
                                 );
                             }
@@ -160,6 +160,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         title: '',
                         type: FieldType.Markdown,
+                        contentClassName: "-mt-3 space-y-6 text-sm text-gray-800",
                         colSpan: 2
                     },
                     

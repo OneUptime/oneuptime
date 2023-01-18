@@ -179,7 +179,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                         : {}
                 }
             >
-                <label className="text-sm font-medium text-gray-500">
+                {field.title && <label className="text-sm font-medium text-gray-500">
                     <span className={alignClassName}>{field.title}</span>
                     {field.sideLink &&
                         field.sideLink?.text &&
@@ -193,7 +193,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                                 </Link>
                             </span>
                         )}
-                </label>
+                </label>}
                 {field.description && <p className={alignClassName}>{field.description}</p>}
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>

@@ -69,18 +69,18 @@ const List: FunctionComponent<ComponentProps> = (
         <div>
             {getListbody()}
             {!props.disablePagination && (
-                <div className=' -ml-6 mt-5 -mr-6'>
-                <Pagination
-                    singularLabel={props.singularLabel}
-                    pluralLabel={props.pluralLabel}
-                    currentPageNumber={props.currentPageNumber}
-                    totalItemsCount={props.totalItemsCount}
-                    itemsOnPage={props.itemsOnPage}
-                    onNavigateToPage={props.onNavigateToPage}
-                    isLoading={props.isLoading}
-                    isError={Boolean(props.error)}
+                <div className=' -ml-6 mt-5 -mr-6 -mb-6'>
+                    <Pagination
+                        singularLabel={props.singularLabel}
+                        pluralLabel={props.pluralLabel}
+                        currentPageNumber={props.currentPageNumber}
+                        totalItemsCount={props.totalItemsCount}
+                        itemsOnPage={props.itemsOnPage}
+                        onNavigateToPage={props.onNavigateToPage}
+                        isLoading={props.isLoading}
+                        isError={Boolean(props.error)}
                     />
-                    </div>
+                </div>
             )}
         </div>
     );
