@@ -13,6 +13,7 @@ export interface ComponentProps {
     tabIndex?: number | undefined;
     title?: string | undefined;
     description?: string | undefined;
+    error?: string | undefined;
 }
 
 const Toggle: FunctionComponent<ComponentProps> = (
@@ -52,34 +53,39 @@ const Toggle: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div className="flex items-center">
-            <button
-                onClick={() => {
-                    if (props.onFocus) {
-                        props.onFocus();
-                    }
-                    if (props.onBlur) {
-                        props.onBlur();
-                    }
-                    handleChange(!isChecked);
-                }}
-                tabIndex={props.tabIndex}
-                type="button"
-                className={buttonClassName}
-                role="switch"
-                aria-checked="false"
-                aria-labelledby="annual-billing-label"
-            >
-                <span aria-hidden="true" className={toggleClassName}></span>
-            </button>
-            <span className="ml-3" id="annual-billing-label">
-                <span className="text-sm font-medium text-gray-900">
-                    {props.title}
+        <div>
+            <div className="flex items-center">
+                <button
+                    onClick={() => {
+                        if (props.onFocus) {
+                            props.onFocus();
+                        }
+                        if (props.onBlur) {
+                            props.onBlur();
+                        }
+                        handleChange(!isChecked);
+                    }}
+                    tabIndex={props.tabIndex}
+                    type="button"
+                    className={buttonClassName}
+                    role="switch"
+                    aria-checked="false"
+                    aria-labelledby="annual-billing-label"
+                >
+                    <span aria-hidden="true" className={toggleClassName}></span>
+                </button>
+                <span className="ml-3" id="annual-billing-label">
+                    <span className="text-sm font-medium text-gray-900">
+                        {props.title}
+                    </span>
+                    <span className="text-sm text-gray-500 ml-1">
+                        {props.description}
+                    </span>
                 </span>
-                <span className="text-sm text-gray-500 ml-1">
-                    {props.description}
-                </span>
-            </span>
+            </div>
+            {props.error && (
+                <p className="mt-1 text-sm text-red-400">{props.error}</p>
+            )}
         </div>
     );
 };

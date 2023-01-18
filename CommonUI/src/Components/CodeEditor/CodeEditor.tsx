@@ -25,6 +25,7 @@ export interface ComponentProps {
     onBlur?: (() => void) | undefined;
     dataTestId?: string;
     tabIndex?: number | undefined;
+    error?: string | undefined;
 }
 
 const CodeEditor: FunctionComponent<ComponentProps> = (
@@ -76,7 +77,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className={`flex ${props.className}`}
+            className={`relative mt-2 mb-1 rounded-md shadow-sm w-full ${props.className}`}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();
@@ -93,6 +94,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                     return highlight(code, grammar, language);
                 }}
                 padding={10}
+                className=""
                 style={{
                     fontFamily: '"Fira code", "Fira Mono", monospace',
                     fontSize: 12,
@@ -110,6 +112,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                 }}
                 disabled={props.readOnly || false}
             />
+            {props.error && (
+                <p className="mt-1 text-sm text-red-400">{props.error}</p>
+            )}
         </div>
     );
 };
