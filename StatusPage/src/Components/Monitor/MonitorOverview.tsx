@@ -72,7 +72,6 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                         startDate={props.startDate}
                         endDate={props.endDate}
                         isLoading={false}
-                        height={30}
                     />
                 </div>
             )}

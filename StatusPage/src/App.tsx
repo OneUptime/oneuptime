@@ -27,7 +27,6 @@ import ResetPassword from './Pages/Accounts/ResetPassword';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
-import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';

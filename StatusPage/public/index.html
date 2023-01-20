@@ -15,6 +15,40 @@
     <meta name="slack-app-id" content="ACVBMTPJQ">
     <meta name="description" content="This is the login page for OneUptime Dashboard">
     <script src="/status-page/env.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter">
+    <style>
+      * {
+      font-family: Inter;
+      }
+
+
+      input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+          bottom: 0;
+          color: transparent;
+          cursor: pointer;
+          height: auto;
+          left: 0;
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: auto;
+      }
+
+      input[type="date"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+          bottom: 0;
+          color: transparent;
+          cursor: pointer;
+          height: auto;
+          left: 0;
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: auto;
+      }
+      </style>
+    <script src="https://cdn.tailwindcss.com"></script>
     <title>Status Page</title>
 
         <!-- Google Tag Manager -->
@@ -47,7 +81,7 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
   </head>
-  <body>
+  <body class="h-full bg-gray-50">
     <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH"
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -65,5 +99,18 @@
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
     <script src="/status-page/dist/bundle.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend:
+          {
+            fontFamily: {
+              'display': ['Inter', 'sans-serif'],
+              'body': ['Inter', 'sans-serif']
+            },
+          },
+        },
+      }
+    </script>
   </body>
 </html>

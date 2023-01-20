@@ -8,7 +8,7 @@ import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import Accordian from 'CommonUI/src/Components/Accordian/Accordian';
 import AccordianGroup from 'CommonUI/src/Components/Accordian/AccordianGroup';
-import Alert, { AlertSize } from 'CommonUI/src/Components/Alerts/Alert';
+import Alert from 'CommonUI/src/Components/Alerts/Alert';
 import ActiveEvent from 'CommonUI/src/Components/ActiveEvent/ActiveEvent';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
@@ -730,9 +730,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         ? `All`
                                         : 'Some'
                                 } Resources are ${currentStatus.name}`}
-                                color={currentStatus.color}
+                                //color={currentStatus.color}
                                 doNotShowIcon={true}
-                                size={AlertSize.Large}
+                                //size={AlertSize.Large}
                             />
                         )}
                     </div>
