@@ -44,9 +44,9 @@ Deploy a signle-server instance in one line on Debian / Ubuntu with Docker (reco
 Please look at config.env and change these values, 
 
 ```
-DOMAIN=oneuptime.yourcompany.com # This is used for SSL certs with letsencrypt. SSL cert will be auto-provisioned. 
+DOMAIN=oneuptime.yourcompany.com # REQUIRED. This is used for SSL certs with letsencrypt. SSL cert will be auto-provisioned. 
 
-# SMTP SETTINGS for sending email from OneUptime. 
+# SMTP SETTINGS for sending email from OneUptime (optional). 
 SMTP_USERNAME=username
 SMTP_PASSWORD=password
 SMTP_PORT=465
