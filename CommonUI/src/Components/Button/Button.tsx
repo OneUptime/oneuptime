@@ -2,7 +2,6 @@ import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import { KeyboardEventProp } from '../../Types/HtmlEvents';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
-import CSS from 'csstype';
 import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 
 export enum ButtonStyleType {
@@ -36,7 +35,7 @@ export interface ComponentProps {
     shortcutKey?: undefined | ShortcutKey;
     type?: undefined | ButtonType;
     isLoading?: undefined | boolean;
-    style?: undefined | CSS.Properties;
+    style?: undefined | React.CSSProperties;
     icon?: undefined | IconProp;
     iconSize?: undefined | SizeProp;
     buttonStyle?: undefined | ButtonStyleType;

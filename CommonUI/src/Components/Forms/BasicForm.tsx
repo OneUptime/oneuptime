@@ -1019,6 +1019,13 @@ const BasicForm: Function = <T extends Object>(
         setInitalValues(values);
     }, [props.initialValues]);
 
+    const primaryButtonStyle: React.CSSProperties = { };
+
+    if (props.maxPrimaryButtonWidth) {
+        primaryButtonStyle.marginLeft = "0px";
+        primaryButtonStyle.width = "100%";
+    }
+
     return (
         <div className="row">
             <div className="col-lg-1">
@@ -1168,7 +1175,7 @@ const BasicForm: Function = <T extends Object>(
                                     )}
                                 </div>
 
-                                <div className="flex w-full justify-end pr-3">
+                                <div className="flex w-full justify-end">
                                     {!props.hideSubmitButton && (
                                         <div className='mt-3' style={{
                                             width: props.maxPrimaryButtonWidth
@@ -1192,11 +1199,7 @@ const BasicForm: Function = <T extends Object>(
                                                     props.submitButtonStyleType ||
                                                     ButtonStyleType.PRIMARY
                                                 }
-                                                style={{
-                                                    width: props.maxPrimaryButtonWidth
-                                                        ? '100%'
-                                                        : ' auto',
-                                                }}
+                                                style={primaryButtonStyle}
 
                                             />
                                         </div>
