@@ -142,7 +142,7 @@ const BasicForm: Function = <T extends Object>(
         }
 
         return (
-            <div className="sm:col-span-4 mt-5 mb-2" key={index}>
+            <div className="sm:col-span-4 mt-0 mb-2" key={index}>
                 <label className="block text-sm font-medium text-gray-700 flex justify-between">
                     <span>{field.title}</span>
                     {field.sideLink &&
@@ -1099,19 +1099,14 @@ const BasicForm: Function = <T extends Object>(
                                 )}
 
                                 <div>
-                                    <div>
+                                    <div className={`grid md:grid-cols-${props.showAsColumns || 1} grid-cols-1 gap-4`}>
                                         {props.fields &&
                                             props.fields.map(
                                                 (
                                                     field: DataField<T>,
                                                     i: number
                                                 ) => {
-                                                    if (
-                                                        i %
-                                                        (props.showAsColumns ||
-                                                            1) ===
-                                                        0
-                                                    ) {
+                                                   
                                                         return (
                                                             <div key={i}>
                                                                 {getFormField(
@@ -1126,53 +1121,11 @@ const BasicForm: Function = <T extends Object>(
                                                                 }
                                                             </div>
                                                         );
-                                                    }
-                                                    return (
-                                                        <div
-                                                            key={Math.random()}
-                                                        ></div>
-                                                    );
+                                                    
                                                 }
                                             )}
                                     </div>
-                                    {(props.showAsColumns || 1) > 1 && (
-                                        <div>
-                                            {props.fields &&
-                                                props.fields.map(
-                                                    (
-                                                        field: DataField<T>,
-                                                        i: number
-                                                    ) => {
-                                                        if (
-                                                            i %
-                                                            (props.showAsColumns ||
-                                                                1) !==
-                                                            0
-                                                        ) {
-                                                            return (
-                                                                <div key={i}>
-                                                                    {getFormField(
-                                                                        field,
-                                                                        i,
-                                                                        props.isLoading,
-                                                                        errors,
-                                                                        touched
-                                                                    )}
-                                                                    {
-                                                                        field.footerElement
-                                                                    }
-                                                                </div>
-                                                            );
-                                                        }
-                                                        return (
-                                                            <div
-                                                                key={Math.random()}
-                                                            ></div>
-                                                        );
-                                                    }
-                                                )}
-                                        </div>
-                                    )}
+                                    
                                 </div>
 
                                 <div className="flex w-full justify-end">
