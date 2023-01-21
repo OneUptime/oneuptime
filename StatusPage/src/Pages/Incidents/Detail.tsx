@@ -36,6 +36,8 @@ import Monitor from 'Model/Models/Monitor';
 import UserUtil from '../../Utils/User';
 import Color from 'Common/Types/Color';
 import { Green } from 'Common/Types/BrandColors';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
@@ -283,7 +285,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
         <Page>
             {incident ? <EventItem {...parsedData} /> : <></>}
             {!incident ? (
-                <ErrorMessage error="No incident found with this ID." />
+                <EmptyState title={"No Incident"} description={"Incident not found on this status page."} icon={IconProp.Alert} />
             ) : (
                 <></>
             )}

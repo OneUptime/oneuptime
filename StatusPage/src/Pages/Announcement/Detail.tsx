@@ -29,6 +29,8 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import UserUtil from '../../Utils/User';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
@@ -181,7 +183,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         <Page>
             {announcement ? <EventItem {...parsedData} /> : <></>}
             {!announcement ? (
-                <ErrorMessage error="No announcement found with this ID." />
+                <EmptyState title={"No Announcement"} description={"Announcement not found on this status page."} icon={IconProp.Anouncement} />
             ) : (
                 <></>
             )}

@@ -4,6 +4,7 @@ export interface ComponentProps {
     leftComponents?: undefined | Array<ReactElement> | ReactElement;
     rightComponents?: undefined | Array<ReactElement> | ReactElement;
     centerComponents?: undefined | Array<ReactElement> | ReactElement;
+    className?: string | undefined;
 }
 
 const Header: FunctionComponent<ComponentProps> = (
@@ -11,7 +12,7 @@ const Header: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <div className="relative flex h-16 justify-between">
+            <div className={props.className || "relative flex h-16 justify-between bg-white"}>
                 <div className="relative z-20 flex px-2 lg:px-0">
                     {props.leftComponents}
                 </div>

@@ -10,6 +10,9 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     isLoading: boolean;
     error: string;
+    topSectionClassName?: string | undefined;
+    className?: string | undefined;
+    hideHeader?: boolean | undefined;
 }
 
 const MasterPage: FunctionComponent<ComponentProps> = (
@@ -33,15 +36,15 @@ const MasterPage: FunctionComponent<ComponentProps> = (
 
     return (
         <React.Fragment>
-            <>
+            <div className={props.className}>
                 <div className="sticky top-0">
-                    <TopSection header={props.header} navbar={props.navBar} />
+                    <TopSection hideHeader={props.hideHeader} className={props.topSectionClassName} header={props.header} navbar={props.navBar} />
                 </div>
 
                 {props.children}
 
                 {props.footer && props.footer}
-            </>
+            </div>
         </React.Fragment>
     );
 };

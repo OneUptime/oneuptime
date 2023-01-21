@@ -582,6 +582,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
     // const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
     // const endDate: Date = OneUptimeDate.getCurrentDate();
 
+
+
+
     return (
         <Page>
             {isLoading ? <PageLoader isVisible={true} /> : <></>}
@@ -730,9 +733,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                         ? `All`
                                         : 'Some'
                                 } Resources are ${currentStatus.name}`}
-                                //color={currentStatus.color}
+                                color={currentStatus.color}
                                 doNotShowIcon={true}
-                                //size={AlertSize.Large}
+                                textClassName="text-white text-lg"
                             />
                         )}
                     </div>

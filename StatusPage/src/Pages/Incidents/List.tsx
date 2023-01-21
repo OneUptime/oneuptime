@@ -33,6 +33,8 @@ import { getIncidentEventItem } from './Detail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import User from '../../Utils/User';
 import Route from 'Common/Types/API/Route';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -211,7 +213,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 <></>
             )}
             {incidents.length === 0 ? (
-                <ErrorMessage error="No incidents reported on this status page." />
+                <EmptyState title={"No Incident"} description={"No incidents posted on this status page."} icon={IconProp.Alert} />
             ) : (
                 <></>
             )}

@@ -1,3 +1,4 @@
+import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Icon, { IconProp } from '../Icon/Icon';
 
@@ -21,6 +22,9 @@ export interface ComponentProps {
     onClick?: (() => void) | undefined;
     doNotShowIcon?: boolean | undefined;
     dataTestId?: string;
+    textClassName?: string | undefined;
+    className?: string | undefined;
+    color?: Color | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -56,6 +60,11 @@ const Alert: FunctionComponent<ComponentProps> = (
             onClick={() => {
                 props.onClick && props.onClick();
             }}
+            style={
+                props.color ? {
+                    backgroundColor: props.color?.toString()
+                } : {}
+            }
         >
             <div className="flex ">
                 {!props.doNotShowIcon && (
@@ -86,8 +95,8 @@ const Alert: FunctionComponent<ComponentProps> = (
                         )}
                     </div>
                 )}
-                <div className="ml-3 flex-1 md:flex md:justify-between">
-                    <p className={`text-sm ${className}-600`}>
+                <div className={props.className || "ml-3 flex-1 md:flex md:justify-between"}>
+                    <p className={props.textClassName || `text-sm ${className}-600`}>
                         <strong>{props.strongTitle}</strong>{' '}
                         {props.title && props.strongTitle ? '-' : ''}{' '}
                         {props.title}

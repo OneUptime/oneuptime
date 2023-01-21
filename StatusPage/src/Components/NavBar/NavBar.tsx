@@ -52,7 +52,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ></NavBarItem>
 
             <NavBarItem
-                title="Scheduled Maintenance"
+                title="Scheduled Events"
                 icon={IconProp.Clock}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview

@@ -35,6 +35,8 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import Color from 'Common/Types/Color';
 import { Green } from 'Common/Types/BrandColors';
 import UserUtil from '../../Utils/User';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
@@ -289,7 +291,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         <Page>
             {scheduledMaintenanceEvent ? <EventItem {...parsedData} /> : <></>}
             {!scheduledMaintenanceEvent ? (
-                <ErrorMessage error="No incident found with this ID." />
+                <EmptyState title={"No Scheduled Event"} description={"No scheduled event found for this status page."} icon={IconProp.Clock} />
             ) : (
                 <></>
             )}

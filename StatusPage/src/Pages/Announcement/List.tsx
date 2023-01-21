@@ -31,6 +31,8 @@ import { getAnnouncementEventItem } from './Detail';
 import UserUtil from '../../Utils/User';
 import Route from 'Common/Types/API/Route';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState'
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -188,7 +190,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
 
             {announcements.length === 0 ? (
-                <ErrorMessage error="No announcements reported on this status page." />
+                <EmptyState title={"No Announcements"} description={"No announcements posted so far on this page."} icon={IconProp.Anouncement} />
             ) : (
                 <></>
             )}

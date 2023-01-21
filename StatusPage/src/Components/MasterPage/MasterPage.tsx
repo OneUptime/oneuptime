@@ -1,6 +1,7 @@
 import MasterPage from 'CommonUI/src/Components/MasterPage/MasterPage';
 import Footer from '../Footer/Footer';
 import Header from '../Header/Header';
+import Banner from '../Banner/Banner';
 import NavBar from '../NavBar/NavBar';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import URL from 'Common/Types/API/URL';
@@ -137,7 +138,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -162,80 +163,93 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         return <>{props.children}</>;
     }
 
+    const logo = (JSONFunctions.getJSONValueInPath(
+        masterPageData || {},
+        'statusPage.logoFile'
+    ) as BaseModel) || undefined;
+
+    const links = (
+        (JSONFunctions.getJSONValueInPath(
+            masterPageData || {},
+            'headerLinks'
+        ) as Array<JSONObject>) || []
+    ).map((link: JSONObject) => {
+        return {
+            title: link['title'] as string,
+            to: link['link'] as URL,
+            openInNewTab: true,
+        };
+    })
+
+
+
     return (
-        <MasterPage
-            footer={
-                !footerHtml ? (
-                    <Footer
-                        copyright={
-                            (JSONFunctions.getJSONValueInPath(
-                                masterPageData || {},
-                                'statusPage.copyrightText'
-                            ) as string) || ''
-                        }
-                        links={(
-                            (JSONFunctions.getJSONValueInPath(
-                                masterPageData || {},
-                                'footerLinks'
-                            ) as Array<JSONObject>) || []
-                        ).map((link: JSONObject) => {
-                            return {
-                                title: link['title'] as string,
-                                to: link['link'] as URL,
-                                openInNewTab: true,
-                            };
-                        })}
-                    />
-                ) : (
-                    <div
-                        dangerouslySetInnerHTML={{
-                            __html: footerHtml as string,
-                        }}
-                    />
-                )
-            }
-            header={
-                !headerHtml ? (
-                    <Header
-                        logo={
-                            (JSONFunctions.getJSONValueInPath(
-                                masterPageData || {},
-                                'statusPage.logoFile'
-                            ) as BaseModel) || undefined
-                        }
-                        banner={
-                            (JSONFunctions.getJSONValueInPath(
-                                masterPageData || {},
-                                'statusPage.coverImageFile'
-                            ) as BaseModel) || undefined
-                        }
-                        links={(
-                            (JSONFunctions.getJSONValueInPath(
-                                masterPageData || {},
-                                'headerLinks'
-                            ) as Array<JSONObject>) || []
-                        ).map((link: JSONObject) => {
-                            return {
-                                title: link['title'] as string,
-                                to: link['link'] as URL,
-                                openInNewTab: true,
-                            };
-                        })}
-                    />
-                ) : (
-                    <div
-                        dangerouslySetInnerHTML={{
-                            __html: headerHtml as string,
-                        }}
-                    />
-                )
-            }
-            navBar={<NavBar show={true} isPreview={true} />}
-            isLoading={props.isLoading || false}
-            error={props.error || ''}
-        >
-            {props.children}
-        </MasterPage>
+        <div className='max-w-4xl m-auto'>
+            {<div><Banner file={
+                (JSONFunctions.getJSONValueInPath(
+                    masterPageData || {},
+                    'statusPage.coverImageFile'
+                ) as BaseModel) || undefined
+            } /></div>}
+            <MasterPage
+                className=" m-auto"
+                topSectionClassName='shadow p-1 bg-white rounded mb-5 flex justify-center'
+                hideHeader={!logo && links.length === 0}
+                footer={
+                    !footerHtml ? (
+                        <Footer
+                            className='fixed max-w-4xl flex m-auto inset-x-0 bottom-0'
+                            copyright={
+                                (JSONFunctions.getJSONValueInPath(
+                                    masterPageData || {},
+                                    'statusPage.copyrightText'
+                                ) as string) || ''
+                            }
+                            links={(
+                                (JSONFunctions.getJSONValueInPath(
+                                    masterPageData || {},
+                                    'footerLinks'
+                                ) as Array<JSONObject>) || []
+                            ).map((link: JSONObject) => {
+                                return {
+                                    title: link['title'] as string,
+                                    to: link['link'] as URL,
+                                    openInNewTab: true,
+                                };
+                            })}
+                        />
+                    ) : (
+                        <div
+                            dangerouslySetInnerHTML={{
+                                __html: footerHtml as string,
+                            }}
+                        />
+                    )
+                }
+                header={
+                    !headerHtml ? (
+                        <Header
+                            logo={
+                                logo
+                            }
+                            links={links}
+                        />
+                    ) : (
+                        <div
+                            dangerouslySetInnerHTML={{
+                                __html: headerHtml as string,
+                            }}
+                        />
+                    )
+                }
+                navBar={<NavBar show={true} isPreview={true} />}
+                isLoading={props.isLoading || false}
+                error={props.error || ''}
+            >
+                {props.children}
+            </MasterPage>
+        </div>
+
     );
 };
 

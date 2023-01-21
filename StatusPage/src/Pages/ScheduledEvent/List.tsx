@@ -33,6 +33,8 @@ import { getScheduledEventEventItem } from './Detail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import User from '../../Utils/User';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -219,7 +221,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
 
             {scheduledMaintenanceEvents.length === 0 ? (
-                <ErrorMessage error="No events reported on this status page." />
+                 <EmptyState title={"No Scheduled Events"} description={"No scheduled events posted for this status page."} icon={IconProp.Clock} />
             ) : (
                 <></>
             )}
