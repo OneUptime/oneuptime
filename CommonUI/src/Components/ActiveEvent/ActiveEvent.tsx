@@ -34,7 +34,7 @@ const ActiveEvent: FunctionComponent<ComponentProps> = (
                     backgroundColor: props.cardColor.toString(),
                 }}
             >
-                <div className="active-event-box-header-title flex justify-space-between">
+                <div className="active-event-box-header-title flex flex justify-between">
                     <div>{props.cardTitle}</div>
                     <div className="active-event-box-right-title">
                         {props.cardTitleRight}

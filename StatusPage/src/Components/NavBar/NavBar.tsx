@@ -68,19 +68,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Email}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
-                        ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route)
-                        : (RouteMap[PageMap.SUBSCRIBE] as Route)
+                        ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
+                        : (RouteMap[PageMap.SUBSCRIBE_SMS] as Route)
                 )}
             ></NavBarItem>
-            {/* <NavBarItem
-                        title="RSS"
-                        icon={IconProp.RSS}
-                        route={RouteUtil.populateRouteParams(
-                            props.isPreview
-                                ? (RouteMap[PageMap.PREVIEW_RSS] as Route)
-                                : (RouteMap[PageMap.RSS] as Route)
-                        )}
-                    ></NavBarItem> */}
         </NavBar>
     );
 };

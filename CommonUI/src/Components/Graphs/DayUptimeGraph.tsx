@@ -23,6 +23,7 @@ export interface ComponentProps {
     endDate: Date;
     events: Array<Event>;
     defaultLabel: string;
+    height?: number | undefined
 }
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
@@ -156,10 +157,15 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             toolTipText += ` - 100% ${props.defaultLabel || 'Operational'}.`;
         }
 
+        let className = "rounded h-20 w-20";
+
+        if (props.height) {
+            className = "rounded w-20 h-" + props.height;
+        }
         return (
             <Tooltip key={dayNumber} text={toolTipText || '100% Operational'}>
                 <div
-                    className="rounded h-20 w-20"
+                    className={className}
                     style={{
                         backgroundColor: color.toString(),
                     }}
@@ -178,7 +184,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         return elements;
     };
 
-    return <div className="flex space-x-1">{getUptimeGraph()}</div>;
+    return <div className="flex space-x-0.5">{getUptimeGraph()}</div>;
 };
 
 export default DayUptimeGraph;

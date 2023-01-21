@@ -283,10 +283,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SUBSCRIBE]?.toString() || ''}
+                    path={RouteMap[PageMap.SUBSCRIBE_EMAIL]?.toString() || ''}
                     element={
                         <Subscribe
-                            pageRoute={RouteMap[PageMap.SUBSCRIBE] as Route}
+                            pageRoute={RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route}
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
@@ -317,7 +317,7 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.PREVIEW_SUBSCRIBE]?.toString() || ''}
+                    path={RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL]?.toString() || ''}
                     element={
                         <Subscribe
                             onLoadComplete={() => {
@@ -326,7 +326,7 @@ const App: FunctionComponent = () => {
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
-                                RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route
+                                RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
                         />

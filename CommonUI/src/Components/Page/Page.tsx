@@ -4,10 +4,11 @@ import Analytics from '../../Utils/Analytics';
 import Breadcrumbs from '../Breadcrumbs/Breadcrumbs';
 
 export interface ComponentProps {
-    title: string;
-    breadcrumbLinks: Array<Link>;
+    title?: string | undefined;
+    breadcrumbLinks?: Array<Link> | undefined;
     children: Array<ReactElement> | ReactElement;
     sideMenu?: undefined | ReactElement;
+    className?: string | undefined;
 }
 
 const Page: FunctionComponent<ComponentProps> = (
@@ -28,19 +29,19 @@ const Page: FunctionComponent<ComponentProps> = (
     }, [props.breadcrumbLinks]);
 
     return (
-        <div className="mx-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-20 h-full">
-            <div className="mb-5">
-                <div className="mt-2">
+        <div className={props.className || "mx-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-20 h-full"}>
+             {((props.breadcrumbLinks && props.breadcrumbLinks.length > 0) || props.title) && <div className="mb-5">
+                {(props.breadcrumbLinks && props.breadcrumbLinks.length > 0) && <div className="mt-2">
                     <Breadcrumbs links={props.breadcrumbLinks} />
-                </div>
-                <div className="mt-2 md:flex md:items-center md:justify-between">
+                </div>}
+                {props.title && <div className="mt-2 md:flex md:items-center md:justify-between">
                     <div className="min-w-0">
                         <h2 className="text-xl leading-7 font-bold text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
                             {props.title}
                         </h2>
                     </div>
-                </div>
-            </div>
+                </div>}
+            </div>}
 
             {props.sideMenu && (
                 <main className="mx-auto max-w-full pb-10 mr-5">

@@ -36,7 +36,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 className="active-event-box-body"
                 style={{ marginBottom: '0px', paddingBottom: '0px' }}
             >
-                <div className="justify-space-between">
+                <div className="flex justify-between">
                     <h2
                         className="active-event-box-body-title"
                         style={{

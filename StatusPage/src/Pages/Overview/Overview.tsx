@@ -336,6 +336,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         endDate={endDate}
                         showHistoryChart={resource.showStatusHistoryChart}
                         showCurrentStatus={resource.showCurrentStatus}
+                        uptimeGraphHeight={10}
                     />
                 );
             }
@@ -741,7 +742,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     </div>
 
                     {statusPageResources.length > 0 && (
-                        <div>
+                        <div className='bg-white p-5 mt-5 rounded shadow'>
                             <AccordianGroup>
                                 {statusPageResources.filter(
                                     (resources: StatusPageResource) => {

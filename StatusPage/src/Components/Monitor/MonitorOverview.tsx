@@ -16,6 +16,7 @@ export interface ComponentProps {
     endDate: Date;
     showHistoryChart?: boolean | undefined;
     showCurrentStatus?: boolean | undefined;
+    uptimeGraphHeight?: number | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -30,11 +31,11 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         >
             <div>
                 <div
-                    className="justify-space-between"
+                    className="flex justify-between"
                     style={{ marginBottom: '3px' }}
                 >
                     <div className="flex">
-                        <div className="bold font16">{props.monitorName}</div>
+                        <div className=""><strong>{props.monitorName}</strong></div>
                         {props.tooltip && (
                             <Tooltip
                                 key={1}
@@ -51,18 +52,18 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                     </div>
                     {props.showCurrentStatus && (
                         <div
-                            className="bold font16"
+                            className=""
                             style={{
                                 color:
                                     props.monitorStatus?.color?.toString() ||
                                     Green.toString(),
                             }}
                         >
-                            {props.monitorStatus?.name || 'Operational'}
+                            <strong>{props.monitorStatus?.name || 'Operational'}</strong>
                         </div>
                     )}
                 </div>
-                <div style={{ marginBottom: '3px' }}>{props.description}</div>
+                <div className='mb-2 text-gray-400 text-sm'>{props.description}</div>
             </div>
             {props.showHistoryChart && (
                 <div>
@@ -72,6 +73,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                         startDate={props.startDate}
                         endDate={props.endDate}
                         isLoading={false}
+                        height={props.uptimeGraphHeight}
                     />
                 </div>
             )}

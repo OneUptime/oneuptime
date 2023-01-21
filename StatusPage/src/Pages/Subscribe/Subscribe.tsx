@@ -11,11 +11,15 @@ import BadDataException from 'Common/Types/Exception/BadDataException';
 import User from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
+import SubscribeSideMenu from './SideMenu';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
+import Card from "CommonUI/src/Components/Card/Card";
 
-const PageNotFound: FunctionComponent<PageComponentProps> = (
+const SubscribePage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
-    const [currentTab, _setCurrentTab] = useState<string>('Email');
+
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
     if (
@@ -33,10 +37,25 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
+        <Page
+            title={"Subscribe"}
+            breadcrumbLinks={[
+                {
+                    title: 'Home',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
+                    ),
+                },
+                {
+                    title: 'Subscribe',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage ? RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route : RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route
+                    ),
+                },
+            ]}
+            sideMenu={<SubscribeSideMenu isPreviewStatusPage={!!props.isPreviewPage} />}>
             <div className="justify-center">
                 <div>
-                    {!isSuccess && <h5>Subscribe to this page.</h5>}
                     {isSuccess && (
                         <p
                             className="text-center color-light-grey"
@@ -50,144 +69,57 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
                         </p>
                     )}
 
-                    {/* <Tabs
-                tabs={['Email', 'SMS', 'Webhook']}
-                onTabChange={(tab: string) => {
-                    setCurrentTab(tab);
-                }}
-            /> */}
-
-                    {currentTab === 'Email' && !isSuccess ? (
-                        <ModelForm<StatusPageSubscriber>
-                            modelType={StatusPageSubscriber}
-                            id="email-form"
-                            name="Status Page > Email Subscribe"
-                            fields={[
-                                {
-                                    field: {
-                                        subscriberEmail: true,
+                    {!isSuccess ? (
+                        <div className='-mr-4'>
+                        <Card title="Subscribe by Email" description={"Please enter your email and status page updates will be sent to this email address."}>
+                            <ModelForm<StatusPageSubscriber>
+                                modelType={StatusPageSubscriber}
+                                id="email-form"
+                                name="Status Page > Email Subscribe"
+                                fields={[
+                                    {
+                                        field: {
+                                            subscriberEmail: true,
+                                        },
+                                        title: 'Your Email',
+                                        fieldType: FormFieldSchemaType.Email,
+                                        required: true,
+                                        placeholder: 'subscriber@company.com',
                                     },
-                                    title: 'Please enter your Email',
-                                    description:
-                                        'Status page updates will be sent to this email.',
-                                    fieldType: FormFieldSchemaType.Email,
-                                    required: true,
-                                    placeholder: 'subscriber@company.com',
-                                },
-                            ]}
-                            formType={FormType.Create}
-                            submitButtonText={'Subscribe'}
-                            onBeforeCreate={async (
-                                item: StatusPageSubscriber
-                            ) => {
-                                const id: ObjectID = LocalStorage.getItem(
-                                    'statusPageId'
-                                ) as ObjectID;
-                                if (!id) {
-                                    throw new BadDataException(
-                                        'Status Page ID is required'
-                                    );
-                                }
+                                ]}
+                                formType={FormType.Create}
+                                submitButtonText={'Subscribe'}
+                                onBeforeCreate={async (
+                                    item: StatusPageSubscriber
+                                ) => {
+                                    const id: ObjectID = LocalStorage.getItem(
+                                        'statusPageId'
+                                    ) as ObjectID;
+                                    if (!id) {
+                                        throw new BadDataException(
+                                            'Status Page ID is required'
+                                        );
+                                    }
 
-                                item.statusPageId = id;
-                                return item;
-                            }}
-                            onSuccess={(_value: JSONObject) => {
-                                setIsSuccess(true);
-                            }}
-                            maxPrimaryButtonWidth={true}
-                        />
+                                    item.statusPageId = id;
+                                    return item;
+                                }}
+                                onSuccess={(_value: JSONObject) => {
+                                    setIsSuccess(true);
+                                }}
+                                maxPrimaryButtonWidth={true}
+                            />
+                            </Card>
+                            </div>
                     ) : (
                         <></>
                     )}
 
-                    {/* {currentTab === 'SMS' ? (
-                <ModelForm<StatusPageSubscriber>
-                    modelType={StatusPageSubscriber}
-                    id="sms-form"
-                    name="Status Page > SMS Subscribe"
-                    onBeforeCreate={async (item: StatusPageSubscriber) => {
-                        const id: ObjectID = LocalStorage.getItem(
-                            'statusPageId'
-                        ) as ObjectID;
-                        if (!id) {
-                            throw new BadDataException(
-                                'Status Page ID is required'
-                            );
-                        }
 
-                        item.statusPageId = id;
-                        return item;
-                    }}
-                    fields={[
-                        {
-                            field: {
-                                subscriberSMS: true,
-                            },
-                            title: 'SMS',
-                            description:
-                                'An SMS will be sent to this number for status page updates.',
-                            fieldType: FormFieldSchemaType.Phone,
-                            required: true,
-                            placeholder: '+1234567890',
-                        },
-                    ]}
-                    formType={FormType.Create}
-                    submitButtonText={'Subscribe'}
-                    onSuccess={(_value: JSONObject) => {
-                        //LoginUtil.login(value);
-                    }}
-                    maxPrimaryButtonWidth={true}
-                />
-            ) : (
-                <></>
-            )}
-
-            {currentTab === 'Webhook' ? (
-                <ModelForm<StatusPageSubscriber>
-                    modelType={StatusPageSubscriber}
-                    id="webhook-form"
-                    name="Status Page > Webhooks Subscribe"
-                    onBeforeCreate={async (item: StatusPageSubscriber) => {
-                        const id: ObjectID = LocalStorage.getItem(
-                            'statusPageId'
-                        ) as ObjectID;
-                        if (!id) {
-                            throw new BadDataException(
-                                'Status Page ID is required'
-                            );
-                        }
-
-                        item.statusPageId = id;
-                        return item;
-                    }}
-                    fields={[
-                        {
-                            field: {
-                                subscriberEmail: true,
-                            },
-                            title: 'Webhook URL',
-                            description:
-                                'A POST request will be sent to this webhook for status page updates.',
-                            fieldType: FormFieldSchemaType.URL,
-                            required: true,
-                            placeholder: 'https://google.com',
-                        },
-                    ]}
-                    formType={FormType.Create}
-                    submitButtonText={'Subscribe'}
-                    onSuccess={(_value: JSONObject) => {
-                        //LoginUtil.login(value);
-                    }}
-                    maxPrimaryButtonWidth={true}
-                />
-            ) : (
-                <></>
-            )} */}
                 </div>
             </div>
         </Page>
     );
 };
 
-export default PageNotFound;
+export default SubscribePage;

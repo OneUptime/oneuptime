@@ -89,13 +89,9 @@ const Accordian: FunctionComponent<ComponentProps> = (
                         )}
                         {props.title && (
                             <div
-                                className={`flex ${
+                                className={` ml-4 mt-1 flex ${
                                     props.onClick ? 'cursor-pointer' : ''
                                 }`}
-                                style={{
-                                    marginLeft: '5px',
-                                    marginTop: '1px',
-                                }}
                             >
                                 <div>
                                     <strong>{props.title}</strong>{' '}
