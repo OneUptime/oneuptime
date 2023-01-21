@@ -17,7 +17,7 @@ import AnnouncementList from './Pages/Announcement/List';
 import AnnouncementDetail from './Pages/Announcement/Detail';
 import ScheduledEventList from './Pages/ScheduledEvent/List';
 import ScheduledEventDetail from './Pages/ScheduledEvent/Detail';
-import Subscribe from './Pages/Subscribe/Subscribe';
+import Subscribe from './Pages/Subscribe/EmailSubscribe';
 
 // Accounts.
 import Login from './Pages/Accounts/Login';

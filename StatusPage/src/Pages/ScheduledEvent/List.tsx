@@ -35,6 +35,8 @@ import Route from 'Common/Types/API/Route';
 import User from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -205,7 +207,20 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
+        <Page title='Scheduled Events' breadcrumbLinks={[
+            {
+                title: 'Home',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
+                ),
+            },
+            {
+                title: 'Scheduled Events',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route : RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route
+                ),
+            }
+        ]}>
             {scheduledMaintenanceEvents &&
             scheduledMaintenanceEvents.length > 0 ? (
                 <h3>Scheduled Maintenance Events</h3>

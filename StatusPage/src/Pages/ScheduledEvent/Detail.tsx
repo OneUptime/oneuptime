@@ -288,7 +288,26 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
+        <Page title='Scheduled Event Report' breadcrumbLinks={[
+            {
+                title: 'Home',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
+                ),
+            },
+            {
+                title: 'Scheduled Events',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route : RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route
+                ),
+            },
+            {
+                title: 'Scheduled Event',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route : RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route, Navigation.getLastParamAsObjectID()
+                ),
+            },
+        ]}>
             {scheduledMaintenanceEvent ? <EventItem {...parsedData} /> : <></>}
             {!scheduledMaintenanceEvent ? (
                 <EmptyState title={"No Scheduled Event"} description={"No scheduled event found for this status page."} icon={IconProp.Clock} />

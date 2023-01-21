@@ -47,11 +47,11 @@ export const getAnnouncementEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                  isPreviewPage
-                      ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
-                      : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
-                  announcement.id!
-              ),
+                isPreviewPage
+                    ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
+                    : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
+                announcement.id!
+            ),
         isDetailItem: !isSummary,
     };
 };
@@ -142,7 +142,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -180,7 +180,25 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
+        <Page title='Announcements' breadcrumbLinks={[
+            {
+                title: 'Home',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
+                ),
+            },
+            {
+                title: 'Announcements',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route : RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route
+                ),
+            }, {
+                title: 'Announcement',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route : RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route, Navigation.getLastParamAsObjectID()
+                ),
+            },
+        ]}>
             {announcement ? <EventItem {...parsedData} /> : <></>}
             {!announcement ? (
                 <EmptyState title={"No Announcement"} description={"Announcement not found on this status page."} icon={IconProp.Anouncement} />

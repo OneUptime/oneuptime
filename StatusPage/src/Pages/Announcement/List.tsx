@@ -33,6 +33,8 @@ import Route from 'Common/Types/API/Route';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState'
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -176,7 +178,20 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
+        <Page title='Announcements' breadcrumbLinks={[
+            {
+                title: 'Home',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
+                ),
+            },
+            {
+                title: 'Announcements',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route : RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route
+                ),
+            }
+        ]}>
             {announcements && announcements.length > 0 ? (
                 <h3>Announcements</h3>
             ) : (

@@ -182,9 +182,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 'statusPageId'
             ) as ObjectID;
 
-            const incidentId: string | undefined = Navigation.getLastParam()
-                ?.toString()
-                .replace('/', '');
+            const incidentId: string | undefined =  Navigation.getLastParamAsObjectID().toString();
 
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
@@ -282,7 +280,26 @@ const Detail: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
+        <Page title='Incident Report' breadcrumbLinks={[
+            {
+                title: 'Home',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
+                ),
+            },
+            {
+                title: 'Incidents',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route : RouteMap[PageMap.INCIDENT_LIST] as Route
+                ),
+            },
+            {
+                title: 'Incident Report',
+                to: RouteUtil.populateRouteParams(
+                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route : RouteMap[PageMap.INCIDENT_DETAIL] as Route, Navigation.getLastParamAsObjectID()
+                ),
+            },
+        ]}>
             {incident ? <EventItem {...parsedData} /> : <></>}
             {!incident ? (
                 <EmptyState title={"No Incident"} description={"Incident not found on this status page."} icon={IconProp.Alert} />

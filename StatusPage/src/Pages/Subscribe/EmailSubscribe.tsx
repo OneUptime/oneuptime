@@ -58,11 +58,8 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                 <div>
                     {isSuccess && (
                         <p
-                            className="text-center color-light-grey"
-                            style={{
-                                marginTop: '50px',
-                                marginBottom: '50px',
-                            }}
+                            className="text-center text-gray-400 mb-20 mt-20"
+                            
                         >
                             {' '}
                             You have been subscribed successfully.
