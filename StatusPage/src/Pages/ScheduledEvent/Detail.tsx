@@ -184,9 +184,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Status Page ID is required');
             }
 
-            const eventId: string | undefined = Navigation.getLastParam()
-                ?.toString()
-                .replace('/', '');
+            const eventId: string | undefined = Navigation.getLastParamAsObjectID().toString();
 
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(

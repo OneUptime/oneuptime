@@ -134,6 +134,9 @@ export const getIncidentEventItem: Function = (
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
+        anotherStatusColor: incident.incidentSeverity?.color || undefined,
+        anotherStatus: incident.incidentSeverity?.name,
+        dateTime: incident.createdAt
     };
 
     return data;

@@ -212,17 +212,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 ),
             },
         ]}>
-            {incidents && incidents.length > 0 ? (
-                <div>
-                    <h4>Incidents</h4>
-                    <p>
-                        Here is the incident history for all the resources on
-                        this status page.
-                    </p>
-                </div>
-            ) : (
-                <></>
-            )}
+           
             {incidents && incidents.length > 0 ? (
                 <EventHistoryList {...parsedData} />
             ) : (

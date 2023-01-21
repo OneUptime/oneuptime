@@ -221,12 +221,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 ),
             }
         ]}>
-            {scheduledMaintenanceEvents &&
-            scheduledMaintenanceEvents.length > 0 ? (
-                <h3>Scheduled Maintenance Events</h3>
-            ) : (
-                <></>
-            )}
+            
 
             {scheduledMaintenanceEvents &&
             scheduledMaintenanceEvents.length > 0 ? (

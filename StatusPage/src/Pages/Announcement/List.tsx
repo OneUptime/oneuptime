@@ -192,11 +192,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 ),
             }
         ]}>
-            {announcements && announcements.length > 0 ? (
-                <h3>Announcements</h3>
-            ) : (
-                <></>
-            )}
+            
 
             {announcements && announcements.length > 0 ? (
                 <EventHistoryList {...parsedData} />

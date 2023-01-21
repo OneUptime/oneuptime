@@ -28,10 +28,10 @@ const Pill: FunctionComponent<ComponentProps> = (
                 // https://stackoverflow.com/questions/3942878/how-to-decide-font-color-in-white-or-black-depending-on-background-color
 
                 color:
-                    rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114 > 186
+                    props.style?.color || rgb.red * 0.299 + rgb.green * 0.587 + rgb.blue * 0.114 > 186
                         ? '#000000'
                         : '#ffffff',
-                backgroundColor: props.color
+                backgroundColor: props.style?.backgroundColor || props.color
                     ? props.color.toString()
                     : Black.toString(),
                 fontSize: props.size ? props.size.toString() : PillSize.Normal,

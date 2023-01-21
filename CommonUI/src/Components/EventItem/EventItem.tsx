@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import { Blue } from 'Common/Types/BrandColors';
+import { Blue, VeryLightGrey } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Link from '../Link/Link';
@@ -25,26 +25,18 @@ export interface ComponentProps {
     isDetailItem: boolean;
     currentStatus?: string;
     currentStatusColor?: Color;
+    anotherStatus?: string | undefined;
+    anotherStatusColor?: Color | undefined;
+    dateTime?: Date | undefined
 }
 
 const EventItem: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div>
-            <div
-                className="active-event-box-body"
-                style={{ marginBottom: '0px', paddingBottom: '0px' }}
-            >
-                <div className="flex justify-between">
-                    <h2
-                        className="active-event-box-body-title"
-                        style={{
-                            fontSize: props.isDetailItem ? '20px' : '16px',
-                        }}
-                    >
-                        {props.eventTitle}
-                    </h2>
+        <div className='mt-5 mb-5 bg-white shadow rounded-xl border-gray-100 p-5'>
+            <div>
+                <div className='flex space-x-1'>
                     {props.currentStatus && props.currentStatusColor && (
                         <div>
                             <Pill
@@ -53,49 +45,80 @@ const EventItem: FunctionComponent<ComponentProps> = (
                             />
                         </div>
                     )}
+                    {props.anotherStatus && props.anotherStatusColor && (
+                        <div>
+                            <Pill
+                                text={props.anotherStatus}
+                                color={props.anotherStatusColor}
+                            />
+                        </div>
+                    )}
+                </div>
+                <div className="mt-5">
+                    <h2
+                        className="active-event-box-body-title"
+                        style={{
+                            fontSize: props.isDetailItem ? '20px' : '16px',
+                        }}
+                    >
+                        {props.eventTitle}
+                    </h2>
+
                 </div>
                 {props.eventDescription && (
                     <p
-                        style={{ marginTop: '10px' }}
-                        className="active-event-box-body-description"
+
+                        className="mt-0 text-gray-400 text-sm"
                     >
                         {props.eventDescription}
                     </p>
+
                 )}
+
+                {props.dateTime && (
+                    <p
+
+                        className="mt-3 text-gray-500 text-sm"
+                    >
+                        {OneUptimeDate.getDateAsLocalFormattedString(props.dateTime)}
+                    </p>
+
+                )}
+
                 {props.eventMiniDescription && (
                     <p
-                        style={{ marginTop: '10px' }}
-                        className="small active-event-box-body-description"
+                        className="mt-3 text-gray-400 text-sm"
                     >
                         {props.eventMiniDescription}
                     </p>
                 )}
             </div>
             <div
-                className="active-event-box-body"
-                style={{ marginTop: '0px', paddingTop: '0px' }}
+
             >
+
+                <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5"></div>
+
                 {props.eventResourcesAffected &&
-                props.eventResourcesAffected?.length > 0 ? (
+                    props.eventResourcesAffected?.length > 0 ? (
                     <div
                         key={0}
-                        className="active-event-box-body-description"
-                        style={{ marginTop: '10px' }}
                     >
-                        {' '}
-                        <span
-                            style={{
-                                fontWeight: 400,
-                            }}
-                        >
-                            <b>Resources Affected</b> -{' '}
-                            {props.eventResourcesAffected?.join(',')}
-                        </span>{' '}
+
+                        <div className='flex space-x-1'>
+                            <div className='text-sm text-gray-400 mr-3 mt-1'>Affected resources</div>
+                            {props.eventResourcesAffected?.map((item) => {
+                                return <Pill text={item} color={VeryLightGrey} style={{
+                                    backgroundColor: "#f3f4f6",
+                                    color: "#9ca3af"
+                                }} />
+                            })}
+                        </div>
                     </div>
                 ) : (
                     <></>
                 )}
-
+                <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5"></div>
                 {props.eventTimeline &&
                     props.eventTimeline.map((item: TimelineItem, i: number) => {
                         return (
