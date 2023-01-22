@@ -588,7 +588,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     </div>
 
                     {statusPageResources.length > 0 && (
-                        <div className='bg-white p-5 mt-5 rounded shadow'>
+                        <div className='bg-white pl-5 pr-5 mt-5 rounded-xl shadow space-y-5'>
                             <AccordianGroup>
                                 {statusPageResources.filter(
                                     (resources: StatusPageResource) => {
@@ -609,6 +609,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 )}
                                 <div
                                     key={Math.random()}
+                                    className="space-y-5"
                                     style={{
                                         padding: '0px',
                                     }}
@@ -651,7 +652,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
                     {getActiveIncidents().length === 0 && getOngoingScheduledEvents().length === 0 && statusPageResources.length === 0 && activeAnnouncements.length === 0 && !isLoading && !error && (
                         <EmnptyState
-                            icon={IconProp.Star}
+                            icon={IconProp.CheckCircle}
                             title={"Everything looks great"}
                             description="Everything is great. Nothig posted on this status page so far."
                         />

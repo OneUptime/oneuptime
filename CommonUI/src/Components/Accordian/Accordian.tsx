@@ -49,8 +49,15 @@ const Accordian: FunctionComponent<ComponentProps> = (
         }
     }, [isOpen]);
 
+
+    let className = "border-gray-100 border-b-2 -ml-5 -mr-5 p-5";
+
+    if (props.isLastElement) {
+        className = "-ml-5 -mr-5 p-5";
+    }
+
     return (
-        <div>
+        <div className={className}>
             <div>
                 <div
                     className={`flex justify-between cursor-pointer`}
@@ -85,7 +92,7 @@ const Accordian: FunctionComponent<ComponentProps> = (
                                 }`}
                             >
                                 <div>
-                                    <strong>{props.title}</strong>{' '}
+                                   {props.title}{' '}
                                 </div>
                                 <div>{props.description}</div>
                             </div>
@@ -98,7 +105,7 @@ const Accordian: FunctionComponent<ComponentProps> = (
                     )}
                 </div>
                 {isOpen && (
-                    <div>{props.children}</div>
+                    <div className='space-y-5'>{props.children}</div>
                 )}
             </div>
         </div>

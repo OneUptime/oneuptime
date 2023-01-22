@@ -193,7 +193,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 ) as BaseModel) || undefined
             } /></div>}
             <MasterPage
-                className=" m-auto mt-5"
+                className=" m-auto"
                 makeTopSectionUnstick={true}
                 topSectionClassName='shadow p-1 bg-white rounded mb-5 flex justify-center'
                 hideHeader={!logo && links.length === 0}

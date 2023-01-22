@@ -22,7 +22,7 @@ const Statusbubble: FunctionComponent<ComponentProps> = (
                 }}
             ></div>
             <div
-                className="font-bold"
+                className=""
                 style={{
                     color: props.color
                         ? props.color.toString()

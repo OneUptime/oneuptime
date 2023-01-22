@@ -107,7 +107,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         <div className="flex">
                             <HeaderModelAlert<TeamMember>
                                 icon={IconProp.Folder}
-                                className="rounded-md m-3 bg-indigo-500 p-3 font-bold hover:bg-indigo-600 cursor-pointer ml-0"
+                                className="rounded-md m-3 bg-indigo-500 p-3  hover:bg-indigo-600 cursor-pointer ml-0"
                                 modelType={TeamMember}
                                 query={{
                                     userId: User.getUserId(),
@@ -131,7 +131,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             <HeaderModelAlert<Incident>
                                 icon={IconProp.Alert}
                                 modelType={Incident}
-                                className="rounded-md m-3 bg-red-500 p-3 font-bold hover:bg-red-600 cursor-pointer ml-0"
+                                className="rounded-md m-3 bg-red-500 p-3  hover:bg-red-600 cursor-pointer ml-0"
                                 query={{
                                     currentIncidentState: {
                                         order: 1,
@@ -161,7 +161,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 ) > 0 && (
                                     <HeaderAlert
                                         icon={IconProp.Clock}
-                                        className="rounded-md m-3 bg-indigo-500 p-3 font-bold ml-0"
+                                        className="rounded-md m-3 bg-indigo-500 p-3  ml-0"
                                         title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                             OneUptimeDate.getCurrentDate(),
                                             props.selectedProject?.trialEndsAt!

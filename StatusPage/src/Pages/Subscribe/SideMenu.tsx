@@ -26,7 +26,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                 
             />
             {/* <SideMenuItem
-                link={{
+            link={{
                     title: 'SMS',
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewStatusPage ? RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route : RouteMap[PageMap.SUBSCRIBE_SMS] as Route

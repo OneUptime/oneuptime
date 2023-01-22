@@ -97,7 +97,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                 )}
                 <div className={props.className || "ml-3 flex-1 md:flex md:justify-between"}>
                     <p className={props.textClassName || `text-sm ${className}-600`}>
-                        <strong>{props.strongTitle}</strong>{' '}
+                        {props.strongTitle}{' '}
                         {props.title && props.strongTitle ? '-' : ''}{' '}
                         {props.title}
                     </p>

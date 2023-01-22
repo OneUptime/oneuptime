@@ -18,12 +18,12 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             <ReactMarkdown
                 components={{
                     // because tailwind does not supply <h1 ... /> styles https://tailwindcss.com/docs/preflight#headings-are-unstyled
-                    h1: ({ node, ...props }) => <h1 className='text-4xl font-bold' {...props} />,
-                    h2: ({node, ...props}) => <h1 className='text-3xl font-bold' {...props} />,
-                    h3: ({node, ...props}) => <h1 className='text-2xl font-bold' {...props} />,
-                    h4: ({ node, ...props }) => <h1 className='text-xl font-bold' {...props} />,
-                    h5: ({node, ...props}) => <h1 className='text-lg font-bold' {...props} />,
-                    h6: ({node, ...props}) => <h1 className='text-base font-bold' {...props} />,
+                    h1: ({ node, ...props }) => <h1 className='text-4xl ' {...props} />,
+                    h2: ({node, ...props}) => <h1 className='text-3xl ' {...props} />,
+                    h3: ({node, ...props}) => <h1 className='text-2xl ' {...props} />,
+                    h4: ({ node, ...props }) => <h1 className='text-xl ' {...props} />,
+                    h5: ({node, ...props}) => <h1 className='text-lg ' {...props} />,
+                    h6: ({node, ...props}) => <h1 className='text-base ' {...props} />,
                   }}
                 children={props.text} remarkPlugins={[remarkGfm]} />
             

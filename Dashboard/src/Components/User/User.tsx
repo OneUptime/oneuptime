@@ -77,8 +77,8 @@ const UserElement: FunctionComponent<ComponentProps> = (
                 className="mt-1 mr-1 ml-3"
             >
                 <div>
-                    <span className={props.prefixClassName ? props.prefixClassName : "font-bold"}>{props.prefix}</span>{' '}
-                    <span className={props.usernameClassName ? props.usernameClassName : "font-bold"}>{`${(user['name']?.toString() as string) ||
+                    <span className={props.prefixClassName ? props.prefixClassName : ""}>{props.prefix}</span>{' '}
+                    <span className={props.usernameClassName ? props.usernameClassName : ""}>{`${(user['name']?.toString() as string) ||
                         (user['email']?.toString() as string) ||
                         ''
                         }`}</span>{' '}
