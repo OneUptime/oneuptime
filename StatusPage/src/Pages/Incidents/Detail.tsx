@@ -82,7 +82,7 @@ export const getIncidentEventItem: Function = (
                 state: incidentStateTimeline.incidentState,
                 date: incidentStateTimeline?.createdAt!,
                 type: TimelineItemType.StateChange,
-                icon: IconProp.Alert,
+                icon: incidentStateTimeline.incidentState.isCreatedState ? IconProp.Alert : incidentStateTimeline.incidentState.isAcknowledgedState ? IconProp.TransparentCube : incidentStateTimeline.incidentState.isResolvedState ?  IconProp.CheckCircle : IconProp.ArrowCircleRight,
                 iconColor: incidentStateTimeline.incidentState.color || Grey
             });
 
@@ -137,7 +137,7 @@ export const getIncidentEventItem: Function = (
         currentStatusColor: currentStatusColor,
         anotherStatusColor: incident.incidentSeverity?.color || undefined,
         anotherStatus: incident.incidentSeverity?.name,
-        dateTime: incident.createdAt,
+        eventSecondDescription: "Created at "+OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!),
         eventTypeColor: Red
     };
 
@@ -287,7 +287,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
     return (
         <Page title='Incident Report' breadcrumbLinks={[
             {
-                title: 'Home',
+                title: 'Overview',
                 to: RouteUtil.populateRouteParams(
                     props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
                 ),

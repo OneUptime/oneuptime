@@ -32,6 +32,7 @@ import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import { Blue } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
@@ -43,8 +44,6 @@ export const getAnnouncementEventItem: Function = (
         eventDescription: announcement.description,
         eventTimeline: [],
         eventType: 'Announcement',
-        footerEventStatus: 'Announced at',
-        footerDateTime: announcement.showAnnouncementAt,
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
@@ -54,7 +53,8 @@ export const getAnnouncementEventItem: Function = (
                 announcement.id!
             ),
         isDetailItem: !isSummary,
-        eventTypeColor: Blue
+        eventTypeColor: Blue,
+        eventSecondDescription: "Announced at "+OneUptimeDate.getDateAsLocalFormattedString(announcement.showAnnouncementAt!),
     };
 };
 
@@ -182,7 +182,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return (
         <Page title='Announcements' breadcrumbLinks={[
             {
-                title: 'Home',
+                title: 'Overview',
                 to: RouteUtil.populateRouteParams(
                     props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
                 ),

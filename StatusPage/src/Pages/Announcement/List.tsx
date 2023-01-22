@@ -180,7 +180,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return (
         <Page title='Announcements' breadcrumbLinks={[
             {
-                title: 'Home',
+                title: 'Overview',
                 to: RouteUtil.populateRouteParams(
                     props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
                 ),

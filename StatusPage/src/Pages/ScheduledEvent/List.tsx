@@ -164,12 +164,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
         for (const scheduledMaintenance of scheduledMaintenanceEvents) {
             const dayString: string = OneUptimeDate.getDateString(
-                scheduledMaintenance.createdAt!
+                scheduledMaintenance.startsAt!
             );
 
             if (!days[dayString]) {
                 days[dayString] = {
-                    date: scheduledMaintenance.createdAt!,
+                    date: scheduledMaintenance.startsAt!,
                     items: [],
                 };
             }
@@ -209,7 +209,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return (
         <Page title='Scheduled Events' breadcrumbLinks={[
             {
-                title: 'Home',
+                title: 'Overview',
                 to: RouteUtil.populateRouteParams(
                     props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
                 ),

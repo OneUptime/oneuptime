@@ -13,6 +13,7 @@ export interface ComponentProps {
     topSectionClassName?: string | undefined;
     className?: string | undefined;
     hideHeader?: boolean | undefined;
+    makeTopSectionUnstick?: boolean | undefined;
 }
 
 const MasterPage: FunctionComponent<ComponentProps> = (
@@ -37,7 +38,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <div className={props.className}>
-                <div className="sticky top-0">
+                <div className={props.makeTopSectionUnstick ? "" : "sticky top-0"}>
                     <TopSection hideHeader={props.hideHeader} className={props.topSectionClassName} header={props.header} navbar={props.navBar} />
                 </div>
 

@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import { Blue, VeryLightGrey } from 'Common/Types/BrandColors';
+import { VeryLightGrey } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Link from '../Link/Link';
@@ -32,14 +32,12 @@ export interface ComponentProps {
     eventTypeColor: Color;
     eventType: string;
     eventViewRoute?: Route | URL | undefined;
-    footerEventStatus?: string | undefined;
-    footerDateTime?: Date | undefined;
     isDetailItem: boolean;
     currentStatus?: string;
     currentStatusColor?: Color;
     anotherStatus?: string | undefined;
     anotherStatusColor?: Color | undefined;
-    dateTime?: Date | undefined
+    eventSecondDescription: string
 }
 
 const EventItem: FunctionComponent<ComponentProps> = (
@@ -101,12 +99,12 @@ const EventItem: FunctionComponent<ComponentProps> = (
 
                 )}
 
-                {props.dateTime && (
+                {props.eventSecondDescription && (
                     <p
 
                         className="mt-3 text-gray-500 text-sm"
                     >
-                        {OneUptimeDate.getDateAsLocalFormattedString(props.dateTime)}
+                        {props.eventSecondDescription}
                     </p>
 
                 )}
@@ -123,7 +121,8 @@ const EventItem: FunctionComponent<ComponentProps> = (
 
             >
 
-                <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5" style={{ width: "calc(100% + 2.5em)" }}></div>
+                {props.eventResourcesAffected &&
+                    props.eventResourcesAffected?.length > 0 && <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5" style={{ width: "calc(100% + 2.5em)" }}></div>}
 
                 {props.eventResourcesAffected &&
                     props.eventResourcesAffected?.length > 0 ? (
@@ -144,7 +143,12 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 ) : (
                     <></>
                 )}
-                <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5" style={{ width: "calc(100% + 2.5em)" }}></div>
+
+
+                {
+                    props.eventTimeline && props.eventTimeline.length > 0 && <div className={`w-full border-t border-gray-200 mt-5 -ml-5 ${props.eventTimeline &&
+                        props.eventTimeline.length > 0 ? "mb-5" : "mb-0"} -mr-5 -pr-5`} style={{ width: "calc(100% + 2.5em)" }}></div>
+                }
 
 
                 <div className="flow-root">
@@ -227,34 +231,20 @@ const EventItem: FunctionComponent<ComponentProps> = (
                     </ul>
                 </div>
 
+                {props.eventViewRoute  && <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5" style={{ width: "calc(100% + 2.5em)" }}></div>}
+
 
                 <div
-                    className="active-event-box-body-timestamp"
-                    style={{ marginTop: '10px' }}
+                    className="active-event-box-body-timestamp mt-5 flex justify-end"
                 >
-                    {props.footerEventStatus && props.footerDateTime ? (
-                        <span>
-                            {props.footerEventStatus} at{' '}
-                            {OneUptimeDate.getDateAsLocalFormattedString(
-                                props.footerDateTime,
-                                false
-                            )}
-                            .{' '}
-                        </span>
-                    ) : (
-                        <></>
-                    )}
 
                     {props.eventViewRoute ? (
                         <span>
                             <Link
-                                className="underline pointer"
+                                className="cursor-pointer text-gray-400 hover:text-gray-500 text-sm"
                                 to={props.eventViewRoute}
-                                style={{
-                                    color: Blue.toString(),
-                                }}
                             >
-                                <>{props.eventType} Details</>
+                                <>View {props.eventType}</>
                             </Link>
                         </span>
                     ) : (

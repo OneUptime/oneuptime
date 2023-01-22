@@ -86,7 +86,7 @@ export const getScheduledEventEventItem: Function = (
                     ? scheduledMaintenance.startsAt!
                     : scheduledMaintenanceEventstateTimeline?.createdAt!,
                 type: TimelineItemType.StateChange,
-                icon: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isScheduledState ? IconProp.Clock : scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isOngoingState ? IconProp.Wrench : IconProp.CheckCircle ,
+                icon: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isScheduledState ? IconProp.Clock : scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isOngoingState ? IconProp.Settings : scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isResolvedState ?  IconProp.CheckCircle : IconProp.ArrowCircleRight,
                 iconColor: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.color || Grey
             });
 
@@ -109,21 +109,11 @@ export const getScheduledEventEventItem: Function = (
         return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
     });
 
-    let footerStatus: string = '';
-
-    if (timeline.length > 0) {
-        footerStatus = `${timeline[timeline.length - 1]?.note
-            } at ${OneUptimeDate.getDateAsLocalFormattedString(
-                timeline[timeline.length - 1]?.date!
-            )}`;
-    }
-
     return {
         eventTitle: scheduledMaintenance.title || '',
         eventDescription: scheduledMaintenance.description,
         eventTimeline: timeline,
         eventType: 'Scheduled Maintenance',
-        footerEventStatus: footerStatus,
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
@@ -137,7 +127,8 @@ export const getScheduledEventEventItem: Function = (
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
-        eventTypeColor: Yellow
+        eventTypeColor: Yellow,
+        eventSecondDescription: "Scheduled at "+OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.startsAt!),
     };
 };
 
@@ -294,7 +285,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     return (
         <Page title='Scheduled Event Report' breadcrumbLinks={[
             {
-                title: 'Home',
+                title: 'Overview',
                 to: RouteUtil.populateRouteParams(
                     props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
                 ),

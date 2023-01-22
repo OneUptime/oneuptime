@@ -142,7 +142,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 );
             const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
                 JSONFunctions.fromJSONArray(
-                    (data['activeScheduledMaintenanceEvents'] as JSONArray) ||
+                    (data['scheduledMaintenanceEvents'] as JSONArray) ||
                     [],
                     ScheduledMaintenance
                 );
