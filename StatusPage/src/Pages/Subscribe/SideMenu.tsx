@@ -25,7 +25,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                 icon={IconProp.Email}
                 
             />
-            <SideMenuItem
+            {/* <SideMenuItem
                 link={{
                     title: 'SMS',
                     to: RouteUtil.populateRouteParams(
@@ -44,7 +44,7 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                 }}
                 icon={IconProp.Globe}
                 
-            />
+            /> */}
         </SideMenu>
     );
 };
