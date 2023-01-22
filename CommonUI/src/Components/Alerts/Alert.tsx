@@ -61,9 +61,11 @@ const Alert: FunctionComponent<ComponentProps> = (
                 props.onClick && props.onClick();
             }}
             style={
-                props.color ? {
-                    backgroundColor: props.color?.toString()
-                } : {}
+                props.color
+                    ? {
+                          backgroundColor: props.color?.toString(),
+                      }
+                    : {}
             }
         >
             <div className="flex ">
@@ -95,8 +97,17 @@ const Alert: FunctionComponent<ComponentProps> = (
                         )}
                     </div>
                 )}
-                <div className={props.className || "ml-3 flex-1 md:flex md:justify-between"}>
-                    <p className={props.textClassName || `text-sm ${className}-600`}>
+                <div
+                    className={
+                        props.className ||
+                        'ml-3 flex-1 md:flex md:justify-between'
+                    }
+                >
+                    <p
+                        className={
+                            props.textClassName || `text-sm ${className}-600`
+                        }
+                    >
                         {props.strongTitle}{' '}
                         {props.title && props.strongTitle ? '-' : ''}{' '}
                         {props.title}

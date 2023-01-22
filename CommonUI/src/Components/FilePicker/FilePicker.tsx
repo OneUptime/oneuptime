@@ -68,15 +68,16 @@ const FilePicker: FunctionComponent<ComponentProps> = (
         } else if (props.initialValue instanceof FileModel) {
             setFilesModel([props.initialValue as FileModel]);
         }
-    }
+    };
 
     useEffect(() => {
         if (props.value && props.value.length > 0) {
-            setFilesModel(props.value && props.value.length > 0 ? props.value : []);
+            setFilesModel(
+                props.value && props.value.length > 0 ? props.value : []
+            );
         } else {
             setInitalValue();
         }
-        
     }, [props.value]);
 
     const { getRootProps, getInputProps } = useDropzone({

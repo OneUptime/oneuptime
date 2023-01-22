@@ -56,11 +56,8 @@ const UserElement: FunctionComponent<ComponentProps> = (
                 {props.user?.profilePictureId && (
                     <Image
                         className="h-8 w-8 rounded-full"
-                        imageUrl={URL.fromString(
-                            FILE_URL.toString()
-                        ).addRoute(
-                            '/image/' +
-                            props.user?.profilePictureId.toString()
+                        imageUrl={URL.fromString(FILE_URL.toString()).addRoute(
+                            '/image/' + props.user?.profilePictureId.toString()
                         )}
                         alt={user['name']?.toString() || 'User'}
                     />
@@ -73,20 +70,33 @@ const UserElement: FunctionComponent<ComponentProps> = (
                     />
                 )}
             </div>
-            <div
-                className="mt-1 mr-1 ml-3"
-            >
+            <div className="mt-1 mr-1 ml-3">
                 <div>
-                    <span className={props.prefixClassName ? props.prefixClassName : ""}>{props.prefix}</span>{' '}
-                    <span className={props.usernameClassName ? props.usernameClassName : ""}>{`${(user['name']?.toString() as string) ||
+                    <span
+                        className={
+                            props.prefixClassName ? props.prefixClassName : ''
+                        }
+                    >
+                        {props.prefix}
+                    </span>{' '}
+                    <span
+                        className={
+                            props.usernameClassName
+                                ? props.usernameClassName
+                                : ''
+                        }
+                    >{`${
+                        (user['name']?.toString() as string) ||
                         (user['email']?.toString() as string) ||
                         ''
-                        }`}</span>{' '}
+                    }`}</span>{' '}
                 </div>
             </div>
-            {props.suffix && <div>
-                <p className={props.suffixClassName}>{props.suffix}</p>
-            </div>}
+            {props.suffix && (
+                <div>
+                    <p className={props.suffixClassName}>{props.suffix}</p>
+                </div>
+            )}
         </div>
     );
 };

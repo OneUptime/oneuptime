@@ -139,7 +139,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -164,12 +164,13 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         return <>{props.children}</>;
     }
 
-    const logo = (JSONFunctions.getJSONValueInPath(
-        masterPageData || {},
-        'statusPage.logoFile'
-    ) as BaseModel) || undefined;
+    const logo: BaseModel =
+        (JSONFunctions.getJSONValueInPath(
+            masterPageData || {},
+            'statusPage.logoFile'
+        ) as BaseModel) || undefined;
 
-    const links = (
+    const links: Array<JSONObject> = (
         (JSONFunctions.getJSONValueInPath(
             masterPageData || {},
             'headerLinks'
@@ -180,27 +181,31 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             to: link['link'] as URL,
             openInNewTab: true,
         };
-    })
-
-
+    });
 
     return (
-        <div className='max-w-4xl m-auto'>
-            {<div><Banner file={
-                (JSONFunctions.getJSONValueInPath(
-                    masterPageData || {},
-                    'statusPage.coverImageFile'
-                ) as BaseModel) || undefined
-            } /></div>}
+        <div className="max-w-4xl m-auto">
+            {
+                <div>
+                    <Banner
+                        file={
+                            (JSONFunctions.getJSONValueInPath(
+                                masterPageData || {},
+                                'statusPage.coverImageFile'
+                            ) as BaseModel) || undefined
+                        }
+                    />
+                </div>
+            }
             <MasterPage
                 className=" m-auto"
                 makeTopSectionUnstick={true}
-                topSectionClassName='shadow p-1 bg-white rounded mb-5 flex justify-center'
+                topSectionClassName="shadow p-1 bg-white rounded mb-5 flex justify-center"
                 hideHeader={!logo && links.length === 0}
                 footer={
                     !footerHtml ? (
                         <Footer
-                            className='inset-x-0 bottom-0 max-w-4xl flex m-auto inset-x-0 bottom-0'
+                            className="inset-x-0 bottom-0 max-w-4xl flex m-auto inset-x-0 bottom-0"
                             copyright={
                                 (JSONFunctions.getJSONValueInPath(
                                     masterPageData || {},
@@ -231,12 +236,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 header={
                     !headerHtml ? (
                         <Header
-                            logo={
-                                logo
-                            }
+                            logo={logo}
                             links={links}
                             onLogoClicked={() => {
-                                Navigation.navigate(props.isPreview ? RouteMap[PageMap.PREVIEW_OVERVIEW]! : RouteMap[PageMap.OVERVIEW]!)
+                                Navigation.navigate(
+                                    props.isPreview
+                                        ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
+                                        : RouteMap[PageMap.OVERVIEW]!
+                                );
                             }}
                         />
                     ) : (
@@ -254,7 +261,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 {props.children}
             </MasterPage>
         </div>
-
     );
 };
 

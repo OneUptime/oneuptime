@@ -31,7 +31,7 @@ import { getAnnouncementEventItem } from './Detail';
 import UserUtil from '../../Utils/User';
 import Route from 'Common/Types/API/Route';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState'
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
@@ -178,22 +178,29 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page title='Announcements' breadcrumbLinks={[
-            {
-                title: 'Overview',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
-                ),
-            },
-            {
-                title: 'Announcements',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route : RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route
-                ),
-            }
-        ]}>
-            
-
+        <Page
+            title="Announcements"
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Announcements',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                              ] as Route)
+                            : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route)
+                    ),
+                },
+            ]}
+        >
             {announcements && announcements.length > 0 ? (
                 <EventHistoryList {...parsedData} />
             ) : (
@@ -201,7 +208,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
 
             {announcements.length === 0 ? (
-                <EmptyState title={"No Announcements"} description={"No announcements posted so far on this page."} icon={IconProp.Anouncement} />
+                <EmptyState
+                    title={'No Announcements'}
+                    description={'No announcements posted so far on this page.'}
+                    icon={IconProp.Anouncement}
+                />
             ) : (
                 <></>
             )}

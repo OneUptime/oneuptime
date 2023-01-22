@@ -69,7 +69,7 @@ const List: FunctionComponent<ComponentProps> = (
         <div>
             {getListbody()}
             {!props.disablePagination && (
-                <div className=' -ml-6 mt-5 -mr-6 -mb-6'>
+                <div className=" -ml-6 mt-5 -mr-6 -mb-6">
                     <Pagination
                         singularLabel={props.singularLabel}
                         pluralLabel={props.pluralLabel}

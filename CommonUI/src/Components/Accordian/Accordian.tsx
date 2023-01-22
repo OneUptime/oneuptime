@@ -49,11 +49,10 @@ const Accordian: FunctionComponent<ComponentProps> = (
         }
     }, [isOpen]);
 
-
-    let className = "border-gray-100 border-b-2 -ml-5 -mr-5 p-5 mt-1";
+    let className: string = 'border-gray-100 border-b-2 -ml-5 -mr-5 p-5 mt-1';
 
     if (props.isLastElement) {
-        className = "-ml-5 -mr-5 p-5 mt-1";
+        className = '-ml-5 -mr-5 p-5 mt-1';
     }
 
     return (
@@ -71,18 +70,16 @@ const Accordian: FunctionComponent<ComponentProps> = (
                             <div>
                                 {isOpen && (
                                     <Icon
-                                        className='h-4 w-4 text-gray-500'
+                                        className="h-4 w-4 text-gray-500"
                                         icon={IconProp.ChevronDown}
                                         thick={ThickProp.Thick}
-                                      
                                     />
                                 )}
                                 {!isOpen && (
                                     <Icon
-                                    className='h-4 w-4 text-gray-500'
+                                        className="h-4 w-4 text-gray-500"
                                         icon={IconProp.ChevronRight}
                                         thick={ThickProp.Thick}
-                                        
                                     />
                                 )}
                             </div>
@@ -93,21 +90,21 @@ const Accordian: FunctionComponent<ComponentProps> = (
                                     props.onClick ? 'cursor-pointer' : ''
                                 }`}
                             >
-                                <div className='text-gray-500'>
-                                   {props.title}{' '}
+                                <div className="text-gray-500">
+                                    {props.title}{' '}
                                 </div>
-                                <div className='text-sm text-gray-400'>{props.description}</div>
+                                <div className="text-sm text-gray-400">
+                                    {props.description}
+                                </div>
                             </div>
                         )}
                     </div>
-                    {!isOpen && (
-                        <div className="">
-                            {props.rightElement}
-                        </div>
-                    )}
+                    {!isOpen && <div className="">{props.rightElement}</div>}
                 </div>
                 {isOpen && (
-                    <div className={`space-y-5 ${props.title ? "mt-4" : ""}`}>{props.children}</div>
+                    <div className={`space-y-5 ${props.title ? 'mt-4' : ''}`}>
+                        {props.children}
+                    </div>
                 )}
             </div>
         </div>

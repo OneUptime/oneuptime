@@ -1,7 +1,7 @@
- enum AlignItem {
+enum AlignItem {
     Left = 'Left',
     Right = 'Right',
-    Center = 'Center'
- }
+    Center = 'Center',
+}
 
 export default AlignItem;

@@ -5,15 +5,13 @@ import File from 'Model/Models/File';
 export interface ComponentProps {
     onClick?: () => void | undefined;
     file?: File | undefined;
-
 }
 
 const Banner: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-
     if (!props.file) {
-        return <></>
+        return <></>;
     }
 
     return (

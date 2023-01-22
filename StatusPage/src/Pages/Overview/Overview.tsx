@@ -30,7 +30,7 @@ import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import MonitorOverview from '../../Components/Monitor/MonitorOverview';
-import { Green} from 'Common/Types/BrandColors';
+import { Green } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
 import IncidentGroup from '../../Types/IncidentGroup';
@@ -144,8 +144,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 );
             const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
                 JSONFunctions.fromJSONArray(
-                    (data['scheduledMaintenanceEvents'] as JSONArray) ||
-                    [],
+                    (data['scheduledMaintenanceEvents'] as JSONArray) || [],
                     ScheduledMaintenance
                 );
             const activeAnnouncements: Array<StatusPageAnnouncement> =
@@ -191,7 +190,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -225,7 +224,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -257,7 +256,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 if (
                     !Object.keys(dict).includes(
                         resource.monitor?.currentMonitorStatusId.toString() ||
-                        ''
+                            ''
                     )
                 ) {
                     dict[
@@ -298,7 +297,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                    resource.statusPageGroupId.toString()) ||
+                        resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
                 let currentStatus: MonitorStatus | undefined =
@@ -485,7 +484,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                    resource.statusPageGroupId.toString()) ||
+                        resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
                 hasReosurce = true;
@@ -502,7 +501,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         currentStatus.priority &&
                         currentMonitorStatus?.priority &&
                         currentMonitorStatus?.priority >
-                        currentStatus.priority) ||
+                            currentStatus.priority) ||
                     !currentStatus.priority
                 ) {
                     currentStatus = currentMonitorStatus!;
@@ -538,8 +537,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {activeAnnouncements.map(
                         (announcement: StatusPageAnnouncement, i: number) => {
                             return (
-                                <EventItem key={i}
-                                    {...getAnnouncementEventItem(announcement, props.isPreviewPage, true)}
+                                <EventItem
+                                    key={i}
+                                    {...getAnnouncementEventItem(
+                                        announcement,
+                                        props.isPreviewPage,
+                                        true
+                                    )}
                                 />
                             );
                         }
@@ -551,8 +555,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         (incidentGroup: IncidentGroup, i: number) => {
                             return (
                                 <EventItem
-                                key={i}
-                                    {...getIncidentEventItem(incidentGroup.incident, incidentGroup.publicNotes, incidentGroup.incidentStateTimelines, incidentGroup.incidentResources, props.isPreviewPage, true)}
+                                    key={i}
+                                    {...getIncidentEventItem(
+                                        incidentGroup.incident,
+                                        incidentGroup.publicNotes,
+                                        incidentGroup.incidentStateTimelines,
+                                        incidentGroup.incidentResources,
+                                        props.isPreviewPage,
+                                        true
+                                    )}
                                 />
                             );
                         }
@@ -566,8 +577,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             i: number
                         ) => {
                             return (
-                                <EventItem key={i}
-                                    {...getScheduledEventEventItem(scheduledEventGroup.scheduledMaintenance, scheduledEventGroup.publicNotes, scheduledEventGroup.scheduledMaintenanceStateTimelines, scheduledEventGroup.scheduledEventResources, props.isPreviewPage, true)}
+                                <EventItem
+                                    key={i}
+                                    {...getScheduledEventEventItem(
+                                        scheduledEventGroup.scheduledMaintenance,
+                                        scheduledEventGroup.publicNotes,
+                                        scheduledEventGroup.scheduledMaintenanceStateTimelines,
+                                        scheduledEventGroup.scheduledEventResources,
+                                        props.isPreviewPage,
+                                        true
+                                    )}
                                 />
                             );
                         }
@@ -576,10 +595,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     <div>
                         {currentStatus && statusPageResources.length > 0 && (
                             <Alert
-                                title={`${currentStatus.isOperationalState
-                                    ? `All`
-                                    : 'Some'
-                                    } Resources are ${currentStatus.name}`}
+                                title={`${
+                                    currentStatus.isOperationalState
+                                        ? `All`
+                                        : 'Some'
+                                } Resources are ${currentStatus.name}`}
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
                                 textClassName="text-white text-lg"
@@ -588,7 +608,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     </div>
 
                     {statusPageResources.length > 0 && (
-                        <div className='bg-white pl-5 pr-5 mt-5 rounded-xl shadow space-y-5'>
+                        <div className="bg-white pl-5 pr-5 mt-5 rounded-xl shadow space-y-5">
                             <AccordianGroup>
                                 {statusPageResources.filter(
                                     (resources: StatusPageResource) => {
@@ -630,7 +650,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                         }
                                                         isLastElement={
                                                             resourceGroups.length -
-                                                            1 ===
+                                                                1 ===
                                                             i
                                                         }
                                                         title={
@@ -652,13 +672,18 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         </div>
                     )}
 
-                    {getActiveIncidents().length === 0 && getOngoingScheduledEvents().length === 0 && statusPageResources.length === 0 && activeAnnouncements.length === 0 && !isLoading && !error && (
-                        <EmnptyState
-                            icon={IconProp.CheckCircle}
-                            title={"Everything looks great"}
-                            description="Everything is great. Nothig posted on this status page so far."
-                        />
-                    )}
+                    {getActiveIncidents().length === 0 &&
+                        getOngoingScheduledEvents().length === 0 &&
+                        statusPageResources.length === 0 &&
+                        activeAnnouncements.length === 0 &&
+                        !isLoading &&
+                        !error && (
+                            <EmnptyState
+                                icon={IconProp.CheckCircle}
+                                title={'Everything looks great'}
+                                description="Everything is great. Nothig posted on this status page so far."
+                            />
+                        )}
                 </div>
             ) : (
                 <></>

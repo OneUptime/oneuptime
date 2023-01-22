@@ -10,7 +10,6 @@ export interface CardButtonSchema {
     icon: IconProp;
     isLoading?: undefined | boolean;
     className?: string | undefined;
-   
 }
 
 export interface ComponentProps {
@@ -19,7 +18,7 @@ export interface ComponentProps {
     buttons?: undefined | Array<CardButtonSchema>;
     children?: undefined | Array<ReactElement> | ReactElement;
     className?: string | undefined;
-    bodyClassName?: string | undefined
+    bodyClassName?: string | undefined;
 }
 
 const Card: FunctionComponent<ComponentProps> = (
@@ -80,7 +79,9 @@ const Card: FunctionComponent<ComponentProps> = (
                         </div>
 
                         {props.children && (
-                            <div className={props.bodyClassName || "mt-6"}>{props.children}</div>
+                            <div className={props.bodyClassName || 'mt-6'}>
+                                {props.children}
+                            </div>
                         )}
                     </div>
                 </div>

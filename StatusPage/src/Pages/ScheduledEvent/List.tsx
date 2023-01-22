@@ -207,22 +207,29 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page title='Scheduled Events' breadcrumbLinks={[
-            {
-                title: 'Overview',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
-                ),
-            },
-            {
-                title: 'Scheduled Events',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route : RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route
-                ),
-            }
-        ]}>
-            
-
+        <Page
+            title="Scheduled Events"
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Scheduled Events',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                              ] as Route)
+                            : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
+                    ),
+                },
+            ]}
+        >
             {scheduledMaintenanceEvents &&
             scheduledMaintenanceEvents.length > 0 ? (
                 <EventHistoryList {...parsedData} />
@@ -231,7 +238,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
 
             {scheduledMaintenanceEvents.length === 0 ? (
-                 <EmptyState title={"No Scheduled Events"} description={"No scheduled events posted for this status page."} icon={IconProp.Clock} />
+                <EmptyState
+                    title={'No Scheduled Events'}
+                    description={
+                        'No scheduled events posted for this status page.'
+                    }
+                    icon={IconProp.Clock}
+                />
             ) : (
                 <></>
             )}

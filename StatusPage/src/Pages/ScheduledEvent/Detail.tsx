@@ -56,14 +56,15 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
         if (
             scheduledMaintenancePublicNote.scheduledMaintenanceId?.toString() ===
-            scheduledMaintenance.id?.toString() && scheduledMaintenancePublicNote?.note
+                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenancePublicNote?.note
         ) {
             timeline.push({
                 note: scheduledMaintenancePublicNote?.note || '',
                 date: scheduledMaintenancePublicNote?.createdAt!,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
-                iconColor: Grey
+                iconColor: Grey,
             });
             if (isSummary) {
                 break;
@@ -74,20 +75,29 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenanceEventstateTimeline of scheduledMaintenanceStateTimelines) {
         if (
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceId?.toString() ===
-            scheduledMaintenance.id?.toString() && scheduledMaintenanceEventstateTimeline
-                .scheduledMaintenanceState
+                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
         ) {
             timeline.push({
-                state:
-                    scheduledMaintenanceEventstateTimeline
-                        .scheduledMaintenanceState,
+                state: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState,
                 date: scheduledMaintenanceEventstateTimeline
                     .scheduledMaintenanceState?.isScheduledState
                     ? scheduledMaintenance.startsAt!
                     : scheduledMaintenanceEventstateTimeline?.createdAt!,
                 type: TimelineItemType.StateChange,
-                icon: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isScheduledState ? IconProp.Clock : scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isOngoingState ? IconProp.Settings : scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isResolvedState ?  IconProp.CheckCircle : IconProp.ArrowCircleRight,
-                iconColor: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.color || Grey
+                icon: scheduledMaintenanceEventstateTimeline
+                    .scheduledMaintenanceState.isScheduledState
+                    ? IconProp.Clock
+                    : scheduledMaintenanceEventstateTimeline
+                          .scheduledMaintenanceState.isOngoingState
+                    ? IconProp.Settings
+                    : scheduledMaintenanceEventstateTimeline
+                          .scheduledMaintenanceState.isResolvedState
+                    ? IconProp.CheckCircle
+                    : IconProp.ArrowCircleRight,
+                iconColor:
+                    scheduledMaintenanceEventstateTimeline
+                        .scheduledMaintenanceState.color || Grey,
             });
 
             if (!currentStateStatus) {
@@ -117,18 +127,22 @@ export const getScheduledEventEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                isPreviewPage
-                    ? (RouteMap[
-                        PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                    ] as Route)
-                    : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
-                scheduledMaintenance.id!
-            ),
+                  isPreviewPage
+                      ? (RouteMap[
+                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                        ] as Route)
+                      : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
+                  scheduledMaintenance.id!
+              ),
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
         eventTypeColor: Yellow,
-        eventSecondDescription: "Scheduled at "+OneUptimeDate.getDateAsLocalFormattedString(scheduledMaintenance.startsAt!),
+        eventSecondDescription:
+            'Scheduled at ' +
+            OneUptimeDate.getDateAsLocalFormattedString(
+                scheduledMaintenance.startsAt!
+            ),
     };
 };
 
@@ -181,7 +195,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Status Page ID is required');
             }
 
-            const eventId: string | undefined = Navigation.getLastParamAsObjectID().toString();
+            const eventId: string | undefined =
+                Navigation.getLastParamAsObjectID().toString();
 
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
@@ -221,7 +236,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                    [],
+                        [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -241,7 +256,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -283,29 +298,51 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page title='Scheduled Event Report' breadcrumbLinks={[
-            {
-                title: 'Overview',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
-                ),
-            },
-            {
-                title: 'Scheduled Events',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_LIST] as Route : RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route
-                ),
-            },
-            {
-                title: 'Scheduled Event',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL] as Route : RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route, Navigation.getLastParamAsObjectID()
-                ),
-            },
-        ]}>
+        <Page
+            title="Scheduled Event Report"
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Scheduled Events',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                              ] as Route)
+                            : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
+                    ),
+                },
+                {
+                    title: 'Scheduled Event',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                              ] as Route)
+                            : (RouteMap[
+                                  PageMap.SCHEDULED_EVENT_DETAIL
+                              ] as Route),
+                        Navigation.getLastParamAsObjectID()
+                    ),
+                },
+            ]}
+        >
             {scheduledMaintenanceEvent ? <EventItem {...parsedData} /> : <></>}
             {!scheduledMaintenanceEvent ? (
-                <EmptyState title={"No Scheduled Event"} description={"No scheduled event found for this status page."} icon={IconProp.Clock} />
+                <EmptyState
+                    title={'No Scheduled Event'}
+                    description={
+                        'No scheduled event found for this status page.'
+                    }
+                    icon={IconProp.Clock}
+                />
             ) : (
                 <></>
             )}

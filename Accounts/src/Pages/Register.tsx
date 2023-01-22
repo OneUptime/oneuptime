@@ -23,11 +23,17 @@ const RegisterPage: FunctionComponent = () => {
     return (
         <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <img className="mx-auto h-12 w-auto" src={OneUptimeLogo} alt="Your Company" />
-                <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">Create your OneUptime account</h2>
+                <img
+                    className="mx-auto h-12 w-auto"
+                    src={OneUptimeLogo}
+                    alt="Your Company"
+                />
+                <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+                    Create your OneUptime account
+                </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
-                    Join thousands of business that use OneUptime
-                    to help them stay online all the time. 
+                    Join thousands of business that use OneUptime to help them
+                    stay online all the time.
                 </p>
                 <p className="mt-2 text-center text-sm text-gray-600">
                     No credit card required.
@@ -36,7 +42,6 @@ const RegisterPage: FunctionComponent = () => {
 
             <div className="mt-8 lg:mx-auto lg:w-full lg:max-w-2xl">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-
                     <ModelForm<User>
                         modelType={User}
                         id="register-form"
@@ -56,10 +61,8 @@ const RegisterPage: FunctionComponent = () => {
                                 field: {
                                     email: true,
                                 },
-                                fieldType:
-                                    FormFieldSchemaType.Email,
-                                placeholder:
-                                    'jeff@example.com',
+                                fieldType: FormFieldSchemaType.Email,
+                                placeholder: 'jeff@example.com',
                                 required: true,
                                 title: 'Email',
                             },
@@ -67,8 +70,7 @@ const RegisterPage: FunctionComponent = () => {
                                 field: {
                                     name: true,
                                 },
-                                fieldType:
-                                    FormFieldSchemaType.Text,
+                                fieldType: FormFieldSchemaType.Text,
                                 placeholder: 'Jeff Smith',
                                 required: true,
                                 title: 'Full Name',
@@ -77,19 +79,16 @@ const RegisterPage: FunctionComponent = () => {
                                 field: {
                                     companyName: true,
                                 },
-                                fieldType:
-                                    FormFieldSchemaType.Text,
+                                fieldType: FormFieldSchemaType.Text,
                                 placeholder: 'Acme, Inc.',
                                 required: true,
                                 title: 'Company Name',
                             },
                             {
                                 field: {
-                                    companyPhoneNumber:
-                                        true,
+                                    companyPhoneNumber: true,
                                 },
-                                fieldType:
-                                    FormFieldSchemaType.Phone,
+                                fieldType: FormFieldSchemaType.Phone,
                                 required: true,
                                 placeholder: '+11234567890',
                                 title: 'Phone Number',
@@ -98,8 +97,7 @@ const RegisterPage: FunctionComponent = () => {
                                 field: {
                                     password: true,
                                 },
-                                fieldType:
-                                    FormFieldSchemaType.Password,
+                                fieldType: FormFieldSchemaType.Password,
                                 validation: {
                                     minLength: 6,
                                 },
@@ -113,16 +111,12 @@ const RegisterPage: FunctionComponent = () => {
                                 },
                                 validation: {
                                     minLength: 6,
-                                    toMatchField:
-                                        'password',
+                                    toMatchField: 'password',
                                 },
-                                fieldType:
-                                    FormFieldSchemaType.Password,
-                                placeholder:
-                                    'Confirm Password',
+                                fieldType: FormFieldSchemaType.Password,
+                                placeholder: 'Confirm Password',
                                 title: 'Confirm Password',
-                                overideFieldKey:
-                                    'confirmPassword',
+                                overideFieldKey: 'confirmPassword',
                                 required: true,
                             },
                         ]}
@@ -133,18 +127,12 @@ const RegisterPage: FunctionComponent = () => {
                             LoginUtil.login(value);
                         }}
                     />
-
-
                 </div>
                 <div className="mt-5 text-center text-gray-500">
                     <p className="text-muted mb-0">
                         Already have an account?{' '}
                         <Link
-                            to={
-                                new Route(
-                                    '/accounts/login'
-                                )
-                            }
+                            to={new Route('/accounts/login')}
                             className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
                         >
                             Log in.
@@ -153,7 +141,6 @@ const RegisterPage: FunctionComponent = () => {
                 </div>
             </div>
         </div>
-
     );
 };
 

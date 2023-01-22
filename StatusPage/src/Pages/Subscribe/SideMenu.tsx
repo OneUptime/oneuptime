@@ -7,7 +7,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 
 export interface ComponentProps {
-    isPreviewStatusPage: boolean
+    isPreviewStatusPage: boolean;
 }
 
 const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
@@ -19,11 +19,14 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                 link={{
                     title: 'Email',
                     to: RouteUtil.populateRouteParams(
-                        props.isPreviewStatusPage ? RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route : RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route
+                        props.isPreviewStatusPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                              ] as Route)
+                            : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route)
                     ),
                 }}
                 icon={IconProp.Email}
-                
             />
             {/* <SideMenuItem
             link={{

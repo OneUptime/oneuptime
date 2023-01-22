@@ -197,29 +197,38 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page title={"Incidents"}
-        breadcrumbLinks={[
-            {
-                title: 'Overview',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
-                ),
-            },
-            {
-                title: 'Incidents',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route : RouteMap[PageMap.INCIDENT_LIST] as Route
-                ),
-            },
-        ]}>
-           
+        <Page
+            title={'Incidents'}
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Incidents',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
+                            : (RouteMap[PageMap.INCIDENT_LIST] as Route)
+                    ),
+                },
+            ]}
+        >
             {incidents && incidents.length > 0 ? (
                 <EventHistoryList {...parsedData} />
             ) : (
                 <></>
             )}
             {incidents.length === 0 ? (
-                <EmptyState title={"No Incident"} description={"No incidents posted on this status page."} icon={IconProp.Alert} />
+                <EmptyState
+                    title={'No Incident'}
+                    description={'No incidents posted on this status page.'}
+                    icon={IconProp.Alert}
+                />
             ) : (
                 <></>
             )}

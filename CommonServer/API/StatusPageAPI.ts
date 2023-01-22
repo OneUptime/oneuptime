@@ -598,10 +598,10 @@ export default class StatusPageAPI extends BaseAPI<
                                         _id: true,
                                         name: true,
                                         color: true,
-                                        isCreatedState: true, 
-                                        isResolvedState: true, 
-                                        isAcknowledgedState: true
-                                    }
+                                        isCreatedState: true,
+                                        isResolvedState: true,
+                                        isAcknowledgedState: true,
+                                    },
                                 },
                                 sort: {
                                     createdAt: SortOrder.Descending, // new note first
@@ -779,13 +779,13 @@ export default class StatusPageAPI extends BaseAPI<
                                     },
                                     populate: {
                                         scheduledMaintenanceState: {
-                                            _id: true, 
-                                            color: true, 
+                                            _id: true,
+                                            color: true,
                                             name: true,
-                                            isScheduledState: true, 
-                                            isResolvedState: true, 
-                                            isOngoingState: true
-                                        }
+                                            isScheduledState: true,
+                                            isResolvedState: true,
+                                            isOngoingState: true,
+                                        },
                                     },
                                     sort: {
                                         createdAt: SortOrder.Descending, // new note first

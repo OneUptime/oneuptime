@@ -150,7 +150,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     createdByUser: {
                                         name: true,
                                         email: true,
-                                        profilePictureId: true
+                                        profilePictureId: true,
                                     },
                                     incidentState: {
                                         name: true,

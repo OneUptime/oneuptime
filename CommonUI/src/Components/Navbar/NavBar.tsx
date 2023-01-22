@@ -9,13 +9,9 @@ export interface ComponentProps {
 const Navbar: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    let className: string = 'hidden lg:flex lg:space-x-8 lg:py-2 bg-white';
+    const className: string = 'hidden lg:flex lg:space-x-8 lg:py-2 bg-white';
 
-    return (
-        <nav className={className}>
-            {props.children}
-        </nav>
-    );
+    return <nav className={className}>{props.children}</nav>;
 };
 
 export default Navbar;

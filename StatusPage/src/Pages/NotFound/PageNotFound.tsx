@@ -9,7 +9,11 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     return (
         <Page>
-            <EmptyState title={"Page not found."} description={"Page you are looking for does not exist."} icon={IconProp.AltGlobe} />
+            <EmptyState
+                title={'Page not found.'}
+                description={'Page you are looking for does not exist.'}
+                icon={IconProp.AltGlobe}
+            />
         </Page>
     );
 };

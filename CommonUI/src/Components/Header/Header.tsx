@@ -12,7 +12,12 @@ const Header: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <div className={props.className || "relative flex h-16 justify-between bg-white"}>
+            <div
+                className={
+                    props.className ||
+                    'relative flex h-16 justify-between bg-white'
+                }
+            >
                 <div className="relative z-20 flex px-2 lg:px-0">
                     {props.leftComponents}
                 </div>

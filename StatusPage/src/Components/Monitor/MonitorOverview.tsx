@@ -24,9 +24,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div
-            className={props.className}
-        >
+        <div className={props.className}>
             <div>
                 <div
                     className="flex justify-between"
@@ -39,9 +37,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                                 key={1}
                                 text={props.tooltip || 'Not avaiulable'}
                             >
-                                <div className='ml-1'>
+                                <div className="ml-1">
                                     <Icon
-                                        className='cursor-pointer w-4 h-4 mt-1 text-gray-400'
+                                        className="cursor-pointer w-4 h-4 mt-1 text-gray-400"
                                         icon={IconProp.Help}
                                     />
                                 </div>
@@ -57,11 +55,13 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                                     Green.toString(),
                             }}
                         >
-                           {props.monitorStatus?.name || 'Operational'}
+                            {props.monitorStatus?.name || 'Operational'}
                         </div>
                     )}
                 </div>
-                <div className='mb-2 text-gray-400 text-sm'>{props.description}</div>
+                <div className="mb-2 text-gray-400 text-sm">
+                    {props.description}
+                </div>
             </div>
             {props.showHistoryChart && (
                 <div>
@@ -75,13 +75,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                     />
                 </div>
             )}
-            <div className='text-sm text-gray-400 mt-1 flex justify-between'>
-                <div>
-                    90 days ago
-                </div>
-                <div>
-                    Today
-                </div>
+            <div className="text-sm text-gray-400 mt-1 flex justify-between">
+                <div>90 days ago</div>
+                <div>Today</div>
             </div>
         </div>
     );

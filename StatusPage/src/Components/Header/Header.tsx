@@ -8,7 +8,7 @@ import Header from 'CommonUI/src/Components/Header/Header';
 export interface ComponentProps {
     links: Array<Link>;
     logo?: File | undefined;
-    onLogoClicked: () => void; 
+    onLogoClicked: () => void;
 }
 
 const StatusPageHeader: FunctionComponent<ComponentProps> = (
@@ -20,46 +20,58 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
 
     return (
         <div>
-            
-            {(props.logo || props.links?.length > 0) && <Header
-                leftComponents={<>
-                    {props.logo && (
-                        <div className="flex h-12 mt-2">
-                            <Logo file={props.logo} onClick={() => {
-                                props.onLogoClicked();
-                            }} style={{
-                                maxWidth: "200px",
-                                maxHeight: "50px"
-                             }} />
-                        </div>
-                    )}
-                </>}
-                rightComponents={<>
-                    {props.links && props.links.length > 0 && (
-                        <div
-                            key={'links'}
-                        >
-                            <div className='flex space-x-2 '>
-                                {props.links &&
-                                    props.links.map((link: Link, i: number) => {
-                                        return (
-                                            <div key={i}>
-                                                <UILink
-                                                    className='text-gray-400 hover:text-gray-600 text-sm mr-1'
-                                                    to={link.to}
-                                                    openInNewTab={link.openInNewTab}
-                                                >
-                                                    {link.title}
-                                                </UILink>
-                                            </div>
-                                        );
-                                    })}
-                            </div>
-                        </div>
-                    )}
-                </>} />}
+            {(props.logo || props.links?.length > 0) && (
+                <Header
+                    leftComponents={
+                        <>
+                            {props.logo && (
+                                <div className="flex h-12 mt-2">
+                                    <Logo
+                                        file={props.logo}
+                                        onClick={() => {
+                                            props.onLogoClicked();
+                                        }}
+                                        style={{
+                                            maxWidth: '200px',
+                                            maxHeight: '50px',
+                                        }}
+                                    />
+                                </div>
+                            )}
+                        </>
+                    }
+                    rightComponents={
+                        <>
+                            {props.links && props.links.length > 0 && (
+                                <div key={'links'}>
+                                    <div className="flex space-x-2 ">
+                                        {props.links &&
+                                            props.links.map(
+                                                (link: Link, i: number) => {
+                                                    return (
+                                                        <div key={i}>
+                                                            <UILink
+                                                                className="text-gray-400 hover:text-gray-600 text-sm mr-1"
+                                                                to={link.to}
+                                                                openInNewTab={
+                                                                    link.openInNewTab
+                                                                }
+                                                            >
+                                                                {link.title}
+                                                            </UILink>
+                                                        </div>
+                                                    );
+                                                }
+                                            )}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    }
+                />
+            )}
         </div>
-    )
+    );
 };
 
 export default StatusPageHeader;

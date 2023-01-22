@@ -23,17 +23,22 @@ const LoginPage: FunctionComponent = () => {
     return (
         <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
-                <img className="mx-auto h-12 w-auto" src={OneUptimeLogo} alt="Your Company" />
-                <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">Sign in to your account</h2>
+                <img
+                    className="mx-auto h-12 w-auto"
+                    src={OneUptimeLogo}
+                    alt="Your Company"
+                />
+                <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+                    Sign in to your account
+                </h2>
                 <p className="mt-2 text-center text-sm text-gray-600">
-                    Join thousands of business that use OneUptime
-                    to help them stay online all the time.
+                    Join thousands of business that use OneUptime to help them
+                    stay online all the time.
                 </p>
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-
                     <ModelForm<User>
                         modelType={User}
                         id="login-form"
@@ -44,8 +49,7 @@ const LoginPage: FunctionComponent = () => {
                                     email: true,
                                 },
                                 title: 'Email',
-                                fieldType:
-                                    FormFieldSchemaType.Email,
+                                fieldType: FormFieldSchemaType.Email,
                                 required: true,
                             },
                             {
@@ -57,13 +61,10 @@ const LoginPage: FunctionComponent = () => {
                                 validation: {
                                     minLength: 6,
                                 },
-                                fieldType:
-                                    FormFieldSchemaType.Password,
+                                fieldType: FormFieldSchemaType.Password,
                                 sideLink: {
                                     text: 'Forgot password?',
-                                    url: new Route(
-                                        '/accounts/forgot-password'
-                                    ),
+                                    url: new Route('/accounts/forgot-password'),
                                     openLinkInNewTab: false,
                                 },
                             },
@@ -79,41 +80,29 @@ const LoginPage: FunctionComponent = () => {
                             <div className="actions pointer text-center mt-4 underline-on-hover fw-semibold">
                                 <p>
                                     <Link
-                                        to={
-                                            new Route(
-                                                '/accounts/login/sso'
-                                            )
-                                        }
+                                        to={new Route('/accounts/login/sso')}
                                         className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
                                     >
-                                        Use single sign-on
-                                        (SSO) instead
+                                        Use single sign-on (SSO) instead
                                     </Link>
                                 </p>
                             </div>
                         }
                     />
-
-                   
                 </div>
                 <div className="mt-10 text-center">
-                        <p className="text-muted mb-0 text-gray-500">
-                            Don&apos;t have an account?{' '}
-                            <Link
-                                to={
-                                    new Route(
-                                        '/accounts/register'
-                                    )
-                                }
-                                className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
-                            >
-                                Register.
-                            </Link>
-                        </p>
-                    </div>
+                    <p className="text-muted mb-0 text-gray-500">
+                        Don&apos;t have an account?{' '}
+                        <Link
+                            to={new Route('/accounts/register')}
+                            className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+                        >
+                            Register.
+                        </Link>
+                    </p>
+                </div>
             </div>
         </div>
-
     );
 };
 

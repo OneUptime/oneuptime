@@ -147,21 +147,20 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data = field.getElement(props.item);
         }
 
-
-        let className = "sm:col-span-1";
+        let className: string = 'sm:col-span-1';
 
         if (field.colSpan) {
-            className = "sm:col-span-" + field.colSpan;
+            className = 'sm:col-span-' + field.colSpan;
         }
 
-        let alignClassName = "flex justify-left";
+        let alignClassName: string = 'flex justify-left';
 
-        if (field.alignItem == AlignItem.Right) {
-            alignClassName="flex justify-end"
-        } else if (field.alignItem == AlignItem.Center) {
-            alignClassName="flex justify-center"
-        } else if (field.alignItem == AlignItem.Left) {
-            alignClassName="flex justify-start"
+        if (field.alignItem === AlignItem.Right) {
+            alignClassName = 'flex justify-end';
+        } else if (field.alignItem === AlignItem.Center) {
+            alignClassName = 'flex justify-center';
+        } else if (field.alignItem === AlignItem.Left) {
+            alignClassName = 'flex justify-start';
         }
 
         return (
@@ -179,25 +178,31 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                         : {}
                 }
             >
-                {field.title && <label className="text-sm font-medium text-gray-500">
-                    <span className={alignClassName}>{field.title}</span>
-                    {field.sideLink &&
-                        field.sideLink?.text &&
-                        field.sideLink?.url && (
-                            <span>
-                                <Link
-                                    to={field.sideLink?.url}
-                                    className="underline-on-hover"
-                                >
-                                    {field.sideLink?.text}
-                                </Link>
-                            </span>
-                        )}
-                </label>}
-                {field.description && <p className={alignClassName}>{field.description}</p>}
+                {field.title && (
+                    <label className="text-sm font-medium text-gray-500">
+                        <span className={alignClassName}>{field.title}</span>
+                        {field.sideLink &&
+                            field.sideLink?.text &&
+                            field.sideLink?.url && (
+                                <span>
+                                    <Link
+                                        to={field.sideLink?.url}
+                                        className="underline-on-hover"
+                                    >
+                                        {field.sideLink?.text}
+                                    </Link>
+                                </span>
+                            )}
+                    </label>
+                )}
+                {field.description && (
+                    <p className={alignClassName}>{field.description}</p>
+                )}
 
                 <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
-                    <span className={field.contentClassName}>{data && data}</span>
+                    <span className={field.contentClassName}>
+                        {data && data}
+                    </span>
                     {!data && (
                         <span className="text-gray-500">
                             {field.placeholder}

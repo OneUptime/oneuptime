@@ -28,7 +28,7 @@ const ListRow: FunctionComponent<ComponentProps> = (
                 <Detail item={props.item} fields={props.fields} />
             </div>
 
-            <div className='flex mt-5 -ml-3'>
+            <div className="flex mt-5 -ml-3">
                 {props.actionButtons?.map(
                     (button: ActionButtonSchema, i: number) => {
                         if (button.isVisible && !button.isVisible(props.item)) {
@@ -36,9 +36,7 @@ const ListRow: FunctionComponent<ComponentProps> = (
                         }
 
                         return (
-                            <div
-                                key={i}
-                            >
+                            <div key={i}>
                                 <Button
                                     buttonSize={ButtonSize.Small}
                                     title={button.title}

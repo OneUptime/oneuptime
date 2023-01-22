@@ -23,7 +23,10 @@ const EventHistoryDayList: FunctionComponent<ComponentProps> = (
                 borderBottomWidth: props.isLastItem ? '0px' : '1px',
             }}
         >
-            <div className='text-gray-400 mt-2 text-sm' style={{ padding: '20px', paddingRight: '0px', width: '15%' }}>
+            <div
+                className="text-gray-400 mt-2 text-sm"
+                style={{ padding: '20px', paddingRight: '0px', width: '15%' }}
+            >
                 {OneUptimeDate.getDateAsLocalFormattedString(props.date, true)}
             </div>
             <div style={{ padding: '10px', paddingTop: '0px', width: '85%' }}>

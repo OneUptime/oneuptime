@@ -38,8 +38,17 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <div className={props.className}>
-                <div className={props.makeTopSectionUnstick ? "" : "sticky top-0"}>
-                    <TopSection hideHeader={props.hideHeader} className={props.topSectionClassName} header={props.header} navbar={props.navBar} />
+                <div
+                    className={
+                        props.makeTopSectionUnstick ? '' : 'sticky top-0'
+                    }
+                >
+                    <TopSection
+                        hideHeader={props.hideHeader}
+                        className={props.topSectionClassName}
+                        header={props.header}
+                        navbar={props.navBar}
+                    />
                 </div>
 
                 {props.children}

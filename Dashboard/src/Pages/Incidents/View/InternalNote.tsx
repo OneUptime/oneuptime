@@ -8,7 +8,9 @@ import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
-import ModelTable, { ShowTableAs } from 'CommonUI/src/Components/ModelTable/ModelTable';
+import ModelTable, {
+    ShowTableAs,
+} from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -113,14 +115,14 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             createdByUser: {
                                 name: true,
                                 email: true,
-                                profilePictureId: true
+                                profilePictureId: true,
                             },
                         },
                         title: '',
 
                         type: FieldType.Entity,
                         isFilterable: true,
-                        
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['createdByUser']) {
                                 return (
@@ -133,10 +135,14 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                                                 User
                                             ) as User
                                         }
-                                        suffix={"wrote"}
-                                        usernameClassName={"text-base font-medium text-gray-900"}
-                                        suffixClassName={"text-base font-medium text-gray-500 mt-1"}
-                                    /> 
+                                        suffix={'wrote'}
+                                        usernameClassName={
+                                            'text-base font-medium text-gray-900'
+                                        }
+                                        suffixClassName={
+                                            'text-base font-medium text-gray-500 mt-1'
+                                        }
+                                    />
                                 );
                             }
                             return <></>;
@@ -150,7 +156,8 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         alignItem: AlignItem.Right,
                         title: '',
                         type: FieldType.DateTime,
-                        contentClassName: "mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3"
+                        contentClassName:
+                            'mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3',
                     },
                     {
                         field: {
@@ -159,8 +166,9 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         isFilterable: true,
                         title: '',
                         type: FieldType.Markdown,
-                        contentClassName: "-mt-3 space-y-6 text-sm text-gray-800",
-                        colSpan: 2
+                        contentClassName:
+                            '-mt-3 space-y-6 text-sm text-gray-800',
+                        colSpan: 2,
                     },
                 ]}
             />

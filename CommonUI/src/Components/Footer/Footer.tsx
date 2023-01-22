@@ -15,7 +15,9 @@ const Footer: FunctionComponent<ComponentProps> = (
     return (
         <React.Fragment>
             <footer
-                className={props.className || "bg-white fixed inset-x-0 bottom-0"}
+                className={
+                    props.className || 'bg-white fixed inset-x-0 bottom-0'
+                }
                 style={props.style}
             >
                 <div className="mx-auto w-full py-5 px-6 md:flex md:items-center md:justify-between lg:px-8">
@@ -36,9 +38,11 @@ const Footer: FunctionComponent<ComponentProps> = (
                             })}
                     </div>
                     <div className="mt-8 md:order-1 md:mt-0">
-                        {props.copyright && <p className="text-center text-base text-gray-400">
-                            &copy; {props.copyright}
-                        </p>}
+                        {props.copyright && (
+                            <p className="text-center text-base text-gray-400">
+                                &copy; {props.copyright}
+                            </p>
+                        )}
                     </div>
                 </div>
             </footer>

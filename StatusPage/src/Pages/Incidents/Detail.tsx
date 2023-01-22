@@ -56,14 +56,15 @@ export const getIncidentEventItem: Function = (
     for (const incidentPublicNote of incidentPublicNotes) {
         if (
             incidentPublicNote.incidentId?.toString() ===
-            incident.id?.toString() && incidentPublicNote?.note
+                incident.id?.toString() &&
+            incidentPublicNote?.note
         ) {
             timeline.push({
                 note: incidentPublicNote?.note,
                 date: incidentPublicNote?.createdAt!,
                 type: TimelineItemType.Note,
                 icon: IconProp.Chat,
-                iconColor: Grey
+                iconColor: Grey,
             });
 
             // If this incident is a sumamry then dont include all the notes .
@@ -76,14 +77,21 @@ export const getIncidentEventItem: Function = (
     for (const incidentStateTimeline of incidentStateTimelines) {
         if (
             incidentStateTimeline.incidentId?.toString() ===
-            incident.id?.toString() && incidentStateTimeline.incidentState
+                incident.id?.toString() &&
+            incidentStateTimeline.incidentState
         ) {
             timeline.push({
                 state: incidentStateTimeline.incidentState,
                 date: incidentStateTimeline?.createdAt!,
                 type: TimelineItemType.StateChange,
-                icon: incidentStateTimeline.incidentState.isCreatedState ? IconProp.Alert : incidentStateTimeline.incidentState.isAcknowledgedState ? IconProp.TransparentCube : incidentStateTimeline.incidentState.isResolvedState ?  IconProp.CheckCircle : IconProp.ArrowCircleRight,
-                iconColor: incidentStateTimeline.incidentState.color || Grey
+                icon: incidentStateTimeline.incidentState.isCreatedState
+                    ? IconProp.Alert
+                    : incidentStateTimeline.incidentState.isAcknowledgedState
+                    ? IconProp.TransparentCube
+                    : incidentStateTimeline.incidentState.isResolvedState
+                    ? IconProp.CheckCircle
+                    : IconProp.ArrowCircleRight,
+                iconColor: incidentStateTimeline.incidentState.color || Grey,
             });
 
             if (!currentStateStatus) {
@@ -137,8 +145,10 @@ export const getIncidentEventItem: Function = (
         currentStatusColor: currentStatusColor,
         anotherStatusColor: incident.incidentSeverity?.color || undefined,
         anotherStatus: incident.incidentSeverity?.name,
-        eventSecondDescription: "Created at "+OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!),
-        eventTypeColor: Red
+        eventSecondDescription:
+            'Created at ' +
+            OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!),
+        eventTypeColor: Red,
     };
 
     return data;
@@ -187,7 +197,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 'statusPageId'
             ) as ObjectID;
 
-            const incidentId: string | undefined =  Navigation.getLastParamAsObjectID().toString();
+            const incidentId: string | undefined =
+                Navigation.getLastParamAsObjectID().toString();
 
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
@@ -285,29 +296,45 @@ const Detail: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page title='Incident Report' breadcrumbLinks={[
-            {
-                title: 'Overview',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_OVERVIEW] as Route : RouteMap[PageMap.OVERVIEW] as Route
-                ),
-            },
-            {
-                title: 'Incidents',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route : RouteMap[PageMap.INCIDENT_LIST] as Route
-                ),
-            },
-            {
-                title: 'Incident Report',
-                to: RouteUtil.populateRouteParams(
-                    props.isPreviewPage ? RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route : RouteMap[PageMap.INCIDENT_DETAIL] as Route, Navigation.getLastParamAsObjectID()
-                ),
-            },
-        ]}>
+        <Page
+            title="Incident Report"
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Incidents',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
+                            : (RouteMap[PageMap.INCIDENT_LIST] as Route)
+                    ),
+                },
+                {
+                    title: 'Incident Report',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_INCIDENT_DETAIL
+                              ] as Route)
+                            : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                        Navigation.getLastParamAsObjectID()
+                    ),
+                },
+            ]}
+        >
             {incident ? <EventItem {...parsedData} /> : <></>}
             {!incident ? (
-                <EmptyState title={"No Incident"} description={"Incident not found on this status page."} icon={IconProp.Alert} />
+                <EmptyState
+                    title={'No Incident'}
+                    description={'Incident not found on this status page.'}
+                    icon={IconProp.Alert}
+                />
             ) : (
                 <></>
             )}
