@@ -24,6 +24,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import File from 'Model/Models/File';
 import { ImageFunctions } from 'CommonUI/src/Components/Image/Image';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import Link from 'Common/Types/Link';
 
 export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
@@ -170,7 +171,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             'statusPage.logoFile'
         ) as BaseModel) || undefined;
 
-    const links: Array<JSONObject> = (
+    const links: Array<Link> = (
         (JSONFunctions.getJSONValueInPath(
             masterPageData || {},
             'headerLinks'
