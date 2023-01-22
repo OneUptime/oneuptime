@@ -609,7 +609,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 )}
                                 <div
                                     key={Math.random()}
-                                    className="space-y-5"
                                     style={{
                                         padding: '0px',
                                     }}
@@ -636,6 +635,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                         }
                                                         title={
                                                             resourceGroup.name!
+                                                        }
+                                                        description={
+                                                            resourceGroup.description!
                                                         }
                                                     >
                                                         {getMonitorOverviewListInGroup(

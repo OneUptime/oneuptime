@@ -106,7 +106,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Group Description',
                         fieldType: FormFieldSchemaType.LongText,
-                        required: true,
+                        required: false,
                         placeholder: 'Resource Group Description',
                     },
                     {

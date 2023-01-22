@@ -346,11 +346,9 @@ const Icon: FunctionComponent<ComponentProps> = ({
         );
     } else if (icon === IconProp.ChevronRight) {
         return getSvgWrapper(
-            <path
-                fillRule="evenodd"
-                d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
-                clipRule="evenodd"
-            />
+
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+
         );
     } else if (icon === IconProp.Clock) {
         return getSvgWrapper(

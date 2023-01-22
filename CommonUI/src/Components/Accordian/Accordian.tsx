@@ -4,7 +4,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 
 export interface ComponentProps {
     title?: string | undefined;
@@ -50,10 +50,10 @@ const Accordian: FunctionComponent<ComponentProps> = (
     }, [isOpen]);
 
 
-    let className = "border-gray-100 border-b-2 -ml-5 -mr-5 p-5";
+    let className = "border-gray-100 border-b-2 -ml-5 -mr-5 p-5 mt-1";
 
     if (props.isLastElement) {
-        className = "-ml-5 -mr-5 p-5";
+        className = "-ml-5 -mr-5 p-5 mt-1";
     }
 
     return (
@@ -71,15 +71,17 @@ const Accordian: FunctionComponent<ComponentProps> = (
                             <div>
                                 {isOpen && (
                                     <Icon
-                                        className='h-4 w-4 text-gray-400'
+                                        className='h-4 w-4 text-gray-500'
                                         icon={IconProp.ChevronDown}
+                                        thick={ThickProp.Thick}
                                       
                                     />
                                 )}
                                 {!isOpen && (
                                     <Icon
-                                    className='h-4 w-4 text-gray-400'
+                                    className='h-4 w-4 text-gray-500'
                                         icon={IconProp.ChevronRight}
+                                        thick={ThickProp.Thick}
                                         
                                     />
                                 )}
@@ -87,14 +89,14 @@ const Accordian: FunctionComponent<ComponentProps> = (
                         )}
                         {props.title && (
                             <div
-                                className={` ml-4 mt-1 flex ${
+                                className={`ml-1 -mt-1 ${
                                     props.onClick ? 'cursor-pointer' : ''
                                 }`}
                             >
-                                <div>
+                                <div className='text-gray-500'>
                                    {props.title}{' '}
                                 </div>
-                                <div>{props.description}</div>
+                                <div className='text-sm text-gray-400'>{props.description}</div>
                             </div>
                         )}
                     </div>
@@ -105,7 +107,7 @@ const Accordian: FunctionComponent<ComponentProps> = (
                     )}
                 </div>
                 {isOpen && (
-                    <div className='space-y-5'>{props.children}</div>
+                    <div className={`space-y-5 ${props.title ? "mt-4" : ""}`}>{props.children}</div>
                 )}
             </div>
         </div>

@@ -39,7 +39,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                                 key={1}
                                 text={props.tooltip || 'Not avaiulable'}
                             >
-                                <div className='ml-2'>
+                                <div className='ml-1'>
                                     <Icon
                                         className='cursor-pointer w-4 h-4 mt-1 text-gray-400'
                                         icon={IconProp.Help}
