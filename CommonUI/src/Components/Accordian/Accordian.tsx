@@ -4,7 +4,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
+import Icon, { IconProp } from '../Icon/Icon';
 
 export interface ComponentProps {
     title?: string | undefined;
@@ -50,42 +50,33 @@ const Accordian: FunctionComponent<ComponentProps> = (
     }, [isOpen]);
 
     return (
-        <div
-            className="row accordian-row"
-            style={
-                props.isLastElement
-                    ? {
-                          borderBottomWidth: '0px',
-                      }
-                    : {}
-            }
-        >
-            <div className="col-xl-12 accordian-body">
+        <div>
+            <div>
                 <div
-                    className={`pointer accordian-header`}
+                    className={`flex justify-between cursor-pointer`}
                     role="alert"
                     onClick={() => {
                         setIsOpen(!isOpen);
                     }}
                 >
-                    <div className="accordian-left-elements">
+                    <div className="flex">
                         {props.title && (
-                            <span style={{ height: '10px' }}>
+                            <div>
                                 {isOpen && (
                                     <Icon
-                                        thick={ThickProp.LessThick}
+                                        className='h-4 w-4 text-gray-400'
                                         icon={IconProp.ChevronDown}
-                                        size={SizeProp.Large}
+                                      
                                     />
                                 )}
                                 {!isOpen && (
                                     <Icon
-                                        thick={ThickProp.LessThick}
+                                    className='h-4 w-4 text-gray-400'
                                         icon={IconProp.ChevronRight}
-                                        size={SizeProp.Large}
+                                        
                                     />
                                 )}
-                            </span>
+                            </div>
                         )}
                         {props.title && (
                             <div
@@ -101,13 +92,13 @@ const Accordian: FunctionComponent<ComponentProps> = (
                         )}
                     </div>
                     {!isOpen && (
-                        <div className="accordian-right-element">
+                        <div className="">
                             {props.rightElement}
                         </div>
                     )}
                 </div>
                 {isOpen && (
-                    <div className="accordian-children">{props.children}</div>
+                    <div>{props.children}</div>
                 )}
             </div>
         </div>
