@@ -30,10 +30,11 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import EventItem, {
     TimelineItem,
     ComponentProps as EventItemComponentProps,
+    TimelineItemType,
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Color from 'Common/Types/Color';
-import { Green } from 'Common/Types/BrandColors';
+import { Green, Grey, Yellow } from 'Common/Types/BrandColors';
 import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
@@ -55,12 +56,14 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
         if (
             scheduledMaintenancePublicNote.scheduledMaintenanceId?.toString() ===
-            scheduledMaintenance.id?.toString()
+            scheduledMaintenance.id?.toString() && scheduledMaintenancePublicNote?.note
         ) {
             timeline.push({
-                text: scheduledMaintenancePublicNote?.note || '',
+                note: scheduledMaintenancePublicNote?.note || '',
                 date: scheduledMaintenancePublicNote?.createdAt!,
-                isBold: false,
+                type: TimelineItemType.Note,
+                icon: IconProp.Chat,
+                iconColor: Grey
             });
             if (isSummary) {
                 break;
@@ -71,17 +74,20 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenanceEventstateTimeline of scheduledMaintenanceStateTimelines) {
         if (
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceId?.toString() ===
-            scheduledMaintenance.id?.toString()
+            scheduledMaintenance.id?.toString() && scheduledMaintenanceEventstateTimeline
+                .scheduledMaintenanceState
         ) {
             timeline.push({
-                text:
+                state:
                     scheduledMaintenanceEventstateTimeline
-                        .scheduledMaintenanceState?.name || '',
+                        .scheduledMaintenanceState,
                 date: scheduledMaintenanceEventstateTimeline
                     .scheduledMaintenanceState?.isScheduledState
                     ? scheduledMaintenance.startsAt!
                     : scheduledMaintenanceEventstateTimeline?.createdAt!,
-                isBold: true,
+                type: TimelineItemType.StateChange,
+                icon: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isScheduledState ? IconProp.Clock : scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.isOngoingState ? IconProp.Wrench : IconProp.CheckCircle ,
+                iconColor: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState.color || Grey
             });
 
             if (!currentStateStatus) {
@@ -106,11 +112,10 @@ export const getScheduledEventEventItem: Function = (
     let footerStatus: string = '';
 
     if (timeline.length > 0) {
-        footerStatus = `${
-            timeline[timeline.length - 1]?.text
-        } at ${OneUptimeDate.getDateAsLocalFormattedString(
-            timeline[timeline.length - 1]?.date!
-        )}`;
+        footerStatus = `${timeline[timeline.length - 1]?.note
+            } at ${OneUptimeDate.getDateAsLocalFormattedString(
+                timeline[timeline.length - 1]?.date!
+            )}`;
     }
 
     return {
@@ -122,16 +127,17 @@ export const getScheduledEventEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                  isPreviewPage
-                      ? (RouteMap[
-                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                        ] as Route)
-                      : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
-                  scheduledMaintenance.id!
-              ),
+                isPreviewPage
+                    ? (RouteMap[
+                        PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                    ] as Route)
+                    : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
+                scheduledMaintenance.id!
+            ),
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
+        eventTypeColor: Yellow
     };
 };
 
@@ -224,7 +230,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                        [],
+                    [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -244,7 +250,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');

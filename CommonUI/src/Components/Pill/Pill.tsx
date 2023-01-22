@@ -14,12 +14,27 @@ export interface ComponentProps {
     color: Color;
     size?: PillSize | undefined;
     style?: CSSProperties;
+    isMinimal?: boolean | undefined;
 }
 
 const Pill: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     const rgb: RGB = Color.colorToRgb(props.color || Black);
+
+
+    if (props.isMinimal) {
+        return  (<span className="relative inline-flex items-center rounded-full border border-gray-300 px-3 py-0.5 text-sm">
+            <span className="absolute flex flex-shrink-0 items-center justify-center">
+                <span className="h-1.5 w-1.5 rounded-full bg-rose-500" style={{
+                    backgroundColor: props.style?.backgroundColor || props.color
+                        ? props.color.toString()
+                        : Black.toString()
+                }} aria-hidden="true"></span>
+            </span>
+            <span className="ml-3.5 font-medium text-gray-900">{props.text}</span>
+        </span>)
+    }
     return (
         <span
             data-testid="pill"

@@ -31,6 +31,7 @@ import JSONFunctions from 'Common/Types/JSONFunctions';
 import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import { Blue } from 'Common/Types/BrandColors';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
@@ -53,6 +54,7 @@ export const getAnnouncementEventItem: Function = (
                 announcement.id!
             ),
         isDetailItem: !isSummary,
+        eventTypeColor: Blue
     };
 };
 

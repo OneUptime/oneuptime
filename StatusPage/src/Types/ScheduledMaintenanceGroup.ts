@@ -6,8 +6,8 @@ import StatusPageResource from 'Model/Models/StatusPageResource';
 
 export default interface ScheduledMaintenanceGroup {
     scheduledMaintenance: ScheduledMaintenance;
-    publicNote?: ScheduledMaintenancePublicNote | undefined | null;
+    publicNotes?: Array<ScheduledMaintenancePublicNote>;
     scheduledMaintenanceState: ScheduledMaintenanceState;
-    scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline;
+    scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline>;
     scheduledEventResources: Array<StatusPageResource>;
 }

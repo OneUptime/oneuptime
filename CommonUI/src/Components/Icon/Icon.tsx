@@ -97,6 +97,8 @@ export enum IconProp {
     Window,
     AddFolder,
     AddImage,
+    Chat,
+    Wrench
 }
 
 export enum IconType {
@@ -114,6 +116,7 @@ export interface ComponentProps {
     thick?: ThickProp;
     onClick?: (() => void) | undefined;
     type?: IconType | undefined;
+    style?: React.CSSProperties | undefined;
 }
 const Icon: FunctionComponent<ComponentProps> = ({
     size = SizeProp.Regular,
@@ -123,6 +126,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
     thick,
     onClick,
     type,
+    style
 }: ComponentProps): ReactElement => {
     let sizeClassName: string = '';
     if (
@@ -181,7 +185,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
                     onClick && onClick();
                 }}
                 className={`${textColor} ${sizeClassName} ${strokeWidth} ${className}`}
-                style={color ? { color: color.toString() } : {}}
+                style={color ? { color: color.toString(), ...style } : { ...style }}
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -201,6 +205,24 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 strokeLinejoin="round"
                 d="M6 18L18 6M6 6l12 12"
             />
+        );
+    } else if (icon === IconProp.Chat) {
+        return getSvgWrapper(
+
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z" />
+
+
+        );
+    } else if (icon === IconProp.Wrench) {
+        return getSvgWrapper(
+
+            <>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75a4.5 4.5 0 01-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 11-3.586-3.586l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 016.336-4.486l-3.276 3.276a3.004 3.004 0 002.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4.867 19.125h.008v.008h-.008v-.008z" />
+            </>
+
+
+
         );
     } else if (icon === IconProp.AddImage) {
         return getSvgWrapper(

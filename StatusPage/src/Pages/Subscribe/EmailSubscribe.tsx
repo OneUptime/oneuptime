@@ -68,7 +68,7 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
 
                     {!isSuccess ? (
                         <div className='-mr-4'>
-                        <Card title="Subscribe by Email" description={"Please enter your email and status page updates will be sent to this email address."}>
+                        <Card title="Subscribe by Email" description={"All of our updates will be sent to this email address."}>
                             <ModelForm<StatusPageSubscriber>
                                 modelType={StatusPageSubscriber}
                                 id="email-form"

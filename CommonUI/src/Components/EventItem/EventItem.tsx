@@ -6,18 +6,30 @@ import Link from '../Link/Link';
 import URL from 'Common/Types/API/URL';
 import Color from 'Common/Types/Color';
 import Pill from '../Pill/Pill';
+import BaseModel from 'Common/Models/BaseModel';
+import Icon, { IconProp } from '../Icon/Icon';
+
+export enum TimelineItemType {
+    StateChange = 'StateChange',
+    Note = 'Note'
+}
 
 export interface TimelineItem {
     date: Date;
-    text: string | ReactElement;
-    isBold?: boolean | undefined;
+    note?: string;
+    type: TimelineItemType;
+    state?: BaseModel
+    icon: IconProp;
+    iconColor: Color;
 }
+
 export interface ComponentProps {
     eventTitle: string;
     eventResourcesAffected?: Array<string> | undefined;
     eventDescription?: string | undefined;
     eventTimeline: Array<TimelineItem>;
     eventMiniDescription?: string | undefined;
+    eventTypeColor: Color;
     eventType: string;
     eventViewRoute?: Route | URL | undefined;
     footerEventStatus?: string | undefined;
@@ -37,19 +49,33 @@ const EventItem: FunctionComponent<ComponentProps> = (
         <div className='mt-5 mb-5 bg-white shadow rounded-xl border-gray-100 p-5'>
             <div>
                 <div className='flex space-x-1'>
+                    <div>
+
+                        <Pill
+                            key={1}
+                            text={props.eventType}
+                            color={props.eventTypeColor}
+                            isMinimal={true}
+                        />
+                    </div>
                     {props.currentStatus && props.currentStatusColor && (
                         <div>
+
                             <Pill
+                                 key={2}
                                 text={props.currentStatus}
                                 color={props.currentStatusColor}
+                                isMinimal={true}
                             />
                         </div>
                     )}
                     {props.anotherStatus && props.anotherStatusColor && (
                         <div>
                             <Pill
+                                 key={3}
                                 text={props.anotherStatus}
                                 color={props.anotherStatusColor}
+                                isMinimal={true}
                             />
                         </div>
                     )}
@@ -97,7 +123,7 @@ const EventItem: FunctionComponent<ComponentProps> = (
 
             >
 
-                <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5"></div>
+                <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5" style={{ width: "calc(100% + 2.5em)" }}></div>
 
                 {props.eventResourcesAffected &&
                     props.eventResourcesAffected?.length > 0 ? (
@@ -118,33 +144,89 @@ const EventItem: FunctionComponent<ComponentProps> = (
                 ) : (
                     <></>
                 )}
-                <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5"></div>
-                {props.eventTimeline &&
-                    props.eventTimeline.map((item: TimelineItem, i: number) => {
-                        return (
-                            <div
-                                key={i + 1}
-                                className="active-event-box-body-description"
-                                style={{ marginTop: '10px' }}
-                            >
-                                {' '}
-                                <span
-                                    style={{
-                                        fontWeight: item.isBold ? 500 : 400,
-                                    }}
-                                >
-                                    {item.text}
-                                </span>{' '}
-                                <span className="color-grey">
-                                    {' '}
-                                    -{' '}
-                                    {`${OneUptimeDate.getDateAsFormattedString(
-                                        item.date
-                                    )}.`}
-                                </span>{' '}
-                            </div>
-                        );
-                    })}
+                <div className="w-full border-t border-gray-200 mt-5 mb-5 -ml-5 -mr-5 -pr-5" style={{ width: "calc(100% + 2.5em)" }}></div>
+
+
+                <div className="flow-root">
+                    <ul role="list" className="-mb-8">
+
+
+                        {props.eventTimeline &&
+                            props.eventTimeline.map((item: TimelineItem, i: number) => {
+
+                                if (item.type === TimelineItemType.StateChange) {
+                                    return (<li key={i}>
+                                        <div className="relative pb-8">
+                                            {i !== props.eventTimeline.length - 1 && <span className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>}
+                                            <div className="relative flex items-start space-x-3">
+                                                <div>
+                                                    <div className="relative px-1">
+                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 ring-8 ring-white">
+                                                            <Icon icon={item.icon} className="h-5 w-5 text-gray-500" style={{
+                                                                color: item.iconColor.toString()
+                                                            }} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0 flex-1 py-0">
+                                                    <div className="text-sm leading-8 text-gray-500">
+                                                        <span className="mr-2">
+                                                            <span className="font-medium text-gray-900 mr-1">{props.eventType}</span>
+                                                            state changed to
+                                                        </span>
+                                                        <span className="mr-1">
+                                                            <Pill text={item.state?.getColumnValue('name') as string} color={item.state?.getColumnValue('color') as Color} isMinimal={true} />
+                                                        </span>
+
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-sm leading-8 text-gray-500 whitespace-nowrap">{OneUptimeDate.getDateAsLocalFormattedString(item.date)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>)
+                                }
+
+                                if (item.type === TimelineItemType.Note) {
+                                    return (<li key={i}>
+                                        <div className="relative pb-8">
+                                            {i !== props.eventTimeline.length - 1 && <span className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>}
+                                            <div className="relative flex items-start space-x-3">
+                                                <div>
+                                                    <div className="relative px-1">
+                                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 ring-8 ring-white">
+                                                            <Icon icon={item.icon} className="h-5 w-5 text-gray-500" style={{
+                                                                color: item.iconColor.toString()
+                                                            }} />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div>
+                                                        <div className="text-sm">
+                                                            <span className="font-medium text-gray-900">Update to this {props.eventType}</span>
+                                                        </div>
+                                                        <p className="mt-0.5 text-sm text-gray-500">posted on {OneUptimeDate.getDateAsLocalFormattedString(item.date)}</p>
+                                                    </div>
+                                                    <div className="mt-2 text-sm text-gray-700">
+                                                        <p>{item.note}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>)
+                                }
+
+
+
+                                return <></>
+                            })}
+
+
+                    </ul>
+                </div>
+
 
                 <div
                     className="active-event-box-body-timestamp"
