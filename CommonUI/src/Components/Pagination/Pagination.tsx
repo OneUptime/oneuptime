@@ -64,12 +64,9 @@ const Pagination: FunctionComponent<ComponentProps> = (
         useState<boolean>(false);
 
     return (
-        <div className="justify-space-between">
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4">
             <div>
-                <p
-                    style={{ padding: '17px', margin: '0px' }}
-                    className="color-light-grey"
-                >
+                <p className="text-sm text-gray-500">
                     {!props.isLoading && (
                         <span>
                             {props.totalItemsCount}{' '}
@@ -88,21 +85,8 @@ const Pagination: FunctionComponent<ComponentProps> = (
                 </p>
             </div>
             <div>
-                <nav
-                    className=""
-                    aria-label="Page navigation example"
-                    style={{
-                        height: '45px',
-                    }}
-                >
-                    <ul
-                        className="pagination"
-                        style={{
-                            marginTop: '15px',
-                            marginBottom: '15px',
-                            marginRight: '15px',
-                        }}
-                    >
+                <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm">
+                    <ul className="py-3">
                         <li
                             onClick={() => {
                                 if (
@@ -115,29 +99,23 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`page-item ${
-                                isPreviousDisabled ? 'disabled' : 'pointer'
+                            className={`relative inline-flex items-center rounded-l-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500  focus:z-20 ${
+                                isPreviousDisabled
+                                    ? 'bg-gray-100'
+                                    : 'hover:bg-gray-50 cursor-pointer'
                             }`}
-                            style={{ padding: '0px' }}
                         >
                             <span className="page-link">Previous</span>
                         </li>
                         <li
-                            className={`page-item ${
-                                isCurrentPageButtonDisabled
-                                    ? 'disabled'
-                                    : 'pointer'
+                            className={`relative z-10 inline-flex items-center border border-x-0 border-gray-300 hover:bg-gray-50 px-4 py-2 text-sm font-medium text-text-600 focus:z-20 cursor-pointer ${
+                                isCurrentPageButtonDisabled ? 'bg-gray-100' : ''
                             }`}
-                            style={{ padding: '0px' }}
+                            onClick={() => {
+                                setShowPaginationModel(true);
+                            }}
                         >
-                            <span
-                                onClick={() => {
-                                    setShowPaginationModel(true);
-                                }}
-                                className="pointer page-link"
-                            >
-                                {props.currentPageNumber}
-                            </span>
+                            <span>{props.currentPageNumber}</span>
                         </li>
                         <li
                             onClick={() => {
@@ -148,12 +126,13 @@ const Pagination: FunctionComponent<ComponentProps> = (
                                     );
                                 }
                             }}
-                            className={`page-item ${
-                                isNextDisabled ? 'disabled' : ''
+                            className={`relative inline-flex items-center rounded-r-md border border-gray-300 bg-white px-2 py-2 text-sm font-medium text-gray-500 focus:z-20 ${
+                                isNextDisabled
+                                    ? 'bg-gray-100'
+                                    : ' hover:bg-gray-50 cursor-pointer'
                             }`}
-                            style={{ padding: '0px' }}
                         >
-                            <span className="pointer page-link">Next</span>
+                            <span>Next</span>
                         </li>
                     </ul>
                 </nav>

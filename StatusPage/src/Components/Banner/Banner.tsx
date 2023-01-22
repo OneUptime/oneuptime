@@ -4,18 +4,23 @@ import File from 'Model/Models/File';
 
 export interface ComponentProps {
     onClick?: () => void | undefined;
-    file: File;
+    file?: File | undefined;
 }
 
 const Banner: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    if (!props.file) {
+        return <></>;
+    }
+
     return (
-        <div className="flex items-center">
+        <div>
             <Image
                 onClick={() => {
                     props.onClick && props.onClick();
                 }}
+                className="rounded-xl w-full mt-5 mb-5"
                 file={props.file}
             />
         </div>

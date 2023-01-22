@@ -9,6 +9,7 @@ export interface ComponentProps {
     onFocus?: (() => void) | undefined;
     onBlur?: (() => void) | undefined;
     tabIndex?: number | undefined;
+    error?: string | undefined;
 }
 
 const MarkdownEditor: FunctionComponent<ComponentProps> = (
@@ -23,6 +24,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
             onChange={props.onChange ? props.onChange : () => {}}
             onFocus={props.onFocus ? props.onFocus : () => {}}
             onBlur={props.onBlur ? props.onBlur : () => {}}
+            error={props.error}
         />
     );
 };

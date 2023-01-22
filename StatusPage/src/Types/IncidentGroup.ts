@@ -8,8 +8,8 @@ import StatusPageResource from 'Model/Models/StatusPageResource';
 export default interface IncidentGroup {
     incident: Incident;
     incidentSeverity: IncidentSeverity;
-    publicNote?: IncidentPublicNote | undefined | null;
+    publicNotes?: Array<IncidentPublicNote>;
     incidentState: IncidentState;
-    incidentStateTimeline: IncidentStateTimeline;
+    incidentStateTimelines: Array<IncidentStateTimeline>;
     incidentResources: Array<StatusPageResource>;
 }

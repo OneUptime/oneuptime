@@ -8,13 +8,31 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { getAllEnvVars } from 'CommonUI/src/Config';
+import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import DashboardNavigation from '../../Utils/Navigation';
+import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 
 const Upgrade: FunctionComponent = (): ReactElement => {
     const [showModal, setShowModal] = useState<boolean>(false);
     const [isSubsriptionPlanYearly, setIsSubscriptionPlanYearly] =
         useState<boolean>(true);
+
+    const getFooter: Function = (): ReactElement => {
+        if (!BILLING_ENABLED) {
+            return <></>;
+        }
+
+        return (
+            <Toggle
+                title="Yearly Plan"
+                initialValue={isSubsriptionPlanYearly}
+                description="(Save 20%)"
+                onChange={(value: boolean) => {
+                    setIsSubscriptionPlanYearly(value);
+                }}
+            />
+        );
+    };
 
     return (
         <>
@@ -25,9 +43,6 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                 }}
                 buttonStyle={ButtonStyleType.LINK}
                 icon={IconProp.Star}
-                textStyle={{
-                    fontWeight: 500,
-                }}
             ></Button>
             {showModal ? (
                 <ModelFormModal<Project>
@@ -66,12 +81,8 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                         ): RadioButton => {
                                             let description: string =
                                                 plan.isCustomPricing()
-                                                    ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                                                    : `$${
-                                                          isSubsriptionPlanYearly
-                                                              ? plan.getYearlySubscriptionAmountInUSD()
-                                                              : plan.getMonthlySubscriptionAmountInUSD()
-                                                      } / month per user. Billed ${
+                                                    ? `Our sales team will contact you soon.`
+                                                    : `Billed ${
                                                           isSubsriptionPlanYearly
                                                               ? 'yearly'
                                                               : 'monthly'
@@ -106,30 +117,31 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                                     : plan.getMonthlyPlanId(),
                                                 title: plan.getName(),
                                                 description: description,
+                                                sideTitle:
+                                                    plan.isCustomPricing()
+                                                        ? 'Custom Price'
+                                                        : isSubsriptionPlanYearly
+                                                        ? '$' +
+                                                          (
+                                                              plan.getYearlySubscriptionAmountInUSD() *
+                                                              12
+                                                          ).toString()
+                                                        : '$' +
+                                                          plan
+                                                              .getMonthlySubscriptionAmountInUSD()
+                                                              .toString(),
+                                                sideDescription:
+                                                    plan.isCustomPricing()
+                                                        ? ''
+                                                        : isSubsriptionPlanYearly
+                                                        ? `/year per user`
+                                                        : `/month per user`,
                                             };
                                         }
                                     ),
                                 title: 'Please select a plan.',
                                 required: true,
-                                footerElement: (
-                                    <div
-                                        className="show-as-link"
-                                        onClick={() => {
-                                            setIsSubscriptionPlanYearly(false);
-                                        }}
-                                    >
-                                        {isSubsriptionPlanYearly ? (
-                                            <span>
-                                                Switch to monthly pricing?
-                                            </span>
-                                        ) : (
-                                            <span>
-                                                {' '}
-                                                Switch to yearly pricing?
-                                            </span>
-                                        )}
-                                    </div>
-                                ),
+                                footerElement: getFooter(),
                             },
                         ],
                         formType: FormType.Update,

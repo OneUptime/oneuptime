@@ -1,7 +1,7 @@
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
@@ -19,11 +19,15 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Incidents',
-                    to: RouteMap[PageMap.INCIDENTS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENTS] as Route
+                    ),
                 },
             ]}
         >

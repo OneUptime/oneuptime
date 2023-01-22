@@ -2,6 +2,7 @@ import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import { JSONObject } from 'Common/Types/JSON';
 import { ReactElement } from 'react';
+import AlignItem from '../../Types/AlignItem';
 import FieldType from '../Types/FieldType';
 
 export default interface Field {
@@ -9,6 +10,9 @@ export default interface Field {
     description?: string;
     key: string;
     fieldType?: FieldType;
+    colSpan?: number | undefined;
+    alignItem?: AlignItem | undefined;
+    contentClassName?: string | undefined;
     getElement?:
         | ((
               item: JSONObject,

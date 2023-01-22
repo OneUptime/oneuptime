@@ -8,8 +8,7 @@ import PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import Accordian from 'CommonUI/src/Components/Accordian/Accordian';
 import AccordianGroup from 'CommonUI/src/Components/Accordian/AccordianGroup';
-import Alert, { AlertSize } from 'CommonUI/src/Components/Alerts/Alert';
-import ActiveEvent from 'CommonUI/src/Components/ActiveEvent/ActiveEvent';
+import Alert from 'CommonUI/src/Components/Alerts/Alert';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
@@ -31,21 +30,24 @@ import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
 import MonitorOverview from '../../Components/Monitor/MonitorOverview';
-import { Blue, Green, Red, Yellow } from 'Common/Types/BrandColors';
+import { Green } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 import Dictionary from 'Common/Types/Dictionary';
 import IncidentGroup from '../../Types/IncidentGroup';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import ScheduledMaintenanceGroup from '../../Types/ScheduledMaintenanceGroup';
-import { TimelineItem } from 'CommonUI/src/Components/EventItem/EventItem';
+import EventItem from 'CommonUI/src/Components/EventItem/EventItem';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Monitor from 'Model/Models/Monitor';
 import User from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import { getIncidentEventItem } from '../Incidents/Detail';
+import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
+import { getAnnouncementEventItem } from '../Announcement/Detail';
+import EmnptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -142,8 +144,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 );
             const activeScheduledMaintenanceEvents: Array<ScheduledMaintenance> =
                 JSONFunctions.fromJSONArray(
-                    (data['activeScheduledMaintenanceEvents'] as JSONArray) ||
-                        [],
+                    (data['scheduledMaintenanceEvents'] as JSONArray) || [],
                     ScheduledMaintenance
                 );
             const activeAnnouncements: Array<StatusPageAnnouncement> =
@@ -336,6 +337,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         endDate={endDate}
                         showHistoryChart={resource.showStatusHistoryChart}
                         showCurrentStatus={resource.showCurrentStatus}
+                        uptimeGraphHeight={10}
                     />
                 );
             }
@@ -388,7 +390,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 incident: activeIncident,
                 incidentState: activeIncident.currentIncidentState,
                 incidentResources: namesOfResources,
-                publicNote: incidentPublicNotes.find(
+                publicNotes: incidentPublicNotes.filter(
                     (publicNote: IncidentPublicNote) => {
                         return (
                             publicNote.incidentId?.toString() ===
@@ -397,7 +399,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     }
                 ),
                 incidentSeverity: activeIncident.incidentSeverity!,
-                incidentStateTimeline: timeline,
+                incidentStateTimelines: [timeline],
             };
 
             groups.push(group);
@@ -450,7 +452,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     scheduledMaintenanceState:
                         activeEvent.currentScheduledMaintenanceState,
                     scheduledEventResources: namesOfResources,
-                    publicNote: scheduledMaintenanceEventsPublicNotes.find(
+                    publicNotes: scheduledMaintenanceEventsPublicNotes.filter(
                         (publicNote: ScheduledMaintenancePublicNote) => {
                             return (
                                 publicNote.scheduledMaintenanceId?.toString() ===
@@ -458,7 +460,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             );
                         }
                     ),
-                    scheduledMaintenanceStateTimeline: timeline,
+                    scheduledMaintenanceStateTimelines: [timeline],
                 };
 
                 groups.push(group);
@@ -524,64 +526,6 @@ const Overview: FunctionComponent<PageComponentProps> = (
         return <></>;
     };
 
-    const getScheduledEventGroupEventTimeline: Function = (
-        scheduledEventGroup: ScheduledMaintenanceGroup
-    ): Array<TimelineItem> => {
-        const timeline: Array<TimelineItem> = [];
-
-        timeline.push({
-            text: scheduledEventGroup.scheduledMaintenanceState.name!,
-            date: scheduledEventGroup.scheduledMaintenanceStateTimeline
-                .createdAt!,
-            isBold: true,
-        });
-
-        timeline.push({
-            text: scheduledEventGroup.publicNote?.note || '',
-            date: scheduledEventGroup.publicNote?.createdAt!,
-            isBold: false,
-        });
-
-        timeline.sort((a: TimelineItem, b: TimelineItem) => {
-            return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
-        });
-
-        return timeline;
-    };
-
-    const getIncidentGroupEventTimeline: Function = (
-        incidentGroup: IncidentGroup
-    ): Array<TimelineItem> => {
-        const timeline: Array<TimelineItem> = [];
-
-        timeline.push({
-            text: incidentGroup.incidentState.name!,
-            date: incidentGroup.incidentStateTimeline.createdAt!,
-            isBold: true,
-        });
-
-        if (incidentGroup.publicNote) {
-            timeline.push({
-                text: (
-                    <span>
-                        <b>Update</b> - {incidentGroup.publicNote?.note}
-                    </span>
-                ),
-                date: incidentGroup.publicNote?.createdAt!,
-                isBold: false,
-            });
-        }
-
-        timeline.sort((a: TimelineItem, b: TimelineItem) => {
-            return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
-        });
-
-        return timeline;
-    };
-
-    // const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
-    // const endDate: Date = OneUptimeDate.getCurrentDate();
-
     return (
         <Page>
             {isLoading ? <PageLoader isVisible={true} /> : <></>}
@@ -593,21 +537,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {activeAnnouncements.map(
                         (announcement: StatusPageAnnouncement, i: number) => {
                             return (
-                                <ActiveEvent
+                                <EventItem
                                     key={i}
-                                    cardTitle={'Announcement'}
-                                    cardTitleRight={''}
-                                    cardColor={Blue}
-                                    eventTitle={announcement.title || ''}
-                                    eventDescription={
-                                        announcement.description || ''
-                                    }
-                                    footerEventStatus={'Announced'}
-                                    footerDateTime={
-                                        announcement.showAnnouncementAt!
-                                    }
-                                    eventTimeline={[]}
-                                    eventType={'Anouncement'}
+                                    {...getAnnouncementEventItem(
+                                        announcement,
+                                        props.isPreviewPage,
+                                        true
+                                    )}
                                 />
                             );
                         }
@@ -618,47 +554,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     {getActiveIncidents().map(
                         (incidentGroup: IncidentGroup, i: number) => {
                             return (
-                                <ActiveEvent
+                                <EventItem
                                     key={i}
-                                    cardTitle={'Active Incident'}
-                                    cardTitleRight={
-                                        incidentGroup.incidentSeverity.name ||
-                                        ''
-                                    }
-                                    cardColor={
-                                        incidentGroup.incidentSeverity.color ||
-                                        Red
-                                    }
-                                    eventResourcesAffected={
-                                        incidentGroup.incidentResources.map(
-                                            (i: StatusPageResource) => {
-                                                return (
-                                                    i.displayName?.toString() ||
-                                                    ''
-                                                );
-                                            }
-                                        ) || []
-                                    }
-                                    eventTitle={
-                                        incidentGroup.incident.title || ''
-                                    }
-                                    eventDescription={
-                                        incidentGroup.incident.description || ''
-                                    }
-                                    eventTimeline={getIncidentGroupEventTimeline(
-                                        incidentGroup
-                                    )}
-                                    eventType={'Incident'}
-                                    eventViewRoute={RouteUtil.populateRouteParams(
-                                        props.isPreviewPage
-                                            ? (RouteMap[
-                                                  PageMap
-                                                      .PREVIEW_INCIDENT_DETAIL
-                                              ] as Route)
-                                            : (RouteMap[
-                                                  PageMap.INCIDENT_DETAIL
-                                              ] as Route),
-                                        incidentGroup.incident.id!
+                                    {...getIncidentEventItem(
+                                        incidentGroup.incident,
+                                        incidentGroup.publicNotes,
+                                        incidentGroup.incidentStateTimelines,
+                                        incidentGroup.incidentResources,
+                                        props.isPreviewPage,
+                                        true
                                     )}
                                 />
                             );
@@ -673,49 +577,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             i: number
                         ) => {
                             return (
-                                <ActiveEvent
+                                <EventItem
                                     key={i}
-                                    cardTitle={'Scheduled Maintenance'}
-                                    cardTitleRight={'Ongoing Event'}
-                                    footerEventStatus={'Ends'}
-                                    cardColor={Yellow}
-                                    eventTitle={
-                                        scheduledEventGroup.scheduledMaintenance
-                                            .title || ''
-                                    }
-                                    eventDescription={
-                                        scheduledEventGroup.scheduledMaintenance
-                                            .description || ''
-                                    }
-                                    eventTimeline={getScheduledEventGroupEventTimeline(
-                                        scheduledEventGroup
-                                    )}
-                                    eventResourcesAffected={
-                                        scheduledEventGroup.scheduledEventResources.map(
-                                            (i: StatusPageResource) => {
-                                                return (
-                                                    i.displayName?.toString() ||
-                                                    ''
-                                                );
-                                            }
-                                        ) || []
-                                    }
-                                    footerDateTime={
-                                        scheduledEventGroup.scheduledMaintenance
-                                            .endsAt!
-                                    }
-                                    eventType={'Scheduled Maintenance'}
-                                    eventViewRoute={RouteUtil.populateRouteParams(
-                                        props.isPreviewPage
-                                            ? (RouteMap[
-                                                  PageMap
-                                                      .PREVIEW_SCHEDULED_EVENT_DETAIL
-                                              ] as Route)
-                                            : (RouteMap[
-                                                  PageMap.SCHEDULED_EVENT_DETAIL
-                                              ] as Route),
-                                        scheduledEventGroup.scheduledMaintenance
-                                            .id!
+                                    {...getScheduledEventEventItem(
+                                        scheduledEventGroup.scheduledMaintenance,
+                                        scheduledEventGroup.publicNotes,
+                                        scheduledEventGroup.scheduledMaintenanceStateTimelines,
+                                        scheduledEventGroup.scheduledEventResources,
+                                        props.isPreviewPage,
+                                        true
                                     )}
                                 />
                             );
@@ -732,13 +602,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 } Resources are ${currentStatus.name}`}
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
-                                size={AlertSize.Large}
+                                textClassName="text-white text-lg"
                             />
                         )}
                     </div>
 
                     {statusPageResources.length > 0 && (
-                        <div>
+                        <div className="bg-white pl-5 pr-5 mt-5 rounded-xl shadow space-y-5">
                             <AccordianGroup>
                                 {statusPageResources.filter(
                                     (resources: StatusPageResource) => {
@@ -786,6 +656,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                         title={
                                                             resourceGroup.name!
                                                         }
+                                                        description={
+                                                            resourceGroup.description!
+                                                        }
                                                     >
                                                         {getMonitorOverviewListInGroup(
                                                             resourceGroup
@@ -799,12 +672,18 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         </div>
                     )}
 
-                    {statusPageResources.length === 0 && (
-                        <ErrorMessage
-                            error=" No resources added to this status page. Please add
-                        some resources from OneUptime Dashboard."
-                        />
-                    )}
+                    {getActiveIncidents().length === 0 &&
+                        getOngoingScheduledEvents().length === 0 &&
+                        statusPageResources.length === 0 &&
+                        activeAnnouncements.length === 0 &&
+                        !isLoading &&
+                        !error && (
+                            <EmnptyState
+                                icon={IconProp.CheckCircle}
+                                title={'Everything looks great'}
+                                description="Everything is great. Nothig posted on this status page so far."
+                            />
+                        )}
                 </div>
             ) : (
                 <></>

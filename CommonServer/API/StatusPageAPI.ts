@@ -593,6 +593,16 @@ export default class StatusPageAPI extends BaseAPI<
                                     createdAt: true,
                                     incidentId: true,
                                 },
+                                populate: {
+                                    incidentState: {
+                                        _id: true,
+                                        name: true,
+                                        color: true,
+                                        isCreatedState: true,
+                                        isResolvedState: true,
+                                        isAcknowledgedState: true,
+                                    },
+                                },
                                 sort: {
                                     createdAt: SortOrder.Descending, // new note first
                                 },
@@ -766,6 +776,16 @@ export default class StatusPageAPI extends BaseAPI<
                                         _id: true,
                                         createdAt: true,
                                         scheduledMaintenanceId: true,
+                                    },
+                                    populate: {
+                                        scheduledMaintenanceState: {
+                                            _id: true,
+                                            color: true,
+                                            name: true,
+                                            isScheduledState: true,
+                                            isResolvedState: true,
+                                            isOngoingState: true,
+                                        },
                                     },
                                     sort: {
                                         createdAt: SortOrder.Descending, // new note first
@@ -1111,7 +1131,7 @@ export default class StatusPageAPI extends BaseAPI<
                     startsAt: true,
                 },
                 sort: {
-                    createdAt: SortOrder.Descending,
+                    startsAt: SortOrder.Descending,
                 },
                 populate: {
                     currentScheduledMaintenanceState: {

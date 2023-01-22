@@ -2,10 +2,7 @@ import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import { KeyboardEventProp } from '../../Types/HtmlEvents';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
 import ButtonType from './ButtonTypes';
-import CSS from 'csstype';
-import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
-import Loader, { LoaderType } from '../Loader/Loader';
-import { White } from 'Common/Types/BrandColors';
+import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 
 export enum ButtonStyleType {
     PRIMARY,
@@ -18,14 +15,17 @@ export enum ButtonStyleType {
     SUCCESS_OUTLINE,
     WARNING,
     WARNING_OUTLINE,
+    ICON_LIGHT,
     LINK,
+    ICON,
 }
 
 export enum ButtonSize {
-    Normal = 'btn',
-    Small = 'btn-sm',
-    Large = 'btn-lg',
+    Normal = 'px-3 py-2',
+    Small = 'px-2 py-1',
+    Large = 'px-4 py-2',
 }
+/* Defining the props that the component will take. */
 
 export interface ComponentProps {
     title?: undefined | string;
@@ -35,14 +35,13 @@ export interface ComponentProps {
     shortcutKey?: undefined | ShortcutKey;
     type?: undefined | ButtonType;
     isLoading?: undefined | boolean;
-    style?: undefined | CSS.Properties;
+    style?: undefined | React.CSSProperties;
     icon?: undefined | IconProp;
-    showIconOnRight?: undefined | boolean;
     iconSize?: undefined | SizeProp;
     buttonStyle?: undefined | ButtonStyleType;
     buttonSize?: ButtonSize | undefined;
     dataTestId?: string;
-    textStyle?: React.CSSProperties | undefined;
+    className?: string | undefined;
 }
 
 const Button: FunctionComponent<ComponentProps> = ({
@@ -56,11 +55,10 @@ const Button: FunctionComponent<ComponentProps> = ({
     style,
     icon,
     iconSize,
-    showIconOnRight = false,
     buttonStyle = ButtonStyleType.NORMAL,
     buttonSize = ButtonSize.Normal,
     dataTestId,
-    textStyle,
+    className,
 }: ComponentProps): ReactElement => {
     useEffect(() => {
         // componentDidMount
@@ -100,26 +98,67 @@ const Button: FunctionComponent<ComponentProps> = ({
         }
     };
 
-    let buttonStyleCssClass: string = 'no-border-on-hover';
+    let buttonStyleCssClass: string =
+        'inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
+    let loadingIconClassName: string = 'w-5 h-5 mr-3 -ml-1 mr-1 animate-spin';
+    let iconClassName: string = 'w-5 h-5';
+
+    if (
+        buttonStyle !== ButtonStyleType.ICON &&
+        buttonStyle !== ButtonStyleType.ICON_LIGHT
+    ) {
+        iconClassName += ' mr-1';
+    } else {
+        iconClassName += ' m-1';
+    }
 
     if (buttonStyle === ButtonStyleType.LINK) {
-        buttonStyleCssClass = 'no-border-on-hover font-500';
+        buttonStyleCssClass =
+            'text-indigo-600 hover:text-indigo-900  space-x-2';
+
+        if (icon) {
+            buttonStyleCssClass += ' flex';
+        }
     }
 
     if (buttonStyle === ButtonStyleType.DANGER) {
-        buttonStyleCssClass = 'btn-danger';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.DANGER_OUTLINE) {
-        buttonStyleCssClass = 'btn-outline-danger';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.PRIMARY) {
-        buttonStyleCssClass = 'btn-primary';
+        loadingIconClassName += ' text-indigo-100';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
+
+        if (disabled) {
+            buttonStyleCssClass += ' bg-indigo-300';
+        }
     }
 
     if (buttonStyle === ButtonStyleType.SECONDRY) {
-        buttonStyleCssClass = 'btn-secondary';
+        loadingIconClassName += ' text-indigo-500';
+        buttonStyleCssClass =
+            'inline-flex items-center rounded-md border border-transparent bg-indigo-100 text-sm font-medium text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
+
+        if (disabled) {
+            buttonStyleCssClass += ' bg-indigo-300';
+        }
+    }
+
+    if (buttonStyle === ButtonStyleType.ICON_LIGHT) {
+        buttonStyleCssClass =
+            'rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
+    }
+
+    if (buttonStyle === ButtonStyleType.ICON) {
+        buttonStyleCssClass =
+            'rounded-md bg-white text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
     }
 
     if (buttonStyle === ButtonStyleType.OUTLINE) {
@@ -128,19 +167,29 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.SUCCESS) {
-        buttonStyleCssClass = 'btn-success';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.SUCCESS_OUTLINE) {
-        buttonStyleCssClass = 'btn-outline-success';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.WARNING) {
-        buttonStyleCssClass = 'btn-warning';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.WARNING_OUTLINE) {
-        buttonStyleCssClass = 'btn-outline-warning';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm';
+    }
+
+    buttonStyleCssClass += ' ' + buttonSize;
+
+    if (className) {
+        buttonStyleCssClass += ' ' + className;
     }
 
     return (
@@ -154,80 +203,31 @@ const Button: FunctionComponent<ComponentProps> = ({
             }}
             data-testid={dataTestId}
             type={type}
-            disabled={disabled}
-            className={`btn ${buttonStyleCssClass} ${buttonSize} waves-effect waves-light ${
-                !title && buttonStyle === ButtonStyleType.NORMAL
-                    ? 'no-border-on-hover'
-                    : ''
-            }`}
+            disabled={disabled || isLoading}
+            className={buttonStyleCssClass}
         >
-            {!isLoading && (
-                <div>
-                    <div>
-                        <div></div>
-                    </div>
-                    <span className="justify-center">
-                        <span>
-                            {icon && !showIconOnRight && (
-                                <Icon
-                                    icon={icon}
-                                    size={
-                                        iconSize ? iconSize : SizeProp.Regular
-                                    }
-                                    thick={
-                                        buttonSize === ButtonSize.Small ||
-                                        buttonStyle === ButtonStyleType.LINK
-                                            ? ThickProp.LessThick
-                                            : ThickProp.Thick
-                                    }
-                                />
-                            )}
-                        </span>
-                        {title ? (
-                            <div
-                                style={{
-                                    marginLeft:
-                                        icon && !showIconOnRight
-                                            ? '4px'
-                                            : '0px',
-                                    marginTop: '1px',
-                                }}
-                            >
-                                <b style={textStyle}>{title}</b>
-                            </div>
-                        ) : (
-                            <></>
-                        )}
-                        <span
-                            style={{
-                                marginLeft: '5px',
-                            }}
-                        >
-                            {icon && showIconOnRight && (
-                                <Icon
-                                    icon={icon}
-                                    size={
-                                        iconSize ? iconSize : SizeProp.Regular
-                                    }
-                                    thick={ThickProp.Thick}
-                                />
-                            )}
-                        </span>
-                        {shortcutKey && (
-                            <span className="newButtonKeycode">
-                                {shortcutKey}
-                            </span>
-                        )}
-                    </span>
-                </div>
+            {isLoading && buttonStyle !== ButtonStyleType.ICON && (
+                <Icon
+                    icon={IconProp.Spinner}
+                    className={loadingIconClassName}
+                />
             )}
-            {isLoading && (
-                <div>
-                    <Loader
-                        loaderType={LoaderType.Beats}
-                        color={White}
-                        size={10}
-                    />
+
+            {!isLoading && icon && (
+                <Icon
+                    icon={icon}
+                    className={iconClassName}
+                    size={iconSize || undefined}
+                />
+            )}
+
+            {title && buttonStyle !== ButtonStyleType.ICON ? title : ''}
+
+            {shortcutKey && (
+                <div className="ml-2">
+                    <kbd className="inline-flex items-center rounded border border-gray-200 px-2 font-sans text-sm font-medium text-gray-400">
+                        {shortcutKey}
+                    </kbd>
                 </div>
             )}
         </button>

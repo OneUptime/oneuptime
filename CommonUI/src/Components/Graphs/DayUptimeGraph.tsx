@@ -157,15 +157,17 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
             toolTipText += ` - 100% ${props.defaultLabel || 'Operational'}.`;
         }
 
+        let className: string = 'h-20 w-20';
+
+        if (props.height) {
+            className = 'w-20 h-' + props.height;
+        }
         return (
             <Tooltip key={dayNumber} text={toolTipText || '100% Operational'}>
                 <div
-                    className="uptime-bar"
+                    className={className}
                     style={{
                         backgroundColor: color.toString(),
-                        height: `${
-                            props.height ? props.height + 'px' : '55px'
-                        }`,
                     }}
                 ></div>
             </Tooltip>
@@ -182,7 +184,11 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         return elements;
     };
 
-    return <div className="flex">{getUptimeGraph()}</div>;
+    return (
+        <div className="flex space-x-0.5 rounded overflow-hidden">
+            {getUptimeGraph()}
+        </div>
+    );
 };
 
 export default DayUptimeGraph;

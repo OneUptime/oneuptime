@@ -23,10 +23,12 @@ const ListRow: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string>('');
 
     return (
-        <div className="padding-15 list-item">
-            <Detail item={props.item} fields={props.fields} />
-
+        <div className="bg-white px-4 py-6 shadow sm:rounded-lg sm:px-6">
             <div>
+                <Detail item={props.item} fields={props.fields} />
+            </div>
+
+            <div className="flex mt-5 -ml-3">
                 {props.actionButtons?.map(
                     (button: ActionButtonSchema, i: number) => {
                         if (button.isVisible && !button.isVisible(props.item)) {
@@ -34,16 +36,7 @@ const ListRow: FunctionComponent<ComponentProps> = (
                         }
 
                         return (
-                            <span
-                                style={
-                                    i > 0
-                                        ? {
-                                              marginLeft: '10px',
-                                          }
-                                        : {}
-                                }
-                                key={i}
-                            >
+                            <div key={i}>
                                 <Button
                                     buttonSize={ButtonSize.Small}
                                     title={button.title}
@@ -76,7 +69,7 @@ const ListRow: FunctionComponent<ComponentProps> = (
                                         }
                                     }}
                                 />
-                            </span>
+                            </div>
                         );
                     }
                 )}

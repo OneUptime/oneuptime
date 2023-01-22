@@ -1,6 +1,7 @@
+// Tailwind
+
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
-import { VeryLightGrey } from 'Common/Types/BrandColors';
+import Input from '../Input/Input';
 
 export interface ComponentProps {
     onChange: (search: string) => void;
@@ -10,38 +11,20 @@ const SearchBox: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <form
-            className="app-search d-none d-lg-block"
-            style={{
-                width: '400px',
-            }}
-        >
-            <div className="position-relative">
-                <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search..."
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                        props.onChange(e.target.value);
-                    }}
-                />
-                <button
-                    className="btn"
-                    type="button"
-                    disabled={true}
-                    style={{
-                        border: 'none',
-                        color: VeryLightGrey.toString(),
-                    }}
-                >
-                    <Icon
-                        className="light"
-                        icon={IconProp.Search}
-                        size={SizeProp.Large}
+        <div className="relative z-0 flex flex-1 items-center justify-center px-2 sm:absolute sm:inset-0">
+            <div className="w-full sm:max-w-xs">
+                <label className="sr-only">Search</label>
+                <div className="relative">
+                    <Input
+                        onChange={(value: string) => {
+                            props.onChange(value);
+                        }}
+                        className="block w-full rounded-md border border-gray-300 bg-white py-2 pl-5 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm"
+                        placeholder="Search"
                     />
-                </button>
+                </div>
             </div>
-        </form>
+        </div>
     );
 };
 

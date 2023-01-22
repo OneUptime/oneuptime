@@ -19,6 +19,7 @@ import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { IconProp } from '../Icon/Icon';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
+
 import SortOrder from 'Common/Types/Database/SortOrder';
 import FieldType from '../Types/FieldType';
 import Dictionary from 'Common/Types/Dictionary';
@@ -42,7 +43,7 @@ import List from '../List/List';
 import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
 import Field from '../Detail/Field';
 import FormValues from '../Forms/Types/FormValues';
-import { FilterData } from '../Table/TableHeader';
+import { FilterData } from '../Table/Filter';
 import ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
@@ -196,6 +197,9 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 description: column.description || '',
                 key: column.key || '',
                 fieldType: column.type,
+                colSpan: column.colSpan,
+                contentClassName: column.contentClassName,
+                alignItem: column.alignItem,
                 getElement: column.getElement
                     ? (item: JSONObject): ReactElement => {
                           return column.getElement!(item, onBeforeFetchData);
@@ -333,6 +337,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                         );
                     };
                 }
+
+                classicColumn.colSpan = column.colSpan;
+                classicColumn.alignItem = column.alignItem;
+                classicColumn.contentClassName = column.contentClassName;
             }
 
             setColumns(classicColumns);
@@ -505,7 +513,11 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 title: `${props.createVerb || 'Create'} ${
                     props.singularName || model.singularName
                 }`,
-                buttonStyle: ButtonStyleType.OUTLINE,
+                buttonStyle: ButtonStyleType.NORMAL,
+                className:
+                    props.showFilterButton || props.showRefreshButton
+                        ? 'mr-1'
+                        : '',
                 onClick: () => {
                     setModalType(ModalType.Create);
                     setShowModal(true);
@@ -517,7 +529,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         if (props.showRefreshButton) {
             headerbuttons.push({
                 title: '',
-                buttonStyle: ButtonStyleType.OUTLINE,
+                className: props.showFilterButton
+                    ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
+                    : 'py-0 pr-0 pl-1 mt-1',
+                buttonStyle: ButtonStyleType.ICON,
                 onClick: () => {
                     fetchItems();
                 },
@@ -529,7 +544,10 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
         if (props.showFilterButton) {
             headerbuttons.push({
                 title: '',
-                buttonStyle: ButtonStyleType.OUTLINE,
+                buttonStyle: ButtonStyleType.ICON,
+                className: props.showRefreshButton
+                    ? 'p-1 px-1 pr-0 pl-0 py-0 mt-1'
+                    : 'py-0 pr-0 pl-1 mt-1',
                 onClick: () => {
                     const newValue: boolean = !showTableFilter;
                     if (!newValue) {
@@ -744,7 +762,7 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
             if (props.isViewable && model.hasReadPermissions(permissions)) {
                 actionsSchema.push({
                     title: props.viewButtonText || 'View',
-                    buttonStyleType: ButtonStyleType.OUTLINE,
+                    buttonStyleType: ButtonStyleType.LINK,
                     onClick: async (
                         item: JSONObject,
                         onCompleteAction: Function,
@@ -1112,12 +1130,16 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 <div>
                     {props.cardProps && (
                         <Card
+                            bodyClassName="-ml-6 -mr-6 bg-gray-50 border-top"
                             {...props.cardProps}
-                            cardBodyStyle={{ padding: '0px' }}
                             buttons={cardButtons}
                             title={getCardTitle(props.cardProps.title)}
                         >
-                            {getList()}
+                            <div className="mt-6 border-t border-gray-200">
+                                <div className="ml-6 mr-6  pt-6">
+                                    {getList()}
+                                </div>
+                            </div>
                         </Card>
                     )}
 
@@ -1130,7 +1152,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                     {props.cardProps && (
                         <Card
                             {...props.cardProps}
-                            cardBodyStyle={{ padding: '0px' }}
                             buttons={cardButtons}
                             title={getCardTitle(props.cardProps.title)}
                         >
@@ -1148,7 +1169,6 @@ const ModelTable: Function = <TBaseModel extends BaseModel>(
                 {props.cardProps && (
                     <Card
                         {...props.cardProps}
-                        cardBodyStyle={{ padding: '0px' }}
                         buttons={cardButtons}
                         title={getCardTitle(props.cardProps.title)}
                     >

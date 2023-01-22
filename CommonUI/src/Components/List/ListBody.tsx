@@ -15,7 +15,7 @@ const ListBody: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div id={props.id}>
+        <div id={props.id} className="space-y-6">
             {props.data &&
                 props.data.map((item: JSONObject, i: number) => {
                     return (

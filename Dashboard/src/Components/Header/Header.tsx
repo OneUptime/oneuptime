@@ -9,39 +9,33 @@ import React, {
 import Help from './Help';
 import UserProfile from './UserProfile';
 import ProjectPicker from './ProjectPicker';
-
 import Header from 'CommonUI/src/Components/Header/Header';
 import Project from 'Model/Models/Project';
-import CounterModelAlert from 'CommonUI/src/Components/CounterModelAlert/CounterModelAlert';
-import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
-import TeamMember from 'Model/Models/TeamMember';
-import User from 'CommonUI/src/Utils/User';
-import ProjectInvitationsModal from './ProjectInvitationsModal';
-import ActiveIncidentsModal from './ActiveIncidentsModal';
-import Incident from 'Model/Models/Incident';
 import Logo from './Logo';
-import OneUptimeDate from 'Common/Types/Date';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
-import Upgrade from './Upgrade';
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import useAsyncEffect from 'use-async-effect';
+import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
+import EventName from '../../Utils/EventName';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import Upgrade from './Upgrade';
+import { IconProp, SizeProp } from 'CommonUI/src/Components/Icon/Icon';
 import Route from 'Common/Types/API/Route';
-import UserProfileModal from './UserProfileModal';
-import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';
-import EventName from '../../Utils/EventName';
+import TeamMember from 'Model/Models/TeamMember';
+import User from 'CommonUI/src/Utils/User';
+import Incident from 'Model/Models/Incident';
+import OneUptimeDate from 'Common/Types/Date';
+import HeaderModelAlert from 'CommonUI/src/Components/HeaderAlert/HeaderModelAlert';
+import HeaderAlert from 'CommonUI/src/Components/HeaderAlert/HeaderAlert';
 
 export interface ComponentProps {
     projects: Array<Project>;
     onProjectSelected: (project: Project) => void;
-    onProjectRequestAccepted: () => void;
-    onProjectRequestRejected: () => void;
     showProjectModal: boolean;
     onProjectModalClose: () => void;
     selectedProject: Project | null;
@@ -50,25 +44,14 @@ export interface ComponentProps {
 const DashboardHeader: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    const [showProjectInvitationModal, setShowProjectInvitationModal] =
-        useState<boolean>(false);
-
-    const [showActiveIncidentsModal, setShowActiveIncidentsModal] =
-        useState<boolean>(false);
-
-    const [projectCountRefreshToggle, setProjectCountRefreshToggle] =
-        useState<boolean>(true);
-
-    const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
-        useState<boolean>(true);
-
     const [isPaymentMethodCountLoading, setPaymentMethodCountLoading] =
         useState<boolean>(false);
     const [paymentMethodCount, setPaymentMethodCount] = useState<number | null>(
         null
     );
 
-    const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+    const [activeIncidentToggleRefresh, setActiveIncidentToggleRefresh] =
+        useState<boolean>(true);
 
     useAsyncEffect(async () => {
         if (
@@ -113,26 +96,18 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         {props.projects.length === 0 && (
                             <Logo onClick={() => {}} />
                         )}
+
                         <ProjectPicker
                             showProjectModal={props.showProjectModal}
                             onProjectModalClose={props.onProjectModalClose}
                             projects={props.projects}
                             onProjectSelected={props.onProjectSelected}
                         />
-                        {/* <SearchBox
-                            key={2}
-                            selectedProject={props.selectedProject}
-                            onChange={(_value: string) => {}}
-                        /> */}
-                        <div
-                            className="flex"
-                            style={{
-                                marginLeft: '15px',
-                                marginTop: '15px',
-                            }}
-                        >
-                            <CounterModelAlert<TeamMember>
-                                alertType={AlertType.INFO}
+
+                        <div className="flex">
+                            <HeaderModelAlert<TeamMember>
+                                icon={IconProp.Folder}
+                                className="rounded-md m-3 bg-indigo-500 p-3  hover:bg-indigo-600 cursor-pointer ml-0"
                                 modelType={TeamMember}
                                 query={{
                                     userId: User.getUserId(),
@@ -143,18 +118,20 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 requestOptions={{
                                     isMultiTenantRequest: true,
                                 }}
-                                refreshToggle={projectCountRefreshToggle}
                                 onClick={() => {
-                                    setShowProjectInvitationModal(true);
+                                    Navigation.navigate(
+                                        RouteMap[PageMap.PROJECT_INVITATIONS]!
+                                    );
                                 }}
                                 style={{
                                     marginRight: '10px',
                                 }}
                             />
 
-                            <CounterModelAlert<Incident>
-                                alertType={AlertType.DANGER}
+                            <HeaderModelAlert<Incident>
+                                icon={IconProp.Alert}
                                 modelType={Incident}
+                                className="rounded-md m-3 bg-red-500 p-3  hover:bg-red-600 cursor-pointer ml-0"
                                 query={{
                                     currentIncidentState: {
                                         order: 1,
@@ -167,7 +144,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     isMultiTenantRequest: true,
                                 }}
                                 onClick={() => {
-                                    setShowActiveIncidentsModal(true);
+                                    Navigation.navigate(
+                                        RouteMap[PageMap.ACTIVE_INCIDENTS]!
+                                    );
                                 }}
                                 style={{
                                     marginRight: '10px',
@@ -180,8 +159,9 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                     OneUptimeDate.getCurrentDate(),
                                     props.selectedProject?.trialEndsAt!
                                 ) > 0 && (
-                                    <Alert
-                                        type={AlertType.INFO}
+                                    <HeaderAlert
+                                        icon={IconProp.Clock}
+                                        className="rounded-md m-3 bg-indigo-500 p-3  ml-0"
                                         title={`Trial ends in ${OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
                                             OneUptimeDate.getCurrentDate(),
                                             props.selectedProject?.trialEndsAt!
@@ -194,12 +174,18 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                                 ? 'days'
                                                 : 'day'
                                         }`}
-                                        style={{
-                                            marginRight: '10px',
-                                        }}
                                     />
                                 )}
                         </div>
+                    </>
+                }
+                centerComponents={
+                    <>
+                        {/* <SearchBox
+                            key={2}
+                            selectedProject={props.selectedProject}
+                            onChange={(_value: string) => { }}
+                        />{' '} */}
                     </>
                 }
                 rightComponents={
@@ -231,9 +217,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                                 }}
                                 buttonStyle={ButtonStyleType.LINK}
                                 icon={IconProp.Billing}
-                                textStyle={{
-                                    fontWeight: 500,
-                                }}
+                                iconSize={SizeProp.Larger}
                             ></Button>
                         ) : (
                             <></>
@@ -252,48 +236,14 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                         <Help />
                         <UserProfile
                             onClickUserProfle={() => {
-                                setShowProfileModal(true);
+                                Navigation.navigate(
+                                    RouteMap[PageMap.USER_PROFILE]!
+                                );
                             }}
                         />
                     </>
                 }
             />
-
-            {showProjectInvitationModal && (
-                <ProjectInvitationsModal
-                    onClose={() => {
-                        setShowProjectInvitationModal(false);
-                    }}
-                    onRequestAccepted={() => {
-                        props.onProjectRequestAccepted();
-                        setProjectCountRefreshToggle(
-                            !projectCountRefreshToggle
-                        );
-                    }}
-                    onRequestRejected={() => {
-                        props.onProjectRequestRejected();
-                        setProjectCountRefreshToggle(
-                            !projectCountRefreshToggle
-                        );
-                    }}
-                />
-            )}
-
-            {showProfileModal && (
-                <UserProfileModal
-                    onClose={() => {
-                        setShowProfileModal(false);
-                    }}
-                />
-            )}
-
-            {showActiveIncidentsModal && (
-                <ActiveIncidentsModal
-                    onClose={() => {
-                        setShowActiveIncidentsModal(false);
-                    }}
-                />
-            )}
         </>
     );
 };

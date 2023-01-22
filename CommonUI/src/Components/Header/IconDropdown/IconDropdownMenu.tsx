@@ -9,20 +9,12 @@ const IconDropdown: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <div
-            tabIndex={-1}
+            className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none transform opacity-100 scale-100"
             role="menu"
-            aria-hidden="false"
-            className="dropdown-menu-lg dropdown-menu-end dropdown-menu show"
-            style={{
-                position: 'absolute',
-                willChange: 'transform',
-                top: '0px',
-                left: '0px',
-                transform: 'translate3d(0px, 70px, 0px)',
-            }}
-            x-placement="bottom-start"
+            aria-orientation="vertical"
+            aria-labelledby="user-menu-button"
         >
-            <div className="px-lg-2">{props.children}</div>
+            {props.children}
         </div>
     );
 };

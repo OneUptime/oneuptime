@@ -2,6 +2,7 @@ import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import { ReactElement } from 'react';
+import AlignItem from '../../Types/AlignItem';
 import SelectEntityField from '../../Types/SelectEntityField';
 import Query from '../../Utils/ModelAPI/Query';
 import { IconProp } from '../Icon/Icon';
@@ -17,6 +18,8 @@ export default interface Columns<TEntity> {
     field?: SelectEntityField<TEntity>;
     selectedProperty?: string;
     title: string;
+    contentClassName?: string | undefined;
+    colSpan?: number | undefined;
     disableSort?: boolean;
     type: FieldType;
     isFilterable: boolean;
@@ -30,6 +33,7 @@ export default interface Columns<TEntity> {
           }
         | undefined;
     actionButtons?: Array<ActionButton>;
+    alignItem?: AlignItem | undefined;
     getElement?:
         | ((
               item: JSONObject,

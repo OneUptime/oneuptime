@@ -19,37 +19,10 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <NavBar
-            navBarStyle={{
-                marginTop: '0px',
-                position: 'unset',
-            }}
-            rightContent={
-                <>
-                    <NavBarItem
-                        title="Subscribe"
-                        icon={IconProp.Email}
-                        route={RouteUtil.populateRouteParams(
-                            props.isPreview
-                                ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route)
-                                : (RouteMap[PageMap.SUBSCRIBE] as Route)
-                        )}
-                    ></NavBarItem>
-                    {/* <NavBarItem
-                        title="RSS"
-                        icon={IconProp.RSS}
-                        route={RouteUtil.populateRouteParams(
-                            props.isPreview
-                                ? (RouteMap[PageMap.PREVIEW_RSS] as Route)
-                                : (RouteMap[PageMap.RSS] as Route)
-                        )}
-                    ></NavBarItem> */}
-                </>
-            }
-            maxWidth="880px"
-        >
+        <NavBar>
             <NavBarItem
                 title="Overview"
+                icon={IconProp.CheckCircle}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
@@ -59,6 +32,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
             <NavBarItem
                 title="Incidents"
+                icon={IconProp.Alert}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
@@ -68,6 +42,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
 
             <NavBarItem
                 title="Announcements"
+                icon={IconProp.Anouncement}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_LIST] as Route)
@@ -76,13 +51,24 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
             ></NavBarItem>
 
             <NavBarItem
-                title="Scheduled Maintenance"
+                title="Scheduled Events"
+                icon={IconProp.Clock}
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[
                               PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                           ] as Route)
                         : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
+                )}
+            ></NavBarItem>
+
+            <NavBarItem
+                title="Subscribe"
+                icon={IconProp.Email}
+                route={RouteUtil.populateRouteParams(
+                    props.isPreview
+                        ? (RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL] as Route)
+                        : (RouteMap[PageMap.SUBSCRIBE_SMS] as Route)
                 )}
             ></NavBarItem>
         </NavBar>

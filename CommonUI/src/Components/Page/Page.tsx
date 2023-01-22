@@ -4,10 +4,11 @@ import Analytics from '../../Utils/Analytics';
 import Breadcrumbs from '../Breadcrumbs/Breadcrumbs';
 
 export interface ComponentProps {
-    title: string;
-    breadcrumbLinks: Array<Link>;
+    title?: string | undefined;
+    breadcrumbLinks?: Array<Link> | undefined;
     children: Array<ReactElement> | ReactElement;
     sideMenu?: undefined | ReactElement;
+    className?: string | undefined;
 }
 
 const Page: FunctionComponent<ComponentProps> = (
@@ -28,28 +29,45 @@ const Page: FunctionComponent<ComponentProps> = (
     }, [props.breadcrumbLinks]);
 
     return (
-        <div className="page-content">
-            <div className="container-fluid">
-                <div className="row">
-                    <div className="col-12">
-                        <div className="page-title-box d-sm-flex align-items-center justify-content-between">
-                            <h4 className="mb-0 font-size-18">{props.title}</h4>
+        <div
+            className={
+                props.className ||
+                'mx-auto max-w-full px-4 sm:px-6 lg:px-8 mt-5 mb-20 h-full'
+            }
+        >
+            {((props.breadcrumbLinks && props.breadcrumbLinks.length > 0) ||
+                props.title) && (
+                <div className="mb-5">
+                    {props.breadcrumbLinks && props.breadcrumbLinks.length > 0 && (
+                        <div className="mt-2">
                             <Breadcrumbs links={props.breadcrumbLinks} />
                         </div>
-                    </div>
-                </div>
-                {props.sideMenu && (
-                    <div className="row">
-                        <div className="col-12">
-                            {props.sideMenu}
-                            <div className="email-rightbar mb-3">
-                                {props.children}
+                    )}
+                    {props.title && (
+                        <div className="mt-2 md:flex md:items-center md:justify-between">
+                            <div className="min-w-0">
+                                <h2 className="text-xl leading-7  text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                                    {props.title}
+                                </h2>
                             </div>
                         </div>
+                    )}
+                </div>
+            )}
+
+            {props.sideMenu && (
+                <main className="mx-auto max-w-full pb-10 mr-5">
+                    <div className="lg:grid lg:grid-cols-12 lg:gap-x-5">
+                        {props.sideMenu}
+
+                        <div className="space-y-6 sm:px-6 lg:col-span-10 md:col-span-9 lg:px-0">
+                            {props.children}
+                        </div>
                     </div>
-                )}
-                {!props.sideMenu && props.children}
-            </div>
+                </main>
+            )}
+
+            {!props.sideMenu && props.children}
         </div>
     );
 };

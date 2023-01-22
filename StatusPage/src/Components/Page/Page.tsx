@@ -1,25 +1,14 @@
 import React, { FunctionComponent, ReactElement } from 'react';
+import Page, {
+    ComponentProps as PageComponentProps,
+} from 'CommonUI/src/Components/Page/Page';
 
-export interface ComponentProps {
-    children?: Array<ReactElement> | ReactElement | undefined;
-}
-
-const Page: FunctionComponent<ComponentProps> = (
-    props: ComponentProps
+const StausPagePage: FunctionComponent<PageComponentProps> = (
+    props: PageComponentProps
 ): ReactElement => {
     return (
-        <div
-            className="page-content"
-            style={{
-                marginLeft: '0px',
-                paddingLeft: '5px',
-                marginTop: '0px',
-                width: '100%',
-            }}
-        >
-            {props.children && props.children}
-        </div>
+        <Page {...props} className="mx-auto max-w-full mt-5 mb-20 h-full p-0" />
     );
 };
 
-export default Page;
+export default StausPagePage;

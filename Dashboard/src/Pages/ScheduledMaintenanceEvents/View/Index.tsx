@@ -29,6 +29,7 @@ import LabelsElement from '../../../Components/Label/Labels';
 import StatusPage from 'Model/Models/StatusPage';
 import StatusPagesElement from '../../../Components/StatusPage/StatusPagesLabel';
 import JSONFunctions from 'Common/Types/JSONFunctions';
+import OneUptimeDate from 'Common/Types/Date';
 
 const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -99,7 +100,9 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             startsAt: true,
                         },
                         title: 'Event Starts At',
-                        description: 'This is in your local timezone',
+                        description:
+                            'This is in your local timezone - ' +
+                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',
@@ -109,7 +112,9 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             endsAt: true,
                         },
                         title: 'Ends At',
-                        description: 'This is in your local timezone',
+                        description:
+                            'This is in your local timezone - ' +
+                            OneUptimeDate.getCurrentTimezoneString(),
                         fieldType: FormFieldSchemaType.DateTime,
                         required: true,
                         placeholder: 'Pick Date and Time',
@@ -127,7 +132,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                             labelField: 'name',
                             valueField: '_id',
                         },
-                        required: true,
+                        required: false,
                         placeholder: 'Monitors affected',
                     },
                     {
@@ -185,6 +190,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                     createdByUser: {
                                         name: true,
                                         email: true,
+                                        profilePictureId: true,
                                     },
                                     scheduledMaintenanceState: {
                                         name: true,
@@ -305,6 +311,20 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                     />
                                 );
                             },
+                        },
+                        {
+                            field: {
+                                startsAt: true,
+                            },
+                            title: 'Starts At',
+                            fieldType: FieldType.DateTime,
+                        },
+                        {
+                            field: {
+                                endsAt: true,
+                            },
+                            title: 'Ends At',
+                            fieldType: FieldType.DateTime,
                         },
                         {
                             field: {

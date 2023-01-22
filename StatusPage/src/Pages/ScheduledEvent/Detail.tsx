@@ -30,11 +30,14 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import EventItem, {
     TimelineItem,
     ComponentProps as EventItemComponentProps,
+    TimelineItemType,
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Color from 'Common/Types/Color';
-import { Green } from 'Common/Types/BrandColors';
+import { Green, Grey, Yellow } from 'Common/Types/BrandColors';
 import UserUtil from '../../Utils/User';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
@@ -53,12 +56,15 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
         if (
             scheduledMaintenancePublicNote.scheduledMaintenanceId?.toString() ===
-            scheduledMaintenance.id?.toString()
+                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenancePublicNote?.note
         ) {
             timeline.push({
-                text: scheduledMaintenancePublicNote?.note || '',
+                note: scheduledMaintenancePublicNote?.note || '',
                 date: scheduledMaintenancePublicNote?.createdAt!,
-                isBold: false,
+                type: TimelineItemType.Note,
+                icon: IconProp.Chat,
+                iconColor: Grey,
             });
             if (isSummary) {
                 break;
@@ -69,17 +75,29 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenanceEventstateTimeline of scheduledMaintenanceStateTimelines) {
         if (
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceId?.toString() ===
-            scheduledMaintenance.id?.toString()
+                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
         ) {
             timeline.push({
-                text:
-                    scheduledMaintenanceEventstateTimeline
-                        .scheduledMaintenanceState?.name || '',
+                state: scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState,
                 date: scheduledMaintenanceEventstateTimeline
                     .scheduledMaintenanceState?.isScheduledState
                     ? scheduledMaintenance.startsAt!
                     : scheduledMaintenanceEventstateTimeline?.createdAt!,
-                isBold: true,
+                type: TimelineItemType.StateChange,
+                icon: scheduledMaintenanceEventstateTimeline
+                    .scheduledMaintenanceState.isScheduledState
+                    ? IconProp.Clock
+                    : scheduledMaintenanceEventstateTimeline
+                          .scheduledMaintenanceState.isOngoingState
+                    ? IconProp.Settings
+                    : scheduledMaintenanceEventstateTimeline
+                          .scheduledMaintenanceState.isResolvedState
+                    ? IconProp.CheckCircle
+                    : IconProp.ArrowCircleRight,
+                iconColor:
+                    scheduledMaintenanceEventstateTimeline
+                        .scheduledMaintenanceState.color || Grey,
             });
 
             if (!currentStateStatus) {
@@ -101,22 +119,11 @@ export const getScheduledEventEventItem: Function = (
         return OneUptimeDate.isAfter(a.date, b.date) === true ? 1 : -1;
     });
 
-    let footerStatus: string = '';
-
-    if (timeline.length > 0) {
-        footerStatus = `${
-            timeline[timeline.length - 1]?.text
-        } at ${OneUptimeDate.getDateAsLocalFormattedString(
-            timeline[timeline.length - 1]?.date!
-        )}`;
-    }
-
     return {
         eventTitle: scheduledMaintenance.title || '',
         eventDescription: scheduledMaintenance.description,
         eventTimeline: timeline,
         eventType: 'Scheduled Maintenance',
-        footerEventStatus: footerStatus,
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
@@ -130,6 +137,12 @@ export const getScheduledEventEventItem: Function = (
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
+        eventTypeColor: Yellow,
+        eventSecondDescription:
+            'Scheduled at ' +
+            OneUptimeDate.getDateAsLocalFormattedString(
+                scheduledMaintenance.startsAt!
+            ),
     };
 };
 
@@ -182,9 +195,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Status Page ID is required');
             }
 
-            const eventId: string | undefined = Navigation.getLastParam()
-                ?.toString()
-                .replace('/', '');
+            const eventId: string | undefined =
+                Navigation.getLastParamAsObjectID().toString();
 
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
@@ -286,10 +298,51 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
+        <Page
+            title="Scheduled Event Report"
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Scheduled Events',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                              ] as Route)
+                            : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
+                    ),
+                },
+                {
+                    title: 'Scheduled Event',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                              ] as Route)
+                            : (RouteMap[
+                                  PageMap.SCHEDULED_EVENT_DETAIL
+                              ] as Route),
+                        Navigation.getLastParamAsObjectID()
+                    ),
+                },
+            ]}
+        >
             {scheduledMaintenanceEvent ? <EventItem {...parsedData} /> : <></>}
             {!scheduledMaintenanceEvent ? (
-                <ErrorMessage error="No incident found with this ID." />
+                <EmptyState
+                    title={'No Scheduled Event'}
+                    description={
+                        'No scheduled event found for this status page.'
+                    }
+                    icon={IconProp.Clock}
+                />
             ) : (
                 <></>
             )}

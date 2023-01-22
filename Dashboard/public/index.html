@@ -34,17 +34,54 @@
     <meta name="msapplication-TileColor" content="#121212">
     <meta name="msapplication-TileImage" content="/dashboard/assets/img/favicons/mstile-144x144.png">
     <meta name="theme-color" content="#121212">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      * {
+      font-family: Inter;
+      }
+
+
+      input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+          bottom: 0;
+          color: transparent;
+          cursor: pointer;
+          height: auto;
+          left: 0;
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: auto;
+      }
+
+      input[type="date"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+          bottom: 0;
+          color: transparent;
+          cursor: pointer;
+          height: auto;
+          left: 0;
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: auto;
+      }
+      </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <script src="/dashboard/env.js"></script>
 
 
     <title>OneUptime Dashboard</title>
 
 
-    <!-- Preload light, regular, medium and bold, which are fonts that are used on home -->
+    <!-- Preload light, regular, medium and bold, which are fonts that are used on home
     <link rel="preload" href="/dashboard/assets/fonts/camphor/font1.woff2" as="font" type="font/woff2" crossorigin="">
     <link rel="preload" href="/dashboard/assets/fonts/camphor/font2.woff2" as="font" type="font/woff2" crossorigin="">
     <link rel="preload" href="/dashboard/assets/fonts/camphor/font3.woff2" as="font" type="font/woff2" crossorigin="">
-    <link rel="preload" href="/dashboard/assets/fonts/camphor/font4.woff2" as="font" type="font/woff2" crossorigin="">
+    <link rel="preload" href="/dashboard/assets/fonts/camphor/font4.woff2" as="font" type="font/woff2" crossorigin=""> -->
 
    
     <!--
@@ -61,7 +98,7 @@
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
   </head>
-  <body>
+  <body class="h-full bg-gray-50">
     <!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH"
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -79,5 +116,18 @@
       To create a production bundle, use `npm run build` or `yarn build`.
     -->
     <script src="/dashboard/dist/bundle.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend:
+          {
+            fontFamily: {
+              'display': ['Inter', 'sans-serif'],
+              'body': ['Inter', 'sans-serif']
+            },
+          },
+        },
+      }
+    </script>
   </body>
 </html>

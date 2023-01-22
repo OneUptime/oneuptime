@@ -19,6 +19,7 @@ import StatusPagesElement from '../StatusPage/StatusPagesLabel';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import DashboardNavigation from '../../Utils/Navigation';
+import OneUptimeDate from 'Common/Types/Date';
 
 export interface ComponentProps {
     query?: Query<ScheduledMaintenance> | undefined;
@@ -78,7 +79,9 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         startsAt: true,
                     },
                     title: 'Event Starts At',
-                    description: 'This is in your local timezone',
+                    description:
+                        'This is in your local timezone - ' +
+                        OneUptimeDate.getCurrentTimezoneString(),
                     fieldType: FormFieldSchemaType.DateTime,
                     required: true,
                     placeholder: 'Pick Date and Time',
@@ -88,7 +91,9 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                         endsAt: true,
                     },
                     title: 'Ends At',
-                    description: 'This is in your local timezone',
+                    description:
+                        'This is in your local timezone - ' +
+                        OneUptimeDate.getCurrentTimezoneString(),
                     fieldType: FormFieldSchemaType.DateTime,
                     required: true,
                     placeholder: 'Pick Date and Time',

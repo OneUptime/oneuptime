@@ -476,13 +476,7 @@ const ModelForm: Function = <TBaseModel extends BaseModel>(
 
     if (isFetching || isFetchingDropdownOptions) {
         return (
-            <div
-                className="row text-center"
-                style={{
-                    marginTop: '50px',
-                    marginBottom: '50px',
-                }}
-            >
+            <div className="row flex justify-center mt-20 mb-20">
                 <Loader
                     loaderType={LoaderType.Bar}
                     color={VeryLightGrey}

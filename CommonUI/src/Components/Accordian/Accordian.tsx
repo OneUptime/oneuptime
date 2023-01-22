@@ -4,7 +4,7 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
+import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 
 export interface ComponentProps {
     title?: string | undefined;
@@ -49,69 +49,62 @@ const Accordian: FunctionComponent<ComponentProps> = (
         }
     }, [isOpen]);
 
+    let className: string = 'border-gray-100 border-b-2 -ml-5 -mr-5 p-5 mt-1';
+
+    if (props.isLastElement) {
+        className = '-ml-5 -mr-5 p-5 mt-1';
+    }
+
     return (
-        <div
-            className="row accordian-row"
-            style={
-                props.isLastElement
-                    ? {
-                          borderBottomWidth: '0px',
-                      }
-                    : {}
-            }
-        >
-            <div className="col-xl-12 accordian-body">
+        <div className={className}>
+            <div>
                 <div
-                    className={`pointer accordian-header`}
+                    className={`flex justify-between cursor-pointer`}
                     role="alert"
                     onClick={() => {
                         setIsOpen(!isOpen);
                     }}
                 >
-                    <div className="accordian-left-elements">
+                    <div className="flex">
                         {props.title && (
-                            <span style={{ height: '10px' }}>
+                            <div>
                                 {isOpen && (
                                     <Icon
-                                        thick={ThickProp.LessThick}
+                                        className="h-4 w-4 text-gray-500"
                                         icon={IconProp.ChevronDown}
-                                        size={SizeProp.Large}
+                                        thick={ThickProp.Thick}
                                     />
                                 )}
                                 {!isOpen && (
                                     <Icon
-                                        thick={ThickProp.LessThick}
+                                        className="h-4 w-4 text-gray-500"
                                         icon={IconProp.ChevronRight}
-                                        size={SizeProp.Large}
+                                        thick={ThickProp.Thick}
                                     />
                                 )}
-                            </span>
+                            </div>
                         )}
                         {props.title && (
                             <div
-                                className={`flex ${
-                                    props.onClick ? 'pointer' : ''
+                                className={`ml-1 -mt-1 ${
+                                    props.onClick ? 'cursor-pointer' : ''
                                 }`}
-                                style={{
-                                    marginLeft: '5px',
-                                    marginTop: '1px',
-                                }}
                             >
-                                <div>
-                                    <strong>{props.title}</strong>{' '}
+                                <div className="text-gray-500">
+                                    {props.title}{' '}
                                 </div>
-                                <div>{props.description}</div>
+                                <div className="text-sm text-gray-400">
+                                    {props.description}
+                                </div>
                             </div>
                         )}
                     </div>
-                    {!isOpen && (
-                        <div className="accordian-right-element">
-                            {props.rightElement}
-                        </div>
-                    )}
+                    {!isOpen && <div className="">{props.rightElement}</div>}
                 </div>
                 {isOpen && (
-                    <div className="accordian-children">{props.children}</div>
+                    <div className={`space-y-5 ${props.title ? 'mt-4' : ''}`}>
+                        {props.children}
+                    </div>
                 )}
             </div>
         </div>

@@ -17,7 +17,7 @@ import AnnouncementList from './Pages/Announcement/List';
 import AnnouncementDetail from './Pages/Announcement/Detail';
 import ScheduledEventList from './Pages/ScheduledEvent/List';
 import ScheduledEventDetail from './Pages/ScheduledEvent/Detail';
-import Subscribe from './Pages/Subscribe/Subscribe';
+import Subscribe from './Pages/Subscribe/EmailSubscribe';
 
 // Accounts.
 import Login from './Pages/Accounts/Login';
@@ -27,7 +27,6 @@ import ResetPassword from './Pages/Accounts/ResetPassword';
 import RouteMap from './Utils/RouteMap';
 import PageMap from './Utils/PageMap';
 
-import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -75,6 +74,7 @@ const App: FunctionComponent = () => {
 
     return (
         <MasterPage
+            isPreview={isPreview}
             onLoadComplete={(masterpage: JSONObject) => {
                 const javascript: string | null =
                     JSONFunctions.getJSONValueInPath(
@@ -284,10 +284,12 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.SUBSCRIBE]?.toString() || ''}
+                    path={RouteMap[PageMap.SUBSCRIBE_EMAIL]?.toString() || ''}
                     element={
                         <Subscribe
-                            pageRoute={RouteMap[PageMap.SUBSCRIBE] as Route}
+                            pageRoute={
+                                RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route
+                            }
                             onLoadComplete={() => {
                                 onPageLoadComplete();
                             }}
@@ -318,7 +320,10 @@ const App: FunctionComponent = () => {
                 />
 
                 <PageRoute
-                    path={RouteMap[PageMap.PREVIEW_SUBSCRIBE]?.toString() || ''}
+                    path={
+                        RouteMap[PageMap.PREVIEW_SUBSCRIBE_EMAIL]?.toString() ||
+                        ''
+                    }
                     element={
                         <Subscribe
                             onLoadComplete={() => {
@@ -327,7 +332,9 @@ const App: FunctionComponent = () => {
                             isPreviewPage={isPreview}
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
-                                RouteMap[PageMap.PREVIEW_SUBSCRIBE] as Route
+                                RouteMap[
+                                    PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                                ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
                         />

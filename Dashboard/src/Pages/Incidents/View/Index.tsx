@@ -70,7 +70,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Incident Details',
                     description: "Here's more details for this monitor.",
-                    icon: IconProp.Activity,
+                    icon: IconProp.AltGlobe,
                 }}
                 isEditable={true}
                 formFields={[
@@ -150,6 +150,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                     createdByUser: {
                                         name: true,
                                         email: true,
+                                        profilePictureId: true,
                                     },
                                     incidentState: {
                                         name: true,

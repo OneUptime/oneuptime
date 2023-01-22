@@ -14,6 +14,7 @@ import FormValues from '../Forms/Types/FormValues';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;
+    description: string;
     name: string;
     modelType: { new (): TBaseModel };
     initialValues?: FormValues<TBaseModel> | undefined;
@@ -42,6 +43,7 @@ const ModelFormModal: Function = <TBaseModel extends BaseModel>(
             {...props}
             submitButtonType={ButtonType.Submit}
             isLoading={isFormLoading}
+            description={props.description}
             disableSubmitButton={isFormLoading}
             onSubmit={() => {
                 formRef.current && formRef.current.handleSubmit();

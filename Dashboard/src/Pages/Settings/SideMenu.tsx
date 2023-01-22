@@ -62,7 +62,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                             RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route
                         ),
                     }}
-                    icon={IconProp.Activity}
+                    icon={IconProp.AltGlobe}
                 />
             </SideMenuSection>
             <SideMenuSection title="Incidents">
@@ -73,7 +73,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                             RouteMap[PageMap.SETTINGS_INCIDENTS_STATE] as Route
                         ),
                     }}
-                    icon={IconProp.Disc}
+                    icon={IconProp.ArrowCircleRight}
                 />
                 <SideMenuItem
                     link={{
@@ -84,7 +84,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                             ] as Route
                         ),
                     }}
-                    icon={IconProp.Error}
+                    icon={IconProp.Alert}
                 />
                 {/* <SideMenuItem
                     link={{
@@ -115,7 +115,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                             RouteMap[PageMap.SETTINGS_TEAMS] as Route
                         ),
                     }}
-                    icon={IconProp.User}
+                    icon={IconProp.Team}
                 />
             </SideMenuSection>
             <SideMenuSection title="Advanced">

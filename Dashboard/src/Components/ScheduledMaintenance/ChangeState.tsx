@@ -78,94 +78,96 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <Button
-            isLoading={isLoading}
-            buttonSize={ButtonSize.Small}
-            title={
-                props.stateType === StateType.Ongoing
-                    ? 'Mark as Ongoing'
-                    : 'Mark as Complete'
-            }
-            icon={
-                props.stateType === StateType.Ongoing
-                    ? IconProp.Circle
-                    : IconProp.CheckCircle
-            }
-            buttonStyle={
-                props.stateType === StateType.Ongoing
-                    ? ButtonStyleType.WARNING_OUTLINE
-                    : ButtonStyleType.SUCCESS_OUTLINE
-            }
-            onClick={async () => {
-                setIsLaoding(true);
-                const projectId: ObjectID | undefined | null =
-                    ProjectUtil.getCurrentProject()?.id;
-
-                if (!projectId) {
-                    throw new BadDataException('ProjectId not found.');
+        <div className="-ml-3 mt-2">
+            <Button
+                isLoading={isLoading}
+                buttonSize={ButtonSize.Small}
+                title={
+                    props.stateType === StateType.Ongoing
+                        ? 'Mark as Ongoing'
+                        : 'Mark as Complete'
                 }
+                icon={
+                    props.stateType === StateType.Ongoing
+                        ? IconProp.Circle
+                        : IconProp.CheckCircle
+                }
+                buttonStyle={
+                    props.stateType === StateType.Ongoing
+                        ? ButtonStyleType.WARNING_OUTLINE
+                        : ButtonStyleType.SUCCESS_OUTLINE
+                }
+                onClick={async () => {
+                    setIsLaoding(true);
+                    const projectId: ObjectID | undefined | null =
+                        ProjectUtil.getCurrentProject()?.id;
 
-                const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
-                    await ModelAPI.getList<ScheduledMaintenanceState>(
-                        ScheduledMaintenanceState,
-                        {
-                            projectId: projectId,
-                        },
-                        99,
-                        0,
-                        {
-                            _id: true,
-                            isResolvedState: true,
-                            isOngoingState: true,
-                            isScheduledState: true,
-                        },
-                        {},
-                        {}
-                    );
-
-                let stateId: ObjectID | null = null;
-
-                for (const state of scheduledMaintenanceStates.data) {
-                    if (
-                        props.stateType === StateType.Ongoing &&
-                        state.isOngoingState
-                    ) {
-                        stateId = state.id;
-                        break;
+                    if (!projectId) {
+                        throw new BadDataException('ProjectId not found.');
                     }
 
-                    if (
-                        props.stateType === StateType.Completed &&
-                        state.isResolvedState
-                    ) {
-                        stateId = state.id;
-                        break;
+                    const scheduledMaintenanceStates: ListResult<ScheduledMaintenanceState> =
+                        await ModelAPI.getList<ScheduledMaintenanceState>(
+                            ScheduledMaintenanceState,
+                            {
+                                projectId: projectId,
+                            },
+                            99,
+                            0,
+                            {
+                                _id: true,
+                                isResolvedState: true,
+                                isOngoingState: true,
+                                isScheduledState: true,
+                            },
+                            {},
+                            {}
+                        );
+
+                    let stateId: ObjectID | null = null;
+
+                    for (const state of scheduledMaintenanceStates.data) {
+                        if (
+                            props.stateType === StateType.Ongoing &&
+                            state.isOngoingState
+                        ) {
+                            stateId = state.id;
+                            break;
+                        }
+
+                        if (
+                            props.stateType === StateType.Completed &&
+                            state.isResolvedState
+                        ) {
+                            stateId = state.id;
+                            break;
+                        }
                     }
-                }
 
-                if (!stateId) {
-                    throw new BadDataException(
-                        'Scheduled Maintenance State not found.'
+                    if (!stateId) {
+                        throw new BadDataException(
+                            'Scheduled Maintenance State not found.'
+                        );
+                    }
+
+                    const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
+                        new ScheduledMaintenanceStateTimeline();
+                    scheduledMaintenanceStateTimeline.projectId = projectId;
+                    scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
+                        props.scheduledMaintenanceId;
+                    scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
+                        stateId;
+
+                    await ModelAPI.create(
+                        scheduledMaintenanceStateTimeline,
+                        ScheduledMaintenanceStateTimeline
                     );
-                }
 
-                const scheduledMaintenanceStateTimeline: ScheduledMaintenanceStateTimeline =
-                    new ScheduledMaintenanceStateTimeline();
-                scheduledMaintenanceStateTimeline.projectId = projectId;
-                scheduledMaintenanceStateTimeline.scheduledMaintenanceId =
-                    props.scheduledMaintenanceId;
-                scheduledMaintenanceStateTimeline.scheduledMaintenanceStateId =
-                    stateId;
-
-                await ModelAPI.create(
-                    scheduledMaintenanceStateTimeline,
-                    ScheduledMaintenanceStateTimeline
-                );
-
-                props.onActionComplete();
-                setIsLaoding(false);
-            }}
-        />
+                    props.onActionComplete();
+                    setIsLaoding(false);
+                }}
+            />
+        </div>
     );
 };
 

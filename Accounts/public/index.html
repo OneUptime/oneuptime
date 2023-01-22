@@ -1,58 +1,97 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using create-react-app"
-    />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta charSet='utf-8' />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="theme-color" content="#000000">
-    <meta name="slack-app-id" content="ACVBMTPJQ">
-    <meta name="description" content="This is the login page for OneUptime Dashboard">
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description" content="Web site created using create-react-app" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta charSet='utf-8' />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="theme-color" content="#000000">
+  <meta name="slack-app-id" content="ACVBMTPJQ">
+  <meta name="description" content="This is the login page for OneUptime Dashboard">
 
 
-    <!-- Google Tag Manager -->
-<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-PKQD5WH');</script>
+  <!-- Google Tag Manager -->
+  <script>(function (w, d, s, l, i) {
+      w[l] = w[l] || []; w[l].push({
+        'gtm.start':
+          new Date().getTime(), event: 'gtm.js'
+      }); var f = d.getElementsByTagName(s)[0],
+        j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+          'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-PKQD5WH');</script>
   <!-- End Google Tag Manager -->
 
-    <link rel="manifest" href="/accounts/assets/img/favicons/ma">
-    <link rel="apple-touch-icon" sizes="180x180" href="/accounts/assets/img/favicons/apple-touch-icon.png">
-    <link rel="shortcut icon" href="/accounts/assets/img/favicons/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/accounts/assets/img/favicons/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="194x194" href="/accounts/assets/img/favicons/favicon-194x194.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/accounts/assets/img/favicons/android-chrome-192x192.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/accounts/assets/img/favicons/favicon-16x16.png">
-    <link rel="mask-icon" href="/accounts/assets/img/favicons/safari-pinned-tab.svg" color="#5bbad5">
-    <meta name="msapplication-TileColor" content="#121212">
-    <meta name="msapplication-TileImage" content="/accounts/assets/img/favicons/mstile-144x144.png">
-    <meta name="theme-color" content="#121212">
-    <script src="/accounts/env.js"></script>
+  <link rel="manifest" href="/accounts/assets/img/favicons/ma">
+  
+  <link rel="apple-touch-icon" sizes="180x180" href="/accounts/assets/img/favicons/apple-touch-icon.png">
+  <link rel="shortcut icon" href="/accounts/assets/img/favicons/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/accounts/assets/img/favicons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="194x194" href="/accounts/assets/img/favicons/favicon-194x194.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/accounts/assets/img/favicons/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/accounts/assets/img/favicons/favicon-16x16.png">
+  <link rel="mask-icon" href="/accounts/assets/img/favicons/safari-pinned-tab.svg" color="#5bbad5">
+  <meta name="msapplication-TileColor" content="#121212">
+  <meta name="msapplication-TileImage" content="/accounts/assets/img/favicons/mstile-144x144.png">
+  <meta name="theme-color" content="#121212">
+  
+  <script src="/accounts/env.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      * {
+      font-family: Inter;
+      }
 
 
-    <title>OneUptime Accounts</title>
+      input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+          bottom: 0;
+          color: transparent;
+          cursor: pointer;
+          height: auto;
+          left: 0;
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: auto;
+      }
+
+      input[type="date"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+          bottom: 0;
+          color: transparent;
+          cursor: pointer;
+          height: auto;
+          left: 0;
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: auto;
+      }
+      </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+  <title>OneUptime Accounts</title>
 
 
-    <!-- Preload light, regular, medium and bold, which are fonts that are used on home -->
-    <link rel="preload" href="/accounts/assets/fonts/camphor/font1.woff2" as="font" type="font/woff2" crossorigin="">
-    <link rel="preload" href="/accounts/assets/fonts/camphor/font2.woff2" as="font" type="font/woff2" crossorigin="">
-    <link rel="preload" href="/accounts/assets/fonts/camphor/font3.woff2" as="font" type="font/woff2" crossorigin="">
-    <link rel="preload" href="/accounts/assets/fonts/camphor/font4.woff2" as="font" type="font/woff2" crossorigin="">
+  <!-- Preload light, regular, medium and bold, which are fonts that are used on home -->
+  <link rel="preload" href="/accounts/assets/fonts/camphor/font1.woff2" as="font" type="font/woff2" crossorigin="">
+  <link rel="preload" href="/accounts/assets/fonts/camphor/font2.woff2" as="font" type="font/woff2" crossorigin="">
+  <link rel="preload" href="/accounts/assets/fonts/camphor/font3.woff2" as="font" type="font/woff2" crossorigin="">
+  <link rel="preload" href="/accounts/assets/fonts/camphor/font4.woff2" as="font" type="font/woff2" crossorigin="">
 
-   
-    <!--
+
+  <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
-    <!--
+  <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
       Only files inside the `public` folder can be referenced from the HTML.
@@ -61,16 +100,17 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>OneUptime | Account</title>
-  </head>
-  <body>
-    <!-- Google Tag Manager (noscript) -->
-<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH"
-  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <title>OneUptime | Account</title>
+</head>
+
+<body class="h-full bg-gray-50">
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH" height="0" width="0"
+      style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+  <!--
       This HTML file is a template.
       If you open it directly in the browser, you will see an empty page.
 
@@ -80,6 +120,18 @@
       To begin the development, run `npm start` or `yarn start`.
     To create a production bundle, use `npm run build` or `yarn build`.
     -->
-    <script src="/accounts/dist/bundle.js"></script>
-  </body>
+  <script src="/accounts/dist/bundle.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#000000' 
+          }
+        }
+      }
+    }
+  </script>
+</body>
+
 </html>

@@ -8,7 +8,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Text from 'Common/Types/Text';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import BillingInvoice from 'Model/Models/BillingInvoice';
@@ -72,15 +72,21 @@ const Settings: FunctionComponent<ComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteMap[PageMap.SETTINGS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'Invoices',
-                    to: RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_BILLING_INVOICES] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

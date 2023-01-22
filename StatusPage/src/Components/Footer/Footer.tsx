@@ -6,6 +6,7 @@ import Link from 'Common/Types/Link';
 export interface ComponentProps {
     copyright?: string | undefined;
     links: Array<Link>;
+    className?: string | undefined;
 }
 
 const StatusPageFooter: FunctionComponent<ComponentProps> = (
@@ -13,19 +14,14 @@ const StatusPageFooter: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <Footer
+            className={props.className}
             copyright={props.copyright}
-            style={{
-                maxWidth: '880px',
-                paddingLeft: '0px',
-                paddingRight: '0px',
-            }}
             links={[
                 ...props.links,
                 {
                     title: 'Powered by OneUptime.',
                     to: URL.fromString('https://oneuptime.com'),
                     openInNewTab: true,
-                    showOnRightIfNoCopyright: true,
                 },
             ]}
         />

@@ -1,7 +1,7 @@
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
@@ -17,20 +17,28 @@ const IncidentsPage: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Incidents',
-                    to: RouteMap[PageMap.INCIDENTS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.INCIDENTS] as Route
+                    ),
                 },
                 {
                     title: 'Unresolved Incidents',
-                    to: RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.UNRESOLVED_INCIDENTS] as Route
+                    ),
                 },
             ]}
         >
             <IncidentsTable
-                viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
+                viewPageRoute={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.INCIDENTS] as Route
+                )}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                     currentIncidentState: {

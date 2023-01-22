@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageError from '../Error/PageError';
 import PageLoader from '../Loader/PageLoader';
+import TopSection from '../TopSection/TopSection';
 
 export interface ComponentProps {
     header?: undefined | ReactElement;
@@ -9,7 +10,10 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     isLoading: boolean;
     error: string;
-    mainContentStyle?: React.CSSProperties | undefined;
+    topSectionClassName?: string | undefined;
+    className?: string | undefined;
+    hideHeader?: boolean | undefined;
+    makeTopSectionUnstick?: boolean | undefined;
 }
 
 const MasterPage: FunctionComponent<ComponentProps> = (
@@ -33,15 +37,23 @@ const MasterPage: FunctionComponent<ComponentProps> = (
 
     return (
         <React.Fragment>
-            <div id="layout-wrapper">
-                {props.header && props.header}
-                {props.navBar && props.navBar}
-                <div className="main-content" style={props.mainContentStyle}>
-                    {props.children}
+            <div className={props.className}>
+                <div
+                    className={
+                        props.makeTopSectionUnstick ? '' : 'sticky top-0'
+                    }
+                >
+                    <TopSection
+                        hideHeader={props.hideHeader}
+                        className={props.topSectionClassName}
+                        header={props.header}
+                        navbar={props.navBar}
+                    />
                 </div>
-                <div style={{ marginTop: '20px' }}>
-                    {props.footer && props.footer}
-                </div>
+
+                {props.children}
+
+                {props.footer && props.footer}
             </div>
         </React.Fragment>
     );

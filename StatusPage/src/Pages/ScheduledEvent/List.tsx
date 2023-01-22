@@ -33,6 +33,10 @@ import { getScheduledEventEventItem } from './Detail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import User from '../../Utils/User';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -160,12 +164,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
         for (const scheduledMaintenance of scheduledMaintenanceEvents) {
             const dayString: string = OneUptimeDate.getDateString(
-                scheduledMaintenance.createdAt!
+                scheduledMaintenance.startsAt!
             );
 
             if (!days[dayString]) {
                 days[dayString] = {
-                    date: scheduledMaintenance.createdAt!,
+                    date: scheduledMaintenance.startsAt!,
                     items: [],
                 };
             }
@@ -203,14 +207,29 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
-            {scheduledMaintenanceEvents &&
-            scheduledMaintenanceEvents.length > 0 ? (
-                <h3>Scheduled Maintenance Events</h3>
-            ) : (
-                <></>
-            )}
-
+        <Page
+            title="Scheduled Events"
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Scheduled Events',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                              ] as Route)
+                            : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
+                    ),
+                },
+            ]}
+        >
             {scheduledMaintenanceEvents &&
             scheduledMaintenanceEvents.length > 0 ? (
                 <EventHistoryList {...parsedData} />
@@ -219,7 +238,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
             )}
 
             {scheduledMaintenanceEvents.length === 0 ? (
-                <ErrorMessage error="No events reported on this status page." />
+                <EmptyState
+                    title={'No Scheduled Events'}
+                    description={
+                        'No scheduled events posted for this status page.'
+                    }
+                    icon={IconProp.Clock}
+                />
             ) : (
                 <></>
             )}

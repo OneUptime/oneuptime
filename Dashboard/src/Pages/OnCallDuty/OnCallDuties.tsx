@@ -2,7 +2,7 @@ import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import OnCallDuty from 'Model/Models/OnCallDuty';
@@ -24,11 +24,15 @@ const OnCallDutyPage: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'On Call Duty',
-                    to: RouteMap[PageMap.ON_CALL_DUTY] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.ON_CALL_DUTY] as Route
+                    ),
                 },
             ]}
         >

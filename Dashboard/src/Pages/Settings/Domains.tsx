@@ -7,7 +7,7 @@ import React, {
     useState,
 } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
@@ -45,15 +45,21 @@ const Domains: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteMap[PageMap.SETTINGS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'Domains',
-                    to: RouteMap[PageMap.SETTINGS_DOMAINS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_DOMAINS] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

@@ -29,6 +29,10 @@ import EventItem, {
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import UserUtil from '../../Utils/User';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import { Blue } from 'Common/Types/BrandColors';
+import OneUptimeDate from 'Common/Types/Date';
 
 export const getAnnouncementEventItem: Function = (
     announcement: StatusPageAnnouncement,
@@ -40,8 +44,6 @@ export const getAnnouncementEventItem: Function = (
         eventDescription: announcement.description,
         eventTimeline: [],
         eventType: 'Announcement',
-        footerEventStatus: 'Announced at',
-        footerDateTime: announcement.showAnnouncementAt,
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
@@ -51,6 +53,12 @@ export const getAnnouncementEventItem: Function = (
                   announcement.id!
               ),
         isDetailItem: !isSummary,
+        eventTypeColor: Blue,
+        eventSecondDescription:
+            'Announced at ' +
+            OneUptimeDate.getDateAsLocalFormattedString(
+                announcement.showAnnouncementAt!
+            ),
     };
 };
 
@@ -96,9 +104,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException('Status Page ID is required');
             }
 
-            const announcementId: string | undefined = Navigation.getLastParam()
-                ?.toString()
-                .replace('/', '');
+            const announcementId: string | undefined =
+                Navigation.getLastParamAsObjectID().toString();
 
             const response: HTTPResponse<JSONObject> =
                 await BaseAPI.post<JSONObject>(
@@ -178,10 +185,47 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
+        <Page
+            title="Announcement"
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Announcements',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                              ] as Route)
+                            : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route)
+                    ),
+                },
+                {
+                    title: 'Announcement',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                              ] as Route)
+                            : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
+                        Navigation.getLastParamAsObjectID()
+                    ),
+                },
+            ]}
+        >
             {announcement ? <EventItem {...parsedData} /> : <></>}
             {!announcement ? (
-                <ErrorMessage error="No announcement found with this ID." />
+                <EmptyState
+                    title={'No Announcement'}
+                    description={'Announcement not found on this status page.'}
+                    icon={IconProp.Anouncement}
+                />
             ) : (
                 <></>
             )}

@@ -2,7 +2,7 @@ import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import MonitorTable from '../../Components/Monitor/MonitorTable';
 import DashboardSideMenu from './SideMenu';
@@ -16,15 +16,21 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Monitors',
-                    to: RouteMap[PageMap.MONITORS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITORS] as Route
+                    ),
                 },
                 {
                     title: 'Inoperational Monitors',
-                    to: RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.MONITORS_INOPERATIONAL] as Route
+                    ),
                 },
             ]}
             sideMenu={
@@ -34,7 +40,9 @@ const NotOperationalMonitors: FunctionComponent<PageComponentProps> = (
             }
         >
             <MonitorTable
-                viewPageRoute={RouteMap[PageMap.MONITORS] as Route}
+                viewPageRoute={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.MONITORS] as Route
+                )}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                     currentMonitorStatus: {

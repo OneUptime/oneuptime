@@ -20,7 +20,7 @@ const Notifications: FunctionComponent<ComponentProps> = (
                 willChange: 'transform',
                 top: '0px',
                 left: '0px',
-                transform: 'translate3d(0px, 5px, 0px)',
+                transform: 'tranblue3d(0px, 5px, 0px)',
             }}
             className="dropdown-menu-lg dropdown-menu-end p-0 dropdown-menu show"
         >

@@ -25,6 +25,7 @@ const TableBody: FunctionComponent<ComponentProps> = (
                 id={props.id}
                 ref={provided?.innerRef}
                 {...provided?.droppableProps}
+                className="divide-y divide-gray-200 bg-white"
             >
                 {props.data &&
                     props.data.map((item: JSONObject, i: number) => {

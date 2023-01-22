@@ -30,12 +30,15 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import EventItem, {
     TimelineItem,
     ComponentProps as EventItemComponentProps,
+    TimelineItemType,
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Monitor from 'Model/Models/Monitor';
 import UserUtil from '../../Utils/User';
 import Color from 'Common/Types/Color';
-import { Green } from 'Common/Types/BrandColors';
+import { Green, Grey, Red } from 'Common/Types/BrandColors';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 
 export const getIncidentEventItem: Function = (
     incident: Incident,
@@ -53,16 +56,15 @@ export const getIncidentEventItem: Function = (
     for (const incidentPublicNote of incidentPublicNotes) {
         if (
             incidentPublicNote.incidentId?.toString() ===
-            incident.id?.toString()
+                incident.id?.toString() &&
+            incidentPublicNote?.note
         ) {
             timeline.push({
-                text: (
-                    <span>
-                        <b>Update</b> - <span>{incidentPublicNote?.note}</span>
-                    </span>
-                ),
+                note: incidentPublicNote?.note,
                 date: incidentPublicNote?.createdAt!,
-                isBold: false,
+                type: TimelineItemType.Note,
+                icon: IconProp.Chat,
+                iconColor: Grey,
             });
 
             // If this incident is a sumamry then dont include all the notes .
@@ -75,12 +77,21 @@ export const getIncidentEventItem: Function = (
     for (const incidentStateTimeline of incidentStateTimelines) {
         if (
             incidentStateTimeline.incidentId?.toString() ===
-            incident.id?.toString()
+                incident.id?.toString() &&
+            incidentStateTimeline.incidentState
         ) {
             timeline.push({
-                text: incidentStateTimeline.incidentState?.name || '',
+                state: incidentStateTimeline.incidentState,
                 date: incidentStateTimeline?.createdAt!,
-                isBold: true,
+                type: TimelineItemType.StateChange,
+                icon: incidentStateTimeline.incidentState.isCreatedState
+                    ? IconProp.Alert
+                    : incidentStateTimeline.incidentState.isAcknowledgedState
+                    ? IconProp.TransparentCube
+                    : incidentStateTimeline.incidentState.isResolvedState
+                    ? IconProp.CheckCircle
+                    : IconProp.ArrowCircleRight,
+                iconColor: incidentStateTimeline.incidentState.color || Grey,
             });
 
             if (!currentStateStatus) {
@@ -132,6 +143,12 @@ export const getIncidentEventItem: Function = (
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
+        anotherStatusColor: incident.incidentSeverity?.color || undefined,
+        anotherStatus: incident.incidentSeverity?.name,
+        eventSecondDescription:
+            'Created at ' +
+            OneUptimeDate.getDateAsLocalFormattedString(incident.createdAt!),
+        eventTypeColor: Red,
     };
 
     return data;
@@ -180,9 +197,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
                 'statusPageId'
             ) as ObjectID;
 
-            const incidentId: string | undefined = Navigation.getLastParam()
-                ?.toString()
-                .replace('/', '');
+            const incidentId: string | undefined =
+                Navigation.getLastParamAsObjectID().toString();
 
             if (!id) {
                 throw new BadDataException('Status Page ID is required');
@@ -280,10 +296,45 @@ const Detail: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
+        <Page
+            title="Incident Report"
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Incidents',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
+                            : (RouteMap[PageMap.INCIDENT_LIST] as Route)
+                    ),
+                },
+                {
+                    title: 'Incident Report',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[
+                                  PageMap.PREVIEW_INCIDENT_DETAIL
+                              ] as Route)
+                            : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                        Navigation.getLastParamAsObjectID()
+                    ),
+                },
+            ]}
+        >
             {incident ? <EventItem {...parsedData} /> : <></>}
             {!incident ? (
-                <ErrorMessage error="No incident found with this ID." />
+                <EmptyState
+                    title={'No Incident'}
+                    description={'Incident not found on this status page.'}
+                    icon={IconProp.Alert}
+                />
             ) : (
                 <></>
             )}

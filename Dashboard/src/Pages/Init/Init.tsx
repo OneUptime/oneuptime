@@ -21,7 +21,7 @@ const Init: FunctionComponent<ComponentProps> = (
 
         if (props.currentProject && props.currentProject._id) {
             Navigation.navigate(
-                new Route('/dashboard/' + props.currentProject._id + '/home')
+                new Route('/dashboard/' + props.currentProject._id + '/home/')
             );
         }
     }, [props.currentProject]);

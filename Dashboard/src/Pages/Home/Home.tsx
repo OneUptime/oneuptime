@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Route from 'Common/Types/API/Route';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import DashboardSideMenu from './SideMenu';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
@@ -17,11 +17,15 @@ const Home: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Home',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
             ]}
             sideMenu={
@@ -31,7 +35,9 @@ const Home: FunctionComponent<PageComponentProps> = (
             }
         >
             <IncidentsTable
-                viewPageRoute={RouteMap[PageMap.INCIDENTS] as Route}
+                viewPageRoute={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.INCIDENTS] as Route
+                )}
                 query={{
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                     currentIncidentState: {

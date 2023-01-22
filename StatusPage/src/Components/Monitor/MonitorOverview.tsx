@@ -3,7 +3,7 @@ import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import React, { FunctionComponent, ReactElement } from 'react';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusTimelne from 'Model/Models/MonitorStatusTimeline';
-import Icon, { IconProp, ThickProp } from 'CommonUI/src/Components/Icon/Icon';
+import Icon, { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Tooltip from 'CommonUI/src/Components/Tooltip/Toolip';
 
 export interface ComponentProps {
@@ -16,34 +16,31 @@ export interface ComponentProps {
     endDate: Date;
     showHistoryChart?: boolean | undefined;
     showCurrentStatus?: boolean | undefined;
+    uptimeGraphHeight?: number | undefined;
+    className?: string | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
     return (
-        <div
-            style={{
-                marginTop: '20px',
-                marginBottom: '20px',
-            }}
-        >
+        <div className={props.className}>
             <div>
                 <div
-                    className="justify-space-between"
+                    className="flex justify-between"
                     style={{ marginBottom: '3px' }}
                 >
                     <div className="flex">
-                        <div className="bold font16">{props.monitorName}</div>
+                        <div className="">{props.monitorName}</div>
                         {props.tooltip && (
                             <Tooltip
                                 key={1}
                                 text={props.tooltip || 'Not avaiulable'}
                             >
-                                <div style={{ marginLeft: '5px' }}>
+                                <div className="ml-1">
                                     <Icon
+                                        className="cursor-pointer w-4 h-4 mt-1 text-gray-400"
                                         icon={IconProp.Help}
-                                        thick={ThickProp.Thick}
                                     />
                                 </div>
                             </Tooltip>
@@ -51,7 +48,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                     </div>
                     {props.showCurrentStatus && (
                         <div
-                            className="bold font16"
+                            className=""
                             style={{
                                 color:
                                     props.monitorStatus?.color?.toString() ||
@@ -62,7 +59,9 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                         </div>
                     )}
                 </div>
-                <div style={{ marginBottom: '3px' }}>{props.description}</div>
+                <div className="mb-2 text-gray-400 text-sm">
+                    {props.description}
+                </div>
             </div>
             {props.showHistoryChart && (
                 <div>
@@ -72,10 +71,14 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                         startDate={props.startDate}
                         endDate={props.endDate}
                         isLoading={false}
-                        height={30}
+                        height={props.uptimeGraphHeight}
                     />
                 </div>
             )}
+            <div className="text-sm text-gray-400 mt-1 flex justify-between">
+                <div>90 days ago</div>
+                <div>Today</div>
+            </div>
         </div>
     );
 };

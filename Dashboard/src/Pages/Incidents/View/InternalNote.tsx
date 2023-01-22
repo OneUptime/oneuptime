@@ -20,6 +20,7 @@ import UserElement from '../../../Components/User/User';
 import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import AlignItem from 'CommonUI/src/Types/AlignItem';
 
 const IncidentDelete: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -105,26 +106,23 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                             'Add a private note to this incident here.',
                     },
                 ]}
+                showTableAs={ShowTableAs.List}
                 showRefreshButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
-                showTableAs={ShowTableAs.List}
                 columns={[
-                    {
-                        field: {
-                            note: true,
-                        },
-                        title: 'Note',
-                        type: FieldType.Markdown,
-                    },
                     {
                         field: {
                             createdByUser: {
                                 name: true,
                                 email: true,
+                                profilePictureId: true,
                             },
                         },
-                        title: 'Posted By',
+                        title: '',
+
                         type: FieldType.Entity,
+                        isFilterable: true,
+
                         getElement: (item: JSONObject): ReactElement => {
                             if (item['createdByUser']) {
                                 return (
@@ -137,10 +135,16 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                                                 User
                                             ) as User
                                         }
+                                        suffix={'wrote'}
+                                        usernameClassName={
+                                            'text-base font-medium text-gray-900'
+                                        }
+                                        suffixClassName={
+                                            'text-base font-medium text-gray-500 mt-1'
+                                        }
                                     />
                                 );
                             }
-
                             return <></>;
                         },
                     },
@@ -148,8 +152,23 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                         field: {
                             createdAt: true,
                         },
-                        title: 'Posted At',
+                        isFilterable: true,
+                        alignItem: AlignItem.Right,
+                        title: '',
                         type: FieldType.DateTime,
+                        contentClassName:
+                            'mt-1 whitespace-nowrap text-sm text-gray-600 sm:mt-0 sm:ml-3',
+                    },
+                    {
+                        field: {
+                            note: true,
+                        },
+                        isFilterable: true,
+                        title: '',
+                        type: FieldType.Markdown,
+                        contentClassName:
+                            '-mt-3 space-y-6 text-sm text-gray-800',
+                        colSpan: 2,
                     },
                 ]}
             />

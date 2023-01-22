@@ -124,7 +124,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                 cardProps={{
                     title: 'Monitor Details',
                     description: "Here's more details for this monitor.",
-                    icon: IconProp.Activity,
+                    icon: IconProp.AltGlobe,
                 }}
                 isEditable={true}
                 formFields={[
@@ -262,7 +262,6 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             <Card
                 title="Uptime Graph"
                 description="Here the 90 day uptime history of this monitor."
-                icon={IconProp.Graph}
             >
                 <MonitorUptimeGraph
                     error={error}

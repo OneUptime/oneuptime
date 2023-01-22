@@ -11,8 +11,9 @@ import MarkdownViewer from '../Markdown.tsx/MarkdownViewer';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
 import FileModel from 'Common/Models/FileModel';
-import Input from '../Input/Input';
+import ColorViewer from '../ColorViewer/ColorViewer';
 import Color from 'Common/Types/Color';
+import AlignItem from '../../Types/AlignItem';
 
 export interface ComponentProps {
     item: JSONObject;
@@ -27,13 +28,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     const getColorField: Function = (color: Color): ReactElement => {
-        return (
-            <Input
-                disabled={true}
-                leftCircleColor={color}
-                value={color.toString()}
-            />
-        );
+        return <ColorViewer value={color} />;
     };
 
     const getField: Function = (field: Field, index: number): ReactElement => {
@@ -98,6 +93,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                 data = (
                     <img
                         src={url}
+                        className={'rounded'}
                         style={{
                             height: '100px',
                         }}
@@ -151,9 +147,25 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
             data = field.getElement(props.item);
         }
 
+        let className: string = 'sm:col-span-1';
+
+        if (field.colSpan) {
+            className = 'sm:col-span-' + field.colSpan;
+        }
+
+        let alignClassName: string = 'flex justify-left';
+
+        if (field.alignItem === AlignItem.Right) {
+            alignClassName = 'flex justify-end';
+        } else if (field.alignItem === AlignItem.Center) {
+            alignClassName = 'flex justify-center';
+        } else if (field.alignItem === AlignItem.Left) {
+            alignClassName = 'flex justify-start';
+        }
+
         return (
             <div
-                className="mb-3"
+                className={className}
                 key={index}
                 id={props.id}
                 style={
@@ -166,34 +178,33 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
                         : {}
                 }
             >
-                <label className="form-Label form-label justify-space-between width-max">
-                    <span>{field.title}</span>
-                    {field.sideLink &&
-                        field.sideLink?.text &&
-                        field.sideLink?.url && (
-                            <span>
-                                <Link
-                                    to={field.sideLink?.url}
-                                    className="underline-on-hover"
-                                >
-                                    {field.sideLink?.text}
-                                </Link>
-                            </span>
-                        )}
-                </label>
-                {field.description && <p>{field.description}</p>}
+                {field.title && (
+                    <label className="text-sm font-medium text-gray-500">
+                        <span className={alignClassName}>{field.title}</span>
+                        {field.sideLink &&
+                            field.sideLink?.text &&
+                            field.sideLink?.url && (
+                                <span>
+                                    <Link
+                                        to={field.sideLink?.url}
+                                        className="underline-on-hover"
+                                    >
+                                        {field.sideLink?.text}
+                                    </Link>
+                                </span>
+                            )}
+                    </label>
+                )}
+                {field.description && (
+                    <p className={alignClassName}>{field.description}</p>
+                )}
 
-                <div
-                    className="form-control"
-                    style={{
-                        border: 'none',
-                        paddingLeft: '0px',
-                        paddingTop: '0px',
-                    }}
-                >
-                    {data && data}
+                <div className={`mt-1 text-sm text-gray-900 ${alignClassName}`}>
+                    <span className={field.contentClassName}>
+                        {data && data}
+                    </span>
                     {!data && (
-                        <span className="color-light-grey">
+                        <span className="text-gray-500">
                             {field.placeholder}
                         </span>
                     )}
@@ -203,13 +214,7 @@ const Detail: Function = (props: ComponentProps): ReactElement => {
     };
 
     return (
-        <div
-            className={`${
-                props.showDetailsInNumberOfColumns
-                    ? `justify-space-between`
-                    : ``
-            }`}
-        >
+        <div className={`grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2`}>
             {props.fields &&
                 props.fields.length > 0 &&
                 props.fields.map((field: Field, i: number) => {

@@ -37,28 +37,28 @@ describe('alert tests', () => {
         const icon: HTMLElement = screen.getByRole('icon');
         expect(icon).toBeInTheDocument();
         const testId: HTMLElement = screen.getByTestId('test-id');
-        expect(testId).toHaveClass('alert-success');
+        expect(testId).toHaveClass('rounded-md bg-green-50 p-4');
     });
     test('it should show icon when alert type is equal to info', () => {
         render(<Alert dataTestId="test-id" type={AlertType.INFO} />);
         const icon: HTMLElement = screen.getByRole('icon');
         expect(icon).toBeInTheDocument();
         const testId: HTMLElement = screen.getByTestId('test-id');
-        expect(testId).toHaveClass('alert-info');
+        expect(testId).toHaveClass('rounded-md bg-blue-50 p-4');
     });
     test('it should show icon when alert type is equal to warning', () => {
         render(<Alert dataTestId="test-id" type={AlertType.WARNING} />);
         const icon: HTMLElement = screen.getByRole('icon');
         expect(icon).toBeInTheDocument();
         const testId: HTMLElement = screen.getByTestId('test-id');
-        expect(testId).toHaveClass('alert-warning');
+        expect(testId).toHaveClass('rounded-md bg-yellow-50 p-4');
     });
     test('it should show icon when alert type is equal to danger', () => {
         render(<Alert dataTestId="test-id" type={AlertType.DANGER} />);
         const icon: HTMLElement = screen.getByRole('icon');
         expect(icon).toBeInTheDocument();
         const testId: HTMLElement = screen.getByTestId('test-id');
-        expect(testId).toHaveClass('alert-danger');
+        expect(testId).toHaveClass('rounded-md bg-red-50 p-4');
     });
     test('it should have a title content displayed in document', () => {
         render(<Alert title="title" />);

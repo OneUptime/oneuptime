@@ -33,6 +33,10 @@ import { getIncidentEventItem } from './Detail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import User from '../../Utils/User';
 import Route from 'Common/Types/API/Route';
+import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
+import PageMap from '../../Utils/PageMap';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -193,25 +197,38 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page>
-            {incidents && incidents.length > 0 ? (
-                <div>
-                    <h4>Incidents</h4>
-                    <p>
-                        Here is the incident history for all the resources on
-                        this status page.
-                    </p>
-                </div>
-            ) : (
-                <></>
-            )}
+        <Page
+            title={'Incidents'}
+            breadcrumbLinks={[
+                {
+                    title: 'Overview',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_OVERVIEW] as Route)
+                            : (RouteMap[PageMap.OVERVIEW] as Route)
+                    ),
+                },
+                {
+                    title: 'Incidents',
+                    to: RouteUtil.populateRouteParams(
+                        props.isPreviewPage
+                            ? (RouteMap[PageMap.PREVIEW_INCIDENT_LIST] as Route)
+                            : (RouteMap[PageMap.INCIDENT_LIST] as Route)
+                    ),
+                },
+            ]}
+        >
             {incidents && incidents.length > 0 ? (
                 <EventHistoryList {...parsedData} />
             ) : (
                 <></>
             )}
             {incidents.length === 0 ? (
-                <ErrorMessage error="No incidents reported on this status page." />
+                <EmptyState
+                    title={'No Incident'}
+                    description={'No incidents posted on this status page.'}
+                    icon={IconProp.Alert}
+                />
             ) : (
                 <></>
             )}

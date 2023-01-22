@@ -2,7 +2,7 @@ import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import Alert, { AlertType } from 'CommonUI/src/Components/Alerts/Alert';
@@ -26,15 +26,21 @@ const Settings: FunctionComponent<ComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteMap[PageMap.SETTINGS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'Danger Zone',
-                    to: RouteMap[PageMap.SETTINGS_DANGERZONE] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_DANGERZONE] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}

@@ -10,8 +10,8 @@ const SideMenuItem: FunctionComponent<ComponentProps> = (
 ) => {
     return (
         <>
-            <h6>{props.title}</h6>
-            <div className="mail-list">{props.children}</div>
+            <h6 className="text-sm text-gray-500">{props.title}</h6>
+            <div>{props.children}</div>
         </>
     );
 };

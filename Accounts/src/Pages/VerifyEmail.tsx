@@ -1,6 +1,6 @@
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import Route from 'Common/Types/API/Route';
-import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimePNG/7.png';
+import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 import Link from 'CommonUI/src/Components/Link/Link';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';

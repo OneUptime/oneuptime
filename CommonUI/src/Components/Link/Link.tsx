@@ -36,7 +36,7 @@ const Link: FunctionComponent<ComponentProps> = (
 
     return (
         <a
-            className={`pointer ${props.className || ''}`}
+            className={`cursor-pointer ${props.className || ''}`}
             style={props.style}
             onClick={() => {
                 if (props.openInNewTab) {

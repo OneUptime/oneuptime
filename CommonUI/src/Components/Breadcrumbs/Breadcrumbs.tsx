@@ -11,36 +11,45 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
     links,
 }: ComponentProps): ReactElement => {
     return (
-        <div className="page-title-right">
-            <ol className="breadcrumb m-0">
+        <nav className="flex" aria-label="Breadcrumb">
+            <ol role="list" className="flex items-center space-x-1">
                 {links &&
                     links.length > 0 &&
                     links.map((link: Link, i: number) => {
                         return (
-                            <li
-                                key={i}
-                                className={`breadcrumb-item padding-0 primary-on-hover ${
-                                    i === links.length - 1 ? 'active' : ''
-                                }`}
-                            >
-                                <div className="flex">
-                                    <UILink
-                                        className="primary-on-hover"
-                                        to={link.to}
-                                    >
-                                        {link.title}
-                                    </UILink>
-                                    {i !== links.length - 1 ? (
-                                        <Icon icon={IconProp.ChevronRight} />
-                                    ) : (
-                                        <></>
-                                    )}
-                                </div>
+                            <li className="breadcrumb-item" key={i}>
+                                {i === 0 && (
+                                    <div className="-mt-1">
+                                        <UILink
+                                            to={link.to}
+                                            className="text-gray-400 hover:text-gray-500 -mt-1"
+                                        >
+                                            <span className="text-sm font-medium text-gray-500 hover:text-gray-700 -mt-1">
+                                                {link.title}
+                                            </span>
+                                        </UILink>
+                                    </div>
+                                )}
+
+                                {i !== 0 && (
+                                    <div className="flex items-center">
+                                        <Icon
+                                            className="h-5 w-5 flex-shrink-0 text-gray-400"
+                                            icon={IconProp.ChevronRight}
+                                        />
+                                        <UILink
+                                            to={link.to}
+                                            className="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 -mt-1"
+                                        >
+                                            {link.title}
+                                        </UILink>
+                                    </div>
+                                )}
                             </li>
                         );
                     })}
             </ol>
-        </div>
+        </nav>
     );
 };
 

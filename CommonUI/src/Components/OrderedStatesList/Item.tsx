@@ -25,7 +25,7 @@ const Item: FunctionComponent<ComponentProps> = (
     const [error, setError] = useState<string>('');
 
     return (
-        <div className="ordered-list-item">
+        <div className="text-center border border-gray-300 rounded p-10 space-y-4 w-fit">
             {error && (
                 <ConfirmModal
                     title={`Error`}
@@ -45,13 +45,13 @@ const Item: FunctionComponent<ComponentProps> = (
                 </div>
             )}
             {props.getTitleElement && (
-                <div className="justify-center ">
+                <div className="justify-center flex">
                     {props.getTitleElement(props.item)}
                 </div>
             )}
-            <div className="margin-10">
+            <div className="text-gray-500">
                 {props.getDescriptionElement && (
-                    <div className="justify-center ">
+                    <div className="justify-center flex">
                         {props.getDescriptionElement(props.item)}
                     </div>
                 )}
@@ -64,7 +64,7 @@ const Item: FunctionComponent<ComponentProps> = (
                     </div>
                 )}
             </div>
-            <div className="margin-10">
+            <div className="flex justify-center">
                 {props.actionButtons?.map(
                     (button: ActionButtonSchema, i: number) => {
                         if (button.isVisible && !button.isVisible(props.item)) {
@@ -72,16 +72,7 @@ const Item: FunctionComponent<ComponentProps> = (
                         }
 
                         return (
-                            <span
-                                style={
-                                    i > 0
-                                        ? {
-                                              marginLeft: '10px',
-                                          }
-                                        : {}
-                                }
-                                key={i}
-                            >
+                            <div key={i} className="">
                                 <Button
                                     buttonSize={ButtonSize.Small}
                                     title={button.title}
@@ -114,7 +105,7 @@ const Item: FunctionComponent<ComponentProps> = (
                                         }
                                     }}
                                 />
-                            </span>
+                            </div>
                         );
                     }
                 )}

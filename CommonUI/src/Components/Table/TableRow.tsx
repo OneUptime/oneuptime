@@ -37,29 +37,31 @@ const TableRow: FunctionComponent<ComponentProps> = (
     const getRow: Function = (provided?: DraggableProvided): ReactElement => {
         return (
             <>
-                <tr
-                    className="table-row"
-                    {...provided?.draggableProps}
-                    ref={provided?.innerRef}
-                >
+                <tr {...provided?.draggableProps} ref={provided?.innerRef}>
                     {props.enableDragAndDrop && (
                         <td
-                            style={{ width: '20px' }}
-                            className="grabbable"
+                            className="ml-3 w-10"
                             {...provided?.dragHandleProps}
                         >
                             <Icon
                                 icon={IconProp.Drag}
                                 thick={ThickProp.Thick}
-                                className="grabbable"
+                                className=" h-6 w-6 text-gray-500 hover:text-gray-700 m-auto cursor-ns-resize"
                             />
                         </td>
                     )}
                     {props.columns &&
                         props.columns.map((column: Column, i: number) => {
+                            let className: string =
+                                'whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-500 sm:pl-6';
+                            if (i === props.columns.length - 1) {
+                                className =
+                                    'whitespace-nowrap py-4 pl-4 pr-6 text-sm font-medium text-gray-500 sm:pl-6';
+                            }
                             return (
                                 <td
                                     key={i}
+                                    className={className}
                                     style={{
                                         textAlign:
                                             column.type === FieldType.Actions
@@ -102,12 +104,18 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                           FieldType.Boolean ? (
                                             props.item[column.key] ? (
                                                 <Icon
-                                                    icon={IconProp.True}
+                                                    icon={IconProp.CheckCircle}
+                                                    className={
+                                                        'h-5 w-5 text-gray-500'
+                                                    }
                                                     thick={ThickProp.Thick}
                                                 />
                                             ) : (
                                                 <Icon
                                                     icon={IconProp.False}
+                                                    className={
+                                                        'h-5 w-5 text-gray-500'
+                                                    }
                                                     thick={ThickProp.Thick}
                                                 />
                                             )
@@ -128,7 +136,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                         <></>
                                     )}
                                     {column.type === FieldType.Actions && (
-                                        <div>
+                                        <div className="flex justify-end">
                                             {error && (
                                                 <div className="text-align-left">
                                                     <ConfirmModal
@@ -158,17 +166,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                     }
 
                                                     return (
-                                                        <span
-                                                            style={
-                                                                i > 0
-                                                                    ? {
-                                                                          marginLeft:
-                                                                              '10px',
-                                                                      }
-                                                                    : {}
-                                                            }
-                                                            key={i}
-                                                        >
+                                                        <div key={i}>
                                                             <Button
                                                                 buttonSize={
                                                                     ButtonSize.Small
@@ -231,7 +229,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                                     }
                                                                 }}
                                                             />
-                                                        </span>
+                                                        </div>
                                                     );
                                                 }
                                             )}

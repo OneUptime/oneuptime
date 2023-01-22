@@ -15,6 +15,7 @@ import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Field from 'CommonUI/src/Components/Forms/Types/Field';
 import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
+import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 
 export interface ComponentProps {
     projects: Array<Project>;
@@ -37,18 +38,14 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
         }
 
         return (
-            <div
-                className="show-as-link"
-                onClick={() => {
-                    setIsSubscriptionPlanYearly(!isSubsriptionPlanYearly);
+            <Toggle
+                title="Yearly Plan"
+                initialValue={isSubsriptionPlanYearly}
+                description="(Save 20%)"
+                onChange={(value: boolean) => {
+                    setIsSubscriptionPlanYearly(value);
                 }}
-            >
-                {isSubsriptionPlanYearly ? (
-                    <span>Switch to monthly pricing?</span>
-                ) : (
-                    <span> Switch to yearly pricing?</span>
-                )}
-            </div>
+            />
         );
     };
 
@@ -122,7 +119,8 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     minLength: 6,
                 },
                 fieldType: FormFieldSchemaType.Text,
-                placeholder: 'Acme',
+                placeholder: 'My Project',
+                description: 'Pick a friendly name.',
                 title: 'Project Name',
                 required: true,
             },
@@ -143,12 +141,8 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                         getAllEnvVars()
                     ).map((plan: SubscriptionPlan): RadioButton => {
                         let description: string = plan.isCustomPricing()
-                            ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                            : `$${
-                                  isSubsriptionPlanYearly
-                                      ? plan.getYearlySubscriptionAmountInUSD()
-                                      : plan.getMonthlySubscriptionAmountInUSD()
-                              } / month per user. Billed ${
+                            ? `Our sales team will contact you soon.`
+                            : `Billed ${
                                   isSubsriptionPlanYearly ? 'yearly' : 'monthly'
                               }. ${
                                   plan.getTrialPeriod() > 0
@@ -176,6 +170,23 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                                 : plan.getMonthlyPlanId(),
                             title: plan.getName(),
                             description: description,
+                            sideTitle: plan.isCustomPricing()
+                                ? 'Custom Price'
+                                : isSubsriptionPlanYearly
+                                ? '$' +
+                                  (
+                                      plan.getYearlySubscriptionAmountInUSD() *
+                                      12
+                                  ).toString()
+                                : '$' +
+                                  plan
+                                      .getMonthlySubscriptionAmountInUSD()
+                                      .toString(),
+                            sideDescription: plan.isCustomPricing()
+                                ? ''
+                                : isSubsriptionPlanYearly
+                                ? `/year per user`
+                                : `/month per user`,
                         };
                     }),
                     title: 'Please select a plan.',
@@ -208,6 +219,7 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     modelType={Project}
                     name="Create New Project"
                     title="Create New Project"
+                    description="Please create a new OneUptime project to get started."
                     onClose={() => {
                         setShowModal(false);
                         props.onProjectModalClose();

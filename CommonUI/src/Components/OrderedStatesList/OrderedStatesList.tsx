@@ -3,7 +3,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
+import Icon, { IconProp, SizeProp } from '../Icon/Icon';
 import Item from './Item';
 
 export interface ComponentProps {
@@ -55,7 +55,7 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div className="margin-50">
+        <div className="m-32 text-center">
             {props.error && <p>{props.error}</p>}
             {!props.error &&
                 props.data &&
@@ -65,13 +65,17 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                     const isBegining: boolean = !(i === 0);
 
                     return (
-                        <div key={i} id={props.id}>
+                        <div
+                            key={i}
+                            id={props.id}
+                            className="items-center w-fit m-auto"
+                        >
                             {props.onCreateNewItem &&
                                 isBegining &&
                                 props.shouldAddItemInTheBegining && (
-                                    <div>
+                                    <div className="text-center">
                                         <div
-                                            className="pointer ordered-list-item ordered-list-item-add-button background-very-light-grey-on-hover"
+                                            className="m-auto rounded-full items-center cursor-pointer text-gray-400 hover:bg-gray-50 hover:text-gray-600 items-center border border-gray-300 p-5 w-fit"
                                             onClick={() => {
                                                 props.onCreateNewItem &&
                                                     props.onCreateNewItem(
@@ -84,21 +88,22 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     );
                                             }}
                                         >
-                                            <div className="flex text-center ">
+                                            <div className="flex text-center">
                                                 <Icon
                                                     icon={IconProp.Add}
-                                                    thick={ThickProp.Thick}
-                                                    className="margin-side-5"
+                                                    className="m-auto h-5 w-5"
                                                 />{' '}
-                                                Add New Item
+                                                <span className="text-sm ml-2">
+                                                    Add New Item
+                                                </span>
                                             </div>
                                         </div>
 
-                                        <div className="vertical-list text-center margin-30">
+                                        <div className="items-center m-10 ">
                                             <Icon
                                                 icon={IconProp.ChevronDown}
-                                                thick={ThickProp.Thick}
-                                                size={SizeProp.Larger}
+                                                size={SizeProp.Regular}
+                                                className="m-auto h-5 w-5 text-gray-500"
                                             />
                                         </div>
                                     </div>
@@ -115,20 +120,20 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                             />
                             {((isEnd && props.shouldAddItemInTheEnd) ||
                                 !isEnd) && (
-                                <div className="vertical-list text-center margin-30">
+                                <div className="vertical-list items-center m-10 ">
                                     <Icon
                                         icon={IconProp.ChevronDown}
-                                        thick={ThickProp.Thick}
-                                        size={SizeProp.Larger}
+                                        size={SizeProp.Regular}
+                                        className="m-auto h-5 w-5 text-gray-500"
                                     />
                                 </div>
                             )}
                             {props.onCreateNewItem &&
                                 ((isEnd && props.shouldAddItemInTheEnd) ||
                                     !isEnd) && (
-                                    <div>
+                                    <div className="text-center">
                                         <div
-                                            className="pointer ordered-list-item ordered-list-item-add-button background-very-light-grey-on-hover"
+                                            className="m-auto items-center cursor-pointer text-gray-400 hover:bg-gray-50 border hover:text-gray-600 rounded-full border-gray-300 p-5 w-fit"
                                             onClick={() => {
                                                 props.onCreateNewItem &&
                                                     props.onCreateNewItem(
@@ -141,21 +146,22 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     );
                                             }}
                                         >
-                                            <div className="flex text-center ">
+                                            <div className="flex items-center ">
                                                 <Icon
                                                     icon={IconProp.Add}
-                                                    thick={ThickProp.Thick}
-                                                    className="margin-side-5"
+                                                    className="m-auto h-5 w-5"
                                                 />{' '}
-                                                Add New Item
+                                                <span className="text-sm ml-2">
+                                                    Add New Item
+                                                </span>
                                             </div>
                                         </div>
                                         {!isEnd && (
-                                            <div className="vertical-list text-center margin-30">
+                                            <div className="items-center m-10">
                                                 <Icon
                                                     icon={IconProp.ChevronDown}
-                                                    thick={ThickProp.Thick}
                                                     size={SizeProp.Larger}
+                                                    className="m-auto h-5 w-5 text-gray-500"
                                                 />
                                             </div>
                                         )}

@@ -39,7 +39,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.SMS}
+                    icon={IconProp.Anouncement}
                 />
             </SideMenuSection>
 
@@ -54,7 +54,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Activity}
+                    icon={IconProp.AltGlobe}
                 />
                 <SideMenuItem
                     link={{

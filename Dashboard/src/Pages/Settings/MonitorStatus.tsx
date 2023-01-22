@@ -2,7 +2,7 @@ import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
 import PageMap from '../../Utils/PageMap';
-import RouteMap from '../../Utils/RouteMap';
+import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable, {
@@ -28,15 +28,21 @@ const Monitors: FunctionComponent<PageComponentProps> = (
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteMap[PageMap.SETTINGS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'Monitors',
-                    to: RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_MONITORS_STATUS] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
@@ -52,7 +58,7 @@ const Monitors: FunctionComponent<PageComponentProps> = (
                 isEditable={true}
                 isCreateable={true}
                 cardProps={{
-                    icon: IconProp.Activity,
+                    icon: IconProp.AltGlobe,
                     title: 'Monitor Status',
                     description:
                         'Define different status types (eg: Operational, Degraded, Down) here.',

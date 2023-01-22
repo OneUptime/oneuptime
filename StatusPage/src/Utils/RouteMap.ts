@@ -14,7 +14,9 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.SCHEDULED_EVENT_LIST]: new Route(`/scheduled-events`),
     [PageMap.SCHEDULED_EVENT_DETAIL]: new Route(`/scheduled-events/:id`),
     [PageMap.RSS]: new Route(`/rss`),
-    [PageMap.SUBSCRIBE]: new Route(`/subscribe`),
+    [PageMap.SUBSCRIBE_EMAIL]: new Route(`/subscribe/email`),
+    [PageMap.SUBSCRIBE_SMS]: new Route(`/subscribe/sms`),
+    [PageMap.SUBSCRIBE_WEBHOOKS]: new Route(`/subscribe/webhooks`),
 
     [PageMap.LOGIN]: new Route(`/login`),
     [PageMap.FORGOT_PASSWORD]: new Route(`/forgot-password`),
@@ -44,8 +46,17 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.PREVIEW_RSS]: new Route(
         `/status-page/${RouteParams.StatusPageId}/rss`
     ),
-    [PageMap.PREVIEW_SUBSCRIBE]: new Route(
-        `/status-page/${RouteParams.StatusPageId}/subscribe`
+
+    [PageMap.PREVIEW_SUBSCRIBE_EMAIL]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/subscribe/email`
+    ),
+
+    [PageMap.PREVIEW_SUBSCRIBE_SMS]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/subscribe/sms`
+    ),
+
+    [PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS]: new Route(
+        `/status-page/${RouteParams.StatusPageId}/subscribe/webhooks`
     ),
 
     [PageMap.NOT_FOUND]: new Route(`status-page/not-found`),

@@ -1,6 +1,7 @@
-import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import { IconProp } from '../Icon/Icon';
+import ShortcutKey from '../ShortcutKey/ShortcutKey';
 
 export interface CardButtonSchema {
     title: string;
@@ -9,17 +10,17 @@ export interface CardButtonSchema {
     disabled?: boolean | undefined;
     icon: IconProp;
     isLoading?: undefined | boolean;
+    className?: string | undefined;
+    shortcutKey?: undefined | ShortcutKey;
 }
 
 export interface ComponentProps {
     title: string | ReactElement;
     description: string | ReactElement;
-    icon?: IconProp | undefined;
     buttons?: undefined | Array<CardButtonSchema>;
     children?: undefined | Array<ReactElement> | ReactElement;
-    cardBodyStyle?: undefined | CSSProperties;
     className?: string | undefined;
-    style?: React.CSSProperties | undefined;
+    bodyClassName?: string | undefined;
 }
 
 const Card: FunctionComponent<ComponentProps> = (
@@ -27,33 +28,26 @@ const Card: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
     return (
         <React.Fragment>
-            <div className={`${props.className || ''} row`} style={props.style}>
-                <div className="col-xl-12">
-                    <div className="card">
-                        <div className="card-header justify-space-between">
+            <section className={props.className}>
+                <div className="shadow sm:overflow-hidden sm:rounded-md">
+                    <div className="bg-white py-6 px-4 sm:p-6">
+                        <div className="flex justify-between">
                             <div>
-                                <h4 className="card-title flex">
-                                    {props.icon ? (
-                                        <span>
-                                            <Icon
-                                                icon={props.icon}
-                                                thick={ThickProp.Thick}
-                                            />
-                                        </span>
-                                    ) : (
-                                        <></>
-                                    )}
-                                    &nbsp;{props.title}
-                                </h4>
-                                <p className="card-title-desc">
+                                <h2
+                                    id="payment-details-heading"
+                                    className="text-lg font-medium leading-6 text-gray-900"
+                                >
+                                    {props.title}
+                                </h2>
+                                <p className="mt-1 text-sm text-gray-500">
                                     {props.description}
                                 </p>
                             </div>
-                            <div>
+                            <div className="flex">
                                 {props.buttons?.map(
                                     (button: CardButtonSchema, i: number) => {
                                         return (
-                                            <span
+                                            <div
                                                 style={
                                                     i > 0
                                                         ? {
@@ -70,6 +64,7 @@ const Card: FunctionComponent<ComponentProps> = (
                                                     buttonStyle={
                                                         button.buttonStyle
                                                     }
+                                                    className={button.className}
                                                     onClick={() => {
                                                         if (button.onClick) {
                                                             button.onClick();
@@ -77,24 +72,25 @@ const Card: FunctionComponent<ComponentProps> = (
                                                     }}
                                                     disabled={button.disabled}
                                                     icon={button.icon}
+                                                    shortcutKey={
+                                                        button.shortcutKey
+                                                    }
                                                 />
-                                            </span>
+                                            </div>
                                         );
                                     }
                                 )}
                             </div>
                         </div>
+
                         {props.children && (
-                            <div
-                                className="card-body"
-                                style={props.cardBodyStyle || {}}
-                            >
+                            <div className={props.bodyClassName || 'mt-6'}>
                                 {props.children}
                             </div>
                         )}
                     </div>
                 </div>
-            </div>
+            </section>
         </React.Fragment>
     );
 };

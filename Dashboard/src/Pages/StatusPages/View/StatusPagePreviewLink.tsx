@@ -1,7 +1,6 @@
 import URL from 'Common/Types/API/URL';
 import ObjectID from 'Common/Types/ObjectID';
 import Card from 'CommonUI/src/Components/Card/Card';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Link from 'CommonUI/src/Components/Link/Link';
 import { STATUS_PAGE_URL } from 'CommonUI/src/Config';
 import React, { FunctionComponent, ReactElement } from 'react';
@@ -17,7 +16,6 @@ const StatusPagePreviewLink: FunctionComponent<ComponentProps> = (
         <>
             <Card
                 title={`Status Page Preview URL`}
-                icon={IconProp.ExternalLink}
                 description={
                     <span>
                         Here&apos;s a link to preview your status page:{' '}

@@ -25,11 +25,26 @@ export interface ComponentProps {
     onBlur?: (() => void) | undefined;
     dataTestId?: string;
     tabIndex?: number | undefined;
+    error?: string | undefined;
 }
 
 const CodeEditor: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
+    let className: string = '';
+
+    if (!props.className) {
+        className =
+            'block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:text-sm';
+    } else {
+        className = props.className;
+    }
+
+    if (props.error) {
+        className =
+            'block w-full rounded-md border bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-red-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 sm:text-sm border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500';
+    }
+
     const [value, setValue] = useState<string>('');
 
     useEffect(() => {
@@ -76,7 +91,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className={`flex ${props.className}`}
+            id="code-editor"
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();
@@ -89,6 +104,7 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                 onValueChange={(code: string) => {
                     return setValue(code);
                 }}
+                className={className}
                 highlight={(code: string) => {
                     return highlight(code, grammar, language);
                 }}
@@ -110,6 +126,9 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
                 }}
                 disabled={props.readOnly || false}
             />
+            {props.error && (
+                <p className="mt-1 text-sm text-red-400">{props.error}</p>
+            )}
         </div>
     );
 };

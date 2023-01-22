@@ -7,7 +7,7 @@ export interface ComponentProps {
 const IconDropdownRow: FunctionComponent<ComponentProps> = (
     props: ComponentProps
 ): ReactElement => {
-    return <div className="no-gutters row">{props.children}</div>;
+    return <div>{props.children}</div>;
 };
 
 export default IconDropdownRow;

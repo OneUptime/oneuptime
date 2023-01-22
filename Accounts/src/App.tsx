@@ -11,7 +11,6 @@ import NotFound from './Pages/NotFound';
 import SsoLoginPage from './Pages/SsoLogin';
 import ForgotPasswordPage from './Pages/ForgotPassword';
 import RegisterPage from './Pages/Register';
-import 'CommonUI/src/Styles/theme.scss';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import VerifyEmail from './Pages/VerifyEmail';
 import ResetPasswordPage from './Pages/ResetPassword';
@@ -22,7 +21,7 @@ function App(): ReactElement {
     Navigation.setParams(useParams());
 
     return (
-        <div className="App">
+        <div className="m-auto h-screen">
             <Routes>
                 <Route path="/accounts" element={<LoginPage />} />
                 <Route path="/accounts/login" element={<LoginPage />} />

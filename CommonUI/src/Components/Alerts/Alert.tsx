@@ -1,7 +1,6 @@
-import { Black, White } from 'Common/Types/BrandColors';
-import Color, { RGB } from 'Common/Types/Color';
+import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
+import Icon, { IconProp } from '../Icon/Icon';
 
 export enum AlertType {
     INFO,
@@ -22,10 +21,10 @@ export interface ComponentProps {
     type?: undefined | AlertType;
     onClick?: (() => void) | undefined;
     doNotShowIcon?: boolean | undefined;
-    size?: undefined | AlertSize;
-    color?: undefined | Color;
     dataTestId?: string;
-    style?: React.CSSProperties | undefined;
+    textClassName?: string | undefined;
+    className?: string | undefined;
+    color?: Color | undefined;
 }
 
 const Alert: FunctionComponent<ComponentProps> = (
@@ -37,124 +36,97 @@ const Alert: FunctionComponent<ComponentProps> = (
         type = props.type;
     }
 
-    let cssClass: string = 'alert-info';
+    let className: string = 'text-blue';
+    let bgClassName: string = 'bg-blue';
 
-    if (type === AlertType.DANGER) {
-        cssClass = 'alert-danger';
+    if (AlertType.DANGER === type) {
+        className = 'text-red';
+        bgClassName = 'bg-red';
+    } else if (AlertType.INFO === type) {
+        className = 'text-blue';
+        bgClassName = 'bg-blue';
+    } else if (AlertType.WARNING === type) {
+        className = 'text-yellow';
+        bgClassName = 'bg-yellow';
+    } else if (AlertType.SUCCESS === type) {
+        className = 'text-green';
+        bgClassName = 'bg-green';
     }
-
-    if (type === AlertType.INFO) {
-        cssClass = 'alert-info';
-    }
-
-    if (type === AlertType.SUCCESS) {
-        cssClass = 'alert-success';
-    }
-
-    if (type === AlertType.WARNING) {
-        cssClass = 'alert-warning';
-    }
-
-    let sizeCssClass: string = '';
-
-    if (props.size && props.size === AlertSize.Large) {
-        sizeCssClass = 'alert-large';
-    }
-
-    const rgb: RGB = Color.colorToRgb(props.color || Black);
 
     return (
-        <div className="row" style={props.style}>
-            <div className="col-xl-12">
-                <div
-                    data-testid={props.dataTestId}
-                    className={`alert-label-icon flex label-arrow alert ${cssClass}  ${sizeCssClass}  alert-dismissible fade show ${
-                        props.onClick ? 'pointer' : ''
-                    }`}
-                    style={
-                        props.color
-                            ? {
-                                  backgroundColor: props.color?.toString(),
-                                  color:
-                                      rgb.red * 0.299 +
-                                          rgb.green * 0.587 +
-                                          rgb.blue * 0.114 >
-                                      186
-                                          ? '#000000'
-                                          : '#ffffff',
-                              }
-                            : {}
-                    }
-                    role="alert"
-                    onClick={() => {
-                        props.onClick && props.onClick();
-                    }}
-                >
-                    {props.onClose && (
-                        <button
-                            role={'alert-close-button'}
-                            type="button"
-                            className="close"
-                            onClick={() => {
-                                props.onClose && props.onClose();
-                            }}
-                            aria-label="Close"
-                        >
-                            <span aria-hidden="true">×</span>
-                        </button>
-                    )}
-                    {!props.doNotShowIcon && (
-                        <span style={{ marginLeft: '-45px', height: '10px' }}>
-                            {AlertType.DANGER === type && (
-                                <Icon
-                                    thick={ThickProp.LessThick}
-                                    icon={IconProp.Error}
-                                    size={SizeProp.Large}
-                                    color={White}
-                                />
-                            )}
-                            {AlertType.WARNING === type && (
-                                <Icon
-                                    thick={ThickProp.LessThick}
-                                    icon={IconProp.Alert}
-                                    size={SizeProp.Large}
-                                    color={White}
-                                />
-                            )}
-                            {AlertType.SUCCESS === type && (
-                                <Icon
-                                    thick={ThickProp.LessThick}
-                                    icon={IconProp.Success}
-                                    size={SizeProp.Large}
-                                    color={White}
-                                />
-                            )}
-                            {AlertType.INFO === type && (
-                                <Icon
-                                    thick={ThickProp.LessThick}
-                                    icon={IconProp.Info}
-                                    size={SizeProp.Large}
-                                    color={White}
-                                />
-                            )}
-                            &nbsp;&nbsp;
-                        </span>
-                    )}
-                    <div
-                        className={`flex ${props.onClick ? 'pointer' : ''}`}
-                        style={{
-                            marginLeft: '5px',
-                            marginTop: '1px',
-                        }}
-                    >
-                        <div>
-                            <strong>{props.strongTitle}</strong>{' '}
-                        </div>
-                        <div>
-                            {props.title && props.strongTitle ? '-' : ''}{' '}
-                            {props.title}
-                        </div>
+        <div
+            className={`rounded-md ${bgClassName}-50 p-4`}
+            data-testid={props.dataTestId}
+            onClick={() => {
+                props.onClick && props.onClick();
+            }}
+            role="alert"
+            style={
+                props.color
+                    ? {
+                          backgroundColor: props.color?.toString(),
+                      }
+                    : {}
+            }
+        >
+            <div className="flex ">
+                {!props.doNotShowIcon && (
+                    <div className="flex-shrink-0">
+                        {AlertType.DANGER === type && (
+                            <Icon
+                                icon={IconProp.Alert}
+                                className="h-5 w-5 text-red-400"
+                            />
+                        )}
+                        {AlertType.WARNING === type && (
+                            <Icon
+                                icon={IconProp.Alert}
+                                className="h-5 w-5 text-yellow-400"
+                            />
+                        )}
+                        {AlertType.SUCCESS === type && (
+                            <Icon
+                                icon={IconProp.CheckCircle}
+                                className="h-5 w-5 text-green-400"
+                            />
+                        )}
+                        {AlertType.INFO === type && (
+                            <Icon
+                                icon={IconProp.Info}
+                                className="h-5 w-5 text-blue-400"
+                            />
+                        )}
                     </div>
+                )}
+                <div
+                    className={
+                        props.className ||
+                        'ml-3 flex-1 md:flex md:justify-between'
+                    }
+                >
+                    <p
+                        className={
+                            props.textClassName || `text-sm ${className}-600`
+                        }
+                    >
+                        {props.strongTitle}{' '}
+                        {props.title && props.strongTitle ? '-' : ''}{' '}
+                        {props.title}
+                    </p>
+                    {props.onClose && (
+                        <p className="mt-3 text-sm md:mt-0 md:ml-6">
+                            <button
+                                onClick={() => {
+                                    props.onClose && props.onClose();
+                                }}
+                                role={'alert-close-button'}
+                                className={`whitespace-nowrap font-medium ${className}-500 hover:${className}-600`}
+                            >
+                                Close
+                                <span aria-hidden="true"> &rarr;</span>
+                            </button>
+                        </p>
+                    )}
                 </div>
             </div>
         </div>

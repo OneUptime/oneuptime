@@ -30,6 +30,7 @@ import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import URL from 'Common/Types/API/URL';
 import {
+    BILLING_ENABLED,
     BILLING_PUBLIC_KEY,
     DASHBOARD_API_URL,
     getAllEnvVars,
@@ -41,6 +42,7 @@ import useAsyncEffect from 'use-async-effect';
 import CheckoutForm from './BillingPaymentMethodForm';
 import Text from 'Common/Types/Text';
 import DashboardNavigation from '../../Utils/Navigation';
+import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 
 export interface ComponentProps extends PageComponentProps {}
 
@@ -94,21 +96,44 @@ const Settings: FunctionComponent<ComponentProps> = (
         }
     };
 
+    const getFooter: Function = (): ReactElement => {
+        if (!BILLING_ENABLED) {
+            return <></>;
+        }
+
+        return (
+            <Toggle
+                title="Yearly Plan"
+                initialValue={isSubsriptionPlanYearly}
+                description="(Save 20%)"
+                onChange={(value: boolean) => {
+                    setIsSubscriptionPlanYearly(value);
+                }}
+            />
+        );
+    };
+
     return (
         <Page
             title={'Project Settings'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
-                    to: RouteMap[PageMap.HOME] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.HOME] as Route
+                    ),
                 },
                 {
                     title: 'Settings',
-                    to: RouteMap[PageMap.SETTINGS] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS] as Route
+                    ),
                 },
                 {
                     title: 'Billing',
-                    to: RouteMap[PageMap.SETTINGS_BILLING] as Route,
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.SETTINGS_BILLING] as Route
+                    ),
                 },
             ]}
             sideMenu={<DashboardSideMenu />}
@@ -136,12 +161,8 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 getAllEnvVars()
                             ).map((plan: SubscriptionPlan): RadioButton => {
                                 let description: string = plan.isCustomPricing()
-                                    ? `Custom Pricing based on your needs. Our sales team will contact you shortly.`
-                                    : `$${
-                                          isSubsriptionPlanYearly
-                                              ? plan.getYearlySubscriptionAmountInUSD()
-                                              : plan.getMonthlySubscriptionAmountInUSD()
-                                      } / month per user. Billed ${
+                                    ? `Our sales team will contact you soon.`
+                                    : `Billed ${
                                           isSubsriptionPlanYearly
                                               ? 'yearly'
                                               : 'monthly'
@@ -175,26 +196,28 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         : plan.getMonthlyPlanId(),
                                     title: plan.getName(),
                                     description: description,
+                                    sideTitle: plan.isCustomPricing()
+                                        ? 'Custom Price'
+                                        : isSubsriptionPlanYearly
+                                        ? '$' +
+                                          (
+                                              plan.getYearlySubscriptionAmountInUSD() *
+                                              12
+                                          ).toString()
+                                        : '$' +
+                                          plan
+                                              .getMonthlySubscriptionAmountInUSD()
+                                              .toString(),
+                                    sideDescription: plan.isCustomPricing()
+                                        ? ''
+                                        : isSubsriptionPlanYearly
+                                        ? `/year per user`
+                                        : `/month per user`,
                                 };
                             }),
                         title: 'Please select a plan.',
                         required: true,
-                        footerElement: (
-                            <div
-                                className="show-as-link"
-                                onClick={() => {
-                                    setIsSubscriptionPlanYearly(
-                                        !isSubsriptionPlanYearly
-                                    );
-                                }}
-                            >
-                                {isSubsriptionPlanYearly ? (
-                                    <span>Switch to monthly pricing?</span>
-                                ) : (
-                                    <span> Switch to yearly pricing?</span>
-                                )}
-                            </div>
-                        ),
+                        footerElement: getFooter(),
                     },
                 ]}
                 modelDetailProps={{
@@ -307,7 +330,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                 fetchSetupIntent();
                                 setShowPaymentMethodModal(true);
                             },
-                            buttonStyle: ButtonStyleType.OUTLINE,
+                            buttonStyle: ButtonStyleType.NORMAL,
                         },
                     ],
                     icon: IconProp.Billing,
@@ -401,7 +424,6 @@ const Settings: FunctionComponent<ComponentProps> = (
 
             <Card
                 title={`Cancel Plan`}
-                icon={IconProp.Billing}
                 description={`If you would like to cancel the plan, you need to delete the project.`}
                 buttons={[
                     {

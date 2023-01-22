@@ -27,6 +27,7 @@ export interface ComponentProps {
     onBlur?: (() => void) | undefined;
     isMultiSelect?: boolean;
     tabIndex?: number | undefined;
+    error?: string | undefined;
 }
 
 const Dropdown: FunctionComponent<ComponentProps> = (
@@ -105,7 +106,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
 
     return (
         <div
-            className={`${props.className || ''}`}
+            className={`${
+                props.className ||
+                'relative mt-2 mb-1 rounded-md shadow-sm w-full'
+            }`}
             onClick={() => {
                 props.onClick && props.onClick();
                 props.onFocus && props.onFocus();
@@ -147,6 +151,14 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                     }
                 }}
             />
+            {props.error && (
+                <p
+                    data-testid="error-message"
+                    className="mt-1 text-sm text-red-400"
+                >
+                    {props.error}
+                </p>
+            )}
         </div>
     );
 };

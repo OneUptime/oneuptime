@@ -57,7 +57,7 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
             setCardButtons([
                 {
                     title: props.editButtonText || `Edit ${model.singularName}`,
-                    buttonStyle: ButtonStyleType.OUTLINE,
+                    buttonStyle: ButtonStyleType.NORMAL,
                     onClick: () => {
                         setShowModal(true);
                     },
@@ -69,18 +69,16 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
 
     return (
         <>
-            <Card
-                {...props.cardProps}
-                className={props.className}
-                buttons={cardButtons}
-            >
-                <ModelDetail
-                    refresher={refresher}
-                    {...props.modelDetailProps}
-                    onItemLoaded={(item: TBaseModel) => {
-                        setItem(item);
-                    }}
-                />
+            <Card {...props.cardProps} buttons={cardButtons}>
+                <div className="border-t border-gray-200 px-4 py-5 sm:px-6 -m-6 -mt-2">
+                    <ModelDetail
+                        refresher={refresher}
+                        {...props.modelDetailProps}
+                        onItemLoaded={(item: TBaseModel) => {
+                            setItem(item);
+                        }}
+                    />
+                </div>
             </Card>
 
             {showModel ? (

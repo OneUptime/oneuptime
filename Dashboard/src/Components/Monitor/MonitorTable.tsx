@@ -43,7 +43,7 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                 return item;
             }}
             cardProps={{
-                icon: IconProp.Activity,
+                icon: IconProp.AltGlobe,
                 title: props.title || 'Monitors',
                 description:
                     props.description ||
