@@ -181,6 +181,7 @@ const Icon: FunctionComponent<ComponentProps> = ({
         children: ReactElement | Array<ReactElement>
     ): ReactElement => {
         return (
+            <div role="icon">
             <svg
                 onClick={() => {
                     onClick && onClick();
@@ -197,7 +198,8 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 aria-hidden="true"
             >
                 {children}
-            </svg>
+                </svg>
+                </div>
         );
     };
 

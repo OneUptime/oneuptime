@@ -116,7 +116,7 @@ describe('BasicForm test', () => {
         await user.click(loginButton);
 
         const errorComponent: HTMLElement[] =
-            screen.getAllByTestId('errorMessage');
+            screen.getAllByTestId('error-message');
 
         expect(errorComponent[0]?.innerHTML).toEqual('Email is not valid.');
         expect(errorComponent[1]?.innerHTML).toEqual(

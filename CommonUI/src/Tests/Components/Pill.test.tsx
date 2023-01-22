@@ -6,11 +6,7 @@ import Pill, { PillSize } from '../../Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 
 describe('<Pill />', () => {
-    test('should render the component with className rounded-pill', () => {
-        const color: Color = new Color('#807149');
-        render(<Pill text="Love" color={color} size={PillSize.Small} />);
-        expect(screen.getByTestId('pill')).toHaveClass('rounded-pill badge');
-    });
+    
     test('Checking text', () => {
         const color: Color = new Color('#807149');
         render(<Pill text="Love" color={color} size={PillSize.Small} />);

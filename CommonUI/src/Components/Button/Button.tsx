@@ -220,6 +220,7 @@ const Button: FunctionComponent<ComponentProps> = ({
             )}
 
             {title && buttonStyle !== ButtonStyleType.ICON ? title : ''}
+            
         </button>
     );
 };

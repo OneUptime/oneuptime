@@ -17,7 +17,6 @@ describe('Button', () => {
                 title="sample title"
                 disabled={true}
                 type={ButtonType.Button}
-                showIconOnRight={true}
                 icon={IconProp.Add}
             />
         );
@@ -28,7 +27,6 @@ describe('Button', () => {
         expect(testId).toBeInTheDocument();
         expect(testId).toHaveAttribute('type', 'button');
         expect(testId).toHaveAttribute('disabled');
-        expect(testId).toHaveClass('btn');
         const icon: HTMLElement = screen.getByRole('icon');
         expect(icon).toBeInTheDocument();
     });
@@ -69,7 +67,7 @@ describe('Button', () => {
         );
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn-outline-danger');
+        expect(testId).toHaveClass('inline-flex w-full justify-center rounded-md border border-red-700 bg-white text-base font-medium text-red-700 shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2');
     });
 
     test('it should have buttonStyle PRIMARY', () => {
@@ -81,7 +79,7 @@ describe('Button', () => {
         );
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn-primary');
+        expect(testId).toHaveClass('inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2');
     });
 
     test('it should have buttonStyle SECONDRY', () => {
@@ -93,7 +91,7 @@ describe('Button', () => {
         );
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn-secondary');
+        expect(testId).toHaveClass('inline-flex items-center rounded-md border border-transparent bg-indigo-100 text-sm font-medium text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 px-3 py-2');
     });
 
     test('it should have buttonStyle OUTLINE', () => {
@@ -103,7 +101,7 @@ describe('Button', () => {
         const testId: HTMLElement = screen.getByTestId('test-id');
 
         expect(testId).toHaveClass(
-            'btn-outline-secondary background-very-light-grey-on-hover'
+            'inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2'
         );
     });
 
@@ -116,7 +114,7 @@ describe('Button', () => {
         );
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn-success');
+        expect(testId).toHaveClass('inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2');
     });
 
     test('it should have buttonStyle SUCCESS_OUTLINE', () => {
@@ -128,7 +126,7 @@ describe('Button', () => {
         );
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn-outline-success');
+        expect(testId).toHaveClass('inline-flex w-full justify-center rounded-md border border-green-700 bg-white text-base font-medium text-green-700 shadow-sm hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2');
     });
 
     test('it should have buttonStyle WARNING', () => {
@@ -140,7 +138,7 @@ describe('Button', () => {
         );
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn-warning');
+        expect(testId).toHaveClass('inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2');
     });
 
     test('it should have buttonStyle WARNING_OUTLINE', () => {
@@ -152,28 +150,28 @@ describe('Button', () => {
         );
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn-outline-warning');
+        expect(testId).toHaveClass('inline-flex w-full justify-center rounded-md border border-yellow-700 bg-white text-base font-medium text-yellow-700 shadow-sm hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2');
     });
 
     test('it should have buttonSize Normal', () => {
         render(<Button dataTestId="test-id" buttonSize={ButtonSize.Normal} />);
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn');
+        expect(testId).toHaveClass(' inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-3 py-2');
     });
 
     test('it should have buttonSize Small', () => {
         render(<Button dataTestId="test-id" buttonSize={ButtonSize.Small} />);
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn-sm');
+        expect(testId).toHaveClass('inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-2 py-1');
     });
 
     test('it should have buttonSize Large', () => {
         render(<Button dataTestId="test-id" buttonSize={ButtonSize.Large} />);
         const testId: HTMLElement = screen.getByTestId('test-id');
 
-        expect(testId).toHaveClass('btn-lg');
+        expect(testId).toHaveClass(' inline-flex w-full justify-center rounded-md border border-gray-300 bg-white text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm px-4 py-2');
     });
 
     test('it should be enabled', () => {

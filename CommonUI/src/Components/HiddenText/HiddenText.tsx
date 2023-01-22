@@ -16,7 +16,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
         return (
             <p
                 role="hidden-text"
-                className="pointer underline"
+                className="cursor-pointer underline"
                 onClick={() => {
                     setShowText(true);
                 }}
@@ -39,7 +39,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
                 </div>{' '}
                 <Icon
                     icon={IconProp.Hide}
-                    className="pointer"
+                    className="cursor-pointer text-gray-400 h-4 w-4"
                     onClick={() => {
                         setShowText(false);
                         setCopyToClipboard(false);
@@ -49,7 +49,7 @@ const HiddenText: FunctionComponent<ComponentProps> = (
             {props.isCopyable && (
                 <div>
                     <span
-                        className="pointer underline"
+                        className="cursor-pointer underline"
                         onClick={async () => {
                             setCopyToClipboard(true);
                             await navigator.clipboard?.writeText(props.text);

@@ -60,6 +60,7 @@ const Alert: FunctionComponent<ComponentProps> = (
             onClick={() => {
                 props.onClick && props.onClick();
             }}
+            role="alert"
             style={
                 props.color
                     ? {
