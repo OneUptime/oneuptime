@@ -46,6 +46,8 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { getIncidentEventItem } from '../Incidents/Detail';
 import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
 import { getAnnouncementEventItem } from '../Announcement/Detail';
+import EmnptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -647,10 +649,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         </div>
                     )}
 
-                    {statusPageResources.length === 0 && (
-                        <ErrorMessage
-                            error=" No resources added to this status page. Please add
-                        some resources from OneUptime Dashboard."
+                    {getActiveIncidents().length === 0 && getOngoingScheduledEvents().length === 0 && statusPageResources.length === 0 && activeAnnouncements.length === 0 && !isLoading && !error && (
+                        <EmnptyState
+                            icon={IconProp.Star}
+                            title={"Everything looks great"}
+                            description="Everything is great. Nothig posted on this status page so far."
                         />
                     )}
                 </div>

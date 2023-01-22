@@ -8,6 +8,7 @@ import Header from 'CommonUI/src/Components/Header/Header';
 export interface ComponentProps {
     links: Array<Link>;
     logo?: File | undefined;
+    onLogoClicked: () => void; 
 }
 
 const StatusPageHeader: FunctionComponent<ComponentProps> = (
@@ -23,38 +24,34 @@ const StatusPageHeader: FunctionComponent<ComponentProps> = (
             {(props.logo || props.links?.length > 0) && <Header
                 leftComponents={<>
                     {props.logo && (
-                        <div className="d-flex">
-                            <Logo file={props.logo} onClick={() => { }} />
+                        <div className="flex h-12 mt-2">
+                            <Logo file={props.logo} onClick={() => {
+                                props.onLogoClicked();
+                            }} style={{
+                                maxWidth: "200px",
+                                maxHeight: "50px"
+                             }} />
                         </div>
                     )}
                 </>}
                 rightComponents={<>
-                    {props.links && props.links.length > 1 && (
+                    {props.links && props.links.length > 0 && (
                         <div
-                            className="col-md-6"
                             key={'links'}
-                            style={{
-                                textAlign: props.logo ? 'right' : 'left',
-                            }}
                         >
-                            <div>
+                            <div className='flex space-x-2 '>
                                 {props.links &&
                                     props.links.map((link: Link, i: number) => {
                                         return (
-                                            <span key={i}>
+                                            <div key={i}>
                                                 <UILink
-                                                    className="ms-1 underline-on-hover"
-                                                    style={{
-                                                        fontWeight: 500,
-                                                        fontSize: '16px',
-                                                    }}
+                                                    className='text-gray-400 hover:text-gray-600 text-sm mr-1'
                                                     to={link.to}
                                                     openInNewTab={link.openInNewTab}
                                                 >
                                                     {link.title}
                                                 </UILink>
-                                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                                            </span>
+                                            </div>
                                         );
                                     })}
                             </div>

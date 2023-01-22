@@ -13,6 +13,7 @@ export interface ComponentProps {
     file?: File | undefined;
     className?: string | undefined;
     alt?: string | undefined;
+    style?: React.CSSProperties | undefined;
 }
 
 export class ImageFunctions {
@@ -39,6 +40,7 @@ const Image: FunctionComponent<ComponentProps> = (
                 src={url}
                 height={props.height}
                 className={props.className}
+                style={props.style}
             />
         );
     };

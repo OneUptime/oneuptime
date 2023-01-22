@@ -74,6 +74,7 @@ const App: FunctionComponent = () => {
 
     return (
         <MasterPage
+            isPreview={isPreview}
             onLoadComplete={(masterpage: JSONObject) => {
                 const javascript: string | null =
                     JSONFunctions.getJSONValueInPath(
@@ -182,7 +183,7 @@ const App: FunctionComponent = () => {
                         <ScheduledEventDetail
                             pageRoute={
                                 RouteMap[
-                                    PageMap.SCHEDULED_EVENT_DETAIL
+                                PageMap.SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             onLoadComplete={() => {
@@ -348,7 +349,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -371,7 +372,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -393,7 +394,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_INCIDENT_DETAIL
+                                PageMap.PREVIEW_INCIDENT_DETAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -436,7 +437,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}
@@ -459,7 +460,7 @@ const App: FunctionComponent = () => {
                             isPrivatePage={isPrivateStatusPage}
                             pageRoute={
                                 RouteMap[
-                                    PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
                                 ] as Route
                             }
                             statusPageId={new ObjectID(statusPageId)}

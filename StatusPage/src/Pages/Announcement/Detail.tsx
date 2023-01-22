@@ -180,7 +180,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     }
 
     return (
-        <Page title='Announcements' breadcrumbLinks={[
+        <Page title='Announcement' breadcrumbLinks={[
             {
                 title: 'Overview',
                 to: RouteUtil.populateRouteParams(

@@ -30,6 +30,7 @@ export interface ComponentProps {
     isLoading?: boolean | undefined;
     error?: string | undefined;
     onLoadComplete: (masterPage: JSONObject) => void;
+    isPreview: boolean;
 }
 
 const DashboardMasterPage: FunctionComponent<ComponentProps> = (
@@ -192,14 +193,14 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 ) as BaseModel) || undefined
             } /></div>}
             <MasterPage
-                className=" m-auto"
+                className=" m-auto mt-5"
                 makeTopSectionUnstick={true}
                 topSectionClassName='shadow p-1 bg-white rounded mb-5 flex justify-center'
                 hideHeader={!logo && links.length === 0}
                 footer={
                     !footerHtml ? (
                         <Footer
-                            className='fixed max-w-4xl flex m-auto inset-x-0 bottom-0'
+                            className='inset-x-0 bottom-0 max-w-4xl flex m-auto inset-x-0 bottom-0'
                             copyright={
                                 (JSONFunctions.getJSONValueInPath(
                                     masterPageData || {},
@@ -234,6 +235,9 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                                 logo
                             }
                             links={links}
+                            onLogoClicked={() => {
+                                Navigation.navigate(props.isPreview ? RouteMap[PageMap.PREVIEW_OVERVIEW]! : RouteMap[PageMap.OVERVIEW]!)
+                            }}
                         />
                     ) : (
                         <div
