@@ -6,7 +6,6 @@ import Pill, { PillSize } from '../../Components/Pill/Pill';
 import Color from 'Common/Types/Color';
 
 describe('<Pill />', () => {
-    
     test('Checking text', () => {
         const color: Color = new Color('#807149');
         render(<Pill text="Love" color={color} size={PillSize.Small} />);

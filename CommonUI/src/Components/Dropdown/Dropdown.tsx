@@ -152,7 +152,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                 }}
             />
             {props.error && (
-                <p data-testid="error-message" className="mt-1 text-sm text-red-400">{props.error}</p>
+                <p
+                    data-testid="error-message"
+                    className="mt-1 text-sm text-red-400"
+                >
+                    {props.error}
+                </p>
             )}
         </div>
     );

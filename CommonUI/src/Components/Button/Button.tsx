@@ -167,7 +167,8 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.SUCCESS) {
-        buttonStyleCssClass = 'btn-success';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-transparent bg-green-600 text-base font-medium text-white shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.SUCCESS_OUTLINE) {
@@ -176,7 +177,8 @@ const Button: FunctionComponent<ComponentProps> = ({
     }
 
     if (buttonStyle === ButtonStyleType.WARNING) {
-        buttonStyleCssClass = 'btn-warning';
+        buttonStyleCssClass =
+            'inline-flex w-full justify-center rounded-md border border-transparent bg-yellow-600 text-base font-medium text-white shadow-sm hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm';
     }
 
     if (buttonStyle === ButtonStyleType.WARNING_OUTLINE) {
@@ -220,7 +222,14 @@ const Button: FunctionComponent<ComponentProps> = ({
             )}
 
             {title && buttonStyle !== ButtonStyleType.ICON ? title : ''}
-            
+
+            {shortcutKey && (
+                <div className="ml-2">
+                    <kbd className="inline-flex items-center rounded border border-gray-200 px-2 font-sans text-sm font-medium text-gray-400">
+                        {shortcutKey}
+                    </kbd>
+                </div>
+            )}
         </button>
     );
 };

@@ -182,24 +182,26 @@ const Icon: FunctionComponent<ComponentProps> = ({
     ): ReactElement => {
         return (
             <div role="icon">
-            <svg
-                onClick={() => {
-                    onClick && onClick();
-                }}
-                className={`${textColor} ${sizeClassName} ${strokeWidth} ${className}`}
-                style={
-                    color ? { color: color.toString(), ...style } : { ...style }
-                }
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                aria-hidden="true"
-            >
-                {children}
+                <svg
+                    onClick={() => {
+                        onClick && onClick();
+                    }}
+                    className={`${textColor} ${sizeClassName} ${strokeWidth} ${className}`}
+                    style={
+                        color
+                            ? { color: color.toString(), ...style }
+                            : { ...style }
+                    }
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="1.5"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                >
+                    {children}
                 </svg>
-                </div>
+            </div>
         );
     };
 

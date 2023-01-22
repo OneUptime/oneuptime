@@ -47,7 +47,7 @@ const Alert: FunctionComponent<ComponentProps> = (
         bgClassName = 'bg-blue';
     } else if (AlertType.WARNING === type) {
         className = 'text-yellow';
-        bgClassName = 'bg-green';
+        bgClassName = 'bg-yellow';
     } else if (AlertType.SUCCESS === type) {
         className = 'text-green';
         bgClassName = 'bg-green';
@@ -119,6 +119,7 @@ const Alert: FunctionComponent<ComponentProps> = (
                                 onClick={() => {
                                     props.onClose && props.onClose();
                                 }}
+                                role={'alert-close-button'}
                                 className={`whitespace-nowrap font-medium ${className}-500 hover:${className}-600`}
                             >
                                 Close

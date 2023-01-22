@@ -17,7 +17,7 @@ const Breadcrumbs: FunctionComponent<ComponentProps> = ({
                     links.length > 0 &&
                     links.map((link: Link, i: number) => {
                         return (
-                            <li className='breadcrumb-item' key={i}>
+                            <li className="breadcrumb-item" key={i}>
                                 {i === 0 && (
                                     <div className="-mt-1">
                                         <UILink

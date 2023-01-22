@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
 import { IconProp } from '../Icon/Icon';
+import ShortcutKey from '../ShortcutKey/ShortcutKey';
 
 export interface CardButtonSchema {
     title: string;
@@ -10,6 +11,7 @@ export interface CardButtonSchema {
     icon: IconProp;
     isLoading?: undefined | boolean;
     className?: string | undefined;
+    shortcutKey?: undefined | ShortcutKey;
 }
 
 export interface ComponentProps {
@@ -70,6 +72,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                                     }}
                                                     disabled={button.disabled}
                                                     icon={button.icon}
+                                                    shortcutKey={
+                                                        button.shortcutKey
+                                                    }
                                                 />
                                             </div>
                                         );
