@@ -1,418 +1,332 @@
-        <!-- Google Tag Manager (noscript) -->
-        <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH"
-            height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-            <!-- End Google Tag Manager (noscript) -->
-        
-    
-    
-    <header id="header-nav" class='globalNav' style="top: 25px;">
-
-
-        <div class="container-lg">
-            <ul class="navRoot">
-    
-                <li class="navSection logo" style="top: unset;">
-                    <a class="rootLink item-home colorize" href="/" style="height: 100%;width: 220px;padding: 0px;">
-                        <span 
-                            role="img" 
-                            aria-label="OneUptime logo"
-                            style="display: block;height: 50px;width: 100%;background-image: url(/img/hou-bb.svg);background-size: cover;background-repeat: no-repeat;background-position: center;"
-                        ></span>
-                    </a>
-                </li>
-    
-                <li class="navSection primary">
-                    <a class="rootLink item-products hasDropdown colorize" data-dropdown="products" href="#">
-                        Products
-                    </a>
-    
-                    <a data-analytics-action="pricing" data-analytics-source="global_nav"
-                        class="rootLink item-pricing colorize" href="/pricing">
-                        Pricing
-                    </a>
-                    <a class="rootLink item-developers hasDropdown colorize" data-dropdown="developers" href="#">
-                        Enterprise
-                    </a>
-                    <a class="rootLink item-company hasDropdown colorize" data-dropdown="company" href="#">
-                        Company
-                    </a>
-                    <% if(!support) { %>
-                    <a class="rootLink item-support colorize" href="/support" data-analytics-action="support"
-                        data-analytics-source="global_nav">
-                        Support
-                    </a>
-                    <% } %>
-                    <% if(support) { %>
-                    <a class="rootLink item-support colorize" href="/enterprise/overview" data-analytics-action="support"
-                        data-analytics-source="global_nav">
-                        Enterprises
-                    </a>
-                    <% } %>
-                </li>
-    
-                <li class="navSection secondary">
-                    <a class="rootLink item-support colorize" data-adroll-segment='submit_two' href="#"
-                        onclick="registerUrl()" data-analytics-source="global_nav" data-analytics-action="sign_up">
-                        Sign up
-                    </a>
-                    <a class="rootLink item-dashboard colorize" data-adroll-segment='submit_two' href="#"
-                        onclick="loginUrl()" data-analytics-source="global_nav" data-analytics-action="sign_in">
-                        Sign in
-                    </a>
-                </li>
-    
-                <li class="navSection mobile">
-                    <a class="rootLink item-mobileMenu colorize" href="#">
-                        <h2>Menu</h2>
-                    </a>
-                    <div class="popup">
-                        <div class="popupContainer">
-                            <a class="popupCloseButton" href="#">Close</a>
-                            <div class="mobileProducts">
-                                <h4>Products</h4>
-                                <div class="mobileProductsList">
-                                    <ul>
-                                        <li>
-                                            <a class="linkContainer item-payments" href="/product/status-page"
-                                                data-analytics-action="payments" data-analytics-source="mobile_nav">
-                                                Status Page
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="linkContainer item-subscriptions" href='/product/uptime-monitoring'
-                                                data-analytics-action="subscriptions" data-analytics-source="mobile_nav">
-                                                Uptime Monitoring
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="linkContainer item-connect" href='/product/incident-management'
-                                                data-analytics-action="connect" data-analytics-source="mobile_nav">
-                                                Incident Management
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="linkContainer item-connect" href='/product/oncall-management'
-                                                data-analytics-action="connect" data-analytics-source="mobile_nav">
-                                                On-Call Schedules
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="linkContainer item-connect" href='/product/docker-container-security'
-                                                data-analytics-action="connect" data-analytics-source="mobile_nav">
-                                                Docker Container Security
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="linkContainer item-connect" href='/product/app-security'
-                                                data-analytics-action="connect" data-analytics-source="mobile_nav">
-                                                App Security
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="linkContainer item-connect" href='/product/logs-management'
-                                                data-analytics-action="connect" data-analytics-source="mobile_nav">
-                                                Logs Management
-                                            </a>
-                                        </li>
-                                    </ul>
-    
-                                </div>
-                            </div>
-                            <div class="mobileSecondaryNav">
-                                <ul>
-                                    <li>
-                                        <a class="item-pricing" href="/pricing" data-analytics-action="pricing"
-                                            data-analytics-source="mobile_nav">
-                                            Pricing
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="item-workswith" href="https://zapier.com/apps/oneuptime/integrations"
-                                            data-analytics-action="works-with" data-analytics-source="mobile_nav">
-                                            1000+ Integrations
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="item-gallery" href="/customers" data-analytics-action="customers"
-                                            data-analytics-source="mobile_nav">
-                                            Customers
-                                        </a>
-                                    </li>
-    
-                                </ul>
-                                <ul>
-                                    <li>
-                                        <a class="item-about" href="https://oneuptime.com" data-analytics-source="mobile_nav"
-                                            data-analytics-action="about">
-                                            About OneUptime
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="item-jobs" href="https://angel.co/hackerbayinc/jobs"
-                                            data-analytics-source="mobile_nav" data-analytics-action="jobs">
-                                            Jobs
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="item-blog" href="https://blog.oneuptime.com"
-                                            data-analytics-source="mobile_nav" data-analytics-action="blog">
-                                            Blog
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <a class="mobileSignIn" data-adroll-segment='submit_two' href="#" onclick="loginUrl()"
-                                data-analytics-source="mobile_nav" data-analytics-action="sign_in">
-                                Sign in
-                            </a>
-                        </div>
-                    </div>
-                </li>
-    
-    
-            </ul>
+<div class="relative bg-white">
+    <div class="mx-auto max-w-7xl px-6">
+      <div class="flex items-center justify-between border-b-2 border-gray-100 py-6 md:justify-start md:space-x-10">
+        <div class="flex justify-start lg:w-0 lg:flex-1">
+          <a href="#">
+            <span class="sr-only">Your Company</span>
+            <img class="h-8 w-auto sm:h-10" src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600" alt="">
+          </a>
         </div>
-    
-    
-    
-        <div class="dropdownRoot">
-            <div class="dropdownBackground">
-                <div class="alternateBackground"></div>
-            </div>
-            <div class="dropdownArrow"></div>
-            <div class="dropdownContainer">
-    
-                <div class="dropdownSection" data-dropdown="products">
-                    <div class="dropdownContent">
-                        <div class="product-page">
-                            <div class="product-category">
-                                <div class="product-category-heading">
-                                    <h4>MONITORING</h4>
-                                </div>
-                                <a class="product-item" href="/product/website-monitoring" data-analytics-action="" data-analytics-source="">
-                                    <div style="margin-top: 20px;">                                                                                                                   
-                                        <div class="product-item-title">Website Monitoring</div>
-                                        <div class="product-item-subtitle">Monitor your website.</div>                                                                      
-                                    </div>
-                                </a>
-                                <a class="product-item" href="/product/api-monitoring" data-analytics-action="" data-analytics-source="">
-                                    <div style="margin-top: 20px;">                                                                                                                     
-                                        <div class="product-item-title">API Monitoring</div>
-                                        <div class="product-item-subtitle">Monitor your API.</div>                                                                        
-                                    </div>
-                                </a>
-                                <!-- <a class="product-item" href="/product/server-monitoring" data-analytics-action="" data-analytics-source="">
-                                    <div style="margin-top: 20px;">                                                                                     
-                                        <div class="product-item-title">Server Monitoring</div>
-                                        <div class="product-item-subtitle">Monitor your server.</div>                                                                      
-                                    </div>
-                                </a>
-                                <a class="product-item" href="/product/iot-device-monitoring" data-analytics-action="" data-analytics-source="">
-                                    <div style="margin-top: 20px;">                                                                                   
-                                        <div class="product-item-title">IoT Device Monitoring</div>
-                                        <div class="product-item-subtitle">Monitor your IoT device.</div>                                                                   
-                                    </div>
-                                </a>    
-                                <a class="product-item" href="/product/kubernetes-monitoring" data-analytics-action="" data-analytics-source="">
-                                    <div style="margin-top: 20px;">                                                                                   
-                                        <div class="product-item-title">Kubernetes Monitoring</div>
-                                        <div class="product-item-subtitle">Monitor your Kubernetes clusters.</div>                                                                   
-                                    </div>
-                                </a>    
-                                <a class="product-item" href="/product/performance-monitoring" data-analytics-action="" data-analytics-source="">
-                                    <div style="margin-top: 20px;">                                                                                   
-                                        <div class="product-item-title">Performance Monitoring</div>
-                                        <div class="product-item-subtitle">Monitor the Performance of your Application.</div>                                                                   
-                                    </div>
-                                </a>     -->
-                            </div>
-                            <div class="product-category">
-                                <div class="product-category-heading">
-                                    <h4>STATUS PAGE</h4>
-                                </div>
-                                <a class="product-item" href="/product/public-status-page" data-analytics-action="payments" data-analytics-source="nav_dropdown">
-                                    <div style="margin-top: 20px;">                                                                                                                       
-                                        <div class="product-item-title">Public Status Page</div>
-                                        <div class="product-item-subtitle">Public status page for your business.</div>                                                            
-                                    </div>
-                                </a>
-                                <a class="product-item" href="/product/private-status-page" data-analytics-action="payments" data-analytics-source="nav_dropdown">
-                                    <div style="margin-top: 20px;">                                                                                                                       
-                                        <div class="product-item-title">Private Status Page</div>
-                                        <div class="product-item-subtitle">Private status page for your business.</div>                                                            
-                                    </div>
-                                </a>                                       
-                            </div>                      
-                            <!-- <div class="product-category">
-                                <div class="product-category-heading">
-                                    <h4>SECURITY</h4>
-                                </div>
-                                <a class="product-item" href="/product/app-security" data-analytics-action="connect" data-analytics-source="nav_dropdown">
-                                    <div style="margin-top: 20px;">                                                                                                                     
-                                        <div class="product-item-title">App Security</div>
-                                        <div class="product-item-subtitle">Secure your app.</div>                                                                      
-                                    </div>
-                                </a>
-                                <a  class="product-item" href="/product/docker-container-security" data-analytics-action="connect" data-analytics-source="nav_dropdown">
-                                    <div style="margin-top: 20px;">                                                                                                                       
-                                        <div class="product-item-title">Docker Container Security</div>
-                                        <div class="product-item-subtitle">Secure your Docker image.</div>                                                                   
-                                    </div>
-                                </a>                                                           
-                            </div> -->
-                            <div class="product-category">
-                                <div class="product-category-heading">
-                                    <h4>INCIDENT MANAGEMENT</h4>
-                                </div>
-                                <a class="product-item" href="/product/incident-management" data-analytics-action="subscriptions" data-analytics-source="nav_dropdown">
-                                    <div style="margin-top: 20px;">                                                                                                                        
-                                        <div class="product-item-title">Incident Management</div>
-                                        <div class="product-item-subtitle">Manage incidents and resolve them.</div>                                                                      
-                                    </div>
-                                </a> 
-                                <!-- <a class="product-item" href="/product/oncall-management" data-analytics-action="subscriptions" data-analytics-source="nav_dropdown">
-                                    <div style="margin-top: 20px;">                                                                                                                     
-                                        <div class="product-item-title">On-Call Management</div>
-                                        <div class="product-item-subtitle">Alert your team during downtime.</div>                                                                    
-                                    </div>
-                                </a>                                                              -->
-                            </div>
-                            <!-- <div class="product-category">
-                                <div class="product-category-heading">
-                                    <h4>MORE</h4>
-                                </div>
-                                <a class="product-item" href="/product/logs-management" data-analytics-action="connect" data-analytics-source="nav_dropdown">
-                                    <div style="margin-top: 20px;">                                                                                                                       
-                                        <div class="product-item-title">Logs Management</div>
-                                        <div class="product-item-subtitle">Log analysis & monitoring of your app.</div>                                                                                                           
-                                    </div>
-                                </a>
-                                <a class="product-item" href="/product/error-tracking" data-analytics-action="" data-analytics-source="">
-                                    <div style="margin-top: 20px;">                                                                                                            
-                                        <div class="product-item-title">Error Tracking</div>
-                                        <div class="product-item-subtitle">Proactively find issues in your app.</div>                                                                                                           
-                                    </div>
-                                </a>                             
-                            </div> -->
-                        </div>
-                    </div>
-                </div>
-    
-                <div class="dropdownSection" data-dropdown="developers">
-                    <div class="dropdownContent">
-    
-                        <div class="linkGroup documentationGroup">
-                            <a class="linkContainer withIcon item-documentation" href="/enterprise/overview"
-                                data-analytics-action="documentation" data-analytics-source="nav_dropdown">
-                                <h3 class="linkTitle linkIcon">
-                                    Overview</h3>
-                                <span class="linkSub" style="margin-left: -28px;margin-top:8px;">OneUptime is Enterprise Grade
-                                    Status Page &amp; on-call management platform.</span>
-                            </a>
-    
-                        </div>
-    
-                        <ul class="linkGroup linkList developersGroup">
-                            <li>
-                                <a class="linkContainer item-apiReference" href="/enterprise/demo"
-                                    data-analytics-action="api_reference" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Request Demo</h3>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="linkContainer item-apiStatus" href="/enterprise/resources"
-                                    data-analytics-action="api_status" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Resources &amp; Whitepapers</h3>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="linkContainer item-openSource" href="/customers"
-                                    data-analytics-action="open_source" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Customers</h3>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="linkContainer item-openSource" href="https:/hackerbaylabs.com"
-                                    data-analytics-action="open_source" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Consulting</h3>
-                                </a>
-                            </li>
-                        </ul>
-    
-                    </div>
-                </div>
-    
-                <div class="dropdownSection" data-dropdown="company">
-                    <div class="dropdownContent">
-    
-                        <ul class="linkGroup linkList companyGroup">
-                            <li>
-                                <a class="linkContainer item-about" href="https://oneuptime.com"
-                                    data-analytics-action="about" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        About OneUptime</h3>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="linkContainer item-customers" href="/support" data-analytics-action="customers"
-                                    data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Support</h3>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="linkContainer item-customers" href="https://join.slack.com/t/oneuptimehelp/shared_invite/zt-f9it996u-Klha030kbWe6FhCDYUmwig" target="blank" data-analytics-action="customers"
-                                    data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        We're on Slack</h3>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="linkContainer item-jobs" href="https://angel.cohackerbayinc/jobs"
-                                    data-analytics-action="jobs" data-analytics-source="nav_dropdown">
-                                    <h3 class="linkTitle linkIcon">
-                                        Jobs</h3>
-                                </a>
-                            </li>
-    
-                        </ul>
-    
-                        <div class="linkGroup blogGroup">
-                            <a class="linkContainer withIcon item-blog" href="https://blog.oneuptime.com"
-                                data-analytics-action="blog" data-analytics-source="nav_dropdown">
-                                <h3 class="linkTitle linkIcon">
-                                    From the blog</h3>
-                            </a>
-                            <ul class="blogPosts">
-                                <li>
-                                    <a href="https://blog.oneuptime.com/how-to-create-an-on-call-schedule-that-doesnt-suck/">
-                                        <span class='title new'>Create an oncall schedule that doesn't suck</span>
-                                        <span class='new-badge'>New</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a
-                                        href="https://blog.oneuptime.com/high-availability-in-practice-how-to-reach-99-999-uptime/">
-                                        <span class='title '>How to reach 99.99% uptime?</span>
-    
-                                    </a>
-                                </li>
-                                <li>
-                                    <a href="https://blog.oneuptime.com/incident-management-best-practices/">
-                                        <span class='title '>Incident Management: Best Practices</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-    
-                    </div>
-                </div>
-    
-            </div>
+        <div class="-my-2 -mr-2 md:hidden">
+          <button type="button" class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" aria-expanded="false">
+            <span class="sr-only">Open menu</span>
+            <!-- Heroicon name: outline/bars-3 -->
+            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
         </div>
-    
-    </header>
+        <nav class="hidden space-x-10 md:flex">
+          <div class="relative">
+            <!-- Item active: "text-gray-900", Item inactive: "text-gray-500" -->
+            <button type="button" class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" aria-expanded="false">
+              <span>Solutions</span>
+              <!--
+                Heroicon name: mini/chevron-down
+  
+                Item active: "text-gray-600", Item inactive: "text-gray-400"
+              -->
+              <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+              </svg>
+            </button>
+  
+            <!--
+              'Solutions' flyout menu, show/hide based on flyout menu state.
+  
+              Entering: "transition ease-out duration-200"
+                From: "opacity-0 translate-y-1"
+                To: "opacity-100 translate-y-0"
+              Leaving: "transition ease-in duration-150"
+                From: "opacity-100 translate-y-0"
+                To: "opacity-0 translate-y-1"
+            -->
+            <div class="absolute z-10 -ml-4 mt-3 w-screen max-w-md transform px-2 sm:px-0 lg:left-1/2 lg:ml-0 lg:-translate-x-1/2" style="visibility: collapse;">
+              <div class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
+                <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
+                  <a href="#" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                    <!-- Heroicon name: outline/chart-bar -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                    </svg>
+                    <div class="ml-4">
+                      <p class="text-base font-medium text-gray-900">Analytics</p>
+                      <p class="mt-1 text-sm text-gray-500">Get a better understanding of where your traffic is coming from.</p>
+                    </div>
+                  </a>
+  
+                  <a href="#" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                    <!-- Heroicon name: outline/cursor-arrow-rays -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+                    </svg>
+                    <div class="ml-4">
+                      <p class="text-base font-medium text-gray-900">Engagement</p>
+                      <p class="mt-1 text-sm text-gray-500">Speak directly to your customers in a more meaningful way.</p>
+                    </div>
+                  </a>
+  
+                  <a href="#" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                    <!-- Heroicon name: outline/shield-check -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                    <div class="ml-4">
+                      <p class="text-base font-medium text-gray-900">Security</p>
+                      <p class="mt-1 text-sm text-gray-500">Your customers&#039; data will be safe and secure.</p>
+                    </div>
+                  </a>
+  
+                  <a href="#" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                    <!-- Heroicon name: outline/squares-2x2 -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                    </svg>
+                    <div class="ml-4">
+                      <p class="text-base font-medium text-gray-900">Integrations</p>
+                      <p class="mt-1 text-sm text-gray-500">Connect with third-party tools that you&#039;re already using.</p>
+                    </div>
+                  </a>
+  
+                  <a href="#" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                    <!-- Heroicon name: outline/arrow-path -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
+                    <div class="ml-4">
+                      <p class="text-base font-medium text-gray-900">Automations</p>
+                      <p class="mt-1 text-sm text-gray-500">Build strategic funnels that will drive your customers to convert</p>
+                    </div>
+                  </a>
+                </div>
+                <div class="space-y-6 bg-gray-50 px-5 py-5 sm:flex sm:space-y-0 sm:space-x-10 sm:px-8">
+                  <div class="flow-root">
+                    <a href="#" class="-m-3 flex items-center rounded-md p-3 text-base font-medium text-gray-900 hover:bg-gray-100">
+                      <!-- Heroicon name: outline/play -->
+                      <svg class="h-6 w-6 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
+                      </svg>
+                      <span class="ml-3">Watch Demo</span>
+                    </a>
+                  </div>
+  
+                  <div class="flow-root">
+                    <a href="#" class="-m-3 flex items-center rounded-md p-3 text-base font-medium text-gray-900 hover:bg-gray-100">
+                      <!-- Heroicon name: outline/phone -->
+                      <svg class="h-6 w-6 flex-shrink-0 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" />
+                      </svg>
+                      <span class="ml-3">Contact Sales</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+  
+          <a href="/pricing" class="text-base font-medium text-gray-500 hover:text-gray-900">Pricing</a>
+          <a href="#" class="text-base font-medium text-gray-500 hover:text-gray-900">Docs</a>
+  
+          <div class="relative">
+            <!-- Item active: "text-gray-900", Item inactive: "text-gray-500" -->
+            <button type="button" class="text-gray-500 group inline-flex items-center rounded-md bg-white text-base font-medium hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" aria-expanded="false">
+              <span>More</span>
+              <!--
+                Heroicon name: mini/chevron-down
+  
+                Item active: "text-gray-600", Item inactive: "text-gray-400"
+              -->
+              <svg class="text-gray-400 ml-2 h-5 w-5 group-hover:text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+              </svg>
+            </button>
+  
+            <!--
+              'More' flyout menu, show/hide based on flyout menu state.
+  
+              Entering: "transition ease-out duration-200"
+                From: "opacity-0 translate-y-1"
+                To: "opacity-100 translate-y-0"
+              Leaving: "transition ease-in duration-150"
+                From: "opacity-100 translate-y-0"
+                To: "opacity-0 translate-y-1"
+            -->
+            <div class="absolute left-1/2 z-10 mt-3 w-screen max-w-md -translate-x-1/2 transform px-2 sm:px-0" style="visibility: collapse;">
+              <div class="overflow-hidden rounded-lg shadow-lg ring-1 ring-black ring-opacity-5">
+                <div class="relative grid gap-6 bg-white px-5 py-6 sm:gap-8 sm:p-8">
+                  <a href="#" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                    <!-- Heroicon name: outline/lifebuoy -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.712 4.33a9.027 9.027 0 011.652 1.306c.51.51.944 1.064 1.306 1.652M16.712 4.33l-3.448 4.138m3.448-4.138a9.014 9.014 0 00-9.424 0M19.67 7.288l-4.138 3.448m4.138-3.448a9.014 9.014 0 010 9.424m-4.138-5.976a3.736 3.736 0 00-.88-1.388 3.737 3.737 0 00-1.388-.88m2.268 2.268a3.765 3.765 0 010 2.528m-2.268-4.796a3.765 3.765 0 00-2.528 0m4.796 4.796c-.181.506-.475.982-.88 1.388a3.736 3.736 0 01-1.388.88m2.268-2.268l4.138 3.448m0 0a9.027 9.027 0 01-1.306 1.652c-.51.51-1.064.944-1.652 1.306m0 0l-3.448-4.138m3.448 4.138a9.014 9.014 0 01-9.424 0m5.976-4.138a3.765 3.765 0 01-2.528 0m0 0a3.736 3.736 0 01-1.388-.88 3.737 3.737 0 01-.88-1.388m2.268 2.268L7.288 19.67m0 0a9.024 9.024 0 01-1.652-1.306 9.027 9.027 0 01-1.306-1.652m0 0l4.138-3.448M4.33 16.712a9.014 9.014 0 010-9.424m4.138 5.976a3.765 3.765 0 010-2.528m0 0c.181-.506.475-.982.88-1.388a3.736 3.736 0 011.388-.88m-2.268 2.268L4.33 7.288m6.406 1.18L7.288 4.33m0 0a9.024 9.024 0 00-1.652 1.306A9.025 9.025 0 004.33 7.288" />
+                    </svg>
+                    <div class="ml-4">
+                      <p class="text-base font-medium text-gray-900">Help Center</p>
+                      <p class="mt-1 text-sm text-gray-500">Get all of your questions answered in our forums or contact support.</p>
+                    </div>
+                  </a>
+  
+                  <a href="#" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                    <!-- Heroicon name: outline/bookmark-square -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.75V16.5L12 14.25 7.5 16.5V3.75m9 0H18A2.25 2.25 0 0120.25 6v12A2.25 2.25 0 0118 20.25H6A2.25 2.25 0 013.75 18V6A2.25 2.25 0 016 3.75h1.5m9 0h-9" />
+                    </svg>
+                    <div class="ml-4">
+                      <p class="text-base font-medium text-gray-900">Guides</p>
+                      <p class="mt-1 text-sm text-gray-500">Learn how to maximize our platform to get the most out of it.</p>
+                    </div>
+                  </a>
+  
+                  <a href="#" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                    <!-- Heroicon name: outline/calendar -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                    </svg>
+                    <div class="ml-4">
+                      <p class="text-base font-medium text-gray-900">Events</p>
+                      <p class="mt-1 text-sm text-gray-500">See what meet-ups and other events we might be planning near you.</p>
+                    </div>
+                  </a>
+  
+                  <a href="#" class="-m-3 flex items-start rounded-lg p-3 hover:bg-gray-50">
+                    <!-- Heroicon name: outline/shield-check -->
+                    <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                    </svg>
+                    <div class="ml-4">
+                      <p class="text-base font-medium text-gray-900">Security</p>
+                      <p class="mt-1 text-sm text-gray-500">Understand how we take your privacy seriously.</p>
+                    </div>
+                  </a>
+                </div>
+                <div class="bg-gray-50 px-5 py-5 sm:px-8 sm:py-8">
+                  <div>
+                    <h3 class="text-base font-medium text-gray-500">Recent Posts</h3>
+                    <ul role="list" class="mt-4 space-y-4">
+                      <li class="truncate text-base">
+                        <a href="#" class="font-medium text-gray-900 hover:text-gray-700">Boost your conversion rate</a>
+                      </li>
+  
+                      <li class="truncate text-base">
+                        <a href="#" class="font-medium text-gray-900 hover:text-gray-700">How to use search engine optimization to drive traffic to your site</a>
+                      </li>
+  
+                      <li class="truncate text-base">
+                        <a href="#" class="font-medium text-gray-900 hover:text-gray-700">Improve your customer experience</a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="mt-5 text-sm">
+                    <a href="#" class="font-medium text-indigo-600 hover:text-indigo-500">
+                      View all posts
+                      <span aria-hidden="true"> &rarr;</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </nav>
+        <div class="hidden items-center justify-end md:flex md:flex-1 lg:w-0">
+          <a href="#" class="whitespace-nowrap text-base font-medium text-gray-500 hover:text-gray-900">Sign in</a>
+          <a href="#" class="ml-8 inline-flex items-center justify-center whitespace-nowrap rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700">Sign up</a>
+        </div>
+      </div>
+    </div>
+  
+    <!--
+      Mobile menu, show/hide based on mobile menu state.
+  
+      Entering: "duration-200 ease-out"
+        From: "opacity-0 scale-95"
+        To: "opacity-100 scale-100"
+      Leaving: "duration-100 ease-in"
+        From: "opacity-100 scale-100"
+        To: "opacity-0 scale-95"
+    -->
+    <div class="absolute inset-x-0 top-0 origin-top-right transform p-2 transition md:hidden" style="visibility: collapse;">
+      <div class="divide-y-2 divide-gray-50 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+        <div class="px-5 pt-5 pb-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <img class="h-8 w-auto" src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=600" alt="Your Company">
+            </div>
+            <div class="-mr-2">
+              <button type="button" class="inline-flex items-center justify-center rounded-md bg-white p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500">
+                <span class="sr-only">Close menu</span>
+                <!-- Heroicon name: outline/x-mark -->
+                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="mt-6" >
+            <nav class="grid gap-y-8">
+              <a href="#" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                <!-- Heroicon name: outline/chart-bar -->
+                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+                <span class="ml-3 text-base font-medium text-gray-900">Analytics</span>
+              </a>
+  
+              <a href="#" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                <!-- Heroicon name: outline/cursor-arrow-rays -->
+                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59" />
+                </svg>
+                <span class="ml-3 text-base font-medium text-gray-900">Engagement</span>
+              </a>
+  
+              <a href="#" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                <!-- Heroicon name: outline/shield-check -->
+                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                </svg>
+                <span class="ml-3 text-base font-medium text-gray-900">Security</span>
+              </a>
+  
+              <a href="#" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                <!-- Heroicon name: outline/squares-2x2 -->
+                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                </svg>
+                <span class="ml-3 text-base font-medium text-gray-900">Integrations</span>
+              </a>
+  
+              <a href="#" class="-m-3 flex items-center rounded-md p-3 hover:bg-gray-50">
+                <!-- Heroicon name: outline/arrow-path -->
+                <svg class="h-6 w-6 flex-shrink-0 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                <span class="ml-3 text-base font-medium text-gray-900">Automations</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+        <div class="space-y-6 py-6 px-5">
+          <div class="grid grid-cols-2 gap-y-4 gap-x-8">
+            <a href="/pricing" class="text-base font-medium text-gray-900 hover:text-gray-700">Pricing</a>
+  
+            <a href="#" class="text-base font-medium text-gray-900 hover:text-gray-700">Docs</a>
+  
+            <a href="#" class="text-base font-medium text-gray-900 hover:text-gray-700">Help Center</a>
+  
+            <a href="#" class="text-base font-medium text-gray-900 hover:text-gray-700">Guides</a>
+  
+            <a href="#" class="text-base font-medium text-gray-900 hover:text-gray-700">Events</a>
+  
+            <a href="#" class="text-base font-medium text-gray-900 hover:text-gray-700">Security</a>
+          </div>
+          <div>
+            <a href="#" class="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700">Sign up</a>
+            <p class="mt-6 text-center text-base font-medium text-gray-500">
+              Existing customer?
+              <a href="#" class="text-indigo-600 hover:text-indigo-500">Sign in</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  

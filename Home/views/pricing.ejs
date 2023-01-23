@@ -1,1389 +1,1378 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <title>OneUptime | Pricing</title>
-  <meta name="description"
-    content="Simple, transparent pricing. Compare different pricing plans. Choose the one which suits your buisness best.">
-  <%- include('head') -%>
-  <script src="/js/amplitude.js"></script>
-  <script type="module" async>
-    
-    if(posthog){
-      posthog.capture('PAGE VIEW: HOME > PRICING');
-    }
-  </script>
-  <link rel="stylesheet" href="/css/flexbox-grid.css">
-  <link rel="stylesheet" href="/css/pricing.css">
-  <link rel="stylesheet" href="/css/switch.css">
-  <link rel="stylesheet" href="/css/comparision.css">
-
-  <style>
-    /* DIRTY Responsive pricing table CSS */
-
-    /* 
-- make mobile switch sticky
-*/
-    * {
-      box-sizing: border-box;
-      padding: 0;
-      margin: 0;
-      outline: 0;
-    }
-
-    article.pricing-compare-table {
-      width: 100%;
-      max-width: 1000px;
-      margin: 0 auto;
-      position: relative;
-    }
-
-    ul.pricing-compare-table {
-      display: flex;
-      top: 0px;
-      z-index: 10;
-      padding-bottom: 14px;
-    }
-
-    li.pricing-compare-table {
-      list-style: none;
-      flex: 1;
-    }
-
-    li.pricing-compare-table:last-child {
-      border-right: 1px solid #DDD;
-    }
-
-    button.pricing-compare-table {
-      width: 100%;
-      border: 1px solid #DDD;
-      border-right: 0;
-      border-top: 0;
-      padding: 10px;
-      background: #FFF;
-      font-size: 14px;
-      font-weight: bold;
-      height: 60px;
-      color: #999
-    }
-
-    li.active.pricing-compare-table button.pricing-compare-table {
-      background: #F5F5F5;
-      color: #000;
-    }
-
-    table.pricing-compare-table {
-      border-collapse: collapse;
-      table-layout: fixed;
-      width: 100%;
-    }
-
-    th.pricing-compare-table {
-      background: #F5F5F5;
-      display: none;
-    }
-
-    td.pricing-compare-table,
-    th.pricing-compare-table {
-      height: 53px
-    }
-
-    td.pricing-compare-table,
-    th.pricing-compare-table {
-      border: 1px solid #DDD;
-      padding: 10px;
-      empty-cells: show;
-    }
-
-    td.pricing-compare-table,
-    th.pricing-compare-table {
-      text-align: left;
-    }
-
-    td+td.pricing-compare-table,
-    th+th.pricing-compare-table {
-      text-align: center;
-      display: none;
-    }
-
-    td.default.pricing-compare-table {
-      display: table-cell;
-    }
-
-    .bg-black.pricing-compare-table {
-      border-top: 3px solid rgb(0, 0, 0);
-    }
-
-    .sep.pricing-compare-table {
-      background: #F5F5F5;
-      font-weight: bold;
-    }
-
-    .txt-l.pricing-compare-table {
-      font-size: 28px;
-      font-weight: bold;
-    }
-
-    .txt-top.pricing-compare-table {
-      position: relative;
-      top: -9px;
-      left: -2px;
-    }
-
-    .tick.pricing-compare-table {
-      font-size: 18px;
-      color: #2CA01C;
-    }
-
-    .hide.pricing-compare-table {
-      border: 0;
-      background: none;
-    }
-
-    @media (min-width: 640px) {
-      ul.pricing-compare-table {
-        display: none;
-      }
-
-      td.pricing-compare-table,
-      th.pricing-compare-table {
-        display: table-cell !important;
-      }
-
-      td.pricing-compare-table,
-      th.pricing-compare-table {
-        width: 330px;
-
-      }
-
-      td+td.pricing-compare-table,
-      th+th.pricing-compare-table {
-        width: auto;
-      }
-    }
-  </style>
-
+    <title>OneUptime | One Complete SRE and DevOps platform. </title>
+    <meta name="description"
+        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+        <%- include('head') -%>
+        <script type="module" async>
+            
+            if(posthog){
+                posthog.capture('PAGE VIEW: HOME');
+            }
+        </script>
 </head>
 
 <body>
-
   <%- include('nav') -%>
-
-
-  <div class="globalContent">
-
-    <header class="Header">
-
-      <div class="oneuptimeBackground">
-
-      </div>
-
-      <div class="oneuptimeBackground accelerated">
-
-      </div>
-
-      <div class="Header-container container-wide">
-
-        <div class="row center-xs">
-          <div class="col-xs-12">
-            <h1 class="Header-title common-PageTitle header-font header-size" style="margin-top: 50px">
-              Simple, transparent pricing.
-            </h1>
-            <p class="common-BodyText"
-            style="text-align:center;max-width:100%;margin-top: -60px;margin-bottom: 50px;">
-            OneUptime is OpenSource Software. By using our hosted service, <br/>you fund open-source development. <span class="highlight">Sign up free, no credit card required.</span>
-        </p>
-            <div style="margin-bottom: 50px;">
-              <span id="annual-text" style="font-size: 18px;margin-right:10px;">
-                Yearly
-              </span>
-
-              <input type="checkbox" class="checkbox-switch" />
-
-              <span id="monthly-text" style="font-size: 18px;margin-left:10px;">Monthly </span>
+    <div class="bg-white">
+        <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
+          <div class="sm:align-center sm:flex sm:flex-col">
+            <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Pricing Plans</h1>
+            <p class="mt-5 text-xl text-gray-500 sm:text-center">Start building for free, then add a site plan to go live. Account plans unlock additional features.</p>
+            <div class="relative mt-6 flex self-center rounded-lg bg-gray-100 p-0.5 sm:mt-8">
+              <button type="button" class="relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Monthly billing</button>
+              <button type="button" class="relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Yearly billing</button>
             </div>
           </div>
-        </div>
-
-        <div class="row middle-xs center-xs">
-          <div class="col-xs-11
-                          col-sm-4
-                          col-md-4
-                          col-lg-4 extra-margin">
-
-            <div class="Plan Plan--standard">
-              <h2 class="Plan-title common-Uppercase">FREE
-              </h2>
-
-              <div class="Plan-cardPricing">
-                <div class="Plan-cardRate">
-
-                  <div id="free-rate" class="Plan-cardRate-percent">
-                    Free
-                  </div>
-
-
-                </div>
-
-                <div id="startup-description" class="Plan-cardRate-description">
-                 Forever free plan. 
-                </div>
-
+          <div class="mt-12 space-y-4 sm:mt-16 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0 lg:mx-auto lg:max-w-4xl xl:mx-0 xl:max-w-none xl:grid-cols-4">
+            <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+              <div class="p-6">
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Hobby</h2>
+                <p class="mt-4 text-sm text-gray-500">All the basics for starting a new business</p>
+                <p class="mt-8">
+                  <span class="text-4xl font-bold tracking-tight text-gray-900">$12</span>
+                  <span class="text-base font-medium text-gray-500">/mo</span>
+                </p>
+                <a href="#" class="mt-8 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Hobby</a>
               </div>
-
-              <ul class="Plan-list">
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon">Unlimited Monitors
-                </li>
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> Unlimited Status Pages
-                </li>
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> Unlimited Subscribers
-                </li>
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon">Unlimited Members
-                </li>
-              </ul>
-
-              <div class="Plan-cardPricing">
-
-
-                <div class="Plan-cardRate-description" style="
-                      padding: 20px;">
-                  Community Support over Slack, 180 day data rentention, Unlimited Public and Private Status Pages, Unlimited Private Status Page Users, and more.
-                </div>
-              </div>
-
-              <a id="startup-plan-link" href="#" onclick="registerUrl()"
-                class="Plan-button common-Uppercase common-Link--arrow">
-                Sign up for free. 
-              </a>
-
-            </div>
-
-          </div>
-
-          <div class="col-xs-11
-                          col-sm-4
-                          col-md-4
-                          col-lg-4 extra-margin">
-
-            <div class="Plan Plan--standard">
-              <h2 class="Plan-title common-Uppercase"><span class="circular-label" style="font-size: 10px; margin-top: -10px;">Most Popular</span><br />GROWTH
-              </h2>
-
-              <div class="Plan-cardPricing">
-                <div class="Plan-cardRate">
-
-                  <div id="growth-rate" class="Plan-cardRate-percent">
-                    $50
-                  </div>
-
-
-                  <div class="Plan-cardRate-fixed">
-                    &nbsp;/mo
-                  </div>
-
-                </div>
-
-                <div id="growth-description" class="Plan-cardRate-description">
-                  Per member billed annually or $25 month-to-month
-                </div>
-
-              </div>
-
-              <ul class="Plan-list">
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon">Everything in Free plan.
-                </li>
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> Integrations and Workflows
-                </li>
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> 1 year data retention. 
-                </li>
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> 1 Business day support. 
-                </li>
-              </ul>
-
-              <div class="Plan-cardPricing">
-
-
-                <div class="Plan-cardRate-description" style="
-                      padding: 20px;">
-                  1 business Email Support, 99.99% SLA. Integrate with over 1000+ providers and partners.
+              <div class="px-6 pt-6 pb-8">
+                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+                <ul role="list" class="mt-6 space-y-4">
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Potenti felis, in cras at at ligula nunc.</span>
+                  </li>
       
-                </div>
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Orci neque eget pellentesque.</span>
+                  </li>
+                </ul>
               </div>
-
-              <a id="growth-plan-link" href="#" onclick="registerUrl()"
-                class="Plan-button common-Uppercase common-Link--arrow">
-                Try free for 14 days
-              </a>
-
             </div>
-
-          </div>
-          <div class="col-xs-11
-          col-sm-4
-          col-md-4
-          col-lg-4 extra-margin">
-
-            <div class="Plan Plan--standard">
-              <h2 class="Plan-title common-Uppercase">SCALE
-              </h2>
-
-              <div class="Plan-cardPricing">
-                <div class="Plan-cardRate">
-
-                  <div id="scale-rate" class="Plan-cardRate-percent">
-                    $99
-                  </div>
-
-
-                  <div class="Plan-cardRate-fixed">
-                    &nbsp;/mo
-                  </div>
-
-                </div>
-
-                <div id="scale-description" class="Plan-cardRate-description">
-                  Per member billed annually or $25 month-to-month
-                </div>
-
+      
+            <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+              <div class="p-6">
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Freelancer</h2>
+                <p class="mt-4 text-sm text-gray-500">All the basics for starting a new business</p>
+                <p class="mt-8">
+                  <span class="text-4xl font-bold tracking-tight text-gray-900">$24</span>
+                  <span class="text-base font-medium text-gray-500">/mo</span>
+                </p>
+                <a href="#" class="mt-8 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Freelancer</a>
               </div>
-
-              <ul class="Plan-list">
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> Everything in Growth
-                </li>
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon">Single Sign On
-                </li>
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon">3 Years data
-                  retention
-                </li>
-                <li class="Plan-listItem">
-                  <img src="/img/v3/pricing/header/plan-star.svg" width="26" height="26" alt="fees icon"> Priority, 1 hour support. 
-                </li>
-               
-              </ul>
-
-              <div class="Plan-cardPricing">
-
-
-                <div class="Plan-cardRate-description" style="
-      padding: 20px;">
-                 Priority 1 hour phone and email support, 99.999% SLA, Custom feature requests. Dedicated account manager and dedicated engineer. EU data residency.
-                </div>
+              <div class="px-6 pt-6 pb-8">
+                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+                <ul role="list" class="mt-6 space-y-4">
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Potenti felis, in cras at at ligula nunc. </span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Orci neque eget pellentesque.</span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Donec mauris sit in eu tincidunt etiam.</span>
+                  </li>
+                </ul>
               </div>
-
-              <a id="scale-plan-link" href="#" onclick="registerUrl()"
-                class="Plan-button common-Uppercase common-Link--arrow">
-                Try free for 14 days
-              </a>
-
             </div>
-
+      
+            <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+              <div class="p-6">
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Startup</h2>
+                <p class="mt-4 text-sm text-gray-500">All the basics for starting a new business</p>
+                <p class="mt-8">
+                  <span class="text-4xl font-bold tracking-tight text-gray-900">$32</span>
+                  <span class="text-base font-medium text-gray-500">/mo</span>
+                </p>
+                <a href="#" class="mt-8 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Startup</a>
+              </div>
+              <div class="px-6 pt-6 pb-8">
+                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+                <ul role="list" class="mt-6 space-y-4">
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Potenti felis, in cras at at ligula nunc. </span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Orci neque eget pellentesque.</span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Donec mauris sit in eu tincidunt etiam.</span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Faucibus volutpat magna.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+      
+            <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
+              <div class="p-6">
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Enterprise</h2>
+                <p class="mt-4 text-sm text-gray-500">All the basics for starting a new business</p>
+                <p class="mt-8">
+                  <span class="text-4xl font-bold tracking-tight text-gray-900">$48</span>
+                  <span class="text-base font-medium text-gray-500">/mo</span>
+                </p>
+                <a href="#" class="mt-8 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Enterprise</a>
+              </div>
+              <div class="px-6 pt-6 pb-8">
+                <h3 class="text-sm font-medium text-gray-900">What's included</h3>
+                <ul role="list" class="mt-6 space-y-4">
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Potenti felis, in cras at at ligula nunc. </span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Orci neque eget pellentesque.</span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Donec mauris sit in eu tincidunt etiam.</span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Faucibus volutpat magna.</span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Id sed tellus in varius quisque.</span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Risus egestas faucibus.</span>
+                  </li>
+      
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Risus cursus ullamcorper.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
-
-
-
         </div>
-
       </div>
 
-      <aside class="TransfersAside">
-        <div class="container">
-          <div class="row center-xs">
-            <div class="col-xs
-                            col-sm-12
-                            col-md-9">
-
-              <img style="margin-top:10px" src="/img/v3/pricing/header/server.svg" height="63" alt="transfers logo">
-              <p class="common-BodyText TransfersAside-body" style="text-align: left">
-                <strong class="TransfersAside-title"><a style="font-weight: 800;" href="#compare">Self Host OneUptime for free.</a></strong><br/>
-                <a href="https://github.com/oneuptime/oneuptime" style="color: #797979"> OneUptime is free and open source software that you can host yourself. <br/> <span style="text-decoration: underline"> Please click here for instructions.</span></a>
-              </p>
-
+      <div class="bg-indigo-700">
+        <div class="mx-auto max-w-7xl py-16 px-6 sm:py-20 lg:px-8">
+          <h2 class="text-3xl font-bold tracking-tight text-white">The world's most innovative companies use our app</h2>
+          <div class="mt-8 flow-root lg:mt-10">
+            <div class="-mt-4 -ml-8 flex flex-wrap justify-between lg:-ml-4">
+              <div class="mt-4 ml-8 flex flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
+                <img class="h-12" src="https://tailwindui.com/img/logos/tuple-logo-indigo-300.svg" alt="Tuple">
+              </div>
+              <div class="mt-4 ml-8 flex flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
+                <img class="h-12" src="https://tailwindui.com/img/logos/mirage-logo-indigo-300.svg" alt="Mirage">
+              </div>
+              <div class="mt-4 ml-8 flex flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
+                <img class="h-12" src="https://tailwindui.com/img/logos/statickit-logo-indigo-300.svg" alt="StaticKit">
+              </div>
+              <div class="mt-4 ml-8 flex flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
+                <img class="h-12" src="https://tailwindui.com/img/logos/transistor-logo-indigo-300.svg" alt="Transistor">
+              </div>
+              <div class="mt-4 ml-8 flex flex-shrink-0 flex-grow lg:ml-4 lg:flex-grow-0">
+                <img class="h-12" src="https://tailwindui.com/img/logos/workcation-logo-indigo-300.svg" alt="Workcation">
+              </div>
             </div>
           </div>
         </div>
-      </aside>
+      </div>
+      
 
-      <div>
-        <div style="margin-top:60px; margin-bottom: 60px">
+      <div class="bg-white">
+        <div class="mx-auto max-w-7xl py-24 px-6 sm:py-32 lg:px-8 lg:py-40">
+          <div class="mx-auto max-w-3xl text-center">
+            <h2 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">All-in-one platform</h2>
+            <p class="mx-auto mt-4 max-w-xl text-lg leading-8 text-gray-600">Quia est qui aut velit exercitationem repudiandae voluptatem facilis. Neque est debitis dolor facilis ab amet.</p>
+          </div>
+          <dl class="mt-20 grid grid-cols-1 gap-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-4 lg:gap-x-8">
+            <div class="relative">
+              <dt>
+                <!-- Heroicon name: outline/check -->
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Invite team members</p>
+              </dt>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Quam a velit animi fuga ad. Accusamus consectetur nulla perferendis quam. Aperiam error iusto id eos.</dd>
+            </div>
+      
+            <div class="relative">
+              <dt>
+                <!-- Heroicon name: outline/check -->
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Notifications</p>
+              </dt>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Ut excepturi sequi et corrupti. Quidem est non ipsam sunt voluptatem. Velit dicta iusto. Molestiae.</dd>
+            </div>
+      
+            <div class="relative">
+              <dt>
+                <!-- Heroicon name: outline/check -->
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">List view</p>
+              </dt>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Quis ratione necessitatibus ullam id animi iure accusamus debitis voluptas. Cumque debitis exercitationem.</dd>
+            </div>
+      
+            <div class="relative">
+              <dt>
+                <!-- Heroicon name: outline/check -->
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Boards</p>
+              </dt>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Quae et accusantium quo molestiae sed sit ut quo. Quidem omnis iure et maiores porro. Eligendi deserunt.</dd>
+            </div>
+      
+            <div class="relative">
+              <dt>
+                <!-- Heroicon name: outline/check -->
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Keyboard shortcuts</p>
+              </dt>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Optio assumenda eos neque. Quaerat temporibus dicta provident. Quia unde quo aut aut molestiae sit..</dd>
+            </div>
+      
+            <div class="relative">
+              <dt>
+                <!-- Heroicon name: outline/check -->
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Reporting</p>
+              </dt>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Excepturi sed quo mollitia voluptatibus. Qui quo ut nihil quo. Dolor at dignissimos ea voluptatem.</dd>
+            </div>
+      
+            <div class="relative">
+              <dt>
+                <!-- Heroicon name: outline/check -->
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Calendars</p>
+              </dt>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Illum nesciunt odio. Dolorem nobis labore eveniet consequatur quas aut delectus molestias. Qui recusandae.</dd>
+            </div>
+      
+            <div class="relative">
+              <dt>
+                <!-- Heroicon name: outline/check -->
+                <svg class="absolute mt-1 h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+                <p class="ml-10 text-lg font-semibold leading-8 text-gray-900">Mobile app</p>
+              </dt>
+              <dd class="mt-2 ml-10 text-base leading-7 text-gray-600">Aut velit est eius dolore repudiandae. Vitae temporibus amet possimus mollitia. Quia molestiae rerum.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+      
 
-          <div class="Plan Plan--enterprise enterprise-height">
-            <h2 class="Plan-title Plan-title--enterprise common-Uppercase">Enterprise</h2>
-            <div class="Plan-description">OneUptime is an enterprise-grade status page, monitoring, and on-call
-              management platform. Get in touch for details.</div>
-            <div class="Plan-tableContainer">
-              <table class="Plan-table">
-                <tbody>
-                  <tr class="Plan-table-row">
-                    <td class="Plan-table-cell Plan-table-cell--alternating">Account Management</td>
-                    <td class="Plan-table-cell">Security and Audits</td>
-                  </tr>
+      <div class="bg-white">
+        <div class="mx-auto max-w-7xl bg-white py-16 sm:py-24 sm:px-6 lg:px-8">
+          <!-- xs to lg -->
+          <div class="mx-auto max-w-2xl space-y-16 lg:hidden">
+            <section>
+              <div class="mb-8 px-6 sm:px-4">
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Basic</h2>
+                <p class="mt-4">
+                  <span class="text-4xl font-bold tracking-tight text-gray-900">$9</span>
+                  <span class="text-base font-medium text-gray-500">/mo</span>
+                </p>
+                <p class="mt-4 text-sm text-gray-500">Quis suspendisse ut fermentum neque vivamus non tellus.</p>
+                <a href="#" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Basic</a>
+              </div>
+      
+              <table class="w-full">
+                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  Features
+                </caption>
+                <thead>
                   <tr>
-                    <td class="Plan-table-cell">Setup Assistance</td>
-                    <td class="Plan-table-cell Plan-table-cell--alternating">Dedicated Engineer</td>
+                    <th class="sr-only" scope="col">Feature</th>
+                    <th class="sr-only" scope="col">Included</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Molestie lobortis massa.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Urna purus felis.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Tellus pulvinar sit dictum.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Convallis.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
                   </tr>
                 </tbody>
               </table>
-            </div>
-            <div class="Plan-cardPricing">
-
-
-              <div class="Plan-description">
-                Unlimited monitors, 1000+ Enterprise Integrations, On-premise Install, Invoicing, Custom HTML, CSS
-                and JS, Enterprise SLA, Dedicated Operations Engineer,
-                <a href="#compare" style="color: white; text-decoration: underline;">and more.</a>
-              </div>
-            </div>
-            <a href="/enterprise/demo" class="Plan-button Plan-Button--enterprise common-Uppercase common-Link--arrow"
-              style="
-                  margin-top: -3px;
-  ">Request Demo</a>
-          </div>
-
-
-        </div>
-      </div>
-
       
-
-
-    </header>
-
-
-    <%- include('comparision-chart') -%>
-
-    </article>
-
-    <!-- DIRTY Responsive pricing table HTML -->
-    <div class="comparision-heading">
-      <h3 class="black"><a name="compare">Compare different pricing plans.</a></h3>
-      <h4 class="common-BodyText">We have different pricing plans to suit your needs. If you feel you need a customized
-        plan, please come talk to us.</h4>
-    </div>
-    <article class="pricing-compare-table">
-
-      <ul class="pricing-compare-table">
-        <li class="bg-black pricing-compare-table">
-          <button class="pricing-compare-table">Free</button>
-        </li>
-        <li class="bg-black pricing-compare-table">
-          <button class="pricing-compare-table">Growth</button>
-        </li>
-        <li class="bg-black active pricing-compare-table">
-          <button class="pricing-compare-table">Scale</button>
-        </li>
-        <li class="bg-black pricing-compare-table">
-          <button class="pricing-compare-table">Enterprise</button>
-        </li>
-      </ul>
-
-      <table class="pricing-compare-table">
-        <thead class="pricing-compare-table">
-          <tr class="pricing-compare-table">
-            <th class="hide pricing-compare-table"></th>
-            <th class="bg-black pricing-compare-table">
-              <h2 class="Plan-title common-Uppercase noborders">
-                Free
-              </h2>
-            </th>
-            <th class="bg-black pricing-compare-table ">
-              <h2 class="Plan-title common-Uppercase noborders">
-                Growth
-              </h2>
-            </th>
-            <th class="bg-black default pricing-compare-table ">
-              <h2 class="Plan-title common-Uppercase noborders">
-                Scale
-              </h2>
-            </th>
-            <th class="bg-black pricing-compare-table ">
-              <h2 class="Plan-title common-Uppercase noborders">
-                Enterprise
-              </h2>
-            </th>
-          </tr>
-        </thead class="pricing-compare-table">
-        <tbody class="pricing-compare-table">
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Price
-              </span>
-            </td>
-            <td class="pricing-compare-table">
-              <div class="Plan-cardRate-percent pricing-font">
-                $0/mo
+              <table class="w-full">
+                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  Reporting
+                </caption>
+                <thead>
+                  <tr>
+                    <th class="sr-only" scope="col">Feature</th>
+                    <th class="sr-only" scope="col">Included</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Adipiscing.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Eget risus integer.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Gravida leo urna velit.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Elementum ut dapibus mi feugiat cras nisl.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+      
+              <table class="w-full">
+                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  Support
+                </caption>
+                <thead>
+                  <tr>
+                    <th class="sr-only" scope="col">Feature</th>
+                    <th class="sr-only" scope="col">Included</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Sit dignissim.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Congue at nibh et.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Volutpat feugiat mattis.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Tristique pellentesque ornare diam sapien.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+      
+              <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+                <a href="#" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Basic</a>
               </div>
-            </td>
-            <td class="pricing-compare-table">
-              <div class="Plan-cardRate-percent pricing-font">
-                $20/mo
+            </section>
+      
+            <section>
+              <div class="mb-8 px-6 sm:px-4">
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Essential</h2>
+                <p class="mt-4">
+                  <span class="text-4xl font-bold tracking-tight text-gray-900">$29</span>
+                  <span class="text-base font-medium text-gray-500">/mo</span>
+                </p>
+                <p class="mt-4 text-sm text-gray-500">Quis eleifend a tincidunt pellentesque. A tempor in sed.</p>
+                <a href="#" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Essential</a>
               </div>
-            </td>
-            <td class="default pricing-compare-table">
-              <div class="Plan-cardRate-percent pricing-font">
-                $84/mo
+      
+              <table class="w-full">
+                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  Features
+                </caption>
+                <thead>
+                  <tr>
+                    <th class="sr-only" scope="col">Feature</th>
+                    <th class="sr-only" scope="col">Included</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Molestie lobortis massa.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Urna purus felis.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Tellus pulvinar sit dictum.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Convallis.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <span class="block text-right text-sm text-gray-700">Up to 20 users</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+      
+              <table class="w-full">
+                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  Reporting
+                </caption>
+                <thead>
+                  <tr>
+                    <th class="sr-only" scope="col">Feature</th>
+                    <th class="sr-only" scope="col">Included</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Adipiscing.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Eget risus integer.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Gravida leo urna velit.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Elementum ut dapibus mi feugiat cras nisl.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+      
+              <table class="w-full">
+                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  Support
+                </caption>
+                <thead>
+                  <tr>
+                    <th class="sr-only" scope="col">Feature</th>
+                    <th class="sr-only" scope="col">Included</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Sit dignissim.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Congue at nibh et.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Volutpat feugiat mattis.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Tristique pellentesque ornare diam sapien.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/minus -->
+                      <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">No</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+      
+              <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+                <a href="#" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Essential</a>
               </div>
-            </td>
-            <td class="pricing-compare-table">
-              <div class="Plan-cardRate-percent pricing-font">
-                Contact us
+            </section>
+      
+            <section>
+              <div class="mb-8 px-6 sm:px-4">
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Premium</h2>
+                <p class="mt-4">
+                  <span class="text-4xl font-bold tracking-tight text-gray-900">$59</span>
+                  <span class="text-base font-medium text-gray-500">/mo</span>
+                </p>
+                <p class="mt-4 text-sm text-gray-500">Orci volutpat ut sed sed neque, dui eget. Quis tristique non.</p>
+                <a href="#" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Premium</a>
               </div>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Monitoring
-              </span>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Monitor anything <br /> <i>Server, Containers, API's, Websites, IoT and more.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Monitors <br />
-                <i>This is per member, if you need more monitors you basically add a seat.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Unlimited </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> unlimited </span>
-            </td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> Unlimited </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Unlimited </span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Uptime Check
-                <br />
-                <i> How often we check uptime of your resources. </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Every 2 mins </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Every 30 seconds </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> Every 5 seconds
-              </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Every 1 second </span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Probe Locations <br /> <i>We check your uptime from different locations around the world.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> US </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> US &amp; EU </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> US, Canada, EU &amp;
-                Australia. </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> US, Canada, EU Australia,
-                India, South America, &amp; China. Custom locations also supported. </span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Status Page
-              </span>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Unlimited Public Status Pages <br />
-                <i>Public Status Page for your customers.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Unlimited Subscribers <br />
-                <i>You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Unlimited Scheduled Events <br />
-                <i>You can show scheduled maintenance window on your status page.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Unlimited Private Status Page viewers <br />
-                <i>Add unlimited internal employees to view your private status page.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Unlimited Private Status Pages <br />
-                <i>Private status pages for your internal team.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Incident Management
-              </span>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Alerts by Email, SMS, Call and Push Notifications
-                <br />
-                <i>Have your team alerted by any of the channels including Slack and Microsoft Teams</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Call schedules for multiple team members
-                <br />
-                <i>Have multiple members alerted when an incident happens.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                On Call Rotations <br />
-                <i>Rotate your on-call team daily, weekly or monthly. We also support custom rotations.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Vacation Policy <br />
-                <i>Have vacation policy built into your company's on-call schedule. </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Sick Policy<br />
-                <i>Have sick policy built into your company's on-call schedule. </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                On-call for Geo-distributed teams<br />
-                <i>Support on-call schedules for teams in multiple timezones who are geo-distributed.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Logs 
-              </span>
-            </td>
-          </tr>
-           <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Application Logs
-                <br />
-                <i>Monitor logs from any app. (We support JavaScript, C# / .NET, Java, Python, PHP, and more) </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Server Logs
-                <br />
-                <i>Monitor logs from any machine. (Windows, Linux, Mac) </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Container Logs
-                <br />
-                <i>Monitor logs from any container. (Docker, Mesos, LXC and more) </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14"> Logs Retention <br />
-                <i>How much do we retain your logs. (You can always take an offline copy of your logs)</i> </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 5 GB </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 20 GB </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> 100 GB </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Unlimited </span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Security Analysis 
-              </span>
-            </td>
-          </tr>
-           <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Application Security
-                <br />
-                <i>Run security analysis on any stack. (We support JavaScript, C# / .NET, Java, Python, PHP, and more) </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Server Security
-                <br />
-                <i>Run security analysis on any machine. (Windows, Linux, Mac) </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14">Coming Soon</span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Container Security
-                <br />
-                <i>Run security analysis on any container. (Docker, Mesos, LXC and more) </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                src="/img/tick.svg" alt="yes" /></span></td>
-          <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                src="/img/tick.svg" alt="yes" /></span></td>
-          <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                width="20" src="/img/tick.svg" alt="yes" /></span></td>
-          <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Data
-              </span>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14"> Data Retention <br />
-                <i>How long do we retain your data. (You can always take a copy of your data)</i> </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 180 Day </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 1 Year </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> 3 Years </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Unlimited </span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14"> Data Residency <br />
-                <i>Choose in which geographical region your data resides, or have it reside on-premise.</i></span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
-            <td class="pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14"> On Premise Install <br />
-                <i>Install OneUptime in your data center.</i></span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> </span></td>
-            <td class="pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Support
-              </span>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Support <br />
-                <i>Friendly folks standing by. One of the best in biz.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Email </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Email </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> Email and Phone
-              </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Email and Phone </span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Support SLA <br />
-                <i>How soon do we reply to your support requests?</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 2 business day </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 1 business day </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> 6 hour priority</span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 24/7 1 hour priority </span>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Service SLA <br />
-                <i>We guarantee this uptime of OneUptime service.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 99% </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 99.50% </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> 99.90% </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> 99.995% </span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Dedicated Account Executive <br />
-                <i>An account executive which will take care of your buisness needs.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Dedicated Engineer <br />
-                <i>A dedicated engineer which help you integrate OneUptime with your workflow. </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Project &amp; Misc
-              </span>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                OneUptime API <br />
-                <i>Build custom integrations on OneUptime API. </i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Sub Projects <br />
-                <i>Subprojects help you organize your team members.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Advanced
-              </span>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Security &amp; Compliance <br />
-                <i>SOC, ISO, HIPAA, PCI, GDPR, CCPA and more.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Single Sign-On <br />
-                <i>We support SAML based SSO.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20"
-                  width="20" src="/img/tick.svg" alt="yes" /></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Audit Logs <br />
-                <i>Have a complete log of how your team members are using OneUptime.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Integrations <br />
-                <i>Integrate OneUptime with more than 2000+ apps.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Integrates with 2000+ apps
-              </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Integrates with 2000+ apps
-              </span></td>
-            <td class="default pricing-compare-table"><span class="pricing-compare-table font14"> Integrates with 2000+
-                apps
-              </span></td>
-            <td class="pricing-compare-table"><span class="pricing-compare-table font14"> Integrates with 2000+ apps,
-                custom
-                integration. </span></td>
-          </tr>
-
-          <tr class="pricing-compare-table">
-            <td colspan="5" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Billing
-              </span>
-            </td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Cancel Anytime <br />
-                <i>Cancel anytime, no questions asked.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-              src="/img/tick.svg" alt="yes" /></span></td>
-              <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                src="/img/tick.svg" alt="yes" /></span></td>
-                <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-           
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Discounted Annual Plan <br />
-                <i>Save 18% with an annual plan.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-              src="/img/tick.svg" alt="yes" /></span></td>
-              <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                src="/img/tick.svg" alt="yes" /></span></td>
-                <td class="default pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-           
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Multi Year Enterprise Contracts <br />
-                <i>Multi year enterprise contracts and invoicing.</i>
-              </span>
-            </td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="default pricing-compare-table"><span class="tick pricing-compare-table"></span></td>
-            <td class="pricing-compare-table"><span class="tick pricing-compare-table"><img height="20" width="20"
-                  src="/img/tick.svg" alt="yes" /></span></td>
-          </tr>
-        </tbody>
-      </table>
-
-    </article>
-
-    <div class="PricingFAQ">
-      <div class="container">
-
-        <div class="row PricingFAQ-row">
-
-          <div class="col-xs-12
-                          col-sm-6">
-            <h5 class="common-BodyTitle PricingFAQ-title">
-              What is a monitor?
-            </h5>
-            <p class="common-BodyText PricingFAQ-body font16">
-              A monitor is what we call the thing that monitors your website, application or IP address. It can test
-              the availability of
-              your service in different ways. 1 monitor can monitor 1 URL or IP address, 24/7, 365 days of the year at
-              one-minute intervals.
-            </p>
+      
+              <table class="w-full">
+                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  Features
+                </caption>
+                <thead>
+                  <tr>
+                    <th class="sr-only" scope="col">Feature</th>
+                    <th class="sr-only" scope="col">Included</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Molestie lobortis massa.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Urna purus felis.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Tellus pulvinar sit dictum.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Convallis.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <span class="block text-right text-sm text-gray-700">Up to 50 users</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+      
+              <table class="w-full">
+                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  Reporting
+                </caption>
+                <thead>
+                  <tr>
+                    <th class="sr-only" scope="col">Feature</th>
+                    <th class="sr-only" scope="col">Included</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Adipiscing.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Eget risus integer.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Gravida leo urna velit.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Elementum ut dapibus mi feugiat cras nisl.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+      
+              <table class="w-full">
+                <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                  Support
+                </caption>
+                <thead>
+                  <tr>
+                    <th class="sr-only" scope="col">Feature</th>
+                    <th class="sr-only" scope="col">Included</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Sit dignissim.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Congue at nibh et.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Volutpat feugiat mattis.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Tristique pellentesque ornare diam sapien.</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+      
+              <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+                <a href="#" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Premium</a>
+              </div>
+            </section>
           </div>
-
-         
-          <div class="col-xs-12
-                          col-sm-6">
-
-            <h5 class="common-BodyTitle PricingFAQ-title">
-              How do discounts work?
-            </h5>
-            <p class="common-BodyText PricingFAQ-body font16">
-              Annual plans have a 17% discount. You can upgrade your current plan to an annual plan to avail of the
-              discount.
-              If you're an enterprise,
-              contact us for a custom quote.
-            </p>
-
+      
+          <!-- lg+ -->
+          <div class="hidden lg:block">
+            <table class="h-px w-full table-fixed">
+              <caption class="sr-only">
+                Pricing plan comparison
+              </caption>
+              <thead>
+                <tr>
+                  <th class="px-6 pb-4 text-left text-sm font-medium text-gray-900" scope="col">
+                    <span class="sr-only">Feature by</span>
+                    <span>Plans</span>
+                  </th>
+      
+                  <th class="w-1/4 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Basic</th>
+      
+                  <th class="w-1/4 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Essential</th>
+      
+                  <th class="w-1/4 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Premium</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 border-t border-gray-200">
+                <tr>
+                  <th class="py-8 px-6 text-left align-top text-sm font-medium text-gray-900" scope="row">Pricing</th>
+      
+                  <td class="h-full py-8 px-6 align-top">
+                    <div class="relative table h-full">
+                      <p>
+                        <span class="text-4xl font-bold tracking-tight text-gray-900">$9</span>
+                        <span class="text-base font-medium text-gray-500">/mo</span>
+                      </p>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">Quis suspendisse ut fermentum neque vivamus non tellus.</p>
+                      <a href="#" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Basic</a>
+                    </div>
+                  </td>
+      
+                  <td class="h-full py-8 px-6 align-top">
+                    <div class="relative table h-full">
+                      <p>
+                        <span class="text-4xl font-bold tracking-tight text-gray-900">$29</span>
+                        <span class="text-base font-medium text-gray-500">/mo</span>
+                      </p>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">Quis eleifend a tincidunt pellentesque. A tempor in sed.</p>
+                      <a href="#" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Essential</a>
+                    </div>
+                  </td>
+      
+                  <td class="h-full py-8 px-6 align-top">
+                    <div class="relative table h-full">
+                      <p>
+                        <span class="text-4xl font-bold tracking-tight text-gray-900">$59</span>
+                        <span class="text-base font-medium text-gray-500">/mo</span>
+                      </p>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">Orci volutpat ut sed sed neque, dui eget. Quis tristique non.</p>
+                      <a href="#" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Premium</a>
+                    </div>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="4" scope="colgroup">Features</th>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Molestie lobortis massa.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Urna purus felis.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Tellus pulvinar sit dictum.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Convallis.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <span class="block text-sm text-gray-700">Up to 20 users</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <span class="block text-sm text-gray-700">Up to 50 users</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="4" scope="colgroup">Reporting</th>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Adipiscing.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Eget risus integer.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Gravida leo urna velit.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Elementum ut dapibus mi feugiat cras nisl.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="4" scope="colgroup">Support</th>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Sit dignissim.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Congue at nibh et.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Volutpat feugiat mattis.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+      
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row">Tristique pellentesque ornare diam sapien.</th>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Basic</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/minus -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Not included in Essential</span>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Included in Premium</span>
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr class="border-t border-gray-200">
+                  <th class="sr-only" scope="row">Choose your plan</th>
+      
+                  <td class="px-6 pt-5">
+                    <a href="#" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Basic</a>
+                  </td>
+      
+                  <td class="px-6 pt-5">
+                    <a href="#" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Essential</a>
+                  </td>
+      
+                  <td class="px-6 pt-5">
+                    <a href="#" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Premium</a>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
-
-          <div class="col-xs-12
-                          col-sm-6">
-
-            <h5 class="common-BodyTitle PricingFAQ-title">
-              Do you have discounts for non-profits / open-source? 
-            </h5>
-            <p class="common-BodyText PricingFAQ-body font16">
-             No, our software is open-source and free. Please feel free to use it. 
-            </p>
-
-          </div>
-
-          <div class="col-xs-12
-              col-sm-6">
-
-            <h5 class="common-BodyTitle PricingFAQ-title">
-              Can I change plans for an existing account?
-
-            </h5>
-            <p class="common-BodyText PricingFAQ-body font16">
-              Yes. You can upgrade to growth or enterprise plan at any time.
-            </p>
-
-          </div>
-
-        
-
-          <div class="col-xs-12
-                          col-sm-6">
-
-            <h5 class="common-BodyTitle PricingFAQ-title">
-              What types of payment do you accept?
-            </h5>
-            <p class="common-BodyText PricingFAQ-body font16">
-              We accepts credit card payments (Visa, Mastercard, American Express). Invoice payment available for
-              Enterprise customers.
-            </p>
-
-          </div>
-
-          <div class="col-xs-12
-                          col-sm-6">
-            <h5 class="common-BodyTitle PricingFAQ-title">
-              Do I get a 14-day free trial if I upgrade an existing account?
-            </h5>
-            <p class="common-BodyText PricingFAQ-body font16">
-              If you upgrade from an existing account you are not eligible for the 14-day free trial. The 14-day free
-              trial only applies
-              when you sign up for a new paid account.
-            </p>
-          </div>
-
         </div>
-
+      </div>
+<!-- This example requires Tailwind CSS v3.0+ -->
+<div class="bg-white">
+    <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:py-40 lg:px-8">
+      <div class="mx-auto max-w-4xl divide-y divide-gray-900/10">
+        <h2 class="text-2xl font-bold leading-10 tracking-tight text-gray-900">Frequently asked questions</h2>
+        <dl class="mt-10 space-y-6 divide-y divide-gray-900/10">
+          <div class="pt-6">
+            <dt>
+              <!-- Expand/collapse question button -->
+              <button type="button" class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
+                <span class="text-base font-semibold leading-7">What&#039;s the best thing about Switzerland?</span>
+                <span class="ml-6 flex h-7 items-center">
+                  <!--
+                    Icon when question is collapsed.
+  
+                    Heroicon name: outline/minus-small
+  
+                    Item expanded: "hidden", Item collapsed: ""
+                  -->
+                  <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6" />
+                  </svg>
+                  <!--
+                    Icon when question is expanded.
+  
+                    Heroicon name: outline/plus-small
+  
+                    Item expanded: "", Item collapsed: "hidden"
+                  -->
+                  <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
+                  </svg>
+                </span>
+              </button>
+            </dt>
+            <dd class="mt-2 pr-12" id="faq-0">
+              <p class="text-base leading-7 text-gray-600">I don&#039;t know, but the flag is a big plus. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quas cupiditate laboriosam fugiat.</p>
+            </dd>
+          </div>
+  
+          <!-- More questions... -->
+        </dl>
       </div>
     </div>
-
-
-
-
   </div>
 
   <%- include('footer') -%>
-  <script src="/js/switch.js"></script>
-  <script>
-    var el = document.querySelector('.checkbox-switch');
-
-    var annualSelected = false;
-
-    var mySwitch = new Switch(el, {
-      onSwitchColor: '#78bf7d',
-      offSwitchColor: '#78bf7d',
-      onJackColor: '#FFFFFF',
-      offJackColor: '#FFFFFF',
-      onChange: switchPlanCheckBox
-    });
-
-    $(document).ready(function () {
-      switchPlanCheckBox();
-    })
-
-    function switchPlanCheckBox() {
-      annualSelected = !annualSelected;
-
-      if (annualSelected) {
-        $("#growth-rate").text("$20");
-        $("#free-rate").text("$0");
-        $("#scale-rate").text("$84");
-        $("#growth-description").text("per-user billed annually.");
-        $("#startup-description").text("This plan is free, forever.");
-        $("#scale-description").text("per-user billed annually.");
-
-
-        $("#annual-text").css("font-weight", 600);
-        $("#monthly-text").css("font-weight", 500);
-      } else {
-
-        $("#growth-rate").text("$22");
-        $("#growth-description").text("per-user billed monthly.");
-
-        $("#free-rate").text("$0");
-        $("#startup-description").text("This plan is free forever.");
-
-        $("#scale-rate").text("$99");
-        $("#scale-description").text("per-user billed monthly.");
-
-        $("#monthly-text").css("font-weight", 600);
-        $("#annual-text").css("font-weight", 500);
-      }
-
-      if (window.location.href.indexOf("localhost") > -1) {
-        if (annualSelected) {
-          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIqpBpStiqQp')")
-          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKiTdQ6NiQFw')")
-          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9IlBKhsFz4hV2')")
-        } else {
-          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIYiX2L8hwzx')")
-          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKgxRnPPBJWy')")
-          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9Iox3l2YqLTDR')")
-        }
-      } else {
-        if (annualSelected) {
-          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgJu5PKMLRJU')")
-          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoViZshjqzZ0vv')")
-          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9IjvX2Flsvlcg')")
-        } else {
-          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgVbvNdbWwlm')")
-          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVi9EIa6MU0fG')")
-          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9Ii6Qj3HLdtty')")
-        }
-      }
-    }
-  </script>
-
-  <script>
-    // DIRTY Responsive pricing table JS
-
-    $("ul").on("click", "li", function () {
-      var pos = $(this).index() + 2;
-      $("tr").find('td:not(:eq(0))').hide();
-      $('td:nth-child(' + pos + ')').css('display', 'table-cell');
-      $("tr").find('th:not(:eq(0))').hide();
-      $('li').removeClass('active');
-      $(this).addClass('active');
-    });
-
-    // Initialize the media query
-    var mediaQuery = window.matchMedia('(min-width: 1020px)');
-
-    // Add a listen event
-    mediaQuery.addListener(doSomething);
-
-    // Function to do something with the media query
-    function doSomething(mediaQuery) {
-      if (mediaQuery.matches) {
-        $('.sep').attr('colspan', 5);
-      } else {
-        $('.sep').attr('colspan', 2);
-      }
-    }
-
-    // On load
-    doSomething(mediaQuery);
-  </script>
-
-
+              
 </body>
-
-
-
 </html>

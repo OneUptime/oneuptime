@@ -1,242 +1,127 @@
-<footer class='globalFooter withCards' style="margin-top:-400px">
+<footer class="bg-white" aria-labelledby="footer-heading">
+    <h2 id="footer-heading" class="sr-only">Footer</h2>
+    <div class="mx-auto max-w-7xl px-6 pb-8 pt-16 sm:pt-24 lg:px-8 lg:pt-32">
+      <div class="xl:grid xl:grid-cols-3 xl:gap-8">
+        <div class="space-y-8">
+          <img class="h-20 -ml-2 -mb-5 -mt-5" src="/img/logo-gray.svg" alt="OneUptime">
+          <p class="text-sm leading-6 text-gray-600">OneUptime is open-source complete SRE and DevOps platform</p>
+          <div class="flex space-x-6">
 
-    <!-- Google Tag Manager (noscript) -->
-    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKQD5WH" height="0" width="0"
-            style="display:none;visibility:hidden"></iframe>
-    <!-- End Google Tag Manager (noscript) -->
+            <a href="https://mobile.twitter.com/oneuptimehq" class="text-gray-400 hover:text-gray-500">
+                <span class="sr-only">Twitter</span>
+                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+                </svg>
+              </a>
+    
+              <a href="https://github.com/oneuptime" class="text-gray-400 hover:text-gray-500">
+                <span class="sr-only">GitHub</span>
+                <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+                </svg>
+              </a>
 
-    <% if (footerCards) { %>
-    <%- include('footer-cards') -%>
-    <% } %>
-
-    <% if (cta) { %>
-    <%- include('cta') -%>
-    <% } %>
-
-    <article class='globalFooterNav' style="margin-bottom: 0px; padding-bottom:0px;">
-        <div class='container-lg'>
-
-           
-
-            <div class="siteNav">
-                <div class="column">
-                    <h4>Products</h4>
-                    <div class="splitColumn">
-                        <ul>
-                            <li>
-                                <a href="/product/StatusPage">
-                                    <strong>Status Page</strong>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/product/oncall-management">
-                                    <strong>On-call Management</strong>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/product/uptime-monitoring">
-                                    <strong>Uptime Monitoring</strong>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/product/incident-management">
-                                    <strong>Incident Management & Response</strong>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/product/docker-container-security">
-                                    <strong>Docker Container Security</strong>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/product/app-security">
-                                    <strong>App Security</strong>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/product/logs-management">
-                                    <strong>Logs Management</strong>
-                                </a>
-                            </li>
-                        </ul>
-
-                    </div>
-                </div>
-                <div class="column">
-                    <h4>Enterprise</h4>
-                    <ul>
-                        <li>
-                            <a href="/enterprise/overview">Overview</a>
-                        </li>
-                        <li>
-                            <a href="/enterprise/resources">Resources &amp; Whitepapers</a>
-                        </li>
-                        <li>
-                            <a href="/enterprise/demo">Request Demo</a>
-                        </li>
-                        <li>
-                            <a href="https://hackerbaylabs.com" rel="noopener" target="_blank">Consulting</a>
-                        </li>
-                    </ul>
-                </div>
-                
-                <div class="column">
-                    <h4>Company</h4>
-                    <ul>
-                        <li>
-                            <a href="https://oneuptime.com" rel="noopener" target="_blank">About OneUptime</a>
-                        </li>
-                        <li>
-                            <a href="https://github.com/oneuptime" rel="noopener" target="_blank">Open Source &amp; GitHub</a>
-                        </li>
-                        <li>
-                            <a href="/customers">Customers</a>
-                        </li>
-                        <li>
-                            <a href="https://github.com/hackerbay/interview" rel="noopener" target="_blank">Jobs</a>
-                        </li>
-                        <li>
-                            <a href="https://blog.oneuptime.com" rel="noopener" target="_blank">Blog</a>
-                        </li>
-
-                    </ul>
-                </div>
-
-                <div class="column">
-                    <h4>More</h4>
-                    <ul>
-                        <li>
-                            <a href="/docs" rel="noopener" target="_blank">API Documentation</a>
-                        </li>
-                        <li>
-                            <a href="https://status.oneuptime.com/" rel="noopener" target="_blank">Platform Status</a>
-                        </li>
-                        <li>
-                            <a href="/support">Contact &amp; Support</a>
-                        </li>
-                        <li>
-                            <a href="/legal/terms">Legal Center</a>
-                        </li>
-                        <li>
-                            <a href="https://partners.oneuptime.com" target="_blank" rel="noopener">Become a Partner</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
+  
+            <!-- <a href="#" class="text-gray-400 hover:text-gray-500">
+              <span class="sr-only">YouTube</span>
+              <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill-rule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.417-4.814a2.507 2.507 0 0 1 1.768-1.768C5.744 5 11.998 5 11.998 5s6.255 0 7.814.418ZM15.194 12 10 15V9l5.194 3Z" clip-rule="evenodd" />
+              </svg>
+            </a> -->
+          </div>
         </div>
-    </article>
-
-    <article class='globalFooterNav' style="padding-top:0px; margin-top:0px">
-        <div class='container-lg' style="justify-content: space-between">
-
-            <ul class="metaNav invisible-in-mobile" style="width: 200px;">
-
-                <li class="space"></li>
-
-                <li class="select language">
-                    <a class="rootLink item-language" href="https://oneuptime.com" rel="noopener" target="_blank">
-                        <img width="40" height="40" src="/img/HB-Logo-Grey.svg" alt="HB-Logo-Grey" />
-                    </a>
-
+        <div class="mt-16 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
+          <div class="md:grid md:grid-cols-2 md:gap-8">
+            <div>
+              <h3 class="text-sm font-semibold leading-6 text-gray-900">Products</h3>
+              <ul role="list" class="mt-6 space-y-4">
+                <li>
+                  <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Status Page</a>
+                </li>
+  
+                <li>
+                  <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Incident Management</a>
                 </li>
 
-                <li style="margin-top: 8px;" class="copyright">&copy; OneUptime Limited</li>
-            </ul>
 
-            <div class="siteNav margin-right-130-desktop">
-                <div class="column margin-left-310-desktop">
-                    <h4>Compare</h4>
-                    <div class="splitColumn">
-                        <ul>
-                            <li>
-                                <a href="/table/pagerduty">
-                                    <strong>PagerDuty</strong>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/table/statuspage.io">
-                                    <strong>StatusPage.io</strong>
-                                </a>
-                            </li>
-                            <li>
-                                <a href="/table/pingdom">
-                                    <strong>Pingdom</strong>
-                                </a>
-                            </li>
-                        </ul>
-
-                    </div>
-                </div>
-                <div class="column">
-                    <h4>Legal Center</h4>
-                    <ul>
-                        <li>
-                            <a href="/legal/terms">Terms of Service</a>
-                        </li>
-                        <li>
-                            <a href="/legal/privacy">Privacy Policy</a>
-                        </li>
-                        <li>
-                            <a href="/legal/gdpr">GDPR</a>
-                        </li>
-                        <li>
-                            <a href="/legal/hipaa" rel="noopener" target="_blank">HIPAA</a>
-                        </li>
-                        <li>
-                            <a href="/legal/iso-27001" rel="noopener" target="_blank">ISO/IEC</a>
-                        </li>
-                        <li>
-                            <a href="/legal/soc-2" rel="noopener" target="_blank">SOC</a>
-                        </li>
-                        <li>
-                            <a href="/legal/pci" rel="noopener" target="_blank">PCI</a>
-                        </li>
-                    </ul>
-                </div>
-                
-                <!-- <div class="column">
-                    <h4>More from OneUptime</h4>
-                    <ul>
-                        <li>
-                            <a href="https://hackerbaylabs.com" rel="noopener" target="_blank">OneUptime Labs</a>
-                        </li>
-                        <li>
-                            <a href="https://hackerbayventures.com" rel="noopener" target="_blank">OneUptime Ventures</a>
-                        </li>
-                        <li>
-                            <a href="https://cloudboost.io" rel="noopener" target="_blank">CloudBoost</a>
-                        </li>
-                        <li>
-                            <a href="https://hackerbaypress.com" rel="noopener" target="_blank">OneUptime Press</a>
-                        </li>
-
-                    </ul>
-                </div> -->
-
-               
+              </ul>
             </div>
-
-        </div>
-    </article>
-
-    <article class='globalFooterNav invisible-in-desktop'>
-        <div class='container-lg'>
-
-            <ul class="metaNav">
-
-                <li class="select language">
-                    <a class="rootLink item-language" href="https://oneuptime.com" rel="noopener" target="_blank">
-                        <img width="40" height="40" src="/img/HB-Logo-Grey.svg" alt="HB-Logo-Grey" />
-                    </a>
-
+            <div class="mt-10 md:mt-0">
+              <h3 class="text-sm font-semibold leading-6 text-gray-900">Enterprise</h3>
+              <ul role="list" class="mt-6 space-y-4">
+                <li>
+                  <a href="/pricing" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Overview</a>
+                </li>
+  
+                <li>
+                  <a href="/enterprise/demo" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Request Demo</a>
                 </li>
 
-                <li style="margin-top: 8px; color: #5e696e" class="copyright">&copy; OneUptime Limited</li>
-            </ul>
+                <li>
+                    <a href="/docs" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Customers</a>
+                  </li>
+  
+              </ul>
+            </div>
+          </div>
+          <div class="md:grid md:grid-cols-2 md:gap-8">
+            <div>
+              <h3 class="text-sm font-semibold leading-6 text-gray-900">Compare</h3>
+              <ul role="list" class="mt-6 space-y-4">
+                <li>
+                  <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">StatusPage.io</a>
+                </li>
+  
+                <li>
+                    <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Pingdom</a>
+                </li>
+  
+                <li>
+                  <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Incident.io</a>
+                </li>
+  
+                <li>
+                  <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">PagerDuty</a>
+                </li>
+  
+                <li>
+                  <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">DataDog</a>
+                </li>
+                <li>
+                    <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">NewRelic</a>
+                  </li>
+              </ul>
+            </div>
+            <div class="mt-10 md:mt-0">
+              <h3 class="text-sm font-semibold leading-6 text-gray-900">Legal Center</h3>
+              <ul role="list" class="mt-6 space-y-4">
+                <li>
+                  <a href="/legal/terms" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Terms</a>
+                </li>
+  
+                <li>
+                  <a href="/legal/soc-2" class="text-sm leading-6 text-gray-600 hover:text-gray-900">SOC</a>
+                </li>
+  
+                <li>
+                  <a href="/legal/pci" class="text-sm leading-6 text-gray-600 hover:text-gray-900">PCI</a>
+                </li>
 
+                <li>
+                    <a href="/legal/gdpr" class="text-sm leading-6 text-gray-600 hover:text-gray-900">GDPR</a>
+                  </li>
+
+                  <li>
+                    <a href="/legal/iso-27001" class="text-sm leading-6 text-gray-600 hover:text-gray-900">ISO/IEC</a>
+                  </li>
+              </ul>
+            </div>
+          </div>
         </div>
-    </article>
-
-
-</footer>
+      </div>
+      <div class="mt-16 border-t border-gray-900/10 pt-8 sm:mt-20 lg:mt-24">
+        <p class="text-xs leading-5 text-gray-500">&copy; OneUptime Limited. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+  

@@ -1,6 +1,41 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      * {
+      font-family: Inter;
+      }
 
 
-<!-- Google Tag Manager -->
+      input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+          bottom: 0;
+          color: transparent;
+          cursor: pointer;
+          height: auto;
+          left: 0;
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: auto;
+      }
+
+      input[type="date"]::-webkit-calendar-picker-indicator {
+         background: transparent;
+          bottom: 0;
+          color: transparent;
+          cursor: pointer;
+          height: auto;
+          left: 0;
+          position: absolute;
+          right: 0;
+          top: 0;
+          width: auto;
+      }
+      </style>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -35,7 +70,7 @@
 <meta property="og:description"
     content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime. ">
 <meta property="og:image" content="https://oneuptime.com/img/hou-wb.svg">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:700,700i,900,900i&display=swap">
+
 <meta name="twitter:card" content="summary">
 <meta name="theme-color" content="#000000">
 <meta name="twitter:image" content="/img/ou-wb.svg">
@@ -44,28 +79,6 @@
 <meta name="twitter:description"
     content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
 <link rel="stylesheet" href="/css/default.css">
-<script src="https://code.jquery.com/jquery-3.5.1.min.js" crossorigin="anonymous"></script>
-<script async src="/js/default.js"></script>
-<script defer src="/js/switchUrl.js"></script>
-<link rel="preconnect" href="https://script.hotjar.com" crossorigin="">
-<link rel="preconnect" href="https://vars.hotjar.com" crossorigin="">
-<link rel="preconnect" href="https://vc.hotjar.io" crossorigin="">
-<link rel="preconnect" href="https://stats.g.doubleclick.net" crossorigin="">
-<link rel="preconnect" href="https://px.ads.linkedin.com" crossorigin="">
-<link rel="preconnect" href="https://www.linkedin.com" crossorigin="">
-<link rel="preconnect" href="https://snap.licdn.com" crossorigin="">
-<link rel="preconnect" href="https://cdn.amplitude.com" crossorigin="">
-<link rel="preconnect" href="https://static.hotjar.com" crossorigin="">
-<link rel="preconnect" href="https://p.adsymptotic.com" crossorigin="">
-<link rel="preconnect" href="https://www.google.com" crossorigin="">
-<link rel="preconnect" href="https://connect.facebook.net" crossorigin="">
-<link rel="preconnect" href="https://www.facebook.com" crossorigin="">
-<link rel="preconnect" href="https://in.hotjar.com" crossorigin="">
-<link rel="preconnect" href="https://www.google-analytics.com" crossorigin="">
-<link rel="stylesheet" href="/css/comparision.css">
-<link rel="stylesheet" href="/css/feature-table.css">
-
-
 
 
 
@@ -83,34 +96,4 @@
     ],
     "description": "OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime."
 }
-</script>
-<!-- This is basically meant to store the redirect query string in cookies -->
-<script type="module">
-    var searchParams = window.location.search
-    var sourceObj = {}
-    const params = new URLSearchParams(window.location.search)
-    if (searchParams) {
-        for (const param of params) {
-            sourceObj = { ...sourceObj, [`${param[0]}`]: param[1] }
-        }
-
-        function delete_cookie(name) {
-            document.cookie = name + '=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        }
-
-        // Set a Cookie
-        function setCookie(cName, cValue, expDays) {
-            //delete previously set cookie. 
-            delete_cookie(cName);
-
-            let date = new Date();
-            date.setTime(date.getTime() + (expDays * 24 * 60 * 60 * 1000));
-            const expires = "expires=" + date.toUTCString();
-            const path = "path=/";
-            // Remember to set back the domain since you used localhost for development purposes
-            document.cookie = cName + "=" + cValue + "; " + expires + ";" + path + "; " + "domain=" + window.location.hostname;
-        }
-        // Apply setCookie
-        setCookie('source', JSON.stringify(sourceObj), 1);
-    }
 </script>
