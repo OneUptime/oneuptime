@@ -182,7 +182,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Layout}
+                    icon={IconProp.ArrowCircleUp}
                 />
 
                 <SideMenuItem
@@ -195,7 +195,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Layers}
+                    icon={IconProp.ArrowCircleDown}
                 />
 
                 <SideMenuItem
@@ -208,7 +208,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Compass}
+                    icon={IconProp.AltGlobe}
                 />
             </SideMenuSection>
 

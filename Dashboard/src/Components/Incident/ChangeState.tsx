@@ -77,90 +77,92 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <Button
-            isLoading={isLoading}
-            buttonSize={ButtonSize.Small}
-            title={
-                props.incidentType === IncidentType.Ack
-                    ? 'Acknowledge Incident'
-                    : 'Resolve Incident'
-            }
-            icon={
-                props.incidentType === IncidentType.Ack
-                    ? IconProp.Circle
-                    : IconProp.CheckCircle
-            }
-            buttonStyle={
-                props.incidentType === IncidentType.Ack
-                    ? ButtonStyleType.WARNING_OUTLINE
-                    : ButtonStyleType.SUCCESS_OUTLINE
-            }
-            onClick={async () => {
-                setIsLaoding(true);
-                const projectId: ObjectID | undefined | null =
-                    ProjectUtil.getCurrentProject()?.id;
-
-                if (!projectId) {
-                    throw new BadDataException('ProjectId not found.');
+        <div className="-ml-3 mt-1">
+            <Button
+                isLoading={isLoading}
+                buttonSize={ButtonSize.Small}
+                title={
+                    props.incidentType === IncidentType.Ack
+                        ? 'Acknowledge Incident'
+                        : 'Resolve Incident'
                 }
+                icon={
+                    props.incidentType === IncidentType.Ack
+                        ? IconProp.Circle
+                        : IconProp.CheckCircle
+                }
+                buttonStyle={
+                    props.incidentType === IncidentType.Ack
+                        ? ButtonStyleType.WARNING_OUTLINE
+                        : ButtonStyleType.SUCCESS_OUTLINE
+                }
+                onClick={async () => {
+                    setIsLaoding(true);
+                    const projectId: ObjectID | undefined | null =
+                        ProjectUtil.getCurrentProject()?.id;
 
-                const incidentStates: ListResult<IncidentState> =
-                    await ModelAPI.getList<IncidentState>(
-                        IncidentState,
-                        {
-                            projectId: projectId,
-                        },
-                        99,
-                        0,
-                        {
-                            _id: true,
-                            isResolvedState: true,
-                            isAcknowledgedState: true,
-                            isCreatedState: true,
-                        },
-                        {},
-                        {}
+                    if (!projectId) {
+                        throw new BadDataException('ProjectId not found.');
+                    }
+
+                    const incidentStates: ListResult<IncidentState> =
+                        await ModelAPI.getList<IncidentState>(
+                            IncidentState,
+                            {
+                                projectId: projectId,
+                            },
+                            99,
+                            0,
+                            {
+                                _id: true,
+                                isResolvedState: true,
+                                isAcknowledgedState: true,
+                                isCreatedState: true,
+                            },
+                            {},
+                            {}
+                        );
+
+                    let stateId: ObjectID | null = null;
+
+                    for (const state of incidentStates.data) {
+                        if (
+                            props.incidentType === IncidentType.Ack &&
+                            state.isAcknowledgedState
+                        ) {
+                            stateId = state.id;
+                            break;
+                        }
+
+                        if (
+                            props.incidentType === IncidentType.Resolve &&
+                            state.isResolvedState
+                        ) {
+                            stateId = state.id;
+                            break;
+                        }
+                    }
+
+                    if (!stateId) {
+                        throw new BadDataException('Incident State not found.');
+                    }
+
+                    const incidentStateTimeline: IncidentStateTimeline =
+                        new IncidentStateTimeline();
+                    incidentStateTimeline.projectId = projectId;
+                    incidentStateTimeline.incidentId = props.incidentId;
+                    incidentStateTimeline.incidentStateId = stateId;
+
+                    await ModelAPI.create(
+                        incidentStateTimeline,
+                        IncidentStateTimeline
                     );
 
-                let stateId: ObjectID | null = null;
-
-                for (const state of incidentStates.data) {
-                    if (
-                        props.incidentType === IncidentType.Ack &&
-                        state.isAcknowledgedState
-                    ) {
-                        stateId = state.id;
-                        break;
-                    }
-
-                    if (
-                        props.incidentType === IncidentType.Resolve &&
-                        state.isResolvedState
-                    ) {
-                        stateId = state.id;
-                        break;
-                    }
-                }
-
-                if (!stateId) {
-                    throw new BadDataException('Incident State not found.');
-                }
-
-                const incidentStateTimeline: IncidentStateTimeline =
-                    new IncidentStateTimeline();
-                incidentStateTimeline.projectId = projectId;
-                incidentStateTimeline.incidentId = props.incidentId;
-                incidentStateTimeline.incidentStateId = stateId;
-
-                await ModelAPI.create(
-                    incidentStateTimeline,
-                    IncidentStateTimeline
-                );
-
-                props.onActionComplete();
-                setIsLaoding(false);
-            }}
-        />
+                    props.onActionComplete();
+                    setIsLaoding(false);
+                }}
+            />
+        </div>
     );
 };
 

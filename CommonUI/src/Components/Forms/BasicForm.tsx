@@ -1096,10 +1096,12 @@ const BasicForm: Function = <T extends Object>(
                                 )}
 
                                 {props.error && (
-                                    <Alert
-                                        title={props.error}
-                                        type={AlertType.DANGER}
-                                    />
+                                    <div className="mb-3">
+                                        <Alert
+                                            title={props.error}
+                                            type={AlertType.DANGER}
+                                        />
+                                    </div>
                                 )}
 
                                 <div>

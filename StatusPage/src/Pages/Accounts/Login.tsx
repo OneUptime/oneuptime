@@ -46,106 +46,79 @@ const LoginPage: FunctionComponent<ComponentProps> = (
     }
 
     return (
-        <div className="auth-page">
-            <div className="container-fluid p-0">
-                <div className="row g-0">
-                    <div className="col-xxl-4 col-lg-4 col-md-3"></div>
+        <div className="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
+            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                {props.logoFileId && props.logoFileId.toString() ? (
+                    <img
+                        style={{ height: '70px' }}
+                        src={`${URL.fromString(FILE_URL.toString()).addRoute(
+                            '/image/' + props.logoFileId.toString()
+                        )}`}
+                    />
+                ) : (
+                    <></>
+                )}
+                <h2 className="mt-6 text-center text-2xl  tracking-tight text-gray-900">
+                    Welcome back!
+                </h2>
+                <p className="mt-2 text-center text-sm text-gray-600">
+                    Please login to view {props.statusPageName || 'Status Page'}
+                </p>
+            </div>
 
-                    <div className="col-xxl-4 col-lg-4 col-md-6">
-                        <div className="auth-full-page-content d-flex p-sm-5 p-4">
-                            <div className="w-100">
-                                <div className="d-flex flex-column h-100">
-                                    <div className="auth-content my-auto">
-                                        {props.logoFileId &&
-                                        props.logoFileId.toString() ? (
-                                            <div
-                                                className="mt-4 text-center"
-                                                style={{ marginBottom: '40px' }}
-                                            >
-                                                <img
-                                                    style={{ height: '70px' }}
-                                                    src={`${URL.fromString(
-                                                        FILE_URL.toString()
-                                                    ).addRoute(
-                                                        '/image/' +
-                                                            props.logoFileId.toString()
-                                                    )}`}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <></>
-                                        )}
-                                        <div className="text-center">
-                                            <h5 className="mb-0">
-                                                Welcome back!
-                                            </h5>
-                                            <p className="text-muted mt-2 mb-0">
-                                                Please login to view{' '}
-                                                {props.statusPageName ||
-                                                    'Status Page'}
-                                            </p>
-                                        </div>
-
-                                        <ModelForm<StatusPagePrivateUser>
-                                            modelType={StatusPagePrivateUser}
-                                            id="login-form"
-                                            name="Status Page Login"
-                                            fields={[
-                                                {
-                                                    field: {
-                                                        email: true,
-                                                    },
-                                                    forceShow: true,
-                                                    title: 'Email',
-                                                    fieldType:
-                                                        FormFieldSchemaType.Email,
-                                                    required: true,
-                                                },
-                                                {
-                                                    field: {
-                                                        password: true,
-                                                    },
-                                                    title: 'Password',
-                                                    required: true,
-                                                    forceShow: true,
-                                                    validation: {
-                                                        minLength: 6,
-                                                    },
-                                                    fieldType:
-                                                        FormFieldSchemaType.Password,
-                                                    sideLink: {
-                                                        text: 'Forgot password?',
-                                                        url: new Route(
-                                                            props.isPreviewPage
-                                                                ? `/status-page/${props.statusPageId}/forgot-password`
-                                                                : '/forgot-password'
-                                                        ),
-                                                        openLinkInNewTab: false,
-                                                    },
-                                                },
-                                            ]}
-                                            apiUrl={apiUrl}
-                                            formType={FormType.Create}
-                                            submitButtonText={'Login'}
-                                            onSuccess={(value: JSONObject) => {
-                                                LoginUtil.login(value);
-                                                Navigation.navigate(
-                                                    new Route(
-                                                        props.isPreviewPage
-                                                            ? `/status-page/${props.statusPageId}/`
-                                                            : '/'
-                                                    )
-                                                );
-                                            }}
-                                            maxPrimaryButtonWidth={true}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="col-xxl-4 col-lg-4 col-md-3"></div>
+            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+                <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                    <ModelForm<StatusPagePrivateUser>
+                        modelType={StatusPagePrivateUser}
+                        id="login-form"
+                        name="Status Page Login"
+                        fields={[
+                            {
+                                field: {
+                                    email: true,
+                                },
+                                forceShow: true,
+                                title: 'Email',
+                                fieldType: FormFieldSchemaType.Email,
+                                required: true,
+                            },
+                            {
+                                field: {
+                                    password: true,
+                                },
+                                title: 'Password',
+                                required: true,
+                                forceShow: true,
+                                validation: {
+                                    minLength: 6,
+                                },
+                                fieldType: FormFieldSchemaType.Password,
+                                sideLink: {
+                                    text: 'Forgot password?',
+                                    url: new Route(
+                                        props.isPreviewPage
+                                            ? `/status-page/${props.statusPageId}/forgot-password`
+                                            : '/forgot-password'
+                                    ),
+                                    openLinkInNewTab: false,
+                                },
+                            },
+                        ]}
+                        apiUrl={apiUrl}
+                        formType={FormType.Create}
+                        submitButtonText={'Login'}
+                        onSuccess={(value: JSONObject) => {
+                            LoginUtil.login(value);
+                            Navigation.navigate(
+                                new Route(
+                                    props.isPreviewPage
+                                        ? `/status-page/${props.statusPageId}/`
+                                        : '/'
+                                )
+                            );
+                        }}
+                        maxPrimaryButtonWidth={true}
+                    />
                 </div>
             </div>
         </div>
