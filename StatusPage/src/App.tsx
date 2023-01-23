@@ -55,7 +55,8 @@ const App: FunctionComponent = () => {
 
     const onPageLoadComplete: Function = (): void => {
         if (javascript) {
-            eval(javascript);
+            // run custom javascipt.
+            new Function(javascript)();
         }
     };
 

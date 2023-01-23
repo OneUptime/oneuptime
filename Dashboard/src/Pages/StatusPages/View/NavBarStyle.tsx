@@ -160,14 +160,14 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: false,
                     },
-                    {
-                        field: {
-                            showRssPage: true,
-                        },
-                        title: 'Enable RSS Page',
-                        fieldType: FormFieldSchemaType.Checkbox,
-                        required: false,
-                    },
+                    // {
+                    //     field: {
+                    //         showRssPage: true,
+                    //     },
+                    //     title: 'Enable RSS Page',
+                    //     fieldType: FormFieldSchemaType.Checkbox,
+                    //     required: false,
+                    // },
                 ]}
                 modelDetailProps={{
                     showDetailsInNumberOfColumns: 1,
@@ -209,13 +209,13 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                             fieldType: FieldType.Boolean,
                             title: 'Enable Subscribers',
                         },
-                        {
-                            field: {
-                                showRssPage: true,
-                            },
-                            fieldType: FieldType.Boolean,
-                            title: 'Enable RSS',
-                        },
+                        // {
+                        //     field: {
+                        //         showRssPage: true,
+                        //     },
+                        //     fieldType: FieldType.Boolean,
+                        //     title: 'Enable RSS',
+                        // },
                     ],
                     modelId: modelId,
                 }}

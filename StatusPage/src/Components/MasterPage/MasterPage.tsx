@@ -202,7 +202,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
                 className=" m-auto"
                 makeTopSectionUnstick={true}
                 topSectionClassName="shadow p-1 bg-white rounded mb-5 flex justify-center"
-                hideHeader={!logo && links.length === 0}
+                hideHeader={!headerHtml && !logo && links.length === 0}
                 footer={
                     !footerHtml ? (
                         <Footer
