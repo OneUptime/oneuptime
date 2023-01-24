@@ -72,7 +72,7 @@ app.get('/enterprise/demo', (_req: ExpressRequest, res: ExpressResponse) => {
 app.get(
     '/product/status-page',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.redirect('/product/public-status-page');
+        res.redirect('/product/status-page');
     }
 );
 
@@ -81,13 +81,17 @@ app.get('/status', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/public-status-page');
+    res.redirect('/product/status-page');
+});
+
+app.get('/about', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.render('about');
 });
 
 app.get(
-    '/product/public-status-page',
+    '/product/status-page',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.render('public-status-page', {
+        res.render('status-page', {
             support: false,
             footerCards: true,
             cta: true,
@@ -99,8 +103,8 @@ app.get(
     }
 );
 
-app.get('/public-status-page', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.redirect('/product/public-status-page');
+app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.redirect('/product/status-page');
 });
 
 app.get(
@@ -709,7 +713,7 @@ app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
         URL.fromString('https://oneuptime.com/'),
         URL.fromString('https://oneuptime.com/pricing'),
         URL.fromString('https://oneuptime.com/support'),
-        URL.fromString('https://oneuptime.com/product/public-status-page'),
+        URL.fromString('https://oneuptime.com/product/status-page'),
         URL.fromString('https://oneuptime.com/product/private-status-page'),
         URL.fromString('https://oneuptime.com/product/uptime-monitoring'),
         URL.fromString('https://oneuptime.com/product/incident-management'),
