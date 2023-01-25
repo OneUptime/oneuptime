@@ -22,22 +22,22 @@
         <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
           <div class="sm:align-center sm:flex sm:flex-col">
             <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Pricing Plans</h1>
-            <p class="mt-5 text-xl text-gray-500 sm:text-center">Start building for free, then add a site plan to go live. Account plans unlock additional features.</p>
+            <p class="mt-5 text-xl text-gray-500 sm:text-center">Get started for free with our generous free plan. Paid plans unlock additional features. Sign up free, no credit card required.</p>
             <div class="relative mt-6 flex self-center rounded-lg bg-gray-100 p-0.5 sm:mt-8">
-              <button type="button" class="relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Monthly billing</button>
-              <button type="button" class="relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Yearly billing</button>
+              <button type="button" onclick="switchToMonthlyBilling()" id="monthly-billing-btn" class="relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Monthly billing</button>
+              <button type="button" onclick="switchToYearlyBilling()" id="yearly-billing-btn" class="relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8">Yearly billing</button>
             </div>
           </div>
           <div class="mt-12 space-y-4 sm:mt-16 sm:grid sm:grid-cols-2 sm:gap-6 sm:space-y-0 lg:mx-auto lg:max-w-4xl xl:mx-0 xl:max-w-none xl:grid-cols-4">
             <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
               <div class="p-6">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Hobby</h2>
-                <p class="mt-4 text-sm text-gray-500">All the basics for starting a new business</p>
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Free</h2>
+                <p class="mt-4 text-sm text-gray-500">All the basics you need to get started</p>
                 <p class="mt-8">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900">$12</span>
-                  <span class="text-base font-medium text-gray-500">/mo</span>
+                  <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
+                  <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                 </p>
-                <a href="#" class="mt-8 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Hobby</a>
+                <a href="/accounts/register" class="mt-8 block hover:text-white w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
               </div>
               <div class="px-6 pt-6 pb-8">
                 <h3 class="text-sm font-medium text-gray-900">What's included</h3>
@@ -47,15 +47,32 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Potenti felis, in cras at at ligula nunc.</span>
+                    <span class="text-sm text-gray-500">Unlimited Status Pages</span>
                   </li>
+
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Unlimited Subscribers</span>
+                  </li>
+
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Unlimited Monitors</span>
+                  </li>
+
       
                   <li class="flex space-x-3">
                     <!-- Heroicon name: mini/check -->
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Orci neque eget pellentesque.</span>
+                    <span class="text-sm text-gray-500">Unlimited Team Members</span>
                   </li>
                 </ul>
               </div>
@@ -63,13 +80,13 @@
       
             <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
               <div class="p-6">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Freelancer</h2>
-                <p class="mt-4 text-sm text-gray-500">All the basics for starting a new business</p>
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
+                <p class="mt-4 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
                 <p class="mt-8">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900">$24</span>
-                  <span class="text-base font-medium text-gray-500">/mo</span>
+                  <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                  <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                 </p>
-                <a href="#" class="mt-8 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Freelancer</a>
+                <a href="/accounts/register" class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free 14 day trial</a>
               </div>
               <div class="px-6 pt-6 pb-8">
                 <h3 class="text-sm font-medium text-gray-900">What's included</h3>
@@ -79,7 +96,7 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Potenti felis, in cras at at ligula nunc. </span>
+                    <span class="text-sm text-gray-500">Everything in Free Plan </span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -87,7 +104,15 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Orci neque eget pellentesque.</span>
+                    <span class="text-sm text-gray-500">5000+ Integrations</span>
+                  </li>
+
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">API Access</span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -95,7 +120,23 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Donec mauris sit in eu tincidunt etiam.</span>
+                    <span class="text-sm text-gray-500">Advanced Workflows</span>
+                  </li>
+
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">1 Business Day Email Support</span>
+                  </li>
+
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">99.95% SLA</span>
                   </li>
                 </ul>
               </div>
@@ -103,13 +144,13 @@
       
             <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
               <div class="p-6">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Startup</h2>
-                <p class="mt-4 text-sm text-gray-500">All the basics for starting a new business</p>
+                <h2 class="text-lg font-medium leading-6 text-gray-900 scale-plan-price">Scale</h2>
+                <p class="mt-4 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
                 <p class="mt-8">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900">$32</span>
-                  <span class="text-base font-medium text-gray-500">/mo</span>
+                  <span class="text-4xl font-bold tracking-tight text-gray-900">$99</span>
+                  <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                 </p>
-                <a href="#" class="mt-8 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Startup</a>
+                <a href="/accounts/register" class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Free 14 day trial</a>
               </div>
               <div class="px-6 pt-6 pb-8">
                 <h3 class="text-sm font-medium text-gray-900">What's included</h3>
@@ -119,7 +160,7 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Potenti felis, in cras at at ligula nunc. </span>
+                    <span class="text-sm text-gray-500">Everything in Growth </span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -127,7 +168,23 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Orci neque eget pellentesque.</span>
+                    <span class="text-sm text-gray-500">Single Sign On (SSO)</span>
+                  </li>
+
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Unlimited Teams</span>
+                  </li>
+
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Advanced Access Control</span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -135,7 +192,15 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Donec mauris sit in eu tincidunt etiam.</span>
+                    <span class="text-sm text-gray-500">3 hour Chat or Email Support</span>
+                  </li>
+
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">99.99% SLA</span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -143,7 +208,7 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Faucibus volutpat magna.</span>
+                    <span class="text-sm text-gray-500">Dedicated Account Executive</span>
                   </li>
                 </ul>
               </div>
@@ -152,12 +217,12 @@
             <div class="divide-y divide-gray-200 rounded-lg border border-gray-200 shadow-sm">
               <div class="p-6">
                 <h2 class="text-lg font-medium leading-6 text-gray-900">Enterprise</h2>
-                <p class="mt-4 text-sm text-gray-500">All the basics for starting a new business</p>
+                <p class="mt-4 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
                 <p class="mt-8">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900">$48</span>
-                  <span class="text-base font-medium text-gray-500">/mo</span>
+                  <span class="text-4xl font-bold tracking-tight text-gray-900">Custom</span>
+                  <span class="text-base font-medium text-gray-500">/yr</span>
                 </p>
-                <a href="#" class="mt-8 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Enterprise</a>
+                <a href="/enterprise/demo" class="mt-8 block w-full hover:text-white rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
               </div>
               <div class="px-6 pt-6 pb-8">
                 <h3 class="text-sm font-medium text-gray-900">What's included</h3>
@@ -167,7 +232,7 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Potenti felis, in cras at at ligula nunc. </span>
+                    <span class="text-sm text-gray-500">Everything in Scale Plan</span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -175,7 +240,7 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Orci neque eget pellentesque.</span>
+                    <span class="text-sm text-gray-500">Custom Features</span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -183,7 +248,7 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Donec mauris sit in eu tincidunt etiam.</span>
+                    <span class="text-sm text-gray-500">Dedicated Engineer</span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -191,7 +256,7 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Faucibus volutpat magna.</span>
+                    <span class="text-sm text-gray-500">1 hour Phone Support</span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -199,7 +264,7 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Id sed tellus in varius quisque.</span>
+                    <span class="text-sm text-gray-500">Custom Data Retention</span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -207,7 +272,7 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Risus egestas faucibus.</span>
+                    <span class="text-sm text-gray-500">Dedicated Support Channel</span>
                   </li>
       
                   <li class="flex space-x-3">
@@ -215,7 +280,14 @@
                     <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                    <span class="text-sm text-gray-500">Risus cursus ullamcorper.</span>
+                    <span class="text-sm text-gray-500">Custom Data Retention</span>
+                  </li>
+                  <li class="flex space-x-3">
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 flex-shrink-0 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-sm text-gray-500">Annual Invoicing</span>
                   </li>
                 </ul>
               </div>
@@ -355,10 +427,10 @@
           <div class="mx-auto max-w-2xl space-y-16 lg:hidden">
             <section>
               <div class="mb-8 px-6 sm:px-4">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Basic</h2>
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Free</h2>
                 <p class="mt-4">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900">$9</span>
-                  <span class="text-base font-medium text-gray-500">/mo</span>
+                  <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
+                  <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                 </p>
                 <p class="mt-4 text-sm text-gray-500">Quis suspendisse ut fermentum neque vivamus non tellus.</p>
                 <a href="#" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Basic</a>
@@ -366,7 +438,7 @@
       
               <table class="w-full">
                 <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
-                  Features
+                  Status Pages
                 </caption>
                 <thead>
                   <tr>
@@ -376,7 +448,20 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                   <tr class="border-t border-gray-200">
-                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Molestie lobortis massa.</th>
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Public Status Pages</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <div class="text-right text-sm text-gray-700">Unlimited</div>
+                    </td>
+                  </tr>
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Subscribers</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <div class="text-right text-sm text-gray-700">Unlimited</div>
+                    </td>
+                  </tr>
+      
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">SSL</th>
                     <td class="py-5 pr-6 sm:pr-4">
                       <!-- Heroicon name: mini/check -->
                       <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -387,7 +472,19 @@
                   </tr>
       
                   <tr class="border-t border-gray-200">
-                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Urna purus felis.</th>
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Custom Branding</th>
+                    <td class="py-5 pr-6 sm:pr-4">
+                      <!-- Heroicon name: mini/check -->
+                      <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="sr-only">Yes</span>
+                    </td>
+                  </tr>
+
+
+                  <tr class="border-t border-gray-200">
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Custom Domains</th>
                     <td class="py-5 pr-6 sm:pr-4">
                       <!-- Heroicon name: mini/check -->
                       <svg class="ml-auto h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -398,7 +495,7 @@
                   </tr>
       
                   <tr class="border-t border-gray-200">
-                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Tellus pulvinar sit dictum.</th>
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Private Status Pages</th>
                     <td class="py-5 pr-6 sm:pr-4">
                       <!-- Heroicon name: mini/minus -->
                       <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -407,9 +504,9 @@
                       <span class="sr-only">No</span>
                     </td>
                   </tr>
-      
+
                   <tr class="border-t border-gray-200">
-                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Convallis.</th>
+                    <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row">Private Status Page Users</th>
                     <td class="py-5 pr-6 sm:pr-4">
                       <!-- Heroicon name: mini/minus -->
                       <svg class="ml-auto h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -418,6 +515,7 @@
                       <span class="sr-only">No</span>
                     </td>
                   </tr>
+                  
                 </tbody>
               </table>
       
@@ -542,10 +640,10 @@
       
             <section>
               <div class="mb-8 px-6 sm:px-4">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Essential</h2>
+                <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
                 <p class="mt-4">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900">$29</span>
-                  <span class="text-base font-medium text-gray-500">/mo</span>
+                  <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                  <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                 </p>
                 <p class="mt-4 text-sm text-gray-500">Quis eleifend a tincidunt pellentesque. A tempor in sed.</p>
                 <a href="#" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Essential</a>
@@ -725,10 +823,10 @@
       
             <section>
               <div class="mb-8 px-6 sm:px-4">
-                <h2 class="text-lg font-medium leading-6 text-gray-900">Premium</h2>
+                <h2 class="text-lg font-medium leading-6 text-gray-900 ">Scale</h2>
                 <p class="mt-4">
-                  <span class="text-4xl font-bold tracking-tight text-gray-900">$59</span>
-                  <span class="text-base font-medium text-gray-500">/mo</span>
+                  <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
+                  <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                 </p>
                 <p class="mt-4 text-sm text-gray-500">Orci volutpat ut sed sed neque, dui eget. Quis tristique non.</p>
                 <a href="#" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Premium</a>
@@ -920,11 +1018,13 @@
                     <span>Plans</span>
                   </th>
       
-                  <th class="w-1/4 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Basic</th>
+                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Free</th>
       
-                  <th class="w-1/4 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Essential</th>
+                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Growth</th>
       
-                  <th class="w-1/4 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Premium</th>
+                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Scale</th>
+
+                  <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Enterprise</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-200 border-t border-gray-200">
@@ -934,39 +1034,50 @@
                   <td class="h-full py-8 px-6 align-top">
                     <div class="relative table h-full">
                       <p>
-                        <span class="text-4xl font-bold tracking-tight text-gray-900">$9</span>
-                        <span class="text-base font-medium text-gray-500">/mo</span>
+                        <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
+                        <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                       </p>
-                      <p class="mt-4 mb-16 text-sm text-gray-500">Quis suspendisse ut fermentum neque vivamus non tellus.</p>
-                      <a href="#" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Basic</a>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">All the basics you need to get started.</p>
+                      <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
                     </div>
                   </td>
       
                   <td class="h-full py-8 px-6 align-top">
                     <div class="relative table h-full">
                       <p>
-                        <span class="text-4xl font-bold tracking-tight text-gray-900">$29</span>
-                        <span class="text-base font-medium text-gray-500">/mo</span>
+                        <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                        <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                       </p>
-                      <p class="mt-4 mb-16 text-sm text-gray-500">Quis eleifend a tincidunt pellentesque. A tempor in sed.</p>
-                      <a href="#" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Essential</a>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
+                      <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try Free for 14 Days</a>
                     </div>
                   </td>
       
                   <td class="h-full py-8 px-6 align-top">
                     <div class="relative table h-full">
                       <p>
-                        <span class="text-4xl font-bold tracking-tight text-gray-900">$59</span>
-                        <span class="text-base font-medium text-gray-500">/mo</span>
+                        <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
+                        <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                       </p>
-                      <p class="mt-4 mb-16 text-sm text-gray-500">Orci volutpat ut sed sed neque, dui eget. Quis tristique non.</p>
-                      <a href="#" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Buy Premium</a>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
+                      <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try Free for 14 Days</a>
+                    </div>
+                  </td>
+
+                  <td class="h-full py-8 px-6 align-top">
+                    <div class="relative table h-full">
+                      <p>
+                        <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">Custom</span>
+                        <span class="text-base font-medium text-gray-500 billing-period">/yr</span>
+                      </p>
+                      <p class="mt-4 mb-16 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
+                      <a href="/enterprise/demo" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
                     </div>
                   </td>
                 </tr>
       
                 <tr>
-                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="4" scope="colgroup">Features</th>
+                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="5" scope="colgroup">Features</th>
                 </tr>
       
                 <tr>
@@ -1074,7 +1185,7 @@
                 </tr>
       
                 <tr>
-                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="4" scope="colgroup">Reporting</th>
+                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="5" scope="colgroup">Reporting</th>
                 </tr>
       
                 <tr>
@@ -1190,7 +1301,7 @@
                 </tr>
       
                 <tr>
-                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="4" scope="colgroup">Support</th>
+                  <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="5" scope="colgroup">Support</th>
                 </tr>
       
                 <tr>
@@ -1335,42 +1446,109 @@
           <div class="pt-6">
             <dt>
               <!-- Expand/collapse question button -->
-              <button type="button" class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
-                <span class="text-base font-semibold leading-7">What&#039;s the best thing about Switzerland?</span>
-                <span class="ml-6 flex h-7 items-center">
-                  <!--
-                    Icon when question is collapsed.
-  
-                    Heroicon name: outline/minus-small
-  
-                    Item expanded: "hidden", Item collapsed: ""
-                  -->
-                  <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 12H6" />
-                  </svg>
-                  <!--
-                    Icon when question is expanded.
-  
-                    Heroicon name: outline/plus-small
-  
-                    Item expanded: "", Item collapsed: "hidden"
-                  -->
-                  <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6" />
-                  </svg>
-                </span>
-              </button>
+              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
+                <span class="text-base font-semibold leading-7">Do you have discounts for non-profits / open-source?</span>
+              </div>
             </dt>
             <dd class="mt-2 pr-12" id="faq-0">
-              <p class="text-base leading-7 text-gray-600">I don&#039;t know, but the flag is a big plus. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quas cupiditate laboriosam fugiat.</p>
+              <p class="text-base leading-7 text-gray-600">No, our software is open-source and free. Please feel free to self-host it. If you choose to use our SaaS service, you will have to pay the full price. You pay, we keep the lights on.</p>
             </dd>
           </div>
   
-          <!-- More questions... -->
+          <div class="pt-6">
+            <dt>
+              <!-- Expand/collapse question div -->
+              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
+                <span class="text-base font-semibold leading-7">Can I cancel anytime?</span>
+              </div>
+            </dt>
+            <dd class="mt-2 pr-12" id="faq-0">
+              <p class="text-base leading-7 text-gray-600">Yes. You can cancel anytime.</p>
+            </dd>
+          </div>
+
+          <div class="pt-6">
+            <dt>
+              <!-- Expand/collapse question div -->
+              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
+                <span class="text-base font-semibold leading-7">What are accepted payment methods?</span>
+              </div>
+            </dt>
+            <dd class="mt-2 pr-12" id="faq-0">
+              <p class="text-base leading-7 text-gray-600">Visa / Mastercard / AmEx. Invoice payment available for Enterprise customers. We also support payments in Bitcoin. If you choose to do so, please send us an email to billing@oneuptime.com and we will send a lightning invoice.</p>
+            </dd>
+          </div>
+
+          <div class="pt-6">
+            <dt>
+              <!-- Expand/collapse question div -->
+              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
+                <span class="text-base font-semibold leading-7">Do I get a 14-day free trial if I upgrade an existing account?</span>
+              </div>
+            </dt>
+            <dd class="mt-2 pr-12" id="faq-0">
+              <p class="text-base leading-7 text-gray-600">If you upgrade from an existing account you are not eligible for the 14-day free trial. The 14-day free trial only applies when you sign up for a new paid account.</p>
+            </dd>
+          </div>
+
+          <div class="pt-6">
+            <dt>
+              <!-- Expand/collapse question div -->
+              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
+                <span class="text-base font-semibold leading-7">How do discounts work?</span>
+              </div>
+            </dt>
+            <dd class="mt-2 pr-12" id="faq-0">
+              <p class="text-base leading-7 text-gray-600">Annual plans have a 17% discount. You can upgrade your current plan to an annual plan to avail of the discount. If you're an enterprise, contact us for a custom quote.</p>
+            </dd>
+          </div>
         </dl>
       </div>
     </div>
   </div>
+
+  <script>
+
+
+    function switchToYearlyBilling(){
+      document.getElementById("yearly-billing-btn").classList= "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+      document.getElementById("monthly-billing-btn").classList= "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+      for(let i=0;i<document.getElementsByClassName("free-plan-price").length; i++){
+        document.getElementsByClassName("free-plan-price")[i].innerHTML = "$0"
+      }
+      for(let i=0;i<document.getElementsByClassName("growth-plan-price").length; i++){
+        document.getElementsByClassName("growth-plan-price")[i].innerHTML = "$20"
+      }
+      for(let i=0;i<document.getElementsByClassName("scale-plan-price").length; i++){
+        document.getElementsByClassName("scale-plan-price")[i].innerHTML = "$84"
+      }
+
+      for(let i=0;i<document.getElementsByClassName("billing-period").length; i++){
+        document.getElementsByClassName("billing-period")[i].innerHTML ="/mo billed yearly"
+      }
+      
+    } 
+
+    function switchToMonthlyBilling(){
+      document.getElementById("monthly-billing-btn").classList= "relative w-1/2 whitespace-nowrap rounded-md border-gray-200 bg-white py-2 text-sm font-medium text-gray-900 shadow-sm focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+      document.getElementById("yearly-billing-btn").classList= "relative ml-0.5 w-1/2 whitespace-nowrap rounded-md border border-transparent py-2 text-sm font-medium text-gray-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:px-8"
+      for(let i=0;i<document.getElementsByClassName("free-plan-price").length; i++){
+        document.getElementsByClassName("free-plan-price")[i].innerHTML = "$0"
+      }
+      for(let i=0;i<document.getElementsByClassName("growth-plan-price").length; i++){
+        document.getElementsByClassName("growth-plan-price")[i].innerHTML = "$22"
+      }
+      for(let i=0;i<document.getElementsByClassName("scale-plan-price").length; i++){
+        document.getElementsByClassName("scale-plan-price")[i].innerHTML = "$99"
+      }
+
+      for(let i=0;i<document.getElementsByClassName("billing-period").length; i++){
+        document.getElementsByClassName("billing-period")[i].innerHTML ="/mo"
+      }
+      
+    } 
+
+  </script>
 
   <%- include('footer') -%>
               

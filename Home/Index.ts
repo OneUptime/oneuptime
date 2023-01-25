@@ -14,6 +14,8 @@ import URL from 'Common/Types/API/URL';
 import productCompare, { Product } from './config/product-compare';
 import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
+import API from 'Common/Utils/API';
+import { JSONObject } from 'Common/Types/JSON';
 
 export const APP_NAME: string = 'home';
 const app: ExpressApplication = Express.getExpressApp();
@@ -39,23 +41,35 @@ app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-app.get('/support', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render('support', {
-        support: true,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
-    });
+app.get('/support', async (_req: ExpressRequest, res: ExpressResponse) => {
+
+
+    
+
+    res.render('support');
 });
 
 app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
+
+
+    const pricing = [{
+        name: "Status Page",
+        data: [
+            {
+                name: "Public Status Page",
+                plans: {
+                    free: "Unlimited",
+                    scale: "Unlimited",
+                    growth: "Unlimited",
+                    enterprise: "Unlimited"
+                }
+            }
+        ]
+    }];
+
+
     res.render('pricing', {
-        support: false,
-        footerCards: true,
-        cta: true,
-        blackLogo: false,
-        requestDemoCta: false,
+        pricing
     });
 });
 
@@ -84,8 +98,28 @@ app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/status-page');
 });
 
-app.get('/about', (_req: ExpressRequest, res: ExpressResponse) => {
-    res.render('about');
+app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
+    let contributors: Array<JSONObject> = [];
+
+    let hasMoreContributors = true;
+
+    let pageNumber = 1;
+
+    while (hasMoreContributors) {
+        const response = await API.get(URL.fromString("https://api.github.com/repos/oneuptime/oneuptime/contributors?page=" + pageNumber));
+        pageNumber++;
+        if ((response.data as Array<JSONObject>).length < 30) {
+            hasMoreContributors = false; 
+        }
+
+        contributors = contributors.concat(response.data as Array<JSONObject>);
+    }
+
+    const basicInfo = await API.get(URL.fromString("https://api.github.com/repos/oneuptime/oneuptime"));
+    res.render('about', {
+        contributors: contributors,
+        basicInfo: basicInfo.data
+    });
 });
 
 app.get(
