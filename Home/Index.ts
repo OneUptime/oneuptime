@@ -42,34 +42,429 @@ app.get('/', (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/support', async (_req: ExpressRequest, res: ExpressResponse) => {
-
-
-    
-
     res.render('support');
 });
 
 app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
-
-
-    const pricing = [{
-        name: "Status Page",
-        data: [
-            {
-                name: "Public Status Page",
-                plans: {
-                    free: "Unlimited",
-                    scale: "Unlimited",
-                    growth: "Unlimited",
-                    enterprise: "Unlimited"
-                }
-            }
-        ]
-    }];
-
+    const pricing = [
+        {
+            name: 'Status Page',
+            data: [
+                {
+                    name: 'Public Status Page',
+                    plans: {
+                        free: 'Unlimited',
+                        growth: 'Unlimited',
+                        scale: 'Unlimited',
+                        enterprise: 'Unlimited',
+                    },
+                },
+                {
+                    name: 'Subscribers',
+                    plans: {
+                        free: 'Unlimited',
+                        growth: 'Unlimited',
+                        scale: 'Unlimited',
+                        enterprise: 'Unlimited',
+                    },
+                },
+                {
+                    name: 'Custom Domain',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'SSL',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Custom Branding',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Private Status Page',
+                    plans: {
+                        free: false,
+                        growth: 'Unlimited',
+                        scale: 'Unlimited',
+                        enterprise: 'Unlimited',
+                    },
+                },
+                {
+                    name: 'Private Status Page Users',
+                    plans: {
+                        free: false,
+                        growth: 'Unlimited',
+                        scale: 'Unlimited',
+                        enterprise: 'Unlimited',
+                    },
+                },
+            ],
+        },
+        {
+            name: 'Incident Management',
+            data: [
+                {
+                    name: 'Basic Incident Management',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Public Postmortem Notes',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Private Postmortem Notes',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Incident Workflows',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Custom Incident State',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Custom Incident Severity',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+            ],
+        },
+        {
+            name: 'Monitoring',
+            data: [
+                {
+                    name: 'Static / Manual Monitors',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Website Monitoring',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'API Monitoring',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'Container Monitoring',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'IPv4 Monitoring',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'IPv6 Monitoring',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'IPv4 Monitoring',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'VM or Server Monitoring',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'Network Monitoring',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'Kubernetes Cluster Monitoring',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+            ],
+        },
+        {
+            name: 'On Call and Alerts',
+            data: [
+                {
+                    name: 'Phone Alerts',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'SMS Alerts',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'Email Alerts',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'Webhook Alerts',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'On-Call Rotation',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'Vacation and OOO Policy',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'On-Call Escalation',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'On-Call Pay',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'Advanced Workflows',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+                {
+                    name: 'Reports',
+                    plans: {
+                        free: 'Coming Soon',
+                        growth: 'Coming Soon',
+                        scale: 'Coming Soon',
+                        enterprise: 'Coming Soon',
+                    },
+                },
+            ],
+        },
+        {
+            name: 'Support and More',
+            data: [
+                {
+                    name: 'Support',
+                    plans: {
+                        free: 'Community Support',
+                        growth: 'Email Support',
+                        scale: 'Email and Chat Support',
+                        enterprise: 'Email, Chat, Phone Support',
+                    },
+                },
+                {
+                    name: 'Support SLA',
+                    plans: {
+                        free: false,
+                        growth: '1 business day',
+                        scale: '6 hours',
+                        enterprise: '1 hour priority',
+                    },
+                },
+                {
+                    name: 'Service SLA',
+                    plans: {
+                        free: false,
+                        growth: '99.90%',
+                        scale: '99.95%',
+                        enterprise: '99.99%',
+                    },
+                },
+            ],
+        },
+        {
+            name: 'Advanced Features',
+            data: [
+                {
+                    name: 'API Access',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: 'Advanced Workflows',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+                {
+                    name: '5000+ Integrations',
+                    plans: {
+                        free: false,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+            ],
+        },
+        {
+            name: 'Billing',
+            data: [
+                {
+                    name: 'Billing Period',
+                    plans: {
+                        free: 'Free',
+                        growth: 'Monthly or Yearly',
+                        scale: 'Monthly or Yearly',
+                        enterprise: 'Custom',
+                    },
+                },
+                {
+                    name: 'Payment Method',
+                    plans: {
+                        free: false,
+                        growth: 'Visa / Mastercard / Amex / Bitcoin',
+                        scale: 'Visa / Mastercard / Amex / Bitcoin',
+                        enterprise:
+                            'Visa / Mastercard / Amex / ACH / Invoices / Bitcoin',
+                    },
+                },
+                {
+                    name: 'Cancel Anytime',
+                    plans: {
+                        free: true,
+                        growth: true,
+                        scale: true,
+                        enterprise: true,
+                    },
+                },
+            ],
+        },
+    ];
 
     res.render('pricing', {
-        pricing
+        pricing,
     });
 });
 
@@ -106,19 +501,26 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
     let pageNumber = 1;
 
     while (hasMoreContributors) {
-        const response = await API.get(URL.fromString("https://api.github.com/repos/oneuptime/oneuptime/contributors?page=" + pageNumber));
+        const response = await API.get(
+            URL.fromString(
+                'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
+                    pageNumber
+            )
+        );
         pageNumber++;
         if ((response.data as Array<JSONObject>).length < 30) {
-            hasMoreContributors = false; 
+            hasMoreContributors = false;
         }
 
         contributors = contributors.concat(response.data as Array<JSONObject>);
     }
 
-    const basicInfo = await API.get(URL.fromString("https://api.github.com/repos/oneuptime/oneuptime"));
+    const basicInfo = await API.get(
+        URL.fromString('https://api.github.com/repos/oneuptime/oneuptime')
+    );
     res.render('about', {
         contributors: contributors,
-        basicInfo: basicInfo.data
+        basicInfo: basicInfo.data,
     });
 });
 
