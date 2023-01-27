@@ -599,7 +599,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                     currentStatus.isOperationalState
                                         ? `All`
                                         : 'Some'
-                                } Resources are ${currentStatus.name}`}
+                                } Resources are ${
+                                    currentStatus.name?.toLowerCase() ===
+                                    'maintenance'
+                                        ? 'under'
+                                        : ''
+                                } ${currentStatus.name}`}
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
                                 textClassName="text-white text-lg"

@@ -87,9 +87,6 @@ bash certs-renew.sh
 
 Please make sure you add the above bash command into a crontab that runs every 15 days. 
 
-### Production ready enterprise instance on Kubernetes and Helm. 
-
-We recommend that you run OneUptime on Kubernetes and Helm. [Readme can be found here](HelmChart/public/oneuptime/README.md)
 
 ## Philosophy
 
