@@ -75,10 +75,12 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
                     />
                 </div>
             )}
-            <div className="text-sm text-gray-400 mt-1 flex justify-between">
-                <div>90 days ago</div>
-                <div>Today</div>
-            </div>
+            {props.showHistoryChart && (
+                <div className="text-sm text-gray-400 mt-1 flex justify-between">
+                    <div>90 days ago</div>
+                    <div>Today</div>
+                </div>
+            )}
         </div>
     );
 };
