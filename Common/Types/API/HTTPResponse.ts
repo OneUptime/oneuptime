@@ -2,6 +2,7 @@ import BaseModel from '../../Models/BaseModel';
 import { JSONArray, JSONObject, JSONObjectOrArray } from '../JSON';
 import JSONFunctions from '../JSONFunctions';
 import Typeof from '../Typeof';
+import Headers from './Headers';
 
 export default class HTTPResponse<
     T extends JSONObjectOrArray | BaseModel | Array<BaseModel>
@@ -30,6 +31,16 @@ export default class HTTPResponse<
         this._data = v;
     }
 
+    
+    private _headers : Headers = {};
+    public get headers() : Headers {
+        return this._headers;
+    }
+    public set headers(v : Headers) {
+        this._headers = v;
+    }
+    
+
     private _count: number = 0;
     public get count(): number {
         return this._count;
@@ -56,7 +67,8 @@ export default class HTTPResponse<
 
     public constructor(
         statusCode: number,
-        data: JSONObject | Array<JSONObject>
+        data: JSONObject | Array<JSONObject>,
+        headers: Headers
     ) {
         this.statusCode = statusCode;
 
@@ -82,7 +94,7 @@ export default class HTTPResponse<
         } else {
             this.jsonData = JSONFunctions.deserialize(data as JSONObject);
         }
-
+        this.headers = headers;
         this.data = this.jsonData as T;
     }
 

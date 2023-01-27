@@ -228,7 +228,8 @@ export default class API {
 
             const response: HTTPResponse<T> = new HTTPResponse<T>(
                 result.status,
-                result.data
+                result.data,
+                result.headers
             );
 
             return response;
@@ -251,7 +252,8 @@ export default class API {
         if (error.response) {
             return new HTTPErrorResponse(
                 error.response.status,
-                error.response.data
+                error.response.data,
+                error.response.headers
             );
         }
 

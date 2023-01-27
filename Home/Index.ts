@@ -493,34 +493,69 @@ app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/status-page');
 });
 
+
+let gitHubContributors: Array<JSONObject> = [];
+let gitHubBasicInfo: JSONObject | null = null; 
+let gitHubCommits: string = "-";
+
 app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
-    let contributors: Array<JSONObject> = [];
 
-    let hasMoreContributors = true;
+    if (gitHubContributors.length === 0) {
+        let contributors: Array<JSONObject> = [];
 
-    let pageNumber = 1;
+        let hasMoreContributors = true;
 
-    while (hasMoreContributors) {
-        const response = await API.get(
-            URL.fromString(
-                'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
+        let pageNumber = 1;
+
+        while (hasMoreContributors) {
+            const response = await API.get(
+                URL.fromString(
+                    'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
                     pageNumber
-            )
-        );
-        pageNumber++;
-        if ((response.data as Array<JSONObject>).length < 30) {
-            hasMoreContributors = false;
+                )
+            );
+            pageNumber++;
+            if ((response.data as Array<JSONObject>).length < 30) {
+                hasMoreContributors = false;
+            }
+
+            contributors = contributors.concat(response.data as Array<JSONObject>);
         }
 
-        contributors = contributors.concat(response.data as Array<JSONObject>);
+        //cache it. 
+        gitHubContributors = [...contributors];
     }
 
-    const basicInfo = await API.get(
-        URL.fromString('https://api.github.com/repos/oneuptime/oneuptime')
+    const response = await API.get(
+        URL.fromString(
+            'https://api.github.com/repos/oneuptime/oneuptime/commits?sha=master&per_page=1&page=1'
+        )
     );
+
+
+    if (gitHubCommits === "-") {
+        // this is of type: '<https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=22486>; rel="last"',
+        const link = response.headers['link'];
+        const urlString: string | undefined = link?.split(",")[1]?.split(";")[0]?.replace("<", "").replace(">", "").trim();
+        const url = URL.fromString(urlString!);
+        const commits = Number.prototype.toLocaleString(url.getQueryParam("page") as string)
+
+
+        if (!gitHubBasicInfo) {
+            const basicInfo = await API.get(
+                URL.fromString('https://api.github.com/repos/oneuptime/oneuptime')
+            );
+
+            gitHubBasicInfo = basicInfo.data as JSONObject;
+        }
+
+        gitHubCommits = commits;
+    }
+
     res.render('about', {
-        contributors: contributors,
-        basicInfo: basicInfo.data,
+        contributors: gitHubBasicInfo,
+        basicInfo: gitHubBasicInfo,
+        commits: gitHubCommits
     });
 });
 
