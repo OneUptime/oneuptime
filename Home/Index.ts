@@ -538,7 +538,7 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
         const link = response.headers['link'];
         const urlString: string | undefined = link?.split(",")[1]?.split(";")[0]?.replace("<", "").replace(">", "").trim();
         const url = URL.fromString(urlString!);
-        const commits = Number.prototype.toLocaleString(url.getQueryParam("page") as string)
+        const commits = Number.parseInt(url.getQueryParam("page") as string).toLocaleString()
 
 
         if (!gitHubBasicInfo) {
@@ -553,7 +553,7 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
     }
 
     res.render('about', {
-        contributors: gitHubBasicInfo,
+        contributors: gitHubContributors,
         basicInfo: gitHubBasicInfo,
         commits: gitHubCommits
     });
