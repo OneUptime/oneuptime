@@ -4,7 +4,7 @@
 <meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-    <title>OneUptime | Page not found. </title>
+    <title>OneUptime | Compare <%= productConfig.productName %> with OneUptime. </title>
     <meta name="description"
         content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
         <%- include('head') -%>
@@ -66,24 +66,21 @@
             <tbody class="divide-y divide-gray-200">
               <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
               <tr class="border-t border-gray-200">
-                <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].name %></th>
+                <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].title %></th>
                 <td class="py-5 pr-6 sm:pr-4">
-                  <% if(productConfig.items[i].data[j].plans.free === true){ %>
+                  <% if(productConfig.items[i].data[j].productColumn === "tick"){ %>
                     <!-- Heroicon name: mini/check -->
                  <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                    <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                  </svg>
-                <% } else if(productConfig.items[i].data[j].plans.free === false){ %>
+                <% } else if(productConfig.items[i].data[j].productColumn === ""){ %>
                  <!-- Heroicon name: mini/check -->
                  <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                    <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
                  </svg>
-                 <% } else if(productConfig.items[i].data[j].plans.free === "Coming Soon") { %>
-                   <!-- Heroicon name: mini/check -->
-                   <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.free %></span>
                <% } else { %>
                     <!-- Heroicon name: mini/check -->
-                    <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.free %></span>
+                    <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].productColumn %></span>
                 <% } %>
                 </td>
               </tr>
@@ -101,16 +98,16 @@
   
         <section>
           <div class="mb-8 px-6 sm:px-4">
-            <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
+            <h2 class="text-lg font-medium leading-6 text-gray-900">OneUptime</h2>
             <p class="mt-4">
-              <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+              <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price"><%= productConfig.oneuptimePrice %></span>
               <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
             </p>
             <p class="mt-4 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
             <a href="/accounts/register" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
           </div>
   
-          <% for(var i=0; i<pricing.length; i++) {%>
+          <% for(var i=0; i<productConfig.items.length; i++) {%>
             <table class="w-full">
               <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
                 <%= productConfig.items[i].name %>
@@ -124,81 +121,21 @@
               <tbody class="divide-y divide-gray-200">
                 <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
                 <tr class="border-t border-gray-200">
-                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].name %></th>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].title %></th>
                   <td class="py-5 pr-6 sm:pr-4">
-                    <% if(productConfig.items[i].data[j].plans.growth === true){ %>
+                    <% if(productConfig.items[i].data[j].oneuptimeColumn === "tick"){ %>
                       <!-- Heroicon name: mini/check -->
                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                    </svg>
-                  <% } else if(productConfig.items[i].data[j].plans.growth === false){ %>
+                  <% } else if(productConfig.items[i].data[j].oneuptimeColumn === ""){ %>
                    <!-- Heroicon name: mini/check -->
                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
                    </svg>
-                   <% } else if(productConfig.items[i].data[j].plans.growth === "Coming Soon") { %>
-                     <!-- Heroicon name: mini/check -->
-                     <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.growth %></span>
                  <% } else { %>
                       <!-- Heroicon name: mini/check -->
-                      <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.growth %></span>
-                  <% } %>
-                  </td>
-                </tr>
-                <% } %>
-                
-              </tbody>
-            </table>
-            <% } %>
-  
-          <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
-            <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
-          </div>
-        </section>
-  
-        <section>
-          <div class="mb-8 px-6 sm:px-4">
-            <h2 class="text-lg font-medium leading-6 text-gray-900 ">Scale</h2>
-            <p class="mt-4">
-              <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
-              <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
-            </p>
-            <p class="mt-4 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
-            <a href="/accounts/register" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
-          </div>
-  
-          <% for(var i=0; i<pricing.length; i++) {%>
-            <table class="w-full">
-              <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
-                <%= productConfig.items[i].name %>
-              </caption>
-              <thead>
-                <tr>
-                  <th class="sr-only" scope="col">Feature</th>
-                  <th class="sr-only" scope="col">Included</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200">
-                <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
-                <tr class="border-t border-gray-200">
-                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].name %></th>
-                  <td class="py-5 pr-6 sm:pr-4">
-                    <% if(productConfig.items[i].data[j].plans.scale === true){ %>
-                      <!-- Heroicon name: mini/check -->
-                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                   </svg>
-                  <% } else if(productConfig.items[i].data[j].plans.scale === false){ %>
-                   <!-- Heroicon name: mini/check -->
-                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                   </svg>
-                   <% } else if(productConfig.items[i].data[j].plans.scale === "Coming Soon") { %>
-                     <!-- Heroicon name: mini/check -->
-                     <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.scale %></span>
-                 <% } else { %>
-                      <!-- Heroicon name: mini/check -->
-                      <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.scale %></span>
+                      <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].oneuptimeColumn %></span>
                   <% } %>
                   </td>
                 </tr>
@@ -213,84 +150,25 @@
           </div>
         </section>
 
-        <section>
-          <div class="mb-8 px-6 sm:px-4">
-            <h2 class="text-lg font-medium leading-6 text-gray-900 ">Enterprise</h2>
-            <p class="mt-4">
-              <span class="text-4xl font-bold tracking-tight text-gray-900">Custom</span>
-              <span class="text-base font-medium text-gray-500">/yr</span>
-            </p>
-            <p class="mt-4 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
-            <a href="/enterprise/demo" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
-          </div>
-  
-          <% for(var i=0; i<pricing.length; i++) {%>
-            <table class="w-full">
-              <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
-                <%= productConfig.items[i].name %>
-              </caption>
-              <thead>
-                <tr>
-                  <th class="sr-only" scope="col">Feature</th>
-                  <th class="sr-only" scope="col">Included</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200">
-                <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
-                <tr class="border-t border-gray-200">
-                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].name %></th>
-                  <td class="py-5 pr-6 sm:pr-4">
-                    <% if(productConfig.items[i].data[j].plans.enterprise === true){ %>
-                      <!-- Heroicon name: mini/check -->
-                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                   </svg>
-                  <% } else if(productConfig.items[i].data[j].plans.enterprise === false){ %>
-                   <!-- Heroicon name: mini/check -->
-                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                   </svg>
-                   <% } else if(productConfig.items[i].data[j].plans.enterprise === "Coming Soon") { %>
-                     <!-- Heroicon name: mini/check -->
-                     <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.enterprise %></span>
-                 <% } else { %>
-                      <!-- Heroicon name: mini/check -->
-                      <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.enterprise %></span>
-                  <% } %>
-                  </td>
-                </tr>
-                <% } %>
-                
-              </tbody>
-            </table>
-            <% } %>
-  
-          <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
-            <a href="/enterprise/demo" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
-          </div>
-        </section>
       </div>
   
       <!-- lg+ -->
       <div class="hidden lg:block">
         <table class="h-px w-full table-fixed">
           <caption class="sr-only">
-            Pricing plan comparison
+            Compare Products
           </caption>
           <thead>
             <tr>
-              <th class="px-6 pb-4 text-left text-sm font-medium text-gray-900" scope="col">
+              <th class="w-1/3 px-6 pb-4 text-left text-sm font-medium text-gray-900" scope="col">
                 <span class="sr-only">Feature by</span>
-                <span>Plans</span>
+                <span>Products</span>
               </th>
   
-              <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Free</th>
+              <th class="w-1/3 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col"><%= productConfig.productName %></th>
   
-              <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Growth</th>
+              <th class="w-1/3 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">OneUptime</th>
   
-              <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Scale</th>
-
-              <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Enterprise</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200 border-t border-gray-200">
@@ -300,162 +178,76 @@
               <td class="h-full py-8 px-6 align-top">
                 <div class="relative table h-full">
                   <p>
-                    <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
+                    <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price"><%= productConfig.price %></span>
                     <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                   </p>
-                  <p class="mt-4 mb-16 text-sm text-gray-500">All the basics you need to get started.</p>
-                  <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
+                  <p class="mt-4 mb-16 text-sm text-gray-500"><%= productConfig.productDescription %></p>
+                 
                 </div>
               </td>
   
               <td class="h-full py-8 px-6 align-top">
                 <div class="relative table h-full">
                   <p>
-                    <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                    <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price"><%= productConfig.oneuptimePrice %></span>
                     <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
                   </p>
-                  <p class="mt-4 mb-16 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
-                  <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try Free for 14 Days</a>
+                  <p class="mt-4 mb-16 text-sm text-gray-500"><%= productConfig.oneUptimeDescription %></p>
+                  
                 </div>
               </td>
   
-              <td class="h-full py-8 px-6 align-top">
-                <div class="relative table h-full">
-                  <p>
-                    <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
-                    <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
-                  </p>
-                  <p class="mt-4 mb-16 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
-                  <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try Free for 14 Days</a>
-                </div>
-              </td>
-
-              <td class="h-full py-8 px-6 align-top">
-                <div class="relative table h-full">
-                  <p>
-                    <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">Custom</span>
-                    <span class="text-base font-medium text-gray-500 billing-period">/yr</span>
-                  </p>
-                  <p class="mt-4 mb-16 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
-                  <a href="/enterprise/demo" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
-                </div>
-              </td>
             </tr>
   
 
-            <% for(var i=0; i<pricing.length; i++) {%>
+            <% for(var i=0; i<productConfig.items.length; i++) {%>
             <tr>
               <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="5" scope="colgroup"><%= productConfig.items[i].name %></th>
             </tr>
                 <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
                 <tr>
-                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row"><%= productConfig.items[i].data[j].name %></th>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row"><%= productConfig.items[i].data[j].title %></th>
       
                   <td class="py-5 px-6">
-                    <% if(productConfig.items[i].data[j].plans.free === true){ %>
+                    <% if(productConfig.items[i].data[j].productColumn === "tick"){ %>
                        <!-- Heroicon name: mini/check -->
                     <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                     </svg>
-                   <% } else if(productConfig.items[i].data[j].plans.free === false){ %>
+                   <% } else if(productConfig.items[i].data[j].productColumn === ""){ %>
                     <!-- Heroicon name: mini/check -->
                     <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                       <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
                     </svg>
-                    <% } else if(productConfig.items[i].data[j].plans.free === "Coming Soon") { %>
-                      <!-- Heroicon name: mini/check -->
-                      <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.free %></span>
                   <% } else { %>
                        <!-- Heroicon name: mini/check -->
-                       <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.free %></span>
+                       <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].productColumn %></span>
                    <% } %>
                    
                   </td>
       
                   <td class="py-5 px-6">
-                    <% if(productConfig.items[i].data[j].plans.growth === true){ %>
+                    <% if(productConfig.items[i].data[j].oneuptimeColumn === "tick"){ %>
                       <!-- Heroicon name: mini/check -->
                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
                    </svg>
-                  <% } else if(productConfig.items[i].data[j].plans.growth === false){ %>
+                  <% } else if(productConfig.items[i].data[j].oneuptimeColumn === ""){ %>
                    <!-- Heroicon name: mini/check -->
                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
                    </svg>
-               <% } else if(productConfig.items[i].data[j].plans.growth === "Coming Soon") { %>
-                <!-- Heroicon name: mini/check -->
-                <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.growth %></span>
             <% } else { %>
                  <!-- Heroicon name: mini/check -->
-                 <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.growth %></span>
+                 <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].oneuptimeColumn %></span>
              <% } %>
-                  </td>
-      
-                  <td class="py-5 px-6">
-                    <% if(productConfig.items[i].data[j].plans.scale === true){ %>
-                      <!-- Heroicon name: mini/check -->
-                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                   </svg>
-                  <% } else if(productConfig.items[i].data[j].plans.scale === false) { %>
-                   <!-- Heroicon name: mini/check -->
-                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                   </svg>
-                   <% } else if(productConfig.items[i].data[j].plans.scale === "Coming Soon") { %>
-                    <!-- Heroicon name: mini/check -->
-                    <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.scale %></span>
-                <% } else { %>
-                     <!-- Heroicon name: mini/check -->
-                     <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.scale %></span>
-                 <% } %>
-                  </td>
-                  <td class="py-5 px-6">
-                    <% if(productConfig.items[i].data[j].plans.enterprise === true) { %>
-                      <!-- Heroicon name: mini/check -->
-                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
-                   </svg>
-                  <% } else if(productConfig.items[i].data[j].plans.enterprise === false) { %>
-                   <!-- Heroicon name: mini/check -->
-                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
-                   </svg>
-                   <% } else if(productConfig.items[i].data[j].plans.enterprise === "Coming Soon") { %>
-                    <!-- Heroicon name: mini/check -->
-                    <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.enterprise %></span>
-                <% } else { %>
-                     <!-- Heroicon name: mini/check -->
-                     <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.enterprise %></span>
-                 <% } %>
                   </td>
                 </tr>
                 <% } %>
             <% } %>
 
           </tbody>
-          <tfoot>
-            <tr class="border-t border-gray-200">
-              <th class="sr-only" scope="row">Choose your plan</th>
-  
-              <td class="px-6 pt-5">
-                <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
-              </td>
-  
-              <td class="px-6 pt-5">
-                <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
-              </td>
-  
-              <td class="px-6 pt-5">
-                <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
-              </td>
-
-              <td class="px-6 pt-5">
-                <a href="/enterprise/demo" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
-              </td>
-            </tr>
-          </tfoot>
+          
         </table>
       </div>
     </div>

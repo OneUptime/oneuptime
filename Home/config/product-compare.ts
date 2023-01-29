@@ -11,11 +11,16 @@ export enum ItemType {
 }
 
 export interface Item {
-    type: ItemType;
-    title: string;
-    description?: string;
-    productColumn?: string;
-    oneuptimeColumn?: string;
+    title: string,
+    description:
+    string,
+    productColumn: string,
+    oneuptimeColumn: string,
+}
+
+export interface Category {
+    name: string,
+    data: Array<Item>
 }
 
 export interface Product {
@@ -26,7 +31,9 @@ export interface Product {
     description: string;
     descriptionLine2: string;
     faq: Array<FAQ>;
-    items: Array<Item>;
+    items: Array<Category>;
+    oneUptimeDescription: string;
+    productDescription: string;
 }
 
 export default (product: string): Product => {
@@ -34,8 +41,10 @@ export default (product: string): Product => {
         pagerduty: {
             productName: 'PagerDuty',
             iconUrl: '/img/pagerduty.jpeg',
-            price: '$29/mo',
-            oneuptimePrice: '$22/mo',
+            price: '$410',
+            oneuptimePrice: '$0',
+            productDescription: "For 10 users alerts and on-call schedule. PagerDuty is an on-call scheduling solution.",
+            oneUptimeDescription: "You can get alerts, on-call rotation and schedules for free with OneUptime and oa whole lot more.",
             description:
                 'Check out how we compare with PagerDuty. We do most of what PagerDuty does and a whole lot more.',
             descriptionLine2:
@@ -58,144 +67,153 @@ export default (product: string): Product => {
             ],
             items: [
                 {
-                    type: ItemType.Category,
-                    title: 'Incident Management and On Call Scheduling',
+                    name: 'Incident Management and On Call Scheduling',
+                    data: [
+                        {
+
+                            title: 'Alerts by Email, SMS, Call and Push Notifications',
+                            description:
+                                'Have your team alerted by any of the channels including Slack and Microsoft Teams',
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'On Call Rotations',
+                            description:
+                                'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Vacation Policy',
+                            description:
+                                "Have vacation policy built into your company's on-call schedule.",
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Sick Policy',
+                            description:
+                                "Have sick policy built into your company's on-call schedule.",
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'On-call for Geo-distributed teams',
+                            description:
+                                'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },
+                    ]
                 },
                 {
-                    type: ItemType.Item,
-                    title: 'Alerts by Email, SMS, Call and Push Notifications',
-                    description:
-                        'Have your team alerted by any of the channels including Slack and Microsoft Teams',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
+                    name: 'Monitoring',
+                    data: [
+                        {
+
+                            title: 'Monitor anything',
+                            description:
+                                "Server, Containers, API's, Websites, IoT and more.",
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Uptime Check',
+                            description: 'How often we check uptime of your resources.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Probe Locations',
+                            description:
+                                'We check your uptime from different locations around the world.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Public Status Pages',
+                            description: 'Public Status Page for your customers.',
+                            productColumn: 'Every 1 second',
+                            oneuptimeColumn: 'US, Canada, EU & Australia.',
+                        },
+                    ]
                 },
                 {
-                    type: ItemType.Item,
-                    title: 'On Call Rotations',
-                    description:
-                        'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
+                    name: 'Status Page',
+                    data: [{
+
+                        title: 'Public Status Pages',
+                        description: 'Public Status Page for your customers.',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Unlimited Subscribers',
+                        description:
+                            'You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Scheduled Events',
+                        description:
+                            'You can show scheduled maintenance window on your status page.',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Private Status Page',
+                        description: 'Private status pages for your internal team.',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },]
                 },
                 {
-                    type: ItemType.Item,
-                    title: 'Vacation Policy',
-                    description:
-                        "Have vacation policy built into your company's on-call schedule.",
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Sick Policy',
-                    description:
-                        "Have sick policy built into your company's on-call schedule.",
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'On-call for Geo-distributed teams',
-                    description:
-                        'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Category,
-                    title: 'Monitoring',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Monitor anything',
-                    description:
-                        "Server, Containers, API's, Websites, IoT and more.",
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Uptime Check',
-                    description: 'How often we check uptime of your resources.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Probe Locations',
-                    description:
-                        'We check your uptime from different locations around the world.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Public Status Pages',
-                    description: 'Public Status Page for your customers.',
-                    productColumn: 'Every 1 second',
-                    oneuptimeColumn: 'US, Canada, EU & Australia.',
-                },
-                {
-                    type: ItemType.Category,
-                    title: 'Status Page',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Public Status Pages',
-                    description: 'Public Status Page for your customers.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Unlimited Subscribers',
-                    description:
-                        'You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Scheduled Events',
-                    description:
-                        'You can show scheduled maintenance window on your status page.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Private Status Page',
-                    description: 'Private status pages for your internal team.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Category,
-                    title: 'Misc',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Integrations',
-                    description:
-                        'Integrate OneUptime with more than 2000+ apps.',
-                    productColumn: 'Integrates with 350+ apps',
-                    oneuptimeColumn: 'Integrates with 2000+ apps',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'API Access',
-                    description:
-                        'Build custom integrations with unlimited API access.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
+                    name: "More",
+                    data: [
+
+                        {
+
+                            title: 'Integrations',
+                            description:
+                                'Integrate OneUptime with more than 2000+ apps.',
+                            productColumn: 'Integrates with 350+ apps',
+                            oneuptimeColumn: 'Integrates with 2000+ apps',
+                        },
+                        {
+
+                            title: 'API Access',
+                            description:
+                                'Build custom integrations with unlimited API access.',
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },
+                    ]
+                }
+
+
+
+
             ],
         },
         'statuspage.io': {
             productName: 'StatusPage.io',
             iconUrl: '/img/statuspagelogo.png',
-            price: '$79/mo',
-            oneuptimePrice: '$22/mo',
+            price: '$99',
+            oneuptimePrice: '$0',
+            productDescription: "For their status pages with 1000 subscribers. ",
+            oneUptimeDescription: "OneUptime offers unlimited status pages with unlimited subscribers for free.",
             description:
                 'Check out how we compare with StatusPage.io. We do most of what StatusPage.io does and a whole lot more.',
             descriptionLine2:
@@ -218,144 +236,154 @@ export default (product: string): Product => {
             ],
             items: [
                 {
-                    type: ItemType.Category,
-                    title: 'Incident Management and On Call Scheduling',
+
+                    name: 'Incident Management and On Call Scheduling',
+                    data: [
+                        {
+
+                            title: 'Alerts by Email, SMS, Call and Push Notifications',
+                            description:
+                                'Have your team alerted by any of the channels including Slack and Microsoft Teams',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'On Call Rotations',
+                            description:
+                                'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Vacation Policy',
+                            description:
+                                "Have vacation policy built into your company's on-call schedule.",
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Sick Policy',
+                            description:
+                                "Have sick policy built into your company's on-call schedule.",
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'On-call for Geo-distributed teams',
+                            description:
+                                'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                    ]
+                },
+
+                {
+
+                    name: 'Monitoring',
+                    data: [
+                        {
+
+                            title: 'Monitor anything',
+                            description:
+                                "Server, Containers, API's, Websites, IoT and more.",
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Uptime Check',
+                            description: 'How often we check uptime of your resources.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Probe Locations',
+                            description:
+                                'We check your uptime from different locations around the world.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Public Status Pages',
+                            description: 'Public Status Page for your customers.',
+                            productColumn: '',
+                            oneuptimeColumn: 'US, Canada, EU & Australia.',
+                        },
+
+                    ]
                 },
                 {
-                    type: ItemType.Item,
-                    title: 'Alerts by Email, SMS, Call and Push Notifications',
-                    description:
-                        'Have your team alerted by any of the channels including Slack and Microsoft Teams',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
+                    name: "Status Pages",
+                    data: [
+                        {
+
+                            title: 'Public Status Pages',
+                            description: 'Public Status Page for your customers.',
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Subscribers',
+                            description:
+                                'You can have customer subscribers and have them alerted by Email, SMS, RSS or more.',
+                            productColumn: '250 Subscribers',
+                            oneuptimeColumn: 'Unlimited Subscribers',
+                        },
+                        {
+
+                            title: 'Scheduled Events',
+                            description:
+                                'You can show scheduled maintenance window on your status page.',
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+
+                            title: 'Private Status Page',
+                            description: 'Private status pages for your internal team.',
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },]
                 },
+
                 {
-                    type: ItemType.Item,
-                    title: 'On Call Rotations',
-                    description:
-                        'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
+
+                    name: 'Misc',
+                    data: [{
+
+                        title: 'Integrations',
+                        description:
+                            'Integrate OneUptime with more than 2000+ apps.',
+                        productColumn: 'Integrates with 80+ apps',
+                        oneuptimeColumn: 'Integrates with 2000+ apps',
+                    },
+                    {
+
+                        title: 'API Access',
+                        description:
+                            'Build custom integrations with unlimited API access.',
+                        productColumn: 'tick',
+                        oneuptimeColumn: 'tick',
+                    },]
                 },
-                {
-                    type: ItemType.Item,
-                    title: 'Vacation Policy',
-                    description:
-                        "Have vacation policy built into your company's on-call schedule.",
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Sick Policy',
-                    description:
-                        "Have sick policy built into your company's on-call schedule.",
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'On-call for Geo-distributed teams',
-                    description:
-                        'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Category,
-                    title: 'Monitoring',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Monitor anything',
-                    description:
-                        "Server, Containers, API's, Websites, IoT and more.",
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Uptime Check',
-                    description: 'How often we check uptime of your resources.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Probe Locations',
-                    description:
-                        'We check your uptime from different locations around the world.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Public Status Pages',
-                    description: 'Public Status Page for your customers.',
-                    productColumn: '',
-                    oneuptimeColumn: 'US, Canada, EU & Australia.',
-                },
-                {
-                    type: ItemType.Category,
-                    title: 'Status Page',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Public Status Pages',
-                    description: 'Public Status Page for your customers.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Subscribers',
-                    description:
-                        'You can have customer subscribers and have them alerted by Email, SMS, RSS or more.',
-                    productColumn: '250 Subscribers',
-                    oneuptimeColumn: 'Unlimited Subscribers',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Scheduled Events',
-                    description:
-                        'You can show scheduled maintenance window on your status page.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Private Status Page',
-                    description: 'Private status pages for your internal team.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Category,
-                    title: 'Misc',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Integrations',
-                    description:
-                        'Integrate OneUptime with more than 2000+ apps.',
-                    productColumn: 'Integrates with 80+ apps',
-                    oneuptimeColumn: 'Integrates with 2000+ apps',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'API Access',
-                    description:
-                        'Build custom integrations with unlimited API access.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
+
             ],
         },
         pingdom: {
             productName: 'Pingdom',
             iconUrl: '/img/pingdom.svg',
-            price: '$43/mo',
-            oneuptimePrice: '$22/mo',
+            price: '$49',
+            productDescription: "Pingdom charges you $49/mo for 50 uptime monitors.",
+            oneUptimeDescription: "OneUptime offers unlimited monitoring with unlimited alerts for free.",
+            oneuptimePrice: '$0',
             description:
                 'Check out how we compare with Pingdom. We do most of what Pingdom does and a whole lot more.',
             descriptionLine2:
@@ -378,130 +406,134 @@ export default (product: string): Product => {
             ],
             items: [
                 {
-                    type: ItemType.Category,
-                    title: 'Incident Management and On Call Scheduling',
+
+                    name: 'Incident Management and On Call Scheduling',
+                    data: [{
+
+                        title: 'Alerts by Email, SMS, Call and Push Notifications',
+                        description:
+                            'Have your team alerted by any of the channels including Slack and Microsoft Teams',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'On Call Rotations',
+                        description:
+                            'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Vacation Policy',
+                        description:
+                            "Have vacation policy built into your company's on-call schedule.",
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Sick Policy',
+                        description:
+                            "Have sick policy built into your company's on-call schedule.",
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'On-call for Geo-distributed teams',
+                        description:
+                            'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },]
                 },
+
                 {
-                    type: ItemType.Item,
-                    title: 'Alerts by Email, SMS, Call and Push Notifications',
-                    description:
-                        'Have your team alerted by any of the channels including Slack and Microsoft Teams',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
+
+                    name: 'Monitoring',
+                    data: [{
+
+                        title: 'Monitor anything',
+                        description:
+                            "Server, Containers, API's, Websites, IoT and more.",
+                        productColumn: 'Monitors only API and Websites.',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Uptime Check',
+                        description: 'How often we check uptime of your resources.',
+                        productColumn: 'tick',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Probe Locations',
+                        description:
+                            'We check your uptime from different locations around the world.',
+                        productColumn: 'tick',
+                        oneuptimeColumn: 'tick',
+                    },]
                 },
+
                 {
-                    type: ItemType.Item,
-                    title: 'On Call Rotations',
-                    description:
-                        'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
+
+                    name: 'Status Page',
+                    data: [{
+
+                        title: 'Public Status Pages',
+                        description: 'Public Status Page for your customers.',
+                        productColumn: 'tick',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Unlimited Subscribers',
+                        description:
+                            'You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Scheduled Events',
+                        description:
+                            'You can show scheduled maintenance window on your status page.',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },
+                    {
+
+                        title: 'Private Status Page',
+                        description: 'Private status pages for your internal team.',
+                        productColumn: '',
+                        oneuptimeColumn: 'tick',
+                    },]
                 },
+
                 {
-                    type: ItemType.Item,
-                    title: 'Vacation Policy',
-                    description:
-                        "Have vacation policy built into your company's on-call schedule.",
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
+
+                    name: 'Misc',
+                    data: [{
+
+                        title: 'Integrations',
+                        description:
+                            'Integrate OneUptime with more than 2000+ apps.',
+                        productColumn: 'Integrates with 100+ apps',
+                        oneuptimeColumn: 'Integrates with 2000+ apps',
+                    },
+                    {
+
+                        title: 'API Access',
+                        description:
+                            'Build custom integrations with unlimited API access.',
+                        productColumn: 'tick',
+                        oneuptimeColumn: 'tick',
+                    },]
                 },
-                {
-                    type: ItemType.Item,
-                    title: 'Sick Policy',
-                    description:
-                        "Have sick policy built into your company's on-call schedule.",
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'On-call for Geo-distributed teams',
-                    description:
-                        'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Category,
-                    title: 'Monitoring',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Monitor anything',
-                    description:
-                        "Server, Containers, API's, Websites, IoT and more.",
-                    productColumn: 'Monitors only API and Websites.',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Uptime Check',
-                    description: 'How often we check uptime of your resources.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Probe Locations',
-                    description:
-                        'We check your uptime from different locations around the world.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Category,
-                    title: 'Status Page',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Public Status Pages',
-                    description: 'Public Status Page for your customers.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Unlimited Subscribers',
-                    description:
-                        'You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Scheduled Events',
-                    description:
-                        'You can show scheduled maintenance window on your status page.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Private Status Page',
-                    description: 'Private status pages for your internal team.',
-                    productColumn: '',
-                    oneuptimeColumn: 'tick',
-                },
-                {
-                    type: ItemType.Category,
-                    title: 'Misc',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'Integrations',
-                    description:
-                        'Integrate OneUptime with more than 2000+ apps.',
-                    productColumn: 'Integrates with 100+ apps',
-                    oneuptimeColumn: 'Integrates with 2000+ apps',
-                },
-                {
-                    type: ItemType.Item,
-                    title: 'API Access',
-                    description:
-                        'Build custom integrations with unlimited API access.',
-                    productColumn: 'tick',
-                    oneuptimeColumn: 'tick',
-                },
+
             ],
         },
     };
