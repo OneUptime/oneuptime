@@ -23,7 +23,7 @@ services:
         image: redis:7.0.3
         restart: always
         ports:
-            - '6379:6379'
+            - '6370:6379'
         command: redis-server --requirepass "{{ .Env.REDIS_PASSWORD }}"
         env_file:
             - ./Redis/.env
