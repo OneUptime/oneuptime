@@ -1109,7 +1109,7 @@ app.get('/table/:product', (req: ExpressRequest, res: ExpressResponse) => {
 
     if (!productConfig) {
         res.status(404);
-        res.render('notFound.ejs', {
+        res.render('not-found.ejs', {
             footerCards: false,
             support: false,
             cta: false,
@@ -1136,7 +1136,7 @@ app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
 
     if (!productConfig) {
         res.status(404);
-        res.render('notFound.ejs', {
+        res.render('not-found.ejs', {
             footerCards: false,
             support: false,
             cta: false,
@@ -1289,7 +1289,7 @@ app.use(
 
 app.get('/*', (_req: ExpressRequest, res: ExpressResponse) => {
     res.status(404);
-    res.render('notFound.ejs', {
+    res.render('not-found.ejs', {
         footerCards: false,
         support: false,
         cta: false,
