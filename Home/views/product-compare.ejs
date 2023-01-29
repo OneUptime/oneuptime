@@ -1,480 +1,504 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
 
 <head>
-  <% if (productConfig && productConfig.productName) { %>
-  <title>OneUptime | Compare <%= productConfig.productName %> with OneUptime </title>
-  <% } %>
-  <meta name="description"
-    content="Here's a more detailed comparision between <%= productConfig.productName %> and OneUptime.">
-  <%- include('head') -%>
-  <script src="/js/amplitude.js"></script>
-  <script type="module" async>
-    
-    if(posthog){
-      posthog.capture('PAGE VIEW: HOME > COMPARE PRODUCT > <%= productConfig.productName %>');
-    }
-  </script>
-  <link rel="stylesheet" href="/css/flexbox-grid.css">
-  <link rel="stylesheet" href="/css/pricing.css">
-  <link rel="stylesheet" href="/css/switch.css">
-  <link rel="stylesheet" href="/css/comparision.css">
-  <link rel="stylesheet" href="/css/crm.css">
-  <link rel="stylesheet" href="/css/feature-table.css">
-
-  <style>
-    /* DIRTY Responsive pricing table CSS */
-
-    /* 
-- make mobile switch sticky
-*/
-    * {
-      box-sizing: border-box;
-      padding: 0;
-      margin: 0;
-      outline: 0;
-    }
-
-    article.pricing-compare-table {
-      width: 100%;
-      max-width: 1000px;
-      margin: 0 auto;
-      position: relative;
-    }
-
-    ul.pricing-compare-table {
-      display: flex;
-      top: 0px;
-      z-index: 10;
-      padding-bottom: 14px;
-    }
-
-    li.pricing-compare-table {
-      list-style: none;
-      flex: 1;
-    }
-
-    li.pricing-compare-table:last-child {
-      border-right: 1px solid #DDD;
-    }
-
-    button.pricing-compare-table {
-      width: 100%;
-      border: 1px solid #DDD;
-      border-right: 0;
-      border-top: 0;
-      padding: 10px;
-      background: #FFF;
-      font-size: 14px;
-      font-weight: bold;
-      height: 60px;
-      color: #999
-    }
-
-    li.active.pricing-compare-table button.pricing-compare-table {
-      background: #F5F5F5;
-      color: #000;
-    }
-
-    table.pricing-compare-table {
-      border-collapse: collapse;
-      table-layout: fixed;
-      width: 100%;
-    }
-
-    th.pricing-compare-table {
-      background: #F5F5F5;
-      display: none;
-    }
-
-    td.pricing-compare-table,
-    th.pricing-compare-table {
-      height: 53px
-    }
-
-    td.pricing-compare-table,
-    th.pricing-compare-table {
-      border: 1px solid #DDD;
-      padding: 10px;
-      empty-cells: show;
-    }
-
-    td.pricing-compare-table,
-    th.pricing-compare-table {
-      text-align: left;
-    }
-
-    td+td.pricing-compare-table,
-    th+th.pricing-compare-table {
-      text-align: center;
-      display: none;
-    }
-
-    td.default.pricing-compare-table {
-      display: table-cell;
-    }
-
-    .bg-black.pricing-compare-table {
-      border-top: 3px solid rgb(0, 0, 0);
-    }
-
-    .sep.pricing-compare-table {
-      background: #F5F5F5;
-      font-weight: bold;
-    }
-
-    .txt-l.pricing-compare-table {
-      font-size: 28px;
-      font-weight: bold;
-    }
-
-    .txt-top.pricing-compare-table {
-      position: relative;
-      top: -9px;
-      left: -2px;
-    }
-
-    .tick.pricing-compare-table {
-      font-size: 18px;
-      color: #2CA01C;
-    }
-
-    .hide.pricing-compare-table {
-      border: 0;
-      background: none;
-    }
-
-    @media (min-width: 640px) {
-      ul.pricing-compare-table {
-        display: none;
-      }
-
-      td.pricing-compare-table,
-      th.pricing-compare-table {
-        display: table-cell !important;
-      }
-
-      td.pricing-compare-table,
-      th.pricing-compare-table {
-        width: 330px;
-
-      }
-
-      td+td.pricing-compare-table,
-      th+th.pricing-compare-table {
-        width: auto;
-      }
-    }
-  </style>
-
+    <title>OneUptime | Page not found. </title>
+    <meta name="description"
+        content="OneUptime monitors websites, API's, and servers and alerts your team if something goes wrong. It also keeps your customers updated about any downtime.">
+        <%- include('head') -%>
+        <script type="module" async>
+            
+            if(posthog){
+                posthog.capture('PAGE VIEW: 404');
+            }
+        </script>
 </head>
 
 <body>
 
   <%- include('nav') -%>
 
-
-  <div class="globalContent">
-
-    <header class="Header">
-
-      <div class="oneuptimeBackground">
-
-      </div>
-
-      <div class="oneuptimeBackground accelerated">
-
-      </div>
-
-      <div class="Header-container container-wide">
-
-        <div class="row center-xs">
-          <% if (productConfig && productConfig.productName) { %>
-          <div class="col-xs-12">
-            <h1 class="Header-title common-PageTitle header-font header-size"
-              style="margin-top: 50px; padding-bottom:20px">
-              Compare <%= productConfig.productName %> with OneUptime
-            </h1>
-            <p style="padding-top:15px;margin-bottom:0px" class="Header-subTitle common-IntroText black">
-              <%= productConfig.description %></p>
-            <p style="margin-bottom:40px;" class="Header-subTitle common-IntroText black">
-              <%= productConfig.descriptionLine2 %></p>
-          </div>
-          <% } %>
-        </div>
-
-        <article>
-            <div class='container-lg' style="padding:0px; padding-bottom:75px">
-        
-                <div class='common-ButtonGroup buttons' style="display: flex; justify-content: center;">
-        
-                    <a class='common-Button common-Button--default' id="create-account-footer-cta-0" href="#"
-                        onclick="registerUrl()" data-analytics-action="sign_up" data-analytics-source="footer_cta">
-                        Sign up for free. 
-                    </a>
-        
-                    <a href='/enterprise/demo' class='common-Button' data-analytics-action="contact_sales"
-                        data-analytics-source="footer_cta">
-                        Request Demo
-                    </a>
-                </div>
-        
-            </div>
-        </article>
-
-      </div>
-
-    </header>
-
-
-
-
-    </article>
-    <% if (!onlyShowCompareTable) { %>
-    <%- include('feature-table') -%>
-    <article>
-        <div class='container-lg' style="padding:0px; padding-bottom:75px">
-    
-            <div class='common-ButtonGroup buttons' style="display: flex; justify-content: center;">
-    
-                <a class='common-Button common-Button--default' id="create-account-footer-cta-1" href="#"
-                    onclick="registerUrl()" data-analytics-action="sign_up" data-analytics-source="footer_cta">
-                    Sign up for free. 
-                </a>
-    
-                <a href='/enterprise/demo' class='common-Button' data-analytics-action="contact_sales"
-                    data-analytics-source="footer_cta">
-                    Request Demo
-                </a>
-            </div>
-    
-        </div>
-    </article>
-    <div class="sectionBorderTop">
-      <%- include('comparision-chart') -%>
+  <div class="bg-white">
+    <div class="mx-auto max-w-7xl py-24 px-6 lg:px-8">
+      <div class="sm:align-center sm:flex sm:flex-col">
+        <h1 class="text-5xl font-bold tracking-tight text-gray-900 sm:text-center">Compare <%= productConfig.productName %> with OneUptime</h1>
+        <p class="mt-5 text-xl text-gray-500 sm:text-center"><%= productConfig.description %></p></p>
+        <p class="mt-5 text-xl text-gray-500 sm:text-center"><%= productConfig.descriptionLine2 %></p></p>
     </div>
-    <% } %>
-    <% if (productConfig && productConfig.productName) { %>
-    <div class="comparision-heading">
-      <h3 class="black">Here's a more detailed comparision.</h3>
-      <h4 class="common-BodyText"><%= productConfig.description %></h4>
-    </div>
-
-    <!-- DIRTY Responsive pricing table HTML -->
-    <article class="pricing-compare-table">
-
-      <ul class="pricing-compare-table">
-        <li class="bg-black pricing-compare-table">
-          <button class="pricing-compare-table"><%= productConfig.productName %></button>
-        </li>
-        <li class="bg-black pricing-compare-table">
-          <button class="pricing-compare-table">OneUptime</button>
-        </li>
-      </ul>
-
-      <table class="pricing-compare-table">
-        <thead class="pricing-compare-table">
-          <tr class="pricing-compare-table">
-            <th class="hide pricing-compare-table"></th>
-            <th class="bg-black pricing-compare-table">
-              <img src="<%= productConfig.iconUrl %>" alt="<%= productConfig.productName %>" height="50" style="margin-top:10px" />
-              <h2 class="Plan-title noborders" style="padding-top:10px">
-                <%= productConfig.productName %>
-              </h2>
-            </th>
-            <th class="bg-black pricing-compare-table">
-              <img src="/img/ou-wb.svg" height="50" alt="OneUptime" style="margin-top:10px;background-color: #121212;border-radius: 10px;" />
-              <h2 class="Plan-title noborders" style="padding-top:10px">
-                OneUptime
-              </h2>
-            </th>
-          </tr>
-        </thead class="pricing-compare-table">
-        <tbody class="pricing-compare-table">
-          <tr class="pricing-compare-table">
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                Price
-              </span>
-            </td>
-            <td class="pricing-compare-table">
-              <div class="Plan-cardRate-percent pricing-font">
-                <%= productConfig.price %>
-              </div>
-            </td>
-            <td class="pricing-compare-table">
-              <div class="Plan-cardRate-percent pricing-font">
-                <%= productConfig.oneuptimePrice %>
-              </div>
-            </td>
-          </tr>
-          <% for(var i=0; i < productConfig.items.length; i++) { %>
-          <tr class="pricing-compare-table">
-            <% if (productConfig.items[i].type === "category") { %>
-            <td colspan="3" class="sep pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                <%= productConfig.items[i].title %>
-              </span>
-            </td>
-            <%} else { %>
-            <td class="pricing-compare-table">
-              <span class="pricing-compare-table font14">
-                <%= productConfig.items[i].title %> <br /> <i><%= productConfig.items[i].description %></i>
-              </span>
-            </td>
-            <td class="pricing-compare-table">
-              <% if (productConfig.items[i].productColumn === "tick") { %>
-              <span class="tick pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" alt="yes" /></span>
-              <%} else { %>
-              <span class="pricing-compare-table font14"> <%=productConfig.items[i].productColumn %> </span>
-              <% } %>
-            </td>
-            <td class="pricing-compare-table"> <% if (productConfig.items[i].oneuptimeColumn === "tick") { %>
-              <span class="tick pricing-compare-table"><img height="20" width="20" src="/img/tick.svg" alt="yes" /></span>
-              <%} else { %>
-              <span class="pricing-compare-table font14"> <%=productConfig.items[i].oneuptimeColumn %> </span>
-              <% } %>
-            </td>
-            <% } %>
-          </tr>
-          <% } %>
-
-
-        </tbody>
-      </table>
-
-    </article>
-
-    <div class="PricingFAQ">
-      <div class="container">
-
-        <div class="row PricingFAQ-row">
-          <% for(var i=0; i < productConfig.faq.length; i++) { %>
-          <div class="col-xs-12
-                          col-sm-6">
-            <h5 class="common-BodyTitle PricingFAQ-title">
-              <%= productConfig.faq[i].question %>
-            </h5>
-            <p class="common-BodyText PricingFAQ-body font16">
-              <%= productConfig.faq[i].answer %>
-            </p>
-          </div>
-          <% } %>
-
-        </div>
-
-      </div>
-    </div>
-    <% } %>
-
-
-
   </div>
 
+
+
+
+
+
+
+
+
+  <div class="bg-white">
+    <div class="mx-auto max-w-7xl bg-white py-16 sm:py-24 sm:px-6 lg:px-8">
+      <!-- xs to lg -->
+      <div class="mx-auto max-w-2xl space-y-16 lg:hidden">
+        <section>
+          <div class="mb-8 px-6 sm:px-4">
+            <h2 class="text-lg font-medium leading-6 text-gray-900"><%= productConfig.productName %></h2>
+            <p class="mt-4">
+              <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price"><%= productConfig.price %></span>
+              <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
+            </p>
+            <p class="mt-4 text-sm text-gray-500">All the basics you need to get started.</p>
+            <a href="#" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
+          </div>
+  
+          <% for(var i=0; i<productConfig.items.length; i++) {%>
+          <table class="w-full">
+            <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+              <%= productConfig.items[i].name %>
+            </caption>
+            <thead>
+              <tr>
+                <th class="sr-only" scope="col">Feature</th>
+                <th class="sr-only" scope="col">Included</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
+              <tr class="border-t border-gray-200">
+                <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].name %></th>
+                <td class="py-5 pr-6 sm:pr-4">
+                  <% if(productConfig.items[i].data[j].plans.free === true){ %>
+                    <!-- Heroicon name: mini/check -->
+                 <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                   <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                 </svg>
+                <% } else if(productConfig.items[i].data[j].plans.free === false){ %>
+                 <!-- Heroicon name: mini/check -->
+                 <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                   <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                 </svg>
+                 <% } else if(productConfig.items[i].data[j].plans.free === "Coming Soon") { %>
+                   <!-- Heroicon name: mini/check -->
+                   <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.free %></span>
+               <% } else { %>
+                    <!-- Heroicon name: mini/check -->
+                    <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.free %></span>
+                <% } %>
+                </td>
+              </tr>
+              <% } %>
+              
+            </tbody>
+          </table>
+          <% } %>
+
+  
+          <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+            <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
+          </div>
+        </section>
+  
+        <section>
+          <div class="mb-8 px-6 sm:px-4">
+            <h2 class="text-lg font-medium leading-6 text-gray-900">Growth</h2>
+            <p class="mt-4">
+              <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+              <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
+            </p>
+            <p class="mt-4 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
+            <a href="/accounts/register" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
+          </div>
+  
+          <% for(var i=0; i<pricing.length; i++) {%>
+            <table class="w-full">
+              <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                <%= productConfig.items[i].name %>
+              </caption>
+              <thead>
+                <tr>
+                  <th class="sr-only" scope="col">Feature</th>
+                  <th class="sr-only" scope="col">Included</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
+                <tr class="border-t border-gray-200">
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].name %></th>
+                  <td class="py-5 pr-6 sm:pr-4">
+                    <% if(productConfig.items[i].data[j].plans.growth === true){ %>
+                      <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                   </svg>
+                  <% } else if(productConfig.items[i].data[j].plans.growth === false){ %>
+                   <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                   </svg>
+                   <% } else if(productConfig.items[i].data[j].plans.growth === "Coming Soon") { %>
+                     <!-- Heroicon name: mini/check -->
+                     <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.growth %></span>
+                 <% } else { %>
+                      <!-- Heroicon name: mini/check -->
+                      <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.growth %></span>
+                  <% } %>
+                  </td>
+                </tr>
+                <% } %>
+                
+              </tbody>
+            </table>
+            <% } %>
+  
+          <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+            <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
+          </div>
+        </section>
+  
+        <section>
+          <div class="mb-8 px-6 sm:px-4">
+            <h2 class="text-lg font-medium leading-6 text-gray-900 ">Scale</h2>
+            <p class="mt-4">
+              <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
+              <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
+            </p>
+            <p class="mt-4 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
+            <a href="/accounts/register" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
+          </div>
+  
+          <% for(var i=0; i<pricing.length; i++) {%>
+            <table class="w-full">
+              <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                <%= productConfig.items[i].name %>
+              </caption>
+              <thead>
+                <tr>
+                  <th class="sr-only" scope="col">Feature</th>
+                  <th class="sr-only" scope="col">Included</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
+                <tr class="border-t border-gray-200">
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].name %></th>
+                  <td class="py-5 pr-6 sm:pr-4">
+                    <% if(productConfig.items[i].data[j].plans.scale === true){ %>
+                      <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                   </svg>
+                  <% } else if(productConfig.items[i].data[j].plans.scale === false){ %>
+                   <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                   </svg>
+                   <% } else if(productConfig.items[i].data[j].plans.scale === "Coming Soon") { %>
+                     <!-- Heroicon name: mini/check -->
+                     <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.scale %></span>
+                 <% } else { %>
+                      <!-- Heroicon name: mini/check -->
+                      <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.scale %></span>
+                  <% } %>
+                  </td>
+                </tr>
+                <% } %>
+                
+              </tbody>
+            </table>
+            <% } %>
+  
+          <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+            <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
+          </div>
+        </section>
+
+        <section>
+          <div class="mb-8 px-6 sm:px-4">
+            <h2 class="text-lg font-medium leading-6 text-gray-900 ">Enterprise</h2>
+            <p class="mt-4">
+              <span class="text-4xl font-bold tracking-tight text-gray-900">Custom</span>
+              <span class="text-base font-medium text-gray-500">/yr</span>
+            </p>
+            <p class="mt-4 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
+            <a href="/enterprise/demo" class="mt-6 block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
+          </div>
+  
+          <% for(var i=0; i<pricing.length; i++) {%>
+            <table class="w-full">
+              <caption class="border-t border-gray-200 bg-gray-50 py-3 px-6 text-left text-sm font-medium text-gray-900 sm:px-4">
+                <%= productConfig.items[i].name %>
+              </caption>
+              <thead>
+                <tr>
+                  <th class="sr-only" scope="col">Feature</th>
+                  <th class="sr-only" scope="col">Included</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200">
+                <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
+                <tr class="border-t border-gray-200">
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500 sm:px-4" scope="row"><%= productConfig.items[i].data[j].name %></th>
+                  <td class="py-5 pr-6 sm:pr-4">
+                    <% if(productConfig.items[i].data[j].plans.enterprise === true){ %>
+                      <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                   </svg>
+                  <% } else if(productConfig.items[i].data[j].plans.enterprise === false){ %>
+                   <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                   </svg>
+                   <% } else if(productConfig.items[i].data[j].plans.enterprise === "Coming Soon") { %>
+                     <!-- Heroicon name: mini/check -->
+                     <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.enterprise %></span>
+                 <% } else { %>
+                      <!-- Heroicon name: mini/check -->
+                      <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.enterprise %></span>
+                  <% } %>
+                  </td>
+                </tr>
+                <% } %>
+                
+              </tbody>
+            </table>
+            <% } %>
+  
+          <div class="border-t border-gray-200 px-6 sm:px-4 pt-5">
+            <a href="/enterprise/demo" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
+          </div>
+        </section>
+      </div>
+  
+      <!-- lg+ -->
+      <div class="hidden lg:block">
+        <table class="h-px w-full table-fixed">
+          <caption class="sr-only">
+            Pricing plan comparison
+          </caption>
+          <thead>
+            <tr>
+              <th class="px-6 pb-4 text-left text-sm font-medium text-gray-900" scope="col">
+                <span class="sr-only">Feature by</span>
+                <span>Plans</span>
+              </th>
+  
+              <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Free</th>
+  
+              <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Growth</th>
+  
+              <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Scale</th>
+
+              <th class="w-1/5 px-6 pb-4 text-left text-lg font-medium leading-6 text-gray-900" scope="col">Enterprise</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 border-t border-gray-200">
+            <tr>
+              <th class="py-8 px-6 text-left align-top text-sm font-medium text-gray-900" scope="row">Pricing</th>
+  
+              <td class="h-full py-8 px-6 align-top">
+                <div class="relative table h-full">
+                  <p>
+                    <span class="text-4xl font-bold tracking-tight text-gray-900 free-plan-price">$0</span>
+                    <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
+                  </p>
+                  <p class="mt-4 mb-16 text-sm text-gray-500">All the basics you need to get started.</p>
+                  <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
+                </div>
+              </td>
+  
+              <td class="h-full py-8 px-6 align-top">
+                <div class="relative table h-full">
+                  <p>
+                    <span class="text-4xl font-bold tracking-tight text-gray-900 growth-plan-price">$22</span>
+                    <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
+                  </p>
+                  <p class="mt-4 mb-16 text-sm text-gray-500">Advanced Workflows, Integrations, API Access and more included.</p>
+                  <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try Free for 14 Days</a>
+                </div>
+              </td>
+  
+              <td class="h-full py-8 px-6 align-top">
+                <div class="relative table h-full">
+                  <p>
+                    <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">$99</span>
+                    <span class="text-base font-medium text-gray-500 billing-period">/mo</span>
+                  </p>
+                  <p class="mt-4 mb-16 text-sm text-gray-500">SSO, Advanced Access Control, Better Support for your team.</p>
+                  <a href="/accounts/register" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try Free for 14 Days</a>
+                </div>
+              </td>
+
+              <td class="h-full py-8 px-6 align-top">
+                <div class="relative table h-full">
+                  <p>
+                    <span class="text-4xl font-bold tracking-tight text-gray-900 scale-plan-price">Custom</span>
+                    <span class="text-base font-medium text-gray-500 billing-period">/yr</span>
+                  </p>
+                  <p class="mt-4 mb-16 text-sm text-gray-500">Enterprise grade offering. The best of us for your team.</p>
+                  <a href="/enterprise/demo" class="5 absolute bottom-0 block w-full flex-grow rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
+                </div>
+              </td>
+            </tr>
+  
+
+            <% for(var i=0; i<pricing.length; i++) {%>
+            <tr>
+              <th class="bg-gray-50 py-3 pl-6 text-left text-sm font-medium text-gray-900" colspan="5" scope="colgroup"><%= productConfig.items[i].name %></th>
+            </tr>
+                <% for(var j=0; j<productConfig.items[i].data.length; j++) {%>
+                <tr>
+                  <th class="py-5 px-6 text-left text-sm font-normal text-gray-500" scope="row"><%= productConfig.items[i].data[j].name %></th>
+      
+                  <td class="py-5 px-6">
+                    <% if(productConfig.items[i].data[j].plans.free === true){ %>
+                       <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                    </svg>
+                   <% } else if(productConfig.items[i].data[j].plans.free === false){ %>
+                    <!-- Heroicon name: mini/check -->
+                    <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                      <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                    </svg>
+                    <% } else if(productConfig.items[i].data[j].plans.free === "Coming Soon") { %>
+                      <!-- Heroicon name: mini/check -->
+                      <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.free %></span>
+                  <% } else { %>
+                       <!-- Heroicon name: mini/check -->
+                       <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.free %></span>
+                   <% } %>
+                   
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <% if(productConfig.items[i].data[j].plans.growth === true){ %>
+                      <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                   </svg>
+                  <% } else if(productConfig.items[i].data[j].plans.growth === false){ %>
+                   <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                   </svg>
+               <% } else if(productConfig.items[i].data[j].plans.growth === "Coming Soon") { %>
+                <!-- Heroicon name: mini/check -->
+                <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.growth %></span>
+            <% } else { %>
+                 <!-- Heroicon name: mini/check -->
+                 <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.growth %></span>
+             <% } %>
+                  </td>
+      
+                  <td class="py-5 px-6">
+                    <% if(productConfig.items[i].data[j].plans.scale === true){ %>
+                      <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                   </svg>
+                  <% } else if(productConfig.items[i].data[j].plans.scale === false) { %>
+                   <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                   </svg>
+                   <% } else if(productConfig.items[i].data[j].plans.scale === "Coming Soon") { %>
+                    <!-- Heroicon name: mini/check -->
+                    <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.scale %></span>
+                <% } else { %>
+                     <!-- Heroicon name: mini/check -->
+                     <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.scale %></span>
+                 <% } %>
+                  </td>
+                  <td class="py-5 px-6">
+                    <% if(productConfig.items[i].data[j].plans.enterprise === true) { %>
+                      <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                   </svg>
+                  <% } else if(productConfig.items[i].data[j].plans.enterprise === false) { %>
+                   <!-- Heroicon name: mini/check -->
+                   <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                     <path fill-rule="evenodd" d="M4 10a.75.75 0 01.75-.75h10.5a.75.75 0 010 1.5H4.75A.75.75 0 014 10z" clip-rule="evenodd" />
+                   </svg>
+                   <% } else if(productConfig.items[i].data[j].plans.enterprise === "Coming Soon") { %>
+                    <!-- Heroicon name: mini/check -->
+                    <span class="text-sm text-gray-400"><%= productConfig.items[i].data[j].plans.enterprise %></span>
+                <% } else { %>
+                     <!-- Heroicon name: mini/check -->
+                     <span class="text-sm text-gray-700"><%= productConfig.items[i].data[j].plans.enterprise %></span>
+                 <% } %>
+                  </td>
+                </tr>
+                <% } %>
+            <% } %>
+
+          </tbody>
+          <tfoot>
+            <tr class="border-t border-gray-200">
+              <th class="sr-only" scope="row">Choose your plan</th>
+  
+              <td class="px-6 pt-5">
+                <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Get Started</a>
+              </td>
+  
+              <td class="px-6 pt-5">
+                <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
+              </td>
+  
+              <td class="px-6 pt-5">
+                <a href="/accounts/register" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Try 14 days free</a>
+              </td>
+
+              <td class="px-6 pt-5">
+                <a href="/enterprise/demo" class="block w-full rounded-md border border-gray-800 bg-gray-800 py-2 text-center text-sm font-semibold text-white hover:bg-gray-900">Request Demo</a>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+
+
+
+
+
+
+
+
+  <div class="bg-white">
+    <div class="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:py-40 lg:px-8">
+      <div class="mx-auto max-w-4xl divide-y divide-gray-900/10">
+        <h2 class="text-2xl font-bold leading-10 tracking-tight text-gray-900">Frequently asked questions</h2>
+        <dl class="mt-10 space-y-6 divide-y divide-gray-900/10">
+          <% for(var i=0; i < productConfig.faq.length; i++) { %>
+          <div class="pt-6">
+            <dt>
+              <!-- Expand/collapse question button -->
+              <div  class="flex w-full items-start justify-between text-left text-gray-900" aria-controls="faq-0" aria-expanded="false">
+                <span class="text-base font-semibold leading-7"><%= productConfig.faq[i].question %></span>
+              </div>
+            </dt>
+            <dd class="mt-2 pr-12" id="faq-0">
+              <p class="text-base leading-7 text-gray-600"><%= productConfig.faq[i].answer %></p>
+            </dd>
+          </div>
+          <% } %>
+  
+        </dl>
+      </div>
+    </div>
+  </div>
+
+      
+  <%- include('cta') -%>
   <%- include('footer') -%>
-  <script src="/js/switch.js"></script>
-  <script>
-    var el = document.querySelector('.checkbox-switch');
-
-    var annualSelected = false;
-
-    var mySwitch = new Switch(el, {
-      onSwitchColor: '#78bf7d',
-      offSwitchColor: '#78bf7d',
-      onJackColor: '#FFFFFF',
-      offJackColor: '#FFFFFF',
-      onChange: switchPlanCheckBox
-    });
-
-    $(document).ready(function () {
-      switchPlanCheckBox();
-    })
-
-    function switchPlanCheckBox() {
-      annualSelected = !annualSelected;
-
-      if (annualSelected) {
-        $("#growth-rate").text("$49");
-
-        $("#startup-rate").text("$22");
-        $("#scale-rate").text("$99");
-        $("#growth-description").text("per-user billed annually.");
-        $("#startup-description").text("per-user billed annually.");
-        $("#scale-description").text("per-user billed annually.");
-
-
-        $("#annual-text").css("font-weight", 600);
-        $("#monthly-text").css("font-weight", 500);
-      } else {
-
-        $("#growth-rate").text("$59");
-        $("#growth-description").text("per-user billed monthly.");
-
-        $("#startup-rate").text("$25");
-        $("#startup-description").text("per-user billed monthly.");
-
-        $("#scale-rate").text("$120");
-        $("#scale-description").text("per-user billed monthly.");
-
-        $("#monthly-text").css("font-weight", 600);
-        $("#annual-text").css("font-weight", 500);
-      }
-
-      if (window.location.href.indexOf("localhost") > -1) {
-        if (annualSelected) {
-          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIqpBpStiqQp')")
-          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKiTdQ6NiQFw')")
-          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9IlBKhsFz4hV2')")
-        } else {
-          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWIYiX2L8hwzx')")
-          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoWKgxRnPPBJWy')")
-          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9Iox3l2YqLTDR')")
-        }
-      } else {
-        if (annualSelected) {
-          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgJu5PKMLRJU')")
-          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoViZshjqzZ0vv')")
-          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9IjvX2Flsvlcg')")
-        } else {
-          $("#startup-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVgVbvNdbWwlm')")
-          $("#growth-plan-link").attr("onclick", "registerUrl('?plan=plan_GoVi9EIa6MU0fG')")
-          $("#scale-plan-link").attr("onclick", "registerUrl('?plan=plan_H9Ii6Qj3HLdtty')")
-        }
-      }
-    }
-  </script>
-
-  <script>
-    // DIRTY Responsive pricing table JS
-
-    $("ul").on("click", "li", function () {
-      var pos = $(this).index() + 2;
-      $("tr").find('td:not(:eq(0))').hide();
-      $('td:nth-child(' + pos + ')').css('display', 'table-cell');
-      $("tr").find('th:not(:eq(0))').hide();
-      $('li').removeClass('active');
-      $(this).addClass('active');
-    });
-
-    // Initialize the media query
-    var mediaQuery = window.matchMedia('(min-width: 640px)');
-
-    // Add a listen event
-    mediaQuery.addListener(doSomething);
-
-    // Function to do something with the media query
-    function doSomething(mediaQuery) {
-      if (mediaQuery.matches) {
-        $('.sep').attr('colspan', 3);
-      } else {
-        $('.sep').attr('colspan', 2);
-      }
-    }
-
-    // On load
-    doSomething(mediaQuery);
-  </script>
 
 
 </body>
+
 </html>
