@@ -16,6 +16,8 @@ import builder from 'xmlbuilder2';
 import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 import API from 'Common/Utils/API';
 import { JSONObject } from 'Common/Types/JSON';
+import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export const APP_NAME: string = 'home';
 const app: ExpressApplication = Express.getExpressApp();
@@ -46,7 +48,7 @@ app.get('/support', async (_req: ExpressRequest, res: ExpressResponse) => {
 });
 
 app.get('/pricing', (_req: ExpressRequest, res: ExpressResponse) => {
-    const pricing = [
+    const pricing: Array<JSONObject> = [
         {
             name: 'Status Page',
             data: [
@@ -493,25 +495,25 @@ app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/status-page');
 });
 
-
 let gitHubContributors: Array<JSONObject> = [];
-let gitHubBasicInfo: JSONObject | null = null; 
-let gitHubCommits: string = "-";
+let gitHubBasicInfo: JSONObject | null = null;
+let gitHubCommits: string = '-';
 
 app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
-
     if (gitHubContributors.length === 0) {
         let contributors: Array<JSONObject> = [];
 
-        let hasMoreContributors = true;
+        let hasMoreContributors: boolean = true;
 
-        let pageNumber = 1;
+        let pageNumber: number = 1;
 
         while (hasMoreContributors) {
-            const response = await API.get(
+            const response:
+                | HTTPResponse<Array<JSONObject>>
+                | HTTPErrorResponse = await API.get<Array<JSONObject>>(
                 URL.fromString(
                     'https://api.github.com/repos/oneuptime/oneuptime/contributors?page=' +
-                    pageNumber
+                        pageNumber
                 )
             );
             pageNumber++;
@@ -519,31 +521,40 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
                 hasMoreContributors = false;
             }
 
-            contributors = contributors.concat(response.data as Array<JSONObject>);
+            contributors = contributors.concat(
+                response.data as Array<JSONObject>
+            );
         }
 
-        //cache it. 
+        //cache it.
         gitHubContributors = [...contributors];
     }
 
-    const response = await API.get(
+    const response: HTTPResponse<JSONObject> = await API.get(
         URL.fromString(
             'https://api.github.com/repos/oneuptime/oneuptime/commits?sha=master&per_page=1&page=1'
         )
     );
 
-
-    if (gitHubCommits === "-") {
+    if (gitHubCommits === '-') {
         // this is of type: '<https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/380744866/commits?sha=master&per_page=1&page=22486>; rel="last"',
-        const link = response.headers['link'];
-        const urlString: string | undefined = link?.split(",")[1]?.split(";")[0]?.replace("<", "").replace(">", "").trim();
-        const url = URL.fromString(urlString!);
-        const commits = Number.parseInt(url.getQueryParam("page") as string).toLocaleString()
-
+        const link: string | undefined = response.headers['link'];
+        const urlString: string | undefined = link
+            ?.split(',')[1]
+            ?.split(';')[0]
+            ?.replace('<', '')
+            .replace('>', '')
+            .trim();
+        const url: URL = URL.fromString(urlString!);
+        const commits: string = Number.parseInt(
+            url.getQueryParam('page') as string
+        ).toLocaleString();
 
         if (!gitHubBasicInfo) {
-            const basicInfo = await API.get(
-                URL.fromString('https://api.github.com/repos/oneuptime/oneuptime')
+            const basicInfo: HTTPResponse<JSONObject> = await API.get(
+                URL.fromString(
+                    'https://api.github.com/repos/oneuptime/oneuptime'
+                )
             );
 
             gitHubBasicInfo = basicInfo.data as JSONObject;
@@ -555,7 +566,7 @@ app.get('/about', async (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('about', {
         contributors: gitHubContributors,
         basicInfo: gitHubBasicInfo,
-        commits: gitHubCommits
+        commits: gitHubCommits,
     });
 });
 

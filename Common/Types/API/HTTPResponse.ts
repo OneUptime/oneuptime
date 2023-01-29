@@ -31,15 +31,13 @@ export default class HTTPResponse<
         this._data = v;
     }
 
-    
-    private _headers : Headers = {};
-    public get headers() : Headers {
+    private _headers: Headers = {};
+    public get headers(): Headers {
         return this._headers;
     }
-    public set headers(v : Headers) {
+    public set headers(v: Headers) {
         this._headers = v;
     }
-    
 
     private _count: number = 0;
     public get count(): number {

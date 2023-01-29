@@ -192,7 +192,7 @@ export default class URL extends DatabaseProperty {
     }
 
     public getQueryParam(paramName: string): string | null {
-        return this.params[paramName] || null
+        return this.params[paramName] || null;
     }
 
     public addQueryParams(params: Dictionary<string>): URL {
