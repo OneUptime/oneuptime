@@ -668,6 +668,11 @@ app.get('/product/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('coming-soon');
 });
 
+app.get('/product/monitoring', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.render('monitoring');
+});
+
+
 
 app.get(
     '/product/docker-container-security',
