@@ -506,7 +506,7 @@ export default (product: string): Product => {
                 },
             ],
         },
-        "incident.io": {
+        'incident.io': {
             productName: 'Incident.io',
             iconUrl: '/img/pingdom.svg',
             price: '$160',

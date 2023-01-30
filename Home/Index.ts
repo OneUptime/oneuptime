@@ -589,8 +589,6 @@ app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/status-page');
 });
 
-
-
 app.get(
     '/product/private-status-page',
     (_req: ExpressRequest, res: ExpressResponse) => {
@@ -671,8 +669,6 @@ app.get('/product/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
 app.get('/product/monitoring', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('monitoring');
 });
-
-
 
 app.get(
     '/product/docker-container-security',
