@@ -63,12 +63,12 @@ export default (product: string): Product => {
                 {
                     question:
                         'I have already bought an external monitoring solution. Will OneUptime work with it?',
-                    answer: 'Yes! We integrate with every single monitoring solution in the market - like Pingdom, UptimeRobot, DataDog, Site 24x7 and more.',
+                    answer: 'Yes! We integrate with every single monitoring solution in the market - like Incident.io, UptimeRobot, DataDog, Site 24x7 and more.',
                 },
             ],
             items: [
                 {
-                    name: 'Incident Management and On Call Scheduling',
+                    name: 'On Call Scheduling',
                     data: [
                         {
                             title: 'Alerts by Email, SMS, Call and Push Notifications',
@@ -225,7 +225,7 @@ export default (product: string): Product => {
             ],
             items: [
                 {
-                    name: 'Incident Management and On Call Scheduling',
+                    name: 'On Call Scheduling',
                     data: [
                         {
                             title: 'Alerts by Email, SMS, Call and Push Notifications',
@@ -373,8 +373,8 @@ export default (product: string): Product => {
                 },
                 {
                     question:
-                        'Do I need to buy an incident managemnrt and on-call solution for alerts?',
-                    answer: 'Pingdom is a monitoring solution and you need to buy an on-call solution and incident management solution which Pingdom sends data to. OneUptime has a built in monitoring, on-cal and incident management. You use one product, your team has one dashboard, save time, simplify ops.',
+                        'Do I need to buy an incident management and on-call solution for alerts?',
+                    answer: 'Pingdom is a monitoring solution and you need to buy an on-call solution and incident management solution which Pingdom sends data to. OneUptime has a built in monitoring, on-call and incident management. You use one product, your team has one dashboard, save time, simplify ops.',
                 },
                 {
                     question:
@@ -384,7 +384,7 @@ export default (product: string): Product => {
             ],
             items: [
                 {
-                    name: 'Incident Management and On Call Scheduling',
+                    name: 'On Call Scheduling',
                     data: [
                         {
                             title: 'Alerts by Email, SMS, Call and Push Notifications',
@@ -494,6 +494,159 @@ export default (product: string): Product => {
                                 'Integrate OneUptime with more than 2000+ apps.',
                             productColumn: 'Integrates with 100+ apps',
                             oneuptimeColumn: 'Integrates with 2000+ apps',
+                        },
+                        {
+                            title: 'API Access',
+                            description:
+                                'Build custom integrations with unlimited API access.',
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
+                        },
+                    ],
+                },
+            ],
+        },
+        "incident.io": {
+            productName: 'Incident.io',
+            iconUrl: '/img/pingdom.svg',
+            price: '$160',
+            productDescription:
+                'For 10 teammates on the platform, responding to incidents.',
+            oneUptimeDescription:
+                'OneUptime offers unlimited monitoring and alerting. Post incidents directly on Status Page (included).',
+            oneuptimePrice: '$0',
+            description:
+                'Check out how we compare with Incident.io. We do most of what Incident.io does and a whole lot more.',
+            descriptionLine2:
+                "If you're a startup, we're a lot cheaper than Incident.io which saves you a hundreds today, thousands as you grow.",
+            faq: [
+                {
+                    question: 'How does OneUptime compare with Incident.io?',
+                    answer: 'Incident.io is just an incident management platform  whereas OneUptime is a complete SRE and DevOps platform. OneUptime offers mostly everything that Incident.io offers, but a lot more like monitoring, status-page, security, performance-monitoring and more. Please check detailed comparision above for more info.',
+                },
+                {
+                    question:
+                        'Do I need to buy an incident management and on-call solution for alerts?',
+                    answer: 'Incident.io is a incident management solution and you need to buy an on-call solution and monitoring solution which Incident.io recieves data from. OneUptime has a built in monitoring, on-call and incident management. You use one product, your team has one dashboard, save time, simplify ops.',
+                },
+                {
+                    question:
+                        'I have already bought an external on-call and monitoring solution. Will OneUptime work with it?',
+                    answer: 'Yes! We integrate with every single on-call and monitoring solution in the market - like PagerDuty, Pingdom and more.',
+                },
+            ],
+            items: [
+                {
+                    name: 'On Call Scheduling',
+                    data: [
+                        {
+                            title: 'Alerts by Email, SMS, Call and Push Notifications',
+                            description:
+                                'Have your team alerted by any of the channels including Slack and Microsoft Teams',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+                            title: 'On Call Rotations',
+                            description:
+                                'Rotate your on-call team daily, weekly or monthly. We also support custom rotations.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+                            title: 'Vacation Policy',
+                            description:
+                                "Have vacation policy built into your company's on-call schedule.",
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+                            title: 'Sick Policy',
+                            description:
+                                "Have sick policy built into your company's on-call schedule.",
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+                            title: 'On-call for Geo-distributed teams',
+                            description:
+                                'Support on-call schedules for teams in multiple timezones who are geo-distributed.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                    ],
+                },
+
+                {
+                    name: 'Monitoring',
+                    data: [
+                        {
+                            title: 'Monitor anything',
+                            description:
+                                "Server, Containers, API's, Websites, IoT and more.",
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+                            title: 'Uptime Check',
+                            description:
+                                'How often we check uptime of your resources.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+                            title: 'Probe Locations',
+                            description:
+                                'We check your uptime from different locations around the world.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                    ],
+                },
+
+                {
+                    name: 'Status Page',
+                    data: [
+                        {
+                            title: 'Public Status Pages',
+                            description:
+                                'Public Status Page for your customers.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+                            title: 'Unlimited Subscribers',
+                            description:
+                                'You can have unlimited customer subscribers and have them alerted by Email, SMS, RSS or more.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+                            title: 'Scheduled Events',
+                            description:
+                                'You can show scheduled maintenance window on your status page.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                        {
+                            title: 'Private Status Page',
+                            description:
+                                'Private status pages for your internal team.',
+                            productColumn: '',
+                            oneuptimeColumn: 'tick',
+                        },
+                    ],
+                },
+
+                {
+                    name: 'Misc',
+                    data: [
+                        {
+                            title: 'Integrations',
+                            description:
+                                'Integrate OneUptime with more than 2000+ apps.',
+                            productColumn: 'tick',
+                            oneuptimeColumn: 'tick',
                         },
                         {
                             title: 'API Access',

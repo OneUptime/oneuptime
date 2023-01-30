@@ -483,7 +483,7 @@ app.get('/enterprise/demo', (_req: ExpressRequest, res: ExpressResponse) => {
 app.get(
     '/product/status-page',
     (_req: ExpressRequest, res: ExpressResponse) => {
-        res.redirect('/product/status-page');
+        res.render('status-page');
     }
 );
 
@@ -589,6 +589,8 @@ app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/status-page');
 });
 
+
+
 app.get(
     '/product/private-status-page',
     (_req: ExpressRequest, res: ExpressResponse) => {
@@ -661,6 +663,11 @@ app.get(
 app.get('/error-tracking', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/error-tracking');
 });
+
+app.get('/product/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
+    res.render('coming-soon');
+});
+
 
 app.get(
     '/product/docker-container-security',
