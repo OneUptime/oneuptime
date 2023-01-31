@@ -93,7 +93,7 @@ router.post(
                 const token: string = ObjectID.generate().toString();
                 await StatusPagePrivateUserService.updateOneBy({
                     query: {
-                        _id: user._id!,
+                        _id: alreadySavedUser._id!,
                     },
                     data: {
                         resetPasswordToken: token,

@@ -147,7 +147,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                     <div className="text-right flex justify-end">
                         <Icon
                             icon={IconProp.Close}
-                            className="bg-gray-400 rounded text-white h-7 w-7 align-right items-right p-1 absolute hover:bg-gray-500 cursor-pointer"
+                            className="bg-gray-400 rounded text-white h-7 w-7 align-right items-right p-1 absolute hover:bg-gray-500 cursor-pointer -ml-7"
                             size={SizeProp.Regular}
                             onClick={() => {
                                 const tempFileModel: Array<FileModel> = [
@@ -168,7 +168,11 @@ const FilePicker: FunctionComponent<ComponentProps> = (
     };
 
     if (isLoading) {
-        return <ComponentLoader />;
+        return (
+            <div className="flex justify-center w-full">
+                <ComponentLoader />
+            </div>
+        );
     }
 
     return (
