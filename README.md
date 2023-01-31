@@ -14,15 +14,15 @@ OneUptime monitors your website, dashboards, API's, and more and alerts your tea
 
 OneUptime does:
 
--   Uptime Monitoring just like Pingdom
--   Status Page just like StatusPage.io
--   Incident Management just like Incident.io
--   On-call rotation and alerts just like PagerDuty
--   Tests just like Postman (Coming soon)
--   Security just like Snyk (Coming soon)
--   Logs Management just like Loggly (Coming soon)
--   Performance Monitoring just like NewRelic (Coming soon)
--   Error Tracking just like Sentry (Coming soon)
+-   Uptime Monitoring, replaces tools like Pingdom
+-   Status Page, replaces tools like StatusPage.io
+-   Incident Management, replaces tools like Incident.io
+-   On-call rotation and alerts, replaces tools like PagerDuty (Coming soon)
+-   Tests, replaces tools like Postman (Coming soon)
+-   Security, replaces tools like Snyk (Coming soon)
+-   Logs Management, replaces tools like Loggly (Coming soon)
+-   Performance Monitoring, replaces tools like NewRelic (Coming soon)
+-   Error Tracking, replaces tools like Sentry (Coming soon)
 
 All under one platform.
 
