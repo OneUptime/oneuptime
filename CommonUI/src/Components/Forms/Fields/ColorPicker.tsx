@@ -47,74 +47,75 @@ const ColorPicker: FunctionComponent<ComponentProps> = (
     };
 
     return (
-        <div className="flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm">
-            <div
-                onClick={() => {
-                    if (!props.readOnly) {
-                        setIsComponentVisible(!isComponentVisible);
-                    }
-                }}
-                className="rounded h-5 w-5 border border-gray-200 cursor-pointer"
-                style={{ backgroundColor: color.toString() }}
-            ></div>
-
-            <Input
-                onClick={() => {
-                    if (!props.readOnly) {
-                        setIsComponentVisible(!isComponentVisible);
-                    }
-                }}
-                disabled={props.disabled}
-                dataTestId={props.dataTestId}
-                onBlur={props.onBlur}
-                onEnterPress={props.onEnterPress}
-                className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"
-                outerDivClassName='className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"'
-                placeholder={props.placeholder}
-                value={color || props.value}
-                readOnly={true}
-                type="text"
-                tabIndex={props.tabIndex}
-                onChange={(value: string) => {
-                    if (!value) {
-                        return handleChange('');
-                    }
-                }}
-                onFocus={props.onFocus || undefined}
-            />
-            {color && !props.disabled && (
-                <Icon
-                    icon={IconProp.Close}
-                    className="text-gray-400 h-5 w-5 cursor-pointer hover:text-gray-600"
+        <div>
+            <div className="flex block w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm">
+                <div
                     onClick={() => {
-                        setColor('#FFFFFF');
-                        if (props.onChange) {
-                            props.onChange(null);
+                        if (!props.readOnly) {
+                            setIsComponentVisible(!isComponentVisible);
                         }
                     }}
-                />
-            )}
-            {isComponentVisible ? (
-                <div
-                    ref={ref}
-                    style={{
-                        position: 'absolute',
+                    className="rounded h-5 w-5 border border-gray-200 cursor-pointer"
+                    style={{ backgroundColor: color.toString() }}
+                ></div>
+
+                <Input
+                    onClick={() => {
+                        if (!props.readOnly) {
+                            setIsComponentVisible(!isComponentVisible);
+                        }
                     }}
-                >
-                    <ChromePicker
-                        color={color}
-                        onChange={(color: ColorResult) => {
-                            setColor(color.hex);
-                        }}
-                        onChangeComplete={(color: ColorResult) => {
-                            return handleChange(color.hex);
+                    disabled={props.disabled}
+                    dataTestId={props.dataTestId}
+                    onBlur={props.onBlur}
+                    onEnterPress={props.onEnterPress}
+                    className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"
+                    outerDivClassName='className="border-none focus:outline-none w-full pl-2 text-gray-500 cursor-pointer"'
+                    placeholder={props.placeholder}
+                    value={color || props.value}
+                    readOnly={true}
+                    type="text"
+                    tabIndex={props.tabIndex}
+                    onChange={(value: string) => {
+                        if (!value) {
+                            return handleChange('');
+                        }
+                    }}
+                    onFocus={props.onFocus || undefined}
+                />
+                {color && !props.disabled && (
+                    <Icon
+                        icon={IconProp.Close}
+                        className="text-gray-400 h-5 w-5 cursor-pointer hover:text-gray-600"
+                        onClick={() => {
+                            setColor('#FFFFFF');
+                            if (props.onChange) {
+                                props.onChange(null);
+                            }
                         }}
                     />
-                </div>
-            ) : (
-                <></>
-            )}
-
+                )}
+                {isComponentVisible ? (
+                    <div
+                        ref={ref}
+                        style={{
+                            position: 'absolute',
+                        }}
+                    >
+                        <ChromePicker
+                            color={color}
+                            onChange={(color: ColorResult) => {
+                                setColor(color.hex);
+                            }}
+                            onChangeComplete={(color: ColorResult) => {
+                                return handleChange(color.hex);
+                            }}
+                        />
+                    </div>
+                ) : (
+                    <></>
+                )}
+            </div>
             {props.error && (
                 <p
                     data-testid="error-message"

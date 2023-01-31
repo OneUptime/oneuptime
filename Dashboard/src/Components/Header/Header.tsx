@@ -104,7 +104,7 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
                             onProjectSelected={props.onProjectSelected}
                         />
 
-                        <div className="flex">
+                        <div className="flex ml-3">
                             <HeaderModelAlert<TeamMember>
                                 icon={IconProp.Folder}
                                 className="rounded-md m-3 bg-indigo-500 p-3  hover:bg-indigo-600 cursor-pointer ml-0"

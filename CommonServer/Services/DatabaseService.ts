@@ -972,9 +972,9 @@ class DatabaseService<TBaseModel extends BaseModel> {
 
             for (let item of items) {
                 item = {
-                    ...item,
+                    _id: item._id!,
                     ...data,
-                };
+                } as any;
 
                 await this.getRepository().save(item);
             }
