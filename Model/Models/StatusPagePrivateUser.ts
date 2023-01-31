@@ -33,14 +33,28 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateStatusPagePrivateUser,
     ],
-    read: [Permission.ProjectOwner, Permission.CanReadStatusPagePrivateUser],
+    read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanReadStatusPagePrivateUser,
+    ],
     delete: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanDeleteStatusPagePrivateUser,
     ],
-    update: [Permission.ProjectOwner, Permission.CanEditStatusPagePrivateUser],
+    update: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanEditStatusPagePrivateUser,
+    ],
 })
 @CrudApiEndpoint(new Route('/status-page-private-user'))
 @SlugifyColumn('name', 'slug')
@@ -52,10 +66,14 @@ export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPagePrivateUser,
         ],
         update: [],
@@ -82,10 +100,14 @@ export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPagePrivateUser,
         ],
         update: [],
@@ -106,10 +128,14 @@ export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPagePrivateUser,
         ],
         update: [],
@@ -136,10 +162,14 @@ export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPagePrivateUser,
         ],
         update: [],
@@ -156,14 +186,20 @@ export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPagePrivateUser,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditStatusPagePrivateUser,
         ],
     })
@@ -179,14 +215,20 @@ export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPagePrivateUser,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditStatusPagePrivateUser,
         ],
     })
@@ -249,10 +291,14 @@ export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPagePrivateUser,
         ],
         update: [],
@@ -279,10 +325,14 @@ export default class StatusPagePrivateUser extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPagePrivateUser,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPagePrivateUser,
         ],
         update: [],
@@ -299,6 +349,8 @@ export default class StatusPagePrivateUser extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPagePrivateUser,
         ],
         update: [],

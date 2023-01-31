@@ -23,10 +23,30 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateStatusPageResource],
-    read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteStatusPageResource],
-    update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+    create: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanCreateStatusPageResource,
+    ],
+    read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanReadStatusPageResource,
+    ],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanDeleteStatusPageResource,
+    ],
+    update: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanEditStatusPageResource,
+    ],
 })
 @CrudApiEndpoint(new Route('/status-page-resource'))
 @SlugifyColumn('name', 'slug')
@@ -38,9 +58,16 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
         update: [],
     })
     @TableColumn({
@@ -65,9 +92,16 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
         update: [],
     })
     @Index()
@@ -86,9 +120,16 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
         update: [],
     })
     @TableColumn({
@@ -113,9 +154,16 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
         update: [],
     })
     @Index()
@@ -130,10 +178,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @TableColumn({
         manyToOneRelationColumn: 'monitorId',
@@ -157,10 +217,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID, required: true })
@@ -174,10 +246,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @TableColumn({
         manyToOneRelationColumn: 'statusPageGroupId',
@@ -201,10 +285,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @Index()
     @TableColumn({ type: TableColumnType.ObjectID, required: false })
@@ -218,10 +314,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -234,10 +342,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -250,10 +370,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -266,10 +398,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
@@ -281,10 +425,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
@@ -296,9 +452,16 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
         update: [],
     })
     @TableColumn({
@@ -323,9 +486,16 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -339,10 +509,22 @@ export default class StatusPageResource extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageResource,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadStatusPageResource],
-        update: [Permission.ProjectOwner, Permission.CanEditStatusPageResource],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadStatusPageResource,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditStatusPageResource,
+        ],
     })
     @TableColumn({ isDefaultValueColumn: false, type: TableColumnType.Number })
     @Column({

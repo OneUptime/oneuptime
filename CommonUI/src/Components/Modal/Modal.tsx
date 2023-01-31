@@ -62,7 +62,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 />
                             </div>
                         )}
-                        <div className="sm:p-6">
+                        <div className="sm:p-6 flex">
                             {props.icon && (
                                 <div
                                     className={`mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${iconBgColor} sm:mx-0 sm:h-10 sm:w-10`}
@@ -74,7 +74,7 @@ const Modal: FunctionComponent<ComponentProps> = (
                                                 ? IconType.Info
                                                 : props.iconType
                                         }
-                                        className={'p-1.5'}
+                                        className={'text-red-600 h-6 w-6 stroke-2'}
                                         icon={props.icon}
                                         size={SizeProp.Large}
                                     />

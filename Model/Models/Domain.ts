@@ -20,10 +20,26 @@ import DomainType from 'Common/Types/Domain';
 
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateProjectDomain],
-    read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectDomain],
-    update: [Permission.ProjectOwner, Permission.CanEditProjectDomain],
+    create: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.CanCreateProjectDomain,
+    ],
+    read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.CanReadProjectDomain,
+    ],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.CanDeleteProjectDomain,
+    ],
+    update: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.CanEditProjectDomain,
+    ],
 })
 @CrudApiEndpoint(new Route('/domain'))
 @SlugifyColumn('name', 'slug')
@@ -33,8 +49,16 @@ import DomainType from 'Common/Types/Domain';
 })
 export default class Domain extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectDomain,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
         update: [],
     })
     @TableColumn({
@@ -57,8 +81,16 @@ export default class Domain extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectDomain,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
         update: [],
     })
     @Index()
@@ -75,9 +107,21 @@ export default class Domain extends BaseModel {
     public projectId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectDomain],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectDomain,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectDomain,
+        ],
     })
     @TableColumn({
         required: true,
@@ -95,7 +139,11 @@ export default class Domain extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -107,8 +155,16 @@ export default class Domain extends BaseModel {
     public slug?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectDomain,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
         update: [],
     })
     @TableColumn({
@@ -131,8 +187,16 @@ export default class Domain extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectDomain,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -145,7 +209,11 @@ export default class Domain extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
         update: [],
     })
     @TableColumn({
@@ -169,7 +237,11 @@ export default class Domain extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -182,8 +254,16 @@ export default class Domain extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectDomain],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectDomain,
+        ],
     })
     @TableColumn({ isDefaultValueColumn: true, type: TableColumnType.Boolean })
     @Column({
@@ -193,8 +273,16 @@ export default class Domain extends BaseModel {
     public isVerified?: boolean = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectDomain],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectDomain],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateProjectDomain,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectDomain,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })

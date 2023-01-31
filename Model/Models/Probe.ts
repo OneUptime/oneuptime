@@ -28,14 +28,34 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 })
 @SingularPluralName('Probe', 'Probes')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
+    create: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanCreateProjectProbe,
+    ],
     read: [Permission.Public],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectProbe],
-    update: [Permission.ProjectOwner, Permission.CanEditProjectProbe],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanDeleteProjectProbe,
+    ],
+    update: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanEditProjectProbe,
+    ],
 })
 export default class Probe extends BaseModel {
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [],
         update: [],
     })
@@ -53,9 +73,19 @@ export default class Probe extends BaseModel {
     public key?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [Permission.Public],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectProbe],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectProbe,
+        ],
     })
     @TableColumn({
         required: true,
@@ -70,9 +100,19 @@ export default class Probe extends BaseModel {
     public name?: string = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [Permission.Public],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectProbe],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectProbe,
+        ],
     })
     @TableColumn({ required: false, type: TableColumnType.Name })
     @Column({
@@ -129,9 +169,19 @@ export default class Probe extends BaseModel {
     public lastAlive?: Date = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [Permission.Public],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectProbe],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditProjectProbe,
+        ],
     })
     @TableColumn({ type: TableColumnType.ShortURL })
     @Column({
@@ -143,7 +193,12 @@ export default class Probe extends BaseModel {
     public iconUrl?: URL = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [Permission.Public],
         update: [],
     })
@@ -168,7 +223,12 @@ export default class Probe extends BaseModel {
     public project?: Project = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [Permission.Public],
         update: [],
     })
@@ -219,7 +279,12 @@ export default class Probe extends BaseModel {
     public deletedByUserId?: ObjectID = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [Permission.ProjectOwner],
         update: [],
     })
@@ -239,7 +304,12 @@ export default class Probe extends BaseModel {
     public createdByUser?: User = undefined;
 
     @ColumnAccessControl({
-        create: [Permission.ProjectOwner, Permission.CanCreateProjectProbe],
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanCreateProjectProbe,
+        ],
         read: [Permission.ProjectOwner],
         update: [],
     })

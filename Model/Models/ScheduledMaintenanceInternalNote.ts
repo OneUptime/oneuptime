@@ -21,18 +21,26 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateScheduledMaintenanceInternalNote,
     ],
     read: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanReadScheduledMaintenanceInternalNote,
     ],
     delete: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanDeleteScheduledMaintenanceInternalNote,
     ],
     update: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanEditScheduledMaintenanceInternalNote,
     ],
 })
@@ -45,10 +53,14 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceInternalNote,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceInternalNote,
         ],
         update: [],
@@ -75,10 +87,14 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceInternalNote,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceInternalNote,
         ],
         update: [],
@@ -99,10 +115,14 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceInternalNote,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceInternalNote,
         ],
         update: [],
@@ -129,10 +149,14 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceInternalNote,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceInternalNote,
         ],
         update: [],
@@ -149,10 +173,14 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceInternalNote,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceInternalNote,
         ],
         update: [],
@@ -179,10 +207,14 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceInternalNote,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceInternalNote,
         ],
         update: [],
@@ -235,14 +267,20 @@ export default class ScheduledMaintenanceInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceInternalNote,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceInternalNote,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditScheduledMaintenanceInternalNote,
         ],
     })

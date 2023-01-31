@@ -19,10 +19,30 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @CanAccessIfCanReadOn('incident')
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateIncidentPublicNote],
-    read: [Permission.ProjectOwner, Permission.CanReadIncidentPublicNote],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteIncidentPublicNote],
-    update: [Permission.ProjectOwner, Permission.CanEditIncidentPublicNote],
+    create: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanCreateIncidentPublicNote,
+    ],
+    read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanReadIncidentPublicNote,
+    ],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanDeleteIncidentPublicNote,
+    ],
+    update: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanEditIncidentPublicNote,
+    ],
 })
 @CrudApiEndpoint(new Route('/incident-public-note'))
 @Entity({
@@ -33,9 +53,16 @@ export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentPublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentPublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -60,9 +87,16 @@ export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentPublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentPublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
         update: [],
     })
     @Index()
@@ -81,9 +115,16 @@ export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentPublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentPublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -108,9 +149,16 @@ export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentPublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentPublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
         update: [],
     })
     @Index()
@@ -125,9 +173,16 @@ export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentPublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentPublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -152,9 +207,16 @@ export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentPublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentPublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -205,10 +267,22 @@ export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentPublicNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentPublicNote],
-        update: [Permission.ProjectOwner, Permission.CanEditIncidentPublicNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentPublicNote,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanEditIncidentPublicNote,
+        ],
     })
     @TableColumn({ type: TableColumnType.Markdown })
     @Column({

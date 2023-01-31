@@ -37,18 +37,26 @@ import StatusPage from './StatusPage';
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateProjectScheduledMaintenance,
     ],
     read: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanReadProjectScheduledMaintenance,
     ],
     delete: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanDeleteProjectScheduledMaintenance,
     ],
     update: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanEditProjectScheduledMaintenance,
     ],
 })
@@ -65,10 +73,14 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [],
@@ -95,10 +107,14 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [],
@@ -119,14 +135,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
@@ -146,14 +168,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
@@ -169,10 +197,14 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [],
@@ -189,10 +221,14 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [],
@@ -219,10 +255,14 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [],
@@ -275,14 +315,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
@@ -313,14 +359,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
@@ -351,14 +403,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
@@ -389,14 +447,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
@@ -421,14 +485,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
@@ -444,10 +514,14 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [],
@@ -473,14 +547,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
@@ -501,14 +581,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })
@@ -526,14 +612,20 @@ export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateProjectScheduledMaintenance,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectScheduledMaintenance,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditProjectScheduledMaintenance,
         ],
     })

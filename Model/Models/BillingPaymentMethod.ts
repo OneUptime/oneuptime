@@ -33,6 +33,7 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
@@ -60,6 +61,7 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
@@ -81,6 +83,7 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
@@ -108,6 +111,7 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
@@ -161,6 +165,7 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
@@ -206,6 +211,7 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],
@@ -223,6 +229,7 @@ export default class BillingPaymentMethod extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+
             Permission.CanCreateBillingPaymentMethod,
         ],
         read: [Permission.ProjectOwner, Permission.CanReadBillingPaymentMethod],

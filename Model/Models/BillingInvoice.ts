@@ -21,7 +21,11 @@ import URL from 'Common/Types/API/URL';
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [],
-    read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+    read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.CanReadInvoices,
+    ],
     delete: [],
     update: [],
 })
@@ -33,7 +37,11 @@ import URL from 'Common/Types/API/URL';
 export default class BillingInvoice extends BaseModel {
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({
@@ -57,7 +65,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @Index()
@@ -75,7 +87,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({
@@ -99,7 +115,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -112,7 +132,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({
@@ -136,7 +160,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -149,7 +177,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.Number })
@@ -162,7 +194,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -176,7 +212,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.LongURL })
@@ -190,7 +230,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -204,7 +248,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -218,7 +266,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })
@@ -232,7 +284,11 @@ export default class BillingInvoice extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadInvoices],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadInvoices,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ShortText })

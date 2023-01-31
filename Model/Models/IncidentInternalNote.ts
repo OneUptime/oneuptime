@@ -19,10 +19,30 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @CanAccessIfCanReadOn('incident')
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateIncidentInternalNote],
-    read: [Permission.ProjectOwner, Permission.CanReadIncidentInternalNote],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteIncidentInternalNote],
-    update: [Permission.ProjectOwner, Permission.CanEditIncidentInternalNote],
+    create: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanCreateIncidentInternalNote,
+    ],
+    read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanReadIncidentInternalNote,
+    ],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanDeleteIncidentInternalNote,
+    ],
+    update: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanEditIncidentInternalNote,
+    ],
 })
 @CrudApiEndpoint(new Route('/incident-internal-note'))
 @Entity({
@@ -33,9 +53,16 @@ export default class IncidentInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentInternalNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentInternalNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentInternalNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -60,9 +87,16 @@ export default class IncidentInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentInternalNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentInternalNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentInternalNote,
+        ],
         update: [],
     })
     @Index()
@@ -81,9 +115,16 @@ export default class IncidentInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentInternalNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentInternalNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentInternalNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -108,9 +149,16 @@ export default class IncidentInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentInternalNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentInternalNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentInternalNote,
+        ],
         update: [],
     })
     @Index()
@@ -125,9 +173,16 @@ export default class IncidentInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentInternalNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentInternalNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentInternalNote,
+        ],
         update: [],
     })
     @TableColumn({
@@ -152,9 +207,16 @@ export default class IncidentInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentInternalNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentInternalNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentInternalNote,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -205,11 +267,20 @@ export default class IncidentInternalNote extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateIncidentInternalNote,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadIncidentInternalNote],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadIncidentInternalNote,
+        ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditIncidentInternalNote,
         ],
     })

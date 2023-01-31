@@ -22,18 +22,26 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateScheduledMaintenanceStateTimeline,
     ],
     read: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanReadScheduledMaintenanceStateTimeline,
     ],
     delete: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanDeleteScheduledMaintenanceStateTimeline,
     ],
     update: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanEditScheduledMaintenanceStateTimeline,
     ],
 })
@@ -49,10 +57,14 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceStateTimeline,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceStateTimeline,
         ],
         update: [],
@@ -79,10 +91,14 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceStateTimeline,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceStateTimeline,
         ],
         update: [],
@@ -103,10 +119,14 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceStateTimeline,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceStateTimeline,
         ],
         update: [],
@@ -133,10 +153,14 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceStateTimeline,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceStateTimeline,
         ],
         update: [],
@@ -153,10 +177,14 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceStateTimeline,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceStateTimeline,
         ],
         update: [],
@@ -183,10 +211,14 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceStateTimeline,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceStateTimeline,
         ],
         update: [],
@@ -239,14 +271,20 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceStateTimeline,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceStateTimeline,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditScheduledMaintenanceStateTimeline,
         ],
     })
@@ -271,14 +309,20 @@ export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateScheduledMaintenanceStateTimeline,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadScheduledMaintenanceStateTimeline,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditScheduledMaintenanceStateTimeline,
         ],
     })

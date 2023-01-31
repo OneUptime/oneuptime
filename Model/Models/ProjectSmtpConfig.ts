@@ -23,10 +23,26 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 
 @TenantColumn('projectId')
 @TableAccessControl({
-    create: [Permission.ProjectOwner, Permission.CanCreateProjectSMTPConfig],
-    read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-    delete: [Permission.ProjectOwner, Permission.CanDeleteProjectSMTPConfig],
-    update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+    create: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.CanCreateProjectSMTPConfig,
+    ],
+    read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.CanReadProjectSMTPConfig,
+    ],
+    delete: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.CanDeleteProjectSMTPConfig,
+    ],
+    update: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.CanEditProjectSMTPConfig,
+    ],
 })
 @CrudApiEndpoint(new Route('/smtp-config'))
 @SlugifyColumn('name', 'slug')
@@ -38,9 +54,14 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
         update: [],
     })
     @TableColumn({
@@ -65,9 +86,14 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
         update: [],
     })
     @Index()
@@ -86,10 +112,19 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSMTPConfig,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -102,7 +137,11 @@ export default class ProjectSmtpConfig extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
         update: [],
     })
     @TableColumn({ required: true, unique: true, type: TableColumnType.Slug })
@@ -116,10 +155,19 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSMTPConfig,
+        ],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -132,9 +180,14 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
         update: [],
     })
     @TableColumn({
@@ -159,9 +212,14 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -174,7 +232,11 @@ export default class ProjectSmtpConfig extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
         update: [],
     })
     @TableColumn({
@@ -198,7 +260,11 @@ export default class ProjectSmtpConfig extends BaseModel {
 
     @ColumnAccessControl({
         create: [],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
         update: [],
     })
     @TableColumn({ type: TableColumnType.ObjectID })
@@ -212,10 +278,19 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSMTPConfig,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -228,10 +303,19 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSMTPConfig,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.Password })
     @Column({
@@ -244,10 +328,19 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSMTPConfig,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -261,10 +354,19 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSMTPConfig,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.Number })
     @Column({
@@ -277,10 +379,19 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSMTPConfig,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.Email })
     @Column({
@@ -294,10 +405,19 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSMTPConfig,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.ShortText })
     @Column({
@@ -310,10 +430,19 @@ export default class ProjectSmtpConfig extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectSMTPConfig,
         ],
-        read: [Permission.ProjectOwner, Permission.CanReadProjectSMTPConfig],
-        update: [Permission.ProjectOwner, Permission.CanEditProjectSMTPConfig],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanReadProjectSMTPConfig,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditProjectSMTPConfig,
+        ],
     })
     @TableColumn({ required: true, type: TableColumnType.Boolean })
     @Column({

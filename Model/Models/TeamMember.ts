@@ -22,16 +22,22 @@ import User from './User';
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectAdmin,
         Permission.CanCreateProjectTeam,
         Permission.CanInviteProjectTeamMembers,
     ],
     read: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanReadProjectTeam,
         Permission.CurrentUser,
     ],
     delete: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+
         Permission.CanDeleteProjectTeam,
         Permission.CurrentUser,
     ],
@@ -55,11 +61,14 @@ export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectTeam,
             Permission.CurrentUser,
         ],
@@ -87,11 +96,14 @@ export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectTeam,
             Permission.CurrentUser,
         ],
@@ -109,11 +121,14 @@ export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectTeam,
             Permission.CurrentUser,
         ],
@@ -141,11 +156,14 @@ export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectTeam,
             Permission.CurrentUser,
         ],
@@ -167,6 +185,7 @@ export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
@@ -195,11 +214,14 @@ export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectTeam,
             Permission.CurrentUser,
         ],
@@ -290,11 +312,14 @@ export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadProjectTeam,
             Permission.CurrentUser,
         ],
@@ -316,6 +341,7 @@ export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
             Permission.CanCreateProjectTeam,
             Permission.CanInviteProjectTeamMembers,
         ],

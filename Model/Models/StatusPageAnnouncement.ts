@@ -31,14 +31,28 @@ import StatusPage from './StatusPage';
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanCreateStatusPageAnnouncement,
     ],
-    read: [Permission.ProjectOwner, Permission.CanReadStatusPageAnnouncement],
+    read: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanReadStatusPageAnnouncement,
+    ],
     delete: [
         Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
         Permission.CanDeleteStatusPageAnnouncement,
     ],
-    update: [Permission.ProjectOwner, Permission.CanEditStatusPageAnnouncement],
+    update: [
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanEditStatusPageAnnouncement,
+    ],
 })
 @CrudApiEndpoint(new Route('/status-page-announcement'))
 @SlugifyColumn('name', 'slug')
@@ -50,10 +64,14 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [],
@@ -80,10 +98,14 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [],
@@ -104,10 +126,14 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [],
@@ -139,14 +165,20 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditStatusPageAnnouncement,
         ],
     })
@@ -166,14 +198,20 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditStatusPageAnnouncement,
         ],
     })
@@ -191,14 +229,20 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditStatusPageAnnouncement,
         ],
     })
@@ -211,14 +255,20 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanEditStatusPageAnnouncement,
         ],
     })
@@ -232,10 +282,14 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [],
@@ -262,10 +316,14 @@ export default class StatusPageAnnouncement extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanCreateStatusPageAnnouncement,
         ],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [],
@@ -282,6 +340,8 @@ export default class StatusPageAnnouncement extends BaseModel {
         create: [],
         read: [
             Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
             Permission.CanReadStatusPageAnnouncement,
         ],
         update: [],
