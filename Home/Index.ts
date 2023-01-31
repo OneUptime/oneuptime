@@ -589,9 +589,6 @@ app.get('/status-page', (_req: ExpressRequest, res: ExpressResponse) => {
     res.redirect('/product/status-page');
 });
 
-
-
-
 app.get('/product/on-call', (_req: ExpressRequest, res: ExpressResponse) => {
     res.render('coming-soon');
 });
@@ -842,8 +839,6 @@ app.get('/legal/sla', (_req: ExpressRequest, res: ExpressResponse) => {
     });
 });
 
-
-
 app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
     const productConfig: Product = productCompare(
         req.params['product'] as string
@@ -870,7 +865,6 @@ app.get('/compare/:product', (req: ExpressRequest, res: ExpressResponse) => {
         });
     }
 });
-
 
 // Generate sitemap
 app.get('/sitemap.xml', async (_req: ExpressRequest, res: ExpressResponse) => {
