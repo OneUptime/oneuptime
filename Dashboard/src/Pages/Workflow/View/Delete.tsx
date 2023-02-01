@@ -6,7 +6,9 @@ import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
+import StatusPage from 'Model/Models/StatusPage';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -39,16 +41,24 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     ),
                 },
                 {
-                    title: 'Builder',
+                    title: 'Delete Workflow',
                     to: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
+                        RouteMap[PageMap.WORKFLOW_DELETE] as Route,
                         modelId
                     ),
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
+            <ModelDelete
+                modelType={StatusPage}
+                modelId={modelId}
+                onDeleteSuccess={() => {
+                    Navigation.navigate(
+                        RouteMap[PageMap.STATUS_PAGES] as Route
+                    );
+                }}
+            />
         </Page>
     );
 };
