@@ -70,6 +70,7 @@ const RouteMap: Dictionary<Route> = {
     [PageMap.PREVIEW_RESET_PASSWORD]: new Route(
         `/status-page/${RouteParams.StatusPageId}/reset-password/:token`
     ),
+    
 };
 
 export class RouteUtil {

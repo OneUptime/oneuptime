@@ -11,7 +11,7 @@ const PageNotFound: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
     return (
-        <Page title={'Page Not Found'} breadcrumbLinks={[]}>
+        <Page title={''} breadcrumbLinks={[]}>
             <NotFound
                 homeRoute={new Route('/dashboard')}
                 supportEmail={new Email('support@oneuptime.com')}

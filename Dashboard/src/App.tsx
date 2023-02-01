@@ -17,6 +17,8 @@ import OngoingScheduledEvents from './Pages/Home/OngingScheduledMaintenance';
 
 import useAsyncEffect from 'use-async-effect';
 
+import Workflows from './Pages/Workflow/Workflows';
+
 import StatusPages from './Pages/StatusPages/StatusPages';
 import StatusPagesView from './Pages/StatusPages/View/Index';
 import StatusPagesViewDelete from './Pages/StatusPages/View/Delete';
@@ -380,6 +382,19 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
+
+                 {/* Workflows  */}
+
+                 <PageRoute
+                    path={RouteMap[PageMap.WORKFLOWS]?.toString() || ''}
+                    element={
+                        <Workflows
+                            pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+                
 
                 {/* Status Pages */}
 
