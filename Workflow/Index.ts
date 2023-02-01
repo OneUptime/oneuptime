@@ -4,7 +4,7 @@ import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabas
 import Redis from 'CommonServer/Infrastructure/Redis';
 import logger from 'CommonServer/Utils/Logger';
 
-const APP_NAME: string = 'alert';
+const APP_NAME: string = 'workflow';
 
 const app: ExpressApplication = Express.getExpressApp();
 

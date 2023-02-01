@@ -1,0 +1,28 @@
+{
+  "name": "workflows",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --require ts-node/register Index.ts",
+    "compile": "tsc",
+    "dev": "npx nodemon",
+    "audit": "npm audit --audit-level=low",
+    "dep-check": "depcheck ./ --skip-missing=true",
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "Common": "file:../Common",
+    "CommonServer": "file:../CommonServer",
+    "ts-node": "^10.9.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.5.0",
+    "@types/node": "^17.0.31",
+    "jest": "^28.1.0",
+    "nodemon": "^2.0.20",
+    "ts-jest": "^28.0.2"
+  }
+}
