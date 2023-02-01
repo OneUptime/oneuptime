@@ -97,11 +97,11 @@ enum Permission {
     CanEditStatusPageResource = 'CanEditStatusPageResource',
     CanReadStatusPageResource = 'CanReadStatusPageResource',
 
-     // Workflow Permissions (Owner Permission)
-     CanCreateWorkflow = 'CanCreateWorkflow',
-     CanDeleteWorkflow = 'CanDeleteWorkflow',
-     CanEditWorkflow = 'CanEditWorkflow',
-     CanReadWorkflow = 'CanReadWorkflow',
+    // Workflow Permissions (Owner Permission)
+    CanCreateWorkflow = 'CanCreateWorkflow',
+    CanDeleteWorkflow = 'CanDeleteWorkflow',
+    CanEditWorkflow = 'CanEditWorkflow',
+    CanReadWorkflow = 'CanReadWorkflow',
 
     // Probe Permissions (Owner Permission)
     CanCreateStatusPageGroup = 'CanCreateStatusPageGroup',
@@ -817,7 +817,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
             {
                 permission: Permission.CanCreateWorkflow,
                 title: 'Can Create Workflow',
@@ -850,8 +849,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
 
             {
                 permission: Permission.CanCreateStatusPageGroup,

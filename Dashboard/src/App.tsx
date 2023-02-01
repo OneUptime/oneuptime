@@ -383,9 +383,9 @@ const App: FunctionComponent = () => {
                     }
                 />
 
-                 {/* Workflows  */}
+                {/* Workflows  */}
 
-                 <PageRoute
+                <PageRoute
                     path={RouteMap[PageMap.WORKFLOWS]?.toString() || ''}
                     element={
                         <Workflows
@@ -394,7 +394,6 @@ const App: FunctionComponent = () => {
                         />
                     }
                 />
-                
 
                 {/* Status Pages */}
 

@@ -68,7 +68,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                         placeholder: 'Description',
-                    }
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -89,7 +89,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         title: 'Description',
                         type: FieldType.Text,
                         isFilterable: true,
-                    }
+                    },
                 ]}
             />
         </Page>

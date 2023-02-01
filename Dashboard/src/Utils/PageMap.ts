@@ -101,7 +101,7 @@ enum PageMap {
 
     // WORKFLOW
     WORKFLOWS = 'WORKFLOWS',
-    WORKFLOW_VIEW = 'WORKFLOW_VIEW'
+    WORKFLOW_VIEW = 'WORKFLOW_VIEW',
 }
 
 export default PageMap;

@@ -63,8 +63,7 @@ import BillingInvoice from './BillingInvoice';
 import GreenlockChallenge from './GreenlockChallenge';
 import GreenlockCertificate from './GreenlockCertificate';
 
-
-// Workflows. 
+// Workflows.
 import Workflow from './Workflow';
 
 export default [
@@ -114,6 +113,5 @@ export default [
     GreenlockChallenge,
     GreenlockCertificate,
 
-
-    Workflow
+    Workflow,
 ];
