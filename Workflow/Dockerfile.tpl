@@ -1,5 +1,5 @@
 #
-# OneUptime-Alert Dockerfile
+# OneUptime-Workflow Dockerfile
 #
 
 # Pull base image nodejs image.
@@ -58,12 +58,12 @@ WORKDIR /usr/src/app
 RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b /usr/local/bin
 
 # Install app dependencies
-COPY ./Alert/package*.json /usr/src/app/
+COPY ./Workflow/package*.json /usr/src/app/
 RUN npm install
 
 
 # Expose ports.
-#   - 3088: OneUptime-Alert
+#   - 3088: OneUptime-Workflow
 EXPOSE 3088
 
 {{ if eq .Env.ENVIRONMENT "development" }}
@@ -71,7 +71,7 @@ EXPOSE 3088
 CMD [ "npm", "run", "dev" ]
 {{ else }}
 # Copy app source
-COPY ./Alert /usr/src/app
+COPY ./Workflow /usr/src/app
 # Bundle app source
 RUN npm run compile
 #Run the app
