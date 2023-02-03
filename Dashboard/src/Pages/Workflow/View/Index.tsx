@@ -7,7 +7,7 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import Workflow from '../../../Components/Workflow/Workflow';
+import Workflow from 'CommonUI/src/Components/Workflow/Workflow';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

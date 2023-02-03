@@ -52,6 +52,7 @@
         "react-simple-code-editor": "^0.13.0",
         "react-spinners": "^0.13.6",
         "react-toggle": "^4.1.3",
+        "reactflow": "^11.5.3",
         "reactstrap": "^9.1.1",
         "redux": "^4.2.0",
         "rehype-sanitize": "^5.0.1",
