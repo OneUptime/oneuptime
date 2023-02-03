@@ -8,7 +8,7 @@ import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
 import ObjectID from 'Common/Types/ObjectID';
-import StatusPage from 'Model/Models/StatusPage';
+import Workflow from 'Model/Models/Workflow';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -51,11 +51,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
             sideMenu={<SideMenu modelId={modelId} />}
         >
             <ModelDelete
-                modelType={StatusPage}
+                modelType={Workflow}
                 modelId={modelId}
                 onDeleteSuccess={() => {
                     Navigation.navigate(
-                        RouteMap[PageMap.STATUS_PAGES] as Route
+                        RouteMap[PageMap.WORKFLOWS] as Route
                     );
                 }}
             />

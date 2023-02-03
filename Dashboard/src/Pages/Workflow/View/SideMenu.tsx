@@ -26,7 +26,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Info}
+                    icon={IconProp.Workflow}
                 />
 
                 <SideMenuItem
@@ -34,12 +34,12 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Runs & Logs',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.WORKFLOW_LOGS
+                            PageMap.WORKFLOW_LOGS
                             ] as Route,
                             props.modelId
                         ),
                     }}
-                    icon={IconProp.Anouncement}
+                    icon={IconProp.Logs}
                 />
             </SideMenuSection>
 
