@@ -5,8 +5,8 @@ import ColumnType from '../Types/Database/ColumnType';
 import SlugifyColumn from '../Types/Database/SlugifyColumn';
 import TableColumn from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
-import MimeType from '../Types/File/MimeType';
-import ObjectID from '../Types/ObjectID';
+import type MimeType from '../Types/File/MimeType';
+import type ObjectID from '../Types/ObjectID';
 import Permission from '../Types/Permission';
 import BaseModel from './BaseModel';
 

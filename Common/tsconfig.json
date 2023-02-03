@@ -3,6 +3,7 @@
     "extends": "@tsconfig/node-lts-strictest-esm/tsconfig.json",
     "compilerOptions": {
         "sourceMap": true,
-        "outDir": "./build/dist"
+        "outDir": "./build/dist",
+        "experimentalDecorators": true,
     }
 }
