@@ -1,5 +1,5 @@
 import { Column, Entity } from 'typeorm';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import BaseModel from 'Common/Models/BaseModel';
 
 @Entity({

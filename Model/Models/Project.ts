@@ -2,7 +2,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import TenantModel from 'Common/Models/TenantModel';
 import User from './User';
 import ColumnType from 'Common/Types/Database/ColumnType';
-import PositiveNumber from 'Common/Types/PositiveNumber';
+import type PositiveNumber from 'Common/Types/PositiveNumber';
 import ObjectID from 'Common/Types/ObjectID';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableColumn from 'Common/Types/Database/TableColumn';
