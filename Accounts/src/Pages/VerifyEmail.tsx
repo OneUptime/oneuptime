@@ -1,4 +1,5 @@
-import React, { FunctionComponent, useEffect, useState } from 'react';
+import type { FunctionComponent } from 'react';
+import React, { useEffect, useState } from 'react';
 import Route from 'Common/Types/API/Route';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 import Link from 'CommonUI/src/Components/Link/Link';
@@ -9,8 +10,8 @@ import { VERIFY_EMAIL_API_URL } from '../Utils/ApiPaths';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import URL from 'Common/Types/API/URL';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type URL from 'Common/Types/API/URL';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 const VerifyEmail: FunctionComponent = () => {
     const apiUrl: URL = VERIFY_EMAIL_API_URL;

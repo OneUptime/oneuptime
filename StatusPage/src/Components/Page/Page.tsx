@@ -1,7 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Page, {
-    ComponentProps as PageComponentProps,
-} from 'CommonUI/src/Components/Page/Page';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type { ComponentProps as PageComponentProps } from 'CommonUI/src/Components/Page/Page';
+import Page from 'CommonUI/src/Components/Page/Page';
 
 const StausPagePage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps

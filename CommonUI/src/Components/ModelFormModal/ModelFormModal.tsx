@@ -1,16 +1,16 @@
-import React, { ReactElement, RefObject, useRef, useState } from 'react';
-import { ButtonStyleType } from '../Button/Button';
+import type { ReactElement, RefObject } from 'react';
+import React, { useRef, useState } from 'react';
+import type { ButtonStyleType } from '../Button/Button';
 import Modal from '../Modal/Modal';
-import ModelForm, {
-    ComponentProps as ModelFormComponentProps,
-} from '../Forms/ModelForm';
-import BaseModel from 'Common/Models/BaseModel';
+import type { ComponentProps as ModelFormComponentProps } from '../Forms/ModelForm';
+import ModelForm from '../Forms/ModelForm';
+import type BaseModel from 'Common/Models/BaseModel';
 import ButtonType from '../Button/ButtonTypes';
-import { JSONObjectOrArray } from 'Common/Types/JSON';
-import { FormikProps, FormikValues } from 'formik';
-import ObjectID from 'Common/Types/ObjectID';
+import type { JSONObjectOrArray } from 'Common/Types/JSON';
+import type { FormikProps, FormikValues } from 'formik';
+import type ObjectID from 'Common/Types/ObjectID';
 import Alert, { AlertType } from '../Alerts/Alert';
-import FormValues from '../Forms/Types/FormValues';
+import type FormValues from '../Forms/Types/FormValues';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     title: string;

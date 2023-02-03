@@ -1,4 +1,4 @@
-import { JSONObject } from '../JSON';
+import type { JSONObject } from '../JSON';
 import Typeof from '../Typeof';
 import HTTPResponse from './HTTPResponse';
 

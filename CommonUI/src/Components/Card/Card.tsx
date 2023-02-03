@@ -1,7 +1,9 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Button, { ButtonStyleType } from '../Button/Button';
-import { IconProp } from '../Icon/Icon';
-import ShortcutKey from '../ShortcutKey/ShortcutKey';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type { ButtonStyleType } from '../Button/Button';
+import Button from '../Button/Button';
+import type { IconProp } from '../Icon/Icon';
+import type ShortcutKey from '../ShortcutKey/ShortcutKey';
 
 export interface CardButtonSchema {
     title: string;

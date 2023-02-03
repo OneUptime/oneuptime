@@ -1,7 +1,7 @@
 import UserUtil from './User';
-import Email from 'Common/Types/Email';
-import ObjectID from 'Common/Types/ObjectID';
-import { JSONObject } from 'Common/Types/JSON';
+import type Email from 'Common/Types/Email';
+import type ObjectID from 'Common/Types/ObjectID';
+import type { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 

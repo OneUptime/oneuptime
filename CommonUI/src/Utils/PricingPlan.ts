@@ -1,5 +1,5 @@
 import { env } from '../Config';
-import PricingPlanType from 'Common/Types/PricingPlan';
+import type PricingPlanType from 'Common/Types/PricingPlan';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 export default class PricingPlan {

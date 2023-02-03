@@ -1,13 +1,14 @@
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
-import PageComponentProps from '../../PageComponentProps';
+import type PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ModelDelete from 'CommonUI/src/Components/ModelDelete/ModelDelete';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
 
 const IncidentDelete: FunctionComponent<PageComponentProps> = (

@@ -2,6 +2,7 @@
     "name": "common",
     "version": "1.0.0",
     "description": "",
+    "type": "module",
     "main": "index.js",
     "scripts": {
         "test": "jest",
@@ -11,6 +12,7 @@
     "license": "MIT",
     "devDependencies": {
         "@faker-js/faker": "^6.3.1",
+        "@tsconfig/node-lts-strictest-esm": "^18.12.1",
         "@types/jest": "^27.5.2",
         "@types/node": "^17.0.22",
         "jest": "^27.5.1",

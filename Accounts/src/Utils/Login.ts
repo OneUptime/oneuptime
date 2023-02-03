@@ -1,10 +1,10 @@
 import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import Email from 'Common/Types/Email';
-import ObjectID from 'Common/Types/ObjectID';
-import Name from 'Common/Types/Name';
+import type Email from 'Common/Types/Email';
+import type ObjectID from 'Common/Types/ObjectID';
+import type Name from 'Common/Types/Name';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import User from 'Model/Models/User';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Analytics from 'CommonUI/src/Utils/Analytics';

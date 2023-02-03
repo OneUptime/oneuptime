@@ -2,7 +2,7 @@ import User from 'Model/Models/User';
 import Faker from 'Common/Utils/Faker';
 import CompanySize from 'Common/Types/Company/CompanySize';
 import JobRole from 'Common/Types/Company/JobRole';
-import PostgresDatabase from '../../../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../../../Infrastructure/PostgresDatabase';
 import { Service as UserService } from '../../../Services/UserService';
 
 export default class UserTestService {

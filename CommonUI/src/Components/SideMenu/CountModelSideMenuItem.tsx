@@ -1,12 +1,13 @@
-import Link from 'Common/Types/Link';
+import type Link from 'Common/Types/Link';
 import React, { useEffect, useState } from 'react';
-import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
-import BaseModel from 'Common/Models/BaseModel';
-import Query from '../../Utils/ModelAPI/Query';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { BadgeType } from '../Badge/Badge';
+import type { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import type BaseModel from 'Common/Models/BaseModel';
+import type Query from '../../Utils/ModelAPI/Query';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
-import { IconProp } from '../Icon/Icon';
+import type { IconProp } from '../Icon/Icon';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     link: Link;

@@ -1,6 +1,7 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState } from 'react';
+import type ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import Button, { ButtonSize } from '../Button/Button';
 import ConfirmModal from '../Modal/ConfirmModal';
 

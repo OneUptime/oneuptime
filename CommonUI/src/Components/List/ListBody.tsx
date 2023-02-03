@@ -1,8 +1,9 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import ListRow from './ListRow';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
-import Field from '../Detail/Field';
+import type ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import type Field from '../Detail/Field';
 
 export interface ComponentProps {
     data: Array<JSONObject>;

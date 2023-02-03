@@ -1,11 +1,12 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Pagination from '../Pagination/Pagination';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import type ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ListBody from './ListBody';
-import Field from '../Detail/Field';
+import type Field from '../Detail/Field';
 
 export interface ComponentProps {
     data: Array<JSONObject>;

@@ -1,4 +1,4 @@
-import Hostname from 'Common/Types/API/Hostname';
+import type Hostname from 'Common/Types/API/Hostname';
 import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
 
 export interface SslResponse {

@@ -1,10 +1,11 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState } from 'react';
 import Button, { ButtonSize } from '../Button/Button';
 import Detail from '../Detail/Detail';
-import Field from '../Detail/Field';
+import type Field from '../Detail/Field';
 import ConfirmModal from '../Modal/ConfirmModal';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import type ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 export interface ComponentProps {
     item: JSONObject;
     fields: Array<Field>;

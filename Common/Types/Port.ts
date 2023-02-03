@@ -1,4 +1,4 @@
-import { FindOperator } from 'typeorm/find-options/FindOperator';
+import type { FindOperator } from 'typeorm/find-options/FindOperator';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';
 import PositiveNumber from './PositiveNumber';

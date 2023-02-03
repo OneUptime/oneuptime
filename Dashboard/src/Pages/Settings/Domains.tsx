@@ -1,14 +1,10 @@
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
+import type PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
@@ -16,11 +12,11 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Domain from 'Model/Models/Domain';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import DashboardNavigation from '../../Utils/Navigation';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 const Domains: FunctionComponent<PageComponentProps> = (

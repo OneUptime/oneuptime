@@ -1,15 +1,15 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Permission, { UserPermission } from 'Common/Types/Permission';
+import type { UserPermission } from 'Common/Types/Permission';
+import Permission from 'Common/Types/Permission';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
-import Project from 'Model/Models/Project';
+import type Project from 'Model/Models/Project';
 import { IsBillingEnabled } from '../Config';
 import UserMiddleware from '../Middleware/UserAuthorization';
-import BillingPaymentMethodService, {
-    Service as BillingPaymentMethodServiceType,
-} from '../Services/BillingPaymentMethodService';
+import type { Service as BillingPaymentMethodServiceType } from '../Services/BillingPaymentMethodService';
+import BillingPaymentMethodService from '../Services/BillingPaymentMethodService';
 import BillingService from '../Services/BillingService';
 import ProjectService from '../Services/ProjectService';
-import {
+import type {
     ExpressRequest,
     ExpressResponse,
     NextFunction,

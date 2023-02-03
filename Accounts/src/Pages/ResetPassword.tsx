@@ -1,4 +1,5 @@
-import React, { FunctionComponent, useState } from 'react';
+import type { FunctionComponent } from 'react';
+import React, { useState } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Model/Models/User';
 import Link from 'CommonUI/src/Components/Link/Link';
@@ -6,7 +7,7 @@ import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 
-import URL from 'Common/Types/API/URL';
+import type URL from 'Common/Types/API/URL';
 import { RESET_PASSWORD_API_URL } from '../Utils/ApiPaths';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 

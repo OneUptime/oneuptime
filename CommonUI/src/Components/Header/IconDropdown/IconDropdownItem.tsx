@@ -1,7 +1,9 @@
-import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
-import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp } from '../../Icon/Icon';
+import type Route from 'Common/Types/API/Route';
+import type URL from 'Common/Types/API/URL';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type { IconProp } from '../../Icon/Icon';
+import Icon from '../../Icon/Icon';
 import Link from '../../Link/Link';
 
 export interface ComponentProps {

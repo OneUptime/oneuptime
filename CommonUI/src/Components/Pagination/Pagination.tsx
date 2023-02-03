@@ -1,9 +1,5 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 import BasicFormModal from '../FormModal/BasicFormModal';
 import FormFieldSchemaType from '../Forms/Types/FormFieldSchemaType';
 

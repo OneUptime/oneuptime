@@ -1,4 +1,4 @@
-import Headers from '../../../Types/API/Headers';
+import type Headers from '../../../Types/API/Headers';
 import Faker from '../../../Utils/Faker';
 describe('Headers', () => {
     test('should compile', () => {

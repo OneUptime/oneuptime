@@ -1,8 +1,8 @@
 import OneUptimeDate from 'Common/Types/Date';
-import React, { FunctionComponent, ReactElement } from 'react';
-import EventHistoryItem, {
-    ComponentProps as ItemComponentProps,
-} from '../EventItem/EventItem';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type { ComponentProps as ItemComponentProps } from '../EventItem/EventItem';
+import EventHistoryItem from '../EventItem/EventItem';
 
 export interface ComponentProps {
     date: Date;

@@ -1,6 +1,7 @@
-import { JSONObjectOrArray } from 'Common/Types/JSON';
-import io, { Socket } from 'CommonServer/Infrastructure/SocketIO';
-import ObjectID from 'Common/Types/ObjectID';
+import type { JSONObjectOrArray } from 'Common/Types/JSON';
+import type { Socket } from 'CommonServer/Infrastructure/SocketIO';
+import io from 'CommonServer/Infrastructure/SocketIO';
+import type ObjectID from 'Common/Types/ObjectID';
 
 io.sockets.on('connection', (socket: Socket) => {
     socket.on('project', async (projectId: ObjectID) => {

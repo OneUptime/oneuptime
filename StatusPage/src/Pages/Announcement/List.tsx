@@ -1,10 +1,6 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import PageComponentProps from '../PageComponentProps';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -12,21 +8,20 @@ import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import useAsyncEffect from 'use-async-effect';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type { JSONArray, JSONObject } from 'Common/Types/JSON';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
-import EventHistoryList, {
-    ComponentProps as EventHistoryListComponentProps,
-} from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
-import { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/src/Components/EventHistoryList/EventHistoryDayList';
+import type ObjectID from 'Common/Types/ObjectID';
+import type { ComponentProps as EventHistoryListComponentProps } from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
+import EventHistoryList from 'CommonUI/src/Components/EventHistoryList/EventHistoryList';
+import type { ComponentProps as EventHistoryDayListComponentProps } from 'CommonUI/src/Components/EventHistoryList/EventHistoryDayList';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import OneUptimeDate from 'Common/Types/Date';
-import Dictionary from 'Common/Types/Dictionary';
+import type Dictionary from 'Common/Types/Dictionary';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
 import { getAnnouncementEventItem } from './Detail';
 import UserUtil from '../../Utils/User';
 import Route from 'Common/Types/API/Route';

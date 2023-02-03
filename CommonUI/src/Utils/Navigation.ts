@@ -1,5 +1,5 @@
 import Route from 'Common/Types/API/Route';
-import { NavigateFunction, Location, Params } from 'react-router-dom';
+import type { NavigateFunction, Location, Params } from 'react-router-dom';
 import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Hostname from 'Common/Types/API/Hostname';

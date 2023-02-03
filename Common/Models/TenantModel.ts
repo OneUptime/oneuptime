@@ -1,4 +1,4 @@
-import ObjectID from '../Types/ObjectID';
+import type ObjectID from '../Types/ObjectID';
 import BaseModel from './BaseModel';
 
 export default class TenantModel extends BaseModel {

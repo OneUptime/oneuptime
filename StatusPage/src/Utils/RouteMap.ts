@@ -1,8 +1,8 @@
 import Route from 'Common/Types/API/Route';
-import Dictionary from 'Common/Types/Dictionary';
+import type Dictionary from 'Common/Types/Dictionary';
 import PageMap from './PageMap';
 import RouteParams from './RouteParams';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
 
 const RouteMap: Dictionary<Route> = {

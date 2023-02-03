@@ -1,11 +1,11 @@
 import API from 'Common/Utils/API';
 import { RealtimeHostname, HttpProtocol, ClusterKey } from '../Config';
-import { JSONObjectOrArray } from 'Common/Types/JSON';
+import type { JSONObjectOrArray } from 'Common/Types/JSON';
 import Route from 'Common/Types/API/Route';
-import Headers from 'Common/Types/API/Headers';
-import ObjectID from 'Common/Types/ObjectID';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import EmptyResponse from 'Common/Types/API/EmptyResponse';
+import type Headers from 'Common/Types/API/Headers';
+import type ObjectID from 'Common/Types/ObjectID';
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type EmptyResponse from 'Common/Types/API/EmptyResponse';
 
 class Service {
     private api: API;

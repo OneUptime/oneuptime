@@ -1,15 +1,18 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import TableBody from './TableBody';
 import TableHeader from './TableHeader';
-import Columns from './Types/Columns';
+import type Columns from './Types/Columns';
 import Pagination from '../Pagination/Pagination';
-import SortOrder from 'Common/Types/Database/SortOrder';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import type SortOrder from 'Common/Types/Database/SortOrder';
+import type ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import { DragDropContext, DropResult } from 'react-beautiful-dnd';
-import Filter, { FilterData } from './Filter';
+import type { DropResult } from 'react-beautiful-dnd';
+import { DragDropContext } from 'react-beautiful-dnd';
+import type { FilterData } from './Filter';
+import Filter from './Filter';
 
 export interface ComponentProps {
     data: Array<JSONObject>;

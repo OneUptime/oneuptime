@@ -1,57 +1,54 @@
-import BaseModel from 'Common/Models/BaseModel';
-import React, { ReactElement, useEffect, useState } from 'react';
-import Columns from './Columns';
+import type BaseModel from 'Common/Models/BaseModel';
+import type { ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type Columns from './Columns';
 import Table from '../Table/Table';
-import TableColumn from '../Table/Types/Column';
-import { JSONObject } from 'Common/Types/JSON';
-import Card, {
+import type TableColumn from '../Table/Types/Column';
+import type { JSONObject } from 'Common/Types/JSON';
+import type {
     CardButtonSchema,
     ComponentProps as CardComponentProps,
 } from '../Card/Card';
-import ModelAPI, {
-    ListResult,
-    RequestOptions,
-} from '../../Utils/ModelAPI/ModelAPI';
-import Select from '../../Utils/ModelAPI/Select';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import Card from '../Card/Card';
+import type { ListResult, RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import type Select from '../../Utils/ModelAPI/Select';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { ButtonStyleType } from '../Button/Button';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { IconProp } from '../Icon/Icon';
 import { FormType } from '../Forms/ModelForm';
-import Fields from '../Forms/Types/Fields';
+import type Fields from '../Forms/Types/Fields';
 
 import SortOrder from 'Common/Types/Database/SortOrder';
 import FieldType from '../Types/FieldType';
-import Dictionary from 'Common/Types/Dictionary';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import type Dictionary from 'Common/Types/Dictionary';
+import type ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ObjectID from 'Common/Types/ObjectID';
 import ConfirmModal from '../Modal/ConfirmModal';
-import Permission, {
-    PermissionHelper,
-    UserPermission,
-} from 'Common/Types/Permission';
+import type { UserPermission } from 'Common/Types/Permission';
+import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
-import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
-import Query from '../../Utils/ModelAPI/Query';
+import type { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import type Query from '../../Utils/ModelAPI/Query';
 import Search from 'Common/Types/Database/Search';
 import Typeof from 'Common/Types/Typeof';
 import Navigation from '../../Utils/Navigation';
 import Route from 'Common/Types/API/Route';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Populate from '../../Utils/ModelAPI/Populate';
+import type Populate from '../../Utils/ModelAPI/Populate';
 import List from '../List/List';
 import OrderedStatesList from '../OrderedStatesList/OrderedStatesList';
-import Field from '../Detail/Field';
-import FormValues from '../Forms/Types/FormValues';
-import { FilterData } from '../Table/Filter';
-import ModelTableColumn from './Column';
+import type Field from '../Detail/Field';
+import type FormValues from '../Forms/Types/FormValues';
+import type { FilterData } from '../Table/Filter';
+import type ModelTableColumn from './Column';
 import { Logger } from '../../Utils/Logger';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import InBetween from 'Common/Types/Database/InBetween';
 import { BILLING_ENABLED, getAllEnvVars } from '../../Config';
-import SubscriptionPlan, {
-    PlanSelect,
-} from 'Common/Types/Billing/SubscriptionPlan';
+import type { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import Pill from '../Pill/Pill';
 import { Yellow } from 'Common/Types/BrandColors';
 import JSONFunctions from 'Common/Types/JSONFunctions';

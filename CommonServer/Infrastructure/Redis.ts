@@ -1,4 +1,5 @@
-import { createClient, RedisClientType } from 'redis';
+import type { RedisClientType } from 'redis';
+import { createClient } from 'redis';
 import { RedisHostname, RedisPassword, RedisPort } from '../Config';
 import logger from '../Utils/Logger';
 

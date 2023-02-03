@@ -1,17 +1,18 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
+import type { OnCreate, OnDelete } from './DatabaseService';
+import DatabaseService from './DatabaseService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import IncidentService from './IncidentService';
-import DeleteBy from '../Types/Database/DeleteBy';
+import type DeleteBy from '../Types/Database/DeleteBy';
 import ObjectID from 'Common/Types/ObjectID';
-import PositiveNumber from 'Common/Types/PositiveNumber';
+import type PositiveNumber from 'Common/Types/PositiveNumber';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import IncidentState from 'Model/Models/IncidentState';
+import type IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
-import Incident from 'Model/Models/Incident';
+import type Incident from 'Model/Models/Incident';
 import MonitorStatusService from './MonitorStatusService';
-import MonitorStatus from 'Model/Models/MonitorStatus';
+import type MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import MonitorStatusTimelineService from './MonitorStatusTimelineService';
 

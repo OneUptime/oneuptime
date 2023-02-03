@@ -1,10 +1,10 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Probe';
 import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
 import Version from 'Common/Types/Version';
 import OneUptimeDate from 'Common/Types/Date';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

@@ -1,14 +1,14 @@
 import ApiKeyService from '../Services/ApiKeyService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import ObjectID from 'Common/Types/ObjectID';
-import {
+import type {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
 
-import ApiKey from 'Model/Models/ApiKey';
+import type ApiKey from 'Model/Models/ApiKey';
 import { LessThan } from 'typeorm';
 import OneUptimeDate from 'Common/Types/Date';
 import UserType from 'Common/Types/UserType';

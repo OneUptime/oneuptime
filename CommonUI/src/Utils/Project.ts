@@ -1,5 +1,5 @@
 import LocalStorage from './LocalStorage';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import Project from 'Model/Models/Project';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 

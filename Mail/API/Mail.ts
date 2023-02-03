@@ -1,18 +1,19 @@
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
 } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 const router: ExpressRouter = Express.getRouter();
 import Response from 'CommonServer/Utils/Response';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
 import MailService from '../Services/MailService';
-import EmailMessage from 'Common/Types/Email/EmailMessage';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import { JSONObject } from 'Common/Types/JSON';
+import type EmailMessage from 'Common/Types/Email/EmailMessage';
+import type EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import type { JSONObject } from 'Common/Types/JSON';
 import Email from 'Common/Types/Email';
-import Dictionary from 'Common/Types/Dictionary';
-import EmailServer from 'Common/Types/Email/EmailServer';
+import type Dictionary from 'Common/Types/Dictionary';
+import type EmailServer from 'Common/Types/Email/EmailServer';
 
 router.post(
     '/send',

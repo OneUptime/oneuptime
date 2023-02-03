@@ -1,5 +1,6 @@
-import Label from 'Model/Models/Label';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type Label from 'Model/Models/Label';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import LabelElement from './Label';
 
 export interface ComponentProps {

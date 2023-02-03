@@ -1,6 +1,6 @@
-import URL from 'Common/Types/API/URL';
-import Email from 'Common/Types/Email';
-import { JSONObject, JSONValue } from 'Common/Types/JSON';
+import type URL from 'Common/Types/API/URL';
+import type Email from 'Common/Types/Email';
+import type { JSONObject, JSONValue } from 'Common/Types/JSON';
 import Typeof from 'Common/Types/Typeof';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 

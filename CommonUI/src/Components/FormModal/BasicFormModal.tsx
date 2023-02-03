@@ -1,11 +1,11 @@
-import React, { ReactElement, useRef, useState } from 'react';
-import { ButtonStyleType } from '../Button/Button';
+import type { ReactElement } from 'react';
+import React, { useRef, useState } from 'react';
+import type { ButtonStyleType } from '../Button/Button';
 import Modal from '../Modal/Modal';
-import BasicForm, {
-    ComponentProps as BasicFormComponentProps,
-} from '../Forms/BasicForm';
+import type { ComponentProps as BasicFormComponentProps } from '../Forms/BasicForm';
+import BasicForm from '../Forms/BasicForm';
 import ButtonType from '../Button/ButtonTypes';
-import { FormikProps, FormikValues } from 'formik';
+import type { FormikProps, FormikValues } from 'formik';
 
 export interface ComponentProps<T extends Object> {
     title: string;

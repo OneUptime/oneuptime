@@ -1,5 +1,5 @@
 // This is for Object ID for all the things in our database.
-import { FindOperator } from 'typeorm';
+import type { FindOperator } from 'typeorm';
 import UUID from '../Utils/UUID';
 import DatabaseProperty from './Database/DatabaseProperty';
 

@@ -1,5 +1,6 @@
-import Color from 'Common/Types/Color';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type Color from 'Common/Types/Color';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 
 export enum SizeProp {
     ExtraSmall,

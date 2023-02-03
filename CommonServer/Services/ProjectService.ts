@@ -1,12 +1,8 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Project';
-import DatabaseService, {
-    OnCreate,
-    OnDelete,
-    OnFind,
-    OnUpdate,
-} from './DatabaseService';
-import CreateBy from '../Types/Database/CreateBy';
+import type { OnCreate, OnDelete, OnFind, OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import type CreateBy from '../Types/Database/CreateBy';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import TeamService from './TeamService';
 import Team from 'Model/Models/Team';
@@ -16,7 +12,7 @@ import TeamPermission from 'Model/Models/TeamPermission';
 import Permission from 'Common/Types/Permission';
 import TeamPermissionService from './TeamPermissionService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import FindBy from '../Types/Database/FindBy';
+import type FindBy from '../Types/Database/FindBy';
 import { In } from 'typeorm';
 import QueryHelper from '../Types/Database/QueryHelper';
 import ObjectID from 'Common/Types/ObjectID';
@@ -32,12 +28,11 @@ import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
 import { getAllEnvVars, IsBillingEnabled } from '../Config';
 import BillingService from './BillingService';
-import DeleteBy from '../Types/Database/DeleteBy';
+import type DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import SubscriptionPlan, {
-    PlanSelect,
-} from 'Common/Types/Billing/SubscriptionPlan';
-import UpdateBy from '../Types/Database/UpdateBy';
+import type { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import type UpdateBy from '../Types/Database/UpdateBy';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

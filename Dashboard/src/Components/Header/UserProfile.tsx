@@ -1,6 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import BlankProfilePic from 'CommonUI/src/Images/users/blank-profile.svg';

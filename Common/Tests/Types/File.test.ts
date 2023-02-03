@@ -1,4 +1,4 @@
-import { File } from '../../Types/File';
+import type { File } from '../../Types/File';
 
 describe('interface File', () => {
     test('should have name and contentType property', () => {

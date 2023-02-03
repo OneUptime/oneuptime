@@ -1,21 +1,24 @@
-import {
-    PermissionHelper,
+import type {
     UserPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
-import React, { ReactElement, useEffect, useState } from 'react';
+import { PermissionHelper } from 'Common/Types/Permission';
+import type { ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 import PermissionUtil from '../../Utils/Permission';
-import Card, {
+import type {
     CardButtonSchema,
     ComponentProps as CardProps,
 } from '../Card/Card';
-import ModelDetail, { ComponentProps as ModeDetailProps } from './ModelDetail';
-import BaseModel from 'Common/Models/BaseModel';
+import Card from '../Card/Card';
+import type { ComponentProps as ModeDetailProps } from './ModelDetail';
+import ModelDetail from './ModelDetail';
+import type BaseModel from 'Common/Models/BaseModel';
 import { ButtonStyleType } from '../Button/Button';
 import { IconProp } from '../Icon/Icon';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { FormType } from '../Forms/ModelForm';
-import Fields from '../Forms/Types/Fields';
+import type Fields from '../Forms/Types/Fields';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     cardProps: CardProps;

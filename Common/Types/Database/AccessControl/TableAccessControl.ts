@@ -1,4 +1,4 @@
-import { TableAccessControl } from './AccessControl';
+import type { TableAccessControl } from './AccessControl';
 
 export default (accessControl: TableAccessControl) => {
     return (ctr: Function) => {

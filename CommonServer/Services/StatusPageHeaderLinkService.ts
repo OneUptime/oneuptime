@@ -1,18 +1,15 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageHeaderLink';
-import DatabaseService, {
-    OnCreate,
-    OnDelete,
-    OnUpdate,
-} from './DatabaseService';
-import CreateBy from '../Types/Database/CreateBy';
+import type { OnCreate, OnDelete, OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import type CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Query from '../Types/Database/Query';
+import type Query from '../Types/Database/Query';
 import QueryHelper from '../Types/Database/QueryHelper';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import DeleteBy from '../Types/Database/DeleteBy';
-import ObjectID from 'Common/Types/ObjectID';
-import UpdateBy from '../Types/Database/UpdateBy';
+import type PositiveNumber from 'Common/Types/PositiveNumber';
+import type DeleteBy from '../Types/Database/DeleteBy';
+import type ObjectID from 'Common/Types/ObjectID';
+import type UpdateBy from '../Types/Database/UpdateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import SortOrder from 'Common/Types/Database/SortOrder';
 

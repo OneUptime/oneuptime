@@ -1,14 +1,15 @@
 import Project from 'Model/Models/Project';
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import DashboardNavigation from '../../Utils/Navigation';
-import PageComponentProps from '../PageComponentProps';
+import type PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 
 const Settings: FunctionComponent<PageComponentProps> = (

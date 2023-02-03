@@ -1,15 +1,16 @@
-import React, { FunctionComponent } from 'react';
+import type { FunctionComponent } from 'react';
+import React from 'react';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import { LOGIN_API_URL } from '../../Utils/ApiPaths';
 import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import LoginUtil from '../../Utils/Login';
 import UserUtil from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { FILE_URL } from 'CommonUI/src/Config';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 
 export interface ComponentProps {

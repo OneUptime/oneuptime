@@ -2,7 +2,7 @@ import ProbeService from '../Services/ProbeService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import Version from 'Common/Types/Version';
 
-import {
+import type {
     ExpressRequest,
     ExpressResponse,
     NextFunction,

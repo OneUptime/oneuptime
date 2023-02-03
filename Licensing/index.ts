@@ -1,9 +1,9 @@
-import {
+import type {
     ExpressRequest,
     ExpressResponse,
-    ExpressStatic,
     ExpressApplication,
 } from 'CommonServer/Utils/Express';
+import { ExpressStatic } from 'CommonServer/Utils/Express';
 
 import App from 'CommonServer/Utils/StartServer';
 

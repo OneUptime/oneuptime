@@ -1,31 +1,32 @@
-import BaseModel from 'Common/Models/BaseModel';
-import DatabaseService from '../Services/DatabaseService';
-import Express, {
+import type BaseModel from 'Common/Models/BaseModel';
+import type DatabaseService from '../Services/DatabaseService';
+import type {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
     OneUptimeRequest,
 } from '../Utils/Express';
+import Express from '../Utils/Express';
 import UserMiddleware from '../Middleware/UserAuthorization';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
 import Response from '../Utils/Response';
 import ObjectID from 'Common/Types/ObjectID';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import CreateBy from '../Types/Database/CreateBy';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
-import Query from '../Types/Database/Query';
-import Select from '../Types/Database/Select';
-import Sort from '../Types/Database/Sort';
+import type CreateBy from '../Types/Database/CreateBy';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type Query from '../Types/Database/Query';
+import type Select from '../Types/Database/Select';
+import type Sort from '../Types/Database/Sort';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import Populate from '../Types/Database/Populate';
-import PartialEntity from 'Common/Types/Database/PartialEntity';
-import { UserPermission } from 'Common/Types/Permission';
+import type Populate from '../Types/Database/Populate';
+import type PartialEntity from 'Common/Types/Database/PartialEntity';
+import type { UserPermission } from 'Common/Types/Permission';
 import { IsBillingEnabled } from '../Config';
 import ProjectService from '../Services/ProjectService';
-import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
+import type { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 
 export default class BaseAPI<
     TBaseModel extends BaseModel,

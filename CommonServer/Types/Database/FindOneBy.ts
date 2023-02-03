@@ -1,9 +1,9 @@
-import Query from './Query';
-import Select from './Select';
-import Populate from './Populate';
-import Sort from './Sort';
-import BaseModel from 'Common/Models/BaseModel';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type Query from './Query';
+import type Select from './Select';
+import type Populate from './Populate';
+import type Sort from './Sort';
+import type BaseModel from 'Common/Models/BaseModel';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
 export default interface FindOneBy<TBaseModel extends BaseModel> {
     query: Query<TBaseModel>;

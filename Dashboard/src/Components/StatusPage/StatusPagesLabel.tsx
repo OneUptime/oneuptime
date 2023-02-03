@@ -1,5 +1,6 @@
-import StatusPage from 'Model/Models/StatusPage';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type StatusPage from 'Model/Models/StatusPage';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import StatusPageElement from './StatusPageLabel';
 
 export interface ComponentProps {

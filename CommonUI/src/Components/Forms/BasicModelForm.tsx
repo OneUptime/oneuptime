@@ -1,15 +1,11 @@
-import React, {
-    MutableRefObject,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import { FormikErrors, FormikProps, FormikValues } from 'formik';
-import BaseModel from 'Common/Models/BaseModel';
-import FormValues from './Types/FormValues';
-import Fields from './Types/Fields';
+import type { MutableRefObject, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type { FormikErrors, FormikProps, FormikValues } from 'formik';
+import type BaseModel from 'Common/Models/BaseModel';
+import type FormValues from './Types/FormValues';
+import type Fields from './Types/Fields';
 import BasicForm, { DefaultValidateFunction } from './BasicForm';
-import { ButtonStyleType } from '../Button/Button';
+import type { ButtonStyleType } from '../Button/Button';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     model: TBaseModel;

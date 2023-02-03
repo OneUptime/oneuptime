@@ -1,7 +1,7 @@
 // Have "Project" string in the permission to make sure this permission is by Project.
 import BadDataException from './Exception/BadDataException';
-import { JSONObject } from './JSON';
-import ObjectID from './ObjectID';
+import type { JSONObject } from './JSON';
+import type ObjectID from './ObjectID';
 
 export interface PermissionProps {
     permission: Permission;

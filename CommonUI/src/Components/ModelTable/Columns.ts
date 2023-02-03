@@ -1,4 +1,4 @@
-import Column from './Column';
+import type Column from './Column';
 
 type Columns<T> = Array<Column<T>>;
 

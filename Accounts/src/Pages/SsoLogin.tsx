@@ -1,7 +1,8 @@
-import React, { FunctionComponent } from 'react';
+import type { FunctionComponent } from 'react';
+import React from 'react';
 import BasicModelForm from 'CommonUI/src/Components/Forms/BasicModelForm';
 import User from 'Model/Models/User';
-import FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
+import type FormValues from 'CommonUI/src/Components/Forms/Types/FormValues';
 import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';

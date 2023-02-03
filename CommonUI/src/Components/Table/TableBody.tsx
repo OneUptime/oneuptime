@@ -1,9 +1,11 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import TableRow from './TableRow';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
-import Columns from './Types/Columns';
-import { Droppable, DroppableProvided } from 'react-beautiful-dnd';
+import type ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import type Columns from './Types/Columns';
+import type { DroppableProvided } from 'react-beautiful-dnd';
+import { Droppable } from 'react-beautiful-dnd';
 
 export interface ComponentProps {
     data: Array<JSONObject>;

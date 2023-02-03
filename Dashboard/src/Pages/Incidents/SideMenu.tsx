@@ -1,5 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Route from 'Common/Types/API/Route';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type Route from 'Common/Types/API/Route';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
@@ -8,7 +9,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import { BadgeType } from 'CommonUI/src/Components/Badge/Badge';
 import Incident from 'Model/Models/Incident';
-import Project from 'Model/Models/Project';
+import type Project from 'Model/Models/Project';
 import CountModelSideMenuItem from 'CommonUI/src/Components/SideMenu/CountModelSideMenuItem';
 
 export interface ComponentProps {

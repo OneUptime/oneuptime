@@ -1,6 +1,6 @@
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import Card from 'CommonUI/src/Components/Card/Card';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -8,25 +8,21 @@ import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
-import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
+import type { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import Project from 'Model/Models/Project';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useRef,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useRef, useState } from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
+import type PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import BillingPaymentMethod from 'Model/Models/BillingPaymentMethod';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import Modal from 'CommonUI/src/Components/Modal/Modal';
 import ButtonType from 'CommonUI/src/Components/Button/ButtonTypes';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import URL from 'Common/Types/API/URL';
 import {
@@ -36,7 +32,8 @@ import {
     getAllEnvVars,
 } from 'CommonUI/src/Config';
 import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe, Stripe } from '@stripe/stripe-js';
+import type { Stripe } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import useAsyncEffect from 'use-async-effect';
 import CheckoutForm from './BillingPaymentMethodForm';

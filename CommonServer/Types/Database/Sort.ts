@@ -1,7 +1,7 @@
-import BaseModel from 'Common/Models/BaseModel';
-import DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
-import { FindOptionsOrderProperty, FindOptionsOrderValue } from 'typeorm';
-import SortOrder from 'Common/Types/Database/SortOrder';
+import type BaseModel from 'Common/Models/BaseModel';
+import type DatabaseProperty from 'Common/Types/Database/DatabaseProperty';
+import type { FindOptionsOrderProperty, FindOptionsOrderValue } from 'typeorm';
+import type SortOrder from 'Common/Types/Database/SortOrder';
 
 export declare type FindOrderProperty<Property> =
     Property extends DatabaseProperty

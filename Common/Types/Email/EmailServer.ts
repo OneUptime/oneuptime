@@ -1,6 +1,6 @@
-import Email from '../Email';
-import Port from '../Port';
-import Hostname from '../API/Hostname';
+import type Email from '../Email';
+import type Port from '../Port';
+import type Hostname from '../API/Hostname';
 
 export default interface EmailServer {
     host: Hostname;

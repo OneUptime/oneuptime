@@ -1,7 +1,8 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Footer from 'CommonUI/src/Components/Footer/Footer';
 import URL from 'Common/Types/API/URL';
-import Link from 'Common/Types/Link';
+import type Link from 'Common/Types/Link';
 
 export interface ComponentProps {
     copyright?: string | undefined;

@@ -1,8 +1,8 @@
-import BaseModel from '../../Models/BaseModel';
-import { JSONArray, JSONObject, JSONObjectOrArray } from '../JSON';
+import type BaseModel from '../../Models/BaseModel';
+import type { JSONArray, JSONObject, JSONObjectOrArray } from '../JSON';
 import JSONFunctions from '../JSONFunctions';
 import Typeof from '../Typeof';
-import Headers from './Headers';
+import type Headers from './Headers';
 
 export default class HTTPResponse<
     T extends JSONObjectOrArray | BaseModel | Array<BaseModel>

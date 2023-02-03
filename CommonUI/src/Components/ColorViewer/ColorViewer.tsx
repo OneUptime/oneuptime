@@ -1,6 +1,7 @@
 import { Grey } from 'Common/Types/BrandColors';
-import Color from 'Common/Types/Color';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type Color from 'Common/Types/Color';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 
 export interface ComponentProps {
     placeholder?: undefined | string;

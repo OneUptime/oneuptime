@@ -1,9 +1,11 @@
-import React, { ReactElement, useEffect, useState } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
-import Query from '../../Utils/ModelAPI/Query';
-import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { IconProp } from '../Icon/Icon';
+import type { ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type BaseModel from 'Common/Models/BaseModel';
+import type Query from '../../Utils/ModelAPI/Query';
+import type { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type { IconProp } from '../Icon/Icon';
 import HeaderAlert from './HeaderAlert';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {

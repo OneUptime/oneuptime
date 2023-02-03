@@ -1,8 +1,9 @@
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
 } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 import PositiveNumber from 'Common/Types/PositiveNumber';
 const router: ExpressRouter = Express.getRouter();
 import Response from 'CommonServer/Utils/Response';
@@ -10,8 +11,8 @@ import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 
 import LicenseService from '../Services/LicenseService';
-import Exception from 'Common/Types/Exception/Exception';
-import { JSONObject } from 'Common/Types/JSON';
+import type Exception from 'Common/Types/Exception/Exception';
+import type { JSONObject } from 'Common/Types/JSON';
 
 router.post('/', async (req: ExpressRequest, res: ExpressResponse) => {
     try {

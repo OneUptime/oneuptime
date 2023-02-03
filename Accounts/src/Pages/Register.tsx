@@ -1,4 +1,5 @@
-import React, { FunctionComponent } from 'react';
+import type { FunctionComponent } from 'react';
+import React from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Model/Models/User';
 import Link from 'CommonUI/src/Components/Link/Link';
@@ -6,11 +7,11 @@ import Route from 'Common/Types/API/Route';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 import LoginUtil from '../Utils/Login';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import UserUtil from 'CommonUI/src/Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { DASHBOARD_URL } from 'CommonUI/src/Config';
-import URL from 'Common/Types/API/URL';
+import type URL from 'Common/Types/API/URL';
 import { SIGNUP_API_URL } from '../Utils/ApiPaths';
 
 const RegisterPage: FunctionComponent = () => {

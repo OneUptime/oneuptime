@@ -5,20 +5,20 @@ import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import IncidentService from 'CommonServer/Services/IncidentService';
 import RunCron from '../../Utils/Cron';
-import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
+import type StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import { Domain, FileRoute, HttpProtocol } from 'CommonServer/Config';
 import URL from 'Common/Types/API/URL';
 import MailService from 'CommonServer/Services/MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import logger from 'CommonServer/Utils/Logger';
-import Incident from 'Model/Models/Incident';
-import StatusPageResource from 'Model/Models/StatusPageResource';
+import type Incident from 'Model/Models/Incident';
+import type StatusPageResource from 'Model/Models/StatusPageResource';
 import StatusPageResourceService from 'CommonServer/Services/StatusPageResourceService';
-import Dictionary from 'Common/Types/Dictionary';
+import type Dictionary from 'Common/Types/Dictionary';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
-import StatusPage from 'Model/Models/StatusPage';
+import type StatusPage from 'Model/Models/StatusPage';
 import ObjectID from 'Common/Types/ObjectID';
-import Monitor from 'Model/Models/Monitor';
+import type Monitor from 'Model/Models/Monitor';
 
 RunCron('Incident:SendEmailToSubscribers', EVERY_MINUTE, async () => {
     // get all scheduled events of all the projects.

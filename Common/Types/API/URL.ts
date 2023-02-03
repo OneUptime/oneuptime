@@ -2,8 +2,8 @@ import Protocol from './Protocol';
 import Route from './Route';
 import Hostname from './Hostname';
 import DatabaseProperty from '../Database/DatabaseProperty';
-import { FindOperator } from 'typeorm';
-import Dictionary from '../Dictionary';
+import type { FindOperator } from 'typeorm';
+import type Dictionary from '../Dictionary';
 import Typeof from '../Typeof';
 import Email from '../Email';
 

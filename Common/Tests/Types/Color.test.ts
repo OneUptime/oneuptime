@@ -1,4 +1,5 @@
-import Color, { RGB } from '../../Types/Color';
+import type { RGB } from '../../Types/Color';
+import Color from '../../Types/Color';
 import BadDataException from '../../Types/Exception/BadDataException';
 
 describe('Color', () => {

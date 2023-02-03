@@ -1,5 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Link from 'Common/Types/Link';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type Link from 'Common/Types/Link';
 import UILink from '../Link/Link';
 
 export interface ComponentProps {

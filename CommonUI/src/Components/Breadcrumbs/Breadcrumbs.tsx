@@ -1,5 +1,6 @@
-import Link from 'Common/Types/Link';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type Link from 'Common/Types/Link';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Icon, { IconProp } from '../Icon/Icon';
 import UILink from '../Link/Link';
 

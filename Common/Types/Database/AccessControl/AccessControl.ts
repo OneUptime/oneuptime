@@ -1,5 +1,5 @@
-import { PlanSelect } from '../../Billing/SubscriptionPlan';
-import Permission from '../../Permission';
+import type { PlanSelect } from '../../Billing/SubscriptionPlan';
+import type Permission from '../../Permission';
 
 export interface ColumnAccessControl {
     read: Array<Permission>;

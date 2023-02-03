@@ -1,184 +1,151 @@
 import 'ejs';
 import Redis from 'CommonServer/Infrastructure/Redis';
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import type { ExpressApplication } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import BaseAPI from 'CommonServer/API/BaseAPI';
 import App from 'CommonServer/Utils/StartServer';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 
 import User from 'Model/Models/User';
-import UserService, {
-    Service as UserServiceType,
-} from 'CommonServer/Services/UserService';
+import type { Service as UserServiceType } from 'CommonServer/Services/UserService';
+import UserService from 'CommonServer/Services/UserService';
 
 import BillingPaymentMethodAPI from 'CommonServer/API/BillingPaymentMethodAPI';
 
 import BillingInvoiceAPI from 'CommonServer/API/BillingInvoiceAPI';
 
 import Project from 'Model/Models/Project';
-import ProjectService, {
-    Service as ProjectServiceType,
-} from 'CommonServer/Services/ProjectService';
+import type { Service as ProjectServiceType } from 'CommonServer/Services/ProjectService';
+import ProjectService from 'CommonServer/Services/ProjectService';
 
 import Probe from 'Model/Models/Probe';
-import ProbeService, {
-    Service as ProbeServiceType,
-} from 'CommonServer/Services/ProbeService';
+import type { Service as ProbeServiceType } from 'CommonServer/Services/ProbeService';
+import ProbeService from 'CommonServer/Services/ProbeService';
 
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import StatusPagePrivateUserService, {
-    Service as StatusPagePrivateUserServiceType,
-} from 'CommonServer/Services/StatusPagePrivateUserService';
+import type { Service as StatusPagePrivateUserServiceType } from 'CommonServer/Services/StatusPagePrivateUserService';
+import StatusPagePrivateUserService from 'CommonServer/Services/StatusPagePrivateUserService';
 
 import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
-import StatusPageFooterLinkService, {
-    Service as StatusPageFooterLinkServiceType,
-} from 'CommonServer/Services/StatusPageFooterLinkService';
+import type { Service as StatusPageFooterLinkServiceType } from 'CommonServer/Services/StatusPageFooterLinkService';
+import StatusPageFooterLinkService from 'CommonServer/Services/StatusPageFooterLinkService';
 
 import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
-import StatusPageHeaderLinkService, {
-    Service as StatusPageHeaderLinkServiceType,
-} from 'CommonServer/Services/StatusPageHeaderLinkService';
+import type { Service as StatusPageHeaderLinkServiceType } from 'CommonServer/Services/StatusPageHeaderLinkService';
+import StatusPageHeaderLinkService from 'CommonServer/Services/StatusPageHeaderLinkService';
 
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
-import StatusPageAnnouncementService, {
-    Service as StatusPageAnnouncementServiceType,
-} from 'CommonServer/Services/StatusPageAnnouncementService';
+import type { Service as StatusPageAnnouncementServiceType } from 'CommonServer/Services/StatusPageAnnouncementService';
+import StatusPageAnnouncementService from 'CommonServer/Services/StatusPageAnnouncementService';
 
 import EmailVerificationToken from 'Model/Models/EmailVerificationToken';
-import EmailVerificationTokenService, {
-    Service as EmailVerificationTokenServiceType,
-} from 'CommonServer/Services/EmailVerificationTokenService';
+import type { Service as EmailVerificationTokenServiceType } from 'CommonServer/Services/EmailVerificationTokenService';
+import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
 
 import Team from 'Model/Models/Team';
-import TeamService, {
-    Service as TeamServiceType,
-} from 'CommonServer/Services/TeamService';
+import type { Service as TeamServiceType } from 'CommonServer/Services/TeamService';
+import TeamService from 'CommonServer/Services/TeamService';
 
 import TeamMember from 'Model/Models/TeamMember';
-import TeamMemberService, {
-    Service as TeamMemberServiceType,
-} from 'CommonServer/Services/TeamMemberService';
+import type { Service as TeamMemberServiceType } from 'CommonServer/Services/TeamMemberService';
+import TeamMemberService from 'CommonServer/Services/TeamMemberService';
 
 import TeamPermission from 'Model/Models/TeamPermission';
-import TeamPermissionService, {
-    Service as TeamPermissionServiceType,
-} from 'CommonServer/Services/TeamPermissionService';
+import type { Service as TeamPermissionServiceType } from 'CommonServer/Services/TeamPermissionService';
+import TeamPermissionService from 'CommonServer/Services/TeamPermissionService';
 
 import Label from 'Model/Models/Label';
-import LabelService, {
-    Service as LabelServiceType,
-} from 'CommonServer/Services/LabelService';
+import type { Service as LabelServiceType } from 'CommonServer/Services/LabelService';
+import LabelService from 'CommonServer/Services/LabelService';
 
 import ProjectSmtpConfig from 'Model/Models/ProjectSmtpConfig';
-import ProjectSmtpConfigService, {
-    Service as ProjectSMTPConfigServiceType,
-} from 'CommonServer/Services/ProjectSmtpConfigService';
+import type { Service as ProjectSMTPConfigServiceType } from 'CommonServer/Services/ProjectSmtpConfigService';
+import ProjectSmtpConfigService from 'CommonServer/Services/ProjectSmtpConfigService';
 
 import ApiKey from 'Model/Models/ApiKey';
-import ApiKeyService, {
-    Service as ApiKeyServiceType,
-} from 'CommonServer/Services/ApiKeyService';
+import type { Service as ApiKeyServiceType } from 'CommonServer/Services/ApiKeyService';
+import ApiKeyService from 'CommonServer/Services/ApiKeyService';
 
 import ApiKeyPermission from 'Model/Models/ApiKeyPermission';
-import ApiKeyPermissionService, {
-    Service as ApiKeyPermissionServiceType,
-} from 'CommonServer/Services/ApiKeyPermissionService';
+import type { Service as ApiKeyPermissionServiceType } from 'CommonServer/Services/ApiKeyPermissionService';
+import ApiKeyPermissionService from 'CommonServer/Services/ApiKeyPermissionService';
 
 import Monitor from 'Model/Models/Monitor';
-import MonitorService, {
-    Service as MonitorServiceType,
-} from 'CommonServer/Services/MonitorService';
+import type { Service as MonitorServiceType } from 'CommonServer/Services/MonitorService';
+import MonitorService from 'CommonServer/Services/MonitorService';
 
 import OnCallDuty from 'Model/Models/OnCallDuty';
-import OnCallDutyService, {
-    Service as OnCallDutyServiceType,
-} from 'CommonServer/Services/OnCallDutyService';
+import type { Service as OnCallDutyServiceType } from 'CommonServer/Services/OnCallDutyService';
+import OnCallDutyService from 'CommonServer/Services/OnCallDutyService';
 
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import MonitorStatusService, {
-    Service as MonitorStatusServiceType,
-} from 'CommonServer/Services/MonitorStatusService';
+import type { Service as MonitorStatusServiceType } from 'CommonServer/Services/MonitorStatusService';
+import MonitorStatusService from 'CommonServer/Services/MonitorStatusService';
 
 import MonitorTimelineStatus from 'Model/Models/MonitorStatusTimeline';
-import MonitorTimelineStatusService, {
-    Service as MonitorTimelineStatusServiceType,
-} from 'CommonServer/Services/MonitorStatusTimelineService';
+import type { Service as MonitorTimelineStatusServiceType } from 'CommonServer/Services/MonitorStatusTimelineService';
+import MonitorTimelineStatusService from 'CommonServer/Services/MonitorStatusTimelineService';
 
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
-import ScheduledMaintenanceStateService, {
-    Service as ScheduledMaintenanceStateServiceType,
-} from 'CommonServer/Services/ScheduledMaintenanceStateService';
+import type { Service as ScheduledMaintenanceStateServiceType } from 'CommonServer/Services/ScheduledMaintenanceStateService';
+import ScheduledMaintenanceStateService from 'CommonServer/Services/ScheduledMaintenanceStateService';
 
 import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
-import ScheduledMaintenanceService, {
-    Service as ScheduledMaintenanceServiceType,
-} from 'CommonServer/Services/ScheduledMaintenanceService';
+import type { Service as ScheduledMaintenanceServiceType } from 'CommonServer/Services/ScheduledMaintenanceService';
+import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintenanceService';
 
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import ScheduledMaintenanceStateTimelineService, {
-    Service as ScheduledMaintenanceStateTimelineServiceType,
-} from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
+import type { Service as ScheduledMaintenanceStateTimelineServiceType } from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
+import ScheduledMaintenanceStateTimelineService from 'CommonServer/Services/ScheduledMaintenanceStateTimelineService';
 
 import ScheduledMaintenanceInternalNote from 'Model/Models/ScheduledMaintenanceInternalNote';
-import ScheduledMaintenanceInternalNoteService, {
-    Service as ScheduledMaintenanceInternalNoteServiceType,
-} from 'CommonServer/Services/ScheduledMaintenanceInternalNoteService';
+import type { Service as ScheduledMaintenanceInternalNoteServiceType } from 'CommonServer/Services/ScheduledMaintenanceInternalNoteService';
+import ScheduledMaintenanceInternalNoteService from 'CommonServer/Services/ScheduledMaintenanceInternalNoteService';
 
 import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
-import ScheduledMaintenancePublicNoteService, {
-    Service as ScheduledMaintenancePublicNoteServiceType,
-} from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
+import type { Service as ScheduledMaintenancePublicNoteServiceType } from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
+import ScheduledMaintenancePublicNoteService from 'CommonServer/Services/ScheduledMaintenancePublicNoteService';
 
 import IncidentState from 'Model/Models/IncidentState';
-import IncidentStateService, {
-    Service as IncidentStateServiceType,
-} from 'CommonServer/Services/IncidentStateService';
+import type { Service as IncidentStateServiceType } from 'CommonServer/Services/IncidentStateService';
+import IncidentStateService from 'CommonServer/Services/IncidentStateService';
 
 import Incident from 'Model/Models/Incident';
-import IncidentService, {
-    Service as IncidentServiceType,
-} from 'CommonServer/Services/IncidentService';
+import type { Service as IncidentServiceType } from 'CommonServer/Services/IncidentService';
+import IncidentService from 'CommonServer/Services/IncidentService';
 
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import IncidentStateTimelineService, {
-    Service as IncidentStateTimelineServiceType,
-} from 'CommonServer/Services/IncidentStateTimelineService';
+import type { Service as IncidentStateTimelineServiceType } from 'CommonServer/Services/IncidentStateTimelineService';
+import IncidentStateTimelineService from 'CommonServer/Services/IncidentStateTimelineService';
 
 import IncidentInternalNote from 'Model/Models/IncidentInternalNote';
-import IncidentInternalNoteService, {
-    Service as IncidentInternalNoteServiceType,
-} from 'CommonServer/Services/IncidentInternalNoteService';
+import type { Service as IncidentInternalNoteServiceType } from 'CommonServer/Services/IncidentInternalNoteService';
+import IncidentInternalNoteService from 'CommonServer/Services/IncidentInternalNoteService';
 
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import IncidentPublicNoteService, {
-    Service as IncidentPublicNoteServiceType,
-} from 'CommonServer/Services/IncidentPublicNoteService';
+import type { Service as IncidentPublicNoteServiceType } from 'CommonServer/Services/IncidentPublicNoteService';
+import IncidentPublicNoteService from 'CommonServer/Services/IncidentPublicNoteService';
 
 import Domain from 'Model/Models/Domain';
-import DomainService, {
-    Service as DomainServiceType,
-} from 'CommonServer/Services/DomainService';
+import type { Service as DomainServiceType } from 'CommonServer/Services/DomainService';
+import DomainService from 'CommonServer/Services/DomainService';
 
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
-import StatusPageGroupService, {
-    Service as StatusPageGroupServiceType,
-} from 'CommonServer/Services/StatusPageGroupService';
+import type { Service as StatusPageGroupServiceType } from 'CommonServer/Services/StatusPageGroupService';
+import StatusPageGroupService from 'CommonServer/Services/StatusPageGroupService';
 
 import StatusPageResource from 'Model/Models/StatusPageResource';
-import StatusPageResourceService, {
-    Service as StatusPageResourceServiceType,
-} from 'CommonServer/Services/StatusPageResourceService';
+import type { Service as StatusPageResourceServiceType } from 'CommonServer/Services/StatusPageResourceService';
+import StatusPageResourceService from 'CommonServer/Services/StatusPageResourceService';
 
 import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import IncidentSeverityService, {
-    Service as IncidentSeverityServiceType,
-} from 'CommonServer/Services/IncidentSeverityService';
+import type { Service as IncidentSeverityServiceType } from 'CommonServer/Services/IncidentSeverityService';
+import IncidentSeverityService from 'CommonServer/Services/IncidentSeverityService';
 
 import StatusPageDomain from 'Model/Models/StatusPageDomain';
-import StatusPageDomainService, {
-    Service as StatusPageDomainServiceType,
-} from 'CommonServer/Services/StatusPageDomainService';
+import type { Service as StatusPageDomainServiceType } from 'CommonServer/Services/StatusPageDomainService';
+import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 
 // Import API
 

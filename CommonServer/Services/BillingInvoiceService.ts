@@ -1,12 +1,14 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/BillingInvoice';
-import DatabaseService, { OnDelete, OnFind } from './DatabaseService';
-import FindBy from '../Types/Database/FindBy';
+import type { OnDelete, OnFind } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import type FindBy from '../Types/Database/FindBy';
 import ProjectService from './ProjectService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Project from 'Model/Models/Project';
-import BillingService, { Invoice } from './BillingService';
-import DeleteBy from '../Types/Database/DeleteBy';
+import type Project from 'Model/Models/Project';
+import type { Invoice } from './BillingService';
+import BillingService from './BillingService';
+import type DeleteBy from '../Types/Database/DeleteBy';
 import URL from 'Common/Types/API/URL';
 
 export class Service extends DatabaseService<Model> {

@@ -1,8 +1,7 @@
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
-import StatusPageSubscriberService, {
-    Service as StatusPageSubscriberServiceType,
-} from '../Services/StatusPageSubscriberService';
-import {
+import type { Service as StatusPageSubscriberServiceType } from '../Services/StatusPageSubscriberService';
+import StatusPageSubscriberService from '../Services/StatusPageSubscriberService';
+import type {
     ExpressRequest,
     ExpressResponse,
     NextFunction,

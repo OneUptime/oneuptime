@@ -1,10 +1,6 @@
 import Select from 'react-select';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export type DropdownValue = string | number | boolean;
 

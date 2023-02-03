@@ -1,7 +1,8 @@
-import BaseModel from 'Common/Models/BaseModel';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import ObjectID from 'Common/Types/ObjectID';
-import React, { ReactElement, useState } from 'react';
+import type BaseModel from 'Common/Models/BaseModel';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type ObjectID from 'Common/Types/ObjectID';
+import type { ReactElement } from 'react';
+import React, { useState } from 'react';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import { ButtonStyleType } from '../Button/Button';
 import Card from '../Card/Card';

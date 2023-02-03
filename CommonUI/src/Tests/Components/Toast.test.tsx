@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
+import type { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
 import userEvent from '@testing-library/user-event';
 import Toast, { ToastType } from '../../Components/Toast/Toast';
 import OneUptimeDate from 'Common/Types/Date';

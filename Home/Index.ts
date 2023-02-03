@@ -1,23 +1,23 @@
 import 'ejs';
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
-    ExpressStatic,
     ExpressApplication,
 } from 'CommonServer/Utils/Express';
+import Express, { ExpressStatic } from 'CommonServer/Utils/Express';
 import App from 'CommonServer/Utils/StartServer';
-import Dictionary from 'Common/Types/Dictionary';
+import type Dictionary from 'Common/Types/Dictionary';
 import path from 'path';
-
 import OneUptimeDate from 'Common/Types/Date';
 import URL from 'Common/Types/API/URL';
-import productCompare, { Product } from './config/product-compare';
+import type { Product } from './config/product-compare';
+import productCompare from './config/product-compare';
 import builder from 'xmlbuilder2';
-import { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
+import type { XMLBuilder } from 'xmlbuilder2/lib/interfaces';
 import API from 'Common/Utils/API';
-import { JSONObject } from 'Common/Types/JSON';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type { JSONObject } from 'Common/Types/JSON';
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 
 export const APP_NAME: string = 'home';
 const app: ExpressApplication = Express.getExpressApp();

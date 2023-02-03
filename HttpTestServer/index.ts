@@ -1,17 +1,17 @@
-import {
+import type {
     ExpressRequest,
     ExpressResponse,
-    ExpressStatic,
 } from 'CommonServer/utils/Express';
+import { ExpressStatic } from 'CommonServer/utils/Express';
 
-import { ExpressApplication } from 'CommonServer/Utils/Express';
+import type { ExpressApplication } from 'CommonServer/Utils/Express';
 import App from 'CommonServer/Utils/StartServer';
 
 import path from 'path';
 
 import HTTPTestServerResponse from './types/HttpTestServerResponse';
 import ResponseType from 'Common/Types/api/ResponseType';
-import Headers from 'Common/Types/API/Headers';
+import type Headers from 'Common/Types/API/Headers';
 
 export const APP_NAME: string = 'home';
 const app: ExpressApplication = App(APP_NAME);

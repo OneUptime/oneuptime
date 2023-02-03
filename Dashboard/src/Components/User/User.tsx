@@ -1,8 +1,9 @@
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Icon, { IconProp, ThickProp } from 'CommonUI/src/Components/Icon/Icon';
 import User from 'Model/Models/User';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Image from 'CommonUI/src/Components/Image/Image';
 import URL from 'Common/Types/API/URL';
 import { FILE_URL } from 'CommonUI/src/Config';

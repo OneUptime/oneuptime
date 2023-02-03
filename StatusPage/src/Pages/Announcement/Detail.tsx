@@ -1,32 +1,27 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import PageComponentProps from '../PageComponentProps';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
 import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import useAsyncEffect from 'use-async-effect';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type { JSONArray, JSONObject } from 'Common/Types/JSON';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
 import StatusPageAnnouncement from 'Model/Models/StatusPageAnnouncement';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import EventItem, {
-    ComponentProps as EventItemComponentProps,
-} from 'CommonUI/src/Components/EventItem/EventItem';
+import type { ComponentProps as EventItemComponentProps } from 'CommonUI/src/Components/EventItem/EventItem';
+import EventItem from 'CommonUI/src/Components/EventItem/EventItem';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';

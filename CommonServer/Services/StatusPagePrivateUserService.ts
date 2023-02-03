@@ -1,7 +1,8 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPagePrivateUser';
-import DatabaseService, { OnCreate } from './DatabaseService';
-import StatusPage from 'Model/Models/StatusPage';
+import type { OnCreate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import type StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from './StatusPageService';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';

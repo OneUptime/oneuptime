@@ -1,10 +1,10 @@
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import ObjectID from 'Common/Types/ObjectID';
 import jwt from 'jsonwebtoken';
 import { EncryptionSecret } from '../Config';
-import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+import type JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import Name from 'Common/Types/Name';
 import User from 'Model/Models/User';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';

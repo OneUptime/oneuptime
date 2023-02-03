@@ -1,10 +1,10 @@
-import URL from 'Common/Types/API/URL';
-import Headers from 'Common/Types/API/Headers';
+import type URL from 'Common/Types/API/URL';
+import type Headers from 'Common/Types/API/Headers';
 import NotImplementedException from 'Common/Types/Exception/NotImplementedException';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import StatusCode from 'Common/Types/API/StatusCode';
-import HTML from 'Common/Types/Html';
-import { SslResponse } from './SslMonitor';
+import type PositiveNumber from 'Common/Types/PositiveNumber';
+import type StatusCode from 'Common/Types/API/StatusCode';
+import type HTML from 'Common/Types/Html';
+import type { SslResponse } from './SslMonitor';
 
 export interface WebsiteResponse {
     url: URL;

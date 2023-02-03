@@ -1,12 +1,13 @@
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
-import PageComponentProps from '../../PageComponentProps';
+import type PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import BadDataException from 'Common/Types/Exception/BadDataException';

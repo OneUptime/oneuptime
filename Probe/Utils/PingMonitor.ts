@@ -3,7 +3,8 @@ import IPv4 from 'Common/Types/IP/IPv4';
 import IPv6 from 'Common/Types/IP/IPv6';
 import Port from 'Common/Types/Port';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import net, { Socket } from 'net';
+import type { Socket } from 'net';
+import net from 'net';
 
 // TODO - make sure it  work for the IPV6
 export interface PingResponse {

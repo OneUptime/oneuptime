@@ -1,4 +1,4 @@
-import Dictionary from '../../Types/Dictionary';
+import type Dictionary from '../../Types/Dictionary';
 describe('Dictionary', () => {
     test('should allow basic types   compile', () => {
         const dictionary: Dictionary<string> = {

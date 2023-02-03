@@ -1,4 +1,4 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/ApiKeyPermission';
 import DatabaseService from './DatabaseService';
 

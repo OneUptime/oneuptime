@@ -1,4 +1,4 @@
-import { BillingAccessControl } from './AccessControl';
+import type { BillingAccessControl } from './AccessControl';
 
 export default (accessControl: BillingAccessControl) => {
     return (ctr: Function) => {

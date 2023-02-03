@@ -1,4 +1,4 @@
-import { FindOperator } from 'typeorm';
+import type { FindOperator } from 'typeorm';
 import DatabaseProperty from './Database/DatabaseProperty';
 
 export default class Name extends DatabaseProperty {

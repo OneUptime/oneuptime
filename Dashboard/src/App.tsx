@@ -1,4 +1,5 @@
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import type { FunctionComponent } from 'react';
+import React, { useState, useEffect } from 'react';
 import Route from 'Common/Types/API/Route';
 import {
     Routes,
@@ -95,9 +96,10 @@ import MonitorInoperational from './Pages/Monitor/NotOperationalMonitors';
 // import 'CommonUI/src/Styles/theme.scss';
 import User from 'CommonUI/src/Utils/User';
 import Logout from './Pages/Logout/Logout';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import type { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import Project from 'Model/Models/Project';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import PageNotFound from './Pages/PageNotFound/PageNotFound';
 import Welcome from './Pages/Onboarding/Welcome';
 import GlobalEvents from 'CommonUI/src/Utils/GlobalEvents';

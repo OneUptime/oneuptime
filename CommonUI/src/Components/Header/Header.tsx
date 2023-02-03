@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 
 export interface ComponentProps {
     leftComponents?: undefined | Array<ReactElement> | ReactElement;

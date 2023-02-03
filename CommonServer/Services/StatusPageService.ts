@@ -1,17 +1,17 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import DatabaseService from './DatabaseService';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
-import ObjectID from 'Common/Types/ObjectID';
-import PositiveNumber from 'Common/Types/PositiveNumber';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type ObjectID from 'Common/Types/ObjectID';
+import type PositiveNumber from 'Common/Types/PositiveNumber';
 import StatusPage from 'Model/Models/StatusPage';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import type StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from './StatusPageDomainService';
 import URL from 'Common/Types/API/URL';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import { Domain, HttpProtocol } from '../Config';
-import { ExpressRequest } from '../Utils/Express';
+import type { ExpressRequest } from '../Utils/Express';
 import JSONWebToken from '../Utils/JsonWebToken';
-import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+import type JSONWebTokenData from 'Common/Types/JsonWebTokenData';
 import logger from '../Utils/Logger';
 
 export class Service extends DatabaseService<StatusPage> {

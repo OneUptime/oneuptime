@@ -1,4 +1,5 @@
-import { ExpressStatic, ExpressApplication } from 'CommonServer/Utils/Express';
+import type { ExpressApplication } from 'CommonServer/Utils/Express';
+import { ExpressStatic } from 'CommonServer/Utils/Express';
 import App from 'CommonServer/Utils/StartServer';
 import path from 'path';
 

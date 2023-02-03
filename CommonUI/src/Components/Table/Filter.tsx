@@ -1,22 +1,19 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import Column from './Types/Column';
-import Columns from './Types/Columns';
-import Dictionary from 'Common/Types/Dictionary';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type Column from './Types/Column';
+import type Columns from './Types/Columns';
+import type Dictionary from 'Common/Types/Dictionary';
 import Input from '../Input/Input';
 import FieldType from '../Types/FieldType';
 import Search from 'Common/Types/Database/Search';
 import OneUptimeDate from 'Common/Types/Date';
-import BaseModel from 'Common/Models/BaseModel';
-import ObjectID from 'Common/Types/ObjectID';
-import Dropdown, { DropdownValue } from '../Dropdown/Dropdown';
+import type BaseModel from 'Common/Models/BaseModel';
+import type ObjectID from 'Common/Types/ObjectID';
+import type { DropdownValue } from '../Dropdown/Dropdown';
+import Dropdown from '../Dropdown/Dropdown';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import InBetween from 'Common/Types/Database/InBetween';
+import type InBetween from 'Common/Types/Database/InBetween';
 import DatabaseDate from 'Common/Types/Database/Date';
 
 export type FilterData = Dictionary<

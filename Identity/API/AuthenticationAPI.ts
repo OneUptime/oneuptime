@@ -6,14 +6,15 @@ import {
     Domain,
     AccountsRoute,
 } from 'CommonServer/Config';
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 import BadRequestException from 'Common/Types/Exception/BadRequestException';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import User from 'Model/Models/User';
 import EmailVerificationTokenService from 'CommonServer/Services/EmailVerificationTokenService';
 import UserService from 'CommonServer/Services/UserService';
@@ -30,9 +31,9 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import Route from 'Common/Types/API/Route';
 import logger from 'CommonServer/Utils/Logger';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import PartialEntity from 'Common/Types/Database/PartialEntity';
-import Email from 'Common/Types/Email';
-import Name from 'Common/Types/Name';
+import type PartialEntity from 'Common/Types/Database/PartialEntity';
+import type Email from 'Common/Types/Email';
+import type Name from 'Common/Types/Name';
 
 const router: ExpressRouter = Express.getRouter();
 

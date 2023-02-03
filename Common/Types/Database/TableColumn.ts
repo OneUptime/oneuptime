@@ -1,8 +1,8 @@
 import 'reflect-metadata';
-import BaseModel from '../../Models/BaseModel';
-import Dictionary from '../Dictionary';
-import { ReflectionMetadataType } from '../Reflection';
-import TableColumnType from './TableColumnType';
+import type BaseModel from '../../Models/BaseModel';
+import type Dictionary from '../Dictionary';
+import type { ReflectionMetadataType } from '../Reflection';
+import type TableColumnType from './TableColumnType';
 
 const tableColumn: Symbol = Symbol('TableColumn');
 

@@ -1,5 +1,6 @@
 import 'ejs';
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import type { ExpressApplication } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 import App from 'CommonServer/Utils/StartServer';
 
 // API

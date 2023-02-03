@@ -1,4 +1,4 @@
-import Permission from '../Permission';
+import type Permission from '../Permission';
 
 export default (
     permission: Permission,

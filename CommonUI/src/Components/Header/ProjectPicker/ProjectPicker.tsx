@@ -1,12 +1,8 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import Icon, { IconProp } from '../../Icon/Icon';
-import Project from 'Model/Models/Project';
+import type Project from 'Model/Models/Project';
 import ProjectPickerMenu from './ProjectPickerMenu';
 import ProjectPickerMenuItem from './ProjectPickerMenuItem';
 import CreateNewProjectButton from './CreateNewProjectButton';

@@ -1,10 +1,5 @@
-import {
-    useState,
-    useEffect,
-    useRef,
-    MouseEventHandler,
-    MouseEvent,
-} from 'react';
+import type { MouseEventHandler, MouseEvent } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const useComponentOutsideClick: Function = (
     isVisible: boolean

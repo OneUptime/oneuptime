@@ -5,24 +5,26 @@ import {
 } from '../../Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import { IsDevelopment } from 'CommonServer/Config';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import type StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
 // @ts-ignore
 import Greenlock from 'greenlock';
 import logger from 'CommonServer/Utils/Logger';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 import ClusterKeyAuthorization from 'CommonServer/Middleware/ClusterKeyAuthorization';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import Response from 'CommonServer/Utils/Response';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import axios, { AxiosResponse } from 'axios';
-import GreenlockCertificate from 'Model/Models/GreenlockCertificate';
+import type { AxiosResponse } from 'axios';
+import axios from 'axios';
+import type GreenlockCertificate from 'Model/Models/GreenlockCertificate';
 import GreenlockCertificateService from 'CommonServer/Services/GreenlockCertificateService';
 import fs from 'fs';
 import SelfSignedSSL from '../../Utils/SelfSignedSSL';

@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import PageError from '../Error/PageError';
 import PageLoader from '../Loader/PageLoader';
 import TopSection from '../TopSection/TopSection';

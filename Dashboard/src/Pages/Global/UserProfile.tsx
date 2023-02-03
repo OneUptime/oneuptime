@@ -1,7 +1,8 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageComponentProps from '../PageComponentProps';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState } from 'react';
+import type PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import User from 'Model/Models/User';

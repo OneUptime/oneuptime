@@ -1,22 +1,20 @@
 import DatabaseRequestType from '../Types/Database/DatabaseRequestType';
-import Permission, {
-    PermissionHelper,
-    UserPermission,
-} from 'Common/Types/Permission';
-import BaseModel from 'Common/Models/BaseModel';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type { UserPermission } from 'Common/Types/Permission';
+import Permission, { PermissionHelper } from 'Common/Types/Permission';
+import type BaseModel from 'Common/Models/BaseModel';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
 import PaymentRequiredException from 'Common/Types/Exception/PaymentRequiredException';
-import Query from '../Types/Database/Query';
-import Select from '../Types/Database/Select';
+import type Query from '../Types/Database/Query';
+import type Select from '../Types/Database/Select';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import QueryHelper from '../Types/Database/QueryHelper';
 import Columns from 'Common/Types/Database/Columns';
-import Dictionary from 'Common/Types/Dictionary';
-import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
-import Populate from '../Types/Database/Populate';
+import type Dictionary from 'Common/Types/Dictionary';
+import type { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import type Populate from '../Types/Database/Populate';
 import Typeof from 'Common/Types/Typeof';
-import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
+import type { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import ObjectID from 'Common/Types/ObjectID';
 import LessThan from 'Common/Types/Database/LessThan';
@@ -26,9 +24,9 @@ import LessThanOrEqual from 'Common/Types/Database/LessThanOrEqual';
 import InBetween from 'Common/Types/Database/InBetween';
 import NotNull from 'Common/Types/Database/NotNull';
 import Search from 'Common/Types/Database/Search';
-import { FindOperator } from 'typeorm';
-import { JSONObject } from 'Common/Types/JSON';
-import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
+import type { FindOperator } from 'typeorm';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { getAllEnvVars, IsBillingEnabled } from '../Config';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 

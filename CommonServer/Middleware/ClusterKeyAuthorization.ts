@@ -1,5 +1,5 @@
 import { ClusterKey as ONEUPTIME_SECRET } from '../Config';
-import {
+import type {
     ExpressRequest,
     ExpressResponse,
     NextFunction,

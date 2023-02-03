@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState } from 'react';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import Project from 'Model/Models/Project';
@@ -6,7 +7,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
+import type { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import DashboardNavigation from '../../Utils/Navigation';

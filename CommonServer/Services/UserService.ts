@@ -1,11 +1,12 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/User';
-import DatabaseService, { OnUpdate } from './DatabaseService';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
-import Email from 'Common/Types/Email';
+import type { OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type Email from 'Common/Types/Email';
 import ObjectID from 'Common/Types/ObjectID';
 import MailService from './MailService';
-import UpdateBy from '../Types/Database/UpdateBy';
+import type UpdateBy from '../Types/Database/UpdateBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import { AccountsRoute, Domain, HttpProtocol } from '../Config';

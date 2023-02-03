@@ -1,16 +1,13 @@
 import Editor from 'react-simple-code-editor';
-import PrismJS, { highlight, Grammar } from 'prismjs';
+import type { Grammar } from 'prismjs';
+import PrismJS, { highlight } from 'prismjs';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-javascript';
 import 'prismjs/themes/prism.css';
 import CodeType from 'Common/Types/Code/CodeType';
 
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export interface ComponentProps {
     initialValue?: undefined | string;

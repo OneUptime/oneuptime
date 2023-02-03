@@ -1,13 +1,14 @@
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
 } from 'CommonServer/utils/Express';
+import Express from 'CommonServer/utils/Express';
 import PositiveNumber from 'Common/Types/PositiveNumber';
-import ResponseType from 'Common/Types/API/ResponseType';
+import type ResponseType from 'Common/Types/API/ResponseType';
 import HTTPTestServerResponse from '../types/HttpTestServerResponse';
-import { JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
-import Headers from 'Common/Types/API/Headers';
+import type { JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
+import type Headers from 'Common/Types/API/Headers';
 
 const router: ExpressRouter = Express.getRouter();
 

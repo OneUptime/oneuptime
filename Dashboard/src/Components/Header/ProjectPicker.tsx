@@ -1,9 +1,5 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useState,
-    useEffect,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProjectPicker from 'CommonUI/src/Components/Header/ProjectPicker/ProjectPicker';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Project from 'Model/Models/Project';
@@ -13,8 +9,8 @@ import { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import Field from 'CommonUI/src/Components/Forms/Types/Field';
-import { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
+import type Field from 'CommonUI/src/Components/Forms/Types/Field';
+import type { RadioButton } from 'CommonUI/src/Components/RadioButtons/RadioButtons';
 import Toggle from 'CommonUI/src/Components/Toggle/Toggle';
 
 export interface ComponentProps {

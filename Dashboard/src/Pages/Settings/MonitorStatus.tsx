@@ -1,9 +1,10 @@
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
+import type PageComponentProps from '../PageComponentProps';
 import DashboardSideMenu from './SideMenu';
 import ModelTable, {
     ShowTableAs,
@@ -11,9 +12,9 @@ import ModelTable, {
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import StatusBubble from 'CommonUI/src/Components/StatusBubble/StatusBubble';
-import Color from 'Common/Types/Color';
+import type Color from 'Common/Types/Color';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import SortOrder from 'Common/Types/Database/SortOrder';

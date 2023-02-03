@@ -1,7 +1,7 @@
-import Email from './Email';
-import { JSONObject } from './JSON';
-import Name from './Name';
-import ObjectID from './ObjectID';
+import type Email from './Email';
+import type { JSONObject } from './JSON';
+import type Name from './Name';
+import type ObjectID from './ObjectID';
 
 export default interface JSONWebTokenData extends JSONObject {
     userId: ObjectID;

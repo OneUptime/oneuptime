@@ -1,4 +1,4 @@
-import {
+import type {
     ExpressResponse,
     ExpressRequest,
     NextFunction,
@@ -7,15 +7,15 @@ import {
 import UserService from '../Services/UserService';
 import ProjectMiddleware from './ProjectAuthorization';
 import JSONWebToken from '../Utils/JsonWebToken';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import OneUptimeDate from 'Common/Types/Date';
 import UserType from 'Common/Types/UserType';
-import {
+import type {
     UserGlobalAccessPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
 import AccessTokenService from '../Services/AccessTokenService';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import HashedString from 'Common/Types/HashedString';
 

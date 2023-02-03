@@ -1,5 +1,5 @@
-import Route from './API/Route';
-import URL from './API/URL';
+import type Route from './API/Route';
+import type URL from './API/URL';
 
 export default interface Link {
     title: string;

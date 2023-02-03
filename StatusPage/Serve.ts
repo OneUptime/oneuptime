@@ -1,5 +1,6 @@
 import App from 'CommonServer/Utils/StartServer';
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import type { ExpressApplication } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
 export const APP_NAME: string = 'status-page';

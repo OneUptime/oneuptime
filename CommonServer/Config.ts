@@ -4,7 +4,7 @@ import Port from 'Common/Types/Port';
 import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 
 export const getAllEnvVars: Function = (): JSONObject => {
     return process.env;

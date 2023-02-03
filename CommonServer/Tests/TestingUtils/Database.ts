@@ -1,6 +1,6 @@
 import PostgresDatabase from '../../Infrastructure/PostgresDatabase';
 import { createDatabase, dropDatabase } from 'typeorm-extension';
-import { DataSource, DataSourceOptions } from 'typeorm';
+import type { DataSource, DataSourceOptions } from 'typeorm';
 
 export default class DatabaseConnect {
     private database!: PostgresDatabase;

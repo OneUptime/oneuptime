@@ -1,6 +1,6 @@
-import BaseModel from 'Common/Models/BaseModel';
-import Dictionary from 'Common/Types/Dictionary';
-import { JSONValue } from 'Common/Types/JSON';
+import type BaseModel from 'Common/Models/BaseModel';
+import type Dictionary from 'Common/Types/Dictionary';
+import type { JSONValue } from 'Common/Types/JSON';
 
 export default abstract class LocalCache {
     private static cache: Dictionary<JSONValue | BaseModel> = {};

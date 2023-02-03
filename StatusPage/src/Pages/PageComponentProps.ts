@@ -1,5 +1,5 @@
-import Route from 'Common/Types/API/Route';
-import ObjectID from 'Common/Types/ObjectID';
+import type Route from 'Common/Types/API/Route';
+import type ObjectID from 'Common/Types/ObjectID';
 
 export default interface ComponentProps {
     pageRoute: Route;

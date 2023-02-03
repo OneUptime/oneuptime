@@ -1,10 +1,11 @@
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
 } from 'CommonServer/utils/Express';
+import Express from 'CommonServer/utils/Express';
 
-import WebHookHooks from '../types/WebhookHooks';
+import type WebHookHooks from '../types/WebhookHooks';
 
 const router: ExpressRouter = Express.getRouter();
 

@@ -1,10 +1,7 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type { IconProp } from '../Icon/Icon';
+import Icon, { SizeProp } from '../Icon/Icon';
 import useComponentOutsideClick from '../../Types/UseComponentOutsideClick';
 import Image from '../Image/Image';
 import Route from 'Common/Types/API/Route';

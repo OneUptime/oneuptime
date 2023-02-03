@@ -1,9 +1,10 @@
 /* eslint-disable jsx-a11y/anchor-is-valid */
 
-import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type Route from 'Common/Types/API/Route';
+import type URL from 'Common/Types/API/URL';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Navigation from '../../Utils/Navigation';
 
 export interface ComponentProps {

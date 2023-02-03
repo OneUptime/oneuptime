@@ -1,12 +1,12 @@
-import BaseModel from 'Common/Models/BaseModel';
-import { JSONObject } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
-import { ReactElement } from 'react';
-import AlignItem from '../../Types/AlignItem';
-import SelectEntityField from '../../Types/SelectEntityField';
-import Query from '../../Utils/ModelAPI/Query';
-import { IconProp } from '../Icon/Icon';
-import FieldType from '../Types/FieldType';
+import type BaseModel from 'Common/Models/BaseModel';
+import type { JSONObject } from 'Common/Types/JSON';
+import type ObjectID from 'Common/Types/ObjectID';
+import type { ReactElement } from 'react';
+import type AlignItem from '../../Types/AlignItem';
+import type SelectEntityField from '../../Types/SelectEntityField';
+import type Query from '../../Utils/ModelAPI/Query';
+import type { IconProp } from '../Icon/Icon';
+import type FieldType from '../Types/FieldType';
 
 export interface ActionButton {
     buttonText: string;

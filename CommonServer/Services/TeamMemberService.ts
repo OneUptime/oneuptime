@@ -1,17 +1,14 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService, {
-    OnCreate,
-    OnDelete,
-    OnUpdate,
-} from './DatabaseService';
-import CreateBy from '../Types/Database/CreateBy';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type { OnCreate, OnDelete, OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import type CreateBy from '../Types/Database/CreateBy';
 import AccessTokenService from './AccessTokenService';
 import Email from 'Common/Types/Email';
 import UserService from './UserService';
-import User from 'Model/Models/User';
-import UpdateBy from '../Types/Database/UpdateBy';
-import DeleteBy from '../Types/Database/DeleteBy';
-import ObjectID from 'Common/Types/ObjectID';
+import type User from 'Model/Models/User';
+import type UpdateBy from '../Types/Database/UpdateBy';
+import type DeleteBy from '../Types/Database/DeleteBy';
+import type ObjectID from 'Common/Types/ObjectID';
 import QueryHelper from '../Types/Database/QueryHelper';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ProjectService from './ProjectService';
@@ -24,13 +21,13 @@ import {
 } from '../Config';
 import BillingService from './BillingService';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import Project from 'Model/Models/Project';
+import type Project from 'Model/Models/Project';
 import MailService from './MailService';
 import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
 import URL from 'Common/Types/API/URL';
 import logger from '../Utils/Logger';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import PositiveNumber from 'Common/Types/PositiveNumber';
+import type PositiveNumber from 'Common/Types/PositiveNumber';
 import TeamMember from 'Model/Models/TeamMember';
 
 export class Service extends DatabaseService<TeamMember> {

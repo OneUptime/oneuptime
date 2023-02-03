@@ -1,10 +1,6 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import PageComponentProps from '../PageComponentProps';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import URL from 'Common/Types/API/URL';
 import PageLoader from 'CommonUI/src/Components/Loader/PageLoader';
@@ -12,12 +8,12 @@ import BaseAPI from 'CommonUI/src/Utils/API/API';
 import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import useAsyncEffect from 'use-async-effect';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type { JSONArray, JSONObject } from 'Common/Types/JSON';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import Incident from 'Model/Models/Incident';
 import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
@@ -26,16 +22,18 @@ import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Route from 'Common/Types/API/Route';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import EventItem, {
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type {
     TimelineItem,
     ComponentProps as EventItemComponentProps,
+} from 'CommonUI/src/Components/EventItem/EventItem';
+import EventItem, {
     TimelineItemType,
 } from 'CommonUI/src/Components/EventItem/EventItem';
 import Navigation from 'CommonUI/src/Utils/Navigation';
-import Monitor from 'Model/Models/Monitor';
+import type Monitor from 'Model/Models/Monitor';
 import UserUtil from '../../Utils/User';
-import Color from 'Common/Types/Color';
+import type Color from 'Common/Types/Color';
 import { Green, Grey, Red } from 'Common/Types/BrandColors';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';

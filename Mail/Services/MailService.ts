@@ -1,18 +1,19 @@
-import nodemailer, { Transporter } from 'nodemailer';
+import type { Transporter } from 'nodemailer';
+import nodemailer from 'nodemailer';
 import Handlebars from 'handlebars';
 import fsp from 'fs/promises';
-import EmailMessage from 'Common/Types/Email/EmailMessage';
+import type EmailMessage from 'Common/Types/Email/EmailMessage';
 import Path from 'path';
 import Email from 'Common/Types/Email';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import EmailServer from 'Common/Types/Email/EmailServer';
+import type EmailServer from 'Common/Types/Email/EmailServer';
 import LocalCache from 'CommonServer/Infrastructure/LocalCache';
 import OneUptimeDate from 'Common/Types/Date';
-import EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
-import Dictionary from 'Common/Types/Dictionary';
+import type EmailTemplateType from 'Common/Types/Email/EmailTemplateType';
+import type Dictionary from 'Common/Types/Dictionary';
 import Hostname from 'Common/Types/API/Hostname';
 import Port from 'Common/Types/Port';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import logger from 'CommonServer/Utils/Logger';
 import { IsDevelopment } from 'CommonServer/Config';
 

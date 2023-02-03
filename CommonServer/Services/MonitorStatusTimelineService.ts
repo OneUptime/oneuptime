@@ -1,12 +1,13 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
-import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type { OnCreate, OnDelete } from './DatabaseService';
+import DatabaseService from './DatabaseService';
 import MonitorService from './MonitorService';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import DeleteBy from '../Types/Database/DeleteBy';
+import type DeleteBy from '../Types/Database/DeleteBy';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import ObjectID from 'Common/Types/ObjectID';
 import SortOrder from 'Common/Types/Database/SortOrder';
-import PositiveNumber from 'Common/Types/PositiveNumber';
+import type PositiveNumber from 'Common/Types/PositiveNumber';
 
 export class Service extends DatabaseService<MonitorStatusTimeline> {
     public constructor(postgresDatabase?: PostgresDatabase) {

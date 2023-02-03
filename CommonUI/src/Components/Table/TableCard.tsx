@@ -1,6 +1,9 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Card, { CardButtonSchema } from '../Card/Card';
-import Table, { ComponentProps as TableComponentProps } from './Table';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type { CardButtonSchema } from '../Card/Card';
+import Card from '../Card/Card';
+import type { ComponentProps as TableComponentProps } from './Table';
+import Table from './Table';
 
 export interface ComponentProps {
     title: string;

@@ -1,6 +1,6 @@
-import { JSONObject } from 'Common/Types/JSON';
-import { ButtonStyleType } from '../Button/Button';
-import { IconProp } from '../Icon/Icon';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { ButtonStyleType } from '../Button/Button';
+import type { IconProp } from '../Icon/Icon';
 
 interface ActionButtonSchema {
     title: string;

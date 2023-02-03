@@ -1,4 +1,4 @@
-import FormFieldSchemaTypes from './EntityFieldType';
+import type FormFieldSchemaTypes from './EntityFieldType';
 
 type RequiredFormField<Property> = Property extends FormFieldSchemaTypes
     ? boolean

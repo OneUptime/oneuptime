@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import ProjectPickerFilterBox from './ProjectPickerFilterBox';
 
 export interface ComponentProps {

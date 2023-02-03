@@ -1,21 +1,18 @@
 import OneUptimeDate from 'Common/Types/Date';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import Button, {
     ButtonSize,
     ButtonStyleType,
 } from 'CommonUI/src/Components/Button/Button';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import type { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import React, {
-    useState,
-    useEffect,
-    FunctionComponent,
-    ReactElement,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState, useEffect } from 'react';
 import UserElement from '../User/User';
 
 export enum StateType {

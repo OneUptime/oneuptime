@@ -1,6 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 
-import PageComponentProps from '../PageComponentProps';
+import type PageComponentProps from '../PageComponentProps';
 
 const Logs: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps

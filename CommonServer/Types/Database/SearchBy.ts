@@ -1,8 +1,8 @@
-import Select from './Select';
-import Populate from './Populate';
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import BaseModel from 'Common/Models/BaseModel';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type Select from './Select';
+import type Populate from './Populate';
+import type PositiveNumber from 'Common/Types/PositiveNumber';
+import type BaseModel from 'Common/Models/BaseModel';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
 export default interface SearchBy<TBaseModel extends BaseModel> {
     text: string;

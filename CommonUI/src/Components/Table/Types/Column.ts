@@ -1,8 +1,8 @@
-import { JSONObject } from 'Common/Types/JSON';
-import { ReactElement } from 'react';
-import AlignItem from '../../../Types/AlignItem';
-import { DropdownOption } from '../../Dropdown/Dropdown';
-import FieldType from '../../Types/FieldType';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { ReactElement } from 'react';
+import type AlignItem from '../../../Types/AlignItem';
+import type { DropdownOption } from '../../Dropdown/Dropdown';
+import type FieldType from '../../Types/FieldType';
 
 export default interface Column {
     title: string;

@@ -1,4 +1,5 @@
-import React, { FunctionComponent } from 'react';
+import type { FunctionComponent } from 'react';
+import React from 'react';
 import Footer from 'CommonUI/src/Components/Footer/Footer';
 import URL from 'Common/Types/API/URL';
 

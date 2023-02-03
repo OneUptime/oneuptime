@@ -1,5 +1,6 @@
-import ObjectID from 'Common/Types/ObjectID';
-import { FindOperator, Raw } from 'typeorm';
+import type ObjectID from 'Common/Types/ObjectID';
+import type { FindOperator } from 'typeorm';
+import { Raw } from 'typeorm';
 import Text from 'Common/Types/Text';
 import Typeof from 'Common/Types/Typeof';
 

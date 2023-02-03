@@ -1,6 +1,7 @@
 {
     "name": "oneuptime-homepage",
     "version": "3.0.0",
+    "type": "module",
     "scripts": {
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "node --require ts-node/register Index.ts",
@@ -36,6 +37,7 @@
     },
     "resolutions": {},
     "devDependencies": {
+        "@tsconfig/node-lts-strictest-esm": "^18.12.1",
         "@types/jest": "^27.5.1",
         "@types/node": "^17.0.22",
         "chrome-launcher": "^0.15.0",
@@ -50,6 +52,6 @@
         "start-server-and-test": "^1.14.0",
         "ts-jest": "^28.0.2",
         "ts-node-dev": "^1.1.8",
-        "typescript": "^4.6.4"
+        "typescript": "^4.9.5"
     }
 }

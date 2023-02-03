@@ -1,5 +1,5 @@
-import Email from '../Types/Email';
-import { JSONObject } from '../Types/JSON';
+import type Email from '../Types/Email';
+import type { JSONObject } from '../Types/JSON';
 import posthog from 'posthog-js';
 
 export default class Analytics {

@@ -1,6 +1,7 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import Column from './Types/Column';
-import Columns from './Types/Columns';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState } from 'react';
+import type Column from './Types/Column';
+import type Columns from './Types/Columns';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import FieldType from '../Types/FieldType';

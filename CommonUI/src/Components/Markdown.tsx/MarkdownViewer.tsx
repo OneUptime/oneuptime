@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 
 // https://github.com/remarkjs/react-markdown
 import ReactMarkdown from 'react-markdown';

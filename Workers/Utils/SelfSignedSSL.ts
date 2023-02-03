@@ -1,4 +1,5 @@
-import { exec, ExecException } from 'node:child_process';
+import type { ExecException } from 'node:child_process';
+import { exec } from 'node:child_process';
 
 export default class SelfSignedSSL {
     public static generate(path: string, host: string): Promise<void> {

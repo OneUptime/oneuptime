@@ -1,23 +1,23 @@
-import BaseModel from 'Common/Models/BaseModel';
-import ObjectID from 'Common/Types/ObjectID';
-import Query from './Query';
-import Select from './Select';
+import type BaseModel from 'Common/Models/BaseModel';
+import type ObjectID from 'Common/Types/ObjectID';
+import type Query from './Query';
+import type Select from './Select';
 import API from '../../Utils/API/API';
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { DASHBOARD_API_URL } from '../../Config';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPMethod from 'Common/Types/API/HTTPMethod';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { JSONArray, JSONObject } from 'Common/Types/JSON';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type { JSONArray, JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import { FormType } from '../../Components/Forms/ModelForm';
-import Dictionary from 'Common/Types/Dictionary';
+import type Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from '../Project';
-import Sort from './Sort';
-import Project from 'Model/Models/Project';
-import Populate from './Populate';
+import type Sort from './Sort';
+import type Project from 'Model/Models/Project';
+import type Populate from './Populate';
 
 export interface ListResult<TBaseModel extends BaseModel> extends JSONObject {
     data: Array<TBaseModel>;

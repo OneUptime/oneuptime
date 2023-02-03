@@ -1,42 +1,38 @@
-import React, {
-    MutableRefObject,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import { FormikErrors, FormikProps, FormikValues } from 'formik';
+import type { MutableRefObject, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type { FormikErrors, FormikProps, FormikValues } from 'formik';
 import BaseModel from 'Common/Models/BaseModel';
-import FormValues from './Types/FormValues';
-import Fields from './Types/Fields';
+import type FormValues from './Types/FormValues';
+import type Fields from './Types/Fields';
 import BasicModelForm from './BasicModelForm';
-import { JSONArray, JSONObject, JSONObjectOrArray } from 'Common/Types/JSON';
-import URL from 'Common/Types/API/URL';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import ModelAPI, {
-    ListResult,
-    RequestOptions,
-} from '../../Utils/ModelAPI/ModelAPI';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import Select from '../../Utils/ModelAPI/Select';
-import Dictionary from 'Common/Types/Dictionary';
+import type {
+    JSONArray,
+    JSONObject,
+    JSONObjectOrArray,
+} from 'Common/Types/JSON';
+import type URL from 'Common/Types/API/URL';
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type { ListResult, RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
+import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type Select from '../../Utils/ModelAPI/Select';
+import type Dictionary from 'Common/Types/Dictionary';
 import useAsyncEffect from 'use-async-effect';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
 import { VeryLightGrey } from 'Common/Types/BrandColors';
-import Permission, {
-    PermissionHelper,
-    UserPermission,
-} from 'Common/Types/Permission';
+import type { UserPermission } from 'Common/Types/Permission';
+import Permission, { PermissionHelper } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
-import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import type { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import Populate from '../../Utils/ModelAPI/Populate';
+import type Populate from '../../Utils/ModelAPI/Populate';
 import FileModel from 'Common/Models/FileModel';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import Typeof from 'Common/Types/Typeof';
-import { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
-import { ButtonStyleType } from '../Button/Button';
+import type { TableColumnMetadata } from 'Common/Types/Database/TableColumn';
+import type { ButtonStyleType } from '../Button/Button';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 
 export enum FormType {

@@ -1,5 +1,5 @@
 import Response from '../../../Types/API/HTTPResponse';
-import { JSONObject } from '../../../Types/JSON';
+import type { JSONObject } from '../../../Types/JSON';
 
 describe('Response()', () => {
     test('should return a valid response object', () => {

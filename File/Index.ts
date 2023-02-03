@@ -1,13 +1,13 @@
 import 'ejs';
 import { PostgresAppInstance } from 'CommonServer/Infrastructure/PostgresDatabase';
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import type { ExpressApplication } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 import logger from 'CommonServer/Utils/Logger';
 import Redis from 'CommonServer/Infrastructure/Redis';
 import App from 'CommonServer/Utils/StartServer';
 import File from 'Model/Models/File';
-import FileService, {
-    Service as FileServiceType,
-} from 'CommonServer/Services/FileService';
+import type { Service as FileServiceType } from 'CommonServer/Services/FileService';
+import FileService from 'CommonServer/Services/FileService';
 import BaseAPI from 'CommonServer/API/BaseAPI';
 import FileAPI from './API/File';
 

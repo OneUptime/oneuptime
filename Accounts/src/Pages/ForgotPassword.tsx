@@ -1,4 +1,5 @@
-import React, { FunctionComponent, useState } from 'react';
+import type { FunctionComponent } from 'react';
+import React, { useState } from 'react';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import User from 'Model/Models/User';
 import Route from 'Common/Types/API/Route';
@@ -6,7 +7,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import OneUptimeLogo from 'CommonUI/src/Images/logos/OneUptimeSVG/3-transparent.svg';
 import Link from 'CommonUI/src/Components/Link/Link';
 import { FORGOT_PASSWORD_API_URL } from '../Utils/ApiPaths';
-import URL from 'Common/Types/API/URL';
+import type URL from 'Common/Types/API/URL';
 
 const ForgotPassword: FunctionComponent = () => {
     const apiUrl: URL = FORGOT_PASSWORD_API_URL;

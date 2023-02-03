@@ -1,5 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import Project from 'Model/Models/Project';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type Project from 'Model/Models/Project';
 import Link from 'CommonUI/src/Components/Link/Link';
 import Route from 'Common/Types/API/Route';
 

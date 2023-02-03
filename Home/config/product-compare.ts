@@ -1,4 +1,4 @@
-import Dictionary from 'Common/Types/Dictionary';
+import type Dictionary from 'Common/Types/Dictionary';
 
 export interface FAQ {
     question: string;

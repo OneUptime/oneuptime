@@ -1,4 +1,4 @@
-import Email from '../../Types/Email';
+import type Email from '../../Types/Email';
 import EmailWithName from '../../Types/EmailWithName';
 import BadDataException from '../../Types/Exception/BadDataException';
 import Faker from '../../Utils/Faker';

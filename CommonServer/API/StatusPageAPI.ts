@@ -1,12 +1,11 @@
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPage from 'Model/Models/StatusPage';
 import UserMiddleware from '../Middleware/UserAuthorization';
-import StatusPageService, {
-    Service as StatusPageServiceType,
-} from '../Services/StatusPageService';
-import Populate from '../Types/Database/Populate';
-import Select from '../Types/Database/Select';
-import {
+import type { Service as StatusPageServiceType } from '../Services/StatusPageService';
+import StatusPageService from '../Services/StatusPageService';
+import type Populate from '../Types/Database/Populate';
+import type Select from '../Types/Database/Select';
+import type {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
@@ -20,9 +19,9 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import StatusPageFooterLink from 'Model/Models/StatusPageFooterLink';
 import StatusPageHeaderLinkService from '../Services/StatusPageHeaderLinkService';
 import StatusPageHeaderLink from 'Model/Models/StatusPageHeaderLink';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import type StatusPageDomain from 'Model/Models/StatusPageDomain';
 import StatusPageDomainService from '../Services/StatusPageDomainService';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import StatusPageGroupService from '../Services/StatusPageGroupService';
 import StatusPageResource from 'Model/Models/StatusPageResource';
@@ -48,10 +47,10 @@ import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import IncidentStateTimelineService from '../Services/IncidentStateTimelineService';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import ScheduledMaintenanceStateTimelineService from '../Services/ScheduledMaintenanceStateTimelineService';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
-import Query from '../Types/Database/Query';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type Query from '../Types/Database/Query';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
+import type GreenlockChallenge from 'Model/Models/GreenlockChallenge';
 import GreenlockChallengeService from '../Services/GreenlockChallengeService';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
 import logger from '../Utils/Logger';

@@ -1,8 +1,8 @@
-import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
+import type SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
 import OneUptimeDate from 'Common/Types/Date';
 import APIException from 'Common/Types/Exception/ApiException';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import Typeof from 'Common/Types/Typeof';
 import Stripe from 'stripe';
 import { BillingPrivateKey, IsBillingEnabled } from '../Config';

@@ -1,6 +1,7 @@
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement } from 'react';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Icon, { IconProp, SizeProp } from '../Icon/Icon';

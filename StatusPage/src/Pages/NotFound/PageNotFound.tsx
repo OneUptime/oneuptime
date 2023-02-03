@@ -1,5 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';

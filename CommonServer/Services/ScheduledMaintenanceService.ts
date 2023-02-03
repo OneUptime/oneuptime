@@ -1,15 +1,16 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/ScheduledMaintenance';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import type { OnCreate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
-import Monitor from 'Model/Models/Monitor';
+import type Monitor from 'Model/Models/Monitor';
 import MonitorService from './MonitorService';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
 import ScheduledMaintenanceStateTimelineService from './ScheduledMaintenanceStateTimelineService';
-import CreateBy from '../Types/Database/CreateBy';
+import type CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import type ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from './ScheduledMaintenanceStateService';
 
 export class Service extends DatabaseService<Model> {

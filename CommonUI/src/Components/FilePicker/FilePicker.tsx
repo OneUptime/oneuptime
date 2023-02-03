@@ -1,9 +1,5 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import MimeType from 'Common/Types/File/MimeType';
 import FileModel from 'Model/Models/File';
@@ -12,9 +8,9 @@ import CommonURL from 'Common/Types/API/URL';
 import { FILE_URL } from '../../Config';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import Icon, { IconProp, SizeProp } from '../Icon/Icon';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import Dictionary from 'Common/Types/Dictionary';
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type Dictionary from 'Common/Types/Dictionary';
 
 export interface ComponentProps {
     initialValue?: undefined | Array<FileModel> | FileModel;

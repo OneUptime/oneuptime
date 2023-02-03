@@ -1,9 +1,9 @@
-import Hostname from 'Common/Types/API/Hostname';
-import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
-import Email from 'Common/Types/Email';
-import Name from 'Common/Types/Name';
-import ObjectID from 'Common/Types/ObjectID';
+import type Hostname from 'Common/Types/API/Hostname';
+import type Route from 'Common/Types/API/Route';
+import type URL from 'Common/Types/API/URL';
+import type Email from 'Common/Types/Email';
+import type Name from 'Common/Types/Name';
+import type ObjectID from 'Common/Types/ObjectID';
 
 type FormFieldType =
     | string

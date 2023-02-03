@@ -1,7 +1,7 @@
 // Docs: https://git.rootprojects.org/root/greenlock-manager.js
 
 import StatusPageDomainService from 'CommonServer/Services/StatusPageDomainService';
-import StatusPageDomain from 'Model/Models/StatusPageDomain';
+import type StatusPageDomain from 'Model/Models/StatusPageDomain';
 import logger from 'CommonServer/Utils/Logger';
 
 // because greenlock package expects module.exports.

@@ -1,9 +1,9 @@
-import Incident from 'Model/Models/Incident';
-import IncidentPublicNote from 'Model/Models/IncidentPublicNote';
-import IncidentSeverity from 'Model/Models/IncidentSeverity';
-import IncidentState from 'Model/Models/IncidentState';
-import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
-import StatusPageResource from 'Model/Models/StatusPageResource';
+import type Incident from 'Model/Models/Incident';
+import type IncidentPublicNote from 'Model/Models/IncidentPublicNote';
+import type IncidentSeverity from 'Model/Models/IncidentSeverity';
+import type IncidentState from 'Model/Models/IncidentState';
+import type IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
+import type StatusPageResource from 'Model/Models/StatusPageResource';
 
 export default interface IncidentGroup {
     incident: Incident;

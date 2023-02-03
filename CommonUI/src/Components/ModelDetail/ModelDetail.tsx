@@ -1,19 +1,21 @@
-import React, { ReactElement, useEffect, useState } from 'react';
-import BaseModel from 'Common/Models/BaseModel';
-import { JSONObject } from 'Common/Types/JSON';
+import type { ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type BaseModel from 'Common/Models/BaseModel';
+import type { JSONObject } from 'Common/Types/JSON';
 import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import Select from '../../Utils/ModelAPI/Select';
-import Dictionary from 'Common/Types/Dictionary';
-import ObjectID from 'Common/Types/ObjectID';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type Select from '../../Utils/ModelAPI/Select';
+import type Dictionary from 'Common/Types/Dictionary';
+import type ObjectID from 'Common/Types/ObjectID';
 import Loader, { LoaderType } from '../Loader/Loader';
 import { VeryLightGrey } from 'Common/Types/BrandColors';
-import Permission, { PermissionHelper } from 'Common/Types/Permission';
+import type Permission from 'Common/Types/Permission';
+import { PermissionHelper } from 'Common/Types/Permission';
 import PermissionUtil from '../../Utils/Permission';
-import { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
-import Field from './Field';
+import type { ColumnAccessControl } from 'Common/Types/Database/AccessControl/AccessControl';
+import type Field from './Field';
 import Detail from '../Detail/Detail';
-import Populate from '../../Utils/ModelAPI/Populate';
+import type Populate from '../../Utils/ModelAPI/Populate';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     modelType: { new (): TBaseModel };

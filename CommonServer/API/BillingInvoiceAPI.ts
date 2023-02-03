@@ -1,17 +1,18 @@
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import Permission, { UserPermission } from 'Common/Types/Permission';
+import type { UserPermission } from 'Common/Types/Permission';
+import Permission from 'Common/Types/Permission';
 import BillingInvoice from 'Model/Models/BillingInvoice';
-import Project from 'Model/Models/Project';
+import type Project from 'Model/Models/Project';
 import { IsBillingEnabled } from '../Config';
 import UserMiddleware from '../Middleware/UserAuthorization';
-import BillingInvoiceService, {
-    Service as BillingInvoiceServiceType,
-} from '../Services/BillingInvoiceService';
-import BillingService, { Invoice } from '../Services/BillingService';
+import type { Service as BillingInvoiceServiceType } from '../Services/BillingInvoiceService';
+import BillingInvoiceService from '../Services/BillingInvoiceService';
+import type { Invoice } from '../Services/BillingService';
+import BillingService from '../Services/BillingService';
 import ProjectService from '../Services/ProjectService';
-import {
+import type {
     ExpressRequest,
     ExpressResponse,
     NextFunction,

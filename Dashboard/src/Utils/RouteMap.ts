@@ -1,10 +1,10 @@
-import Project from 'Model/Models/Project';
+import type Project from 'Model/Models/Project';
 import Route from 'Common/Types/API/Route';
-import Dictionary from 'Common/Types/Dictionary';
+import type Dictionary from 'Common/Types/Dictionary';
 import ProjectUtil from 'CommonUI/src/Utils/Project';
 import PageMap from './PageMap';
 import RouteParams from './RouteParams';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 
 const RouteMap: Dictionary<Route> = {
     [PageMap.INIT]: new Route(`/dashboard`),

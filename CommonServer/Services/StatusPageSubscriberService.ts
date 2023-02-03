@@ -1,7 +1,8 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageSubscriber';
-import DatabaseService, { OnCreate } from './DatabaseService';
-import CreateBy from '../Types/Database/CreateBy';
+import type { OnCreate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import type CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageService from './StatusPageService';
 import MailService from './MailService';
@@ -10,9 +11,9 @@ import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
 import URL from 'Common/Types/API/URL';
 import { Domain, FileRoute, HttpProtocol } from '../Config';
 import logger from '../Utils/Logger';
-import StatusPage from 'Model/Models/StatusPage';
-import ObjectID from 'Common/Types/ObjectID';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type StatusPage from 'Model/Models/StatusPage';
+import type ObjectID from 'Common/Types/ObjectID';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 
 export class Service extends DatabaseService<Model> {
     public constructor(postgresDatabase?: PostgresDatabase) {

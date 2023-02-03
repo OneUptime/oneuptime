@@ -1,9 +1,9 @@
-import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
-import { ReactElement } from 'react';
-import AlignItem from '../../Types/AlignItem';
-import FieldType from '../Types/FieldType';
+import type Route from 'Common/Types/API/Route';
+import type URL from 'Common/Types/API/URL';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { ReactElement } from 'react';
+import type AlignItem from '../../Types/AlignItem';
+import type FieldType from '../Types/FieldType';
 
 export default interface Field {
     title?: string;

@@ -21,8 +21,9 @@ import LessThanOrEqual from './Database/LessThanOrEqual';
 import InBetween from './Database/InBetween';
 import Domain from './Domain';
 import NotNull from './Database/NotNull';
-import { JSONArray, JSONObject, JSONValue, ObjectType } from './JSON';
-import { TableColumnMetadata } from '../Types/Database/TableColumn';
+import type { JSONArray, JSONObject, JSONValue } from './JSON';
+import { ObjectType } from './JSON';
+import type { TableColumnMetadata } from '../Types/Database/TableColumn';
 import TableColumnType from '../Types/Database/TableColumnType';
 
 export default class JSONFunctions {

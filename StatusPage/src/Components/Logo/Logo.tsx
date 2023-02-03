@@ -1,6 +1,7 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Image from 'CommonUI/src/Components/Image/Image';
-import File from 'Model/Models/File';
+import type File from 'Model/Models/File';
 
 export interface ComponentProps {
     onClick: () => void;

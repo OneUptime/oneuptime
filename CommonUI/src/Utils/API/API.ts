@@ -1,18 +1,18 @@
 import User from '../User';
-import Headers from 'Common/Types/API/Headers';
+import type Headers from 'Common/Types/API/Headers';
 import API from 'Common/Utils/API';
-import APIException from 'Common/Types/Exception/ApiException';
+import type APIException from 'Common/Types/Exception/ApiException';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Cookies from 'universal-cookie';
-import Protocol from 'Common/Types/API/Protocol';
-import Hostname from 'Common/Types/API/Hostname';
+import type Protocol from 'Common/Types/API/Protocol';
+import type Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
+import type URL from 'Common/Types/API/URL';
 import Navigation from '../Navigation';
-import Dictionary from 'Common/Types/Dictionary';
+import type Dictionary from 'Common/Types/Dictionary';
 import PermissionUtil from '../Permission';
 import JSONFunctions from 'Common/Types/JSONFunctions';
-import {
+import type {
     UserGlobalAccessPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';

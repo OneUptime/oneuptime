@@ -1,4 +1,4 @@
-import { FindOperator } from 'typeorm';
+import type { FindOperator } from 'typeorm';
 import Hostname from './API/Hostname';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadDataException from './Exception/BadDataException';

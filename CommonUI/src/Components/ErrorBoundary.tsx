@@ -1,5 +1,6 @@
-import Exception from 'Common/Types/Exception/Exception';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import type Exception from 'Common/Types/Exception/Exception';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState } from 'react';
 
 export interface ComponentProps {
     children: ReactElement;

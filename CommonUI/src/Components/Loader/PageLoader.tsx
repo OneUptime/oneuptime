@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Loader, { LoaderType } from './Loader';
 import { VeryLightGrey } from 'Common/Types/BrandColors';
 

@@ -1,4 +1,4 @@
-import FormFieldSchemaTypes from '../../../Types/EntityFieldType';
+import type FormFieldSchemaTypes from '../../../Types/EntityFieldType';
 
 export type FormField<Property> = Property extends FormFieldSchemaTypes
     ? Property

@@ -1,4 +1,5 @@
-import React, { ReactElement, useEffect, FunctionComponent } from 'react';
+import type { ReactElement, FunctionComponent } from 'react';
+import React, { useEffect } from 'react';
 
 type Props = {
     children: Array<ReactElement>;

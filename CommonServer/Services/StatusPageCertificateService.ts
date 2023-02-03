@@ -1,8 +1,8 @@
-import EmptyResponseData from 'Common/Types/API/EmptyResponse';
-import HTTPResponse from 'Common/Types/API/HTTPResponse';
+import type EmptyResponseData from 'Common/Types/API/EmptyResponse';
+import type HTTPResponse from 'Common/Types/API/HTTPResponse';
 import Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import API from 'Common/Utils/API';
 import { HttpProtocol, WorkerHostname } from '../Config';
 

@@ -1,5 +1,5 @@
 import BadDataException from '../Exception/BadDataException';
-import { JSONObject } from '../JSON';
+import type { JSONObject } from '../JSON';
 
 export enum PlanSelect {
     Free = 'Free',

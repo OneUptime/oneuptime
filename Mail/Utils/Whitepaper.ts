@@ -1,6 +1,6 @@
 //Note: This should go into a DB later.
 import URL from 'Common/Types/API/URL';
-import WhitepaperType from '../Types/Whitepaper';
+import type WhitepaperType from '../Types/Whitepaper';
 
 export default class Whitepaper {
     public static getWhitepapers(): Array<WhitepaperType> {

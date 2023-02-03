@@ -1,4 +1,5 @@
-import { createLogger, Logger, transports, format } from 'winston';
+import type { Logger } from 'winston';
+import { createLogger, transports, format } from 'winston';
 
 const { combine, timestamp, errors, prettyPrint } = format;
 

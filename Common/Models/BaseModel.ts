@@ -8,30 +8,33 @@ import {
 } from 'typeorm';
 
 import Columns from '../Types/Database/Columns';
+import type { TableColumnMetadata } from '../Types/Database/TableColumn';
 import TableColumn, {
     getTableColumn,
     getTableColumns,
-    TableColumnMetadata,
 } from '../Types/Database/TableColumn';
-import { JSONArray, JSONObject, JSONValue } from '../Types/JSON';
+import type { JSONArray, JSONObject, JSONValue } from '../Types/JSON';
 import ObjectID from '../Types/ObjectID';
-import Dictionary from '../Types/Dictionary';
-import HashedString from '../Types/HashedString';
-import Email from '../Types/Email';
-import Phone from '../Types/Phone';
-import PositiveNumber from '../Types/PositiveNumber';
-import Route from '../Types/API/Route';
+import type Dictionary from '../Types/Dictionary';
+import type HashedString from '../Types/HashedString';
+import type Email from '../Types/Email';
+import type Phone from '../Types/Phone';
+import type PositiveNumber from '../Types/PositiveNumber';
+import type Route from '../Types/API/Route';
 import TableColumnType from '../Types/Database/TableColumnType';
-import Permission, {
-    instaceOfUserTenantAccessPermission,
-    PermissionHelper,
+import type {
     UserPermission,
     UserTenantAccessPermission,
 } from '../Types/Permission';
-import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
+import type Permission from '../Types/Permission';
+import {
+    instaceOfUserTenantAccessPermission,
+    PermissionHelper,
+} from '../Types/Permission';
+import type { ColumnAccessControl } from '../Types/Database/AccessControl/AccessControl';
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
-import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
+import type { PlanSelect } from '../Types/Billing/SubscriptionPlan';
 
 export type DbTypes =
     | string

@@ -1,17 +1,18 @@
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import TeamMemberService from './TeamMemberService';
-import TeamMember from 'Model/Models/TeamMember';
+import type TeamMember from 'Model/Models/TeamMember';
 import GlobalCache from '../Infrastructure/GlobalCache';
-import { JSONObject } from 'Common/Types/JSON';
-import Permission, {
+import type { JSONObject } from 'Common/Types/JSON';
+import type {
     UserGlobalAccessPermission,
     UserPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
-import TeamPermission from 'Model/Models/TeamPermission';
+import Permission from 'Common/Types/Permission';
+import type TeamPermission from 'Model/Models/TeamPermission';
 import TeamPermissionService from './TeamPermissionService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import Label from 'Model/Models/Label';
+import type Label from 'Model/Models/Label';
 
 enum PermissionNamespace {
     GlobalPermission = 'global-permissions',

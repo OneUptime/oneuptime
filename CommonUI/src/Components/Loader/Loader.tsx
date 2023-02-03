@@ -1,6 +1,7 @@
 import BarLoader from 'react-spinners/BarLoader';
 import BeatLoader from 'react-spinners/BeatLoader';
-import React, { FunctionComponent } from 'react';
+import type { FunctionComponent } from 'react';
+import React from 'react';
 import Color from 'Common/Types/Color';
 
 export enum LoaderType {

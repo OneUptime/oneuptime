@@ -1,11 +1,8 @@
 import Color from 'Common/Types/Color';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
-import { ChromePicker, ColorResult } from 'react-color';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
+import type { ColorResult } from 'react-color';
+import { ChromePicker } from 'react-color';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import Input from '../../Input/Input';
 import Icon, { IconProp } from '../../Icon/Icon';

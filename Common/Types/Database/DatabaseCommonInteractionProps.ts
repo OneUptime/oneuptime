@@ -1,11 +1,11 @@
-import { PlanSelect } from '../Billing/SubscriptionPlan';
-import Dictionary from '../Dictionary';
-import ObjectID from '../ObjectID';
-import {
+import type { PlanSelect } from '../Billing/SubscriptionPlan';
+import type Dictionary from '../Dictionary';
+import type ObjectID from '../ObjectID';
+import type {
     UserGlobalAccessPermission,
     UserTenantAccessPermission,
 } from '../Permission';
-import UserType from '../UserType';
+import type UserType from '../UserType';
 
 export default interface DatabaseCommonInteractionProps {
     userId?: ObjectID | undefined;

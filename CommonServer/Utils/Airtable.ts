@@ -1,6 +1,7 @@
-import PositiveNumber from 'Common/Types/PositiveNumber';
-import AirtableLib, { FieldSet, Records } from 'airtable';
-import Dictionary from 'Common/Types/Dictionary';
+import type PositiveNumber from 'Common/Types/PositiveNumber';
+import type { FieldSet, Records } from 'airtable';
+import AirtableLib from 'airtable';
+import type Dictionary from 'Common/Types/Dictionary';
 import { AirtableApiKey, AirtableBaseId } from '../Config';
 
 export type AirtableRecords = Records<FieldSet>;

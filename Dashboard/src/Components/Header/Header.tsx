@@ -1,16 +1,12 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 // import SearchBox from './SearchBox';
 // import Notifications from './Notifications';
 import Help from './Help';
 import UserProfile from './UserProfile';
 import ProjectPicker from './ProjectPicker';
 import Header from 'CommonUI/src/Components/Header/Header';
-import Project from 'Model/Models/Project';
+import type Project from 'Model/Models/Project';
 import Logo from './Logo';
 import { BILLING_ENABLED, getAllEnvVars } from 'CommonUI/src/Config';
 import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
@@ -25,7 +21,7 @@ import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Upgrade from './Upgrade';
 import { IconProp, SizeProp } from 'CommonUI/src/Components/Icon/Icon';
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import TeamMember from 'Model/Models/TeamMember';
 import User from 'CommonUI/src/Utils/User';
 import Incident from 'Model/Models/Incident';

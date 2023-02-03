@@ -20,7 +20,8 @@ import './Jobs/ScheduledMaintenance/SendEmailToSubscribers';
 import StausPageCerts from './Jobs/StatusPageCerts/StausPageCerts';
 
 // Express
-import Express, { ExpressApplication } from 'CommonServer/Utils/Express';
+import type { ExpressApplication } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 
 const APP_NAME: string = 'workers';
 

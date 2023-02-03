@@ -1,12 +1,13 @@
-import React, { FunctionComponent, ReactElement, useState } from 'react';
-import PageComponentProps from '../PageComponentProps';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState } from 'react';
+import type PageComponentProps from '../PageComponentProps';
 import Page from '../../Components/Page/Page';
 import ModelForm, { FormType } from 'CommonUI/src/Components/Forms/ModelForm';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import LocalStorage from 'CommonUI/src/Utils/LocalStorage';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import User from '../../Utils/User';
 import Navigation from 'CommonUI/src/Utils/Navigation';

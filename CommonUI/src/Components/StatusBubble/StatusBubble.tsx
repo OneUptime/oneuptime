@@ -1,6 +1,7 @@
 import { Black } from 'Common/Types/BrandColors';
-import Color from 'Common/Types/Color';
-import React, { CSSProperties, FunctionComponent, ReactElement } from 'react';
+import type Color from 'Common/Types/Color';
+import type { CSSProperties, FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 
 export interface ComponentProps {
     text: string;

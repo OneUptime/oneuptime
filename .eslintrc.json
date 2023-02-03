@@ -24,6 +24,7 @@
         "react",
         "jsx-a11y",
         "progress",
+        "import",
         "@typescript-eslint",
         "unused-imports"
     ],
@@ -81,15 +82,15 @@
         "@typescript-eslint/no-empty-interface": [
             "error",
             {
-              "allowSingleExtends": true
+                "allowSingleExtends": true
             }
-          ],
+        ],
         // https://www.npmjs.com/package/eslint-plugin-unused-imports
         "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": "off",
         "@typescript-eslint/no-extra-non-null-assertion": "error",
-        "@typescript-eslint/no-floating-promises":"error",
-        "@typescript-eslint/await-thenable":"error",
+        "@typescript-eslint/no-floating-promises": "error",
+        "@typescript-eslint/await-thenable": "error",
         "unused-imports/no-unused-imports": "error",
         "unused-imports/no-unused-vars": [
             "error",
@@ -125,6 +126,7 @@
         "react/no-deprecated": "error",
         "react/boolean-prop-naming": "error",
         "react/no-is-mounted": "error",
+        "@typescript-eslint/consistent-type-imports": "error",
         "react/no-find-dom-node": "error",
         "one-var-declaration-per-line": "error",
         "arrow-parens": "error",
@@ -163,7 +165,7 @@
         "react/jsx-pascal-case": "error",
         "array-callback-return": "error",
         "no-loop-func": "error",
-        "no-duplicate-imports": "error",
+        "import/no-duplicates": "error",
         "no-promise-executor-return": "error",
         "capitalized-comments": "off", // this is turned off because come commented code should not be capitalized. 
         "for-direction": "error",

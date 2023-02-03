@@ -1,13 +1,14 @@
-import FileModel from 'Common/Models/FileModel';
+import type FileModel from 'Common/Models/FileModel';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
 import ObjectID from 'Common/Types/ObjectID';
 import FileService from 'CommonServer/Services/FileService';
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
     ExpressRouter,
 } from 'CommonServer/Utils/Express';
+import Express from 'CommonServer/Utils/Express';
 import Response from 'CommonServer/Utils/Response';
 
 export default class FileAPI {

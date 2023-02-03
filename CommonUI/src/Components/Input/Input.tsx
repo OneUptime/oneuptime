@@ -1,13 +1,8 @@
 // Tailwind
 
 import OneUptimeDate from 'Common/Types/Date';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useRef,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Icon, { IconProp } from '../Icon/Icon';
 
 export type InputType = 'text' | 'number' | 'date' | 'datetime-local' | 'url';

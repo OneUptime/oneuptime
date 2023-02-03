@@ -1,13 +1,15 @@
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import { VeryLightGrey } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Link from '../Link/Link';
-import URL from 'Common/Types/API/URL';
-import Color from 'Common/Types/Color';
+import type URL from 'Common/Types/API/URL';
+import type Color from 'Common/Types/Color';
 import Pill from '../Pill/Pill';
-import BaseModel from 'Common/Models/BaseModel';
-import Icon, { IconProp } from '../Icon/Icon';
+import type BaseModel from 'Common/Models/BaseModel';
+import type { IconProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
 
 export enum TimelineItemType {
     StateChange = 'StateChange',

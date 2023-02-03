@@ -2,16 +2,18 @@ import './Envrionment';
 import './Process';
 import logger from './Logger';
 import cors from 'cors';
-import Port from 'Common/Types/Port';
-import Express, {
+import type Port from 'Common/Types/Port';
+import type {
     ExpressRequest,
     ExpressResponse,
     NextFunction,
-    ExpressJson,
-    ExpressUrlEncoded,
     ExpressApplication,
     RequestHandler,
     OneUptimeRequest,
+} from './Express';
+import Express, {
+    ExpressJson,
+    ExpressUrlEncoded,
     ExpressStatic,
 } from './Express';
 // Connect common api's.

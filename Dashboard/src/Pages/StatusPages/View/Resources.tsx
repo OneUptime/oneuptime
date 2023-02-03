@@ -1,17 +1,13 @@
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
-import PageComponentProps from '../../PageComponentProps';
+import type PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import DashboardNavigation from '../../../Utils/Navigation';
-import ObjectID from 'Common/Types/ObjectID';
+import type ObjectID from 'Common/Types/ObjectID';
 import StatusPageResource from 'Model/Models/StatusPageResource';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
@@ -20,14 +16,15 @@ import SortOrder from 'Common/Types/Database/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Monitor from 'Model/Models/Monitor';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import MonitorElement from '../../../Components/Monitor/Monitor';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import ErrorMessage from 'CommonUI/src/Components/ErrorMessage/ErrorMessage';
-import ModelAPI, { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import type { ListResult } from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
+import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import StatusPageGroup from 'Model/Models/StatusPageGroup';
 import { LIMIT_PER_PROJECT } from 'Common/Types/Database/LimitMax';
-import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
+import type HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 const StatusPageDelete: FunctionComponent<PageComponentProps> = (

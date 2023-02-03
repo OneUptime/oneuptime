@@ -1,9 +1,11 @@
-import Link from 'Common/Types/Link';
-import React, { FunctionComponent } from 'react';
+import type Link from 'Common/Types/Link';
+import type { FunctionComponent } from 'react';
+import React from 'react';
 import Navigation from '../../Utils/Navigation';
 import Icon, { IconProp } from '../Icon/Icon';
 import UILink from '../Link/Link';
-import Badge, { BadgeType } from '../Badge/Badge';
+import type { BadgeType } from '../Badge/Badge';
+import Badge from '../Badge/Badge';
 
 export interface ComponentProps {
     link: Link;

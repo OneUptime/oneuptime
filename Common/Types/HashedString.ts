@@ -1,8 +1,8 @@
-import { FindOperator } from 'typeorm';
+import type { FindOperator } from 'typeorm';
 import UUID from '../Utils/UUID';
 import DatabaseProperty from './Database/DatabaseProperty';
 import BadOperationException from './Exception/BadOperationException';
-import ObjectID from './ObjectID';
+import type ObjectID from './ObjectID';
 import CryptoJS from 'crypto-js';
 
 export default class HashedString extends DatabaseProperty {

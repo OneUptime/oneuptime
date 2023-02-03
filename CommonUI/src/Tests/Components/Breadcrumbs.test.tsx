@@ -1,12 +1,10 @@
 import * as React from 'react';
 import { describe, test, expect } from '@jest/globals';
 import Route from 'Common/Types/API/Route';
-import renderer, {
-    ReactTestInstance,
-    ReactTestRenderer,
-} from 'react-test-renderer';
+import type { ReactTestInstance, ReactTestRenderer } from 'react-test-renderer';
+import renderer from 'react-test-renderer';
 import Breadcrumbs from '../../Components/Breadcrumbs/Breadcrumbs';
-import Link from 'Common/Types/Link';
+import type Link from 'Common/Types/Link';
 describe('Breadcrumbs', () => {
     test('Should render correctly and also contain "Home" and "Projects" string', () => {
         const links: Array<Link> = [

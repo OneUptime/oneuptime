@@ -1,8 +1,9 @@
 import { Green } from 'Common/Types/BrandColors';
 import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
-import React, { FunctionComponent, ReactElement } from 'react';
-import MonitorStatus from 'Model/Models/MonitorStatus';
-import MonitorStatusTimelne from 'Model/Models/MonitorStatusTimeline';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type MonitorStatus from 'Model/Models/MonitorStatus';
+import type MonitorStatusTimelne from 'Model/Models/MonitorStatusTimeline';
 import Icon, { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Tooltip from 'CommonUI/src/Components/Tooltip/Toolip';
 

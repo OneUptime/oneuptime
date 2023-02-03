@@ -3,8 +3,8 @@ import ScheduledMaintenanceService from 'CommonServer/Services/ScheduledMaintena
 import QueryHelper from 'CommonServer/Types/Database/QueryHelper';
 import OneUptimeDate from 'Common/Types/Date';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
-import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import type ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import type ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
 import ScheduledMaintenanceStateService from 'CommonServer/Services/ScheduledMaintenanceStateService';
 import RunCron from '../../Utils/Cron';
 

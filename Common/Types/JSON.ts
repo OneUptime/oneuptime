@@ -1,24 +1,24 @@
-import ObjectID from './ObjectID';
-import Version from './Version';
-import Email from './Email';
-import Phone from './Phone';
-import Color from './Color';
-import Route from './API/Route';
-import URL from './API/URL';
-import Name from './Name';
-import Permission from './Permission';
-import Search from './Database/Search';
-import Port from './Port';
-import Hostname from './API/Hostname';
-import HashedString from './HashedString';
-import GreaterThan from './Database/GreaterThan';
-import GreaterThanOrEqual from './Database/GreaterThanOrEqual';
-import LessThan from './Database/LessThan';
-import LessThanOrEqual from './Database/LessThanOrEqual';
-import InBetween from './Database/InBetween';
-import Domain from './Domain';
-import NotNull from './Database/NotNull';
-import { BaseEntity } from 'typeorm';
+import type ObjectID from './ObjectID';
+import type Version from './Version';
+import type Email from './Email';
+import type Phone from './Phone';
+import type Color from './Color';
+import type Route from './API/Route';
+import type URL from './API/URL';
+import type Name from './Name';
+import type Permission from './Permission';
+import type Search from './Database/Search';
+import type Port from './Port';
+import type Hostname from './API/Hostname';
+import type HashedString from './HashedString';
+import type GreaterThan from './Database/GreaterThan';
+import type GreaterThanOrEqual from './Database/GreaterThanOrEqual';
+import type LessThan from './Database/LessThan';
+import type LessThanOrEqual from './Database/LessThanOrEqual';
+import type InBetween from './Database/InBetween';
+import type Domain from './Domain';
+import type NotNull from './Database/NotNull';
+import type { BaseEntity } from 'typeorm';
 
 export enum ObjectType {
     ObjectID = 'ObjectID',

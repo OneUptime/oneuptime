@@ -1,7 +1,8 @@
-import Label from 'Model/Models/Label';
+import type Label from 'Model/Models/Label';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import { Black } from 'Common/Types/BrandColors';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 
 export interface ComponentProps {
     label: Label;

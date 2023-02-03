@@ -1,10 +1,11 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import File from 'Model/Models/File';
-import DatabaseService, { OnDelete, OnFind, OnUpdate } from './DatabaseService';
-import FindBy from '../Types/Database/FindBy';
-import DeleteBy from '../Types/Database/DeleteBy';
+import type { OnDelete, OnFind, OnUpdate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import type FindBy from '../Types/Database/FindBy';
+import type DeleteBy from '../Types/Database/DeleteBy';
 import NotAuthorizedException from 'Common/Types/Exception/NotAuthorizedException';
-import UpdateBy from '../Types/Database/UpdateBy';
+import type UpdateBy from '../Types/Database/UpdateBy';
 
 export class Service extends DatabaseService<File> {
     public constructor(postgresDatabase?: PostgresDatabase) {

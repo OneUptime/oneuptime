@@ -1,8 +1,8 @@
-import ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
-import ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
-import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
-import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import StatusPageResource from 'Model/Models/StatusPageResource';
+import type ScheduledMaintenance from 'Model/Models/ScheduledMaintenance';
+import type ScheduledMaintenancePublicNote from 'Model/Models/ScheduledMaintenancePublicNote';
+import type ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
+import type ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
+import type StatusPageResource from 'Model/Models/StatusPageResource';
 
 export default interface ScheduledMaintenanceGroup {
     scheduledMaintenance: ScheduledMaintenance;

@@ -1,16 +1,18 @@
 import 'ejs';
 import express from 'express';
 import logger from './Logger';
-import { JSONObjectOrArray } from 'Common/Types/JSON';
-import ObjectID from 'Common/Types/ObjectID';
-import JSONWebTokenData from 'Common/Types/JsonWebTokenData';
-import {
+
+import type ObjectID from 'Common/Types/ObjectID';
+import type JSONWebTokenData from 'Common/Types/JsonWebTokenData';
+
+import type UserType from 'Common/Types/UserType';
+import type Dictionary from 'Common/Types/Dictionary';
+import type Port from 'Common/Types/Port';
+import type { JSONObjectOrArray } from 'Common/Types/JSON';
+import type {
     UserGlobalAccessPermission,
     UserTenantAccessPermission,
 } from 'Common/Types/Permission';
-import UserType from 'Common/Types/UserType';
-import Dictionary from 'Common/Types/Dictionary';
-import Port from 'Common/Types/Port';
 
 export type RequestHandler = express.RequestHandler;
 export type NextFunction = express.NextFunction;
@@ -74,7 +76,9 @@ class Express {
         return new Promise<express.Application>((resolve: Function) => {
             this.app.listen(port?.toNumber() || this.app.get('port'), () => {
                 // eslint-disable-next-line
-                logger.info(`${appName} server started on port: ${port?.toNumber() || this.app.get('port')}`);
+                logger.info(
+                    `${appName} server started on port: ${port?.toNumber() || this.app.get('port')}`
+                );
                 return resolve(this.app);
             });
         });

@@ -1,8 +1,9 @@
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
 } from '../Utils/Express';
+import Express from '../Utils/Express';
 import LocalCache from '../Infrastructure/LocalCache';
 
 const router: ExpressRouter = Express.getRouter();

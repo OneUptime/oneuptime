@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
 import ModalFooter from './ModalFooter';
 import ModalBody from './ModalBody';

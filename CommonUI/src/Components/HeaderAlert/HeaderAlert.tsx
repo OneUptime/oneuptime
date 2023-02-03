@@ -1,5 +1,7 @@
-import React, { ReactElement } from 'react';
-import Icon, { IconProp } from '../Icon/Icon';
+import type { ReactElement } from 'react';
+import React from 'react';
+import type { IconProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
 
 export interface ComponentProps {
     icon: IconProp;

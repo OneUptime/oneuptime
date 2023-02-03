@@ -1,15 +1,12 @@
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
+import type MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import OneUptimeDate from 'Common/Types/Date';
 
-import DayUptimeGraph, { Event } from '../Graphs/DayUptimeGraph';
+import type { Event } from '../Graphs/DayUptimeGraph';
+import DayUptimeGraph from '../Graphs/DayUptimeGraph';
 import { Green } from 'Common/Types/BrandColors';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 

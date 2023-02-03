@@ -1,5 +1,6 @@
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { BILLING_ENABLED } from 'CommonUI/src/Config';

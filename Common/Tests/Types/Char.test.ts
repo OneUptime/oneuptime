@@ -1,5 +1,5 @@
-import Char from '../../Types/Char';
-import Dictionary from '../../Types/Dictionary';
+import type Char from '../../Types/Char';
+import type Dictionary from '../../Types/Dictionary';
 
 describe('type Char', () => {
     test('Char can used be type', () => {

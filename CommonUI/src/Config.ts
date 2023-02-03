@@ -4,7 +4,7 @@ import Route from 'Common/Types/API/Route';
 import Version from 'Common/Types/Version';
 import URL from 'Common/Types/API/URL';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 
 export const getAllEnvVars: Function = (): JSONObject => {
     return window?.process?.env || process?.env || {};

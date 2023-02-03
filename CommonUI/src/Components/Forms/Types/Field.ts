@@ -1,13 +1,13 @@
-import Route from 'Common/Types/API/Route';
-import URL from 'Common/Types/API/URL';
-import FormFieldSchemaType from './FormFieldSchemaType';
-import SelectFormFields from '../../../Types/SelectEntityField';
-import { DropdownOption } from '../../Dropdown/Dropdown';
-import BaseModel from 'Common/Models/BaseModel';
-import MimeType from 'Common/Types/File/MimeType';
-import FormValues from './FormValues';
-import { RadioButton } from '../../RadioButtons/RadioButtons';
-import { ReactElement } from 'react';
+import type Route from 'Common/Types/API/Route';
+import type URL from 'Common/Types/API/URL';
+import type FormFieldSchemaType from './FormFieldSchemaType';
+import type SelectFormFields from '../../../Types/SelectEntityField';
+import type { DropdownOption } from '../../Dropdown/Dropdown';
+import type BaseModel from 'Common/Models/BaseModel';
+import type MimeType from 'Common/Types/File/MimeType';
+import type FormValues from './FormValues';
+import type { RadioButton } from '../../RadioButtons/RadioButtons';
+import type { ReactElement } from 'react';
 
 export default interface Field<TEntity> {
     title?: string;

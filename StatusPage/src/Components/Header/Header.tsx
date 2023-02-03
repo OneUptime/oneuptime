@@ -1,8 +1,9 @@
-import Link from 'Common/Types/Link';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type Link from 'Common/Types/Link';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Logo from '../Logo/Logo';
 import UILink from 'CommonUI/src/Components/Link/Link';
-import File from 'Model/Models/File';
+import type File from 'Model/Models/File';
 import Header from 'CommonUI/src/Components/Header/Header';
 
 export interface ComponentProps {

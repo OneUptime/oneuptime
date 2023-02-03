@@ -1,5 +1,6 @@
-import Monitor from 'Model/Models/Monitor';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type Monitor from 'Model/Models/Monitor';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import MonitorElement from './Monitor';
 
 export interface ComponentProps {

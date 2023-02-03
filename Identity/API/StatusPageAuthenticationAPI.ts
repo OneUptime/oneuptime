@@ -4,13 +4,14 @@ import {
     Domain,
     FileRoute,
 } from 'CommonServer/Config';
-import Express, {
+import type {
     ExpressRequest,
     ExpressResponse,
     ExpressRouter,
     NextFunction,
 } from 'CommonServer/Utils/Express';
-import { JSONObject } from 'Common/Types/JSON';
+import Express from 'CommonServer/Utils/Express';
+import type { JSONObject } from 'Common/Types/JSON';
 import StatusPagePrivateUserService from 'CommonServer/Services/StatusPagePrivateUserService';
 import ObjectID from 'Common/Types/ObjectID';
 import BadDataException from 'Common/Types/Exception/BadDataException';
@@ -24,7 +25,7 @@ import PositiveNumber from 'Common/Types/PositiveNumber';
 import logger from 'CommonServer/Utils/Logger';
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
-import StatusPage from 'Model/Models/StatusPage';
+import type StatusPage from 'Model/Models/StatusPage';
 import StatusPageService from 'CommonServer/Services/StatusPageService';
 
 const router: ExpressRouter = Express.getRouter();

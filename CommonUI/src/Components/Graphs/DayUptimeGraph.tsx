@@ -1,13 +1,9 @@
 import { Green } from 'Common/Types/BrandColors';
-import Color from 'Common/Types/Color';
+import type Color from 'Common/Types/Color';
 import OneUptimeDate from 'Common/Types/Date';
-import { Dictionary } from 'lodash';
-import React, {
-    FunctionComponent,
-    ReactElement,
-    useEffect,
-    useState,
-} from 'react';
+import type { Dictionary } from 'lodash';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useEffect, useState } from 'react';
 import Tooltip from '../Tooltip/Toolip';
 
 export interface Event {

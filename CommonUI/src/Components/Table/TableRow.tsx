@@ -1,15 +1,17 @@
 import OneUptimeDate from 'Common/Types/Date';
-import { JSONObject } from 'Common/Types/JSON';
-import React, { FunctionComponent, ReactElement, useState } from 'react';
+import type { JSONObject } from 'Common/Types/JSON';
+import type { FunctionComponent, ReactElement } from 'react';
+import React, { useState } from 'react';
 import Button, { ButtonSize, ButtonStyleType } from '../Button/Button';
 import Icon, { IconProp, ThickProp } from '../Icon/Icon';
-import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
-import Column from './Types/Column';
-import Columns from './Types/Columns';
+import type ActionButtonSchema from '../ActionButton/ActionButtonSchema';
+import type Column from './Types/Column';
+import type Columns from './Types/Columns';
 import FieldType from '../Types/FieldType';
 import _ from 'lodash';
 import ConfirmModal from '../Modal/ConfirmModal';
-import { Draggable, DraggableProvided } from 'react-beautiful-dnd';
+import type { DraggableProvided } from 'react-beautiful-dnd';
+import { Draggable } from 'react-beautiful-dnd';
 
 export interface ComponentProps {
     item: JSONObject;

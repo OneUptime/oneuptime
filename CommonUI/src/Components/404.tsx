@@ -1,9 +1,10 @@
 // Tailwind.
 
-import Route from 'Common/Types/API/Route';
+import type Route from 'Common/Types/API/Route';
 import URL from 'Common/Types/API/URL';
-import Email from 'Common/Types/Email';
-import React, { FunctionComponent, ReactElement } from 'react';
+import type Email from 'Common/Types/Email';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
 import Navigation from '../Utils/Navigation';
 import Button, { ButtonStyleType } from './Button/Button';
 

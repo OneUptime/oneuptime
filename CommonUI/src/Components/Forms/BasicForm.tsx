@@ -1,26 +1,19 @@
-import React, {
-    MutableRefObject,
-    ReactElement,
-    useEffect,
-    useRef,
-    useState,
-} from 'react';
-import {
-    Field,
+import type { MutableRefObject, ReactElement } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import type {
     FieldProps,
-    Form,
-    Formik,
     FormikErrors,
     FormikProps,
     FormikValues,
 } from 'formik';
+import { Field, Form, Formik } from 'formik';
 import Button, { ButtonStyleType } from '../Button/Button';
-import FormValues from './Types/FormValues';
-import Fields from './Types/Fields';
-import DataField from './Types/Field';
+import type FormValues from './Types/FormValues';
+import type Fields from './Types/Fields';
+import type DataField from './Types/Field';
 import ButtonTypes from '../Button/ButtonTypes';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { JSONObject } from 'Common/Types/JSON';
+import type { JSONObject } from 'Common/Types/JSON';
 import FormFieldSchemaType from './Types/FormFieldSchemaType';
 import Email from 'Common/Types/Email';
 import Link from '../Link/Link';
@@ -28,7 +21,8 @@ import Alert, { AlertType } from '../Alerts/Alert';
 import ColorPicker from './Fields/ColorPicker';
 import Color from 'Common/Types/Color';
 import TextArea from '../TextArea/TextArea';
-import Dropdown, { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
+import type { DropdownOption, DropdownValue } from '../Dropdown/Dropdown';
+import Dropdown from '../Dropdown/Dropdown';
 import OneUptimeDate from 'Common/Types/Date';
 import Toggle from '../Toggle/Toggle';
 import Port from 'Common/Types/Port';
@@ -36,7 +30,8 @@ import Hostname from 'Common/Types/API/Hostname';
 import Route from 'Common/Types/API/Route';
 import Exception from 'Common/Types/Exception/Exception';
 import HashedString from 'Common/Types/HashedString';
-import Input, { InputType } from '../Input/Input';
+import type { InputType } from '../Input/Input';
+import Input from '../Input/Input';
 import Markdown from '../Markdown.tsx/MarkdownEditor';
 import CodeEditor from '../CodeEditor/CodeEditor';
 import CodeType from 'Common/Types/Code/CodeType';
@@ -49,7 +44,7 @@ import Typeof from 'Common/Types/Typeof';
 import URL from 'Common/Types/API/URL';
 import RadioButtons from '../RadioButtons/RadioButtons';
 import UiAnalytics from '../../Utils/Analytics';
-import Dictionary from 'Common/Types/Dictionary';
+import type Dictionary from 'Common/Types/Dictionary';
 
 export const DefaultValidateFunction: Function = (
     _values: FormValues<JSONObject>

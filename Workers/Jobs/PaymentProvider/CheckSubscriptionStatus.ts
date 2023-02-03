@@ -2,7 +2,7 @@ import { EVERY_DAY, EVERY_MINUTE } from '../../Utils/CronTime';
 import RunCron from '../../Utils/Cron';
 import ProjectService from 'CommonServer/Services/ProjectService';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
-import Project from 'Model/Models/Project';
+import type Project from 'Model/Models/Project';
 import BillingService from 'CommonServer/Services/BillingService';
 import { IsBillingEnabled, IsDevelopment } from 'CommonServer/Config';
 import logger from 'CommonServer/Utils/Logger';

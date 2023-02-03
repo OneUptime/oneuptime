@@ -1,7 +1,8 @@
 // Tailwind
 
-import React, { FunctionComponent, ReactElement } from 'react';
-import PageComponentProps from '../PageComponentProps';
+import type { FunctionComponent, ReactElement } from 'react';
+import React from 'react';
+import type PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
 import NotFound from 'CommonUI/src/Components/404';
 import Route from 'Common/Types/API/Route';

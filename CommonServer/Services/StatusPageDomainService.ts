@@ -1,12 +1,13 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/StatusPageDomain';
-import DatabaseService, { OnCreate, OnDelete } from './DatabaseService';
-import CreateBy from '../Types/Database/CreateBy';
+import type { OnCreate, OnDelete } from './DatabaseService';
+import DatabaseService from './DatabaseService';
+import type CreateBy from '../Types/Database/CreateBy';
 import DomainService from './DomainService';
-import Domain from 'Model/Models/Domain';
+import type Domain from 'Model/Models/Domain';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import StatusPageCertificateService from './StatusPageCertificateService';
-import DeleteBy from '../Types/Database/DeleteBy';
+import type DeleteBy from '../Types/Database/DeleteBy';
 import LIMIT_MAX from 'Common/Types/Database/LimitMax';
 import ObjectID from 'Common/Types/ObjectID';
 

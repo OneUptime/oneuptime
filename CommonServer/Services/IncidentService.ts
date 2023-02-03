@@ -1,15 +1,16 @@
-import PostgresDatabase from '../Infrastructure/PostgresDatabase';
+import type PostgresDatabase from '../Infrastructure/PostgresDatabase';
 import Model from 'Model/Models/Incident';
-import DatabaseService, { OnCreate } from './DatabaseService';
+import type { OnCreate } from './DatabaseService';
+import DatabaseService from './DatabaseService';
 import ObjectID from 'Common/Types/ObjectID';
-import Monitor from 'Model/Models/Monitor';
+import type Monitor from 'Model/Models/Monitor';
 import MonitorService from './MonitorService';
-import DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
+import type DatabaseCommonInteractionProps from 'Common/Types/Database/DatabaseCommonInteractionProps';
 import IncidentStateTimeline from 'Model/Models/IncidentStateTimeline';
 import IncidentStateTimelineService from './IncidentStateTimelineService';
-import CreateBy from '../Types/Database/CreateBy';
+import type CreateBy from '../Types/Database/CreateBy';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import IncidentState from 'Model/Models/IncidentState';
+import type IncidentState from 'Model/Models/IncidentState';
 import IncidentStateService from './IncidentStateService';
 
 export class Service extends DatabaseService<Model> {

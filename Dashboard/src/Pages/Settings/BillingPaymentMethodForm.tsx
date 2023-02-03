@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement, Ref } from 'react';
+import type { FunctionComponent, ReactElement, Ref } from 'react';
+import React from 'react';
 import {
     useStripe,
     useElements,

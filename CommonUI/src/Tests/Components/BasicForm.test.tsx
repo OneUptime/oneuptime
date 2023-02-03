@@ -5,9 +5,9 @@ import userEvent from '@testing-library/user-event';
 import BasicForm from '../../Components/Forms/BasicForm';
 import FormFieldSchemaType from '../../Components/Forms/Types/FormFieldSchemaType';
 import Route from 'Common/Types/API/Route';
-import FormValues from '../../Components/Forms/Types/FormValues';
-import Fields from '../../Components/Forms/Types/Fields';
-import { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
+import type FormValues from '../../Components/Forms/Types/FormValues';
+import type Fields from '../../Components/Forms/Types/Fields';
+import type { UserEvent } from '@testing-library/user-event/dist/types/setup/setup';
 import '@testing-library/jest-dom/extend-expect';
 
 describe('BasicForm test', () => {
