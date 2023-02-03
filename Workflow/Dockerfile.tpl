@@ -37,7 +37,6 @@ RUN npm install
 COPY ./Model /usr/src/Model
 
 
-
 # Install CommonServer
 RUN mkdir /usr/src/CommonServer
 WORKDIR /usr/src/CommonServer
