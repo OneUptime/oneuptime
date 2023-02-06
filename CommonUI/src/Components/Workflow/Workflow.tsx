@@ -14,6 +14,7 @@ import ReactFlow, {
     ProOptions,
     NodeTypes,
     OnConnect,
+    getConnectedEdges,
 } from 'reactflow';
 // 👇 you need to import the reactflow styles
 import 'reactflow/dist/style.css';
@@ -46,7 +47,33 @@ export interface ComponentProps {
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
-    const [nodes, _setNodes, onNodesChange] = useNodesState(props.initialNodes);
+    const deleteNode = (id: string) => {
+        // remove the node. 
+
+        const nodesToDelete = [...nodes].filter((node) => {
+            return node.data.id === id
+        })
+        const edgeToDelete = getConnectedEdges(nodesToDelete, edges);
+
+
+        setNodes((nds) => {
+            return nds.filter((node) => {
+                return node.data.id !== id
+            });
+        })
+
+        setNodes((eds) => {
+            return eds.filter((edge) => {
+                const idsToDelete = edgeToDelete.map((e) => e.id);
+                return !idsToDelete.includes(edge.id);
+            })
+        })
+    }
+
+    const [nodes, setNodes, onNodesChange] = useNodesState(props.initialNodes.map((node) => {
+        node.data.onDeleteClick = deleteNode;
+        return node;
+    }));
     const [edges, setEdges, onEdgesChange] = useEdgesState(
         props.initialEdges.map((edge: Edge) => {
             // add style.
@@ -113,6 +140,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         edgeUpdateSuccessful.current = true;
     }, []);
 
+
+
+
     return (
         <div className="h-[48rem]">
             <ReactFlow
@@ -129,7 +159,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             >
                 <MiniMap />
                 <Controls />
-                <Background />
+                <Background color='#111827' />
             </ReactFlow>
         </div>
     );

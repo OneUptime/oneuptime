@@ -1,7 +1,7 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, useState } from 'react';
 import { Handle, Position, Connection } from 'reactflow';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon, { IconProp, ThickProp } from '../Icon/Icon';
 
 export interface NodeDataProp {
     nodeData: JSONObject;
@@ -10,6 +10,7 @@ export interface NodeDataProp {
     description: string;
     icon: IconProp;
     isTrigger: boolean;
+    onDeleteClick: (id: string) => void;
 }
 
 export interface ComponentProps {
@@ -45,10 +46,39 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
             }}
         >
+
+            {isHovering && <div style={{
+                "width": "20px",
+                height: "20px",
+                borderRadius: "100px",
+                background: "#ef4444",
+                position: "absolute",
+                top: "-9px",
+                left: "228px",
+                cursor: "pointer"
+            }} onClick={() => {
+                if (props.data.onDeleteClick) {
+                    props.data.onDeleteClick(props.data.id);
+                }
+            }} >
+                <Icon
+                    icon={IconProp.Close}
+                    style={{
+                        color: "white",
+                        width: '1rem',
+                        height: '1rem',
+                        textAlign: 'center',
+                        margin: 'auto',
+                        marginTop: "2px"
+                    }}
+                    thick={ThickProp.Thick}
+                />
+            </div>}
+
             {!props.data.isTrigger && (
                 <Handle
                     type="target"
-                    onConnect={(_params: Connection) => {}}
+                    onConnect={(_params: Connection) => { }}
                     isConnectable={true}
                     position={Position.Top}
                     style={handleStyle}
@@ -114,7 +144,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             <Handle
                 type="source"
                 id="a"
-                onConnect={(_params: Connection) => {}}
+                onConnect={(_params: Connection) => { }}
                 isConnectable={true}
                 position={Position.Bottom}
                 style={handleStyle}

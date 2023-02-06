@@ -33,7 +33,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
             type: 'node',
             position: { x: 100, y: 300 },
             data: {
-                id: 'slack-1',
+                id: 'slack-2',
                 title: 'Slack',
                 description: 'Open a channel',
                 icon: IconProp.Add,
@@ -45,7 +45,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
             type: 'addNewNode',
             position: { x: 100, y: 500 },
             data: {
-                id: 'slack-1',
+                id: 'slack-3',
                 title: 'Slack',
                 description: 'Open a channel',
                 icon: IconProp.Add,
