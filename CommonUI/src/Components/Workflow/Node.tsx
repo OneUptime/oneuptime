@@ -1,11 +1,19 @@
+import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent } from 'react';
 import { Handle, Position } from 'reactflow';
 import Icon, { IconProp } from '../Icon/Icon';
 
 
+export interface NodeDataProp {
+    nodeData: JSONObject;
+    title: string;
+    id: string;
+    description: string;
+    icon: IconProp;
+}
+
 export interface ComponentProps {
-    isConnectable: boolean;
-    data: any;
+    data: NodeDataProp;
 }
 
 
@@ -26,7 +34,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             <Handle
                 type="target"
                 onConnect={(params) => console.log('handle onConnect', params)}
-                isConnectable={props.isConnectable}
+                isConnectable={true}
                 position={Position.Top}
                 style={handleStyle}
             />
@@ -35,7 +43,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <div style={{
                     margin: "auto"
                 }}>
-                    <Icon icon={IconProp.Add} style={{
+                    <Icon icon={props.data.icon} style={{
                         color: "#475569",
                         width: "1.5rem",
                         height: "1.5rem",
@@ -47,21 +55,25 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         lineHeight: "1.25rem",
                         textAlign: "center",
                         marginTop: "6px"
-                    }}>Component Name</p>
+                    }}>{props.data.title}</p>
+                    <p style={{
+                        color: "#475569", fontSize: "0.875rem",
+                        textAlign: "center",
+                    }}>({props.data.id})</p>
                     <p style={{
                         color: "#64748b", fontSize: "0.775rem",
                         lineHeight: "0.8rem",
                         textAlign: "center",
                         marginTop: "6px"
 
-                    }}>Long Long Description should be here. Here here here</p>
+                    }}>{props.data.description}</p>
                 </div>
             </div>
 
             <Handle
                 type="source"
                 id="a"
-                isConnectable={props.isConnectable}
+                isConnectable={true}
                 position={Position.Bottom}
                 style={handleStyle}
             />
