@@ -1,16 +1,29 @@
-import React, { FunctionComponent, ReactElement } from 'react';
+import React, { FunctionComponent, ReactElement, useEffect } from 'react';
 import PageComponentProps from '../PageComponentProps';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Route from 'Common/Types/API/Route';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
+import Navigation from 'CommonUI/src/Utils/Navigation';
+import Project from 'Model/Models/Project';
 import DashboardSideMenu from './SideMenu';
 import IncidentsTable from '../../Components/Incident/IncidentsTable';
 import DashboardNavigation from '../../Utils/Navigation';
 
-const Home: FunctionComponent<PageComponentProps> = (
-    props: PageComponentProps
+export interface ComponentProps extends PageComponentProps {
+    isLoadingProjects: boolean;
+    projects: Array<Project>;
+}
+
+const Home: FunctionComponent<ComponentProps> = (
+    props: ComponentProps
 ): ReactElement => {
+    useEffect(() => {
+        if (!props.isLoadingProjects && props.projects.length === 0) {
+            Navigation.navigate(RouteMap[PageMap.WELCOME] as Route);
+        }
+    }, [props.projects]);
+
     return (
         <Page
             title={'Home'}

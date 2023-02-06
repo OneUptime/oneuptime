@@ -257,6 +257,8 @@ const App: FunctionComponent = () => {
                         <Home
                             pageRoute={RouteMap[PageMap.HOME] as Route}
                             currentProject={selectedProject}
+                            projects={projects}
+                            isLoadingProjects={isLoading}
                         />
                     }
                 />
