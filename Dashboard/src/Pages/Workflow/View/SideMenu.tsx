@@ -43,9 +43,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     link={{
                         title: 'Runs & Logs',
                         to: RouteUtil.populateRouteParams(
-                            RouteMap[
-                            PageMap.WORKFLOW_LOGS
-                            ] as Route,
+                            RouteMap[PageMap.WORKFLOW_LOGS] as Route,
                             props.modelId
                         ),
                     }}
@@ -54,7 +52,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
-
                 <SideMenuItem
                     link={{
                         title: 'Delete Workflow',

@@ -281,8 +281,6 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/delete`
     ),
 
-
-
     // logout.
     [PageMap.LOGOUT]: new Route(`/dashboard/logout`),
 };
@@ -292,7 +290,7 @@ export class RouteUtil {
         if (
             route.toString() === RouteMap[PageMap.USER_PROFILE]?.toString() ||
             route.toString() ===
-            RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
+                RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
             route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString()
         ) {
             return true;

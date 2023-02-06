@@ -48,7 +48,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            
+            <div></div>
         </Page>
     );
 };

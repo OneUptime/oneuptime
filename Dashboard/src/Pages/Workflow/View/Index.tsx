@@ -52,8 +52,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
-
             {/* StatusPage View  */}
             <CardModelDetail
                 name="Workflow > Workflow Details"
@@ -113,9 +111,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     modelId: modelId,
                 }}
             />
-
-
-
         </Page>
     );
 };

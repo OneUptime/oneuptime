@@ -9,10 +9,59 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Workflow from 'CommonUI/src/Components/Workflow/Workflow';
 import Card from 'CommonUI/src/Components/Card/Card';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import { Edge, Node } from 'reactflow';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+    const initialNodes: Array<Node> = [
+        {
+            id: '1',
+            type: 'node',
+            position: { x: 100, y: 100 },
+            data: {
+                id: 'slack-1',
+                title: 'Slack',
+                description: 'Open a channel',
+                icon: IconProp.Add,
+                isTrigger: true,
+            },
+        },
+        {
+            id: '3',
+            type: 'node',
+            position: { x: 100, y: 300 },
+            data: {
+                id: 'slack-1',
+                title: 'Slack',
+                description: 'Open a channel',
+                icon: IconProp.Add,
+                isTrigger: false,
+            },
+        },
+        {
+            id: '2',
+            type: 'addNewNode',
+            position: { x: 100, y: 500 },
+            data: {
+                id: 'slack-1',
+                title: 'Slack',
+                description: 'Open a channel',
+                icon: IconProp.Add,
+                isTrigger: true,
+            },
+        },
+    ];
+
+    const initialEdges: Array<Edge> = [
+        {
+            id: 'e1-2',
+            source: '1',
+            target: '3',
+        },
+    ];
+
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
@@ -50,11 +99,15 @@ const Delete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-
-            <Card title={"Workflow Builder"} description={"Workflow builder for OneUptime"}>
-                <Workflow name="Workflow" />
+            <Card
+                title={'Workflow Builder'}
+                description={'Workflow builder for OneUptime'}
+            >
+                <Workflow
+                    initialNodes={initialNodes}
+                    initialEdges={initialEdges}
+                />
             </Card>
-
         </Page>
     );
 };
