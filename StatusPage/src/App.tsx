@@ -77,6 +77,22 @@ const App: FunctionComponent = () => {
         <MasterPage
             isPreview={isPreview}
             onLoadComplete={(masterpage: JSONObject) => {
+                document.title =
+                    (JSONFunctions.getJSONValueInPath(
+                        masterpage || {},
+                        'statusPage.pageTitle'
+                    ) as string | null) || 'Status Page';
+
+                document
+                    .querySelector('meta[name="description"]')
+                    ?.setAttribute(
+                        'content',
+                        (JSONFunctions.getJSONValueInPath(
+                            masterpage || {},
+                            'statusPage.pageDescription'
+                        ) as string | null) || ''
+                    );
+
                 const javascript: string | null =
                     JSONFunctions.getJSONValueInPath(
                         masterpage || {},
