@@ -11,6 +11,7 @@ export interface NodeDataProp {
     icon: IconProp;
     isTrigger: boolean;
     onDeleteClick: (id: string) => void;
+    onClick: (node: NodeDataProp) => void;
 }
 
 export interface ComponentProps {
@@ -44,6 +45,9 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 backgroundColor: 'white',
                 boxShadow:
                     '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+            }}
+            onClick={() => {
+                props.data.onClick(props.data);
             }}
         >
 

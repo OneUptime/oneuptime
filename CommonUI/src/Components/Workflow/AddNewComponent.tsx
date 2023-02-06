@@ -1,10 +1,8 @@
 import React, { FunctionComponent, useState } from 'react';
 import { Connection, Handle, Position } from 'reactflow';
 import Icon, { IconProp } from '../Icon/Icon';
+import { NodeDataProp } from './Component';
 
-export interface NodeDataProp {
-    isTrigger: boolean;
-}
 
 export interface ComponentProps {
     data: NodeDataProp;
@@ -41,7 +39,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             {!props.data.isTrigger && (
                 <Handle
                     type="target"
-                    onConnect={(_params: Connection) => {}}
+                    onConnect={(_params: Connection) => { }}
                     isConnectable={true}
                     position={Position.Top}
                     style={handleStyle}

@@ -18,7 +18,7 @@ import ReactFlow, {
 } from 'reactflow';
 // 👇 you need to import the reactflow styles
 import 'reactflow/dist/style.css';
-import WorkflowComponent from './Component';
+import WorkflowComponent, { NodeDataProp } from './Component';
 import AddNewComponent from './AddNewComponent';
 
 const nodeTypes: NodeTypes = {
@@ -47,6 +47,10 @@ export interface ComponentProps {
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
+    const onClickNode = (data: NodeDataProp) => {
+
+    }
+
     const deleteNode = (id: string) => {
         // remove the node. 
 
@@ -72,8 +76,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     const [nodes, setNodes, onNodesChange] = useNodesState(props.initialNodes.map((node) => {
         node.data.onDeleteClick = deleteNode;
+        node.data.onClick = onClickNode;
         return node;
     }));
+
+
     const [edges, setEdges, onEdgesChange] = useEdgesState(
         props.initialEdges.map((edge: Edge) => {
             // add style.
@@ -104,7 +111,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             return edge;
         })
     );
+
     const proOptions: ProOptions = { hideAttribution: true };
+
     const onConnect: OnConnect = useCallback(
         (params: any) => {
             return setEdges((eds: Array<Edge>) => {
