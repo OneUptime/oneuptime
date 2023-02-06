@@ -20,7 +20,13 @@ import Email from 'Common/Types/Email';
 import Phone from 'Common/Types/Phone';
 import URL from 'Common/Types/API/URL';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true
+})
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
 @TableAccessControl({

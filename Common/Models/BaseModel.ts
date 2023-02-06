@@ -32,6 +32,7 @@ import { ColumnAccessControl } from '../Types/Database/AccessControl/AccessContr
 import { getColumnAccessControlForAllColumns } from '../Types/Database/AccessControl/ColumnAccessControl';
 import BadDataException from '../Types/Exception/BadDataException';
 import { PlanSelect } from '../Types/Billing/SubscriptionPlan';
+import { EnableWorkflowOn } from '../Types/Model/EnableWorkflow';
 
 export type DbTypes =
     | string
@@ -78,6 +79,8 @@ export default class BaseModel extends BaseEntity {
     public deleteBillingPlan!: PlanSelect | null;
 
     public allowAccessIfSubscriptionIsUnpaid!: boolean;
+
+    public enableWorkflowOn!: EnableWorkflowOn;
 
     public currentUserCanAccessColumnBy!: string | null;
     public labelsColumn!: string | null;
@@ -333,7 +336,7 @@ export default class BaseModel extends BaseEntity {
 
         return Boolean(
             tableColumnType.type === TableColumnType.Entity ||
-                tableColumnType.type === TableColumnType.EntityArray
+            tableColumnType.type === TableColumnType.EntityArray
         );
     }
 
@@ -471,10 +474,10 @@ export default class BaseModel extends BaseEntity {
 
         return Boolean(
             userPermissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    modelPermissions,
-                    userPermissions
-                )
+            PermissionHelper.doesPermissionsIntersect(
+                modelPermissions,
+                userPermissions
+            )
         );
     }
 }
