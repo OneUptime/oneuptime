@@ -55,6 +55,9 @@ import GreenlockChallenge from 'Model/Models/GreenlockChallenge';
 import GreenlockChallengeService from '../Services/GreenlockChallengeService';
 import NotFoundException from 'Common/Types/Exception/NotFoundException';
 import logger from '../Utils/Logger';
+import Email from 'Common/Types/Email';
+import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
+import StatusPageSubscriberService from '../Services/StatusPageSubscriberService';
 
 export default class StatusPageAPI extends BaseAPI<
     StatusPage,
@@ -849,6 +852,82 @@ export default class StatusPageAPI extends BaseAPI<
                     };
 
                     return Response.sendJsonObjectResponse(req, res, response);
+                } catch (err) {
+                    next(err);
+                }
+            }
+        );
+
+        this.router.post(
+            `${new this.entityType()
+                .getCrudApiPath()
+                ?.toString()}/subscribe/:statusPageId`,
+            UserMiddleware.getUserMiddleware,
+            async (
+                req: ExpressRequest,
+                res: ExpressResponse,
+                next: NextFunction
+            ) => {
+                try {
+                    const objectId: ObjectID = new ObjectID(
+                        req.params['statusPageId'] as string
+                    );
+
+                    if (
+                        !(await this.service.hasReadAccess(
+                            objectId,
+                            await this.getDatabaseCommonInteractionProps(req),
+                            req
+                        ))
+                    ) {
+                        throw new NotAuthorizedException(
+                            'You are not authorize to access this status page'
+                        );
+                    }
+
+                    const statusPage: StatusPage | null =
+                        await StatusPageService.findOneBy({
+                            query: {
+                                _id: objectId.toString(),
+                            },
+                            select: {
+                                _id: true,
+                                projectId: true,
+                                enableSubscribers: true,
+                            },
+                            props: {
+                                isRoot: true,
+                            },
+                        });
+
+                    if (!statusPage) {
+                        throw new BadDataException('Status Page not found');
+                    }
+
+                    if (!statusPage.enableSubscribers) {
+                        throw new BadDataException(
+                            'Subscribers not enabled for this status page.'
+                        );
+                    }
+
+                    const email: Email = new Email(
+                        req.body.data['subscriberEmail'] as string
+                    );
+
+                    const statusPageSubscriber: StatusPageSubscriber =
+                        new StatusPageSubscriber();
+                    statusPageSubscriber.subscriberEmail = email;
+                    statusPageSubscriber.statusPageId = objectId;
+                    statusPageSubscriber.projectId = statusPage.projectId!;
+
+                    await StatusPageSubscriberService.create({
+                        data: statusPageSubscriber,
+                        props: {
+                            isRoot: true,
+                        },
+                    });
+
+                    return Response.sendEmptyResponse(req, res);
                 } catch (err) {
                     next(err);
                 }

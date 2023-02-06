@@ -15,11 +15,18 @@ import SubscribeSideMenu from './SideMenu';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import Card from 'CommonUI/src/Components/Card/Card';
+import { DASHBOARD_API_URL } from 'CommonUI/src/Config';
+import URL from 'Common/Types/API/URL';
 
 const SubscribePage: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
 ): ReactElement => {
     const [isSuccess, setIsSuccess] = useState<boolean>(false);
+
+    const id: ObjectID = LocalStorage.getItem('statusPageId') as ObjectID;
+    if (!id) {
+        throw new BadDataException('Status Page ID is required');
+    }
 
     if (
         props.statusPageId &&
@@ -98,6 +105,11 @@ const SubscribePage: FunctionComponent<PageComponentProps> = (
                                                 'subscriber@company.com',
                                         },
                                     ]}
+                                    apiUrl={URL.fromString(
+                                        DASHBOARD_API_URL.toString()
+                                    ).addRoute(
+                                        `/status-page/subscribe/${id.toString()}`
+                                    )}
                                     formType={FormType.Create}
                                     submitButtonText={'Subscribe'}
                                     onBeforeCreate={async (

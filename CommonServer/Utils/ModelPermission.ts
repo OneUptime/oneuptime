@@ -1054,7 +1054,11 @@ export default class ModelPermission {
         // Global permissions includes all the tenantId user has access to.
         // and it includes all the global permissions that applies to all the tenant, like PUBLIC.
         if (!props.userGlobalAccessPermission) {
-            throw new NotAuthorizedException(`Permissions not found.`);
+            props.userGlobalAccessPermission = {
+                globalPermissions: [Permission.Public],
+                projectIds: [],
+                _type: 'UserGlobalAccessPermission',
+            };
         }
 
         // If the PUBLIC Permission is not found in global permissions, include it.
