@@ -20,7 +20,8 @@ import useAsyncEffect from 'use-async-effect';
 import Workflows from './Pages/Workflow/Workflows';
 import WorkflowLogs from './Pages/Workflow/View/Logs';
 import WorkflowDelete from './Pages/Workflow/View/Delete';
-import WorkflowBuilder from './Pages/Workflow/View/Index';
+import WorkflowBuilder from './Pages/Workflow/View/Builder';
+import WorkflowOverview from './Pages/Workflow/View/Index';
 
 import StatusPages from './Pages/StatusPages/StatusPages';
 import StatusPagesView from './Pages/StatusPages/View/Index';
@@ -403,6 +404,17 @@ const App: FunctionComponent = () => {
                     element={
                         <WorkflowBuilder
                             pageRoute={RouteMap[PageMap.WORKFLOW_BUILDER] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+
+                <PageRoute
+                    path={RouteMap[PageMap.WORKFLOW_VIEW]?.toString() || ''}
+                    element={
+                        <WorkflowOverview
+                            pageRoute={RouteMap[PageMap.WORKFLOW_VIEW] as Route}
                             currentProject={selectedProject}
                         />
                     }

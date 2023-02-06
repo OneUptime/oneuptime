@@ -20,6 +20,16 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
             <SideMenuSection title="Basic">
                 <SideMenuItem
                     link={{
+                        title: 'Overview',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.WORKFLOW_VIEW] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Info}
+                />
+                <SideMenuItem
+                    link={{
                         title: 'Builder',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[PageMap.WORKFLOW_BUILDER] as Route,

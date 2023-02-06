@@ -7,12 +7,15 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import Workflow from 'CommonUI/src/Components/Workflow/Workflow';
+import Workflow from 'Model/Models/Workflow';
+import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID(0);
 
     return (
         <Page
@@ -51,7 +54,67 @@ const Delete: FunctionComponent<PageComponentProps> = (
         >
 
 
-            <Workflow name="Workflow" />
+            {/* StatusPage View  */}
+            <CardModelDetail
+                name="Workflow > Workflow Details"
+                cardProps={{
+                    title: 'Workflow Details',
+                    description: "Here's more details for this workflow.",
+                    icon: IconProp.Workflow,
+                }}
+                isEditable={true}
+                formFields={[
+                    {
+                        field: {
+                            name: true,
+                        },
+                        title: 'Name',
+                        fieldType: FormFieldSchemaType.Text,
+                        required: true,
+                        placeholder: 'Status Page Name',
+                        validation: {
+                            minLength: 2,
+                        },
+                    },
+                    {
+                        field: {
+                            description: true,
+                        },
+                        title: 'Description',
+                        fieldType: FormFieldSchemaType.LongText,
+                        required: true,
+                        placeholder: 'Description',
+                    },
+                ]}
+                modelDetailProps={{
+                    showDetailsInNumberOfColumns: 2,
+                    modelType: Workflow,
+                    id: 'model-detail-workflow',
+                    fields: [
+                        {
+                            field: {
+                                _id: true,
+                            },
+                            title: 'Workflow ID',
+                        },
+                        {
+                            field: {
+                                name: true,
+                            },
+                            title: 'Name',
+                        },
+                        {
+                            field: {
+                                description: true,
+                            },
+                            title: 'Description',
+                        },
+                    ],
+                    modelId: modelId,
+                }}
+            />
+
+
 
         </Page>
     );

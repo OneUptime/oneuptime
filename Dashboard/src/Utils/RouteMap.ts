@@ -266,7 +266,7 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.WORKFLOW_BUILDER]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/builder`
     ),
 
     [PageMap.WORKFLOW_VIEW]: new Route(
