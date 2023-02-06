@@ -38,8 +38,8 @@ const newNodeEdge = {
 
 
 const initialNodes = [
-    { id: '1', type: 'node', position: { x: 100, y: 100 }, data: { id: 'slack-1', title: "Slack", description: "Open a channel", icon: IconProp.Add } },
-    { id: '2', type: 'addNewNode', position: { x: 100, y: 500 }, data: { id: 'slack-2', title: "Slack", description: "Open a channel", icon: IconProp.Add } },
+    { id: '1', type: 'node', position: { x: 100, y: 100 }, data: { id: 'slack-1', title: "Slack", description: "Open a channel", icon: IconProp.Add, isTrigger: true } },
+    { id: '2', type: 'addNewNode', position: { x: 100, y: 500 }, data: { id: 'slack-1', title: "Slack", description: "Open a channel", icon: IconProp.Add, isTrigger: true } },
 ];
 
 const initialEdges = [{
