@@ -20,6 +20,11 @@ import ProjectService, {
     Service as ProjectServiceType,
 } from 'CommonServer/Services/ProjectService';
 
+import Workflow from 'Model/Models/Workflow';
+import WorkflowService, {
+    Service as WorkflowServiceType,
+} from 'CommonServer/Services/WorkflowService';
+
 import Probe from 'Model/Models/Probe';
 import ProbeService, {
     Service as ProbeServiceType,
@@ -265,6 +270,14 @@ app.use(
     new BaseAPI<StatusPageResource, StatusPageResourceServiceType>(
         StatusPageResource,
         StatusPageResourceService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<Workflow, WorkflowServiceType>(
+        Workflow,
+        WorkflowService
     ).getRouter()
 );
 

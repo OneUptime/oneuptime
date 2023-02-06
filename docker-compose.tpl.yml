@@ -228,8 +228,95 @@ services:
             - /usr/src/CommonServer/node_modules/
             - /usr/src/Model/node_modules/
         {{ end }}
-    
 
+
+    workflow:
+        ports:
+            - '3099:3099'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9212:9229' # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Workflow/Dockerfile
+        {{ else }}
+        image:  oneuptime/workflow:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Workflow/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - mail
+        links:
+            - redis
+            - postgres
+            - mail
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./Workflow:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
+    
+    alert:
+        ports:
+            - '3088:3088'
+            {{ if eq .Env.ENVIRONMENT "development" }}
+            - '9222:9229' # Debugging port.
+            {{ end }}
+        {{ if or (eq .Env.ENVIRONMENT "development") (eq .Env.ENVIRONMENT "ci")  }}
+        build:
+            network: host
+            context: .
+            dockerfile: ./Alert/Dockerfile
+        {{ else }}
+        image:  oneuptime/alert:{{ .Env.APP_TAG }}
+        {{ end }}
+        restart: always
+        env_file:
+            - ./Common/.env
+            - ./CommonServer/.env
+            - ./Alert/.env
+
+        depends_on:
+            - redis
+            - postgres
+            - mail
+        links:
+            - redis
+            - postgres
+            - mail
+        {{ if eq .Env.ENVIRONMENT "development" }}
+        volumes:
+            - ./Alert:/usr/src/app
+            # Use node modules of the container and not host system.
+            # https://stackoverflow.com/questions/29181032/add-a-volume-to-docker-but-exclude-a-sub-folder
+            - /usr/src/app/node_modules/
+            - ./Common:/usr/src/Common
+            - ./Model:/usr/src/Model
+            - ./CommonServer:/usr/src/CommonServer
+            - ./CommonUI:/usr/src/CommonUI
+            - /usr/src/Common/node_modules/
+            - /usr/src/CommonUI/node_modules/
+            - /usr/src/CommonServer/node_modules/
+            - /usr/src/Model/node_modules/
+        {{ end }}
 
     workers:
         ports:

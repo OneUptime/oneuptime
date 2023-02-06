@@ -97,6 +97,12 @@ enum Permission {
     CanEditStatusPageResource = 'CanEditStatusPageResource',
     CanReadStatusPageResource = 'CanReadStatusPageResource',
 
+    // Workflow Permissions (Owner Permission)
+    CanCreateWorkflow = 'CanCreateWorkflow',
+    CanDeleteWorkflow = 'CanDeleteWorkflow',
+    CanEditWorkflow = 'CanEditWorkflow',
+    CanReadWorkflow = 'CanReadWorkflow',
+
     // Probe Permissions (Owner Permission)
     CanCreateStatusPageGroup = 'CanCreateStatusPageGroup',
     CanDeleteStatusPageGroup = 'CanDeleteStatusPageGroup',
@@ -807,6 +813,39 @@ export class PermissionHelper {
                 title: 'Can Read Status Page Resource',
                 description:
                     'A user assigned this permission  can read Status Page Resource in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+            {
+                permission: Permission.CanCreateWorkflow,
+                title: 'Can Create Workflow',
+                description:
+                    'A user assigned this permission can create Workflow in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteWorkflow,
+                title: 'Can Delete Workflow',
+                description:
+                    'A user assigned this permission  can delete Workflow in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditWorkflow,
+                title: 'Can Edit Workflow',
+                description:
+                    'A user assigned this permission can edit Workflow in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadWorkflow,
+                title: 'Can Read Workflow',
+                description:
+                    'A user assigned this permission  can read Workflow in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },

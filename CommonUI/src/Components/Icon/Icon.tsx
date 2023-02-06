@@ -21,6 +21,7 @@ export enum ThickProp {
 export enum IconProp {
     File,
     Automation,
+    Workflow,
     Layout,
     Compass,
     User,
@@ -103,6 +104,8 @@ export enum IconProp {
     Chat,
     Wrench,
     TransparentCube,
+    Logs,
+    Bolt,
 }
 
 export enum IconType {
@@ -216,12 +219,36 @@ const Icon: FunctionComponent<ComponentProps> = ({
                 d="M6 18L18 6M6 6l12 12"
             />
         );
+    } else if (icon === IconProp.Logs) {
+        return getSvgWrapper(
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z"
+            />
+        );
+    } else if (icon === IconProp.Bolt) {
+        return getSvgWrapper(
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
+            />
+        );
     } else if (icon === IconProp.Chat) {
         return getSvgWrapper(
             <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785A5.969 5.969 0 006 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337z"
+            />
+        );
+    } else if (icon === IconProp.Workflow) {
+        return getSvgWrapper(
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z"
             />
         );
     } else if (icon === IconProp.TransparentCube) {

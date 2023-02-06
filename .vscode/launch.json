@@ -43,6 +43,20 @@
         },
         {
             "address": "127.0.0.1",
+            "localRoot": "${workspaceFolder}/Workflow",
+            "name": "Workflow: Debug with Docker",
+            "port": 9212,
+            "remoteRoot": "/usr/src/app",
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node",
+            "restart": true,
+            "autoAttachChildProcesses": true
+        },
+        {
+            "address": "127.0.0.1",
             "localRoot": "${workspaceFolder}/data-ingestor",
             "name": "Data Ingestor: Debug with Docker",
             "port": 9338,

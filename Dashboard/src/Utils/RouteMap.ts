@@ -260,6 +260,27 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/settings/labels`
     ),
 
+    // workflows.
+    [PageMap.WORKFLOWS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows`
+    ),
+
+    [PageMap.WORKFLOW_BUILDER]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/builder`
+    ),
+
+    [PageMap.WORKFLOW_VIEW]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}`
+    ),
+
+    [PageMap.WORKFLOW_LOGS]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/logs`
+    ),
+
+    [PageMap.WORKFLOW_DELETE]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/delete`
+    ),
+
     // logout.
     [PageMap.LOGOUT]: new Route(`/dashboard/logout`),
 };

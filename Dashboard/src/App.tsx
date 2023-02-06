@@ -17,6 +17,12 @@ import OngoingScheduledEvents from './Pages/Home/OngingScheduledMaintenance';
 
 import useAsyncEffect from 'use-async-effect';
 
+import Workflows from './Pages/Workflow/Workflows';
+import WorkflowLogs from './Pages/Workflow/View/Logs';
+import WorkflowDelete from './Pages/Workflow/View/Delete';
+import WorkflowBuilder from './Pages/Workflow/View/Builder';
+import WorkflowOverview from './Pages/Workflow/View/Index';
+
 import StatusPages from './Pages/StatusPages/StatusPages';
 import StatusPagesView from './Pages/StatusPages/View/Index';
 import StatusPagesViewDelete from './Pages/StatusPages/View/Delete';
@@ -377,6 +383,62 @@ const App: FunctionComponent = () => {
                                 RouteMap[
                                     PageMap.MONITOR_VIEW_INCIDENTS
                                 ] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                {/* Workflows  */}
+
+                <PageRoute
+                    path={RouteMap[PageMap.WORKFLOWS]?.toString() || ''}
+                    element={
+                        <Workflows
+                            pageRoute={RouteMap[PageMap.WORKFLOWS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.WORKFLOW_BUILDER]?.toString() || ''}
+                    element={
+                        <WorkflowBuilder
+                            pageRoute={
+                                RouteMap[PageMap.WORKFLOW_BUILDER] as Route
+                            }
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.WORKFLOW_VIEW]?.toString() || ''}
+                    element={
+                        <WorkflowOverview
+                            pageRoute={RouteMap[PageMap.WORKFLOW_VIEW] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.WORKFLOW_LOGS]?.toString() || ''}
+                    element={
+                        <WorkflowLogs
+                            pageRoute={RouteMap[PageMap.WORKFLOW_LOGS] as Route}
+                            currentProject={selectedProject}
+                        />
+                    }
+                />
+
+                <PageRoute
+                    path={RouteMap[PageMap.WORKFLOW_DELETE]?.toString() || ''}
+                    element={
+                        <WorkflowDelete
+                            pageRoute={
+                                RouteMap[PageMap.WORKFLOW_DELETE] as Route
                             }
                             currentProject={selectedProject}
                         />

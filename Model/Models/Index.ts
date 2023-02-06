@@ -63,6 +63,9 @@ import BillingInvoice from './BillingInvoice';
 import GreenlockChallenge from './GreenlockChallenge';
 import GreenlockCertificate from './GreenlockCertificate';
 
+// Workflows.
+import Workflow from './Workflow';
+
 export default [
     User,
     Probe,
@@ -109,4 +112,6 @@ export default [
 
     GreenlockChallenge,
     GreenlockCertificate,
+
+    Workflow,
 ];
