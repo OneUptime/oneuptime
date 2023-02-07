@@ -6,7 +6,7 @@ describe('Email()', () => {
     });
 
     test('should not create an email with invalid credentials', () => {
-        let invalidEmail='invalid email address'
+        const invalidEmail: string = 'invalid email address';
         expect(() => {
             new Email(invalidEmail);
         }).toThrow(`Email ${invalidEmail} is not in valid format.`);
