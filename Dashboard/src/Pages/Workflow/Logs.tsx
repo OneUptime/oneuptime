@@ -5,9 +5,8 @@ import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Workflow from 'Model/Models/Workflow';
+import WorkflowLogs from 'Model/Models/WorkflowLog';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 
@@ -16,7 +15,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     return (
         <Page
-            title={'Workflows'}
+            title={'Workflow Logs'}
             breadcrumbLinks={[
                 {
                     title: 'Project',
@@ -30,64 +29,49 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         RouteMap[PageMap.WORKFLOWS] as Route
                     ),
                 },
+                {
+                    title: 'Logs',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.WORKFLOWS_LOGS] as Route
+                    ),
+                },
             ]}
         >
-            <ModelTable<Workflow>
-                modelType={Workflow}
-                id="status-page-table"
+            <ModelTable<WorkflowLogs>
+                modelType={WorkflowLogs}
+                id="workflow-logs-table"
                 isDeleteable={false}
-                isEditable={true}
-                isCreateable={true}
-                name="Workflows"
-                isViewable={true}
+                isEditable={false}
+                isCreateable={false}
+                name="Workflow Logs"
+                isViewable={false}
                 cardProps={{
-                    icon: IconProp.CheckCircle,
-                    title: 'Workflows',
+                    icon: IconProp.Logs,
+                    title: 'Workflow Logs',
                     description:
-                        'Here is a list of workflows for this project.',
+                        'List of logs in the last 30 days for all your workflows',
                 }}
-                noItemsMessage={'No workflows found.'}
-                formFields={[
-                    {
-                        field: {
-                            name: true,
-                        },
-                        title: 'Name',
-                        fieldType: FormFieldSchemaType.Text,
-                        required: true,
-                        placeholder: 'Workflow Name',
-                        validation: {
-                            minLength: 2,
-                        },
-                    },
-                    {
-                        field: {
-                            description: true,
-                        },
-                        title: 'Description',
-                        fieldType: FormFieldSchemaType.LongText,
-                        required: true,
-                        placeholder: 'Description',
-                    },
-                ]}
+                noItemsMessage={'Looks like no workflow ran so far in the last 30 days.'}
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
                         field: {
-                            name: true,
+                            workflow: {
+                                name: true
+                            },
                         },
-                        title: 'Name',
+                        title: 'Workflow Name',
                         type: FieldType.Text,
                         isFilterable: true,
                     },
                     {
                         field: {
-                            description: true,
+                            createdAt: true,
                         },
-                        title: 'Description',
-                        type: FieldType.Text,
+                        title: 'Logs Created At',
+                        type: FieldType.DateTime,
                         isFilterable: true,
                     },
                 ]}

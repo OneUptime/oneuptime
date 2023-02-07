@@ -17,6 +17,7 @@ enum IconProp {
     Public = 'Public',
     Home = 'Home',
     Graph = 'Graph',
+    Variable = 'Variable',
     Image = 'Image',
     Grid = 'Grid',
     More = 'More',

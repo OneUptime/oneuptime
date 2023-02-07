@@ -1,19 +1,24 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
 import React, { FunctionComponent, ReactElement } from 'react';
-import PageMap from '../../Utils/PageMap';
-import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
-import PageComponentProps from '../PageComponentProps';
+import PageMap from '../../../Utils/PageMap';
+import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
+import PageComponentProps from '../../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import Workflow from 'Model/Models/Workflow';
+import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import DashboardNavigation from '../../../Utils/Navigation';
+import ObjectID from 'Common/Types/ObjectID';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
+
+    const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
     return (
         <Page
             title={'Workflows'}
@@ -30,21 +35,46 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         RouteMap[PageMap.WORKFLOWS] as Route
                     ),
                 },
+                {
+                    title: 'View Workflow',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.WORKFLOW_VIEW] as Route,
+                        modelId
+                    ),
+                },
+                {
+                    title: 'Builder',
+                    to: RouteUtil.populateRouteParams(
+                        RouteMap[PageMap.WORKFLOW_BUILDER] as Route,
+                        modelId
+                    ),
+                },
             ]}
         >
-            <ModelTable<Workflow>
-                modelType={Workflow}
+            <ModelTable<WorkflowVariable>
+                modelType={WorkflowVariable}
                 id="status-page-table"
                 isDeleteable={false}
-                isEditable={true}
+                isEditable={false}
                 isCreateable={true}
                 name="Workflows"
-                isViewable={true}
+                isViewable={false}
                 cardProps={{
-                    icon: IconProp.CheckCircle,
-                    title: 'Workflows',
+                    icon: IconProp.Variable,
+                    title: 'Global Variables',
                     description:
-                        'Here is a list of workflows for this project.',
+                        'Here is a list of global secrets and variables for this project.',
+                }}
+                query={{
+                    workflowId: modelId,
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                }}
+                onBeforeCreate={(
+                    item: WorkflowVariable
+                ): Promise<WorkflowVariable> => {
+                    item.workflowId = modelId;
+                    item.projectId = DashboardNavigation.getProjectId()!;
+                    return Promise.resolve(item);
                 }}
                 noItemsMessage={'No workflows found.'}
                 formFields={[
@@ -69,10 +99,27 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
+                    {
+                        field: {
+                            isSecret: true,
+                        },
+                        title: 'Secret',
+                        description: "Is this variable secret or secure? Should this be encrypted in the Database?",
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        required: true,
+                    },
+                    {
+                        field: {
+                            content: true,
+                        },
+                        title: 'Content',
+                        description: "Is this variable secret or secure? Should this be encrypted in the Database?",
+                        fieldType: FormFieldSchemaType.Checkbox,
+                        required: true,
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={Navigation.getCurrentRoute()}
                 columns={[
                     {
                         field: {
@@ -88,6 +135,14 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Created At',
+                        type: FieldType.DateTime,
                         isFilterable: true,
                     },
                 ]}

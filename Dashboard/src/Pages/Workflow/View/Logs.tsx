@@ -7,6 +7,11 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
+import FieldType from 'CommonUI/src/Components/Types/FieldType';
+import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import WorkflowLogs from 'Model/Models/WorkflowLog';
+import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
+import DashboardNavigation from '../../../Utils/Navigation';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -48,7 +53,49 @@ const Delete: FunctionComponent<PageComponentProps> = (
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
         >
-            <div></div>
+            <ModelTable<WorkflowLogs>
+                modelType={WorkflowLogs}
+                id="workflow-logs-table"
+                isDeleteable={false}
+                isEditable={false}
+                isCreateable={false}
+                name="Workflow Logs"
+                query={{
+                    workflowId: modelId,
+                    projectId: DashboardNavigation.getProjectId()?.toString(),
+                }}
+                isViewable={false}
+                cardProps={{
+                    icon: IconProp.Logs,
+                    title: 'Workflow Logs',
+                    description:
+                        'List of logs in the last 30 days for this workflow',
+                }}
+                noItemsMessage={'Looks like this workflow did not run so far in the last 30 days.'}
+                showRefreshButton={true}
+                showFilterButton={true}
+                viewPageRoute={Navigation.getCurrentRoute()}
+                columns={[
+                    {
+                        field: {
+                            workflow: {
+                                name: true
+                            },
+                        },
+                        title: 'Workflow Name',
+                        type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            createdAt: true,
+                        },
+                        title: 'Logs Created At',
+                        type: FieldType.DateTime,
+                        isFilterable: true,
+                    },
+                ]}
+            />
         </Page>
     );
 };
