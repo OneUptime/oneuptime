@@ -5,7 +5,8 @@ import React, {
     useState,
 } from 'react';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
-import Icon, { IconProp } from '../../Icon/Icon';
+import Icon from '../../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Project from 'Model/Models/Project';
 import ProjectPickerMenu from './ProjectPickerMenu';
 import ProjectPickerMenuItem from './ProjectPickerMenuItem';

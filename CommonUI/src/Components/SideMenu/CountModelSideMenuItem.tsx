@@ -6,11 +6,12 @@ import Query from '../../Utils/ModelAPI/Query';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import { BadgeType } from '../Badge/Badge';
 import SideMenuItem from './SideMenuItem';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     link: Link;
-    modelType?: { new (): TBaseModel } | undefined;
+    modelType?: { new(): TBaseModel } | undefined;
     badgeType?: BadgeType | undefined;
     countQuery?: Query<TBaseModel> | undefined;
     requestOptions?: RequestOptions | undefined;
@@ -54,7 +55,7 @@ const CountModelSideMenuItem: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');

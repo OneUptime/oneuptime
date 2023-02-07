@@ -4,7 +4,8 @@ import React, {
     useEffect,
     useState,
 } from 'react';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import Icon, { ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     title?: string | undefined;
@@ -86,9 +87,8 @@ const Accordian: FunctionComponent<ComponentProps> = (
                         )}
                         {props.title && (
                             <div
-                                className={`ml-1 -mt-1 ${
-                                    props.onClick ? 'cursor-pointer' : ''
-                                }`}
+                                className={`ml-1 -mt-1 ${props.onClick ? 'cursor-pointer' : ''
+                                    }`}
                             >
                                 <div className="text-gray-500">
                                     {props.title}{' '}

@@ -5,7 +5,8 @@ import { ReactElement } from 'react';
 import AlignItem from '../../Types/AlignItem';
 import SelectEntityField from '../../Types/SelectEntityField';
 import Query from '../../Utils/ModelAPI/Query';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from '../Types/FieldType';
 
 export interface ActionButton {
@@ -23,21 +24,21 @@ export default interface Columns<TEntity> {
     disableSort?: boolean;
     type: FieldType;
     isFilterable: boolean;
-    filterEntityType?: { new (): BaseModel } | undefined;
+    filterEntityType?: { new(): BaseModel } | undefined;
     filterQuery?: Query<BaseModel> | undefined;
     tooltipText?: ((item: TEntity) => string) | undefined;
     filterDropdownField?:
-        | {
-              label: string;
-              value: string;
-          }
-        | undefined;
+    | {
+        label: string;
+        value: string;
+    }
+    | undefined;
     actionButtons?: Array<ActionButton>;
     alignItem?: AlignItem | undefined;
     getElement?:
-        | ((
-              item: JSONObject,
-              onBeforeFetchData?: JSONObject | undefined
-          ) => ReactElement)
-        | undefined;
+    | ((
+        item: JSONObject,
+        onBeforeFetchData?: JSONObject | undefined
+    ) => ReactElement)
+    | undefined;
 }

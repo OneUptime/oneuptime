@@ -47,7 +47,7 @@ export interface ComponentProps {
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
-    const onClickNode = (data: NodeDataProp) => {
+    const onClickNode = (_data: NodeDataProp) => {
 
     }
 

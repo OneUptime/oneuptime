@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp, SizeProp, ThickProp } from '../Icon/Icon';
+import Icon, { SizeProp, ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     onClose: () => void;

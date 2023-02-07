@@ -3,7 +3,8 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import ActionButtonSchema from '../ActionButton/ActionButtonSchema';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import Icon, { SizeProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Item from './Item';
 
 export interface ComponentProps {
@@ -81,9 +82,9 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     props.onCreateNewItem(
                                                         item[props.orderField]
                                                             ? (item[
-                                                                  props
-                                                                      .orderField
-                                                              ] as number) + 1
+                                                                props
+                                                                    .orderField
+                                                            ] as number) + 1
                                                             : 0
                                                     );
                                             }}
@@ -120,14 +121,14 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                             />
                             {((isEnd && props.shouldAddItemInTheEnd) ||
                                 !isEnd) && (
-                                <div className="vertical-list items-center m-10 ">
-                                    <Icon
-                                        icon={IconProp.ChevronDown}
-                                        size={SizeProp.Regular}
-                                        className="m-auto h-5 w-5 text-gray-500"
-                                    />
-                                </div>
-                            )}
+                                    <div className="vertical-list items-center m-10 ">
+                                        <Icon
+                                            icon={IconProp.ChevronDown}
+                                            size={SizeProp.Regular}
+                                            className="m-auto h-5 w-5 text-gray-500"
+                                        />
+                                    </div>
+                                )}
                             {props.onCreateNewItem &&
                                 ((isEnd && props.shouldAddItemInTheEnd) ||
                                     !isEnd) && (
@@ -139,9 +140,9 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     props.onCreateNewItem(
                                                         item[props.orderField]
                                                             ? (item[
-                                                                  props
-                                                                      .orderField
-                                                              ] as number) + 1
+                                                                props
+                                                                    .orderField
+                                                            ] as number) + 1
                                                             : 0
                                                     );
                                             }}

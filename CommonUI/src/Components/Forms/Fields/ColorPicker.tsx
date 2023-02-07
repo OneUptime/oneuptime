@@ -8,7 +8,8 @@ import React, {
 import { ChromePicker, ColorResult } from 'react-color';
 import useComponentOutsideClick from '../../../Types/UseComponentOutsideClick';
 import Input from '../../Input/Input';
-import Icon, { IconProp } from '../../Icon/Icon';
+import Icon from '../../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     onChange: (value: Color | null) => void;

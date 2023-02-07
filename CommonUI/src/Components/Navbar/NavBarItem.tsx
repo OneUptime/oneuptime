@@ -3,7 +3,8 @@
 import Route from 'Common/Types/API/Route';
 import React, { FunctionComponent, ReactElement } from 'react';
 import Navigation from '../../Utils/Navigation';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import Icon, { ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Link from '../Link/Link';
 
 export interface ComponentProps {

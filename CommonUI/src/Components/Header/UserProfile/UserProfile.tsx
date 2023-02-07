@@ -1,7 +1,8 @@
 import URL from 'Common/Types/API/URL';
 import Name from 'Common/Types/Name';
 import React, { FunctionComponent, ReactElement } from 'react';
-import Icon, { IconProp } from '../../Icon/Icon';
+import Icon from '../../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Route from 'Common/Types/API/Route';
 import Image from '../../Image/Image';
 

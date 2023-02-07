@@ -1,7 +1,8 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Navigation from '../../Utils/Navigation';
 import { ButtonStyleType } from '../Button/Button';
-import { IconProp, IconType } from '../Icon/Icon';
+import { IconType } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Modal from '../Modal/Modal';
 
 export interface ComponentProps {

@@ -1,6 +1,7 @@
 import React, { FunctionComponent, useState } from 'react';
 import { Connection, Handle, Position } from 'reactflow';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import { NodeDataProp } from './Component';
 
 

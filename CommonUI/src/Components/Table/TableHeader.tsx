@@ -1,7 +1,8 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
 import Column from './Types/Column';
 import Columns from './Types/Columns';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import Icon, { ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import FieldType from '../Types/FieldType';
 
@@ -29,9 +30,8 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                     return (
                         <th
                             key={i}
-                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
-                                canSort ? 'cursor-pointer' : ''
-                            }`}
+                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${canSort ? 'cursor-pointer' : ''
+                                }`}
                             onClick={() => {
                                 if (!column.key) {
                                     return;
@@ -59,11 +59,10 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                             }}
                         >
                             <div
-                                className={`flex ${
-                                    column.type === FieldType.Actions
+                                className={`flex ${column.type === FieldType.Actions
                                         ? 'justify-end'
                                         : 'justify-start'
-                                }`}
+                                    }`}
                             >
                                 {column.title}
                                 {canSort &&

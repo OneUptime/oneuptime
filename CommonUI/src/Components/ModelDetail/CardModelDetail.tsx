@@ -12,7 +12,8 @@ import Card, {
 import ModelDetail, { ComponentProps as ModeDetailProps } from './ModelDetail';
 import BaseModel from 'Common/Models/BaseModel';
 import { ButtonStyleType } from '../Button/Button';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import ModelFormModal from '../ModelFormModal/ModelFormModal';
 import { FormType } from '../Forms/ModelForm';
 import Fields from '../Forms/Types/Fields';
@@ -42,15 +43,15 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
 
         const hasPermissionToEdit: boolean = Boolean(
             userProjectPermissions &&
-                userProjectPermissions.permissions &&
-                PermissionHelper.doesPermissionsIntersect(
-                    model.updateRecordPermissions,
-                    userProjectPermissions.permissions.map(
-                        (item: UserPermission) => {
-                            return item.permission;
-                        }
-                    )
+            userProjectPermissions.permissions &&
+            PermissionHelper.doesPermissionsIntersect(
+                model.updateRecordPermissions,
+                userProjectPermissions.permissions.map(
+                    (item: UserPermission) => {
+                        return item.permission;
+                    }
                 )
+            )
         );
 
         if (props.isEditable && hasPermissionToEdit) {

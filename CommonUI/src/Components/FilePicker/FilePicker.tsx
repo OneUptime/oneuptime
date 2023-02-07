@@ -11,7 +11,8 @@ import ModelAPI from '../../Utils/ModelAPI/ModelAPI';
 import CommonURL from 'Common/Types/API/URL';
 import { FILE_URL } from '../../Config';
 import ComponentLoader from '../ComponentLoader/ComponentLoader';
-import Icon, { IconProp, SizeProp } from '../Icon/Icon';
+import Icon, { SizeProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import HTTPResponse from 'Common/Types/API/HTTPResponse';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import Dictionary from 'Common/Types/Dictionary';
@@ -121,7 +122,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 try {
                     setError(
                         (err as HTTPErrorResponse).message ||
-                            'Server Error. Please try again'
+                        'Server Error. Please try again'
                     );
                 } catch (e) {
                     setError('Server Error. Please try again');
@@ -243,9 +244,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                         .map((type: MimeType) => {
                                             const enumKey: string | undefined =
                                                 Object.keys(MimeType)[
-                                                    Object.values(
-                                                        MimeType
-                                                    ).indexOf(type)
+                                                Object.values(
+                                                    MimeType
+                                                ).indexOf(type)
                                                 ];
                                             return enumKey?.toUpperCase() || '';
                                         })

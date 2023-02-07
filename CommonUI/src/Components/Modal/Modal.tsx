@@ -4,7 +4,8 @@ import ModalFooter from './ModalFooter';
 import ModalBody from './ModalBody';
 import ButtonType from '../Button/ButtonTypes';
 import Loader, { LoaderType } from '../Loader/Loader';
-import Icon, { IconProp, IconType, SizeProp, ThickProp } from '../Icon/Icon';
+import Icon, { IconType, SizeProp, ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import { VeryLightGrey } from 'Common/Types/BrandColors';
 
 export interface ComponentProps {
@@ -84,9 +85,8 @@ const Modal: FunctionComponent<ComponentProps> = (
                             )}
                             <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left">
                                 <h3
-                                    className={`text-lg font-medium leading-6 text-gray-900 ${
-                                        props.icon ? 'ml-10 -mt-8 mb-5' : ''
-                                    }`}
+                                    className={`text-lg font-medium leading-6 text-gray-900 ${props.icon ? 'ml-10 -mt-8 mb-5' : ''
+                                        }`}
                                     id="modal-title"
                                 >
                                     {props.title}

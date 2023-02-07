@@ -3,12 +3,13 @@ import BaseModel from 'Common/Models/BaseModel';
 import Query from '../../Utils/ModelAPI/Query';
 import ModelAPI, { RequestOptions } from '../../Utils/ModelAPI/ModelAPI';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import HeaderAlert from './HeaderAlert';
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
     icon: IconProp;
-    modelType: { new (): TBaseModel };
+    modelType: { new(): TBaseModel };
     singularName: string;
     pluralName: string;
     query: Query<TBaseModel>;
@@ -50,7 +51,7 @@ const HeaderModelAlert: Function = <TBaseModel extends BaseModel>(
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -80,9 +81,8 @@ const HeaderModelAlert: Function = <TBaseModel extends BaseModel>(
 
     return (
         <HeaderAlert
-            title={`${count} ${
-                count > 1 ? props.pluralName : props.singularName
-            }`}
+            title={`${count} ${count > 1 ? props.pluralName : props.singularName
+                }`}
             icon={props.icon}
             onClick={props.onClick}
             className={props.className}

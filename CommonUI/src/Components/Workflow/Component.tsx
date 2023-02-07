@@ -1,7 +1,8 @@
 import { JSONObject } from 'Common/Types/JSON';
 import React, { FunctionComponent, useState } from 'react';
 import { Handle, Position, Connection } from 'reactflow';
-import Icon, { IconProp, ThickProp } from '../Icon/Icon';
+import Icon, { ThickProp } from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface NodeDataProp {
     nodeData: JSONObject;

@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Button, { ButtonStyleType } from '../Button/Button';
-import { IconProp } from '../Icon/Icon';
+
+import IconProp from 'Common/Types/Icon/IconProp';
 import ShortcutKey from '../ShortcutKey/ShortcutKey';
 
 export interface CardButtonSchema {
@@ -51,9 +52,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                                 style={
                                                     i > 0
                                                         ? {
-                                                              marginLeft:
-                                                                  '10px',
-                                                          }
+                                                            marginLeft:
+                                                                '10px',
+                                                        }
                                                         : {}
                                                 }
                                                 key={i}

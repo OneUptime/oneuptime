@@ -8,7 +8,8 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export type InputType = 'text' | 'number' | 'date' | 'datetime-local' | 'url';
 
@@ -149,11 +150,11 @@ const Input: FunctionComponent<ComponentProps> = (
                     onKeyDown={
                         props.onEnterPress
                             ? (event: any) => {
-                                  if (event.key === 'Enter') {
-                                      props.onEnterPress &&
-                                          props.onEnterPress();
-                                  }
-                              }
+                                if (event.key === 'Enter') {
+                                    props.onEnterPress &&
+                                        props.onEnterPress();
+                                }
+                            }
                             : undefined
                     }
                     readOnly={props.readOnly || props.disabled || false}

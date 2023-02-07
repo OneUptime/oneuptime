@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
-import Icon, { IconProp } from '../Icon/Icon';
+import Icon from '../Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     text: string;
