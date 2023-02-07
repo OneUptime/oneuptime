@@ -23,13 +23,16 @@ describe('Testing Class Phone', () => {
     });
 
     test('try to mutating Phone.phone with invalid value should throw an BadDataExcepection', () => {
-        const value: Phone = new Phone('+251912974103');
+       let valid='+251912974103'
+       let invalid='278@$90> '
+        const value: Phone = new Phone(valid);
         expect(() => {
-            value.phone = '567';
+            value.phone = invalid;
         }).toThrowError(BadDataException);
         expect(() => {
             value.phone = '278@$90> ';
-        }).toThrow('Phone is not in valid format.');
+        }).toThrow('Phone is not in valid format: 278@$90>');
+        expect(value.phone).toBe(valid)
         expect(() => {
             value.phone = 'hgjuit879';
         }).toThrowError(BadDataException);

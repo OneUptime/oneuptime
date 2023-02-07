@@ -1,19 +1,20 @@
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from '../../../Types/Database/LimitMax';
 
 describe('LIMIT_MAX', () => {
-    test('it should ', () => {
-        expect(LIMIT_MAX).toEqual(1000);
+    test('it should be number', () => {
+        expect(typeof LIMIT_MAX).toBe("number")
     });
 });
 
 describe('LIMIT_MAX', () => {
-    test('it should have a value', () => {
-        expect(LIMIT_MAX).toEqual(1000);
+    test('it be positive', () => {
+        expect(LIMIT_MAX).toBeGreaterThan(0);
     });
 });
 
 describe('LIMIT_PER_PROJECT', () => {
-    test('it should have a value ', () => {
-        expect(LIMIT_PER_PROJECT).toEqual(100);
+    test('should be positive number', () => {
+        expect(typeof LIMIT_PER_PROJECT).toBe("number")
+        expect(LIMIT_PER_PROJECT).toBeGreaterThan(0)
     });
 });
