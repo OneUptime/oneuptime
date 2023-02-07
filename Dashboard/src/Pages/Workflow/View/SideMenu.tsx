@@ -39,6 +39,10 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     icon={IconProp.Workflow}
                 />
 
+
+            </SideMenuSection>
+
+            <SideMenuSection title="Advanced">
                 <SideMenuItem
                     link={{
                         title: 'Runs & Logs',
@@ -49,9 +53,19 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Logs}
                 />
-            </SideMenuSection>
 
-            <SideMenuSection title="Advanced">
+                <SideMenuItem
+                    link={{
+                        title: 'Workflow Variables',
+                        to: RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.WORKFLOW_VARIABLES] as Route,
+                            props.modelId
+                        ),
+                    }}
+                    icon={IconProp.Variable}
+                />
+
+
                 <SideMenuItem
                     link={{
                         title: 'Delete Workflow',

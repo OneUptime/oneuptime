@@ -274,19 +274,19 @@ const RouteMap: Dictionary<Route> = {
     ),
 
     [PageMap.WORKFLOW_BUILDER]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/builder`
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/builder`
     ),
 
     [PageMap.WORKFLOW_VIEW]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}`
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}`
     ),
 
     [PageMap.WORKFLOW_LOGS]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/logs`
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/logs`
     ),
 
     [PageMap.WORKFLOW_DELETE]: new Route(
-        `/dashboard/${RouteParams.ProjectID}/workflows/${RouteParams.ModelID}/delete`
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/delete`
     ),
 
     // logout.
@@ -298,7 +298,7 @@ export class RouteUtil {
         if (
             route.toString() === RouteMap[PageMap.USER_PROFILE]?.toString() ||
             route.toString() ===
-                RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
+            RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
             route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString()
         ) {
             return true;

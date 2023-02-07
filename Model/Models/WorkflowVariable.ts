@@ -40,11 +40,11 @@ import BaseModel from 'Common/Models/BaseModel';
         Permission.CanEditWorkflowVariable,
     ],
 })
-@CrudApiEndpoint(new Route('/workflow-secret'))
+@CrudApiEndpoint(new Route('/workflow-variable'))
 @Entity({
     name: 'WorkflowVariable',
 })
-@SingularPluralName('Workflow Secret', 'Workflow Secrets')
+@SingularPluralName('Workflow Variable', 'Workflow Variables')
 export default class Workflow extends BaseModel {
     @ColumnAccessControl({
         create: [

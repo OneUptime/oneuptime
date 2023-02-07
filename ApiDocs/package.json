@@ -32,10 +32,8 @@
         "preinstall": "npx npm-force-resolutions || echo 'No package-lock.json file. Skipping force resolutions'",
         "start": "node --require ts-node/register Index.ts",
         "compile": "tsc",
-        "dev": "ts-node-dev server.js",
-        "test": "mocha --exit test/index.ts",
-        "audit": "npm audit --audit-level=low",
-        "dep-check": "depcheck ./ --skip-missing=true --ignores='babel-*,browserslist,ejs,path'"
+        "dev": "npx nodemon",
+        "test": "jest"
     },
     "resolutions": {},
     "devDependencies": {

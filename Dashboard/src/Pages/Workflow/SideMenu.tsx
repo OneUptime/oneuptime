@@ -16,7 +16,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         RouteMap[PageMap.WORKFLOWS] as Route
                     ),
                 }}
-                icon={IconProp.Info}
+                icon={IconProp.Workflow}
             />
             <SideMenuItem
                 link={{
@@ -25,7 +25,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route
                     ),
                 }}
-                icon={IconProp.Workflow}
+                icon={IconProp.Variable}
             />
 
             <SideMenuItem
