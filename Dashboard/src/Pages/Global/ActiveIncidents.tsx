@@ -5,7 +5,7 @@ import Route from 'Common/Types/API/Route';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 import PageMap from '../../Utils/PageMap';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import Incident from 'Model/Models/Incident';
@@ -69,8 +69,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                 pluralName="Active Incidents"
                 onViewPage={(item: Incident) => {
                     return new Route(
-                        `/dashboard/${
-                            item.projectId || item.project?._id || ''
+                        `/dashboard/${item.projectId || item.project?._id || ''
                         }/incidents/${item._id}`
                     );
                 }}
@@ -92,7 +91,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                     project={
                                         JSONFunctions.fromJSON(
                                             (item['project'] as JSONObject) ||
-                                                [],
+                                            [],
                                             Project
                                         ) as Project
                                     }
@@ -132,14 +131,14 @@ const Home: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -166,14 +165,14 @@ const Home: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'incidentSeverity'
+                                                'incidentSeverity'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'incidentSeverity'
+                                                'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -200,7 +199,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                     monitors={
                                         JSONFunctions.fromJSON(
                                             (item['monitors'] as JSONArray) ||
-                                                [],
+                                            [],
                                             Monitor
                                         ) as Array<Monitor>
                                     }

@@ -1,7 +1,7 @@
 import Route from 'Common/Types/API/Route';
 import { JSONObject } from 'Common/Types/JSON';
 import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Page from 'CommonUI/src/Components/Page/Page';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -24,7 +24,7 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 import DashboardNavigation from '../../Utils/Navigation';
 
-export interface ComponentProps extends PageComponentProps {}
+export interface ComponentProps extends PageComponentProps { }
 
 const Settings: FunctionComponent<ComponentProps> = (
     _props: ComponentProps
@@ -57,7 +57,7 @@ const Settings: FunctionComponent<ComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -136,11 +136,10 @@ const Settings: FunctionComponent<ComponentProps> = (
                             isFilterable: true,
                             getElement: (item: JSONObject) => {
                                 return (
-                                    <span>{`${
-                                        (item['amount'] as number) / 100
-                                    } ${item['currencyCode']
-                                        ?.toString()
-                                        .toUpperCase()}`}</span>
+                                    <span>{`${(item['amount'] as number) / 100
+                                        } ${item['currencyCode']
+                                            ?.toString()
+                                            .toUpperCase()}`}</span>
                                 );
                             },
                         },
@@ -188,7 +187,7 @@ const Settings: FunctionComponent<ComponentProps> = (
                                                 onClick={() => {
                                                     Navigation.navigate(
                                                         item[
-                                                            'downloadableLink'
+                                                        'downloadableLink'
                                                         ] as URL
                                                     );
                                                 }}
@@ -199,16 +198,16 @@ const Settings: FunctionComponent<ComponentProps> = (
                                         )}
 
                                         {item['status'] !== 'paid' &&
-                                        item['status'] !== 'draft' ? (
+                                            item['status'] !== 'draft' ? (
                                             <Button
                                                 icon={IconProp.Billing}
                                                 onClick={async () => {
                                                     await payInvoice(
                                                         item[
-                                                            'paymentProviderCustomerId'
+                                                        'paymentProviderCustomerId'
                                                         ] as string,
                                                         item[
-                                                            'paymentProviderInvoiceId'
+                                                        'paymentProviderInvoiceId'
                                                         ] as string
                                                     );
                                                 }}

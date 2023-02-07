@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Route from 'Common/Types/API/Route';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
@@ -26,7 +26,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'All Events',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_EVENTS
+                            PageMap.SCHEDULED_MAINTENANCE_EVENTS
                             ] as Route
                         ),
                     }}
@@ -38,7 +38,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Ongoing Events',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                            PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                             ] as Route
                         ),
                     }}

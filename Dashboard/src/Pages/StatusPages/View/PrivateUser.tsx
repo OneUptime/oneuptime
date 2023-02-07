@@ -9,7 +9,7 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import StatusPagePrivateUser from 'Model/Models/StatusPagePrivateUser';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import SubscriptionPlan from 'Common/Types/Billing/SubscriptionPlan';
@@ -53,7 +53,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Private Users',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                        PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
                         ] as Route,
                         modelId
                     ),
@@ -130,9 +130,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 currentPlan={
                     BILLING_ENABLED
                         ? SubscriptionPlan.getPlanSelect(
-                              props.currentProject?.paymentProviderPlanId!,
-                              getAllEnvVars()
-                          )
+                            props.currentProject?.paymentProviderPlanId!,
+                            getAllEnvVars()
+                        )
                         : undefined
                 }
             />

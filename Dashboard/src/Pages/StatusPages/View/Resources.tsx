@@ -18,7 +18,7 @@ import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSc
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import SortOrder from 'Common/Types/Database/SortOrder';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Monitor from 'Model/Models/Monitor';
 import { JSONObject } from 'Common/Types/JSON';
 import MonitorElement from '../../../Components/Monitor/Monitor';
@@ -68,7 +68,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -121,13 +121,12 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 }}
                 cardProps={{
                     icon: IconProp.AltGlobe,
-                    title: `${
-                        statusPageGroupName
+                    title: `${statusPageGroupName
                             ? statusPageGroupName + ' - '
                             : groups.length > 0
-                            ? 'Uncategorized - '
-                            : ''
-                    }Status Page Resources`,
+                                ? 'Uncategorized - '
+                                : ''
+                        }Status Page Resources`,
                     description: 'Resources that will be shown on the page',
                 }}
                 noItemsMessage={
@@ -235,7 +234,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                                     monitor={
                                         JSONFunctions.fromJSON(
                                             (item['monitor'] as JSONObject) ||
-                                                [],
+                                            [],
                                             Monitor
                                         ) as Monitor
                                     }

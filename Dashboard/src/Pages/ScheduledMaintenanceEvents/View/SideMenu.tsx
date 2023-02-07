@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Route from 'Common/Types/API/Route';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
@@ -23,7 +23,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Overview',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_VIEW
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW
                             ] as Route,
                             props.modelId
                         ),
@@ -35,8 +35,8 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'State Timeline',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap
-                                    .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                            PageMap
+                                .SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
                             ] as Route,
                             props.modelId
                         ),
@@ -51,7 +51,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Private Notes',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                            PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
                             ] as Route,
                             props.modelId
                         ),
@@ -63,7 +63,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Public Notes',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
+                            PageMap.SCHEDULED_MAINTENANCE_PUBLIC_NOTE
                             ] as Route,
                             props.modelId
                         ),
@@ -78,7 +78,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Delete Scheduled Maintenance',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
+                            PageMap.SCHEDULED_MAINTENANCE_VIEW_DELETE
                             ] as Route,
                             props.modelId
                         ),

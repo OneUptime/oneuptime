@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactElement, useState } from 'react';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import ModelFormModal from 'CommonUI/src/Components/ModelFormModal/ModelFormModal';
 import Project from 'Model/Models/Project';
 import Navigation from 'CommonUI/src/Utils/Navigation';
@@ -82,21 +82,19 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                             let description: string =
                                                 plan.isCustomPricing()
                                                     ? `Our sales team will contact you soon.`
-                                                    : `Billed ${
-                                                          isSubsriptionPlanYearly
-                                                              ? 'yearly'
-                                                              : 'monthly'
-                                                      }. ${
-                                                          plan.getTrialPeriod() >
-                                                          0
-                                                              ? `Free ${plan.getTrialPeriod()} days trial.`
-                                                              : ''
-                                                      }`;
+                                                    : `Billed ${isSubsriptionPlanYearly
+                                                        ? 'yearly'
+                                                        : 'monthly'
+                                                    }. ${plan.getTrialPeriod() >
+                                                        0
+                                                        ? `Free ${plan.getTrialPeriod()} days trial.`
+                                                        : ''
+                                                    }`;
 
                                             if (
                                                 isSubsriptionPlanYearly &&
                                                 plan.getYearlySubscriptionAmountInUSD() ===
-                                                    0
+                                                0
                                             ) {
                                                 description =
                                                     'This plan is free, forever. ';
@@ -105,7 +103,7 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                             if (
                                                 !isSubsriptionPlanYearly &&
                                                 plan.getMonthlySubscriptionAmountInUSD() ===
-                                                    0
+                                                0
                                             ) {
                                                 description =
                                                     'This plan is free, forever. ';
@@ -121,21 +119,21 @@ const Upgrade: FunctionComponent = (): ReactElement => {
                                                     plan.isCustomPricing()
                                                         ? 'Custom Price'
                                                         : isSubsriptionPlanYearly
-                                                        ? '$' +
-                                                          (
-                                                              plan.getYearlySubscriptionAmountInUSD() *
-                                                              12
-                                                          ).toString()
-                                                        : '$' +
-                                                          plan
-                                                              .getMonthlySubscriptionAmountInUSD()
-                                                              .toString(),
+                                                            ? '$' +
+                                                            (
+                                                                plan.getYearlySubscriptionAmountInUSD() *
+                                                                12
+                                                            ).toString()
+                                                            : '$' +
+                                                            plan
+                                                                .getMonthlySubscriptionAmountInUSD()
+                                                                .toString(),
                                                 sideDescription:
                                                     plan.isCustomPricing()
                                                         ? ''
                                                         : isSubsriptionPlanYearly
-                                                        ? `/year per user`
-                                                        : `/month per user`,
+                                                            ? `/year per user`
+                                                            : `/month per user`,
                                             };
                                         }
                                     ),

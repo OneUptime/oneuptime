@@ -2,7 +2,7 @@ import React, { FunctionComponent, ReactElement } from 'react';
 import NavBar from 'CommonUI/src/Components/Navbar/NavBar';
 import NavBarItem from 'CommonUI/src/Components/Navbar/NavBarItem';
 import Route from 'Common/Types/API/Route';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 
@@ -56,8 +56,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[
-                              PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                          ] as Route)
+                            PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                        ] as Route)
                         : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                 )}
             ></NavBarItem>

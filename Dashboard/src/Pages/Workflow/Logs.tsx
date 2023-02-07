@@ -7,7 +7,7 @@ import PageComponentProps from '../PageComponentProps';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import WorkflowLogs from 'Model/Models/WorkflowLog';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import WorkflowSideMenu from './SideMenu';
 

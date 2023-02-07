@@ -9,7 +9,7 @@ import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import Workflow from 'Model/Models/Workflow';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 
 const Delete: FunctionComponent<PageComponentProps> = (

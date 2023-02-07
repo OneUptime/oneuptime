@@ -47,7 +47,7 @@ import { getIncidentEventItem } from '../Incidents/Detail';
 import { getScheduledEventEventItem } from '../ScheduledEvent/Detail';
 import { getAnnouncementEventItem } from '../Announcement/Detail';
 import EmnptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 const Overview: FunctionComponent<PageComponentProps> = (
     props: PageComponentProps
@@ -190,7 +190,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                        [],
+                    [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -224,7 +224,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -256,7 +256,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 if (
                     !Object.keys(dict).includes(
                         resource.monitor?.currentMonitorStatusId.toString() ||
-                            ''
+                        ''
                     )
                 ) {
                     dict[
@@ -297,7 +297,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                        resource.statusPageGroupId.toString()) ||
+                    resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
                 let currentStatus: MonitorStatus | undefined =
@@ -484,7 +484,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     group &&
                     group._id?.toString() &&
                     group._id?.toString() ===
-                        resource.statusPageGroupId.toString()) ||
+                    resource.statusPageGroupId.toString()) ||
                 (!resource.statusPageGroupId && !group)
             ) {
                 hasReosurce = true;
@@ -501,7 +501,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         currentStatus.priority &&
                         currentMonitorStatus?.priority &&
                         currentMonitorStatus?.priority >
-                            currentStatus.priority) ||
+                        currentStatus.priority) ||
                     !currentStatus.priority
                 ) {
                     currentStatus = currentMonitorStatus!;
@@ -595,16 +595,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     <div>
                         {currentStatus && statusPageResources.length > 0 && (
                             <Alert
-                                title={`${
-                                    currentStatus.isOperationalState
+                                title={`${currentStatus.isOperationalState
                                         ? `All`
                                         : 'Some'
-                                } Resources are ${
-                                    currentStatus.name?.toLowerCase() ===
-                                    'maintenance'
+                                    } Resources are ${currentStatus.name?.toLowerCase() ===
+                                        'maintenance'
                                         ? 'under'
                                         : ''
-                                } ${currentStatus.name}`}
+                                    } ${currentStatus.name}`}
                                 color={currentStatus.color}
                                 doNotShowIcon={true}
                                 textClassName="text-white text-lg"
@@ -655,7 +653,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                                         }
                                                         isLastElement={
                                                             resourceGroups.length -
-                                                                1 ===
+                                                            1 ===
                                                             i
                                                         }
                                                         title={

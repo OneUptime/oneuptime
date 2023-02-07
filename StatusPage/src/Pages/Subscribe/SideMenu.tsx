@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Route from 'Common/Types/API/Route';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
@@ -21,8 +21,8 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewStatusPage
                             ? (RouteMap[
-                                  PageMap.PREVIEW_SUBSCRIBE_EMAIL
-                              ] as Route)
+                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                            ] as Route)
                             : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route)
                     ),
                 }}

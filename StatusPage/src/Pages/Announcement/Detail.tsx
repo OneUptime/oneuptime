@@ -30,7 +30,7 @@ import EventItem, {
 import JSONFunctions from 'Common/Types/JSONFunctions';
 import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import { Blue } from 'Common/Types/BrandColors';
 import OneUptimeDate from 'Common/Types/Date';
 
@@ -47,11 +47,11 @@ export const getAnnouncementEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                  isPreviewPage
-                      ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
-                      : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
-                  announcement.id!
-              ),
+                isPreviewPage
+                    ? (RouteMap[PageMap.PREVIEW_ANNOUNCEMENT_DETAIL] as Route)
+                    : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
+                announcement.id!
+            ),
         isDetailItem: !isSummary,
         eventTypeColor: Blue,
         eventSecondDescription:
@@ -147,7 +147,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -201,8 +201,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewPage
                             ? (RouteMap[
-                                  PageMap.PREVIEW_ANNOUNCEMENT_LIST
-                              ] as Route)
+                                PageMap.PREVIEW_ANNOUNCEMENT_LIST
+                            ] as Route)
                             : (RouteMap[PageMap.ANNOUNCEMENT_LIST] as Route)
                     ),
                 },
@@ -211,8 +211,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewPage
                             ? (RouteMap[
-                                  PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
-                              ] as Route)
+                                PageMap.PREVIEW_ANNOUNCEMENT_DETAIL
+                            ] as Route)
                             : (RouteMap[PageMap.ANNOUNCEMENT_DETAIL] as Route),
                         Navigation.getLastParamAsObjectID()
                     ),

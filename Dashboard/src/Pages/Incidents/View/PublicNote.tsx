@@ -12,7 +12,7 @@ import ModelTable, {
     ShowTableAs,
 } from 'CommonUI/src/Components/ModelTable/ModelTable';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { JSONObject } from 'Common/Types/JSON';
@@ -130,7 +130,7 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
                                         user={
                                             JSONFunctions.fromJSON(
                                                 item[
-                                                    'createdByUser'
+                                                'createdByUser'
                                                 ] as JSONObject,
                                                 User
                                             ) as User

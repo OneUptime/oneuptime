@@ -15,7 +15,7 @@ import Color from 'Common/Types/Color';
 import Pill from 'CommonUI/src/Components/Pill/Pill';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import MonitorStatus from 'Model/Models/MonitorStatus';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Incident from 'Model/Models/Incident';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import JSONFunctions from 'Common/Types/JSONFunctions';
@@ -80,8 +80,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 }}
                 onViewPage={(item: Incident) => {
                     return new Route(
-                        `/dashboard/${
-                            DashboardNavigation.getProjectId()?.toString() || ''
+                        `/dashboard/${DashboardNavigation.getProjectId()?.toString() || ''
                         }/incidents/${item._id}`
                     );
                 }}
@@ -177,14 +176,14 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'currentIncidentState'
+                                                'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -211,7 +210,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                                     monitors={
                                         JSONFunctions.fromJSON(
                                             (item['monitors'] as JSONArray) ||
-                                                [],
+                                            [],
                                             Monitor
                                         ) as Array<Monitor>
                                     }

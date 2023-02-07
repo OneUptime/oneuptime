@@ -7,7 +7,7 @@ import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import CardModelDetail from 'CommonUI/src/Components/ModelDetail/CardModelDetail';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
@@ -249,14 +249,14 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                    'currentScheduledMaintenanceState'
+                                                'currentScheduledMaintenanceState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                    'currentScheduledMaintenanceState'
+                                                'currentScheduledMaintenanceState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -348,7 +348,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             JSONFunctions.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                    [],
+                                                [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -369,7 +369,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         scheduledMaintenanceId={modelId}
                                         scheduledMaintenanceTimeline={
                                             onBeforeFetchData[
-                                                'data'
+                                            'data'
                                             ] as Array<BaseModel>
                                         }
                                         stateType={StateType.Ongoing}
@@ -393,7 +393,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         scheduledMaintenanceId={modelId}
                                         scheduledMaintenanceTimeline={
                                             onBeforeFetchData[
-                                                'data'
+                                            'data'
                                             ] as Array<BaseModel>
                                         }
                                         stateType={StateType.Completed}

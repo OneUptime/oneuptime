@@ -37,7 +37,7 @@ import Monitor from 'Model/Models/Monitor';
 import UserUtil from '../../Utils/User';
 import Color from 'Common/Types/Color';
 import { Green, Grey, Red } from 'Common/Types/BrandColors';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
 
 export const getIncidentEventItem: Function = (
@@ -56,7 +56,7 @@ export const getIncidentEventItem: Function = (
     for (const incidentPublicNote of incidentPublicNotes) {
         if (
             incidentPublicNote.incidentId?.toString() ===
-                incident.id?.toString() &&
+            incident.id?.toString() &&
             incidentPublicNote?.note
         ) {
             timeline.push({
@@ -77,7 +77,7 @@ export const getIncidentEventItem: Function = (
     for (const incidentStateTimeline of incidentStateTimelines) {
         if (
             incidentStateTimeline.incidentId?.toString() ===
-                incident.id?.toString() &&
+            incident.id?.toString() &&
             incidentStateTimeline.incidentState
         ) {
             timeline.push({
@@ -87,10 +87,10 @@ export const getIncidentEventItem: Function = (
                 icon: incidentStateTimeline.incidentState.isCreatedState
                     ? IconProp.Alert
                     : incidentStateTimeline.incidentState.isAcknowledgedState
-                    ? IconProp.TransparentCube
-                    : incidentStateTimeline.incidentState.isResolvedState
-                    ? IconProp.CheckCircle
-                    : IconProp.ArrowCircleRight,
+                        ? IconProp.TransparentCube
+                        : incidentStateTimeline.incidentState.isResolvedState
+                            ? IconProp.CheckCircle
+                            : IconProp.ArrowCircleRight,
                 iconColor: incidentStateTimeline.incidentState.color || Grey,
             });
 
@@ -135,11 +135,11 @@ export const getIncidentEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                  isPreviewPage
-                      ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
-                      : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
-                  incident.id!
-              ),
+                isPreviewPage
+                    ? (RouteMap[PageMap.PREVIEW_INCIDENT_DETAIL] as Route)
+                    : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
+                incident.id!
+            ),
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
@@ -252,7 +252,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -320,8 +320,8 @@ const Detail: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewPage
                             ? (RouteMap[
-                                  PageMap.PREVIEW_INCIDENT_DETAIL
-                              ] as Route)
+                                PageMap.PREVIEW_INCIDENT_DETAIL
+                            ] as Route)
                             : (RouteMap[PageMap.INCIDENT_DETAIL] as Route),
                         Navigation.getLastParamAsObjectID()
                     ),

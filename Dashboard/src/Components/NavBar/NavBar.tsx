@@ -5,7 +5,7 @@ import NavBarItem from 'CommonUI/src/Components/Navbar/NavBarItem';
 // import NavBarMenuItem from 'CommonUI/src/Components/Navbar/NavBarMenuItem';
 // import NavBarMenuColumn from 'CommonUI/src/Components/Navbar/NavBarMenuColumn';
 import Route from 'Common/Types/API/Route';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import PageMap from '../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../Utils/RouteMap';
 

@@ -37,7 +37,7 @@ import Color from 'Common/Types/Color';
 import { Green, Grey, Yellow } from 'Common/Types/BrandColors';
 import UserUtil from '../../Utils/User';
 import EmptyState from 'CommonUI/src/Components/EmptyState/EmptyState';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export const getScheduledEventEventItem: Function = (
     scheduledMaintenance: ScheduledMaintenance,
@@ -56,7 +56,7 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenancePublicNote of scheduledMaintenanceEventsPublicNotes) {
         if (
             scheduledMaintenancePublicNote.scheduledMaintenanceId?.toString() ===
-                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenance.id?.toString() &&
             scheduledMaintenancePublicNote?.note
         ) {
             timeline.push({
@@ -75,7 +75,7 @@ export const getScheduledEventEventItem: Function = (
     for (const scheduledMaintenanceEventstateTimeline of scheduledMaintenanceStateTimelines) {
         if (
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceId?.toString() ===
-                scheduledMaintenance.id?.toString() &&
+            scheduledMaintenance.id?.toString() &&
             scheduledMaintenanceEventstateTimeline.scheduledMaintenanceState
         ) {
             timeline.push({
@@ -89,12 +89,12 @@ export const getScheduledEventEventItem: Function = (
                     .scheduledMaintenanceState.isScheduledState
                     ? IconProp.Clock
                     : scheduledMaintenanceEventstateTimeline
-                          .scheduledMaintenanceState.isOngoingState
-                    ? IconProp.Settings
-                    : scheduledMaintenanceEventstateTimeline
-                          .scheduledMaintenanceState.isResolvedState
-                    ? IconProp.CheckCircle
-                    : IconProp.ArrowCircleRight,
+                        .scheduledMaintenanceState.isOngoingState
+                        ? IconProp.Settings
+                        : scheduledMaintenanceEventstateTimeline
+                            .scheduledMaintenanceState.isResolvedState
+                            ? IconProp.CheckCircle
+                            : IconProp.ArrowCircleRight,
                 iconColor:
                     scheduledMaintenanceEventstateTimeline
                         .scheduledMaintenanceState.color || Grey,
@@ -127,13 +127,13 @@ export const getScheduledEventEventItem: Function = (
         eventViewRoute: !isSummary
             ? undefined
             : RouteUtil.populateRouteParams(
-                  isPreviewPage
-                      ? (RouteMap[
-                            PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                        ] as Route)
-                      : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
-                  scheduledMaintenance.id!
-              ),
+                isPreviewPage
+                    ? (RouteMap[
+                        PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                    ] as Route)
+                    : (RouteMap[PageMap.SCHEDULED_EVENT_DETAIL] as Route),
+                scheduledMaintenance.id!
+            ),
         isDetailItem: !isSummary,
         currentStatus: currentStateStatus,
         currentStatusColor: currentStatusColor,
@@ -236,7 +236,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             const scheduledMaintenanceStateTimelines: Array<ScheduledMaintenanceStateTimeline> =
                 JSONFunctions.fromJSONArray(
                     (data['scheduledMaintenanceStateTimelines'] as JSONArray) ||
-                        [],
+                    [],
                     ScheduledMaintenanceStateTimeline
                 );
 
@@ -256,7 +256,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -314,8 +314,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewPage
                             ? (RouteMap[
-                                  PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                              ] as Route)
+                                PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                            ] as Route)
                             : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                     ),
                 },
@@ -324,11 +324,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewPage
                             ? (RouteMap[
-                                  PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
-                              ] as Route)
+                                PageMap.PREVIEW_SCHEDULED_EVENT_DETAIL
+                            ] as Route)
                             : (RouteMap[
-                                  PageMap.SCHEDULED_EVENT_DETAIL
-                              ] as Route),
+                                PageMap.SCHEDULED_EVENT_DETAIL
+                            ] as Route),
                         Navigation.getLastParamAsObjectID()
                     ),
                 },

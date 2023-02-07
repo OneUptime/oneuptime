@@ -3,7 +3,7 @@ import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import Monitor from 'Model/Models/Monitor';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Label from 'Model/Models/Label';
 import { JSONArray, JSONObject } from 'Common/Types/JSON';
 import LabelsElement from '../../Components/Label/Labels';
@@ -151,14 +151,14 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                                 color={
                                     (
                                         item[
-                                            'currentMonitorStatus'
+                                        'currentMonitorStatus'
                                         ] as JSONObject
                                     )['color'] as Color
                                 }
                                 text={
                                     (
                                         item[
-                                            'currentMonitorStatus'
+                                        'currentMonitorStatus'
                                         ] as JSONObject
                                     )['name'] as string
                                 }

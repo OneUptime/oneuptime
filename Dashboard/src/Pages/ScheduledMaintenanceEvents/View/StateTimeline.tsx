@@ -9,7 +9,7 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import ScheduledMaintenanceStateTimeline from 'Model/Models/ScheduledMaintenanceStateTimeline';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import ScheduledMaintenanceState from 'Model/Models/ScheduledMaintenanceState';
@@ -52,7 +52,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Status Timeline',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
+                        PageMap.SCHEDULED_MAINTENANCE_VIEW_STATE_TIMELINE
                         ] as Route,
                         modelId
                     ),
@@ -132,14 +132,14 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                                     color={
                                         (
                                             item[
-                                                'scheduledMaintenanceState'
+                                            'scheduledMaintenanceState'
                                             ] as JSONObject
                                         )['color'] as Color
                                     }
                                     text={
                                         (
                                             item[
-                                                'scheduledMaintenanceState'
+                                            'scheduledMaintenanceState'
                                             ] as JSONObject
                                         )['name'] as string
                                     }

@@ -13,7 +13,7 @@ import DashboardSideMenu from './SideMenu';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import Domain from 'Model/Models/Domain';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import { JSONObject } from 'Common/Types/JSON';
@@ -203,8 +203,8 @@ const Domains: FunctionComponent<PageComponentProps> = (
                                 new ObjectID(
                                     currentVerificationDomain['_id']
                                         ? currentVerificationDomain[
-                                              '_id'
-                                          ].toString()
+                                            '_id'
+                                        ].toString()
                                         : ''
                                 ),
                                 {
@@ -219,7 +219,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                             try {
                                 setError(
                                     (err as HTTPErrorResponse).message ||
-                                        'Server Error. Please try again'
+                                    'Server Error. Please try again'
                                 );
                             } catch (e) {
                                 setError('Server Error. Please try again');

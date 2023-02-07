@@ -10,7 +10,7 @@ import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import StatusPageSubscriber from 'Model/Models/StatusPageSubscriber';
 import BadDataException from 'Common/Types/Exception/BadDataException';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import NotNull from 'Common/Types/Database/NotNull';
@@ -49,7 +49,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Webhook Subscribers',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                            PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                        PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                         ] as Route,
                         modelId
                     ),

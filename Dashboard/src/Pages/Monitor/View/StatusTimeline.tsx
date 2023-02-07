@@ -9,7 +9,7 @@ import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
 import ModelTable from 'CommonUI/src/Components/ModelTable/ModelTable';
 import MonitorStatusTimeline from 'Model/Models/MonitorStatusTimeline';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import BadDataException from 'Common/Types/Exception/BadDataException';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import MonitorStatus from 'Model/Models/MonitorStatus';
@@ -128,12 +128,12 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
                                 <Statusbubble
                                     color={
                                         (item['monitorStatus'] as JSONObject)[
-                                            'color'
+                                        'color'
                                         ] as Color
                                     }
                                     text={
                                         (item['monitorStatus'] as JSONObject)[
-                                            'name'
+                                        'name'
                                         ] as string
                                     }
                                 />

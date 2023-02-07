@@ -1,6 +1,6 @@
 import React, { FunctionComponent, ReactElement } from 'react';
 import Route from 'Common/Types/API/Route';
-import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import IconProp from 'Common/Types/Icon/IconProp';
 import SideMenu from 'CommonUI/src/Components/SideMenu/SideMenu';
 import SideMenuItem from 'CommonUI/src/Components/SideMenu/SideMenuItem';
 import SideMenuSection from 'CommonUI/src/Components/SideMenu/SideMenuSection';
@@ -80,7 +80,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         title: 'Incident Severity',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SETTINGS_INCIDENTS_SEVERITY
+                            PageMap.SETTINGS_INCIDENTS_SEVERITY
                             ] as Route
                         ),
                     }}
@@ -100,7 +100,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         title: 'Event State',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                            PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                             ] as Route
                         ),
                     }}
@@ -177,7 +177,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                             title: 'Invoices',
                             to: RouteUtil.populateRouteParams(
                                 RouteMap[
-                                    PageMap.SETTINGS_BILLING_INVOICES
+                                PageMap.SETTINGS_BILLING_INVOICES
                                 ] as Route
                             ),
                         }}
