@@ -2,6 +2,7 @@ export interface EnableWorkflowOn {
     create: boolean;
     update: boolean;
     delete: boolean;
+    read: boolean;
 }
 
 
