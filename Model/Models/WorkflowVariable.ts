@@ -263,8 +263,7 @@ export default class Workflow extends BaseModel {
 
         ],
         update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
+
         ],
     })
     @TableColumn({ required: true, type: TableColumnType.Boolean })
