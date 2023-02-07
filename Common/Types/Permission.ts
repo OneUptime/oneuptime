@@ -109,13 +109,11 @@ enum Permission {
     CanEditWorkflowLog = 'CanEditWorkflowLog',
     CanReadWorkflowLog = 'CanReadWorkflowLog',
 
-
     // Workflow Permissions (Owner Permission)
     CanCreateWorkflowVariable = 'CanCreateWorkflowVariable',
     CanDeleteWorkflowVariable = 'CanDeleteWorkflowVariable',
     CanEditWorkflowVariable = 'CanEditWorkflowVariable',
     CanReadWorkflowVariable = 'CanReadWorkflowVariable',
-
 
     // Probe Permissions (Owner Permission)
     CanCreateStatusPageGroup = 'CanCreateStatusPageGroup',
@@ -864,8 +862,6 @@ export class PermissionHelper {
                 isAccessControlPermission: false,
             },
 
-
-
             {
                 permission: Permission.CanCreateWorkflowVariable,
                 title: 'Can Create Workflow Variables',
@@ -898,8 +894,6 @@ export class PermissionHelper {
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
-
-
 
             {
                 permission: Permission.CanCreateWorkflowLog,

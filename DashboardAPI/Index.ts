@@ -25,18 +25,15 @@ import WorkflowService, {
     Service as WorkflowServiceType,
 } from 'CommonServer/Services/WorkflowService';
 
-
 import WorkflowLog from 'Model/Models/WorkflowLog';
 import WorkflowLogService, {
     Service as WorkflowLogServiceType,
 } from 'CommonServer/Services/WorkflowLogService';
 
-
 import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import WorkflowVariableService, {
     Service as WorkflowVariableServiceType,
 } from 'CommonServer/Services/WorkflowVariableService';
-
 
 import Probe from 'Model/Models/Probe';
 import ProbeService, {

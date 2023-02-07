@@ -71,7 +71,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     description:
                         'List of logs in the last 30 days for this workflow',
                 }}
-                noItemsMessage={'Looks like this workflow did not run so far in the last 30 days.'}
+                noItemsMessage={
+                    'Looks like this workflow did not run so far in the last 30 days.'
+                }
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
@@ -79,7 +81,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     {
                         field: {
                             workflow: {
-                                name: true
+                                name: true,
                             },
                         },
                         title: 'Workflow Name',

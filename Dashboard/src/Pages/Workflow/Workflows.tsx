@@ -10,6 +10,7 @@ import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import WorkflowSideMenu from './SideMenu';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -31,6 +32,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     ),
                 },
             ]}
+            sideMenu={<WorkflowSideMenu />}
         >
             <ModelTable<Workflow>
                 modelType={Workflow}

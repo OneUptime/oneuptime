@@ -16,7 +16,6 @@ import ObjectID from 'Common/Types/ObjectID';
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
     return (
@@ -104,7 +103,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             isSecret: true,
                         },
                         title: 'Secret',
-                        description: "Is this variable secret or secure? Should this be encrypted in the Database?",
+                        description:
+                            'Is this variable secret or secure? Should this be encrypted in the Database?',
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: true,
                     },
@@ -113,7 +113,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             content: true,
                         },
                         title: 'Content',
-                        description: "Is this variable secret or secure? Should this be encrypted in the Database?",
+                        description:
+                            'Is this variable secret or secure? Should this be encrypted in the Database?',
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: true,
                     },

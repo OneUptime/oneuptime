@@ -47,7 +47,7 @@ export interface ComponentProps {
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
-    const onClickNode: Function = (_data: NodeDataProp) => { };
+    const onClickNode: Function = (_data: NodeDataProp) => {};
 
     const deleteNode: Function = (id: string): void => {
         // remove the node.
@@ -68,9 +68,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
         setEdges((eds: Array<Edge>) => {
             return eds.filter((edge: Edge) => {
-                const idsToDelete: Array<string> = edgeToDelete.map((e: Edge) => {
-                    return e.id;
-                });
+                const idsToDelete: Array<string> = edgeToDelete.map(
+                    (e: Edge) => {
+                        return e.id;
+                    }
+                );
                 return !idsToDelete.includes(edge.id);
             });
         });

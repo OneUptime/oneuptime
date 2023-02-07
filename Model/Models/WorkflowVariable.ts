@@ -106,10 +106,6 @@ export default class Workflow extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
-
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -170,8 +166,6 @@ export default class Workflow extends BaseModel {
     })
     public workflowId?: ObjectID = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -203,7 +197,6 @@ export default class Workflow extends BaseModel {
     @UniqueColumnBy('projectId')
     public name?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -230,20 +223,14 @@ export default class Workflow extends BaseModel {
     })
     public description?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanCreateWorkflowVariable,
         ],
-        read: [
-
-        ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+        read: [],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
     })
     @TableColumn({ required: true, type: TableColumnType.LongText })
     @Column({
@@ -252,19 +239,14 @@ export default class Workflow extends BaseModel {
     })
     public content?: string = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
             Permission.ProjectAdmin,
             Permission.CanCreateWorkflowVariable,
         ],
-        read: [
-
-        ],
-        update: [
-
-        ],
+        read: [],
+        update: [],
     })
     @TableColumn({ required: true, type: TableColumnType.Boolean })
     @Column({

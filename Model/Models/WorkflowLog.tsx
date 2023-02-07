@@ -103,8 +103,6 @@ export default class Workflow extends BaseModel {
     })
     public projectId?: ObjectID = undefined;
 
-
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -165,7 +163,6 @@ export default class Workflow extends BaseModel {
     })
     public workflowId?: ObjectID = undefined;
 
-
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -178,10 +175,7 @@ export default class Workflow extends BaseModel {
             Permission.ProjectMember,
             Permission.CanReadWorkflowLog,
         ],
-        update: [
-            Permission.ProjectOwner,
-            Permission.ProjectAdmin,
-        ],
+        update: [Permission.ProjectOwner, Permission.ProjectAdmin],
     })
     @TableColumn({ required: false, type: TableColumnType.LongText })
     @Column({
@@ -189,5 +183,4 @@ export default class Workflow extends BaseModel {
         type: ColumnType.VeryLongText,
     })
     public logs?: string = undefined;
-
 }

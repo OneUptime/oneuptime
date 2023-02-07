@@ -117,5 +117,5 @@ export default [
 
     Workflow,
     WorkflowVariables,
-    WorkflowLog
+    WorkflowLog,
 ];

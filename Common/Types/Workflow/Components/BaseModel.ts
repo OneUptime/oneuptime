@@ -111,7 +111,6 @@ export default class BaseModelComponent {
         }
 
         if (model.enableWorkflowOn.delete) {
-
             components.push({
                 id: 'on-delete',
                 title: `On Delete ${model.singularName}`,
@@ -119,19 +118,17 @@ export default class BaseModelComponent {
                 description: `When the ${model.singularName} is deleted...`,
                 iconProp: IconProp.ArrowCircleLeft,
                 type: ComponentType.Trigger,
-                arguments: [
-
+                arguments: [],
+                returnValues: [
+                    {
+                        id: 'model',
+                        name: `${model.singularName}`,
+                        description: `${model.singularName} deleted in the database`,
+                        type: ComponentInputType.BaseModel,
+                        required: false,
+                    },
                 ],
-                returnValues: [{
-                    id: 'model',
-                    name: `${model.singularName}`,
-                    description: `${model.singularName} deleted in the database`,
-                    type: ComponentInputType.BaseModel,
-                    required: false,
-                },],
-                inPorts: [
-
-                ],
+                inPorts: [],
                 outPorts: [
                     {
                         title: 'Success',
@@ -141,7 +138,6 @@ export default class BaseModelComponent {
                     },
                 ],
             });
-
 
             components.push({
                 id: 'delete-one',
@@ -227,7 +223,6 @@ export default class BaseModelComponent {
         }
 
         if (model.enableWorkflowOn.create) {
-
             components.push({
                 id: 'on-create',
                 title: `On Create ${model.singularName}`,
@@ -235,19 +230,17 @@ export default class BaseModelComponent {
                 description: `When the ${model.singularName} is created...`,
                 iconProp: IconProp.ArrowCircleLeft,
                 type: ComponentType.Trigger,
-                arguments: [
-
+                arguments: [],
+                returnValues: [
+                    {
+                        id: 'model',
+                        name: `${model.singularName}`,
+                        description: `${model.singularName} created in the database`,
+                        type: ComponentInputType.BaseModel,
+                        required: false,
+                    },
                 ],
-                returnValues: [{
-                    id: 'model',
-                    name: `${model.singularName}`,
-                    description: `${model.singularName} created in the database`,
-                    type: ComponentInputType.BaseModel,
-                    required: false,
-                },],
-                inPorts: [
-
-                ],
+                inPorts: [],
                 outPorts: [
                     {
                         title: 'Success',
@@ -257,7 +250,6 @@ export default class BaseModelComponent {
                     },
                 ],
             });
-
 
             components.push({
                 id: 'create-one',
@@ -359,7 +351,6 @@ export default class BaseModelComponent {
         }
 
         if (model.enableWorkflowOn.update) {
-
             components.push({
                 id: 'on-update',
                 title: `On Update ${model.singularName}`,
@@ -367,29 +358,25 @@ export default class BaseModelComponent {
                 description: `When the ${model.singularName} is updated...`,
                 iconProp: IconProp.ArrowCircleLeft,
                 type: ComponentType.Trigger,
-                arguments: [
-
+                arguments: [],
+                returnValues: [
+                    {
+                        id: 'model',
+                        name: `${model.singularName}`,
+                        description: `Updated ${model.singularName}`,
+                        type: ComponentInputType.BaseModel,
+                        required: true,
+                    },
                 ],
-                returnValues: [{
-                    id: 'model',
-                    name: `${model.singularName}`,
-                    description: `Updated ${model.singularName}`,
-                    type: ComponentInputType.BaseModel,
-                    required: true,
-                },],
-                inPorts: [
-
-                ],
+                inPorts: [],
                 outPorts: [
                     {
                         title: 'Success',
-                        description:
-                            `This is executed when the ${model.singularName} is updated successfully.`,
+                        description: `This is executed when the ${model.singularName} is updated successfully.`,
                         id: 'success',
                     },
                 ],
             });
-
 
             components.push({
                 id: 'update-one',

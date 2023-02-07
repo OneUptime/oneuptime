@@ -9,6 +9,7 @@ import WorkflowLogs from 'Model/Models/WorkflowLog';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
 import Navigation from 'CommonUI/src/Utils/Navigation';
+import WorkflowSideMenu from './SideMenu';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -36,6 +37,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     ),
                 },
             ]}
+            sideMenu={<WorkflowSideMenu />}
         >
             <ModelTable<WorkflowLogs>
                 modelType={WorkflowLogs}
@@ -51,7 +53,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     description:
                         'List of logs in the last 30 days for all your workflows',
                 }}
-                noItemsMessage={'Looks like no workflow ran so far in the last 30 days.'}
+                noItemsMessage={
+                    'Looks like no workflow ran so far in the last 30 days.'
+                }
                 showRefreshButton={true}
                 showFilterButton={true}
                 viewPageRoute={Navigation.getCurrentRoute()}
@@ -59,7 +63,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     {
                         field: {
                             workflow: {
-                                name: true
+                                name: true,
                             },
                         },
                         title: 'Workflow Name',

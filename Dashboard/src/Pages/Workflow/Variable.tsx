@@ -9,8 +9,8 @@ import WorkflowVariable from 'Model/Models/WorkflowVariable';
 import FieldType from 'CommonUI/src/Components/Types/FieldType';
 import FormFieldSchemaType from 'CommonUI/src/Components/Forms/Types/FormFieldSchemaType';
 import { IconProp } from 'CommonUI/src/Components/Icon/Icon';
-import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../Utils/Navigation';
+import WorkflowSideMenu from './SideMenu';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -38,6 +38,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     ),
                 },
             ]}
+            sideMenu={<WorkflowSideMenu />}
         >
             <ModelTable<WorkflowVariable>
                 modelType={WorkflowVariable}
@@ -85,7 +86,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             isSecret: true,
                         },
                         title: 'Secret',
-                        description: "Is this variable secret or secure? Should this be encrypted in the Database?",
+                        description:
+                            'Is this variable secret or secure? Should this be encrypted in the Database?',
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: true,
                     },
@@ -94,7 +96,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             content: true,
                         },
                         title: 'Content',
-                        description: "Is this variable secret or secure? Should this be encrypted in the Database?",
+                        description:
+                            'Is this variable secret or secure? Should this be encrypted in the Database?',
                         fieldType: FormFieldSchemaType.Checkbox,
                         required: true,
                     },
