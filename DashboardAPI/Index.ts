@@ -25,6 +25,19 @@ import WorkflowService, {
     Service as WorkflowServiceType,
 } from 'CommonServer/Services/WorkflowService';
 
+
+import WorkflowLog from 'Model/Models/WorkflowLog';
+import WorkflowLogService, {
+    Service as WorkflowLogServiceType,
+} from 'CommonServer/Services/WorkflowLogService';
+
+
+import WorkflowVariable from 'Model/Models/WorkflowVariable';
+import WorkflowVariableService, {
+    Service as WorkflowVariableServiceType,
+} from 'CommonServer/Services/WorkflowVariableService';
+
+
 import Probe from 'Model/Models/Probe';
 import ProbeService, {
     Service as ProbeServiceType,
@@ -278,6 +291,22 @@ app.use(
     new BaseAPI<Workflow, WorkflowServiceType>(
         Workflow,
         WorkflowService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<WorkflowVariable, WorkflowVariableServiceType>(
+        WorkflowVariable,
+        WorkflowVariableService
+    ).getRouter()
+);
+
+app.use(
+    `/${APP_NAME.toLocaleLowerCase()}`,
+    new BaseAPI<WorkflowLog, WorkflowLogServiceType>(
+        WorkflowLog,
+        WorkflowLogService
     ).getRouter()
 );
 

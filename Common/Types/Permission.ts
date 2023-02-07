@@ -103,6 +103,20 @@ enum Permission {
     CanEditWorkflow = 'CanEditWorkflow',
     CanReadWorkflow = 'CanReadWorkflow',
 
+    // Workflow Permissions (Owner Permission)
+    CanCreateWorkflowLog = 'CanCreateWorkflowLog',
+    CanDeleteWorkflowLog = 'CanDeleteWorkflowLog',
+    CanEditWorkflowLog = 'CanEditWorkflowLog',
+    CanReadWorkflowLog = 'CanReadWorkflowLog',
+
+
+    // Workflow Permissions (Owner Permission)
+    CanCreateWorkflowVariable = 'CanCreateWorkflowVariable',
+    CanDeleteWorkflowVariable = 'CanDeleteWorkflowVariable',
+    CanEditWorkflowVariable = 'CanEditWorkflowVariable',
+    CanReadWorkflowVariable = 'CanReadWorkflowVariable',
+
+
     // Probe Permissions (Owner Permission)
     CanCreateStatusPageGroup = 'CanCreateStatusPageGroup',
     CanDeleteStatusPageGroup = 'CanDeleteStatusPageGroup',
@@ -846,6 +860,76 @@ export class PermissionHelper {
                 title: 'Can Read Workflow',
                 description:
                     'A user assigned this permission  can read Workflow in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+
+            {
+                permission: Permission.CanCreateWorkflowVariable,
+                title: 'Can Create Workflow Variables',
+                description:
+                    'A user assigned this permission can create Workflow Variables in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteWorkflowVariable,
+                title: 'Can Delete Workflow Variables',
+                description:
+                    'A user assigned this permission  can delete Workflow Variables in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditWorkflowVariable,
+                title: 'Can Edit Workflow Variables',
+                description:
+                    'A user assigned this permission can edit Workflow Variables in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadWorkflowVariable,
+                title: 'Can Read Workflow Variables',
+                description:
+                    'A user assigned this permission  can read Workflow Variables in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+
+
+
+            {
+                permission: Permission.CanCreateWorkflowLog,
+                title: 'Can Create Workflow Log',
+                description:
+                    'A user assigned this permission can create Workflow Log in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanDeleteWorkflowLog,
+                title: 'Can Delete Workflow Log',
+                description:
+                    'A user assigned this permission  can delete Workflow Log in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanEditWorkflowLog,
+                title: 'Can Edit Workflow Log',
+                description:
+                    'A user assigned this permission can edit Workflow Log in this project.',
+                isAssignableToTenant: true,
+                isAccessControlPermission: false,
+            },
+            {
+                permission: Permission.CanReadWorkflowLog,
+                title: 'Can Read Workflow Log',
+                description:
+                    'A user assigned this permission  can read Workflow Log in this project.',
                 isAssignableToTenant: true,
                 isAccessControlPermission: false,
             },
