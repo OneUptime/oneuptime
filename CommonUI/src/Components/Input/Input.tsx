@@ -150,11 +150,11 @@ const Input: FunctionComponent<ComponentProps> = (
                     onKeyDown={
                         props.onEnterPress
                             ? (event: any) => {
-                                if (event.key === 'Enter') {
-                                    props.onEnterPress &&
-                                        props.onEnterPress();
-                                }
-                            }
+                                  if (event.key === 'Enter') {
+                                      props.onEnterPress &&
+                                          props.onEnterPress();
+                                  }
+                              }
                             : undefined
                     }
                     readOnly={props.readOnly || props.disabled || false}

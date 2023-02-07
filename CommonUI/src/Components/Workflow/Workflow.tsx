@@ -47,39 +47,42 @@ export interface ComponentProps {
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
-    const onClickNode = (_data: NodeDataProp) => {
+    const onClickNode: Function = (_data: NodeDataProp) => { };
 
-    }
+    const deleteNode: Function = (id: string): void => {
+        // remove the node.
 
-    const deleteNode = (id: string) => {
-        // remove the node. 
+        const nodesToDelete: Array<Node> = [...nodes].filter((node: Node) => {
+            return node.data.id === id;
+        });
+        const edgeToDelete: Array<Edge> = getConnectedEdges(
+            nodesToDelete,
+            edges
+        );
 
-        const nodesToDelete = [...nodes].filter((node) => {
-            return node.data.id === id
-        })
-        const edgeToDelete = getConnectedEdges(nodesToDelete, edges);
-
-
-        setNodes((nds) => {
-            return nds.filter((node) => {
-                return node.data.id !== id
+        setNodes((nds: Array<Node>) => {
+            return nds.filter((node: Node) => {
+                return node.data.id !== id;
             });
-        })
+        });
 
-        setNodes((eds) => {
-            return eds.filter((edge) => {
-                const idsToDelete = edgeToDelete.map((e) => e.id);
+        setEdges((eds: Array<Edge>) => {
+            return eds.filter((edge: Edge) => {
+                const idsToDelete: Array<string> = edgeToDelete.map((e: Edge) => {
+                    return e.id;
+                });
                 return !idsToDelete.includes(edge.id);
-            })
+            });
+        });
+    };
+
+    const [nodes, setNodes, onNodesChange] = useNodesState(
+        props.initialNodes.map((node: Node) => {
+            node.data.onDeleteClick = deleteNode;
+            node.data.onClick = onClickNode;
+            return node;
         })
-    }
-
-    const [nodes, setNodes, onNodesChange] = useNodesState(props.initialNodes.map((node) => {
-        node.data.onDeleteClick = deleteNode;
-        node.data.onClick = onClickNode;
-        return node;
-    }));
-
+    );
 
     const [edges, setEdges, onEdgesChange] = useEdgesState(
         props.initialEdges.map((edge: Edge) => {
@@ -149,9 +152,6 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         edgeUpdateSuccessful.current = true;
     }, []);
 
-
-
-
     return (
         <div className="h-[48rem]">
             <ReactFlow
@@ -168,7 +168,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             >
                 <MiniMap />
                 <Controls />
-                <Background color='#111827' />
+                <Background color="#111827" />
             </ReactFlow>
         </div>
     );

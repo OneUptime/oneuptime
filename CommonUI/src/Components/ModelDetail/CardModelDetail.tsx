@@ -43,15 +43,15 @@ const CardModelDetail: Function = <TBaseModel extends BaseModel>(
 
         const hasPermissionToEdit: boolean = Boolean(
             userProjectPermissions &&
-            userProjectPermissions.permissions &&
-            PermissionHelper.doesPermissionsIntersect(
-                model.updateRecordPermissions,
-                userProjectPermissions.permissions.map(
-                    (item: UserPermission) => {
-                        return item.permission;
-                    }
+                userProjectPermissions.permissions &&
+                PermissionHelper.doesPermissionsIntersect(
+                    model.updateRecordPermissions,
+                    userProjectPermissions.permissions.map(
+                        (item: UserPermission) => {
+                            return item.permission;
+                        }
+                    )
                 )
-            )
         );
 
         if (props.isEditable && hasPermissionToEdit) {

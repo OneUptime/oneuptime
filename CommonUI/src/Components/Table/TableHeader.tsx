@@ -30,8 +30,9 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                     return (
                         <th
                             key={i}
-                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${canSort ? 'cursor-pointer' : ''
-                                }`}
+                            className={`px-6 py-3 text-left text-sm font-semibold text-gray-900 ${
+                                canSort ? 'cursor-pointer' : ''
+                            }`}
                             onClick={() => {
                                 if (!column.key) {
                                     return;
@@ -59,10 +60,11 @@ const TableHeader: FunctionComponent<ComponentProps> = (
                             }}
                         >
                             <div
-                                className={`flex ${column.type === FieldType.Actions
+                                className={`flex ${
+                                    column.type === FieldType.Actions
                                         ? 'justify-end'
                                         : 'justify-start'
-                                    }`}
+                                }`}
                             >
                                 {column.title}
                                 {canSort &&

@@ -5,7 +5,6 @@ export interface EnableWorkflowOn {
     read: boolean;
 }
 
-
 export default (enableWorkflowOn: EnableWorkflowOn) => {
     return (ctr: Function) => {
         ctr.prototype.enableWorkflowOn = enableWorkflowOn;

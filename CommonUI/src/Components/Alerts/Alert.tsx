@@ -65,8 +65,8 @@ const Alert: FunctionComponent<ComponentProps> = (
             style={
                 props.color
                     ? {
-                        backgroundColor: props.color?.toString(),
-                    }
+                          backgroundColor: props.color?.toString(),
+                      }
                     : {}
             }
         >

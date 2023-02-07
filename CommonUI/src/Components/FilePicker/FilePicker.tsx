@@ -122,7 +122,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                 try {
                     setError(
                         (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                            'Server Error. Please try again'
                     );
                 } catch (e) {
                     setError('Server Error. Please try again');
@@ -244,9 +244,9 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                                         .map((type: MimeType) => {
                                             const enumKey: string | undefined =
                                                 Object.keys(MimeType)[
-                                                Object.values(
-                                                    MimeType
-                                                ).indexOf(type)
+                                                    Object.values(
+                                                        MimeType
+                                                    ).indexOf(type)
                                                 ];
                                             return enumKey?.toUpperCase() || '';
                                         })

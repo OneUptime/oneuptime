@@ -87,8 +87,9 @@ const Accordian: FunctionComponent<ComponentProps> = (
                         )}
                         {props.title && (
                             <div
-                                className={`ml-1 -mt-1 ${props.onClick ? 'cursor-pointer' : ''
-                                    }`}
+                                className={`ml-1 -mt-1 ${
+                                    props.onClick ? 'cursor-pointer' : ''
+                                }`}
                             >
                                 <div className="text-gray-500">
                                     {props.title}{' '}

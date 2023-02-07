@@ -1,6 +1,6 @@
 import Color from 'Common/Types/Color';
 import React, { FunctionComponent, ReactElement } from 'react';
-import IconProp from "Common/Types/Icon/IconProp";
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export enum SizeProp {
     ExtraSmall,

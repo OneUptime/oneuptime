@@ -52,9 +52,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                                 style={
                                                     i > 0
                                                         ? {
-                                                            marginLeft:
-                                                                '10px',
-                                                        }
+                                                              marginLeft:
+                                                                  '10px',
+                                                          }
                                                         : {}
                                                 }
                                                 key={i}

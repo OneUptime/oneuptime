@@ -1,2 +1,1 @@
-// Show a large modal full of components. 
-
+// Show a large modal full of components.

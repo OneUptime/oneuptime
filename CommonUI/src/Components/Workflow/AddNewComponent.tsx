@@ -4,7 +4,6 @@ import Icon from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 import { NodeDataProp } from './Component';
 
-
 export interface ComponentProps {
     data: NodeDataProp;
 }
@@ -40,7 +39,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             {!props.data.isTrigger && (
                 <Handle
                     type="target"
-                    onConnect={(_params: Connection) => { }}
+                    onConnect={(_params: Connection) => {}}
                     isConnectable={true}
                     position={Position.Top}
                     style={handleStyle}

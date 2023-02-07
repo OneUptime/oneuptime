@@ -82,9 +82,9 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     props.onCreateNewItem(
                                                         item[props.orderField]
                                                             ? (item[
-                                                                props
-                                                                    .orderField
-                                                            ] as number) + 1
+                                                                  props
+                                                                      .orderField
+                                                              ] as number) + 1
                                                             : 0
                                                     );
                                             }}
@@ -121,14 +121,14 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                             />
                             {((isEnd && props.shouldAddItemInTheEnd) ||
                                 !isEnd) && (
-                                    <div className="vertical-list items-center m-10 ">
-                                        <Icon
-                                            icon={IconProp.ChevronDown}
-                                            size={SizeProp.Regular}
-                                            className="m-auto h-5 w-5 text-gray-500"
-                                        />
-                                    </div>
-                                )}
+                                <div className="vertical-list items-center m-10 ">
+                                    <Icon
+                                        icon={IconProp.ChevronDown}
+                                        size={SizeProp.Regular}
+                                        className="m-auto h-5 w-5 text-gray-500"
+                                    />
+                                </div>
+                            )}
                             {props.onCreateNewItem &&
                                 ((isEnd && props.shouldAddItemInTheEnd) ||
                                     !isEnd) && (
@@ -140,9 +140,9 @@ const OrderedStatesList: FunctionComponent<ComponentProps> = (
                                                     props.onCreateNewItem(
                                                         item[props.orderField]
                                                             ? (item[
-                                                                props
-                                                                    .orderField
-                                                            ] as number) + 1
+                                                                  props
+                                                                      .orderField
+                                                              ] as number) + 1
                                                             : 0
                                                     );
                                             }}

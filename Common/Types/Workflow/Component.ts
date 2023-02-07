@@ -17,12 +17,12 @@ export enum ComponentInputType {
     Query = 'Query',
     BaseModel = 'BaseModel',
     BaseModelArray = 'BaseModelArray',
-    JSONArray = 'JSONArray'
+    JSONArray = 'JSONArray',
 }
 
 export enum ComponentType {
     Trigger = 'Trigger',
-    Component = 'Component'
+    Component = 'Component',
 }
 
 export interface Port {
@@ -35,7 +35,7 @@ export interface Argument {
     name: string;
     description: string;
     required: boolean;
-    type: ComponentInputType,
+    type: ComponentInputType;
     id: string;
     isAdvanced?: boolean | undefined;
 }

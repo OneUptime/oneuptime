@@ -26,7 +26,7 @@ import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
     create: true,
     delete: true,
     update: true,
-    read: true
+    read: true,
 })
 @CanAccessIfCanReadOn('statusPage')
 @TenantColumn('projectId')
