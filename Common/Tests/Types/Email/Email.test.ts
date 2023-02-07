@@ -6,9 +6,10 @@ describe('Email()', () => {
     });
 
     test('should not create an email with invalid credentials', () => {
+        const invalidEmail: string = 'invalid email address';
         expect(() => {
-            new Email('invalid email address');
-        }).toThrow('Email is not in valid format.');
+            new Email(invalidEmail);
+        }).toThrow(`Email ${invalidEmail} is not in valid format.`);
     });
 
     test('should be a business email', () => {

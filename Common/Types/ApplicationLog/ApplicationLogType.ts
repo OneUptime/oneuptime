@@ -1,6 +1,6 @@
 enum ApplicationLogType {
     Info = 'Info',
-    Erorr = 'Error',
+    Error = 'Error',
     Warning = 'Warning',
 }
 

@@ -6,7 +6,7 @@ enum AlertEventType {
     InvestigationNoteUpdated = 'Investigation note updated',
     ScheduledMaintenanceCreated = 'Scheduled maintenance created',
     ScheduledMaintenanceNoteCreated = 'Scheduled maintenance note created',
-    ScheduledMaintenanceEesolved = 'Scheduled maintenance resolved',
+    ScheduledMaintenanceResolved = 'Scheduled maintenance resolved',
     ScheduledMaintenanceCancelled = 'Scheduled maintenance cancelled',
     AnnouncementNotificationCreated = 'Announcement notification created',
 }
