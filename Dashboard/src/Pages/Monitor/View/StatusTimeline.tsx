@@ -128,12 +128,12 @@ const MonitorDelete: FunctionComponent<PageComponentProps> = (
                                 <Statusbubble
                                     color={
                                         (item['monitorStatus'] as JSONObject)[
-                                        'color'
+                                            'color'
                                         ] as Color
                                     }
                                     text={
                                         (item['monitorStatus'] as JSONObject)[
-                                        'name'
+                                            'name'
                                         ] as string
                                     }
                                 />

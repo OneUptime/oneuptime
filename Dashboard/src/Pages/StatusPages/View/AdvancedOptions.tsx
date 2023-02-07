@@ -47,7 +47,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Advanced Settings',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
+                            PageMap.STATUS_PAGE_VIEW_ADVANCED_OPTIONS
                         ] as Route,
                         modelId
                     ),

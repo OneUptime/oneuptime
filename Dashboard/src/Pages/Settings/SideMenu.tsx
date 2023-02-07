@@ -80,7 +80,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         title: 'Incident Severity',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_INCIDENTS_SEVERITY
+                                PageMap.SETTINGS_INCIDENTS_SEVERITY
                             ] as Route
                         ),
                     }}
@@ -100,7 +100,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                         title: 'Event State',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
+                                PageMap.SETTINGS_SCHEDULED_MAINTENANCE_STATE
                             ] as Route
                         ),
                     }}
@@ -177,7 +177,7 @@ const DashboardSideMenu: FunctionComponent = (): ReactElement => {
                             title: 'Invoices',
                             to: RouteUtil.populateRouteParams(
                                 RouteMap[
-                                PageMap.SETTINGS_BILLING_INVOICES
+                                    PageMap.SETTINGS_BILLING_INVOICES
                                 ] as Route
                             ),
                         }}

@@ -55,7 +55,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Private Notes',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
+                            PageMap.SCHEDULED_MAINTENANCE_INTERNAL_NOTE
                         ] as Route,
                         modelId
                     ),
@@ -132,7 +132,7 @@ const ScheduledMaintenanceDelete: FunctionComponent<PageComponentProps> = (
                                         user={
                                             JSONFunctions.fromJSON(
                                                 item[
-                                                'createdByUser'
+                                                    'createdByUser'
                                                 ] as JSONObject,
                                                 User
                                             ) as User

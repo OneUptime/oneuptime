@@ -80,7 +80,8 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                 }}
                 onViewPage={(item: Incident) => {
                     return new Route(
-                        `/dashboard/${DashboardNavigation.getProjectId()?.toString() || ''
+                        `/dashboard/${
+                            DashboardNavigation.getProjectId()?.toString() || ''
                         }/incidents/${item._id}`
                     );
                 }}
@@ -176,14 +177,14 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -210,7 +211,7 @@ const MonitorIncidents: FunctionComponent<PageComponentProps> = (
                                     monitors={
                                         JSONFunctions.fromJSON(
                                             (item['monitors'] as JSONArray) ||
-                                            [],
+                                                [],
                                             Monitor
                                         ) as Array<Monitor>
                                     }

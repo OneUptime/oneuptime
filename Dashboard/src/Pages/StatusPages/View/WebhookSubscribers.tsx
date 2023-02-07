@@ -49,7 +49,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Webhook Subscribers',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
+                            PageMap.STATUS_PAGE_VIEW_WEBHOOK_SUBSCRIBERS
                         ] as Route,
                         modelId
                     ),

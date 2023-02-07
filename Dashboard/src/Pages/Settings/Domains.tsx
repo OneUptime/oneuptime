@@ -203,8 +203,8 @@ const Domains: FunctionComponent<PageComponentProps> = (
                                 new ObjectID(
                                     currentVerificationDomain['_id']
                                         ? currentVerificationDomain[
-                                            '_id'
-                                        ].toString()
+                                              '_id'
+                                          ].toString()
                                         : ''
                                 ),
                                 {
@@ -219,7 +219,7 @@ const Domains: FunctionComponent<PageComponentProps> = (
                             try {
                                 setError(
                                     (err as HTTPErrorResponse).message ||
-                                    'Server Error. Please try again'
+                                        'Server Error. Please try again'
                                 );
                             } catch (e) {
                                 setError('Server Error. Please try again');

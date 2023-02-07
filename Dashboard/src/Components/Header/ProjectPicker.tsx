@@ -142,11 +142,13 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                     ).map((plan: SubscriptionPlan): RadioButton => {
                         let description: string = plan.isCustomPricing()
                             ? `Our sales team will contact you soon.`
-                            : `Billed ${isSubsriptionPlanYearly ? 'yearly' : 'monthly'
-                            }. ${plan.getTrialPeriod() > 0
-                                ? `Free ${plan.getTrialPeriod()} days trial.`
-                                : ''
-                            }`;
+                            : `Billed ${
+                                  isSubsriptionPlanYearly ? 'yearly' : 'monthly'
+                              }. ${
+                                  plan.getTrialPeriod() > 0
+                                      ? `Free ${plan.getTrialPeriod()} days trial.`
+                                      : ''
+                              }`;
 
                         if (
                             isSubsriptionPlanYearly &&
@@ -171,20 +173,20 @@ const DashboardProjectPicker: FunctionComponent<ComponentProps> = (
                             sideTitle: plan.isCustomPricing()
                                 ? 'Custom Price'
                                 : isSubsriptionPlanYearly
-                                    ? '$' +
-                                    (
-                                        plan.getYearlySubscriptionAmountInUSD() *
-                                        12
-                                    ).toString()
-                                    : '$' +
-                                    plan
-                                        .getMonthlySubscriptionAmountInUSD()
-                                        .toString(),
+                                ? '$' +
+                                  (
+                                      plan.getYearlySubscriptionAmountInUSD() *
+                                      12
+                                  ).toString()
+                                : '$' +
+                                  plan
+                                      .getMonthlySubscriptionAmountInUSD()
+                                      .toString(),
                             sideDescription: plan.isCustomPricing()
                                 ? ''
                                 : isSubsriptionPlanYearly
-                                    ? `/year per user`
-                                    : `/month per user`,
+                                ? `/year per user`
+                                : `/month per user`,
                         };
                     }),
                     title: 'Please select a plan.',

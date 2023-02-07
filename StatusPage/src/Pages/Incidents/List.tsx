@@ -129,7 +129,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');

@@ -49,7 +49,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'SMS Subscribers',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
+                            PageMap.STATUS_PAGE_VIEW_SMS_SUBSCRIBERS
                         ] as Route,
                         modelId
                     ),

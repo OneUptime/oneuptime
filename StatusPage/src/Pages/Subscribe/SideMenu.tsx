@@ -21,8 +21,8 @@ const SubscribeSideMenu: FunctionComponent<ComponentProps> = (
                     to: RouteUtil.populateRouteParams(
                         props.isPreviewStatusPage
                             ? (RouteMap[
-                                PageMap.PREVIEW_SUBSCRIBE_EMAIL
-                            ] as Route)
+                                  PageMap.PREVIEW_SUBSCRIBE_EMAIL
+                              ] as Route)
                             : (RouteMap[PageMap.SUBSCRIBE_EMAIL] as Route)
                     ),
                 }}

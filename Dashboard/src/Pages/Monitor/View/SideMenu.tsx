@@ -33,7 +33,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                         title: 'Status Timeline',
                         to: RouteUtil.populateRouteParams(
                             RouteMap[
-                            PageMap.MONITOR_VIEW_STATUS_TIMELINE
+                                PageMap.MONITOR_VIEW_STATUS_TIMELINE
                             ] as Route,
                             props.modelId
                         ),

@@ -74,7 +74,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
-                viewPageRoute={Navigation.getCurrentRoute().addRoute(new Route("/workflow"))}
+                viewPageRoute={Navigation.getCurrentRoute().addRoute(
+                    new Route('/workflow')
+                )}
                 columns={[
                     {
                         field: {

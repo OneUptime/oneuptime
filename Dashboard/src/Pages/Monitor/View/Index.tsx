@@ -80,7 +80,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -204,14 +204,14 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentMonitorStatus'
+                                                    'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentMonitorStatus'
+                                                    'currentMonitorStatus'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -240,7 +240,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             JSONFunctions.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                [],
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }

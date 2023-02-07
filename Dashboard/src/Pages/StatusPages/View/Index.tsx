@@ -133,7 +133,7 @@ const StatusPageView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             JSONFunctions.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                [],
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }

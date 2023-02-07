@@ -69,7 +69,8 @@ const Home: FunctionComponent<PageComponentProps> = (
                 pluralName="Active Incidents"
                 onViewPage={(item: Incident) => {
                     return new Route(
-                        `/dashboard/${item.projectId || item.project?._id || ''
+                        `/dashboard/${
+                            item.projectId || item.project?._id || ''
                         }/incidents/${item._id}`
                     );
                 }}
@@ -91,7 +92,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                     project={
                                         JSONFunctions.fromJSON(
                                             (item['project'] as JSONObject) ||
-                                            [],
+                                                [],
                                             Project
                                         ) as Project
                                     }
@@ -131,14 +132,14 @@ const Home: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -165,14 +166,14 @@ const Home: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -199,7 +200,7 @@ const Home: FunctionComponent<PageComponentProps> = (
                                     monitors={
                                         JSONFunctions.fromJSON(
                                             (item['monitors'] as JSONArray) ||
-                                            [],
+                                                [],
                                             Monitor
                                         ) as Array<Monitor>
                                     }

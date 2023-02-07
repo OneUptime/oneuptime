@@ -51,7 +51,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Header',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
+                            PageMap.STATUS_PAGE_VIEW_HEADER_STYLE
                         ] as Route,
                         modelId
                     ),

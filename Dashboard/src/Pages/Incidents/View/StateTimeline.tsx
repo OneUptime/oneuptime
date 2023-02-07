@@ -129,12 +129,12 @@ const IncidentDelete: FunctionComponent<PageComponentProps> = (
                                 <Pill
                                     color={
                                         (item['incidentState'] as JSONObject)[
-                                        'color'
+                                            'color'
                                         ] as Color
                                     }
                                     text={
                                         (item['incidentState'] as JSONObject)[
-                                        'name'
+                                            'name'
                                         ] as string
                                     }
                                 />

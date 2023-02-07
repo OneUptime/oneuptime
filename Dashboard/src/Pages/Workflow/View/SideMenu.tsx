@@ -38,8 +38,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Workflow}
                 />
-
-
             </SideMenuSection>
 
             <SideMenuSection title="Advanced">
@@ -64,7 +62,6 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     }}
                     icon={IconProp.Variable}
                 />
-
 
                 <SideMenuItem
                     link={{

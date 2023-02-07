@@ -86,10 +86,11 @@ const UserElement: FunctionComponent<ComponentProps> = (
                                 ? props.usernameClassName
                                 : ''
                         }
-                    >{`${(user['name']?.toString() as string) ||
+                    >{`${
+                        (user['name']?.toString() as string) ||
                         (user['email']?.toString() as string) ||
                         ''
-                        }`}</span>{' '}
+                    }`}</span>{' '}
                 </div>
             </div>
             {props.suffix && (

@@ -46,7 +46,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Navbar',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
+                            PageMap.STATUS_PAGE_VIEW_NAVBAR_STYLE
                         ] as Route,
                         modelId
                     ),

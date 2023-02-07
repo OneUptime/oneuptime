@@ -151,14 +151,14 @@ const MonitorsTable: FunctionComponent<ComponentProps> = (
                                 color={
                                     (
                                         item[
-                                        'currentMonitorStatus'
+                                            'currentMonitorStatus'
                                         ] as JSONObject
                                     )['color'] as Color
                                 }
                                 text={
                                     (
                                         item[
-                                        'currentMonitorStatus'
+                                            'currentMonitorStatus'
                                         ] as JSONObject
                                     )['name'] as string
                                 }

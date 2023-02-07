@@ -186,14 +186,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                     color={
                                         (
                                             item[
-                                            'currentIncidentState'
+                                                'currentIncidentState'
                                             ] as JSONObject
                                         )['color'] as Color
                                     }
                                     text={
                                         (
                                             item[
-                                            'currentIncidentState'
+                                                'currentIncidentState'
                                             ] as JSONObject
                                         )['name'] as string
                                     }
@@ -230,14 +230,14 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                                     color={
                                         (
                                             item[
-                                            'incidentSeverity'
+                                                'incidentSeverity'
                                             ] as JSONObject
                                         )['color'] as Color
                                     }
                                     text={
                                         (
                                             item[
-                                            'incidentSeverity'
+                                                'incidentSeverity'
                                             ] as JSONObject
                                         )['name'] as string
                                     }

@@ -208,14 +208,14 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentIncidentState'
+                                                    'currentIncidentState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -244,14 +244,14 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'incidentSeverity'
+                                                    'incidentSeverity'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -305,7 +305,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             JSONFunctions.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                [],
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -326,7 +326,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         incidentId={modelId}
                                         incidentTimeline={
                                             onBeforeFetchData[
-                                            'data'
+                                                'data'
                                             ] as Array<BaseModel>
                                         }
                                         incidentType={IncidentType.Ack}
@@ -350,7 +350,7 @@ const IncidentView: FunctionComponent<PageComponentProps> = (
                                         incidentId={modelId}
                                         incidentTimeline={
                                             onBeforeFetchData[
-                                            'data'
+                                                'data'
                                             ] as Array<BaseModel>
                                         }
                                         incidentType={IncidentType.Resolve}

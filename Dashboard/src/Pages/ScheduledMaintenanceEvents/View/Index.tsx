@@ -249,14 +249,14 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         color={
                                             (
                                                 item[
-                                                'currentScheduledMaintenanceState'
+                                                    'currentScheduledMaintenanceState'
                                                 ] as JSONObject
                                             )['color'] as Color
                                         }
                                         text={
                                             (
                                                 item[
-                                                'currentScheduledMaintenanceState'
+                                                    'currentScheduledMaintenanceState'
                                                 ] as JSONObject
                                             )['name'] as string
                                         }
@@ -348,7 +348,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         labels={
                                             JSONFunctions.fromJSON(
                                                 (item['labels'] as JSONArray) ||
-                                                [],
+                                                    [],
                                                 Label
                                             ) as Array<Label>
                                         }
@@ -369,7 +369,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         scheduledMaintenanceId={modelId}
                                         scheduledMaintenanceTimeline={
                                             onBeforeFetchData[
-                                            'data'
+                                                'data'
                                             ] as Array<BaseModel>
                                         }
                                         stateType={StateType.Ongoing}
@@ -393,7 +393,7 @@ const ScheduledMaintenanceView: FunctionComponent<PageComponentProps> = (
                                         scheduledMaintenanceId={modelId}
                                         scheduledMaintenanceTimeline={
                                             onBeforeFetchData[
-                                            'data'
+                                                'data'
                                             ] as Array<BaseModel>
                                         }
                                         stateType={StateType.Completed}

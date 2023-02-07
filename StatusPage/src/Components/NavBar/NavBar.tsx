@@ -56,8 +56,8 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                 route={RouteUtil.populateRouteParams(
                     props.isPreview
                         ? (RouteMap[
-                            PageMap.PREVIEW_SCHEDULED_EVENT_LIST
-                        ] as Route)
+                              PageMap.PREVIEW_SCHEDULED_EVENT_LIST
+                          ] as Route)
                         : (RouteMap[PageMap.SCHEDULED_EVENT_LIST] as Route)
                 )}
             ></NavBarItem>

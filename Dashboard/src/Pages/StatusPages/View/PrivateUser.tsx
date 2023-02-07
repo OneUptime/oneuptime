@@ -53,7 +53,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Private Users',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
+                            PageMap.STATUS_PAGE_VIEW_PRIVATE_USERS
                         ] as Route,
                         modelId
                     ),
@@ -130,9 +130,9 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                 currentPlan={
                     BILLING_ENABLED
                         ? SubscriptionPlan.getPlanSelect(
-                            props.currentProject?.paymentProviderPlanId!,
-                            getAllEnvVars()
-                        )
+                              props.currentProject?.paymentProviderPlanId!,
+                              getAllEnvVars()
+                          )
                         : undefined
                 }
             />

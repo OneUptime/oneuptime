@@ -61,7 +61,7 @@ const DashboardSideMenu: FunctionComponent<ComponentProps> = (
                     title: 'Ongoing Events',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
+                            PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
                         ] as Route
                     ),
                 }}

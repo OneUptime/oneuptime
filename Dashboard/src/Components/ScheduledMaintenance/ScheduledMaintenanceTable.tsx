@@ -208,14 +208,14 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                                     color={
                                         (
                                             item[
-                                            'currentScheduledMaintenanceState'
+                                                'currentScheduledMaintenanceState'
                                             ] as JSONObject
                                         )['color'] as Color
                                     }
                                     text={
                                         (
                                             item[
-                                            'currentScheduledMaintenanceState'
+                                                'currentScheduledMaintenanceState'
                                             ] as JSONObject
                                         )['name'] as string
                                     }
@@ -286,7 +286,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
                                 statusPages={
                                     JSONFunctions.fromJSON(
                                         (item['statusPages'] as JSONArray) ||
-                                        [],
+                                            [],
                                         StatusPage
                                     ) as Array<StatusPage>
                                 }

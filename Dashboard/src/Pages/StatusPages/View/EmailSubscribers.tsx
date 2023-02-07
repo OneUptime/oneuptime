@@ -53,7 +53,7 @@ const StatusPageDelete: FunctionComponent<PageComponentProps> = (
                     title: 'Email Subscribers',
                     to: RouteUtil.populateRouteParams(
                         RouteMap[
-                        PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
+                            PageMap.STATUS_PAGE_VIEW_EMAIL_SUBSCRIBERS
                         ] as Route,
                         modelId
                     ),
