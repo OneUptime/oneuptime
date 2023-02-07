@@ -29,6 +29,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
         Permission.ProjectAdmin,
         Permission.ProjectMember,
         Permission.CanCreateStatusPageSubscriber,
+        Permission.Public,
     ],
     read: [
         Permission.ProjectOwner,
@@ -182,6 +183,7 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanCreateStatusPageSubscriber,
+            Permission.Public,
         ],
         read: [
             Permission.ProjectOwner,
@@ -211,6 +213,7 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanCreateStatusPageSubscriber,
+            Permission.Public,
         ],
         read: [
             Permission.ProjectOwner,
@@ -240,6 +243,7 @@ export default class StatusPageSubscriber extends BaseModel {
             Permission.ProjectAdmin,
             Permission.ProjectMember,
             Permission.CanCreateStatusPageSubscriber,
+            Permission.Public,
         ],
         read: [
             Permission.ProjectOwner,
