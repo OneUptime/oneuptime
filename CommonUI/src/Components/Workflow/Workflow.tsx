@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useRef } from 'react';
+import React, { FunctionComponent, useCallback, useRef, useEffect } from 'react';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -20,10 +20,30 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import WorkflowComponent, { NodeDataProp } from './Component';
 import AddNewComponent from './AddNewComponent';
+import ObjectID from 'Common/Types/ObjectID';
+import IconProp from 'Common/Types/Icon/IconProp';
+
+
+export const getPlaceholderTriggerNode = (): Node => {
+    return ({
+        id: ObjectID.generate().toString(),
+        type: NodeType.PlaceholderNode,
+        position: { x: 100, y: 100 },
+        data: {
+            icon: IconProp.Bolt,
+            isTrigger: true,
+        },
+    })
+}
+
+export enum NodeType {
+    Node = 'Node',
+    PlaceholderNode = 'PlaceholderNode'
+}
 
 const nodeTypes: NodeTypes = {
-    node: WorkflowComponent,
-    addNewNode: AddNewComponent,
+    [NodeType.Node]: WorkflowComponent,
+    [NodeType.PlaceholderNode]: AddNewComponent,
 };
 
 const edgeStyle: React.CSSProperties = {
@@ -42,12 +62,13 @@ const newNodeEdgeStyle: React.CSSProperties = {
 export interface ComponentProps {
     initialNodes: Array<Node>;
     initialEdges: Array<Edge>;
+    onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
-    const onClickNode: Function = (_data: NodeDataProp) => {};
+    const onClickNode: Function = (_data: NodeDataProp) => { };
 
     const deleteNode: Function = (id: string): void => {
         // remove the node.
@@ -78,6 +99,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         });
     };
 
+
+
     const [nodes, setNodes, onNodesChange] = useNodesState(
         props.initialNodes.map((node: Node) => {
             node.data.onDeleteClick = deleteNode;
@@ -98,7 +121,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 }
             );
 
-            if (node && node.type === 'addNewNode') {
+            if (node && node.type === NodeType.PlaceholderNode) {
                 isDarkEdge = false;
             }
 
@@ -116,6 +139,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             return edge;
         })
     );
+
+    useEffect(() => {
+        if (props.onWorkflowUpdated) {
+            props.onWorkflowUpdated(nodes, edges);
+        }
+    }, [nodes, edges])
 
     const proOptions: ProOptions = { hideAttribution: true };
 

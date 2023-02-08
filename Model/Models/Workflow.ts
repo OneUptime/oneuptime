@@ -16,6 +16,7 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import BaseModel from 'Common/Models/BaseModel';
+import { JSONObject } from 'Common/Types/JSON';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -309,4 +310,29 @@ export default class Workflow extends BaseModel {
         default: false,
     })
     public isEnabled?: boolean = undefined;
+
+    @ColumnAccessControl({
+        create: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanCreateWorkflow,
+        ],
+        read: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.ProjectMember,
+            Permission.CanReadWorkflow,
+        ],
+        update: [
+            Permission.ProjectOwner,
+            Permission.ProjectAdmin,
+            Permission.CanEditWorkflow,
+        ],
+    })
+    @TableColumn({ isDefaultValueColumn: false, required: false, type: TableColumnType.JSON })
+    @Column({
+        type: ColumnType.JSON,
+        nullable: true
+    })
+    public graph?: JSONObject = undefined;
 }
