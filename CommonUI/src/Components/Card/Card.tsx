@@ -13,7 +13,6 @@ export interface CardButtonSchema {
     isLoading?: undefined | boolean;
     className?: string | undefined;
     shortcutKey?: undefined | ShortcutKey;
-
 }
 
 export interface ComponentProps {
@@ -55,9 +54,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                                 style={
                                                     i > 0
                                                         ? {
-                                                            marginLeft:
-                                                                '10px',
-                                                        }
+                                                              marginLeft:
+                                                                  '10px',
+                                                          }
                                                         : {}
                                                 }
                                                 key={i}

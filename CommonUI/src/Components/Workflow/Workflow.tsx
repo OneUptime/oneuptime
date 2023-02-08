@@ -1,4 +1,10 @@
-import React, { FunctionComponent, useCallback, useRef, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    useCallback,
+    useRef,
+    useEffect,
+    useState,
+} from 'react';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -25,7 +31,7 @@ import { ComponentType } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 
 export const getPlaceholderTriggerNode = (): Node => {
-    return ({
+    return {
         id: ObjectID.generate().toString(),
         type: 'node',
         position: { x: 100, y: 100 },
@@ -33,16 +39,14 @@ export const getPlaceholderTriggerNode = (): Node => {
             icon: IconProp.Bolt,
             componentType: ComponentType.Trigger,
             nodeType: NodeType.PlaceholderNode,
-            title: "Trigger",
-            description: "Please click here to add trigger"
+            title: 'Trigger',
+            description: 'Please click here to add trigger',
         },
-    })
-}
-
-
+    };
+};
 
 const nodeTypes: NodeTypes = {
-    'node': WorkflowComponent,
+    node: WorkflowComponent,
 };
 
 const edgeStyle: React.CSSProperties = {
@@ -68,14 +72,12 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
     const onNodeClick: Function = (data: NodeDataProp) => {
-
-        // if placeholder node is clicked then show modal. 
+        // if placeholder node is clicked then show modal.
 
         if (data.nodeType == NodeType.PlaceholderNode) {
             setShowComponentsType(data.componentType);
             setShowComponentsModal(true);
         }
-
     };
 
     const deleteNode: Function = (id: string): void => {
@@ -106,8 +108,6 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             });
         });
     };
-
-
 
     const [nodes, setNodes, onNodesChange] = useNodesState(
         props.initialNodes.map((node: Node) => {
@@ -152,7 +152,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         if (props.onWorkflowUpdated) {
             props.onWorkflowUpdated(nodes, edges);
         }
-    }, [nodes, edges])
+    }, [nodes, edges]);
 
     const proOptions: ProOptions = { hideAttribution: true };
 
@@ -191,9 +191,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         edgeUpdateSuccessful.current = true;
     }, []);
 
-
-    const [showComponentsModal, setShowComponentsModal] = useState<boolean>(false);
-    const [showComponentType, setShowComponentsType] = useState<ComponentType>(ComponentType.Component);
+    const [showComponentsModal, setShowComponentsModal] =
+        useState<boolean>(false);
+    const [showComponentType, setShowComponentsType] = useState<ComponentType>(
+        ComponentType.Component
+    );
 
     return (
         <div className="h-[48rem]">
@@ -214,9 +216,14 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <Background color="#111827" />
             </ReactFlow>
 
-            {showComponentsModal && <ComponentsModal componentsType={showComponentType} onCloseModal={() => {
-                setShowComponentsModal(false);
-            }} />}
+            {showComponentsModal && (
+                <ComponentsModal
+                    componentsType={showComponentType}
+                    onCloseModal={() => {
+                        setShowComponentsModal(false);
+                    }}
+                />
+            )}
         </div>
     );
 };

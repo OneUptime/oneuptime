@@ -59,11 +59,12 @@ const Modal: FunctionComponent<ComponentProps> = (
             <div className="fixed inset-0 z-10 overflow-y-auto">
                 <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                     <div
-                        className={`relative transform rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full ${props.modalWidth &&
+                        className={`relative transform rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full ${
+                            props.modalWidth &&
                             props.modalWidth === ModalWidth.Large
-                            ? 'sm:max-w-7xl'
-                            : 'sm:max-w-lg'
-                            } `}
+                                ? 'sm:max-w-7xl'
+                                : 'sm:max-w-lg'
+                        } `}
                     >
                         {props.onClose && (
                             <div className="absolute top-0 right-0 hidden pt-4 pr-4 sm:block">
@@ -97,11 +98,14 @@ const Modal: FunctionComponent<ComponentProps> = (
                                 </div>
                             )}
                             <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:mr-4 sm:text-left">
-                                <div className='flex justify-between'>
+                                <div className="flex justify-between">
                                     <div>
                                         <h3
-                                            className={`text-lg font-medium leading-6 text-gray-900 ${props.icon ? 'ml-10 -mt-8 mb-5' : ''
-                                                }`}
+                                            className={`text-lg font-medium leading-6 text-gray-900 ${
+                                                props.icon
+                                                    ? 'ml-10 -mt-8 mb-5'
+                                                    : ''
+                                            }`}
                                             id="modal-title"
                                         >
                                             {props.title}
@@ -112,9 +116,9 @@ const Modal: FunctionComponent<ComponentProps> = (
                                             </h3>
                                         )}
                                     </div>
-                                    {props.rightElement && <div>
-                                        {props.rightElement}
-                                    </div>}
+                                    {props.rightElement && (
+                                        <div>{props.rightElement}</div>
+                                    )}
                                 </div>
                                 <div className="mt-2">
                                     <ModalBody error={props.error}>

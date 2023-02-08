@@ -7,7 +7,7 @@ import { ComponentType } from 'Common/Types/Workflow/Component';
 
 export enum NodeType {
     Node = 'Node',
-    PlaceholderNode = 'PlaceholderNode'
+    PlaceholderNode = 'PlaceholderNode',
 }
 
 export interface NodeDataProp {
@@ -31,11 +31,11 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [isHovering, setIsHovering] = useState<boolean>(false);
 
     let textColor = '#4b5563';
-    let descriptionColor = '£6b7280'
+    let descriptionColor = '£6b7280';
 
     if (isHovering) {
         textColor = '#111827';
-        descriptionColor = '£111827'
+        descriptionColor = '£111827';
     }
 
     let componentStyle: React.CSSProperties = {
@@ -48,7 +48,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         backgroundColor: 'white',
         boxShadow:
             '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-    }
+    };
 
     let handleStyle: React.CSSProperties = {
         background: '#4b5563',
@@ -72,7 +72,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             borderRadius: '0.25rem',
             borderWidth: '2px',
             backgroundColor: 'white',
-        }
+        };
 
         textColor = '#cbd5e1';
         descriptionColor = '#cbd5e1';
@@ -98,48 +98,51 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 }
             }}
         >
-            {!props.data.isPreview && isHovering && props.data.nodeType !== NodeType.PlaceholderNode && (
-                <div
-                    style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '100px',
-                        background: '#ef4444',
-                        position: 'absolute',
-                        top: '-9px',
-                        left: '228px',
-                        cursor: 'pointer',
-                    }}
-                    onClick={() => {
-                        if (props.data.onDeleteClick) {
-                            props.data.onDeleteClick(props.data.id);
-                        }
-                    }}
-                >
-                    <Icon
-                        icon={IconProp.Close}
+            {!props.data.isPreview &&
+                isHovering &&
+                props.data.nodeType !== NodeType.PlaceholderNode && (
+                    <div
                         style={{
-                            color: 'white',
-                            width: '1rem',
-                            height: '1rem',
-                            textAlign: 'center',
-                            margin: 'auto',
-                            marginTop: '2px',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '100px',
+                            background: '#ef4444',
+                            position: 'absolute',
+                            top: '-9px',
+                            left: '228px',
+                            cursor: 'pointer',
                         }}
-                        thick={ThickProp.Thick}
-                    />
-                </div>
-            )}
+                        onClick={() => {
+                            if (props.data.onDeleteClick) {
+                                props.data.onDeleteClick(props.data.id);
+                            }
+                        }}
+                    >
+                        <Icon
+                            icon={IconProp.Close}
+                            style={{
+                                color: 'white',
+                                width: '1rem',
+                                height: '1rem',
+                                textAlign: 'center',
+                                margin: 'auto',
+                                marginTop: '2px',
+                            }}
+                            thick={ThickProp.Thick}
+                        />
+                    </div>
+                )}
 
-            {!props.data.isPreview && props.data.componentType !== ComponentType.Trigger && (
-                <Handle
-                    type="target"
-                    onConnect={(_params: Connection) => { }}
-                    isConnectable={true}
-                    position={Position.Top}
-                    style={handleStyle}
-                />
-            )}
+            {!props.data.isPreview &&
+                props.data.componentType !== ComponentType.Trigger && (
+                    <Handle
+                        type="target"
+                        onConnect={(_params: Connection) => {}}
+                        isConnectable={true}
+                        position={Position.Top}
+                        style={handleStyle}
+                    />
+                )}
 
             <div
                 style={{
@@ -174,15 +177,17 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     >
                         {props.data.title}
                     </p>
-                    {!props.data.isPreview && props.data.id && <p
-                        style={{
-                            color: descriptionColor,
-                            fontSize: '0.875rem',
-                            textAlign: 'center',
-                        }}
-                    >
-                        ({props.data.id})
-                    </p>}
+                    {!props.data.isPreview && props.data.id && (
+                        <p
+                            style={{
+                                color: descriptionColor,
+                                fontSize: '0.875rem',
+                                textAlign: 'center',
+                            }}
+                        >
+                            ({props.data.id})
+                        </p>
+                    )}
                     <p
                         style={{
                             color: descriptionColor,
@@ -197,15 +202,17 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 </div>
             </div>
 
-            {!props.data.isPreview && props.data.nodeType !== NodeType.PlaceholderNode && <Handle
-                type="source"
-                id="a"
-                onConnect={(_params: Connection) => { }}
-                isConnectable={true}
-                position={Position.Bottom}
-                style={handleStyle}
-            />}
-
+            {!props.data.isPreview &&
+                props.data.nodeType !== NodeType.PlaceholderNode && (
+                    <Handle
+                        type="source"
+                        id="a"
+                        onConnect={(_params: Connection) => {}}
+                        isConnectable={true}
+                        position={Position.Bottom}
+                        style={handleStyle}
+                    />
+                )}
         </div>
     );
 };

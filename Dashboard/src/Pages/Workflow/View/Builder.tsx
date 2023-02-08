@@ -1,13 +1,20 @@
 import Route from 'Common/Types/API/Route';
 import Page from 'CommonUI/src/Components/Page/Page';
-import React, { FunctionComponent, ReactElement, useEffect, useState } from 'react';
+import React, {
+    FunctionComponent,
+    ReactElement,
+    useEffect,
+    useState,
+} from 'react';
 import PageMap from '../../../Utils/PageMap';
 import RouteMap, { RouteUtil } from '../../../Utils/RouteMap';
 import PageComponentProps from '../../PageComponentProps';
 import SideMenu from './SideMenu';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
-import Workflow, { getPlaceholderTriggerNode } from 'CommonUI/src/Components/Workflow/Workflow';
+import Workflow, {
+    getPlaceholderTriggerNode,
+} from 'CommonUI/src/Components/Workflow/Workflow';
 import Card from 'CommonUI/src/Components/Card/Card';
 import { Edge, Node } from 'reactflow';
 import { JSONObject } from 'Common/Types/JSON';
@@ -18,14 +25,14 @@ import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
 import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
 
-
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [saveStatus, setSaveStatus] = useState<string>('');
-    const [saveTimeout, setSaveTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+    const [saveTimeout, setSaveTimeout] = useState<ReturnType<
+        typeof setTimeout
+    > | null>(null);
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
     const [nodes, setNodes] = useState<Array<Node>>([]);
     const [edges, setEdges] = useState<Array<Edge>>([]);
@@ -33,110 +40,105 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
     const loadGraph = async () => {
         try {
-
-            setIsLoading(true)
-            const workflow: WorkflowModel | null = await ModelAPI.getItem(WorkflowModel, modelId, {
-                graph: true
-            }, {});
+            setIsLoading(true);
+            const workflow: WorkflowModel | null = await ModelAPI.getItem(
+                WorkflowModel,
+                modelId,
+                {
+                    graph: true,
+                },
+                {}
+            );
 
             if (workflow) {
-
                 if (workflow.graph && (workflow.graph as JSONObject)['nodes']) {
-
-                    if (((workflow.graph as JSONObject)['nodes'] as Array<Node>).length === 0) {
+                    if (
+                        ((workflow.graph as JSONObject)['nodes'] as Array<Node>)
+                            .length === 0
+                    ) {
                         // add a placeholder trigger node.
-                        setNodes([
-                            getPlaceholderTriggerNode()
-                        ])
+                        setNodes([getPlaceholderTriggerNode()]);
                     } else {
-                        setNodes((workflow.graph as JSONObject)['nodes'] as Array<Node>)
+                        setNodes(
+                            (workflow.graph as JSONObject)[
+                                'nodes'
+                            ] as Array<Node>
+                        );
                     }
-
                 } else {
                     // add a placeholder trigger node.
-                    setNodes([
-                        getPlaceholderTriggerNode()
-                    ])
+                    setNodes([getPlaceholderTriggerNode()]);
                 }
 
                 if (workflow.graph && (workflow.graph as JSONObject)['edges']) {
-                    setEdges((workflow.graph as JSONObject)['edges'] as Array<Edge>)
+                    setEdges(
+                        (workflow.graph as JSONObject)['edges'] as Array<Edge>
+                    );
                 } else {
-                    setEdges([])
+                    setEdges([]);
                 }
-
-
-
             } else {
-                setError('Workflow not found')
+                setError('Workflow not found');
             }
-
-
-
         } catch (err) {
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
+                        'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
             }
         }
 
-        setIsLoading(false)
-    }
-
+        setIsLoading(false);
+    };
 
     const saveGraph = async (nodes: Array<Node>, edges: Array<Edge>) => {
-
         setSaveStatus('Saving...');
-
 
         if (saveTimeout) {
             clearTimeout(saveTimeout);
-            setSaveTimeout(null)
+            setSaveTimeout(null);
         }
 
-        setSaveTimeout(setTimeout(async () => {
-            try {
-                const graph: JSONObject = {
-                    nodes, edges
-                }
-
-
-                await ModelAPI.updateById(WorkflowModel, modelId, {
-                    graph
-                });
-
-                setSaveStatus('Changes Saved.');
-            } catch (err) {
+        setSaveTimeout(
+            setTimeout(async () => {
                 try {
-                    setError(
-                        (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
-                    );
-                } catch (e) {
-                    setError('Server Error. Please try again');
+                    const graph: JSONObject = {
+                        nodes,
+                        edges,
+                    };
+
+                    await ModelAPI.updateById(WorkflowModel, modelId, {
+                        graph,
+                    });
+
+                    setSaveStatus('Changes Saved.');
+                } catch (err) {
+                    try {
+                        setError(
+                            (err as HTTPErrorResponse).message ||
+                                'Server Error. Please try again'
+                        );
+                    } catch (e) {
+                        setError('Server Error. Please try again');
+                    }
+
+                    setSaveStatus('Save Error.');
                 }
 
-                setSaveStatus('Save Error.');
-            }
-
-            if (saveTimeout) {
-                clearTimeout(saveTimeout);
-                setSaveTimeout(null)
-            }
-
-        }, 1000));
-
-    }
-
+                if (saveTimeout) {
+                    clearTimeout(saveTimeout);
+                    setSaveTimeout(null);
+                }
+            }, 1000)
+        );
+    };
 
     useEffect(() => {
         loadGraph();
     }, []);
-
 
     // const initialNodes: Array<Node> = [
     //     {
@@ -185,7 +187,6 @@ const Delete: FunctionComponent<PageComponentProps> = (
     //     },
     // ];
 
-
     return (
         <Page
             title={'Workflow'}
@@ -220,24 +221,33 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 },
             ]}
             sideMenu={<SideMenu modelId={modelId} />}
-        ><>
+        >
+            <>
                 <Card
                     title={'Workflow Builder'}
                     description={'Workflow builder for OneUptime'}
-                    rightElement={<p className="text-sm text-gray-400">{saveStatus}</p>}
+                    rightElement={
+                        <p className="text-sm text-gray-400">{saveStatus}</p>
+                    }
                 >
-
                     {isLoading ? <ComponentLoader /> : <></>}
 
-                    {!isLoading ? <Workflow
-                        initialNodes={nodes}
-                        initialEdges={edges}
-                        onWorkflowUpdated={(nodes: Array<Node>, edges: Array<Edge>) => {
-                            setNodes(nodes)
-                            setEdges(edges);
-                            saveGraph(nodes, edges);
-                        }}
-                    /> : <></>}
+                    {!isLoading ? (
+                        <Workflow
+                            initialNodes={nodes}
+                            initialEdges={edges}
+                            onWorkflowUpdated={(
+                                nodes: Array<Node>,
+                                edges: Array<Edge>
+                            ) => {
+                                setNodes(nodes);
+                                setEdges(edges);
+                                saveGraph(nodes, edges);
+                            }}
+                        />
+                    ) : (
+                        <></>
+                    )}
                 </Card>
                 {error && (
                     <ConfirmModal

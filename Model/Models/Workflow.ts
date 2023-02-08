@@ -329,10 +329,14 @@ export default class Workflow extends BaseModel {
             Permission.CanEditWorkflow,
         ],
     })
-    @TableColumn({ isDefaultValueColumn: false, required: false, type: TableColumnType.JSON })
+    @TableColumn({
+        isDefaultValueColumn: false,
+        required: false,
+        type: TableColumnType.JSON,
+    })
     @Column({
         type: ColumnType.JSON,
-        nullable: true
+        nullable: true,
     })
     public graph?: JSONObject = undefined;
 }
