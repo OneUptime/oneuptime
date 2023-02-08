@@ -13,6 +13,7 @@ export interface CardButtonSchema {
     isLoading?: undefined | boolean;
     className?: string | undefined;
     shortcutKey?: undefined | ShortcutKey;
+
 }
 
 export interface ComponentProps {
@@ -22,6 +23,7 @@ export interface ComponentProps {
     children?: undefined | Array<ReactElement> | ReactElement;
     className?: string | undefined;
     bodyClassName?: string | undefined;
+    rightElement?: ReactElement | undefined;
 }
 
 const Card: FunctionComponent<ComponentProps> = (
@@ -45,6 +47,7 @@ const Card: FunctionComponent<ComponentProps> = (
                                 </p>
                             </div>
                             <div className="flex">
+                                {props.rightElement}
                                 {props.buttons?.map(
                                     (button: CardButtonSchema, i: number) => {
                                         return (
@@ -52,9 +55,9 @@ const Card: FunctionComponent<ComponentProps> = (
                                                 style={
                                                     i > 0
                                                         ? {
-                                                              marginLeft:
-                                                                  '10px',
-                                                          }
+                                                            marginLeft:
+                                                                '10px',
+                                                        }
                                                         : {}
                                                 }
                                                 key={i}

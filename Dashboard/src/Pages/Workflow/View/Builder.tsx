@@ -24,6 +24,8 @@ const Delete: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
 
     const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [saveStatus, setSaveStatus] = useState<string>('');
+    const [saveTimeout, setSaveTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
     const [nodes, setNodes] = useState<Array<Node>>([]);
     const [edges, setEdges] = useState<Array<Edge>>([]);
@@ -87,25 +89,47 @@ const Delete: FunctionComponent<PageComponentProps> = (
 
 
     const saveGraph = async (nodes: Array<Node>, edges: Array<Edge>) => {
-        try {
-            const graph: JSONObject = {
-                nodes, edges
-            }
+
+        setSaveStatus('Saving...');
 
 
-            await ModelAPI.updateById(WorkflowModel, modelId, {
-                graph
-            });
-        } catch (err) {
-            try {
-                setError(
-                    (err as HTTPErrorResponse).message ||
-                    'Server Error. Please try again'
-                );
-            } catch (e) {
-                setError('Server Error. Please try again');
-            }
+        if (saveTimeout) {
+            clearTimeout(saveTimeout);
+            setSaveTimeout(null)
         }
+
+        setSaveTimeout(setTimeout(async () => {
+            try {
+                const graph: JSONObject = {
+                    nodes, edges
+                }
+
+
+                await ModelAPI.updateById(WorkflowModel, modelId, {
+                    graph
+                });
+
+                setSaveStatus('Changes Saved.');
+            } catch (err) {
+                try {
+                    setError(
+                        (err as HTTPErrorResponse).message ||
+                        'Server Error. Please try again'
+                    );
+                } catch (e) {
+                    setError('Server Error. Please try again');
+                }
+
+                setSaveStatus('Save Error.');
+            }
+
+            if (saveTimeout) {
+                clearTimeout(saveTimeout);
+                setSaveTimeout(null)
+            }
+
+        }, 1000));
+
     }
 
 
@@ -200,6 +224,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                 <Card
                     title={'Workflow Builder'}
                     description={'Workflow builder for OneUptime'}
+                    rightElement={<p className="text-sm text-gray-400">{saveStatus}</p>}
                 >
 
                     {isLoading ? <ComponentLoader /> : <></>}
