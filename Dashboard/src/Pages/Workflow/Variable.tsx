@@ -43,7 +43,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
             <ModelTable<WorkflowVariable>
                 modelType={WorkflowVariable}
                 id="status-page-table"
-                isDeleteable={false}
+                isDeleteable={true}
                 isEditable={false}
                 isCreateable={true}
                 name="Workflows"

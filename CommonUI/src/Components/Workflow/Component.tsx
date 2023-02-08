@@ -187,7 +187,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                         style={{
                             color: descriptionColor,
                             fontSize: '0.775rem',
-                            lineHeight: '0.8rem',
+                            lineHeight: '1.0rem',
                             textAlign: 'center',
                             marginTop: '6px',
                         }}

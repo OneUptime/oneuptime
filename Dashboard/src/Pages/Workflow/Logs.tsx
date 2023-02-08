@@ -136,7 +136,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         submitButtonText={'Close'}
                         submitButtonStyleType={ButtonStyleType.NORMAL}
                     >
-                        <div className="text-gray-500 mt-5 text-sm h-96 overflow-scroll overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                        <div className="text-gray-500 mt-5 text-sm h-96 overflow-y-auto overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
                             {logs}
                         </div>
                     </Modal>
