@@ -58,7 +58,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     workflowId: null,
                     projectId: DashboardNavigation.getProjectId()?.toString(),
                 }}
-                noItemsMessage={'No workflows found.'}
+                noItemsMessage={'No global variables found.'}
                 formFields={[
                     {
                         field: {
@@ -97,8 +97,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Content',
                         description:
-                            'Is this variable secret or secure? Should this be encrypted in the Database?',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                            'Enter the content of the variable',
+                        fieldType: FormFieldSchemaType.LongText,
                         required: true,
                     },
                 ]}
@@ -119,6 +119,14 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            isSecret: true,
+                        },
+                        title: 'Secret',
+                        type: FieldType.Boolean,
                         isFilterable: true,
                     },
                     {

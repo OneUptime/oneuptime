@@ -12,6 +12,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import Navigation from 'CommonUI/src/Utils/Navigation';
 import DashboardNavigation from '../../../Utils/Navigation';
 import ObjectID from 'Common/Types/ObjectID';
+import SideMenu from './SideMenu';
 
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -49,6 +50,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     ),
                 },
             ]}
+            sideMenu={<SideMenu modelId={modelId} />}
         >
             <ModelTable<WorkflowVariable>
                 modelType={WorkflowVariable}
@@ -60,9 +62,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                 isViewable={false}
                 cardProps={{
                     icon: IconProp.Variable,
-                    title: 'Global Variables',
+                    title: 'Workflow Variables',
                     description:
-                        'Here is a list of global secrets and variables for this project.',
+                        'Here is a list of workflow secrets and variables for this specific workflow.',
                 }}
                 query={{
                     workflowId: modelId,
@@ -72,10 +74,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     item: WorkflowVariable
                 ): Promise<WorkflowVariable> => {
                     item.workflowId = modelId;
-                    item.projectId = DashboardNavigation.getProjectId()!;
                     return Promise.resolve(item);
                 }}
-                noItemsMessage={'No workflows found.'}
+                noItemsMessage={'No workflow variables found.'}
                 formFields={[
                     {
                         field: {
@@ -114,8 +115,8 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Content',
                         description:
-                            'Is this variable secret or secure? Should this be encrypted in the Database?',
-                        fieldType: FormFieldSchemaType.Checkbox,
+                            'Enter the content of the variable',
+                        fieldType: FormFieldSchemaType.LongText,
                         required: true,
                     },
                 ]}
@@ -136,6 +137,14 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            isSecret: true,
+                        },
+                        title: 'Secret',
+                        type: FieldType.Boolean,
                         isFilterable: true,
                     },
                     {

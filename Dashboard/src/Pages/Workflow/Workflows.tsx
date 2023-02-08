@@ -71,6 +71,13 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         required: true,
                         placeholder: 'Description',
                     },
+                    {
+                        field: {
+                            isEnabled: true,
+                        },
+                        title: 'Enabled',
+                        fieldType: FormFieldSchemaType.Checkbox
+                    },
                 ]}
                 showRefreshButton={true}
                 showFilterButton={true}
@@ -92,6 +99,14 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                         },
                         title: 'Description',
                         type: FieldType.Text,
+                        isFilterable: true,
+                    },
+                    {
+                        field: {
+                            isEnabled: true,
+                        },
+                        title: 'Enabled',
+                        type: FieldType.Boolean,
                         isFilterable: true,
                     },
                 ]}

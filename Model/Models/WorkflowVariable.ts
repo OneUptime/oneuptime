@@ -15,6 +15,7 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import BaseModel from 'Common/Models/BaseModel';
+import Workflow from './Workflow';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -45,7 +46,7 @@ import BaseModel from 'Common/Models/BaseModel';
     name: 'WorkflowVariable',
 })
 @SingularPluralName('Workflow Variable', 'Workflow Variables')
-export default class Workflow extends BaseModel {
+export default class WorkflowVariable extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
@@ -127,7 +128,7 @@ export default class Workflow extends BaseModel {
     })
     @ManyToOne(
         (_type: string) => {
-            return Project;
+            return Workflow;
         },
         {
             eager: false,
@@ -245,7 +246,10 @@ export default class Workflow extends BaseModel {
             Permission.ProjectAdmin,
             Permission.CanCreateWorkflowVariable,
         ],
-        read: [],
+        read: [Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.ProjectMember,
+        Permission.CanReadWorkflowVariable],
         update: [],
     })
     @TableColumn({ required: true, type: TableColumnType.Boolean })

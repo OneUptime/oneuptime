@@ -273,6 +273,10 @@ const RouteMap: Dictionary<Route> = {
         `/dashboard/${RouteParams.ProjectID}/workflows/variables`
     ),
 
+    [PageMap.WORKFLOW_VARIABLES]: new Route(
+        `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/variables`
+    ),
+
     [PageMap.WORKFLOW_BUILDER]: new Route(
         `/dashboard/${RouteParams.ProjectID}/workflows/workflow/${RouteParams.ModelID}/builder`
     ),
@@ -298,7 +302,7 @@ export class RouteUtil {
         if (
             route.toString() === RouteMap[PageMap.USER_PROFILE]?.toString() ||
             route.toString() ===
-                RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
+            RouteMap[PageMap.PROJECT_INVITATIONS]?.toString() ||
             route.toString() === RouteMap[PageMap.ACTIVE_INCIDENTS]?.toString()
         ) {
             return true;

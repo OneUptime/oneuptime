@@ -12,6 +12,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 import BaseModel from 'Common/Models/BaseModel';
+import Workflow from './Workflow';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -42,7 +43,7 @@ import BaseModel from 'Common/Models/BaseModel';
     name: 'WorkflowLog',
 })
 @SingularPluralName('Workflow Log', 'Workflow Logs')
-export default class Workflow extends BaseModel {
+export default class WorkflowLog extends BaseModel {
     @ColumnAccessControl({
         create: [
             Permission.ProjectOwner,
