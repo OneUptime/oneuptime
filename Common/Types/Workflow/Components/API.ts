@@ -8,7 +8,7 @@ const components: Array<Component> = [
         category: 'API',
         description: 'Send Get API Request and get JSON Response',
         iconProp: IconProp.Globe,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 id: 'url',
@@ -99,7 +99,7 @@ const components: Array<Component> = [
         category: 'API',
         description: 'Send a POST Request and get JSON Response',
         iconProp: IconProp.Globe,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 id: 'url',
@@ -190,7 +190,7 @@ const components: Array<Component> = [
         category: 'API',
         description: 'Send a PATCH Request and get JSON Response',
         iconProp: IconProp.Globe,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 id: 'url',
@@ -281,7 +281,7 @@ const components: Array<Component> = [
         category: 'API',
         description: 'Send a PATCH Request and get JSON Response',
         iconProp: IconProp.Globe,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 id: 'url',

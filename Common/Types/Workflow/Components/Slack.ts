@@ -8,7 +8,7 @@ const components: Array<Component> = [
         category: 'Slack',
         description: 'Send message to slack channel',
         iconProp: IconProp.SendMessage,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [],
         returnValues: [
             {

@@ -8,7 +8,7 @@ const components: Array<Component> = [
         category: 'JSON',
         description: 'Converts JSON Object to Text',
         iconProp: IconProp.ArrowCircleLeft,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 type: ComponentInputType.JSON,
@@ -56,7 +56,7 @@ const components: Array<Component> = [
         category: 'JSON',
         description: 'Converts Text to JSON Object',
         iconProp: IconProp.ArrowCircleLeft,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 type: ComponentInputType.Text,
@@ -104,7 +104,7 @@ const components: Array<Component> = [
         category: 'JSON',
         description: 'Merge two JSON Objects into one',
         iconProp: IconProp.ArrowCircleLeft,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 type: ComponentInputType.JSON,

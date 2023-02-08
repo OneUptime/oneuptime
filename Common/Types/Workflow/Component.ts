@@ -54,7 +54,7 @@ export default interface Component {
     category: string;
     description: string;
     iconProp: IconProp;
-    type: ComponentType;
+    componentType: ComponentType;
     arguments: Array<Argument>;
     returnValues: Array<ReturnValue>;
     inPorts: Array<Port>;

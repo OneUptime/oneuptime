@@ -3,13 +3,12 @@ import React, { FunctionComponent, useState } from 'react';
 import { Handle, Position, Connection } from 'reactflow';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
-
+import { ComponentType } from 'Common/Types/Workflow/Component';
 
 export enum NodeType {
     Node = 'Node',
     PlaceholderNode = 'PlaceholderNode'
 }
-
 
 export interface NodeDataProp {
     nodeData: JSONObject;
@@ -17,10 +16,11 @@ export interface NodeDataProp {
     id: string;
     description: string;
     icon: IconProp;
-    isTrigger: boolean;
+    componentType: ComponentType;
     nodeType: NodeType;
-    onDeleteClick: (id: string) => void;
-    onClick: (node: NodeDataProp) => void;
+    onDeleteClick?: (id: string) => void | undefined;
+    onClick?: (node: NodeDataProp) => void | undefined;
+    isPreview?: boolean | undefined; // is this used to show in the components modal?
 }
 
 export interface ComponentProps {
@@ -93,10 +93,12 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             }}
             style={componentStyle}
             onClick={() => {
-                props.data.onClick(props.data);
+                if (props.data.onClick) {
+                    props.data.onClick(props.data);
+                }
             }}
         >
-            {isHovering && props.data.nodeType !== NodeType.PlaceholderNode && (
+            {!props.data.isPreview && isHovering && props.data.nodeType !== NodeType.PlaceholderNode && (
                 <div
                     style={{
                         width: '20px',
@@ -129,7 +131,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 </div>
             )}
 
-            {!props.data.isTrigger && (
+            {!props.data.isPreview && props.data.componentType !== ComponentType.Trigger && (
                 <Handle
                     type="target"
                     onConnect={(_params: Connection) => { }}
@@ -172,7 +174,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     >
                         {props.data.title}
                     </p>
-                    {props.data.id && <p
+                    {!props.data.isPreview && props.data.id && <p
                         style={{
                             color: descriptionColor,
                             fontSize: '0.875rem',
@@ -195,7 +197,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 </div>
             </div>
 
-            {props.data.nodeType !== NodeType.PlaceholderNode && <Handle
+            {!props.data.isPreview && props.data.nodeType !== NodeType.PlaceholderNode && <Handle
                 type="source"
                 id="a"
                 onConnect={(_params: Connection) => { }}

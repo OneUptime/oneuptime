@@ -17,7 +17,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `Database query to find one ${model.singularName}`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Component,
+                componentType: ComponentType.Component,
                 arguments: [
                     {
                         type: ComponentInputType.Query,
@@ -66,7 +66,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `Database query to find many ${model.pluralName}`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Component,
+                componentType: ComponentType.Component,
                 arguments: [
                     {
                         type: ComponentInputType.Query,
@@ -117,7 +117,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is deleted...`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Trigger,
+                componentType: ComponentType.Trigger,
                 arguments: [],
                 returnValues: [
                     {
@@ -145,7 +145,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `Database query to delete one ${model.singularName}`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Component,
+                componentType: ComponentType.Component,
                 arguments: [
                     {
                         type: ComponentInputType.Query,
@@ -186,7 +186,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `Database query to find many ${model.pluralName}`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Component,
+                componentType: ComponentType.Component,
                 arguments: [
                     {
                         type: ComponentInputType.Query,
@@ -229,7 +229,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is created...`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Trigger,
+                componentType: ComponentType.Trigger,
                 arguments: [],
                 returnValues: [
                     {
@@ -257,7 +257,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `Database query to create one ${model.singularName}`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Component,
+                componentType: ComponentType.Component,
                 arguments: [
                     {
                         id: 'json',
@@ -306,7 +306,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `Database query to create many ${model.pluralName}`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Component,
+                componentType: ComponentType.Component,
                 arguments: [
                     {
                         id: 'json-array',
@@ -357,7 +357,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is updated...`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Trigger,
+                componentType: ComponentType.Trigger,
                 arguments: [],
                 returnValues: [
                     {
@@ -384,7 +384,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `Database query to update one ${model.singularName}`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Component,
+                componentType: ComponentType.Component,
                 arguments: [
                     {
                         type: ComponentInputType.Query,
@@ -440,7 +440,7 @@ export default class BaseModelComponent {
                 category: `${model.singularName}`,
                 description: `Database query to update many ${model.pluralName}`,
                 iconProp: IconProp.ArrowCircleLeft,
-                type: ComponentType.Component,
+                componentType: ComponentType.Component,
                 arguments: [
                     {
                         type: ComponentInputType.Query,

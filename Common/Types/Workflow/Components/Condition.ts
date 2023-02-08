@@ -8,7 +8,7 @@ const components: Array<Component> = [
         category: 'Condition',
         description: 'If the inputs are true then proceed',
         iconProp: IconProp.ArrowCircleLeft,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 type: ComponentInputType.Text,
@@ -48,7 +48,7 @@ const components: Array<Component> = [
         category: 'Condition',
         description: 'If the inputs are true then proceed',
         iconProp: IconProp.ArrowCircleLeft,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 type: ComponentInputType.Text,
@@ -88,7 +88,7 @@ const components: Array<Component> = [
         category: 'Condition',
         description: 'Branch based on Inputs',
         iconProp: IconProp.ArrowCircleLeft,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 type: ComponentInputType.Text,

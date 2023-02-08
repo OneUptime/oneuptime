@@ -8,7 +8,7 @@ const components: Array<Component> = [
         category: 'Utils',
         description: 'Run custom JavaScript in your workflow',
         iconProp: IconProp.ArrowCircleLeft,
-        type: ComponentType.Component,
+        componentType: ComponentType.Component,
         arguments: [
             {
                 type: ComponentInputType.AnyValue,

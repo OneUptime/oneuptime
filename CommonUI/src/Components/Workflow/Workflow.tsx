@@ -1,4 +1,4 @@
-import React, { FunctionComponent, useCallback, useRef, useEffect } from 'react';
+import React, { FunctionComponent, useCallback, useRef, useEffect, useState } from 'react';
 import ReactFlow, {
     MiniMap,
     Controls,
@@ -21,7 +21,8 @@ import 'reactflow/dist/style.css';
 import WorkflowComponent, { NodeDataProp, NodeType } from './Component';
 import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
-
+import { ComponentType } from 'Common/Types/Workflow/Component';
+import ComponentsModal from './ComponentModal';
 
 export const getPlaceholderTriggerNode = (): Node => {
     return ({
@@ -30,7 +31,7 @@ export const getPlaceholderTriggerNode = (): Node => {
         position: { x: 100, y: 100 },
         data: {
             icon: IconProp.Bolt,
-            isTrigger: true,
+            componentType: ComponentType.Trigger,
             nodeType: NodeType.PlaceholderNode,
             title: "Trigger",
             description: "Please click here to add trigger"
@@ -66,7 +67,14 @@ export interface ComponentProps {
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
-    const onNodeClick: Function = (_data: NodeDataProp) => {
+    const onNodeClick: Function = (data: NodeDataProp) => {
+
+        // if placeholder node is clicked then show modal. 
+
+        if (data.nodeType == NodeType.PlaceholderNode) {
+            setShowComponentsType(data.componentType);
+            setShowComponentsModal(true);
+        }
 
     };
 
@@ -183,6 +191,10 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         edgeUpdateSuccessful.current = true;
     }, []);
 
+
+    const [showComponentsModal, setShowComponentsModal] = useState<boolean>(false);
+    const [showComponentType, setShowComponentsType] = useState<ComponentType>(ComponentType.Component);
+
     return (
         <div className="h-[48rem]">
             <ReactFlow
@@ -201,6 +213,10 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <Controls />
                 <Background color="#111827" />
             </ReactFlow>
+
+            {showComponentsModal && <ComponentsModal componentsType={showComponentType} onCloseModal={() => {
+                setShowComponentsModal(false);
+            }} />}
         </div>
     );
 };

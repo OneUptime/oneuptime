@@ -8,7 +8,7 @@ const components: Array<Component> = [
         category: 'Triggers',
         description: 'Run this workflow on particular schedule',
         iconProp: IconProp.Clock,
-        type: ComponentType.Trigger,
+        componentType: ComponentType.Trigger,
         arguments: [
             {
                 type: ComponentInputType.CronTab,
