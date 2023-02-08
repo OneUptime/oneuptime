@@ -89,7 +89,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                             isEnabled: true,
                         },
                         title: 'Enabled',
-                        fieldType: FormFieldSchemaType.Checkbox
+                        fieldType: FormFieldSchemaType.Checkbox,
                     },
                 ]}
                 modelDetailProps={{
@@ -120,7 +120,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 isEnabled: true,
                             },
                             title: 'Enabled',
-                            fieldType: FieldType.Boolean
+                            fieldType: FieldType.Boolean,
                         },
                     ],
                     modelId: modelId,

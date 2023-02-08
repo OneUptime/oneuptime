@@ -82,7 +82,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                    column.key
+                                                        column.key
                                                     ] as string,
                                                     true
                                                 )
@@ -90,11 +90,11 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 ''
                                             )
                                         ) : column.type ===
-                                            FieldType.DateTime ? (
+                                          FieldType.DateTime ? (
                                             props.item[column.key] ? (
                                                 OneUptimeDate.getDateAsLocalFormattedString(
                                                     props.item[
-                                                    column.key
+                                                        column.key
                                                     ] as string,
                                                     false
                                                 )
@@ -102,7 +102,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                 ''
                                             )
                                         ) : column.type ===
-                                            FieldType.Boolean ? (
+                                          FieldType.Boolean ? (
                                             props.item[column.key] ? (
                                                 <Icon
                                                     icon={IconProp.Check}
@@ -183,7 +183,7 @@ const TableRow: FunctionComponent<ComponentProps> = (
                                                                 }
                                                                 isLoading={
                                                                     isButtonLoading[
-                                                                    i
+                                                                        i
                                                                     ]
                                                                 }
                                                                 onClick={() => {

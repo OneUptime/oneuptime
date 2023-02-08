@@ -20,9 +20,6 @@ import Modal, { ModalWidth } from 'CommonUI/src/Components/Modal/Modal';
 const Workflows: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
 ): ReactElement => {
-
-
-
     const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
     const [logs, setLogs] = useState<string>('');
 
@@ -65,8 +62,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                                 item: JSONObject,
                                 onCompleteAction: Function
                             ) => {
-
-                                setLogs((item['logs'] as string));
+                                setLogs(item['logs'] as string);
                                 setShowViewLogsModal(true);
 
                                 onCompleteAction();
@@ -78,7 +74,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     name="Workflow Logs"
                     isViewable={false}
                     selectMoreFields={{
-                        logs: true
+                        logs: true,
                     }}
                     cardProps={{
                         icon: IconProp.Logs,
@@ -107,7 +103,9 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                                     <WorkflowElement
                                         workflow={
                                             JSONFunctions.fromJSON(
-                                                (item['workflow'] as JSONObject) || [],
+                                                (item[
+                                                    'workflow'
+                                                ] as JSONObject) || [],
                                                 Workflow
                                             ) as Workflow
                                         }
@@ -126,29 +124,25 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                     ]}
                 />
 
-                {showViewLogsModal && <Modal
-                    title={'Workflow Logs'}
-                    description="Here are the logs for this workflow"
-                    isLoading={false}
-                    modalWidth={ModalWidth.Large}
-                    onSubmit={() => {
-                        setShowViewLogsModal(false);
-                    }}
-
-                    submitButtonText={
-                        'Close'
-                    }
-                    submitButtonStyleType={
-                        ButtonStyleType.NORMAL
-                    }
-                >
-                    <div className="text-gray-500 mt-5 text-sm h-96 overflow-scroll overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-                        {logs}
-                    </div>
-                </Modal>}
-
+                {showViewLogsModal && (
+                    <Modal
+                        title={'Workflow Logs'}
+                        description="Here are the logs for this workflow"
+                        isLoading={false}
+                        modalWidth={ModalWidth.Large}
+                        onSubmit={() => {
+                            setShowViewLogsModal(false);
+                        }}
+                        submitButtonText={'Close'}
+                        submitButtonStyleType={ButtonStyleType.NORMAL}
+                    >
+                        <div className="text-gray-500 mt-5 text-sm h-96 overflow-scroll overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                            {logs}
+                        </div>
+                    </Modal>
+                )}
             </>
-        </Page >
+        </Page>
     );
 };
 

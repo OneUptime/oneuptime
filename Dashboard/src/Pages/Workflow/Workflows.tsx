@@ -76,7 +76,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             isEnabled: true,
                         },
                         title: 'Enabled',
-                        fieldType: FormFieldSchemaType.Checkbox
+                        fieldType: FormFieldSchemaType.Checkbox,
                     },
                 ]}
                 showRefreshButton={true}

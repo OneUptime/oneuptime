@@ -19,8 +19,8 @@ const WorkflowElement: FunctionComponent<ComponentProps> = (
         const projectId: string | undefined = props.workflow.projectId
             ? props.workflow.projectId.toString()
             : props.workflow.project
-                ? props.workflow.project._id
-                : '';
+            ? props.workflow.project._id
+            : '';
         return (
             <Link
                 onNavigateComplete={props.onNavigateComplete}

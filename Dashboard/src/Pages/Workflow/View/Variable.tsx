@@ -114,8 +114,7 @@ const Workflows: FunctionComponent<PageComponentProps> = (
                             content: true,
                         },
                         title: 'Content',
-                        description:
-                            'Enter the content of the variable',
+                        description: 'Enter the content of the variable',
                         fieldType: FormFieldSchemaType.LongText,
                         required: true,
                     },

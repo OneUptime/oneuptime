@@ -24,11 +24,8 @@ const Delete: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
     const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-
-
     const [showViewLogsModal, setShowViewLogsModal] = useState<boolean>(false);
     const [logs, setLogs] = useState<string>('');
-
 
     return (
         <Page
@@ -75,10 +72,11 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     name="Workflow Logs"
                     query={{
                         workflowId: modelId,
-                        projectId: DashboardNavigation.getProjectId()?.toString(),
+                        projectId:
+                            DashboardNavigation.getProjectId()?.toString(),
                     }}
                     selectMoreFields={{
-                        logs: true
+                        logs: true,
                     }}
                     actionButtons={[
                         {
@@ -89,8 +87,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 item: JSONObject,
                                 onCompleteAction: Function
                             ) => {
-
-                                setLogs((item['logs'] as string));
+                                setLogs(item['logs'] as string);
                                 setShowViewLogsModal(true);
 
                                 onCompleteAction();
@@ -125,7 +122,9 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                     <WorkflowElement
                                         workflow={
                                             JSONFunctions.fromJSON(
-                                                (item['workflow'] as JSONObject) || [],
+                                                (item[
+                                                    'workflow'
+                                                ] as JSONObject) || [],
                                                 Workflow
                                             ) as Workflow
                                         }
@@ -144,28 +143,24 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     ]}
                 />
 
-                {showViewLogsModal && <Modal
-                    title={'Workflow Logs'}
-                    description="Here are the logs for this workflow"
-                    isLoading={false}
-                    modalWidth={ModalWidth.Large}
-                    onSubmit={() => {
-                        setShowViewLogsModal(false);
-                    }}
-
-                    submitButtonText={
-                        'Close'
-                    }
-                    submitButtonStyleType={
-                        ButtonStyleType.NORMAL
-                    }
-                >
-                    <div className="text-gray-500 mt-5 text-sm h-96 overflow-scroll overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
-                        {logs}
-                    </div>
-                </Modal>}
+                {showViewLogsModal && (
+                    <Modal
+                        title={'Workflow Logs'}
+                        description="Here are the logs for this workflow"
+                        isLoading={false}
+                        modalWidth={ModalWidth.Large}
+                        onSubmit={() => {
+                            setShowViewLogsModal(false);
+                        }}
+                        submitButtonText={'Close'}
+                        submitButtonStyleType={ButtonStyleType.NORMAL}
+                    >
+                        <div className="text-gray-500 mt-5 text-sm h-96 overflow-scroll overflow-x-hidden p-5 border-gray-50 border border-2 bg-gray-100 rounded">
+                            {logs}
+                        </div>
+                    </Modal>
+                )}
             </>
-
         </Page>
     );
 };
