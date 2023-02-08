@@ -4,6 +4,13 @@ import { Handle, Position, Connection } from 'reactflow';
 import Icon, { ThickProp } from '../Icon/Icon';
 import IconProp from 'Common/Types/Icon/IconProp';
 
+
+export enum NodeType {
+    Node = 'Node',
+    PlaceholderNode = 'PlaceholderNode'
+}
+
+
 export interface NodeDataProp {
     nodeData: JSONObject;
     title: string;
@@ -11,6 +18,7 @@ export interface NodeDataProp {
     description: string;
     icon: IconProp;
     isTrigger: boolean;
+    nodeType: NodeType;
     onDeleteClick: (id: string) => void;
     onClick: (node: NodeDataProp) => void;
 }
@@ -22,11 +30,58 @@ export interface ComponentProps {
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [isHovering, setIsHovering] = useState<boolean>(false);
 
-    const handleStyle: React.CSSProperties = {
+    let textColor = '#4b5563';
+    let descriptionColor = '£6b7280'
+
+    if (isHovering) {
+        textColor = '#111827';
+        descriptionColor = '£111827'
+    }
+
+    let componentStyle: React.CSSProperties = {
+        width: '15rem',
+        height: '8rem',
+        padding: '1rem',
+        borderColor: textColor,
+        borderRadius: '0.25rem',
+        borderWidth: '2px',
+        backgroundColor: 'white',
+        boxShadow:
+            '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+    }
+
+    let handleStyle: React.CSSProperties = {
         background: '#4b5563',
         height: '0.75rem',
         width: '0.75rem',
     };
+
+    if (props.data.nodeType === NodeType.PlaceholderNode) {
+        handleStyle = {
+            background: '#cbd5e1',
+            height: '0.75rem',
+            width: '0.75rem',
+        };
+
+        componentStyle = {
+            borderStyle: 'dashed',
+            width: '15rem',
+            height: '8rem',
+            padding: '1rem',
+            borderColor: isHovering ? '#94a3b8' : '#cbd5e1',
+            borderRadius: '0.25rem',
+            borderWidth: '2px',
+            backgroundColor: 'white',
+        }
+
+        textColor = '#cbd5e1';
+        descriptionColor = '#cbd5e1';
+
+        if (isHovering) {
+            textColor = '#94a3b8';
+            descriptionColor = '#94a3b8';
+        }
+    }
 
     return (
         <div
@@ -36,22 +91,12 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             onMouseOut={() => {
                 setIsHovering(false);
             }}
-            style={{
-                width: '15rem',
-                height: '8rem',
-                padding: '1rem',
-                borderColor: isHovering ? '#111827' : '#4b5563',
-                borderRadius: '0.25rem',
-                borderWidth: '2px',
-                backgroundColor: 'white',
-                boxShadow:
-                    '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-            }}
+            style={componentStyle}
             onClick={() => {
                 props.data.onClick(props.data);
             }}
         >
-            {isHovering && (
+            {isHovering && props.data.nodeType !== NodeType.PlaceholderNode && (
                 <div
                     style={{
                         width: '20px',
@@ -87,7 +132,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
             {!props.data.isTrigger && (
                 <Handle
                     type="target"
-                    onConnect={(_params: Connection) => {}}
+                    onConnect={(_params: Connection) => { }}
                     isConnectable={true}
                     position={Position.Top}
                     style={handleStyle}
@@ -109,7 +154,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     <Icon
                         icon={props.data.icon}
                         style={{
-                            color: isHovering ? '#111827' : '#4b5563',
+                            color: textColor,
                             width: '1.5rem',
                             height: '1.5rem',
                             textAlign: 'center',
@@ -118,7 +163,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     />
                     <p
                         style={{
-                            color: isHovering ? '#111827' : '#4b5563',
+                            color: textColor,
                             fontSize: '0.875rem',
                             lineHeight: '1.25rem',
                             textAlign: 'center',
@@ -127,18 +172,18 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     >
                         {props.data.title}
                     </p>
-                    <p
+                    {props.data.id && <p
                         style={{
-                            color: isHovering ? '#111827' : '#6b7280',
+                            color: descriptionColor,
                             fontSize: '0.875rem',
                             textAlign: 'center',
                         }}
                     >
                         ({props.data.id})
-                    </p>
+                    </p>}
                     <p
                         style={{
-                            color: isHovering ? '#111827' : '#6b7280',
+                            color: descriptionColor,
                             fontSize: '0.775rem',
                             lineHeight: '0.8rem',
                             textAlign: 'center',
@@ -150,14 +195,15 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 </div>
             </div>
 
-            <Handle
+            {props.data.nodeType !== NodeType.PlaceholderNode && <Handle
                 type="source"
                 id="a"
-                onConnect={(_params: Connection) => {}}
+                onConnect={(_params: Connection) => { }}
                 isConnectable={true}
                 position={Position.Bottom}
                 style={handleStyle}
-            />
+            />}
+
         </div>
     );
 };

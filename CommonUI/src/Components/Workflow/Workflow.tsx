@@ -18,8 +18,7 @@ import ReactFlow, {
 } from 'reactflow';
 // 👇 you need to import the reactflow styles
 import 'reactflow/dist/style.css';
-import WorkflowComponent, { NodeDataProp } from './Component';
-import AddNewComponent from './AddNewComponent';
+import WorkflowComponent, { NodeDataProp, NodeType } from './Component';
 import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
 
@@ -27,23 +26,22 @@ import IconProp from 'Common/Types/Icon/IconProp';
 export const getPlaceholderTriggerNode = (): Node => {
     return ({
         id: ObjectID.generate().toString(),
-        type: NodeType.PlaceholderNode,
+        type: 'node',
         position: { x: 100, y: 100 },
         data: {
             icon: IconProp.Bolt,
             isTrigger: true,
+            nodeType: NodeType.PlaceholderNode,
+            title: "Trigger",
+            description: "Please click here to add trigger"
         },
     })
 }
 
-export enum NodeType {
-    Node = 'Node',
-    PlaceholderNode = 'PlaceholderNode'
-}
+
 
 const nodeTypes: NodeTypes = {
-    [NodeType.Node]: WorkflowComponent,
-    [NodeType.PlaceholderNode]: AddNewComponent,
+    'node': WorkflowComponent,
 };
 
 const edgeStyle: React.CSSProperties = {
@@ -68,7 +66,9 @@ export interface ComponentProps {
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const edgeUpdateSuccessful: any = useRef(true);
 
-    const onClickNode: Function = (_data: NodeDataProp) => { };
+    const onNodeClick: Function = (_data: NodeDataProp) => {
+
+    };
 
     const deleteNode: Function = (id: string): void => {
         // remove the node.
@@ -104,7 +104,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [nodes, setNodes, onNodesChange] = useNodesState(
         props.initialNodes.map((node: Node) => {
             node.data.onDeleteClick = deleteNode;
-            node.data.onClick = onClickNode;
+            node.data.onClick = onNodeClick;
             return node;
         })
     );
