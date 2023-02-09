@@ -1,8 +1,8 @@
 export interface EnableWorkflowOn {
-    create: boolean;
-    update: boolean;
-    delete: boolean;
-    read: boolean;
+    create?: boolean | undefined;
+    update?: boolean | undefined;
+    delete?: boolean | undefined;
+    read?: boolean | undefined;
 }
 
 export default (enableWorkflowOn: EnableWorkflowOn) => {
