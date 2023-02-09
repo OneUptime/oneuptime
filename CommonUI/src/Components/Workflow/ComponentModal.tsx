@@ -34,58 +34,56 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     const [components, setComponents] = useState<Array<Component>>([]);
     const [categories, setCategories] = useState<Array<ComponentCategory>>([]);
 
-    const [componentsToShow, setComponentsToShow] = useState<Array<Component>>([]);
+    const [componentsToShow, setComponentsToShow] = useState<Array<Component>>(
+        []
+    );
 
     const [isSearching, setIsSearching] = useState<boolean>(false);
 
     useEffect(() => {
-
-        let initComponents: Array<Component> = []; 
-        let initCategories: Array<ComponentCategory> = [
-            ...Categories
-        ];
-      
+        let initComponents: Array<Component> = [];
+        const initCategories: Array<ComponentCategory> = [...Categories];
 
         initComponents = initComponents.concat(Components);
 
-        for(const model of Entities){
-            initComponents = initComponents.concat(BaseModelComponentFactory.getComponents(new model()));
+        for (const model of Entities) {
+            initComponents = initComponents.concat(
+                BaseModelComponentFactory.getComponents(new model())
+            );
             initCategories.push({
                 name: new model().singularName || 'Model',
-                description: `Interact with ${new model().singularName} in your workflow.`,
-                icon: new model().icon || IconProp.Database
-            })
+                description: `Interact with ${
+                    new model().singularName
+                } in your workflow.`,
+                icon: new model().icon || IconProp.Database,
+            });
         }
-
 
         initComponents = initComponents.filter((component: Component) => {
             return component.componentType === props.componentsType;
-        })
+        });
 
-        setComponents(
-            initComponents
-        );
+        setComponents(initComponents);
 
-        setComponentsToShow([...initComponents])
+        setComponentsToShow([...initComponents]);
 
         setCategories(initCategories);
     }, []);
 
     useEffect(() => {
-
-        if(!isSearching){
-            return; 
+        if (!isSearching) {
+            return;
         }
         if (!search) {
-            setComponentsToShow(
-                [...components.filter((component: Component) => {
+            setComponentsToShow([
+                ...components.filter((component: Component) => {
                     return component.componentType === props.componentsType;
-                })]
-            );
+                }),
+            ]);
         }
 
-        setComponentsToShow(
-            [...components.filter((component: Component) => {
+        setComponentsToShow([
+            ...components.filter((component: Component) => {
                 return (
                     component.componentType === props.componentsType &&
                     (component.title
@@ -98,8 +96,8 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                             .toLowerCase()
                             .includes(search.trim().toLowerCase()))
                 );
-            })]
-        );
+            }),
+        ]);
     }, [search]);
 
     return (
