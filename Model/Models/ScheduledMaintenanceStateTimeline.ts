@@ -60,8 +60,8 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @TableMetadata({
     tableName: 'ScheduledMaintenanceStateTimeline',
     icon: IconProp.List,
-    singularName: 'ScheduledMaintenance State Tiemline',
-    pluralName: 'ScheduledMaintenance State Timelines',
+    singularName: 'Scheduled Maintenance State Tiemline',
+    pluralName: 'Scheduled Maintenance State Timelines',
 })
 export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({

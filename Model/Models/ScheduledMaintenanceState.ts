@@ -56,8 +56,8 @@ import IconProp from 'Common/Types/Icon/IconProp';
 @SlugifyColumn('name', 'slug')
 @TableMetadata({
     tableName: 'ScheduledMaintenanceState',
-    singularName: 'ScheduledMaintenance State',
-    pluralName: 'ScheduledMaintenance States',
+    singularName: 'Scheduled Maintenance State',
+    pluralName: 'Scheduled Maintenance States',
     icon: IconProp.ArrowCircleRight,
 })
 @Entity({
