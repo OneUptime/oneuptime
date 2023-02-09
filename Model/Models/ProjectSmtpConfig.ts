@@ -13,6 +13,7 @@ import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';

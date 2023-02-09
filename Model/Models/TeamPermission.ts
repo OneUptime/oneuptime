@@ -24,6 +24,7 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 @TableAccessControl({
     create: [
@@ -55,6 +56,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
 @CrudApiEndpoint(new Route('/team-permission'))
 @Entity({
     name: 'TeamPermission',
+})
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
 })
 @TableMetadata({tableName: 'TeamPermission', singularName: 'Team Permission', pluralName: 'Team Permissions', icon: IconProp.Lock})
 export default class TeamPermission extends BaseModel {

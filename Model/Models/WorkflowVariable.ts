@@ -14,6 +14,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';import BaseModel from 'Common/Models/BaseModel';
 import Workflow from './Workflow';
 

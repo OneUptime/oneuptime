@@ -17,6 +17,7 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -44,6 +45,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
         Permission.ProjectMember,
         Permission.CanEditIncidentSeverity,
     ],
+})
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
 })
 @CrudApiEndpoint(new Route('/incident-severity'))
 @SlugifyColumn('name', 'slug')

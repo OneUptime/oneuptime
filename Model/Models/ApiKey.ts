@@ -15,6 +15,7 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 
 @TenantColumn('projectId')
@@ -22,6 +23,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
 @SlugifyColumn('name', 'slug')
 @Entity({
     name: 'ApiKey',
+})
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
 })
 @TableAccessControl({
     create: [

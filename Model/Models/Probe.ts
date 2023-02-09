@@ -18,11 +18,13 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import IsPermissionsIf from 'Common/Types/Database/IsPermissionsIf';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 @IsPermissionsIf(Permission.Public, 'projectId', null)
 @TenantColumn('projectId')
 @CrudApiEndpoint(new Route('/probe'))
 @SlugifyColumn('name', 'slug')
+
 @Entity({
     name: 'Probe',
 })

@@ -7,6 +7,7 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
 import AllowUserQueryWithoutTenant from 'Common/Types/Database/AllowUserQueryWithoutTenant';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
@@ -55,6 +56,12 @@ import User from './User';
 @CrudApiEndpoint(new Route('/team-member'))
 @Entity({
     name: 'TeamMember',
+})
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
 })
 @TableMetadata({tableName: 'TeamMember', singularName: 'Team Member', pluralName: 'Team Members', icon: IconProp.User})
 export default class TeamMember extends BaseModel {

@@ -15,6 +15,7 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';import StatusPage from './StatusPage';
 import Email from 'Common/Types/Email';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
@@ -55,6 +56,12 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
         Permission.ProjectMember,
         Permission.CanEditStatusPagePrivateUser,
     ],
+})
+@EnableWorkflow({
+    create: true,
+    delete: true,
+    update: true,
+    read: true,
 })
 @CrudApiEndpoint(new Route('/status-page-private-user'))
 @SlugifyColumn('name', 'slug')

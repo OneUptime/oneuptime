@@ -1,6 +1,7 @@
 import { Entity } from 'typeorm';
 import FileModel from 'Common/Models/FileModel';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
+import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';import Route from 'Common/Types/API/Route';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';

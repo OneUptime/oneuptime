@@ -49,7 +49,7 @@
         "logs": "sudo docker compose logs --tail=100 -f $npm_config_services",
         "write-logs": "sudo docker compose logs -f $npm_config_services > logs.txt",
         "build": "npm run prerun && sudo docker compose build $npm_config_services",
-        "force-build": "npm run prerun && sudo docker compose build --no-cache $npm_config_services",
+        "force-build": "bash remove-node-modules.sh && npm run prerun && sudo docker compose build --no-cache $npm_config_services && bash install-node-modules.sh",
         "force-build-dev": "npm run config-to-dev && npm run force-build",
         "kill": "npm run stop",
         "prod": "npm run prerun && docker compose up -d",
