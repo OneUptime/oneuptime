@@ -17,6 +17,9 @@ import ComponentElement, { NodeType } from './Component';
 import Input from '../Input/Input';
 import ErrorMessage from '../ErrorMessage/ErrorMessage';
 import Icon from '../Icon/Icon';
+import Entities from 'Model/Models/Index';
+import BaseModelComponentFactory from 'Common/Types/Workflow/Components/BaseModel';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     componentsType: ComponentType;
@@ -29,28 +32,62 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
     const [search, setSearch] = useState<string>('');
 
     const [components, setComponents] = useState<Array<Component>>([]);
+    const [categories, setCategories] = useState<Array<ComponentCategory>>([]);
+
+    const [componentsToShow, setComponentsToShow] = useState<Array<Component>>([]);
+
+    const [isSearching, setIsSearching] = useState<boolean>(false);
 
     useEffect(() => {
-        setComponents(
-            Components.filter((component: Component) => {
-                return component.componentType !== props.componentsType;
+
+        let initComponents: Array<Component> = []; 
+        let initCategories: Array<ComponentCategory> = [
+            ...Categories
+        ];
+      
+
+        initComponents = initComponents.concat(Components);
+
+        for(const model of Entities){
+            initComponents = initComponents.concat(BaseModelComponentFactory.getComponents(new model()));
+            initCategories.push({
+                name: new model().singularName || 'Model',
+                description: `Interact with ${new model().singularName} in your workflow.`,
+                icon: new model().icon || IconProp.Database
             })
+        }
+
+
+        initComponents = initComponents.filter((component: Component) => {
+            return component.componentType === props.componentsType;
+        })
+
+        setComponents(
+            initComponents
         );
+
+        setComponentsToShow([...initComponents])
+
+        setCategories(initCategories);
     }, []);
 
     useEffect(() => {
+
+        if(!isSearching){
+            return; 
+        }
         if (!search) {
-            setComponents(
-                Components.filter((component: Component) => {
-                    return component.componentType !== props.componentsType;
-                })
+            setComponentsToShow(
+                [...components.filter((component: Component) => {
+                    return component.componentType === props.componentsType;
+                })]
             );
         }
 
-        setComponents(
-            Components.filter((component: Component) => {
+        setComponentsToShow(
+            [...components.filter((component: Component) => {
                 return (
-                    component.componentType !== props.componentsType &&
+                    component.componentType === props.componentsType &&
                     (component.title
                         .toLowerCase()
                         .includes(search.trim().toLowerCase()) ||
@@ -61,7 +98,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                             .toLowerCase()
                             .includes(search.trim().toLowerCase()))
                 );
-            })
+            })]
         );
     }, [search]);
 
@@ -80,6 +117,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                     <Input
                         placeholder="Search..."
                         onChange={(text: string) => {
+                            setIsSearching(true);
                             setSearch(text);
                         }}
                     />
@@ -91,21 +129,21 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                     {/** Search box here */}
 
                     <div className="max-h-[60rem] overflow-y-auto overflow-x-hidden pb-10">
-                        {!components ||
-                            (components.length === 0 && (
+                        {!componentsToShow ||
+                            (componentsToShow.length === 0 && (
                                 <div className="w-full flex justify-center mt-20">
                                     <ErrorMessage error="No components that match your search. If you are looking for an intergration that does not exist currently - you can use Custom Code or API component to build anything you like. If you are an enterprise customer, feel free to talk to us and we will build it for you." />
                                 </div>
                             ))}
 
-                        {Categories &&
-                            Categories.length > 0 &&
-                            Categories.map(
+                        {categories &&
+                            categories.length > 0 &&
+                            categories.map(
                                 (category: ComponentCategory, i: number) => {
                                     if (
-                                        components &&
-                                        components.length > 0 &&
-                                        components.filter(
+                                        componentsToShow &&
+                                        componentsToShow.length > 0 &&
+                                        componentsToShow.filter(
                                             (component: Component) => {
                                                 return (
                                                     component.category ===
@@ -182,7 +220,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                             </div>
                                         );
                                     }
-                                    return <></>;
+                                    return <div key={i}></div>;
                                 }
                             )}
                     </div>

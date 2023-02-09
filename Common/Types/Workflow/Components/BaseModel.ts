@@ -12,7 +12,7 @@ export default class BaseModelComponent {
 
         if (model.enableWorkflowOn.read) {
             components.push({
-                id: 'find-one',
+                id: `${model.tableName}-find-one`,
                 title: `Find One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to find one ${model.singularName}`,
@@ -61,7 +61,7 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: 'find-many',
+                id: `${model.tableName}-find-many`,
                 title: `Find Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to find many ${model.pluralName}`,
@@ -112,7 +112,7 @@ export default class BaseModelComponent {
 
         if (model.enableWorkflowOn.delete) {
             components.push({
-                id: 'on-delete',
+                id: `${model.tableName}-on-delete`,
                 title: `On Delete ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is deleted...`,
@@ -140,7 +140,7 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: 'delete-one',
+                id: `${model.tableName}-delete-one`,
                 title: `Delete One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to delete one ${model.singularName}`,
@@ -181,7 +181,7 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: 'delete-many',
+                id: `${model.tableName}-delete-many`,
                 title: `Delete Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to find many ${model.pluralName}`,
@@ -224,7 +224,7 @@ export default class BaseModelComponent {
 
         if (model.enableWorkflowOn.create) {
             components.push({
-                id: 'on-create',
+                id: `${model.tableName}-on-create`,
                 title: `On Create ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is created...`,
@@ -252,7 +252,7 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: 'create-one',
+                id: `${model.tableName}-create-one`,
                 title: `Create One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to create one ${model.singularName}`,
@@ -301,7 +301,7 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: 'create-many',
+                id: `${model.tableName}-create-many`,
                 title: `Create Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to create many ${model.pluralName}`,
@@ -352,7 +352,7 @@ export default class BaseModelComponent {
 
         if (model.enableWorkflowOn.update) {
             components.push({
-                id: 'on-update',
+                id: `${model.tableName}-on-update`,
                 title: `On Update ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is updated...`,
@@ -379,7 +379,7 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: 'update-one',
+                id: `${model.tableName}-update-one`,
                 title: `Update One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to update one ${model.singularName}`,
@@ -435,7 +435,7 @@ export default class BaseModelComponent {
             });
 
             components.push({
-                id: 'update-many',
+                id: `${model.tableName}-update-many`,
                 title: `Update Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to update many ${model.pluralName}`,

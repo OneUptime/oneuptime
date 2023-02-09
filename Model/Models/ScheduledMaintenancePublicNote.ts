@@ -58,8 +58,8 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 })
 @TableMetadata({
     tableName: 'ScheduledMaintenancePublicNote',
-    singularName: 'Public Note',
-    pluralName: 'Public Notes',
+    singularName: 'Scheduled Event Public Note',
+    pluralName: 'Scheduled Event Public Notes',
     icon: IconProp.Public,
 })
 export default class ScheduledMaintenancePublicNote extends BaseModel {
