@@ -12,8 +12,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import IncidentState from './IncidentState';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import IncidentState from './IncidentState';
 import Incident from './Incident';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
@@ -49,7 +49,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @Entity({
     name: 'IncidentStateTimeline',
 })
-@SingularPluralName('Incident State Tiemline', 'Incident State Timelines')
+@TableMetadata({tableName: 'IncidentStateTimeline', singularName: 'Incident State Tiemline', pluralName: 'Incident State Timelines', icon: IconProp.List})
 export default class IncidentStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [

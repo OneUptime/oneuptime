@@ -7,7 +7,7 @@ const components: Array<Component> = [
         title: 'Log',
         category: 'Utils',
         description: 'Log to console what ever is passed to this component',
-        iconProp: IconProp.ArrowCircleLeft,
+        iconProp: IconProp.Logs,
         componentType: ComponentType.Component,
         arguments: [
             {

@@ -5,9 +5,9 @@ const components: Array<Component> = [
     {
         id: 'if-true',
         title: 'If True',
-        category: 'Condition',
+        category: 'Conditions',
         description: 'If the inputs are true then proceed',
-        iconProp: IconProp.ArrowCircleLeft,
+        iconProp: IconProp.Check,
         componentType: ComponentType.Component,
         arguments: [
             {
@@ -44,10 +44,10 @@ const components: Array<Component> = [
     },
     {
         id: 'if-false',
-        title: 'If True',
-        category: 'Condition',
-        description: 'If the inputs are true then proceed',
-        iconProp: IconProp.ArrowCircleLeft,
+        title: 'If False',
+        category: 'Conditions',
+        description: 'If the inputs are false then proceed',
+        iconProp: IconProp.Close,
         componentType: ComponentType.Component,
         arguments: [
             {
@@ -85,9 +85,9 @@ const components: Array<Component> = [
     {
         id: 'if-else',
         title: 'If / Else',
-        category: 'Condition',
+        category: 'Conditions',
         description: 'Branch based on Inputs',
-        iconProp: IconProp.ArrowCircleLeft,
+        iconProp: IconProp.Condition,
         componentType: ComponentType.Component,
         arguments: [
             {

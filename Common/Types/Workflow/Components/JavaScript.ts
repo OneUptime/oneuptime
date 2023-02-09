@@ -5,9 +5,9 @@ const components: Array<Component> = [
     {
         id: 'javascript',
         title: 'Run Custom JavaScript',
-        category: 'Utils',
+        category: 'Custom Code',
         description: 'Run custom JavaScript in your workflow',
-        iconProp: IconProp.ArrowCircleLeft,
+        iconProp: IconProp.Code,
         componentType: ComponentType.Component,
         arguments: [
             {

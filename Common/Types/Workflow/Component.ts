@@ -60,3 +60,9 @@ export default interface Component {
     inPorts: Array<Port>;
     outPorts: Array<Port>;
 }
+
+export interface ComponentCategory {
+    name: string;
+    description: string;
+    icon: IconProp;
+}

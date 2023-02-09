@@ -15,8 +15,8 @@ import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessContr
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @MultiTenentQueryAllowed(true)
@@ -34,7 +34,7 @@ import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllow
         Permission.CanUpdateProject,
     ],
 })
-@SingularPluralName('Project', 'Projects')
+@TableMetadata({tableName: 'Project', singularName: 'Project', pluralName: 'Projects', icon: IconProp.Folder})
 @CrudApiEndpoint(new Route('/project'))
 @SlugifyColumn('name', 'slug')
 @Entity({

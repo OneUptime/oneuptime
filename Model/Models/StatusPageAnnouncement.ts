@@ -23,8 +23,8 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import StatusPage from './StatusPage';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import StatusPage from './StatusPage';
 
 @TenantColumn('projectId')
 @CanAccessIfCanReadOn('statusPages')
@@ -56,7 +56,7 @@ import StatusPage from './StatusPage';
 })
 @CrudApiEndpoint(new Route('/status-page-announcement'))
 @SlugifyColumn('name', 'slug')
-@SingularPluralName('Status Page Announcement', 'Status Page Announcements')
+@TableMetadata({tableName: 'StatusPageAnnouncement', singularName: 'Status Page Announcement', pluralName: 'Status Page Announcements', icon: IconProp.Anouncement})
 @Entity({
     name: 'StatusPageAnnouncement',
 })

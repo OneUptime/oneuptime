@@ -6,15 +6,15 @@ import ColumnType from 'Common/Types/Database/ColumnType';
 import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
 @TableAccessControl({
     create: [],
     read: [],
     delete: [],
     update: [],
 })
-@SingularPluralName('Greenlock Challenge', 'Greenlock Challenges')
+@TableMetadata({tableName: 'GreenlockChallenge', singularName: 'Greenlock Challenge', pluralName: 'Greenlock Challenges', icon: IconProp.Lock})
 @Entity({
     name: 'GreenlockChallenge',
 })

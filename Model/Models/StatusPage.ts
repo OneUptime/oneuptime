@@ -22,8 +22,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import Label from './Label';
 import File from './File';
 import Color from 'Common/Types/Color';
@@ -61,7 +61,7 @@ import Color from 'Common/Types/Color';
 @Entity({
     name: 'StatusPage',
 })
-@SingularPluralName('Status Page', 'Status Pages')
+@TableMetadata({tableName: 'StatusPage', singularName: 'Status Page', pluralName: 'Status Pages', icon: IconProp.CheckCircle})
 export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [

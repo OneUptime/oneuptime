@@ -16,8 +16,8 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
 @TenantColumn('projectId')
 @TableAccessControl({
     create: [
@@ -47,7 +47,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 })
 @CrudApiEndpoint(new Route('/incident-state'))
 @SlugifyColumn('name', 'slug')
-@SingularPluralName('Incident State', 'Incident States')
+@TableMetadata({tableName: 'IncidentState', singularName: 'Incident State', pluralName: 'Incident States', icon: IconProp.ArrowCircleRight})
 @Entity({
     name: 'IncidentState',
 })

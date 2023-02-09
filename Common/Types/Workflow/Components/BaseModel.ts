@@ -16,7 +16,7 @@ export default class BaseModelComponent {
                 title: `Find One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to find one ${model.singularName}`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.ArrowCircleDown,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -65,7 +65,7 @@ export default class BaseModelComponent {
                 title: `Find Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to find many ${model.pluralName}`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.ArrowCircleDown,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -116,7 +116,7 @@ export default class BaseModelComponent {
                 title: `On Delete ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is deleted...`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.Bolt,
                 componentType: ComponentType.Trigger,
                 arguments: [],
                 returnValues: [
@@ -144,7 +144,7 @@ export default class BaseModelComponent {
                 title: `Delete One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to delete one ${model.singularName}`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.Trash,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -185,7 +185,7 @@ export default class BaseModelComponent {
                 title: `Delete Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to find many ${model.pluralName}`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.Trash,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -228,7 +228,7 @@ export default class BaseModelComponent {
                 title: `On Create ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is created...`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.Bolt,
                 componentType: ComponentType.Trigger,
                 arguments: [],
                 returnValues: [
@@ -256,7 +256,7 @@ export default class BaseModelComponent {
                 title: `Create One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to create one ${model.singularName}`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.Database,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -305,7 +305,7 @@ export default class BaseModelComponent {
                 title: `Create Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to create many ${model.pluralName}`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.Database,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -356,7 +356,7 @@ export default class BaseModelComponent {
                 title: `On Update ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `When the ${model.singularName} is updated...`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.Bolt,
                 componentType: ComponentType.Trigger,
                 arguments: [],
                 returnValues: [
@@ -383,7 +383,7 @@ export default class BaseModelComponent {
                 title: `Update One ${model.singularName}`,
                 category: `${model.singularName}`,
                 description: `Database query to update one ${model.singularName}`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.ArrowCircleUp,
                 componentType: ComponentType.Component,
                 arguments: [
                     {
@@ -439,7 +439,7 @@ export default class BaseModelComponent {
                 title: `Update Many ${model.pluralName}`,
                 category: `${model.singularName}`,
                 description: `Database query to update many ${model.pluralName}`,
-                iconProp: IconProp.ArrowCircleLeft,
+                iconProp: IconProp.ArrowCircleUp,
                 componentType: ComponentType.Component,
                 arguments: [
                     {

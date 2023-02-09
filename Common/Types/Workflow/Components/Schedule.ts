@@ -5,7 +5,7 @@ const components: Array<Component> = [
     {
         id: 'schedule',
         title: 'Schedule',
-        category: 'Triggers',
+        category: 'Schedule',
         description: 'Run this workflow on particular schedule',
         iconProp: IconProp.Clock,
         componentType: ComponentType.Trigger,

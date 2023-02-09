@@ -20,8 +20,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import CurrentUserCanAccessRecordBy from 'Common/Types/Database/CurrentUserCanAccessRecordBy';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
 import ObjectID from 'Common/Types/ObjectID';
 
 @AllowAccessIfSubscriptionIsUnpaid()
@@ -40,7 +40,7 @@ import ObjectID from 'Common/Types/ObjectID';
 @Entity({
     name: 'User',
 })
-@SingularPluralName('User', 'Users')
+@TableMetadata({tableName: 'User', singularName: 'User', pluralName: 'Users', icon: IconProp.User})
 @CurrentUserCanAccessRecordBy('_id')
 class User extends UserModel {
     @ColumnAccessControl({

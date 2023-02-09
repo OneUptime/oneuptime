@@ -14,8 +14,8 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import BaseModel from 'Common/Models/BaseModel';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import BaseModel from 'Common/Models/BaseModel';
 import { JSONObject } from 'Common/Types/JSON';
 
 @TenantColumn('projectId')
@@ -47,7 +47,7 @@ import { JSONObject } from 'Common/Types/JSON';
 @Entity({
     name: 'Workflow',
 })
-@SingularPluralName('Workflow', 'Workflows')
+@TableMetadata({tableName: 'Workflow', singularName: 'Workflow', pluralName: 'Workflows', icon: IconProp.Workflow})
 export default class Workflow extends BaseModel {
     @ColumnAccessControl({
         create: [

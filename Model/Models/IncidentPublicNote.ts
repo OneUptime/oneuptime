@@ -12,8 +12,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import Incident from './Incident';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import Incident from './Incident';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
 @CanAccessIfCanReadOn('incident')
@@ -48,7 +48,7 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @Entity({
     name: 'IncidentPublicNote',
 })
-@SingularPluralName('Public Note', 'Public Notes')
+@TableMetadata({tableName: 'IncidentPublicNote', singularName: 'Public Note', pluralName: 'Public Notes', icon: IconProp.Team})
 export default class IncidentPublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [

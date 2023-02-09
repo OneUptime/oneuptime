@@ -12,8 +12,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import ScheduledMaintenanceState from './ScheduledMaintenanceState';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import ScheduledMaintenanceState from './ScheduledMaintenanceState';
 import ScheduledMaintenance from './ScheduledMaintenance';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
@@ -49,9 +49,12 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @Entity({
     name: 'ScheduledMaintenanceStateTimeline',
 })
-@SingularPluralName(
-    'ScheduledMaintenance State Tiemline',
-    'ScheduledMaintenance State Timelines'
+@TableMetadata({
+    tableName: 'ScheduledMaintenanceStateTimeline',
+    icon: IconProp.List,
+    singularName: 'ScheduledMaintenance State Tiemline',
+    pluralName: 'ScheduledMaintenance State Timelines'
+}
 )
 export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({

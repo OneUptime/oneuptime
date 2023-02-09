@@ -15,7 +15,7 @@ export interface NodeDataProp {
     title: string;
     id: string;
     description: string;
-    icon: IconProp;
+    icon?: IconProp | undefined;
     componentType: ComponentType;
     nodeType: NodeType;
     onDeleteClick?: (id: string) => void | undefined;
@@ -30,12 +30,12 @@ export interface ComponentProps {
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [isHovering, setIsHovering] = useState<boolean>(false);
 
-    let textColor = '#4b5563';
-    let descriptionColor = '£6b7280';
+    let textColor = '#6b7280';
+    let descriptionColor = '#6b7280';
 
     if (isHovering) {
         textColor = '#111827';
-        descriptionColor = '£111827';
+        descriptionColor = '#111827';
     }
 
     let componentStyle: React.CSSProperties = {
@@ -51,7 +51,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     };
 
     let handleStyle: React.CSSProperties = {
-        background: '#4b5563',
+        background: '#6b7280',
         height: '0.75rem',
         width: '0.75rem',
     };
@@ -84,7 +84,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
 
     return (
-        <div
+        <div className='cursor-pointer'
             onMouseOver={() => {
                 setIsHovering(true);
             }}
@@ -154,9 +154,10 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <div
                     style={{
                         margin: 'auto',
+                        marginTop: props.data.icon ? "0.5rem" : "1rem"
                     }}
                 >
-                    <Icon
+                    {props.data.icon && <Icon
                         icon={props.data.icon}
                         style={{
                             color: textColor,
@@ -165,7 +166,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             textAlign: 'center',
                             margin: 'auto',
                         }}
-                    />
+                    />}
                     <p
                         style={{
                             color: textColor,

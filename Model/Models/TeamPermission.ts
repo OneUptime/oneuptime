@@ -23,8 +23,8 @@ import Project from './Project';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';
 @TableAccessControl({
     create: [
         Permission.ProjectOwner,
@@ -56,7 +56,7 @@ import SingularPluralName from 'Common/Types/Database/SingularPluralName';
 @Entity({
     name: 'TeamPermission',
 })
-@SingularPluralName('Team Permission', 'Team Permissions')
+@TableMetadata({tableName: 'TeamPermission', singularName: 'Team Permission', pluralName: 'Team Permissions', icon: IconProp.Lock})
 export default class TeamPermission extends BaseModel {
     @ColumnAccessControl({
         create: [

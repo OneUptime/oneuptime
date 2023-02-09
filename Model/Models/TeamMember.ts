@@ -6,8 +6,8 @@ import ColumnType from 'Common/Types/Database/ColumnType';
 import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 import AllowUserQueryWithoutTenant from 'Common/Types/Database/AllowUserQueryWithoutTenant';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import TenantColumn from 'Common/Types/Database/TenantColumn';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import CurrentUserCanAccessRecordBy from 'Common/Types/Database/CurrentUserCanAccessRecordBy';
@@ -56,7 +56,7 @@ import User from './User';
 @Entity({
     name: 'TeamMember',
 })
-@SingularPluralName('Team Member', 'Team Members')
+@TableMetadata({tableName: 'TeamMember', singularName: 'Team Member', pluralName: 'Team Members', icon: IconProp.User})
 export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [

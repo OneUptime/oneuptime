@@ -22,8 +22,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import Monitor from './Monitor';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import Monitor from './Monitor';
 import ScheduledMaintenanceState from './ScheduledMaintenanceState';
 import MonitorStatus from './MonitorStatus';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
@@ -65,9 +65,12 @@ import StatusPage from './StatusPage';
 @Entity({
     name: 'ScheduledMaintenance',
 })
-@SingularPluralName(
-    'Scheduled Maintenance Event',
-    'Scheduled Maintenance Events'
+@TableMetadata({
+    singularName: 'Scheduled Maintenance Event',
+    pluralName: 'Scheduled Maintenance Events',
+    icon: IconProp.Clock,
+    tableName: 'ScheduledMaintenance'
+}
 )
 export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({

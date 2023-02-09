@@ -1,12 +1,12 @@
 import { Entity } from 'typeorm';
 import FileModel from 'Common/Models/FileModel';
-import SingularPluralName from 'Common/Types/Database/SingularPluralName';
-import Route from 'Common/Types/API/Route';
+import TableMetadata from 'Common/Types/Database/TableMetadata';
+import IconProp from 'Common/Types/Icon/IconProp';import Route from 'Common/Types/API/Route';
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import Permission from 'Common/Types/Permission';
 
-@SingularPluralName('File', 'Files')
+@TableMetadata({tableName: 'File', singularName: 'File', pluralName: 'Files', icon: IconProp.File})
 @Entity({
     name: 'File',
 })
