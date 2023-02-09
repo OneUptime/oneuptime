@@ -27,8 +27,9 @@ import 'reactflow/dist/style.css';
 import WorkflowComponent, { NodeDataProp, NodeType } from './Component';
 import ObjectID from 'Common/Types/ObjectID';
 import IconProp from 'Common/Types/Icon/IconProp';
-import { ComponentType } from 'Common/Types/Workflow/Component';
+import Component, { ComponentType } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
+
 
 export const getPlaceholderTriggerNode: Function = (): Node => {
     return {
@@ -66,6 +67,8 @@ export interface ComponentProps {
     initialNodes: Array<Node>;
     initialEdges: Array<Edge>;
     onWorkflowUpdated: (nodes: Array<Node>, edges: Array<Edge>) => void;
+    showComponentsPickerModal: boolean;
+    onComponentPickerModalUpdate: (isModalShown: boolean) => void;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
@@ -75,10 +78,26 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         // if placeholder node is clicked then show modal.
 
         if (data.nodeType === NodeType.PlaceholderNode) {
-            setShowComponentsType(data.componentType);
-            setShowComponentsModal(true);
+            showComponentsPickerModal(data.componentType);
         }
     };
+
+
+    const showComponentsPickerModal: Function = (componentType: ComponentType) => {
+        setShowComponentsType(componentType);
+        setShowComponentsModal(true);
+    }
+
+    
+
+    useEffect(()=>{
+        if(props.showComponentsPickerModal){
+            showComponentsPickerModal(ComponentType.Component);
+        }else{
+            setShowComponentsModal(false);
+        }
+    }, [props.showComponentsPickerModal])
+
 
     const deleteNode: Function = (id: string): void => {
         // remove the node.
@@ -193,9 +212,19 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     const [showComponentsModal, setShowComponentsModal] =
         useState<boolean>(false);
+
+
     const [showComponentType, setShowComponentsType] = useState<ComponentType>(
         ComponentType.Component
     );
+
+    useEffect(()=>{
+        props.onComponentPickerModalUpdate(showComponentsModal);
+    }, [showComponentsModal])
+
+    const addToGraph: Function = (_component: Component) => {
+
+    };
 
     return (
         <div className="h-[48rem]">
@@ -221,6 +250,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                     componentsType={showComponentType}
                     onCloseModal={() => {
                         setShowComponentsModal(false);
+                    }}
+                    onComponentClick={(component: Component) => {
+                        setShowComponentsModal(false);
+
+                        addToGraph(component);
                     }}
                 />
             )}

@@ -22,8 +22,9 @@ import ModelAPI from 'CommonUI/src/Utils/ModelAPI/ModelAPI';
 import WorkflowModel from 'Model/Models/Workflow';
 import HTTPErrorResponse from 'Common/Types/API/HTTPErrorResponse';
 import ConfirmModal from 'CommonUI/src/Components/Modal/ConfirmModal';
-import { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
+import Button, { ButtonStyleType } from 'CommonUI/src/Components/Button/Button';
 import ComponentLoader from 'CommonUI/src/Components/ComponentLoader/ComponentLoader';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 const Delete: FunctionComponent<PageComponentProps> = (
     _props: PageComponentProps
@@ -37,6 +38,8 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const [nodes, setNodes] = useState<Array<Node>>([]);
     const [edges, setEdges] = useState<Array<Edge>>([]);
     const [error, setError] = useState<string>('');
+
+    const [showComponentPickerModal, setShowComponentPickerModal] = useState<boolean>(false);
 
     const loadGraph: Function = async (): Promise<void> => {
         try {
@@ -61,7 +64,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     } else {
                         setNodes(
                             (workflow.graph as JSONObject)[
-                                'nodes'
+                            'nodes'
                             ] as Array<Node>
                         );
                     }
@@ -84,7 +87,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
             try {
                 setError(
                     (err as HTTPErrorResponse).message ||
-                        'Server Error. Please try again'
+                    'Server Error. Please try again'
                 );
             } catch (e) {
                 setError('Server Error. Please try again');
@@ -122,7 +125,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     try {
                         setError(
                             (err as HTTPErrorResponse).message ||
-                                'Server Error. Please try again'
+                            'Server Error. Please try again'
                         );
                     } catch (e) {
                         setError('Server Error. Please try again');
@@ -230,13 +233,26 @@ const Delete: FunctionComponent<PageComponentProps> = (
                     title={'Workflow Builder'}
                     description={'Workflow builder for OneUptime'}
                     rightElement={
-                        <p className="text-sm text-gray-400">{saveStatus}</p>
+                        <div className="flex">
+                             <p className="text-sm text-gray-400 mr-3 mt-2">{saveStatus}</p>
+                            <div>
+                                <Button title="Add Component" icon={IconProp.Add} onClick={()=>{
+                                    setShowComponentPickerModal(true);
+                                }} />
+                            </div>
+                           
+                        </div>
                     }
+
                 >
                     {isLoading ? <ComponentLoader /> : <></>}
 
                     {!isLoading ? (
                         <Workflow
+                            showComponentsPickerModal={showComponentPickerModal}
+                            onComponentPickerModalUpdate={(value: boolean)=>{
+                                setShowComponentPickerModal(value)
+                            }}
                             initialNodes={nodes}
                             initialEdges={edges}
                             onWorkflowUpdated={async (

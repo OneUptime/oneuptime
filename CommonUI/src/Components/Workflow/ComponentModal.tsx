@@ -24,6 +24,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 export interface ComponentProps {
     componentsType: ComponentType;
     onCloseModal: () => void;
+    onComponentClick: (component: Component) => void; 
 }
 
 const ComponentsModal: FunctionComponent<ComponentProps> = (
@@ -151,7 +152,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                         ).length > 0
                                     ) {
                                         return (
-                                            <div key={i}>
+                                            <div key={i} >
                                                 <h4 className="text-gray-500 text-base mt-5 flex">
                                                     {' '}
                                                     <Icon
@@ -188,7 +189,10 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                                                                         <div
                                                                             key={
                                                                                 i
-                                                                            }
+                                                                            } 
+                                                                            onClick={()=>{
+                                                                                props.onComponentClick(component)
+                                                                            }}
                                                                             className="m-5 ml-0 mt-0"
                                                                         >
                                                                             <ComponentElement

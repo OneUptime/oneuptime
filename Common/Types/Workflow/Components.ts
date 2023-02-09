@@ -22,6 +22,11 @@ export default components;
 
 export const Categories: Array<ComponentCategory> = [
     {
+        name: 'Webhook',
+        description: 'Integrate any apps into the workflow with webhooks.',
+        icon: IconProp.AltGlobe,
+    },
+    {
         name: 'API',
         description: 'Integrate with any API out on the web.',
         icon: IconProp.Globe,
