@@ -16,7 +16,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import StatusPage from './StatusPage';
+import IconProp from 'Common/Types/Icon/IconProp';
+import StatusPage from './StatusPage';
 import Monitor from './Monitor';
 import StatusPageGroup from './StatusPageGroup';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
@@ -57,7 +58,12 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 })
 @CrudApiEndpoint(new Route('/status-page-resource'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({tableName: 'StatusPageResource', singularName: 'Status Page Resource', pluralName: 'Status Page Resources', icon: IconProp.AltGlobe})
+@TableMetadata({
+    tableName: 'StatusPageResource',
+    singularName: 'Status Page Resource',
+    pluralName: 'Status Page Resources',
+    icon: IconProp.AltGlobe,
+})
 @Entity({
     name: 'StatusPageResource',
 })

@@ -24,7 +24,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
+import IconProp from 'Common/Types/Icon/IconProp';
+import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import Label from './Label';
 import File from './File';
 import Color from 'Common/Types/Color';
@@ -68,7 +69,12 @@ import Color from 'Common/Types/Color';
 @Entity({
     name: 'StatusPage',
 })
-@TableMetadata({tableName: 'StatusPage', singularName: 'Status Page', pluralName: 'Status Pages', icon: IconProp.CheckCircle})
+@TableMetadata({
+    tableName: 'StatusPage',
+    singularName: 'Status Page',
+    pluralName: 'Status Pages',
+    icon: IconProp.CheckCircle,
+})
 export default class StatusPage extends BaseModel {
     @ColumnAccessControl({
         create: [

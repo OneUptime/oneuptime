@@ -25,7 +25,8 @@ import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessC
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
+import IconProp from 'Common/Types/Icon/IconProp';
+import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 
 @TableAccessControl({
     create: [
@@ -63,7 +64,12 @@ import IconProp from 'Common/Types/Icon/IconProp';import UniqueColumnBy from 'Co
 @Entity({
     name: 'ApiKeyPermission',
 })
-@TableMetadata({tableName: 'ApiKeyPermission', singularName: 'Permission', pluralName: 'Permissions', icon: IconProp.Lock})
+@TableMetadata({
+    tableName: 'ApiKeyPermission',
+    singularName: 'Permission',
+    pluralName: 'Permissions',
+    icon: IconProp.Lock,
+})
 export default class APIKeyPermission extends BaseModel {
     @ColumnAccessControl({
         create: [

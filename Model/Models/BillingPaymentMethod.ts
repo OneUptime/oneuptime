@@ -14,8 +14,8 @@ import Permission from 'Common/Types/Permission';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
+import IconProp from 'Common/Types/Icon/IconProp';
+import AllowAccessIfSubscriptionIsUnpaid from 'Common/Types/Database/AccessControl/AllowAccessIfSubscriptionIsUnpaid';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @TenantColumn('projectId')
@@ -26,7 +26,12 @@ import IconProp from 'Common/Types/Icon/IconProp';import AllowAccessIfSubscripti
     update: [],
 })
 @CrudApiEndpoint(new Route('/billing-payment-methods'))
-@TableMetadata({tableName: 'BillingPaymentMethod', singularName: 'Payment Method', pluralName: 'Payment Methods', icon: IconProp.Billing})
+@TableMetadata({
+    tableName: 'BillingPaymentMethod',
+    singularName: 'Payment Method',
+    pluralName: 'Payment Methods',
+    icon: IconProp.Billing,
+})
 @Entity({
     name: 'BillingPaymentMethod',
 })

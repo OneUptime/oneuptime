@@ -14,7 +14,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import ScheduledMaintenance from './ScheduledMaintenance';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ScheduledMaintenance from './ScheduledMaintenance';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
 @CanAccessIfCanReadOn('scheduledMaintenance')
@@ -55,7 +56,12 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @Entity({
     name: 'ScheduledMaintenancePublicNote',
 })
-@TableMetadata({tableName: 'ScheduledMaintenancePublicNote', singularName: 'Public Note', pluralName: 'Public Notes', icon: IconProp.Public})
+@TableMetadata({
+    tableName: 'ScheduledMaintenancePublicNote',
+    singularName: 'Public Note',
+    pluralName: 'Public Notes',
+    icon: IconProp.Public,
+})
 export default class ScheduledMaintenancePublicNote extends BaseModel {
     @ColumnAccessControl({
         create: [

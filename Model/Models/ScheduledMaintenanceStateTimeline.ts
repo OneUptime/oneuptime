@@ -14,7 +14,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import ScheduledMaintenanceState from './ScheduledMaintenanceState';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ScheduledMaintenanceState from './ScheduledMaintenanceState';
 import ScheduledMaintenance from './ScheduledMaintenance';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
@@ -60,9 +61,8 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     tableName: 'ScheduledMaintenanceStateTimeline',
     icon: IconProp.List,
     singularName: 'ScheduledMaintenance State Tiemline',
-    pluralName: 'ScheduledMaintenance State Timelines'
-}
-)
+    pluralName: 'ScheduledMaintenance State Timelines',
+})
 export default class ScheduledMaintenanceStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [

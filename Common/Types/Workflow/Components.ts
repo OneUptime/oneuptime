@@ -20,8 +20,6 @@ const components: Array<Component> = [
 
 export default components;
 
-
-
 export const Categories: Array<ComponentCategory> = [
     {
         name: 'API',
@@ -41,23 +39,21 @@ export const Categories: Array<ComponentCategory> = [
     {
         name: 'Custom Code',
         description: 'Add JaavScript to your workflows.',
-        icon: IconProp.Code
+        icon: IconProp.Code,
     },
     {
         name: 'JSON',
         description: 'Work with JSON Object in your workflows.',
-        icon: IconProp.JSON
+        icon: IconProp.JSON,
     },
     {
         name: 'Schedule',
         description: 'Make your workflows run at regular intervals.',
-        icon: IconProp.Clock
+        icon: IconProp.Clock,
     },
     {
         name: 'Utils',
         description: 'Utils that make workflow design simpler.',
-        icon: IconProp.Window
+        icon: IconProp.Window,
     },
-
-]
-
+];

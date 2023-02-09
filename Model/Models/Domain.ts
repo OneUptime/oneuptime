@@ -16,8 +16,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import DomainType from 'Common/Types/Domain';
+import IconProp from 'Common/Types/Icon/IconProp';
+import DomainType from 'Common/Types/Domain';
 
 @TenantColumn('projectId')
 @TableAccessControl({
@@ -44,7 +44,12 @@ import IconProp from 'Common/Types/Icon/IconProp';import DomainType from 'Common
 })
 @CrudApiEndpoint(new Route('/domain'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({ tableName: 'Domain', singularName: 'Domain', pluralName: 'Domains', icon: IconProp.Globe})
+@TableMetadata({
+    tableName: 'Domain',
+    singularName: 'Domain',
+    pluralName: 'Domains',
+    icon: IconProp.Globe,
+})
 @Entity({
     name: 'Domain',
 })

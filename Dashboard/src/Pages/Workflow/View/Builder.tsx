@@ -38,7 +38,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
     const [edges, setEdges] = useState<Array<Edge>>([]);
     const [error, setError] = useState<string>('');
 
-    const loadGraph = async () => {
+    const loadGraph: Function = async (): Promise<void> => {
         try {
             setIsLoading(true);
             const workflow: WorkflowModel | null = await ModelAPI.getItem(
@@ -94,7 +94,10 @@ const Delete: FunctionComponent<PageComponentProps> = (
         setIsLoading(false);
     };
 
-    const saveGraph = async (nodes: Array<Node>, edges: Array<Edge>) => {
+    const saveGraph: Function = async (
+        nodes: Array<Node>,
+        edges: Array<Edge>
+    ): Promise<void> => {
         setSaveStatus('Saving...');
 
         if (saveTimeout) {
@@ -137,7 +140,7 @@ const Delete: FunctionComponent<PageComponentProps> = (
     };
 
     useEffect(() => {
-        loadGraph();
+        loadGraph().catch();
     }, []);
 
     // const initialNodes: Array<Node> = [
@@ -236,13 +239,13 @@ const Delete: FunctionComponent<PageComponentProps> = (
                         <Workflow
                             initialNodes={nodes}
                             initialEdges={edges}
-                            onWorkflowUpdated={(
+                            onWorkflowUpdated={async (
                                 nodes: Array<Node>,
                                 edges: Array<Edge>
                             ) => {
                                 setNodes(nodes);
                                 setEdges(edges);
-                                saveGraph(nodes, edges);
+                                await saveGraph(nodes, edges);
                             }}
                         />
                     ) : (

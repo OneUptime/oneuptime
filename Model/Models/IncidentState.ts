@@ -54,7 +54,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
 })
 @CrudApiEndpoint(new Route('/incident-state'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({tableName: 'IncidentState', singularName: 'Incident State', pluralName: 'Incident States', icon: IconProp.ArrowCircleRight})
+@TableMetadata({
+    tableName: 'IncidentState',
+    singularName: 'Incident State',
+    pluralName: 'Incident States',
+    icon: IconProp.ArrowCircleRight,
+})
 @Entity({
     name: 'IncidentState',
 })

@@ -16,7 +16,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import StatusPage from './StatusPage';
+import IconProp from 'Common/Types/Icon/IconProp';
+import StatusPage from './StatusPage';
 import Email from 'Common/Types/Email';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import HashedString from 'Common/Types/HashedString';
@@ -65,7 +66,12 @@ import { PlanSelect } from 'Common/Types/Billing/SubscriptionPlan';
 })
 @CrudApiEndpoint(new Route('/status-page-private-user'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({tableName: 'StatusPagePrivateUser', singularName: 'Private User', pluralName: 'Private Users', icon: IconProp.User})
+@TableMetadata({
+    tableName: 'StatusPagePrivateUser',
+    singularName: 'Private User',
+    pluralName: 'Private Users',
+    icon: IconProp.User,
+})
 @Entity({
     name: 'StatusPagePrivateUser',
 })

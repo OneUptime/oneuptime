@@ -15,7 +15,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import MonitorStatus from './MonitorStatus';
+import IconProp from 'Common/Types/Icon/IconProp';
+import MonitorStatus from './MonitorStatus';
 import Monitor from './Monitor';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
@@ -58,7 +59,12 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @Entity({
     name: 'MonitorStatusTimeline',
 })
-@TableMetadata({tableName: 'MonitorStatusTimeline', singularName: 'Monitor Status Event', pluralName: 'Monitor Status Events', icon: IconProp.List})
+@TableMetadata({
+    tableName: 'MonitorStatusTimeline',
+    singularName: 'Monitor Status Event',
+    pluralName: 'Monitor Status Events',
+    icon: IconProp.List,
+})
 export default class MonitorStatusTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [

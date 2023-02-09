@@ -14,8 +14,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import BaseModel from 'Common/Models/BaseModel';
+import IconProp from 'Common/Types/Icon/IconProp';
+import BaseModel from 'Common/Models/BaseModel';
 import Workflow from './Workflow';
 
 @TenantColumn('projectId')
@@ -46,7 +46,12 @@ import Workflow from './Workflow';
 @Entity({
     name: 'WorkflowVariable',
 })
-@TableMetadata({tableName: 'WorkflowVariable', singularName: 'Workflow Variable', pluralName: 'Workflow Variables', icon: IconProp.Variable})
+@TableMetadata({
+    tableName: 'WorkflowVariable',
+    singularName: 'Workflow Variable',
+    pluralName: 'Workflow Variables',
+    icon: IconProp.Variable,
+})
 export default class WorkflowVariable extends BaseModel {
     @ColumnAccessControl({
         create: [

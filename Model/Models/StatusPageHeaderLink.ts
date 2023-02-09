@@ -15,7 +15,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import TotalItemsBy from 'Common/Types/Database/TotalItemsBy';
+import IconProp from 'Common/Types/Icon/IconProp';
+import TotalItemsBy from 'Common/Types/Database/TotalItemsBy';
 import StatusPage from './StatusPage';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import URL from 'Common/Types/API/URL';
@@ -55,7 +56,12 @@ import URL from 'Common/Types/API/URL';
     read: true,
 })
 @CrudApiEndpoint(new Route('/status-page-header-link'))
-@TableMetadata({tableName: 'StatusPageHeaderLink', singularName: 'Header Link', pluralName: 'Header Links', icon: IconProp.ArrowCircleUp})
+@TableMetadata({
+    tableName: 'StatusPageHeaderLink',
+    singularName: 'Header Link',
+    pluralName: 'Header Links',
+    icon: IconProp.ArrowCircleUp,
+})
 @Entity({
     name: 'StatusPageHeaderLink',
 })

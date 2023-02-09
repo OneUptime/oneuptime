@@ -12,13 +12,17 @@ import TableColumnType from 'Common/Types/Database/TableColumnType';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 @CrudApiEndpoint(new Route('/email-verification-token'))
 @Entity({
     name: 'EmailVerificationToken',
 })
-@TableMetadata({tableName: 'EmailVerificationToken', singularName: 'Email Verification Token', pluralName: 'Email Verification Tokens', icon: IconProp.Email})
+@TableMetadata({
+    tableName: 'EmailVerificationToken',
+    singularName: 'Email Verification Token',
+    pluralName: 'Email Verification Tokens',
+    icon: IconProp.Email,
+})
 @TableAccessControl({
     create: [],
     read: [],

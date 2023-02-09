@@ -54,7 +54,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
 })
 @CrudApiEndpoint(new Route('/monitor-status'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({tableName: 'MonitorStatus', singularName: 'Monitor Status', pluralName: 'Monitor Statuses', icon: IconProp.AltGlobe})
+@TableMetadata({
+    tableName: 'MonitorStatus',
+    singularName: 'Monitor Status',
+    pluralName: 'Monitor Statuses',
+    icon: IconProp.AltGlobe,
+})
 @Entity({
     name: 'MonitorStatus',
 })

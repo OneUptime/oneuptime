@@ -54,7 +54,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
 })
 @CrudApiEndpoint(new Route('/scheduled-maintenance-state'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({tableName: 'ScheduledMaintenanceState', singularName: 'ScheduledMaintenance State', pluralName: 'ScheduledMaintenance States', icon: IconProp.ArrowCircleRight})
+@TableMetadata({
+    tableName: 'ScheduledMaintenanceState',
+    singularName: 'ScheduledMaintenance State',
+    pluralName: 'ScheduledMaintenance States',
+    icon: IconProp.ArrowCircleRight,
+})
 @Entity({
     name: 'ScheduledMaintenanceState',
 })

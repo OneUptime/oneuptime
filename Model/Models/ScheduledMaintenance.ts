@@ -24,7 +24,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import Monitor from './Monitor';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Monitor from './Monitor';
 import ScheduledMaintenanceState from './ScheduledMaintenanceState';
 import MonitorStatus from './MonitorStatus';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
@@ -76,9 +77,8 @@ import StatusPage from './StatusPage';
     singularName: 'Scheduled Maintenance Event',
     pluralName: 'Scheduled Maintenance Events',
     icon: IconProp.Clock,
-    tableName: 'ScheduledMaintenance'
-}
-)
+    tableName: 'ScheduledMaintenance',
+})
 export default class ScheduledMaintenance extends BaseModel {
     @ColumnAccessControl({
         create: [

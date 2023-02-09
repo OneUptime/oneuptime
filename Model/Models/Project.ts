@@ -17,7 +17,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
+import IconProp from 'Common/Types/Icon/IconProp';
+import MultiTenentQueryAllowed from 'Common/Types/Database/MultiTenentQueryAllowed';
 
 @AllowAccessIfSubscriptionIsUnpaid()
 @MultiTenentQueryAllowed(true)
@@ -38,7 +39,12 @@ import IconProp from 'Common/Types/Icon/IconProp';import MultiTenentQueryAllowed
 @EnableWorkflow({
     read: true,
 })
-@TableMetadata({tableName: 'Project', singularName: 'Project', pluralName: 'Projects', icon: IconProp.Folder})
+@TableMetadata({
+    tableName: 'Project',
+    singularName: 'Project',
+    pluralName: 'Projects',
+    icon: IconProp.Folder,
+})
 @CrudApiEndpoint(new Route('/project'))
 @SlugifyColumn('name', 'slug')
 @Entity({

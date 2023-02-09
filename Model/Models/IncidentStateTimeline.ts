@@ -14,7 +14,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import IncidentState from './IncidentState';
+import IconProp from 'Common/Types/Icon/IconProp';
+import IncidentState from './IncidentState';
 import Incident from './Incident';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
@@ -56,7 +57,12 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 @Entity({
     name: 'IncidentStateTimeline',
 })
-@TableMetadata({tableName: 'IncidentStateTimeline', singularName: 'Incident State Tiemline', pluralName: 'Incident State Timelines', icon: IconProp.List})
+@TableMetadata({
+    tableName: 'IncidentStateTimeline',
+    singularName: 'Incident State Tiemline',
+    pluralName: 'Incident State Timelines',
+    icon: IconProp.List,
+})
 export default class IncidentStateTimeline extends BaseModel {
     @ColumnAccessControl({
         create: [

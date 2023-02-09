@@ -7,7 +7,6 @@ import ColumnLength from 'Common/Types/Database/ColumnLength';
 import TableAccessControl from 'Common/Types/Database/AccessControl/TableAccessControl';
 import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
 import IconProp from 'Common/Types/Icon/IconProp';
 @TableAccessControl({
     create: [],
@@ -15,7 +14,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
     delete: [],
     update: [],
 })
-@TableMetadata({tableName: 'GreenlockChallenge', singularName: 'Greenlock Challenge', pluralName: 'Greenlock Challenges', icon: IconProp.Lock})
+@TableMetadata({
+    tableName: 'GreenlockChallenge',
+    singularName: 'Greenlock Challenge',
+    pluralName: 'Greenlock Challenges',
+    icon: IconProp.Lock,
+})
 @Entity({
     name: 'GreenlockChallenge',
 })

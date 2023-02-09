@@ -17,7 +17,8 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import StatusPage from './StatusPage';
+import IconProp from 'Common/Types/Icon/IconProp';
+import StatusPage from './StatusPage';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
 @CanAccessIfCanReadOn('statusPage')
@@ -56,7 +57,12 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 })
 @CrudApiEndpoint(new Route('/status-page-group'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({tableName: 'StatusPageGroup', singularName: 'Status Page Group', pluralName: 'Status Page Groups', icon: IconProp.Folder})
+@TableMetadata({
+    tableName: 'StatusPageGroup',
+    singularName: 'Status Page Group',
+    pluralName: 'Status Page Groups',
+    icon: IconProp.Folder,
+})
 @Entity({
     name: 'StatusPageGroup',
 })

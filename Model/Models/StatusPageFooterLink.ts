@@ -15,7 +15,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import StatusPage from './StatusPage';
+import IconProp from 'Common/Types/Icon/IconProp';
+import StatusPage from './StatusPage';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import URL from 'Common/Types/API/URL';
 import TotalItemsBy from 'Common/Types/Database/TotalItemsBy';
@@ -55,7 +56,12 @@ import TotalItemsBy from 'Common/Types/Database/TotalItemsBy';
     read: true,
 })
 @CrudApiEndpoint(new Route('/status-page-footer-link'))
-@TableMetadata({tableName: 'StatusPageFooterLink', singularName: 'Footer Link', pluralName: 'Footer Links', icon: IconProp.ArrowCircleDown})
+@TableMetadata({
+    tableName: 'StatusPageFooterLink',
+    singularName: 'Footer Link',
+    pluralName: 'Footer Links',
+    icon: IconProp.ArrowCircleDown,
+})
 @Entity({
     name: 'StatusPageFooterLink',
 })

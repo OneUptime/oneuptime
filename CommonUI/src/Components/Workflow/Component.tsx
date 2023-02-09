@@ -30,8 +30,8 @@ export interface ComponentProps {
 const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const [isHovering, setIsHovering] = useState<boolean>(false);
 
-    let textColor = '#6b7280';
-    let descriptionColor = '#6b7280';
+    let textColor: string = '#6b7280';
+    let descriptionColor: string = '#6b7280';
 
     if (isHovering) {
         textColor = '#111827';
@@ -84,7 +84,8 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     }
 
     return (
-        <div className='cursor-pointer'
+        <div
+            className="cursor-pointer"
             onMouseOver={() => {
                 setIsHovering(true);
             }}
@@ -154,19 +155,21 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 <div
                     style={{
                         margin: 'auto',
-                        marginTop: props.data.icon ? "0.5rem" : "1rem"
+                        marginTop: props.data.icon ? '0.5rem' : '1rem',
                     }}
                 >
-                    {props.data.icon && <Icon
-                        icon={props.data.icon}
-                        style={{
-                            color: textColor,
-                            width: '1.5rem',
-                            height: '1.5rem',
-                            textAlign: 'center',
-                            margin: 'auto',
-                        }}
-                    />}
+                    {props.data.icon && (
+                        <Icon
+                            icon={props.data.icon}
+                            style={{
+                                color: textColor,
+                                width: '1.5rem',
+                                height: '1.5rem',
+                                textAlign: 'center',
+                                margin: 'auto',
+                            }}
+                        />
+                    )}
                     <p
                         style={{
                             color: textColor,

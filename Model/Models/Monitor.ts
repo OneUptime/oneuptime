@@ -24,7 +24,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import Label from './Label';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Label from './Label';
 import MonitorType from 'Common/Types/Monitor/MonitorType';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
 import MonitorStatus from './MonitorStatus';
@@ -68,7 +69,12 @@ import MonitorStatus from './MonitorStatus';
 @Entity({
     name: 'Monitor',
 })
-@TableMetadata({tableName: 'Monitor', singularName: 'Monitor', pluralName: 'Monitors', icon: IconProp.AltGlobe})
+@TableMetadata({
+    tableName: 'Monitor',
+    singularName: 'Monitor',
+    pluralName: 'Monitors',
+    icon: IconProp.AltGlobe,
+})
 export default class Monitor extends BaseModel {
     @ColumnAccessControl({
         create: [

@@ -13,8 +13,8 @@ import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import Route from 'Common/Types/API/Route';
 import SlugifyColumn from 'Common/Types/Database/SlugifyColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
-import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
+import IconProp from 'Common/Types/Icon/IconProp';
+import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAccessControl';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import ColumnType from 'Common/Types/Database/ColumnType';
@@ -47,7 +47,12 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 })
 @CrudApiEndpoint(new Route('/smtp-config'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({tableName: 'ProjectSMTPConfig', singularName: 'SMTP Config', pluralName: 'SMTP Configs', icon: IconProp.Email})
+@TableMetadata({
+    tableName: 'ProjectSMTPConfig',
+    singularName: 'SMTP Config',
+    pluralName: 'SMTP Configs',
+    icon: IconProp.Email,
+})
 @Entity({
     name: 'ProjectSMTPConfig',
 })

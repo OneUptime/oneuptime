@@ -53,7 +53,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
         Permission.CanEditProjectApiKey,
     ],
 })
-@TableMetadata({tableName: 'ApiKey', singularName: 'API Key', pluralName: 'API Keys', icon: IconProp.Code})
+@TableMetadata({
+    tableName: 'ApiKey',
+    singularName: 'API Key',
+    pluralName: 'API Keys',
+    icon: IconProp.Code,
+})
 export default class ApiKey extends BaseModel {
     @ColumnAccessControl({
         create: [

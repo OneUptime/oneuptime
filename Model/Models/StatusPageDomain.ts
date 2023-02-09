@@ -16,7 +16,8 @@ import UniqueColumnBy from 'Common/Types/Database/UniqueColumnBy';
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import StatusPage from './StatusPage';
+import IconProp from 'Common/Types/Icon/IconProp';
+import StatusPage from './StatusPage';
 import Domain from './Domain';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 
@@ -55,7 +56,12 @@ import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
     read: true,
 })
 @CrudApiEndpoint(new Route('/status-page-domain'))
-@TableMetadata({tableName: 'StatusPageDomain', singularName: 'Domain', pluralName: 'Domains', icon: IconProp.Globe})
+@TableMetadata({
+    tableName: 'StatusPageDomain',
+    singularName: 'Domain',
+    pluralName: 'Domains',
+    icon: IconProp.Globe,
+})
 @Entity({
     name: 'StatusPageDomain',
 })

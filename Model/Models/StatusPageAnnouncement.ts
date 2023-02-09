@@ -25,7 +25,8 @@ import TenantColumn from 'Common/Types/Database/TenantColumn';
 import CanAccessIfCanReadOn from 'Common/Types/Database/CanAccessIfCanReadOn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import StatusPage from './StatusPage';
+import IconProp from 'Common/Types/Icon/IconProp';
+import StatusPage from './StatusPage';
 
 @TenantColumn('projectId')
 @CanAccessIfCanReadOn('statusPages')
@@ -63,7 +64,12 @@ import IconProp from 'Common/Types/Icon/IconProp';import StatusPage from './Stat
 })
 @CrudApiEndpoint(new Route('/status-page-announcement'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({tableName: 'StatusPageAnnouncement', singularName: 'Status Page Announcement', pluralName: 'Status Page Announcements', icon: IconProp.Anouncement})
+@TableMetadata({
+    tableName: 'StatusPageAnnouncement',
+    singularName: 'Status Page Announcement',
+    pluralName: 'Status Page Announcements',
+    icon: IconProp.Anouncement,
+})
 @Entity({
     name: 'StatusPageAnnouncement',
 })

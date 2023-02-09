@@ -55,7 +55,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
     update: true,
     read: true,
 })
-@TableMetadata({tableName: 'Team', singularName: 'Team', pluralName: 'Teams', icon: IconProp.Team})
+@TableMetadata({
+    tableName: 'Team',
+    singularName: 'Team',
+    pluralName: 'Teams',
+    icon: IconProp.Team,
+})
 export default class Team extends BaseModel {
     @ColumnAccessControl({
         create: [

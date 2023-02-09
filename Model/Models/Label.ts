@@ -51,7 +51,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
 })
 @CrudApiEndpoint(new Route('/label'))
 @SlugifyColumn('name', 'slug')
-@TableMetadata({tableName: 'Label', singularName: 'Label', pluralName: 'Labels', icon: IconProp.Label})
+@TableMetadata({
+    tableName: 'Label',
+    singularName: 'Label',
+    pluralName: 'Labels',
+    icon: IconProp.Label,
+})
 @Entity({
     name: 'Label',
 })

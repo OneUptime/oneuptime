@@ -8,7 +8,8 @@ import AllowUserQueryWithoutTenant from 'Common/Types/Database/AllowUserQueryWit
 import CrudApiEndpoint from 'Common/Types/Database/CrudApiEndpoint';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import TenantColumn from 'Common/Types/Database/TenantColumn';
+import IconProp from 'Common/Types/Icon/IconProp';
+import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableColumn from 'Common/Types/Database/TableColumn';
 import TableColumnType from 'Common/Types/Database/TableColumnType';
 import CurrentUserCanAccessRecordBy from 'Common/Types/Database/CurrentUserCanAccessRecordBy';
@@ -63,7 +64,12 @@ import User from './User';
     update: true,
     read: true,
 })
-@TableMetadata({tableName: 'TeamMember', singularName: 'Team Member', pluralName: 'Team Members', icon: IconProp.User})
+@TableMetadata({
+    tableName: 'TeamMember',
+    singularName: 'Team Member',
+    pluralName: 'Team Members',
+    icon: IconProp.User,
+})
 export default class TeamMember extends BaseModel {
     @ColumnAccessControl({
         create: [

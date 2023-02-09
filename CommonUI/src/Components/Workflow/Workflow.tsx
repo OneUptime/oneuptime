@@ -30,7 +30,7 @@ import IconProp from 'Common/Types/Icon/IconProp';
 import { ComponentType } from 'Common/Types/Workflow/Component';
 import ComponentsModal from './ComponentModal';
 
-export const getPlaceholderTriggerNode = (): Node => {
+export const getPlaceholderTriggerNode: Function = (): Node => {
     return {
         id: ObjectID.generate().toString(),
         type: 'node',
@@ -74,7 +74,7 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     const onNodeClick: Function = (data: NodeDataProp) => {
         // if placeholder node is clicked then show modal.
 
-        if (data.nodeType == NodeType.PlaceholderNode) {
+        if (data.nodeType === NodeType.PlaceholderNode) {
             setShowComponentsType(data.componentType);
             setShowComponentsModal(true);
         }

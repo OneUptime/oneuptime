@@ -24,7 +24,8 @@ import ColumnAccessControl from 'Common/Types/Database/AccessControl/ColumnAcces
 import TenantColumn from 'Common/Types/Database/TenantColumn';
 import TableMetadata from 'Common/Types/Database/TableMetadata';
 import EnableWorkflow from 'Common/Types/Model/EnableWorkflow';
-import IconProp from 'Common/Types/Icon/IconProp';import Monitor from './Monitor';
+import IconProp from 'Common/Types/Icon/IconProp';
+import Monitor from './Monitor';
 import IncidentState from './IncidentState';
 import MonitorStatus from './MonitorStatus';
 import AccessControlColumn from 'Common/Types/Database/AccessControlColumn';
@@ -72,7 +73,12 @@ import IncidentSeverity from './IncidentSeverity';
     update: true,
     read: true,
 })
-@TableMetadata({tableName: 'Incident', singularName: 'Incident', pluralName: 'Incidents', icon: IconProp.Alert})
+@TableMetadata({
+    tableName: 'Incident',
+    singularName: 'Incident',
+    pluralName: 'Incidents',
+    icon: IconProp.Alert,
+})
 export default class Incident extends BaseModel {
     @ColumnAccessControl({
         create: [

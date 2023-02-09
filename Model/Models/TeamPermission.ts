@@ -63,7 +63,12 @@ import IconProp from 'Common/Types/Icon/IconProp';
     update: true,
     read: true,
 })
-@TableMetadata({tableName: 'TeamPermission', singularName: 'Team Permission', pluralName: 'Team Permissions', icon: IconProp.Lock})
+@TableMetadata({
+    tableName: 'TeamPermission',
+    singularName: 'Team Permission',
+    pluralName: 'Team Permissions',
+    icon: IconProp.Lock,
+})
 export default class TeamPermission extends BaseModel {
     @ColumnAccessControl({
         create: [
