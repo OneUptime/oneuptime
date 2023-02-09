@@ -3,8 +3,9 @@ import MonitorUptimeGraph from 'CommonUI/src/Components/MonitorGraphs/Uptime';
 import React, { FunctionComponent, ReactElement } from 'react';
 import MonitorStatus from 'Model/Models/MonitorStatus';
 import MonitorStatusTimelne from 'Model/Models/MonitorStatusTimeline';
-import Icon, { IconProp } from 'CommonUI/src/Components/Icon/Icon';
+import Icon from 'CommonUI/src/Components/Icon/Icon';
 import Tooltip from 'CommonUI/src/Components/Tooltip/Toolip';
+import IconProp from 'Common/Types/Icon/IconProp';
 
 export interface ComponentProps {
     monitorName: string;
