@@ -1,0 +1,1 @@
+PORT={{ .Env.API_DOCS_PORT }}
