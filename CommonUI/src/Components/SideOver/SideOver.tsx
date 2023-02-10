@@ -10,6 +10,7 @@ export interface ComponentProps {
     children: ReactElement | Array<ReactElement>;
     submitButtonDisabled?: boolean | undefined;
     submitButtonText?: string | undefined;
+    leftFooterElement?: ReactElement | undefined;
 }
 
 const SideOver: FunctionComponent<ComponentProps> = (
@@ -69,7 +70,10 @@ const SideOver: FunctionComponent<ComponentProps> = (
                                     </div>
                                 </div>
 
-                                <div className="flex-shrink-0 border-t border-gray-200 px-4 py-5 sm:px-6">
+                                <div className="flex-shrink-0 border-t border-gray-200 px-4 py-5 sm:px-6 flex justify-between">
+                                    <div className="flex justify-start space-x-3">
+                                        {props.leftFooterElement}
+                                    </div>
                                     <div className="flex justify-end space-x-3">
                                         <button
                                             onClick={() => {

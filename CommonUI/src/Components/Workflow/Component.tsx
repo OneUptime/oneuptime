@@ -19,7 +19,6 @@ export interface NodeDataProp {
     error: string;
     id: string;
     nodeType: NodeType;
-    onDeleteClick?: (id: string) => void | undefined;
     onClick?: (node: NodeDataProp) => void | undefined;
     isPreview?: boolean | undefined; // is this used to show in the components modal?
     metadata: ComponentMetadata;
@@ -145,40 +144,6 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                 }
             }}
         >
-            {!props.data.isPreview &&
-                isHovering &&
-                props.data.nodeType !== NodeType.PlaceholderNode && (
-                    <div
-                        style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '100px',
-                            background: '#ef4444',
-                            position: 'absolute',
-                            top: '-9px',
-                            left: '228px',
-                            cursor: 'pointer',
-                        }}
-                        onClick={() => {
-                            if (props.data.onDeleteClick) {
-                                props.data.onDeleteClick(props.data.id);
-                            }
-                        }}
-                    >
-                        <Icon
-                            icon={IconProp.Close}
-                            style={{
-                                color: 'white',
-                                width: '1rem',
-                                height: '1rem',
-                                textAlign: 'center',
-                                margin: 'auto',
-                                marginTop: '2px',
-                            }}
-                            thick={ThickProp.Thick}
-                        />
-                    </div>
-                )}
 
             {!props.data.isPreview &&
                 props.data.error &&
@@ -195,9 +160,7 @@ const Node: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             cursor: 'pointer',
                         }}
                         onClick={() => {
-                            if (props.data.onDeleteClick) {
-                                props.data.onDeleteClick(props.data.id);
-                            }
+                            
                         }}
                     >
                         <Icon

@@ -102,15 +102,16 @@ const Delete: FunctionComponent<PageComponentProps> = (
                                 continue;
                             }
 
-                            let componentMetdata: ComponentMetadata | undefined =
-                                componentsAndCategories.components.find(
-                                    (component: ComponentMetadata) => {
-                                        return (
-                                            component.id ===
-                                            nodes[i]?.data.metadataId
-                                        );
-                                    }
-                                );
+                            let componentMetdata:
+                                | ComponentMetadata
+                                | undefined = componentsAndCategories.components.find(
+                                (component: ComponentMetadata) => {
+                                    return (
+                                        component.id ===
+                                        nodes[i]?.data.metadataId
+                                    );
+                                }
+                            );
 
                             if (!componentMetdata) {
                                 componentMetdata =

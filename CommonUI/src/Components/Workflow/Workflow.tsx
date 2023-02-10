@@ -154,7 +154,6 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     const [nodes, setNodes, onNodesChange] = useNodesState(
         props.initialNodes.map((node: Node) => {
-            node.data.onDeleteClick = deleteNode;
             node.data.onClick = onNodeClick;
             return node;
         })
@@ -335,6 +334,9 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
                             ? selectedNodeData.metadata.title
                             : 'Component Properties'
                     }
+                    onDelete={(component: NodeDataProp)=> {
+                        deleteNode(component.id);
+                    }}
                     description={
                         selectedNodeData &&
                         selectedNodeData.metadata.description

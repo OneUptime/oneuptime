@@ -42,7 +42,11 @@ export default class Text {
         return tempWord;
     }
 
-    public static replaceAt(index: number, word: string, replacement: string): string {
+    public static replaceAt(
+        index: number,
+        word: string,
+        replacement: string
+    ): string {
         return (
             word.substring(0, index) +
             replacement +
